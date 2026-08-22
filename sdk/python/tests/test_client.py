@@ -189,6 +189,36 @@ def test_register_step_conflict():
 
 
 @responses.activate
+def test_register_step_update_error(monkeypatch):
+    import argyll.client as client_module
+    from argyll.types import HTTPAction, HTTPConfig, Step
+
+    monkeypatch.setattr(client_module.time, "sleep", lambda _: None)
+    responses.add(
+        responses.POST,
+        "http://localhost:8080/engine/step",
+        status=409,
+    )
+    responses.add(
+        responses.PUT,
+        "http://localhost:8080/engine/step/test-step",
+        status=500,
+    )
+    step = Step(
+        id="test-step",
+        name="Test",
+        type=StepType.SYNC,
+        http=HTTPConfig(invoke=HTTPAction(endpoint="http://step")),
+    )
+
+    try:
+        Client().register_step(step)
+        assert False, "Should have raised ClientError"
+    except ClientError as e:
+        assert e.status_code == 500
+
+
+@responses.activate
 def test_register_step_retry(monkeypatch):
     import argyll.client as client_module
 
@@ -311,14 +341,60 @@ def test_parse_step_with_all_fields():
                     "name": "Complex Step",
                     "type": "async",
                     "attributes": {
-                        "input": {"role": "required", "type": "string"},
-                        "output": {"role": "output", "type": "number"},
+                        "input": {
+                            "role": "required",
+                            "type": "string",
+                            "required": {
+                                "collect": "all",
+                                "for_each": True,
+                                "match": {
+                                    "language": "lua",
+                                    "script": "return true",
+                                },
+                                "mapping": {
+                                    "name": "source",
+                                    "script": {
+                                        "language": "lua",
+                                        "script": "return value",
+                                    },
+                                },
+                            },
+                        },
+                        "optional": {
+                            "role": "optional",
+                            "type": "string",
+                            "optional": {
+                                "default": '"fallback"',
+                                "deadline": 1000,
+                            },
+                        },
+                        "const": {
+                            "role": "const",
+                            "type": "string",
+                            "const": {"value": '"fixed"'},
+                        },
+                        "meta": {
+                            "role": "meta",
+                            "type": "string",
+                            "meta": {"key": "flow_id"},
+                        },
+                        "output": {
+                            "role": "output",
+                            "type": "number",
+                            "output": {"mapping": {"name": "result"}},
+                        },
                     },
                     "labels": {"env": "prod"},
                     "http": {
                         "invoke": {
                             "endpoint": "http://localhost:8081/complex",
+                            "method": "POST",
                             "timeout": 5000,
+                        },
+                        "compensate": {
+                            "endpoint": "http://localhost:8081/compensate",
+                            "method": "POST",
+                            "timeout": 2000,
                         },
                         "health": "http://localhost:8081/health",
                     },
@@ -349,6 +425,12 @@ def test_parse_step_with_all_fields():
     assert step.id == "complex-step"
     assert step.http is not None
     assert step.http.invoke.timeout == 5000
+    assert step.http.compensate is not None
+    assert step.attributes["input"].required is not None
+    assert step.attributes["optional"].optional is not None
+    assert step.attributes["const"].const is not None
+    assert step.attributes["meta"].meta is not None
+    assert step.attributes["output"].output is not None
     assert step.script is not None
     assert step.predicate is not None
     assert step.work_config is not None

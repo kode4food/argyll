@@ -844,6 +844,124 @@ func TestEqualStep(t *testing.T) {
 	as.False(step1.Equal(step3))
 }
 
+func TestStepEqualRemainingFields(t *testing.T) {
+	as := assert.New(t)
+	base := func() *api.Step {
+		return &api.Step{
+			ID:         "test",
+			Name:       "Test",
+			Type:       api.StepTypeSync,
+			Attributes: api.AttributeSpecs{},
+			HTTP: &api.HTTPConfig{
+				Invoke: api.HTTPAction{Endpoint: "http://step"},
+			},
+		}
+	}
+
+	tests := []struct {
+		change func(*api.Step)
+		name   string
+	}{
+		{name: "memoizable", change: func(s *api.Step) { s.Memoizable = true }},
+		{name: "flow", change: func(s *api.Step) {
+			s.Flow = &api.FlowConfig{Goals: []api.StepID{"goal"}}
+		}},
+		{name: "script", change: func(s *api.Step) {
+			s.Script = &api.ScriptConfig{
+				Language: api.ScriptLangLua,
+				Script:   "x",
+			}
+		}},
+		{name: "labels", change: func(s *api.Step) {
+			s.Labels = api.Labels{"team": "core"}
+		}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			left := base()
+			right := base()
+			tt.change(right)
+			as.False(left.Equal(right))
+		})
+	}
+}
+
+func TestCompensateParamsAndTimeout(t *testing.T) {
+	as := assert.New(t)
+	step := &api.Step{
+		ID:   "test",
+		Name: "Test",
+		Type: api.StepTypeSync,
+		HTTP: &api.HTTPConfig{
+			Invoke: api.HTTPAction{Endpoint: "http://step/{input}"},
+			Compensate: &api.HTTPAction{
+				Endpoint: "http://step/{input}/{result}",
+			},
+		},
+		Attributes: api.AttributeSpecs{
+			"input": {
+				Role: api.RoleRequired,
+				Type: api.TypeString,
+				Required: &api.RequiredConfig{
+					Mapping: &api.MappingConfig{Name: "input"},
+				},
+			},
+			"result": {Role: api.RoleOutput, Type: api.TypeString},
+			"fixed": {
+				Role:  api.RoleConst,
+				Type:  api.TypeString,
+				Const: &api.ConstConfig{Value: `"fixed"`},
+			},
+		},
+	}
+	as.NoError(step.Validate())
+
+	step.HTTP.Compensate.Endpoint = ""
+	as.ErrorIs(step.Validate(), api.ErrStepEndpointEmpty)
+	step.HTTP.Compensate.Endpoint = "http://step/{input}/{result}"
+
+	step.HTTP.Compensate.Method = "PATCH"
+	as.ErrorIs(step.Validate(), api.ErrInvalidHTTPMethod)
+	step.HTTP.Compensate.Method = ""
+
+	step.HTTP.Invoke.Endpoint = "http://step/{missing}"
+	as.ErrorIs(step.Validate(), api.ErrUnknownURLParam)
+	step.HTTP.Invoke.Endpoint = "http://step/{input}"
+
+	step.HTTP.Compensate.Endpoint = "http://step/{missing}"
+	as.ErrorIs(step.Validate(), api.ErrUnknownURLParam)
+	step.HTTP.Compensate.Endpoint = "http://step/{input}/{result}"
+
+	step.WorkConfig = &api.WorkConfig{Parallelism: -1}
+	as.ErrorIs(step.Validate(), api.ErrInvalidParallelism)
+	step.WorkConfig = nil
+
+	step.HTTP.Invoke.Timeout = 100
+	step.HTTP.Compensate.Timeout = 200
+	as.Equal(int64(200), step.HTTP.CompensateTimeout())
+
+	_, err := step.HashKey()
+	as.NoError(err)
+}
+
+func TestStepInvalidAttributes(t *testing.T) {
+	as := assert.New(t)
+	step := helpers.NewTestStep()
+	step.Attributes["nil"] = nil
+	as.ErrorIs(step.Validate(), api.ErrAttributeNil)
+
+	step = helpers.NewTestStep()
+	step.Attributes["bad"] = &api.AttributeSpec{Role: "bad"}
+	as.ErrorIs(step.Validate(), api.ErrInvalidAttributeRole)
+}
+
+func TestLabelsEqualMismatch(t *testing.T) {
+	as := assert.New(t)
+	as.False(api.Labels{"a": "1"}.Equal(api.Labels{}))
+	as.False(api.Labels{"a": "1"}.Equal(api.Labels{"a": "2"}))
+}
+
 func TestLabelsApply(t *testing.T) {
 	as := assert.New(t)
 

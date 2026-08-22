@@ -9,7 +9,9 @@ from argyll.types import (
     HTTPConfig,
     InputCollect,
     MappingConfig,
+    MetaConfig,
     OptionalConfig,
+    OutputConfig,
     ProblemDetails,
     RequiredConfig,
     ScriptConfig,
@@ -321,3 +323,56 @@ def test_attribute_spec_no_optional_fields():
     assert "optional" not in result
     assert "const" not in result
     assert "output" not in result
+
+
+def test_nested_optional_fields():
+    script = ScriptConfig(language=ScriptLanguage.LUA, script="return value")
+    optional = AttributeSpec(
+        role=AttributeRole.OPTIONAL,
+        type=AttributeType.STRING,
+        optional=OptionalConfig(
+            collect=InputCollect.ALL,
+            for_each=True,
+            deadline=1000,
+            mapping=MappingConfig(script=script),
+        ),
+    )
+    meta = AttributeSpec(
+        role=AttributeRole.META,
+        type=AttributeType.STRING,
+        meta=MetaConfig(key="flow_id"),
+    )
+    output = AttributeSpec(
+        role=AttributeRole.OUTPUT,
+        type=AttributeType.STRING,
+        output=OutputConfig(mapping=MappingConfig(name="result")),
+    )
+
+    assert optional.to_dict()["optional"] == {
+        "collect": "all",
+        "for_each": True,
+        "deadline": 1000,
+        "mapping": {"script": script.to_dict()},
+    }
+    assert meta.to_dict()["meta"] == {"key": "flow_id"}
+    assert output.to_dict()["output"] == {"mapping": {"name": "result"}}
+
+
+def test_remaining_serialization_options():
+    from argyll.types import BackoffType, WorkConfig
+
+    assert (
+        WorkConfig(backoff_type=BackoffType.FIXED, parallelism=2).to_dict()[
+            "parallelism"
+        ]
+        == 2
+    )
+    assert ProblemDetails(
+        status=599, detail="unknown", instance="flow/1"
+    ).to_dict() == {
+        "type": "about:blank",
+        "title": "",
+        "status": 599,
+        "detail": "unknown",
+        "instance": "flow/1",
+    }

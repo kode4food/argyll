@@ -725,6 +725,124 @@ func TestEqualEdgeCases(t *testing.T) {
 	})
 }
 
+func TestEqualNilConfigs(t *testing.T) {
+	tests := []struct {
+		left  *api.AttributeSpec
+		right *api.AttributeSpec
+		name  string
+	}{
+		{
+			name: "optional",
+			left: &api.AttributeSpec{Role: api.RoleOptional},
+			right: &api.AttributeSpec{
+				Role:     api.RoleOptional,
+				Optional: &api.OptionalConfig{},
+			},
+		},
+		{
+			name: "const",
+			left: &api.AttributeSpec{Role: api.RoleConst},
+			right: &api.AttributeSpec{
+				Role:  api.RoleConst,
+				Const: &api.ConstConfig{},
+			},
+		},
+		{
+			name: "meta",
+			left: &api.AttributeSpec{Role: api.RoleMeta},
+			right: &api.AttributeSpec{
+				Role: api.RoleMeta,
+				Meta: &api.MetaConfig{},
+			},
+		},
+		{
+			name: "output",
+			left: &api.AttributeSpec{Role: api.RoleOutput},
+			right: &api.AttributeSpec{
+				Role:   api.RoleOutput,
+				Output: &api.OutputConfig{},
+			},
+		},
+		{
+			name: "mapping",
+			left: &api.AttributeSpec{
+				Role: api.RoleOutput, Output: &api.OutputConfig{},
+			},
+			right: &api.AttributeSpec{
+				Role: api.RoleOutput,
+				Output: &api.OutputConfig{
+					Mapping: &api.MappingConfig{Name: "result"},
+				},
+			},
+		},
+		{
+			name: "match script",
+			left: &api.AttributeSpec{
+				Role: api.RoleRequired, Required: &api.RequiredConfig{},
+			},
+			right: &api.AttributeSpec{
+				Role: api.RoleRequired,
+				Required: &api.RequiredConfig{
+					Match: &api.ScriptConfig{
+						Language: api.ScriptLangLua,
+						Script:   "x",
+					},
+				},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.False(t, tt.left.Equal(tt.right))
+		})
+	}
+}
+
+func TestDefaultTypeMismatch(t *testing.T) {
+	tests := []struct {
+		typeName api.AttributeType
+		value    string
+	}{
+		{typeName: api.TypeString, value: "1"},
+		{typeName: api.TypeBoolean, value: `"true"`},
+		{typeName: api.TypeObject, value: "[]"},
+		{typeName: api.TypeArray, value: "{}"},
+		{typeName: api.TypeNull, value: "false"},
+	}
+
+	for _, tt := range tests {
+		spec := &api.AttributeSpec{
+			Role: api.RoleOptional,
+			Type: tt.typeName,
+			Optional: &api.OptionalConfig{
+				Default: tt.value,
+			},
+		}
+		assert.ErrorIs(t, spec.Validate("value"), api.ErrInvalidDefaultValue)
+	}
+}
+
+func TestOptionalInputValidation(t *testing.T) {
+	forEach := &api.AttributeSpec{
+		Role: api.RoleOptional,
+		Type: api.TypeString,
+		Optional: &api.OptionalConfig{
+			ForEach: true,
+		},
+	}
+	assert.ErrorIs(t, forEach.Validate("value"), api.ErrForEachRequiresArray)
+
+	collect := &api.AttributeSpec{
+		Role: api.RoleOptional,
+		Type: api.TypeString,
+		Optional: &api.OptionalConfig{
+			Collect: "invalid",
+		},
+	}
+	assert.ErrorIs(t, collect.Validate("value"), api.ErrInvalidInputCollect)
+}
+
 func TestAttributeSpecsEqual(t *testing.T) {
 	specs1 := api.AttributeSpecs{
 		"arg1": {Role: api.RoleRequired, Type: api.TypeString},

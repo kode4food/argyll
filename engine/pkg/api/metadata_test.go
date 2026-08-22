@@ -50,6 +50,13 @@ func TestMetadataGetString(t *testing.T) {
 		assert.True(t, ok)
 		assert.Equal(t, api.FlowID("parent-flow"), val)
 	})
+
+	t.Run("returns false for empty typed string", func(t *testing.T) {
+		meta := api.Metadata{"parent": api.FlowID("")}
+		val, ok := meta.GetString[api.FlowID]("parent")
+		assert.False(t, ok)
+		assert.Equal(t, api.FlowID(""), val)
+	})
 }
 
 func TestMetadataApply(t *testing.T) {

@@ -2,6 +2,7 @@ package gen_test
 
 import (
 	"context"
+	"encoding/json/jsontext"
 	"errors"
 	"net/http"
 	"net/http/httptest"
@@ -26,6 +27,8 @@ type (
 		Total   int
 		Doubled int
 	}
+
+	failCodec struct{}
 )
 
 var errRefused = errors.New("refused")
@@ -91,6 +94,17 @@ func TestSyncBadInputs(t *testing.T) {
 	w := invoke(h, `{"left":"two"}`)
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 	assert.Contains(t, w.Body.String(), gen.ErrInvalidInputs.Error())
+}
+
+func TestSyncBadOutput(t *testing.T) {
+	h := gen.Sync(sumArgsCodec(), failCodec{},
+		func(sumArgs) (sumResult, error) {
+			return sumResult{}, nil
+		})
+
+	w := invoke(h, `{"left":1,"right":1}`)
+	assert.Equal(t, http.StatusInternalServerError, w.Code)
+	assert.Contains(t, w.Body.String(), errRefused.Error())
 }
 
 func TestSyncMethodNotAllowed(t *testing.T) {
@@ -235,4 +249,12 @@ func invoke(h http.HandlerFunc, body string) *httptest.ResponseRecorder {
 	w := httptest.NewRecorder()
 	h(w, r)
 	return w
+}
+
+func (failCodec) Decode(*jsontext.Decoder) (sumResult, error) {
+	return sumResult{}, errRefused
+}
+
+func (failCodec) Encode(*jsontext.Encoder, sumResult) error {
+	return errRefused
 }

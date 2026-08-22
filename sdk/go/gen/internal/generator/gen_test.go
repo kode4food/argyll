@@ -24,6 +24,7 @@ func TestNames(t *testing.T) {
 	assert.Equal(t, "Calculate Risk", generator.TitleCase("CalculateRisk"))
 	assert.Equal(t, "CustomerId", generator.ExportedName("customer-id"))
 	assert.Equal(t, "Score", generator.ExportedName("score"))
+	assert.Empty(t, generator.ExportedName("---"))
 }
 
 func TestParseOptions(t *testing.T) {
@@ -335,6 +336,174 @@ func TestDiagnostics(t *testing.T) {
 	}
 }
 
+func TestAdditionalDiagnostics(t *testing.T) {
+	tests := map[string]struct {
+		src  string
+		want string
+	}{
+		"step input is a struct": {
+			src:  "//argyll:step\nfunc Bad(in int) {}",
+			want: "int is not a struct",
+		},
+		"step output is a struct": {
+			src: "//argyll:step\n" +
+				"func Bad(in struct{}) int { return 0 }",
+			want: "int is not a struct",
+		},
+		"step has at most two results": {
+			src: "//argyll:step\n" +
+				"func Bad(in struct{}) (int, int) { return 0, 0 }",
+			want: "returns more than an outputs struct and an error",
+		},
+		"directive is not allowed on a method": {
+			src: "type T struct{}\n" +
+				"//argyll:step\nfunc (T) Bad(in struct{}) {}",
+			want: "must be a plain generic-free function",
+		},
+		"directive is not allowed on a generic function": {
+			src: "//argyll:step\n" +
+				"func Bad[T any](in struct{}) {}",
+			want: "must be a plain generic-free function",
+		},
+		"wrap input count matches": {
+			src: "//argyll:wrap (left) -> ()\n" +
+				"func Bad(left, right int) {}",
+			want: "declares 1 inputs but takes 2",
+		},
+		"wrap inputs are parenthesized": {
+			src:  "//argyll:wrap () -> result\nfunc Bad() int { return 0 }",
+			want: "attributes \"result\" are not parenthesized",
+		},
+		"wrap inputs have a closing parenthesis": {
+			src:  "//argyll:wrap (left -> ()\nfunc Bad(left int) {}",
+			want: "attributes \"(left\" are not parenthesized",
+		},
+		"wrap inputs have names": {
+			src:  "//argyll:wrap (left, ) -> ()\nfunc Bad(left int) {}",
+			want: "bad attribute name",
+		},
+		"memoize is boolean": {
+			src: "//argyll:step;memoize:sometimes\n" +
+				"func Bad(in struct{}) {}",
+			want: "memoize\" needs true or false",
+		},
+		"timeout is milliseconds": {
+			src: "//argyll:step;timeout:soon\n" +
+				"func Bad(in struct{}) {}",
+			want: "timeout\" needs milliseconds",
+		},
+		"props need options": {
+			src: "//argyll:step\n//argyll:props\n" +
+				"func Bad(in struct{}) {}",
+			want: "takes key:value options",
+		},
+		"props have no head": {
+			src: "//argyll:step\n//argyll:props stray;name:Bad\n" +
+				"func Bad(in struct{}) {}",
+			want: "takes key:value options",
+		},
+		"roles are known": {
+			src: "type In struct { Value string `argyll:\";role:weird\"` }\n" +
+				"//argyll:step\nfunc Bad(in In) {}",
+			want: "unknown role",
+		},
+		"collect needs an input": {
+			src: "type In struct { Value string " +
+				"`argyll:\";role:const;collect:all\"` }\n" +
+				"//argyll:step\nfunc Bad(in In) {}",
+			want: "collect\" needs role",
+		},
+		"for each must be true": {
+			src: "type In struct { Value string " +
+				"`argyll:\";for_each:sometimes\"` }\n" +
+				"//argyll:step\nfunc Bad(in In) {}",
+			want: "for_each\" needs true or false",
+		},
+		"match needs a required input": {
+			src: "type In struct { Value *string " +
+				"`argyll:\";match:return true\"` }\n" +
+				"//argyll:step\nfunc Bad(in In) {}",
+			want: "match\" needs role",
+		},
+		"mapping needs an input or output": {
+			src: "type In struct { Value string " +
+				"`argyll:\";role:const;mapping:x\"` }\n" +
+				"//argyll:step\nfunc Bad(in In) {}",
+			want: "mapping\" needs role",
+		},
+		"wrap input type is supported": {
+			src:  "//argyll:wrap (value) -> ()\nfunc Bad(value chan int) {}",
+			want: "unsupported attribute type",
+		},
+		"wrap output type is supported": {
+			src: "//argyll:wrap () -> (value)\n" +
+				"func Bad() chan int { return nil }",
+			want: "unsupported attribute type",
+		},
+		"nested types are supported": {
+			src: "type In struct { Value []chan int }\n" +
+				"//argyll:step\nfunc Bad(in In) {}",
+			want: "unsupported attribute type",
+		},
+		"basic types are supported": {
+			src: "type In struct { Value complex64 }\n" +
+				"//argyll:step\nfunc Bad(in In) {}",
+			want: "unsupported attribute type",
+		},
+		"step directive options are valid": {
+			src:  "//argyll:step;bad\nfunc Bad(in struct{}) {}",
+			want: "invalid argyll option",
+		},
+		"props options are valid": {
+			src: "//argyll:step\n//argyll:props;bad\n" +
+				"func Bad(in struct{}) {}",
+			want: "invalid argyll option",
+		},
+		"default needs an optional input": {
+			src: "type In struct { Value string `argyll:\";default:x\"` }\n" +
+				"//argyll:step\nfunc Bad(in In) {}",
+			want: "default\" needs role",
+		},
+		"value needs a const": {
+			src: "type In struct { Value string `argyll:\";value:x\"` }\n" +
+				"//argyll:step\nfunc Bad(in In) {}",
+			want: "value\" needs role",
+		},
+		"key needs metadata": {
+			src: "type In struct { Value string `argyll:\";key:x\"` }\n" +
+				"//argyll:step\nfunc Bad(in In) {}",
+			want: "key\" needs role",
+		},
+	}
+
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
+			_, err := renderSource(t, tt.src)
+			assert.ErrorContains(t, err, tt.want)
+		})
+	}
+}
+
+func TestStepShapesAndProps(t *testing.T) {
+	src := "import \"errors\"\n" +
+		"type In struct {\n" +
+		"Required string `argyll:\";mapping:source\"`\n" +
+		"Optional *string " +
+		"`argyll:\";collect:all;for_each:true;mapping:fallback\"`\n" +
+		"}\n" +
+		"type Out struct { Result string `argyll:\";mapping:result\"` }\n" +
+		"//argyll:step\nfunc NoResult(in In) {}\n" +
+		"//argyll:step\nfunc ErrorOnly(in In) error { " +
+		"return errors.New(\"bad\") }\n" +
+		"//argyll:step\nfunc ResultOnly(in In) Out { return Out{} }\n"
+
+	out, err := renderSource(t, src)
+	assert.NoError(t, err)
+	assert.Contains(t, string(out), "NoResult(in)")
+	assert.Contains(t, string(out), "return struct{}{}, ErrorOnly(in)")
+	assert.Contains(t, string(out), "return ResultOnly(in), nil")
+}
+
 func TestGenerateIsIdempotent(t *testing.T) {
 	_, err := generator.Generate(".", "../../../example")
 	assert.NoError(t, err)
@@ -355,6 +524,28 @@ func TestGenerateRemovesStaleFile(t *testing.T) {
 	assert.NoFileExists(t, path)
 }
 
+func TestGenerateTemporaryPackage(t *testing.T) {
+	path := writeSource(t, "//argyll:step\nfunc Run(in struct{}) {}")
+	written, err := generator.Generate(".", "file="+path)
+	assert.NoError(t, err)
+	assert.Len(t, written, 1)
+
+	written, err = generator.Generate(".", "file="+path)
+	assert.NoError(t, err)
+	assert.Empty(t, written)
+}
+
+func TestGenerateError(t *testing.T) {
+	path := writeSource(t, "//argyll:step\nfunc Bad(in int) {}")
+	_, err := generator.Generate(".", "file="+path)
+	assert.Error(t, err)
+}
+
+func TestLoadError(t *testing.T) {
+	_, err := generator.Load(filepath.Join(t.TempDir(), "missing"), ".")
+	assert.ErrorIs(t, err, generator.ErrLoadFailed)
+}
+
 func TestLabels(t *testing.T) {
 	byID := steps(t, "../../../example")
 
@@ -373,6 +564,23 @@ func render(t *testing.T, pattern string) ([]byte, error) {
 	assert.NoError(t, err)
 	assert.Len(t, pkgs, 1)
 	return generator.Render(pkgs[0])
+}
+
+func renderSource(t *testing.T, src string) ([]byte, error) {
+	t.Helper()
+	path := writeSource(t, src)
+	pkgs, err := generator.Load(".", "file="+path)
+	assert.NoError(t, err)
+	assert.Len(t, pkgs, 1)
+	return generator.Render(pkgs[0])
+}
+
+func writeSource(t *testing.T, src string) string {
+	t.Helper()
+	path := filepath.Join(t.TempDir(), "steps.go")
+	content := "package sample\n\n" + src + "\n"
+	assert.NoError(t, os.WriteFile(path, []byte(content), generator.FileMode))
+	return path
 }
 
 // steps decodes the specifications the generator emitted, which are the same

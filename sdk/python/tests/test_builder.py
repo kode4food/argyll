@@ -627,6 +627,18 @@ def _make_step(**overrides):
             flow=FlowConfig(goals=["g1"]),
             script=ScriptConfig(language=ScriptLanguage.LUA, script="x"),
         ),
+        _make_step(
+            http=HTTPConfig(
+                invoke=HTTPAction(endpoint="http://localhost:8081/test"),
+                compensate=HTTPAction(endpoint=""),
+            ),
+        ),
+        _make_step(
+            type=StepType.FLOW,
+            flow=FlowConfig(goals=["g1"]),
+            script=ScriptConfig(language=ScriptLanguage.LUA, script="x"),
+            http=None,
+        ),
         # empty attribute name
         _make_step(
             attributes={

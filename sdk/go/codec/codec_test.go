@@ -1,6 +1,8 @@
 package codec_test
 
 import (
+	"encoding/json/jsontext"
+	"errors"
 	"strings"
 	"testing"
 
@@ -22,9 +24,12 @@ type (
 		Name     string
 		Children []node
 	}
+
+	failCodec struct{}
 )
 
 var (
+	errCodec  = errors.New("codec failed")
 	nodeImpl  codec.Codec[node]
 	nodeCodec = codec.Ref(&nodeImpl)
 )
@@ -229,4 +234,30 @@ func TestRefRecursion(t *testing.T) {
 	var out strings.Builder
 	assert.NoError(t, codec.EncodeTo(nodeCodec, &out, v))
 	assert.JSONEq(t, src, out.String())
+}
+
+func TestCompositeCodecErrors(t *testing.T) {
+	fail := failCodec{}
+
+	_, err := codec.DecodeFrom(codec.Slice[string](fail),
+		strings.NewReader(`["x"]`))
+	assert.ErrorIs(t, err, errCodec)
+
+	_, err = codec.DecodeFrom(codec.Map[string](fail),
+		strings.NewReader(`{"x":"y"}`))
+	assert.ErrorIs(t, err, errCodec)
+
+	var out strings.Builder
+	assert.ErrorIs(t, codec.EncodeTo(codec.Slice[string](fail), &out,
+		[]string{"x"}), errCodec)
+	assert.ErrorIs(t, codec.EncodeTo(codec.Map[string](fail), &out,
+		map[string]string{"x": "y"}), errCodec)
+}
+
+func (failCodec) Decode(*jsontext.Decoder) (string, error) {
+	return "", errCodec
+}
+
+func (failCodec) Encode(*jsontext.Encoder, string) error {
+	return errCodec
 }
