@@ -39,6 +39,8 @@ func main() {
 
 Generated code lands in `zz_argyll_gen.go` next to the source, and the generated `ArgyllSteps()` returns every `gen.StepDef` in the package.
 
+One `go:generate` line is enough for a whole tree. The generator scans every file of every package matching the pattern, so `./...` reaches the directive's own package and everything beneath it, writing a `zz_argyll_gen.go` into each package that declares Steps. Extra `go:generate` lines are safe: a second pass over the same package produces the same bytes and leaves the file alone.
+
 `zz_argyll_gen.go` is a build artifact rather than source: it is gitignored and rebuilt by `make generate`, which `make check` and `make test` depend on, so it always matches the directives and the generator. Docker builds run `go generate ./...` ahead of `go build` for the same reason.
 
 ## Directives

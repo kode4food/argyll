@@ -199,30 +199,6 @@ func makeStepHandler(
 	}
 }
 
-func executeCompensateWithRecovery(
-	ctx *StepContext, handler CompensateHandler, body compensateBody,
-) (httpErr *HTTPError) {
-	defer func() {
-		if r := recover(); r != nil {
-			slog.Error("Compensate handler panicked",
-				log.StepID(ctx.StepID),
-				log.Error(ErrHandlerPanic),
-				slog.String("panic", fmt.Sprintf("%v", r)))
-			httpErr = NewHTTPError(
-				http.StatusInternalServerError,
-				fmt.Sprintf("%s: %v", ErrHandlerPanic, r),
-			)
-		}
-	}()
-	if err := handler(ctx, body.Input, body.Output); err != nil {
-		if he, ok := errors.AsType[*HTTPError](err); ok {
-			return he
-		}
-		return NewHTTPError(http.StatusInternalServerError, err.Error())
-	}
-	return nil
-}
-
 func executeStepWithRecovery(
 	ctx *StepContext, handler StepHandler, args api.Args,
 ) (outputs api.Args, httpErr *HTTPError) {
@@ -248,6 +224,30 @@ func executeStepWithRecovery(
 		return nil, NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
 	return outputs, nil
+}
+
+func executeCompensateWithRecovery(
+	ctx *StepContext, handler CompensateHandler, body compensateBody,
+) (httpErr *HTTPError) {
+	defer func() {
+		if r := recover(); r != nil {
+			slog.Error("Compensate handler panicked",
+				log.StepID(ctx.StepID),
+				log.Error(ErrHandlerPanic),
+				slog.String("panic", fmt.Sprintf("%v", r)))
+			httpErr = NewHTTPError(
+				http.StatusInternalServerError,
+				fmt.Sprintf("%s: %v", ErrHandlerPanic, r),
+			)
+		}
+	}()
+	if err := handler(ctx, body.Input, body.Output); err != nil {
+		if he, ok := errors.AsType[*HTTPError](err); ok {
+			return he
+		}
+		return NewHTTPError(http.StatusInternalServerError, err.Error())
+	}
+	return nil
 }
 
 func writeProblem(w http.ResponseWriter, status int, detail string) {
