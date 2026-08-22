@@ -113,9 +113,37 @@ func TestRegisterFailure(t *testing.T) {
 	defer engine.Close()
 
 	client := argyll.NewClient(engine.URL, time.Second)
-	err := gen.Register(context.Background(), client, "http://host:1",
-		sumStep())
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	err := gen.Register(
+		ctx, client, "http://host:1", sumStep(),
+	)
 	assert.Error(t, err)
+}
+
+func TestRegisterConflict(t *testing.T) {
+	var posts int
+	var puts int
+	engine := httptest.NewServer(http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			switch r.Method {
+			case http.MethodPost:
+				posts++
+				w.WriteHeader(http.StatusConflict)
+			case http.MethodPut:
+				puts++
+				w.WriteHeader(http.StatusOK)
+			}
+		}))
+	defer engine.Close()
+
+	client := argyll.NewClient(engine.URL, time.Second)
+	err := gen.Register(
+		context.Background(), client, "http://host:1", sumStep(),
+	)
+	assert.NoError(t, err)
+	assert.Equal(t, 1, posts)
+	assert.Equal(t, 1, puts)
 }
 
 func TestRegisterBadSpec(t *testing.T) {

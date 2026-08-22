@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"os"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/kode4food/argyll/engine/pkg/api"
@@ -97,34 +96,8 @@ func setupStepServer(client *Client, step Step, handle StepHandler) error {
 	if err != nil {
 		return err
 	}
-
-	var registered bool
-	for attempt := 1; attempt <= MaxRegistrationAttempts; attempt++ {
-		var err error
-		if step.dirty {
-			err = client.UpdateStep(context.Background(), stepReq)
-		} else {
-			err = client.RegisterStep(context.Background(), stepReq)
-			if err != nil && isRegisterConflict(err) {
-				err = client.UpdateStep(context.Background(), stepReq)
-			}
-		}
-
-		if err == nil {
-			registered = true
-			break
-		}
-
-		if attempt >= MaxRegistrationAttempts {
-			continue
-		}
-		backoff := time.Duration(attempt) * BackoffMultiplier
-		time.Sleep(backoff)
-	}
-
-	if !registered {
-		return fmt.Errorf("%w: %d attempts", ErrStepRegistration,
-			MaxRegistrationAttempts)
+	if err := client.RegisterStep(context.Background(), stepReq); err != nil {
+		return err
 	}
 
 	mux := http.NewServeMux()
@@ -149,11 +122,6 @@ func setupStepServer(client *Client, step Step, handle StepHandler) error {
 	}
 
 	return server.ListenAndServe()
-}
-
-func isRegisterConflict(err error) bool {
-	return errors.Is(err, ErrRegisterStep) &&
-		strings.Contains(err.Error(), "status 409")
 }
 
 func makeCompensateHandler(

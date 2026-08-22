@@ -125,7 +125,10 @@ def test_register_step():
 
 
 @responses.activate
-def test_register_step_error():
+def test_register_step_error(monkeypatch):
+    import argyll.client as client_module
+
+    monkeypatch.setattr(client_module.time, "sleep", lambda _: None)
     responses.add(
         responses.POST,
         "http://localhost:8080/engine/step",
@@ -151,9 +154,17 @@ def test_register_step_error():
     except ClientError as e:
         assert e.status_code == 400
 
+    assert len(responses.calls) == 5
+
 
 @responses.activate
-def test_update_step():
+def test_register_step_conflict():
+    responses.add(
+        responses.POST,
+        "http://localhost:8080/engine/step",
+        json={},
+        status=409,
+    )
     responses.add(
         responses.PUT,
         "http://localhost:8080/engine/step/test-step",
@@ -172,18 +183,33 @@ def test_update_step():
             invoke=HTTPAction(endpoint="http://localhost:8081/test")
         ),
     )
-    client.update_step(step)
+    client.register_step(step)
 
-    assert len(responses.calls) == 1
+    assert [call.request.method for call in responses.calls] == ["POST", "PUT"]
 
 
 @responses.activate
-def test_update_step_error():
+def test_register_step_retry(monkeypatch):
+    import argyll.client as client_module
+
+    monkeypatch.setattr(client_module.time, "sleep", lambda _: None)
     responses.add(
-        responses.PUT,
-        "http://localhost:8080/engine/step/test-step",
-        json={"error": "bad"},
-        status=500,
+        responses.POST,
+        "http://localhost:8080/engine/step",
+        json={"error": "temporary"},
+        status=503,
+    )
+    responses.add(
+        responses.POST,
+        "http://localhost:8080/engine/step",
+        json={"error": "temporary"},
+        status=503,
+    )
+    responses.add(
+        responses.POST,
+        "http://localhost:8080/engine/step",
+        json={},
+        status=200,
     )
 
     from argyll.types import HTTPAction, HTTPConfig, Step
@@ -198,11 +224,9 @@ def test_update_step_error():
         ),
     )
 
-    try:
-        client.update_step(step)
-        assert False, "Should have raised ClientError"
-    except ClientError as e:
-        assert e.status_code == 500
+    client.register_step(step)
+
+    assert len(responses.calls) == 3
 
 
 def test_new_step():

@@ -5,7 +5,7 @@ import responses
 
 from argyll import Client, StepContext, handlers
 from argyll.builder import StepBuilder
-from argyll.errors import ClientError, HTTPError, WebhookError
+from argyll.errors import HTTPError, WebhookError
 from argyll.handlers import AsyncContext, _execute_with_recovery
 
 
@@ -220,14 +220,10 @@ class _DummyFlowClient:
 class _DummyClient:
     def __init__(self) -> None:
         self.registered = []
-        self.updated = []
         self.flow_ids = []
 
     def register_step(self, step):
         self.registered.append(step)
-
-    def update_step(self, step):
-        self.updated.append(step)
 
     def flow(self, flow_id: str):
         self.flow_ids.append(flow_id)
@@ -303,51 +299,6 @@ def test_create_step_server_http_error(monkeypatch):
     )
     assert resp.status_code == 409
     assert resp.get_json()["detail"] == "conflict"
-
-
-def test_create_step_server_update(monkeypatch):
-    captured = {}
-
-    def fake_run(self, host, port):
-        captured["app"] = self
-
-    monkeypatch.setattr(handlers.Flask, "run", fake_run, raising=True)
-
-    client = _DummyClient()
-    builder = StepBuilder(client=client, name="Test Step").update()
-
-    def handler(step_ctx, args):
-        return {}
-
-    handlers.create_step_server(client, builder, handler)
-
-    assert len(client.updated) == 1
-    assert len(client.registered) == 0
-
-
-def test_step_server_register_conflict_updates(monkeypatch):
-    captured = {}
-
-    def fake_run(self, host, port):
-        captured["app"] = self
-
-    monkeypatch.setattr(handlers.Flask, "run", fake_run, raising=True)
-
-    class _ConflictClient(_DummyClient):
-        def register_step(self, step):
-            self.registered.append(step)
-            raise ClientError("conflict", status_code=409)
-
-    client = _ConflictClient()
-    builder = StepBuilder(client=client, name="Test Step")
-
-    def handler(step_ctx, args):
-        return {}
-
-    handlers.create_step_server(client, builder, handler)
-
-    assert len(client.registered) == 1
-    assert len(client.updated) == 1
 
 
 def test_step_server_unhandled_exception(monkeypatch):
@@ -504,46 +455,3 @@ def test_step_server_compensate_exception(monkeypatch):
     assert resp.status_code == 500
     data = resp.get_json()
     assert data["detail"] == "Internal server error"
-
-
-def test_step_server_register_retry(monkeypatch):
-    captured = {}
-
-    def fake_run(self, host, port):
-        captured["app"] = self
-
-    monkeypatch.setattr(handlers.Flask, "run", fake_run, raising=True)
-    monkeypatch.setattr(handlers.time, "sleep", lambda _: None)
-
-    attempt_count = 0
-
-    class _RetryClient(_DummyClient):
-        def register_step(self, step):
-            nonlocal attempt_count
-            attempt_count += 1
-            if attempt_count < 3:
-                raise ClientError("temporary", status_code=503)
-            self.registered.append(step)
-
-    client = _RetryClient()
-    builder = StepBuilder(client=client, name="Test Step")
-
-    handlers.create_step_server(client, builder, lambda ctx, args: {})
-
-    assert attempt_count == 3
-    assert len(client.registered) == 1
-
-
-def test_step_server_register_exhausted(monkeypatch):
-    monkeypatch.setattr(handlers.Flask, "run", lambda self, host, port: None)
-    monkeypatch.setattr(handlers.time, "sleep", lambda _: None)
-
-    class _AlwaysFailClient(_DummyClient):
-        def register_step(self, step):
-            raise ClientError("always fails", status_code=503)
-
-    client = _AlwaysFailClient()
-    builder = StepBuilder(client=client, name="Test Step")
-
-    with pytest.raises(ClientError):
-        handlers.create_step_server(client, builder, lambda ctx, args: {})

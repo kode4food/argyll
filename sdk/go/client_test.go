@@ -67,10 +67,12 @@ func TestRegisterCreated(t *testing.T) {
 }
 
 func TestRegisterStepError(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
 	server := httptest.NewServer(http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusInternalServerError)
 			_, _ = w.Write([]byte("internal error"))
+			cancel()
 		},
 	))
 	defer server.Close()
@@ -79,7 +81,7 @@ func TestRegisterStepError(t *testing.T) {
 
 	err := client.NewStep().WithName("Test").
 		WithEndpoint("http://test").
-		Register(context.Background())
+		Register(ctx)
 
 	assert.Error(t, err)
 }

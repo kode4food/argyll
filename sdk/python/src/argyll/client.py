@@ -1,5 +1,6 @@
 """HTTP client for Argyll engine API."""
 
+import time
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 import requests
@@ -9,6 +10,9 @@ from .types import FlowID, Step
 
 if TYPE_CHECKING:
     from .builder import FlowBuilder, StepBuilder
+
+MAX_REGISTRATION_ATTEMPTS = 5
+BACKOFF_MULTIPLIER_SECONDS = 2
 
 
 class FlowClient:
@@ -74,7 +78,27 @@ class Client:
             ) from e
 
     def register_step(self, step: Step) -> None:
-        """Register a new step with the engine."""
+        """Register or update a step, retrying transient failures."""
+        for attempt in range(1, MAX_REGISTRATION_ATTEMPTS + 1):
+            try:
+                self._register_once(step)
+                return
+            except ClientError:
+                if attempt >= MAX_REGISTRATION_ATTEMPTS:
+                    raise
+                time.sleep(attempt * BACKOFF_MULTIPLIER_SECONDS)
+
+    def _register_once(self, step: Step) -> None:
+        """Create a step registration, updating it on conflict."""
+        try:
+            self._create_step(step)
+        except ClientError as e:
+            if e.status_code != 409:
+                raise
+            self._update_step(step)
+
+    def _create_step(self, step: Step) -> None:
+        """Create a step registration."""
         url = f"{self.base_url}/engine/step"
         try:
             resp = self.session.post(
@@ -86,8 +110,8 @@ class Client:
             msg = f"Failed to register step {step.id}: {e}"
             raise ClientError(msg, status_code=status) from e
 
-    def update_step(self, step: Step) -> None:
-        """Update an existing step."""
+    def _update_step(self, step: Step) -> None:
+        """Update an existing step registration."""
         url = f"{self.base_url}/engine/step/{step.id}"
         try:
             resp = self.session.put(

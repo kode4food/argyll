@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/kode4food/argyll/engine/pkg/api"
@@ -129,27 +130,31 @@ func (c *FlowClient) FlowID() api.FlowID {
 	return c.flowID
 }
 
-func (c *Client) url(format string, args ...any) string {
-	path := fmt.Sprintf(format, args...)
-	return c.baseURL + path
-}
-
-// RegisterStep validates a step and registers it with the engine
+// RegisterStep registers a step, updating an existing registration on conflict
+// and retrying transient failures
 func (c *Client) RegisterStep(ctx context.Context, step *api.Step) error {
-	if err := step.Validate(); err != nil {
-		return err
+	for attempt := 1; attempt <= MaxRegistrationAttempts; attempt++ {
+		err := c.createStep(ctx, step)
+		if isRegisterConflict(err) {
+			err = c.updateStep(ctx, step)
+		}
+		if err == nil {
+			return nil
+		}
+		if attempt >= MaxRegistrationAttempts {
+			continue
+		}
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-time.After(time.Duration(attempt) * BackoffMultiplier):
+		}
 	}
-	return c.doHTTPRequest(ctx, httpRequest{
-		Method:    "POST",
-		URL:       c.url(routeSteps),
-		Body:      step,
-		ErrorType: ErrRegisterStep,
-		Accepted:  []int{http.StatusOK, http.StatusCreated},
-	})
+	return fmt.Errorf("%w: %d attempts", ErrStepRegistration,
+		MaxRegistrationAttempts)
 }
 
-// UpdateStep validates a step and replaces its registration
-func (c *Client) UpdateStep(ctx context.Context, step *api.Step) error {
+func (c *Client) updateStep(ctx context.Context, step *api.Step) error {
 	if err := step.Validate(); err != nil {
 		return err
 	}
@@ -159,6 +164,24 @@ func (c *Client) UpdateStep(ctx context.Context, step *api.Step) error {
 		Body:      step,
 		ErrorType: ErrUpdateStep,
 		Accepted:  []int{http.StatusOK},
+	})
+}
+
+func (c *Client) url(format string, args ...any) string {
+	path := fmt.Sprintf(format, args...)
+	return c.baseURL + path
+}
+
+func (c *Client) createStep(ctx context.Context, step *api.Step) error {
+	if err := step.Validate(); err != nil {
+		return err
+	}
+	return c.doHTTPRequest(ctx, httpRequest{
+		Method:    "POST",
+		URL:       c.url(routeSteps),
+		Body:      step,
+		ErrorType: ErrRegisterStep,
+		Accepted:  []int{http.StatusOK, http.StatusCreated},
 	})
 }
 
@@ -211,4 +234,9 @@ func (c *Client) doHTTPRequest(ctx context.Context, req httpRequest) error {
 	respBody, _ := io.ReadAll(resp.Body)
 	return fmt.Errorf("%w: status %d, body: %s",
 		req.ErrorType, resp.StatusCode, string(respBody))
+}
+
+func isRegisterConflict(err error) bool {
+	return errors.Is(err, ErrRegisterStep) &&
+		strings.Contains(err.Error(), "status 409")
 }

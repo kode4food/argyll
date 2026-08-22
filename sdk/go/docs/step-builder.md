@@ -275,20 +275,6 @@ s.WithPredicate(api.ScriptConfig{
 })
 ```
 
-### Updating Steps
-
-Mark a step as modified to update the existing registration:
-
-```go
-err := client.NewStep().WithName("User Resolver").
-    Required("user_id", api.TypeString).
-    Output("user_name", api.TypeString).
-    Output("user_email", api.TypeString).
-    Output("user_age", api.TypeNumber). // New output
-    Update(). // Mark as dirty
-    Start(handler)
-```
-
 ## Environment Variables
 
 - `STEP_PORT` - Server port (default: "8081")
@@ -398,7 +384,6 @@ NewStep() Step
 #### Registration
 - `Build() (*api.Step, error)` - Build step definition
 - `Register(ctx context.Context) error` - Register step with engine
-- `Update() Step` - Mark step as modified (for updates)
 - `Start(handler argyll.StepHandler) error` - Register and start HTTP server
 
 ### StepHandler Type

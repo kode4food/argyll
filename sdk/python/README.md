@@ -107,24 +107,6 @@ client.new_step().with_name("Child Flow Wrapper") \
     .register()
 ```
 
-### Update a Step
-
-```python
-from argyll import Client, StepContext, AttributeType
-
-client = Client("http://localhost:8080")
-
-def handle_user(ctx: StepContext, args: dict) -> dict:
-    return {"user_name": "Jane"}
-
-client.new_step().with_name("User Resolver") \
-    .required("user_id", AttributeType.STRING) \
-    .output("user_name", AttributeType.STRING) \
-    .output("user_email", AttributeType.STRING) \
-    .update() \
-    .start(handle_user)
-```
-
 ## Features
 
 - **Type-safe builders** - Immutable builder pattern with full type hints

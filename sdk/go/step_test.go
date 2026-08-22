@@ -684,15 +684,6 @@ func TestWithCompensateMemoizableReturnsError(t *testing.T) {
 	assert.Error(t, err)
 }
 
-func TestUpdate(t *testing.T) {
-	st := testClient().NewStep().WithName("Test").
-		WithEndpoint("http://example.com")
-
-	updated := st.Update()
-
-	assert.NotNil(t, updated)
-}
-
 func testClient() *argyll.Client {
 	return argyll.NewClient("http://localhost:8080", 30*time.Second)
 }

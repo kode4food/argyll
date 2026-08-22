@@ -18,7 +18,6 @@ type Step struct {
 	step       *api.Step
 	compensate CompensateHandler
 	timeout    int64
-	dirty      bool
 }
 
 var (
@@ -290,13 +289,6 @@ func (s Step) Register(ctx context.Context) error {
 	}
 
 	return s.client.RegisterStep(ctx, step)
-}
-
-// Update marks this step as modified, so the next Start() will update the
-// existing step registration rather than creating a new one
-func (s Step) Update() Step {
-	s.dirty = true
-	return s
 }
 
 // Start builds and registers the step, creates an HTTP server, and starts

@@ -397,12 +397,6 @@ def test_step_builder_register():
     assert len(responses.calls) == 1
 
 
-def test_step_builder_update():
-    client = Client()
-    builder = client.new_step().with_name("Test").update()
-    assert builder._dirty is True
-
-
 def test_step_builder_register_error():
     class DummyClient:
         def register_step(self, step) -> None:

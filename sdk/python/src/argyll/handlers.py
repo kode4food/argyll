@@ -1,7 +1,6 @@
 """Step execution context and server setup."""
 
 import os
-import time
 import traceback
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Callable, Optional
@@ -9,16 +8,12 @@ from typing import TYPE_CHECKING, Any, Callable, Optional
 import requests
 from flask import Flask, jsonify, request
 
-from .errors import ClientError, HTTPError, StepRegistrationError, WebhookError
+from .errors import HTTPError, WebhookError
 from .types import Args, Metadata, ProblemDetails, StepID
 
 if TYPE_CHECKING:
     from .builder import StepBuilder
     from .client import Client, FlowClient
-
-
-MAX_REGISTRATION_ATTEMPTS = 5
-BACKOFF_MULTIPLIER_SECONDS = 2
 
 
 @dataclass(frozen=True)
@@ -118,19 +113,7 @@ def create_step_server(
         builder = builder.with_compensate(compensate_url)
 
     step = builder.build()
-    registered = False
-    for attempt in range(1, MAX_REGISTRATION_ATTEMPTS + 1):
-        try:
-            _register_or_update(client, step, builder._dirty)
-            registered = True
-            break
-        except Exception:
-            if attempt >= MAX_REGISTRATION_ATTEMPTS:
-                raise
-            time.sleep(attempt * BACKOFF_MULTIPLIER_SECONDS)
-
-    if not registered:
-        raise StepRegistrationError("Failed to register step after retries")
+    client.register_step(step)
 
     app = Flask(__name__)
 
@@ -200,19 +183,6 @@ def create_step_server(
     print(f"  Health: {health_endpoint}")
 
     app.run(host="0.0.0.0", port=port)
-
-
-def _register_or_update(client: "Client", step: Any, dirty: bool) -> None:
-    """Register or update a step, falling back to update on 409 conflict."""
-    if dirty:
-        client.update_step(step)
-        return
-    try:
-        client.register_step(step)
-    except ClientError as e:
-        if e.status_code != 409:
-            raise
-        client.update_step(step)
 
 
 def _execute_with_recovery(

@@ -189,26 +189,6 @@ client.new_step().with_name("ExpensiveComputation") \
     .register()
 ```
 
-### Updating Steps
-
-Mark a step as modified to update the existing registration:
-
-```python
-from argyll import Client, StepContext, AttributeType
-
-client = Client()
-
-def handle_user(ctx: StepContext, args: dict) -> dict:
-    return {"user_name": "Jane"}
-
-client.new_step().with_name("User Resolver") \
-    .required("user_id", AttributeType.STRING) \
-    .output("user_name", AttributeType.STRING) \
-    .output("user_email", AttributeType.STRING) \
-    .update() \
-    .start(handle_user)
-```
-
 ### Labels
 
 Add metadata to steps:

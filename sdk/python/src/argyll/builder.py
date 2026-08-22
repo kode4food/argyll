@@ -54,7 +54,6 @@ class StepBuilder:
         self._flow: Optional[FlowConfig] = None
         self._compensate_handler: Optional[Callable[..., Any]] = None
         self._memoizable: bool = False
-        self._dirty: bool = False
 
     def _copy(self, **kwargs: Any) -> "StepBuilder":
         """Create a copy with updated attributes."""
@@ -265,10 +264,6 @@ class StepBuilder:
     ) -> "StepBuilder":
         """Register a compensate handler: (ctx, inputs, outputs) -> None."""
         return self._copy(_compensate_handler=handler)
-
-    def update(self) -> "StepBuilder":
-        """Mark step as updated (uses update instead of register on start)."""
-        return self._copy(_dirty=True)
 
     def build(self) -> Step:
         """Create immutable Step."""
