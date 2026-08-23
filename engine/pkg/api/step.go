@@ -15,6 +15,9 @@ type (
 	// StepType defines the execution mode for a step (sync, async, or script)
 	StepType string
 
+	// Handling defines how a step's completed work is retained or reversed
+	Handling string
+
 	// Steps contains a map of Steps by their ID
 	Steps map[StepID]*Step
 
@@ -34,7 +37,7 @@ type (
 		Type       StepType       `json:"type"`
 		ID         StepID         `json:"id"`
 		Name       Name           `json:"name"`
-		Memoizable bool           `json:"memoizable,omitempty"`
+		Handling   Handling       `json:"handling,omitempty"`
 
 		hashErr  error
 		hashVal  string
@@ -82,20 +85,15 @@ type (
 		K Name           `json:"k"`
 	}
 
-	flowCfg struct {
-		Goals      []StepID `json:"goals"`
-		Compensate bool     `json:"compensate,omitempty"`
-	}
-
 	stepHash struct {
-		Flow       any           `json:"flow,omitempty"`
+		Flow       *FlowConfig   `json:"flow,omitempty"`
 		HTTP       *HTTPConfig   `json:"http,omitempty"`
 		Script     *ScriptConfig `json:"script,omitempty"`
 		Predicate  *ScriptConfig `json:"predicate,omitempty"`
 		WorkConfig *WorkConfig   `json:"work_config,omitempty"`
 		Type       StepType      `json:"type"`
 		Attributes []attrPair    `json:"attributes"`
-		Memoizable bool          `json:"memoizable,omitempty"`
+		Handling   Handling      `json:"handling"`
 	}
 )
 
@@ -111,6 +109,13 @@ const (
 	BackoffTypeFixed       = "fixed"
 	BackoffTypeLinear      = "linear"
 	BackoffTypeExponential = "exponential"
+
+	HandlingStandard    Handling = "standard"
+	HandlingMemoized    Handling = "memoized"
+	HandlingCompensated Handling = "compensated"
+
+	// DefaultHTTPMethod is used when an HTTP action omits its method
+	DefaultHTTPMethod = "POST"
 )
 
 const (
@@ -146,8 +151,18 @@ var (
 	ErrMaxBackoffTooSmall    = errors.New("max_backoff must be >= backoff")
 	ErrWorkNotCompleted      = errors.New("work not completed")
 	ErrMarshalStep           = errors.New("failed to marshal step definition")
-	ErrCompensateMemoizable  = errors.New(
-		"compensate not allowed for memoizable steps",
+	ErrInvalidHandling       = errors.New("invalid step handling")
+	ErrCompensateRequired    = errors.New(
+		"compensated handling requires a compensation endpoint",
+	)
+	ErrCompensateHandling = errors.New(
+		"compensation endpoint requires compensated handling",
+	)
+	ErrAttributeCompensated = errors.New(
+		"compensated attribute requires compensated handling",
+	)
+	ErrCompensateArgConflict = errors.New(
+		"conflicting compensation argument",
 	)
 )
 
@@ -169,10 +184,14 @@ var (
 		"DELETE",
 	)
 
+	validHandling = util.SetOf(
+		HandlingStandard,
+		HandlingMemoized,
+		HandlingCompensated,
+	)
+
 	endpointParamPattern = regexp.MustCompile(`\{([^{}]+)\}`)
 )
-
-const DefaultHTTPMethod = "POST"
 
 // Validate checks if the step configuration is valid
 func (s *Step) Validate() error {
@@ -184,6 +203,9 @@ func (s *Step) Validate() error {
 	}
 	if s.Name == "" {
 		return ErrStepNameEmpty
+	}
+	if err := s.validateHandling(); err != nil {
+		return err
 	}
 
 	switch s.Type {
@@ -222,7 +244,7 @@ func (s *Step) Copy() *Step {
 		ID:         s.ID,
 		Name:       s.Name,
 		Type:       s.Type,
-		Memoizable: s.Memoizable,
+		Handling:   s.Handling,
 		Attributes: s.Attributes,
 	}
 }
@@ -250,7 +272,17 @@ func (s *Step) WithWorkDefaults(defaults *WorkConfig) *Step {
 
 // CanCompensate returns true if the step has compensation configured
 func (s *Step) CanCompensate() bool {
-	return s.HTTP != nil && s.HTTP.Compensate != nil
+	return s.DefaultedHandling() == HandlingCompensated &&
+		s.HTTP != nil && s.HTTP.Compensate != nil &&
+		s.HTTP.Compensate.Endpoint != ""
+}
+
+// DefaultedHandling returns the configured handling or standard when unset
+func (s *Step) DefaultedHandling() Handling {
+	if s.Handling == "" {
+		return HandlingStandard
+	}
+	return s.Handling
 }
 
 // IsOptionalArg returns true if the argument is optional
@@ -321,7 +353,7 @@ func (s *Step) Equal(other *Step) bool {
 	if s.ID != other.ID || s.Name != other.Name || s.Type != other.Type {
 		return false
 	}
-	if s.Memoizable != other.Memoizable {
+	if s.DefaultedHandling() != other.DefaultedHandling() {
 		return false
 	}
 	if !s.Attributes.Equal(other.Attributes) {
@@ -372,6 +404,31 @@ func (s *Step) validateAttributes() error {
 	return nil
 }
 
+func (s *Step) validateHandling() error {
+	handling := s.DefaultedHandling()
+	if !validHandling.Contains(handling) {
+		return fmt.Errorf("%w: %s", ErrInvalidHandling, handling)
+	}
+
+	var compensate *HTTPAction
+	if s.HTTP != nil {
+		compensate = s.HTTP.Compensate
+	}
+	if handling == HandlingCompensated &&
+		(compensate == nil || compensate.Endpoint == "") {
+		return ErrCompensateRequired
+	}
+	if handling != HandlingCompensated && compensate != nil {
+		return ErrCompensateHandling
+	}
+	for name, attr := range s.Attributes {
+		if attr != nil && attr.Compensated && handling != HandlingCompensated {
+			return fmt.Errorf("%w: %s", ErrAttributeCompensated, name)
+		}
+	}
+	return nil
+}
+
 func (s *Step) validateHTTPConfig() error {
 	if s.HTTP == nil {
 		return ErrHTTPRequired
@@ -391,9 +448,6 @@ func (s *Step) validateHTTPConfig() error {
 	}
 	if s.HTTP.Compensate == nil {
 		return s.validateEndpointParams()
-	}
-	if s.Memoizable {
-		return ErrCompensateMemoizable
 	}
 	if s.HTTP.Compensate.Endpoint == "" {
 		return ErrStepEndpointEmpty
@@ -433,20 +487,12 @@ func (s *Step) validateEndpointParams() error {
 }
 
 func (s *Step) validateCompensateParams() error {
+	known, err := s.resolveCompensationNames()
+	if err != nil {
+		return err
+	}
+
 	params := endpointParams(s.HTTP.Compensate.Endpoint)
-	if params.IsEmpty() {
-		return nil
-	}
-
-	known := util.Set[string]{}
-	for name, attr := range s.Attributes {
-		if !attr.IsInput() && !attr.IsOutput() {
-			continue
-		}
-		mapped, _ := s.MappedName(name)
-		known.Add(string(mapped))
-	}
-
 	for param := range params {
 		if known.Contains(param) {
 			continue
@@ -454,6 +500,24 @@ func (s *Step) validateCompensateParams() error {
 		return fmt.Errorf("%w: %q", ErrUnknownURLParam, param)
 	}
 	return nil
+}
+
+func (s *Step) resolveCompensationNames() (util.Set[string], error) {
+	known := util.Set[string]{}
+	for name, attr := range s.Attributes {
+		if attr == nil || !attr.Compensated {
+			continue
+		}
+		mapped, _ := s.MappedName(name)
+		inner := string(mapped)
+		if known.Contains(inner) {
+			return nil, fmt.Errorf(
+				"%w: %s", ErrCompensateArgConflict, inner,
+			)
+		}
+		known.Add(inner)
+	}
+	return known, nil
 }
 
 func (s *Step) validateScriptConfig() error {
@@ -560,14 +624,6 @@ func (s *Step) computeHashKey() (string, error) {
 		attrs[i] = attrPair{K: n, V: s.Attributes[n]}
 	}
 
-	var flow any
-	if s.Flow != nil {
-		flow = flowCfg{
-			Goals:      s.Flow.Goals,
-			Compensate: s.Flow.Compensate,
-		}
-	}
-
 	var httpCfg *HTTPConfig
 	if s.HTTP != nil {
 		httpCfg = util.MutableCopy(s.HTTP)
@@ -581,11 +637,11 @@ func (s *Step) computeHashKey() (string, error) {
 
 	h := stepHash{
 		Type:       s.Type,
-		Memoizable: s.Memoizable,
+		Handling:   s.DefaultedHandling(),
 		Attributes: attrs,
 		HTTP:       httpCfg,
 		Script:     s.Script,
-		Flow:       flow,
+		Flow:       s.Flow,
 		Predicate:  s.Predicate,
 		WorkConfig: s.WorkConfig,
 	}
@@ -610,11 +666,12 @@ func (s *Step) filterAttributes(predicate func(*AttributeSpec) bool) []Name {
 
 // Equal returns true if two HTTP configs are equal
 func (h *HTTPConfig) Equal(other *HTTPConfig) bool {
-	return equalWithNilCheck(h, other, func() bool {
-		return h.Invoke.Equal(&other.Invoke) &&
-			h.Compensate.Equal(other.Compensate) &&
-			h.Health == other.Health
-	})
+	if h == nil || other == nil {
+		return h == other
+	}
+	return h.Invoke.Equal(&other.Invoke) &&
+		h.Compensate.Equal(other.Compensate) &&
+		h.Health == other.Health
 }
 
 // CompensateTimeout returns the compensate timeout, falling back to the invoke
@@ -628,11 +685,12 @@ func (h *HTTPConfig) CompensateTimeout() int64 {
 
 // Equal returns true if two HTTP actions are equal
 func (a *HTTPAction) Equal(other *HTTPAction) bool {
-	return equalWithNilCheck(a, other, func() bool {
-		return a.Endpoint == other.Endpoint &&
-			a.DefaultedMethod() == other.DefaultedMethod() &&
-			a.Timeout == other.Timeout
-	})
+	if a == nil || other == nil {
+		return a == other
+	}
+	return a.Endpoint == other.Endpoint &&
+		a.DefaultedMethod() == other.DefaultedMethod() &&
+		a.Timeout == other.Timeout
 }
 
 // DefaultedMethod returns the configured HTTP method or the default if unset
@@ -645,9 +703,10 @@ func (a *HTTPAction) DefaultedMethod() string {
 
 // Equal returns true if two script configs are equal
 func (c *ScriptConfig) Equal(other *ScriptConfig) bool {
-	return equalWithNilCheck(c, other, func() bool {
-		return c.Language == other.Language && c.Script == other.Script
-	})
+	if c == nil || other == nil {
+		return c == other
+	}
+	return c.Language == other.Language && c.Script == other.Script
 }
 
 // WithGoals returns a copy of the flow config with the provided goals
@@ -659,21 +718,23 @@ func (c *FlowConfig) WithGoals(goals ...StepID) *FlowConfig {
 
 // Equal returns true if two flow configs are equal
 func (c *FlowConfig) Equal(other *FlowConfig) bool {
-	return equalWithNilCheck(c, other, func() bool {
-		return slices.Equal(c.Goals, other.Goals) &&
-			c.Compensate == other.Compensate
-	})
+	if c == nil || other == nil {
+		return c == other
+	}
+	return c.Compensate == other.Compensate &&
+		slices.Equal(c.Goals, other.Goals)
 }
 
 // Equal returns true if two work configs are equal
 func (c *WorkConfig) Equal(other *WorkConfig) bool {
-	return equalWithNilCheck(c, other, func() bool {
-		return c.Parallelism == other.Parallelism &&
-			c.MaxRetries == other.MaxRetries &&
-			c.InitBackoff == other.InitBackoff &&
-			c.MaxBackoff == other.MaxBackoff &&
-			c.BackoffType == other.BackoffType
-	})
+	if c == nil || other == nil {
+		return c == other
+	}
+	return c.Parallelism == other.Parallelism &&
+		c.MaxRetries == other.MaxRetries &&
+		c.InitBackoff == other.InitBackoff &&
+		c.MaxBackoff == other.MaxBackoff &&
+		c.BackoffType == other.BackoffType
 }
 
 // Apply will merge the keys/values of the other label set into this one
@@ -705,14 +766,4 @@ func endpointParams(endpoint string) util.Set[string] {
 		res.Add(m[1])
 	}
 	return res
-}
-
-func equalWithNilCheck[T any](a, b *T, compare func() bool) bool {
-	if a == nil && b == nil {
-		return true
-	}
-	if a == nil || b == nil {
-		return false
-	}
-	return compare()
 }

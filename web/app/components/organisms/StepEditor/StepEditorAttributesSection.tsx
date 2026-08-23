@@ -1,5 +1,5 @@
 import React from "react";
-import { StepType } from "@/app/api";
+import { Handling, StepType } from "@/app/api";
 import { useT } from "@/app/i18n";
 import { IconAdd } from "@/utils/iconRegistry";
 import { FlowInputOption } from "@/utils/flowPlanAttributeOptions";
@@ -15,6 +15,7 @@ interface StepEditorAttributesSectionProps {
   flowOutputOptions: string[];
   removeAttribute: (id: string) => void;
   stepType: StepType;
+  handling: Handling;
   updateAttribute: (id: string, field: keyof Attribute, value: any) => void;
 }
 
@@ -27,6 +28,7 @@ const StepEditorAttributesSection: React.FC<
   flowOutputOptions,
   removeAttribute,
   stepType,
+  handling,
   updateAttribute,
 }) => {
   const t = useT();
@@ -42,6 +44,11 @@ const StepEditorAttributesSection: React.FC<
       usedInputMappings.set(mappingName, attr.id);
     }
   });
+  const compensatedInnerNames = new Set(
+    attributes
+      .filter((attr) => attr.compensated)
+      .map((attr) => attr.mappingName?.trim() || attr.name.trim())
+  );
 
   return (
     <div className={formStyles.section}>
@@ -90,6 +97,8 @@ const StepEditorAttributesSection: React.FC<
             key={attr.id}
             attr={attr}
             stepType={stepType}
+            handling={handling}
+            compensatedInnerNames={compensatedInnerNames}
             flowInputOptions={flowInputOptions}
             flowOutputOptions={flowOutputOptions}
             usedInputMappings={usedInputMappings}

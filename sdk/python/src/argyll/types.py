@@ -23,6 +23,14 @@ class StepType(str, Enum):
     FLOW = "flow"
 
 
+class Handling(str, Enum):
+    """How completed step work is retained or reversed."""
+
+    STANDARD = "standard"
+    MEMOIZED = "memoized"
+    COMPENSATED = "compensated"
+
+
 class AttributeRole(str, Enum):
     """Attribute role in step definition."""
 
@@ -183,6 +191,7 @@ class AttributeSpec:
     const: Optional[ConstConfig] = None
     meta: Optional[MetaConfig] = None
     output: Optional[OutputConfig] = None
+    compensated: bool = False
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert to API dictionary format."""
@@ -200,6 +209,8 @@ class AttributeSpec:
             result["meta"] = self.meta.to_dict()
         if self.output is not None:
             result["output"] = self.output.to_dict()
+        if self.compensated:
+            result["compensated"] = True
         return result
 
 
@@ -302,7 +313,7 @@ class Step:
     predicate: Optional[ScriptConfig] = None
     work_config: Optional[WorkConfig] = None
     flow: Optional[FlowConfig] = None
-    memoizable: bool = False
+    handling: Handling = Handling.STANDARD
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert to API dictionary format with camelCase keys."""
@@ -335,8 +346,8 @@ class Step:
         if self.flow:
             result["flow"] = self.flow.to_dict()
 
-        if self.memoizable:
-            result["memoizable"] = True
+        if self.handling != Handling.STANDARD:
+            result["handling"] = self.handling.value
 
         return result
 

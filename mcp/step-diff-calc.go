@@ -6,6 +6,25 @@ import (
 	"strings"
 )
 
+type (
+	stepFieldDiff struct {
+		current  map[string]any
+		proposed map[string]any
+	}
+
+	jsonValues struct {
+		current  any
+		proposed any
+	}
+)
+
+func (d stepDiff) compare(other stepDiff) int {
+	if cmp := strings.Compare(d.Action, other.Action); cmp != 0 {
+		return cmp
+	}
+	return strings.Compare(d.ID, other.ID)
+}
+
 func buildStepDiffs(
 	current map[string]map[string]any, steps []map[string]any,
 ) ([]stepDiff, map[string]int) {
@@ -31,7 +50,10 @@ func buildStepDiffs(
 			})
 			counts["create"]++
 		default:
-			fields, delta := diffStepFields(curr, proposed)
+			fields, delta := diffStepFields(stepFieldDiff{
+				current:  curr,
+				proposed: proposed,
+			})
 			if len(fields) == 0 {
 				diffs = append(diffs, stepDiff{
 					ID:     id,
@@ -57,16 +79,11 @@ func buildStepDiffs(
 		}
 	}
 
-	slices.SortFunc(diffs, func(a, b stepDiff) int {
-		if cmp := strings.Compare(a.Action, b.Action); cmp != 0 {
-			return cmp
-		}
-		return strings.Compare(a.ID, b.ID)
-	})
+	slices.SortFunc(diffs, stepDiff.compare)
 	return diffs, counts
 }
 
-func diffStepFields(curr, proposed map[string]any) ([]string, map[string]any) {
+func diffStepFields(steps stepFieldDiff) ([]string, map[string]any) {
 	keys := []string{
 		"name",
 		"type",
@@ -77,29 +94,32 @@ func diffStepFields(curr, proposed map[string]any) ([]string, map[string]any) {
 		"script",
 		"predicate",
 		"work_config",
-		"memoizable",
+		"handling",
 	}
 	var fields []string
 	delta := map[string]any{}
 	for _, key := range keys {
-		if sameJSON(curr[key], proposed[key]) {
+		if sameJSON(jsonValues{
+			current:  steps.current[key],
+			proposed: steps.proposed[key],
+		}) {
 			continue
 		}
 		fields = append(fields, key)
 		delta[key] = map[string]any{
-			"current":  curr[key],
-			"proposed": proposed[key],
+			"current":  steps.current[key],
+			"proposed": steps.proposed[key],
 		}
 	}
 	return fields, delta
 }
 
-func sameJSON(a, b any) bool {
-	aj, err := json.Marshal(a)
+func sameJSON(values jsonValues) bool {
+	aj, err := json.Marshal(values.current)
 	if err != nil {
 		return false
 	}
-	bj, err := json.Marshal(b)
+	bj, err := json.Marshal(values.proposed)
 	if err != nil {
 		return false
 	}

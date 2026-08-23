@@ -79,8 +79,10 @@ func decodeBody[T any](
 	}
 	v, err := codec.DecodeFrom(c, r.Body)
 	if err != nil {
-		argyll.WriteProblem(w, http.StatusBadRequest,
-			fmt.Sprintf("%s: %s", ErrInvalidInputs, err))
+		argyll.WriteProblem(
+			w, http.StatusBadRequest,
+			fmt.Sprintf("%s: %s", ErrInvalidInputs, err),
+		)
 		return zero, false
 	}
 	return v, true

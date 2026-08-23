@@ -18,6 +18,13 @@ import (
 )
 
 type (
+	structDeclaration struct {
+		name   string
+		owner  string
+		fields []codecField
+		lazy   bool
+	}
+
 	pkgGen struct {
 		pkg       *packages.Package
 		imports   map[string]string
@@ -169,7 +176,11 @@ func (g *pkgGen) wrapStruct(
 	g.decls = append(g.decls, decl.String())
 
 	codecVar := "argyllCodec" + strings.TrimPrefix(name, "argyll")
-	g.decls = append(g.decls, structDecl(codecVar, name, fields, false))
+	g.decls = append(g.decls, renderStructDeclaration(structDeclaration{
+		name:   codecVar,
+		owner:  name,
+		fields: fields,
+	}))
 	return codecVar, attrs, nil
 }
 
@@ -253,20 +264,25 @@ func (g *pkgGen) structCodec(t types.Type, u *types.Struct) (string, error) {
 			return "", err
 		}
 		fields = append(fields, codecField{
-			attr:  f.attr,
+			attr:  resolveInnerName(f),
 			field: f.Name(),
 			codec: expr,
 			owner: name,
 			typ:   g.typeOf(f.Type()),
 		})
 	}
-	g.decls = append(g.decls, structDecl(v, name, fields, g.recursive[name]))
+	g.decls = append(g.decls, renderStructDeclaration(structDeclaration{
+		name:   v,
+		owner:  name,
+		fields: fields,
+		lazy:   g.recursive[name],
+	}))
 	return v, nil
 }
 
 func (g *pkgGen) codecName(t types.Type) string {
 	if named, ok := t.(*types.Named); ok {
-		return "argyllCodec" + named.Obj().Name()
+		return "argyllCodec" + ExportedName(named.Obj().Name())
 	}
 	return fmt.Sprintf("argyllCodecAnon%d", len(g.codecs))
 }
@@ -286,25 +302,26 @@ func (g *pkgGen) qualifier(p *types.Package) string {
 	return p.Name()
 }
 
-func structDecl(name, owner string, fields []codecField, lazy bool) string {
-	if len(fields) == 0 {
-		return fmt.Sprintf("%s := codec.Struct[%s]()", name, owner)
+func renderStructDeclaration(decl structDeclaration) string {
+	if len(decl.fields) == 0 {
+		return fmt.Sprintf("%s := codec.Struct[%s]()", decl.name, decl.owner)
 	}
 	var sb strings.Builder
 	sb.WriteString("codec.Struct(\n")
-	for _, f := range fields {
+	for _, f := range decl.fields {
 		fmt.Fprintf(&sb, "codec.Field(%q, %s,\nfunc(v *%s) *%s {\n"+
 			"return &v.%s\n},\n),\n", f.attr, f.codec, f.owner, f.typ,
 			f.field)
 	}
 	sb.WriteString(")")
-	if !lazy {
-		return fmt.Sprintf("%s := %s", name, sb.String())
+	if !decl.lazy {
+		return fmt.Sprintf("%s := %s", decl.name, sb.String())
 	}
 	// a self-referential initializer is an initialization cycle
 	return fmt.Sprintf("var %sImpl codec.Codec[%s]\n\n"+
 		"%s := codec.Ref(&%sImpl)\n\n"+
-		"%sImpl = %s", name, owner, name, name, name,
+		"%sImpl = %s", decl.name, decl.owner, decl.name, decl.name,
+		decl.name,
 		sb.String())
 }
 
@@ -424,4 +441,13 @@ func attrOf(f *types.Var, tag string) (fieldSpec, bool, error) {
 		name = SnakeCase(f.Name())
 	}
 	return fieldSpec{Var: f, attr: name, options: options}, true, nil
+}
+
+func resolveInnerName(f fieldSpec) string {
+	for _, o := range f.options {
+		if o.Key == mappingProp {
+			return o.Value
+		}
+	}
+	return f.attr
 }

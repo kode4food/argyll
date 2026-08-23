@@ -263,7 +263,7 @@
 }
 
 .iconDropdownGroup {
-  flex: 0 0 34px;
+  flex: 0 0 auto;
 }
 
 .iconDropdownWrapper {
@@ -509,6 +509,14 @@
   background-color: color-mix(in srgb, var(--color-info) 25%, transparent);
   border-color: var(--color-info);
   color: var(--color-white);
+}
+
+.compensateButton {
+  color: var(--panel-text-muted);
+}
+
+.compensateButtonActive {
+  color: var(--color-info-light);
 }
 
 .attrMappingPanel {

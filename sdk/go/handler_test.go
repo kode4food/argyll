@@ -50,7 +50,7 @@ func TestHTTPError(t *testing.T) {
 	assert.Equal(t, http.StatusTeapot, resp.StatusCode)
 }
 
-func TestStepHandlerRejectsBadRequests(t *testing.T) {
+func TestStepRequests(t *testing.T) {
 	engineServer := newHTTPTestServer(t, http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
 			if r.URL.Path == "/engine/step" && r.Method == http.MethodPost {
@@ -159,7 +159,7 @@ func TestPanic(t *testing.T) {
 	assert.Contains(t, problem.Detail, argyll.ErrHandlerPanic.Error())
 }
 
-func TestStartFallsBackToUpdateOnRegisterConflict(t *testing.T) {
+func TestStartConflict(t *testing.T) {
 	var postCount int
 	var putCount int
 
@@ -201,7 +201,7 @@ func TestHTTPErrorMessage(t *testing.T) {
 	assert.Equal(t, "HTTP 418: I'm a teapot", err.Error())
 }
 
-func TestCompensateHandlerSuccess(t *testing.T) {
+func TestCompensateSuccess(t *testing.T) {
 	engineServer := newHTTPTestServer(t, http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
 			if r.URL.Path == "/engine/step" && r.Method == http.MethodPost {
@@ -212,18 +212,14 @@ func TestCompensateHandlerSuccess(t *testing.T) {
 		},
 	))
 
-	var gotInput api.Args
-	var gotOutput api.Args
+	var gotArgs api.Args
 	handler := func(
 		_ *argyll.StepContext, _ api.Args,
 	) (api.Args, error) {
 		return api.Args{}, nil
 	}
-	compensate := func(
-		_ *argyll.StepContext, input api.Args, output api.Args,
-	) error {
-		gotInput = input
-		gotOutput = output
+	compensate := func(_ *argyll.StepContext, args api.Args) error {
+		gotArgs = args
 		return nil
 	}
 
@@ -235,9 +231,14 @@ func TestCompensateHandlerSuccess(t *testing.T) {
 		compensate: compensate,
 	})
 
-	body, err := json.Marshal(map[string]api.Args{
-		"input":  {"request": "in"},
-		"output": {"result": "out"},
+	reservation := map[string]any{
+		"reservation_id": "res-1",
+		"product_id":     "prod-1",
+	}
+	order := map[string]any{"id": "order-1"}
+	body, err := json.Marshal(api.Args{
+		"order":       order,
+		"reservation": reservation,
 	})
 	assert.NoError(t, err)
 
@@ -248,11 +249,11 @@ func TestCompensateHandlerSuccess(t *testing.T) {
 	defer func() { _ = resp.Body.Close() }()
 
 	assert.Equal(t, http.StatusNoContent, resp.StatusCode)
-	assert.Equal(t, api.Args{"request": "in"}, gotInput)
-	assert.Equal(t, api.Args{"result": "out"}, gotOutput)
+	assert.Equal(t,
+		api.Args{"order": order, "reservation": reservation}, gotArgs)
 }
 
-func TestCompensateHandlerRejectsBadRequests(t *testing.T) {
+func TestCompensateRequests(t *testing.T) {
 	engineServer := newHTTPTestServer(t, http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
 			if r.URL.Path == "/engine/step" && r.Method == http.MethodPost {
@@ -268,9 +269,7 @@ func TestCompensateHandlerRejectsBadRequests(t *testing.T) {
 	) (api.Args, error) {
 		return api.Args{}, nil
 	}
-	compensate := func(
-		_ *argyll.StepContext, _ api.Args, _ api.Args,
-	) error {
+	compensate := func(_ *argyll.StepContext, _ api.Args) error {
 		return nil
 	}
 
@@ -296,7 +295,7 @@ func TestCompensateHandlerRejectsBadRequests(t *testing.T) {
 	assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
 }
 
-func TestCompensateHandlerErrors(t *testing.T) {
+func TestCompensateErrors(t *testing.T) {
 	cases := []struct {
 		name   string
 		err    error
@@ -332,9 +331,7 @@ func TestCompensateHandlerErrors(t *testing.T) {
 			) (api.Args, error) {
 				return api.Args{}, nil
 			}
-			compensate := func(
-				_ *argyll.StepContext, _ api.Args, _ api.Args,
-			) error {
+			compensate := func(_ *argyll.StepContext, _ api.Args) error {
 				return tc.err
 			}
 
@@ -349,10 +346,7 @@ func TestCompensateHandlerErrors(t *testing.T) {
 				},
 			)
 
-			body, err := json.Marshal(map[string]api.Args{
-				"input":  {},
-				"output": {},
-			})
+			body, err := json.Marshal(api.Args{})
 			assert.NoError(t, err)
 
 			resp, err := http.Post(
@@ -366,7 +360,7 @@ func TestCompensateHandlerErrors(t *testing.T) {
 	}
 }
 
-func TestCompensateHandlerPanic(t *testing.T) {
+func TestCompensatePanic(t *testing.T) {
 	engineServer := newHTTPTestServer(t, http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
 			if r.URL.Path == "/engine/step" && r.Method == http.MethodPost {
@@ -382,9 +376,7 @@ func TestCompensateHandlerPanic(t *testing.T) {
 	) (api.Args, error) {
 		return api.Args{}, nil
 	}
-	compensate := func(
-		_ *argyll.StepContext, _ api.Args, _ api.Args,
-	) error {
+	compensate := func(_ *argyll.StepContext, _ api.Args) error {
 		panic("comp boom")
 	}
 
@@ -396,10 +388,7 @@ func TestCompensateHandlerPanic(t *testing.T) {
 		compensate: compensate,
 	})
 
-	body, err := json.Marshal(map[string]api.Args{
-		"input":  {},
-		"output": {},
-	})
+	body, err := json.Marshal(api.Args{})
 	assert.NoError(t, err)
 
 	resp, err := http.Post(
@@ -500,6 +489,10 @@ func startCompensatingServer(
 		_ = client.NewStep().WithName(args.stepName).
 			WithID(string(args.stepID)).
 			WithSyncExecution().
+			Required("order", api.TypeObject).
+			Output("reservation", api.TypeObject).
+			WithCompensated("order").
+			WithCompensated("reservation").
 			WithCompensateHandler(args.compensate).
 			Start(args.handle)
 	}()

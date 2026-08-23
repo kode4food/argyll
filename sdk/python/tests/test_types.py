@@ -5,6 +5,7 @@ from argyll.types import (
     AttributeSpec,
     AttributeType,
     ConstConfig,
+    Handling,
     HTTPAction,
     HTTPConfig,
     InputCollect,
@@ -300,7 +301,7 @@ def test_step_with_all_fields():
             max_backoff=10000,
         ),
         flow=FlowConfig(goals=["step-1"]),
-        memoizable=True,
+        handling=Handling.MEMOIZED,
     )
 
     result = step.to_dict()
@@ -312,7 +313,7 @@ def test_step_with_all_fields():
     assert result["predicate"]["script"] == "return true"
     assert result["work_config"]["max_retries"] == 3
     assert result["flow"]["goals"] == ["step-1"]
-    assert result["memoizable"] is True
+    assert result["handling"] == "memoized"
 
 
 def test_attribute_spec_no_optional_fields():

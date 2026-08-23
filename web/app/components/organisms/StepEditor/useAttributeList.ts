@@ -97,11 +97,20 @@ export function useAttributeList(
     setAttributes(buildAttributesFromStep(nextStep));
   }, []);
 
+  const clearCompensated = useCallback(() => {
+    setAttributes((current) =>
+      current.map((attr) =>
+        attr.compensated ? { ...attr, compensated: undefined } : attr
+      )
+    );
+  }, []);
+
   return {
     attributes,
     addAttribute,
     updateAttribute,
     removeAttribute,
     resetAttributes,
+    clearCompensated,
   };
 }

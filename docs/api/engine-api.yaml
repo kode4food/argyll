@@ -1151,16 +1151,17 @@ components:
         predicate:
           $ref: "#/components/schemas/ScriptConfig"
           description: Optional script-based predicate for conditional execution
-        memoizable:
-          type: boolean
-          default: false
+        handling:
+          type: string
+          enum: [standard, memoized, compensated]
+          default: standard
           description: |
-            Enable result caching (memoization) for this step.
-            When enabled, the engine maintains a cache of (step definition, inputs) → outputs mappings.
-            Before execution, the cache is checked using a deterministic key based on the step's functional definition and input arguments.
-            Cache hits return cached outputs without re-executing the step. Only successful executions are cached.
-            The cache is global, in-memory, thread-safe, and uses LRU eviction.
-          example: true
+            How completed work is handled:
+            - `standard`: execute normally without caching or compensation
+            - `memoized`: reuse cached successful outputs for identical inputs
+            - `compensated`: allow completed work to be reversed through
+              `http.compensate`
+          example: memoized
         http:
           $ref: "#/components/schemas/HttpConfig"
         flow:
@@ -1216,6 +1217,13 @@ components:
           $ref: "#/components/schemas/MetaConfig"
         output:
           $ref: "#/components/schemas/OutputConfig"
+        compensated:
+          type: boolean
+          default: false
+          description: |
+            Include this attribute in compensation requests under its
+            invocation-mapped name. Valid only when the step handling is
+            `compensated`.
 
     RequiredConfig:
       type: object
@@ -1352,8 +1360,8 @@ components:
             Supported values are `GET`, `POST`, `PUT`, and `DELETE`.
             Defaults to `POST` when omitted.
 
-            A `GET` request is sent without a body; every other method
-            carries the JSON payload.
+            Invoke `GET` requests carry no body. Compensation `GET` and
+            `DELETE` requests carry no body. Other requests carry JSON.
           enum:
             - GET
             - POST
@@ -1392,9 +1400,11 @@ components:
           allOf:
             - $ref: "#/components/schemas/HttpAction"
           description: |
-            Optional endpoint that reverses a completed step. Its presence
-            is what makes a step compensatable; omit it entirely for steps
-            with no compensation semantics.
+            Endpoint that reverses completed work. Required when handling is
+            `compensated` and forbidden otherwise. Its request arguments are
+            the attributes marked `compensated`. Selected attributes resolve
+            URL placeholders for every method and form the JSON body for
+            `POST` and `PUT`.
         health:
           type: string
           format: uri
@@ -1464,8 +1474,9 @@ components:
         compensate:
           type: boolean
           description: |
-            Compensate every completed work item in the child flow if the
-            child flow fails. Not inherited from the parent flow.
+            Enable Rollback on Failure for the child flow. Every completed
+            work item is compensated if the child flow fails. Not inherited
+            from the parent flow.
           example: true
 
     WorkConfig:
@@ -1691,8 +1702,9 @@ components:
         compensate:
           type: boolean
           description: |
-            Compensate every completed work item in the flow if the flow fails,
-            rather than only those of the step that failed
+            Enable Rollback on Failure. Every completed work item in the flow
+            is compensated if the flow fails, rather than only those of the
+            step that failed.
           example: true
 
     FlowStartedResponse:

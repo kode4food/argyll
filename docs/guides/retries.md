@@ -68,7 +68,7 @@ If a work item fails permanently, the step fails. If a goal step fails, the flow
 
 ## Compensation retries
 
-When a step has a `compensate` endpoint configured, compensation attempts use the same `work_config` retry settings as normal work execution. The engine treats compensation `5xx` responses as temporary failures and raises `comp_retry_scheduled` while retrying after the configured delay. When `max_retries` is exhausted, the compensation is marked permanently failed (`compensation_failed`).
+When a step uses compensated handling, compensation attempts use the same `work_config` retry settings as normal work execution. The engine treats compensation `5xx` responses as temporary failures and raises `comp_retry_scheduled` while retrying after the configured delay. When `max_retries` is exhausted, the compensation is marked permanently failed (`compensation_failed`).
 
 See [Compensation](./compensation.md) for full details.
 

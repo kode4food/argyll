@@ -245,8 +245,92 @@ describe("useStepEditorForm", () => {
     expect(onClose).toHaveBeenCalled();
   });
 
+  it("serializes compensation attribute selections", () => {
+    const existingStep = buildStep({
+      handling: "compensated",
+      attributes: {
+        request: {
+          role: "required",
+          type: AttributeType.String,
+          compensated: true,
+        },
+        result: {
+          role: "output",
+          type: AttributeType.String,
+          compensated: true,
+        },
+      },
+      http: {
+        invoke: { endpoint: "https://example.com" },
+        compensate: { endpoint: "https://example.com/undo" },
+      },
+    });
+    const { result } = renderHook(() =>
+      useStepEditorForm(existingStep, onUpdate, onClose)
+    );
+
+    const serialized = JSON.parse(result.current.getSerializedStepData());
+
+    expect(serialized.handling).toBe("compensated");
+    expect(serialized.attributes.request.compensated).toBe(true);
+    expect(serialized.attributes.result.compensated).toBe(true);
+    expect(serialized.http.compensate).toEqual({
+      endpoint: "https://example.com/undo",
+      method: "POST",
+    });
+  });
+
+  it("clears compensated attributes when handling changes", () => {
+    const existingStep = buildStep({
+      handling: "compensated",
+      attributes: {
+        request: {
+          role: "required",
+          type: AttributeType.String,
+          compensated: true,
+        },
+      },
+      http: {
+        invoke: { endpoint: "https://example.com" },
+        compensate: { endpoint: "https://example.com/undo" },
+      },
+    });
+    const { result } = renderHook(() =>
+      useStepEditorForm(existingStep, onUpdate, onClose)
+    );
+
+    act(() => result.current.setHandling("standard"));
+
+    expect(result.current.attributes[0].compensated).toBeUndefined();
+  });
+
+  it("clears handling for non-HTTP types", () => {
+    const existingStep = buildStep({
+      handling: "compensated",
+      attributes: {
+        request: {
+          role: "required",
+          type: AttributeType.String,
+          compensated: true,
+        },
+      },
+      http: {
+        invoke: { endpoint: "https://example.com" },
+        compensate: { endpoint: "https://example.com/undo" },
+      },
+    });
+    const { result } = renderHook(() =>
+      useStepEditorForm(existingStep, onUpdate, onClose)
+    );
+
+    act(() => result.current.setStepType("flow"));
+
+    expect(result.current.handling).toBe("standard");
+    expect(result.current.attributes[0].compensated).toBeUndefined();
+  });
+
   describe("attribute type side effects", () => {
-    it("clears match script when changing from input to another type", () => {
+    it("clears match script for non-input roles", () => {
       const { result } = renderHook(() =>
         useStepEditorForm(null, onUpdate, onClose)
       );
@@ -315,7 +399,7 @@ describe("useStepEditorForm", () => {
   });
 
   describe("validation error clearing", () => {
-    it("clears validation error when changing to non-optional type", () => {
+    it("clears errors for non-optional roles", () => {
       const { result } = renderHook(() =>
         useStepEditorForm(null, onUpdate, onClose)
       );

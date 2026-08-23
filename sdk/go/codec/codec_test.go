@@ -26,51 +26,24 @@ type (
 	}
 
 	failCodec struct{}
+
+	namedScalar struct {
+		Name  scalarName
+		Count scalarCount
+	}
+
+	scalarName  string
+	scalarCount int32
 )
+
+const nodeJSON = `{"name":"a","children":[` +
+	`{"name":"b","children":[{"name":"c","children":[]}]}]}`
 
 var (
 	errCodec  = errors.New("codec failed")
 	nodeImpl  codec.Codec[node]
 	nodeCodec = codec.Ref(&nodeImpl)
 )
-
-func init() {
-	nodeImpl = codec.Struct(
-		codec.Field("name", codec.String, func(v *node) *string {
-			return &v.Name
-		}),
-		codec.Field("children", codec.Slice(nodeCodec),
-			func(v *node) *[]node {
-				return &v.Children
-			}),
-	)
-}
-
-func personCodec() codec.Codec[person] {
-	return codec.Struct(
-		codec.Field("name", codec.String, func(v *person) *string {
-			return &v.Name
-		}),
-		codec.Field("age", codec.Int, func(v *person) *int {
-			return &v.Age
-		}),
-		codec.Field("tags", codec.Slice(codec.String),
-			func(v *person) *[]string {
-				return &v.Tags
-			}),
-		codec.Field("nick", codec.Optional(codec.String),
-			func(v *person) **string {
-				return &v.Nick
-			}),
-		codec.Field("ratings", codec.Map(codec.Float64),
-			func(v *person) *map[string]float64 {
-				return &v.Ratings
-			}),
-		codec.Field("active", codec.Bool, func(v *person) *bool {
-			return &v.Active
-		}),
-	)
-}
 
 func TestScalars(t *testing.T) {
 	s, err := codec.DecodeFrom(codec.String, strings.NewReader(`"hi"`))
@@ -151,22 +124,13 @@ func TestStructFieldError(t *testing.T) {
 }
 
 func TestNamedScalarTypes(t *testing.T) {
-	type name string
-	type count int32
-
 	c := codec.Struct(
-		codec.Field("name", codec.Text[name](),
-			func(v *struct {
-				Name  name
-				Count count
-			}) *name {
+		codec.Field("name", codec.Text[scalarName](),
+			func(v *namedScalar) *scalarName {
 				return &v.Name
 			}),
-		codec.Field("count", codec.Number[count](),
-			func(v *struct {
-				Name  name
-				Count count
-			}) *count {
+		codec.Field("count", codec.Number[scalarCount](),
+			func(v *namedScalar) *scalarCount {
 				return &v.Count
 			}),
 	)
@@ -174,8 +138,8 @@ func TestNamedScalarTypes(t *testing.T) {
 	out, err := codec.DecodeFrom(c,
 		strings.NewReader(`{"name":"x","count":3}`))
 	assert.NoError(t, err)
-	assert.Equal(t, name("x"), out.Name)
-	assert.Equal(t, count(3), out.Count)
+	assert.Equal(t, scalarName("x"), out.Name)
+	assert.Equal(t, scalarCount(3), out.Count)
 }
 
 func TestNullComposites(t *testing.T) {
@@ -224,34 +188,35 @@ func TestFloatEncoding(t *testing.T) {
 }
 
 func TestRefRecursion(t *testing.T) {
-	const src = `{"name":"a","children":[` +
-		`{"name":"b","children":[{"name":"c","children":[]}]}]}`
-
-	v, err := codec.DecodeFrom(nodeCodec, strings.NewReader(src))
+	v, err := codec.DecodeFrom(nodeCodec, strings.NewReader(nodeJSON))
 	assert.NoError(t, err)
 	assert.Equal(t, "c", v.Children[0].Children[0].Name)
 
 	var out strings.Builder
 	assert.NoError(t, codec.EncodeTo(nodeCodec, &out, v))
-	assert.JSONEq(t, src, out.String())
+	assert.JSONEq(t, nodeJSON, out.String())
 }
 
 func TestCompositeCodecErrors(t *testing.T) {
 	fail := failCodec{}
 
-	_, err := codec.DecodeFrom(codec.Slice[string](fail),
-		strings.NewReader(`["x"]`))
+	_, err := codec.DecodeFrom(
+		codec.Slice(fail), strings.NewReader(`["x"]`),
+	)
 	assert.ErrorIs(t, err, errCodec)
 
-	_, err = codec.DecodeFrom(codec.Map[string](fail),
-		strings.NewReader(`{"x":"y"}`))
+	_, err = codec.DecodeFrom(
+		codec.Map(fail), strings.NewReader(`{"x":"y"}`),
+	)
 	assert.ErrorIs(t, err, errCodec)
 
 	var out strings.Builder
-	assert.ErrorIs(t, codec.EncodeTo(codec.Slice[string](fail), &out,
-		[]string{"x"}), errCodec)
-	assert.ErrorIs(t, codec.EncodeTo(codec.Map[string](fail), &out,
-		map[string]string{"x": "y"}), errCodec)
+	err = codec.EncodeTo(codec.Slice(fail), &out, []string{"x"})
+	assert.ErrorIs(t, err, errCodec)
+	err = codec.EncodeTo(
+		codec.Map(fail), &out, map[string]string{"x": "y"},
+	)
+	assert.ErrorIs(t, err, errCodec)
 }
 
 func (failCodec) Decode(*jsontext.Decoder) (string, error) {
@@ -260,4 +225,42 @@ func (failCodec) Decode(*jsontext.Decoder) (string, error) {
 
 func (failCodec) Encode(*jsontext.Encoder, string) error {
 	return errCodec
+}
+
+func init() {
+	nodeImpl = codec.Struct(
+		codec.Field("name", codec.String, func(v *node) *string {
+			return &v.Name
+		}),
+		codec.Field("children", codec.Slice(nodeCodec),
+			func(v *node) *[]node {
+				return &v.Children
+			}),
+	)
+}
+
+func personCodec() codec.Codec[person] {
+	return codec.Struct(
+		codec.Field("name", codec.String, func(v *person) *string {
+			return &v.Name
+		}),
+		codec.Field("age", codec.Int, func(v *person) *int {
+			return &v.Age
+		}),
+		codec.Field("tags", codec.Slice(codec.String),
+			func(v *person) *[]string {
+				return &v.Tags
+			}),
+		codec.Field("nick", codec.Optional(codec.String),
+			func(v *person) **string {
+				return &v.Nick
+			}),
+		codec.Field("ratings", codec.Map(codec.Float64),
+			func(v *person) *map[string]float64 {
+				return &v.Ratings
+			}),
+		codec.Field("active", codec.Bool, func(v *person) *bool {
+			return &v.Active
+		}),
+	)
 }

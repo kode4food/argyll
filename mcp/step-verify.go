@@ -45,7 +45,7 @@ func verifyAppliedSemantics(
 		}
 		for _, cfg := range configs {
 			got, ok := valueAtPath(readback, cfg.Path)
-			if ok && sameJSON(got, cfg.Value) {
+			if ok && sameJSON(jsonValues{current: got, proposed: cfg.Value}) {
 				continue
 			}
 			issues = append(issues, semanticIssue{

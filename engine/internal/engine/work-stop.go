@@ -99,7 +99,7 @@ func (tx *flowTx) memoizeWorkOutput(
 ) {
 	fl := tx.Value()
 	st := fl.Plan.Steps[stepID]
-	if !st.Memoizable {
+	if st.DefaultedHandling() != api.HandlingMemoized {
 		return
 	}
 

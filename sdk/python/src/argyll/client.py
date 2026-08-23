@@ -148,6 +148,7 @@ class Client:
             BackoffType,
             ConstConfig,
             FlowConfig,
+            Handling,
             HTTPAction,
             HTTPConfig,
             InputCollect,
@@ -228,6 +229,7 @@ class Client:
                 const=const,
                 meta=meta,
                 output=output,
+                compensated=spec_data.get("compensated", False),
             )
 
         # Parse HTTP config
@@ -300,5 +302,5 @@ class Client:
             predicate=predicate,
             work_config=work_config,
             flow=flow,
-            memoizable=data.get("memoizable", False),
+            handling=Handling(data.get("handling", "standard")),
         )

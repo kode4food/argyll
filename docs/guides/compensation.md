@@ -6,13 +6,13 @@ Compensation is available for sync and async HTTP steps. Script and flow steps c
 
 ## When compensation fires
 
-By default compensation is triggered at **step failure**, not flow failure. When a step fails (permanently, after retries are exhausted for all failing work items), the engine raises a `step_failed` event and immediately schedules compensation for every work item whose status is `succeeded`. Steps that already completed successfully are left alone; see [Flow-level compensation](#flow-level-compensation) to roll those back too.
+By default compensation is triggered at **step failure**, not flow failure. When a step fails (permanently, after retries are exhausted for all failing work items), the engine raises a `step_failed` event and immediately schedules compensation for every work item whose status is `succeeded`. Steps that already completed successfully are left alone; see [Rollback on Failure](#rollback-on-failure) to roll those back too.
 
 Compensation continues even after the flow has reached terminal state (`failed`). A caller may act on the failure immediately while compensation is still producing side effects (changes to external systems). The flow is not deactivated until all compensation work items finish.
 
-## Flow-level compensation
+## Rollback on Failure
 
-Step-level compensation undoes only the failing step's own work. A flow that fails at its fifth step leaves the side effects of steps one through four in place. Set `compensate` on the flow to get saga-style rollback instead: once the flow reaches `failed`, every succeeded work item in the flow is compensated, not just those of the step that failed.
+Step-level compensation undoes only the failing step's own work. A flow that fails at its fifth step leaves the side effects of steps one through four in place. Enable **Rollback on Failure** in Start Flow or on a Flow Step to get saga-style rollback instead. Both controls set the API's `compensate` field: on a root flow request or under `flow` for a child flow. Once the flow reaches `failed`, every succeeded work item in the flow is compensated, not just those of the step that failed.
 
 ```json
 {
@@ -25,7 +25,7 @@ Step-level compensation undoes only the failing step's own work. A flow that fai
 }
 ```
 
-Steps without a `compensate` endpoint, and memoizable steps, are skipped as usual. Setting `compensate` on a flow whose steps all lack a `compensate` endpoint does nothing, and is not reported as an error.
+Only steps with `handling: "compensated"` participate. Enabling **Rollback on Failure** on a flow with no compensated steps does nothing and is not reported as an error.
 
 Work items that complete *after* the flow has failed are still compensated. This matters when a slow step is still in flight at the moment another step fails: its side effect is recorded, then undone when its step's wave comes up. The flow is not deactivated until all of it settles.
 
@@ -46,13 +46,13 @@ unwind:  ship-order          (wave 1)
 
 Work items within a single step are independent and compensate in parallel with each other.
 
-A step with no `compensate` endpoint is skipped rather than treated as a wave of its own, so it never delays the steps behind it.
+A step without compensated handling is skipped rather than treated as a wave of its own, so it never delays the steps behind it.
 
 Ordering applies to flow-level rollback only. A failing step's cleanup of its own succeeded work items starts as soon as the step fails, without waiting for a wave, because nothing downstream of it can have run.
 
 ### Child flows are sealed
 
-A flow step's child flow does **not** inherit the parent's setting. Whether a child flow compensates is decided by its own step definition:
+A flow step's child flow does **not** inherit the parent's **Rollback on Failure** setting. Whether a child flow rolls back is decided by its own Flow Step definition:
 
 ```json
 {
@@ -69,19 +69,20 @@ A flow step's child flow does **not** inherit the parent's setting. Whether a ch
 }
 ```
 
-A parent that fails will not roll back a child flow that completed successfully, and a child flow that fails rolls back according to its own `compensate` setting only.
+A parent that fails will not roll back a child flow that completed successfully, and a child flow that fails rolls back according to its own **Rollback on Failure** (`flow.compensate`) setting only.
 
 A child flow reports its result to its parent as soon as its own work finishes, but is not deactivated until the parent releases it. A child that shows as terminal-but-active is waiting on its parent, not stuck.
 
 ## Configuring a compensate endpoint
 
-Add `compensate` to the step's `http` configuration:
+Set the step's handling to `compensated`, configure the endpoint, and mark only the attributes it needs:
 
 ```json
 {
   "id": "charge-card",
   "name": "Charge Card",
   "type": "async",
+  "handling": "compensated",
   "http": {
     "invoke": {
       "endpoint": "https://payment-service.example.com/charge",
@@ -93,29 +94,32 @@ Add `compensate` to the step's `http` configuration:
   },
   "attributes": {
     "amount": { "role": "required", "type": "number" },
-    "charge_id": { "role": "output", "type": "string" }
+    "charge_id": {
+      "role": "output",
+      "type": "string",
+      "compensated": true
+    }
   }
 }
 ```
 
-The `compensate` endpoint supports `{param}` placeholders. Placeholders are resolved from a merged view of the work item's inputs and outputs, with **outputs taking priority** over inputs when names collide. This lets you reference output values like `{charge_id}` directly in the URL.
+`compensated: true` selects an attribute for compensation. Unmarked attributes are not sent. The request body and `{param}` placeholders use each selected attribute's invocation-mapped inner name. If two selected attributes have the same inner name, choose one; selecting both is invalid.
 
-`compensate` takes the same shape as `invoke`, so it accepts its own `method` and `timeout`. The method defaults to `POST`; set `"method": "DELETE"` when the service models the undo as a resource deletion.
+`compensate` accepts its own `method` and `timeout`. The method defaults to `POST`; set `"method": "DELETE"` when the service models the undo as a resource deletion.
 
 Timeouts resolve in three steps: the compensate `timeout` if set, otherwise the `invoke` timeout, otherwise the global engine timeout (`STEP_TIMEOUT`). Set a compensate timeout only when undoing takes materially longer or shorter than doing. Leaving it unset keeps the step's single timeout governing both.
 
 ## What the engine sends
 
-The engine sends a request to the resolved compensate URL using the configured method (`POST` by default) with:
+The engine sends only attributes marked `compensated` as one flattened object using their invocation-mapped names:
 
 ```json
 {
-  "input": { "amount": 49.99 },
-  "output": { "charge_id": "ch_abc123" }
+  "charge_id": "ch_abc123"
 }
 ```
 
-A `GET` compensate endpoint is sent without a body; every other method, including `DELETE`, carries the payload above.
+`GET` and `DELETE` compensation requests carry no body; selected attributes still resolve URL placeholders. `POST` and `PUT` carry the flattened payload.
 
 The same `Argyll-Flow-ID`, `Argyll-Step-ID`, and `Argyll-Receipt-Token` headers sent to the work endpoint are also sent to the compensate endpoint. Use the receipt token as the idempotency key for compensation side effects.
 
@@ -130,6 +134,7 @@ When `max_retries` is exhausted, the compensation is marked `compensation_failed
   "id": "reserve-inventory",
   "name": "Reserve Inventory",
   "type": "sync",
+  "handling": "compensated",
   "http": {
     "invoke": {
       "endpoint": "https://inventory.example.com/reserve",
@@ -149,14 +154,18 @@ When `max_retries` is exhausted, the compensation is marked `compensation_failed
   "attributes": {
     "sku": { "role": "required", "type": "string" },
     "quantity": { "role": "required", "type": "number" },
-    "reservation_id": { "role": "output", "type": "string" }
+    "reservation_id": {
+      "role": "output",
+      "type": "string",
+      "compensated": true
+    }
   }
 }
 ```
 
-## Memoizable steps cannot be compensated
+## Handling is explicit
 
-Steps with `memoizable: true` assume their work has no observable side effects, so compensation is not allowed. Configuring both `memoizable: true` and a `compensate` URL is a validation error.
+`standard`, `memoized`, and `compensated` are mutually exclusive handling modes. A compensation endpoint is required only for `compensated` handling and is rejected for the other modes. Likewise, `compensated: true` is valid on an attribute only when the step handling is `compensated`.
 
 ## Work item states
 

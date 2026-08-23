@@ -18,19 +18,19 @@ type (
 
 const (
 	nameProp      = "name"
-	memoizeProp   = "memoize"
 	timeoutProp   = "timeout"
 	predicateProp = "predicate"
 
-	roleProp     = "role"
-	defaultProp  = "default"
-	valueProp    = "value"
-	keyProp      = "key"
-	collectProp  = "collect"
-	deadlineProp = "deadline"
-	forEachProp  = "for_each"
-	matchProp    = "match"
-	mappingProp  = "mapping"
+	roleProp        = "role"
+	defaultProp     = "default"
+	valueProp       = "value"
+	keyProp         = "key"
+	collectProp     = "collect"
+	deadlineProp    = "deadline"
+	forEachProp     = "for_each"
+	matchProp       = "match"
+	mappingProp     = "mapping"
+	compensatedProp = "compensated"
 
 	// scripts declared in a directive or a tag are Lua
 	scriptLanguage = "lua"
@@ -45,11 +45,6 @@ var stepSetters = map[string]stepSetter{
 		s.Name = api.Name(v)
 		return nil
 	},
-	memoizeProp: func(s *api.Step, v string) error {
-		on, err := parseFlag(Option{Key: memoizeProp, Value: v})
-		s.Memoizable = on
-		return err
-	},
 	timeoutProp: func(s *api.Step, v string) error {
 		ms, err := parseMillis(Option{Key: timeoutProp, Value: v})
 		s.HTTP.Invoke.Timeout = ms
@@ -63,6 +58,11 @@ var stepSetters = map[string]stepSetter{
 
 // applied after the role, so each setter finds the config it writes into
 var attrSetters = map[string]attrSetter{
+	compensatedProp: func(s *api.AttributeSpec, v string) error {
+		on, err := parseFlag(Option{Key: compensatedProp, Value: v})
+		s.Compensated = on
+		return err
+	},
 	defaultProp: func(s *api.AttributeSpec, v string) error {
 		if s.Optional == nil {
 			return roleError(defaultProp, api.RoleOptional)

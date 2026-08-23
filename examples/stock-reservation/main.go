@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 	"math/rand"
@@ -10,12 +11,19 @@ import (
 	"sync"
 	"time"
 
-	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/log"
 	argyll "github.com/kode4food/argyll/sdk/go"
+	"github.com/kode4food/argyll/sdk/go/gen"
 )
 
 type (
+	// Order identifies the product and quantity being reserved
+	Order struct {
+		ID        string `json:"id"`
+		ProductID string `json:"product_id"`
+		Quantity  int    `json:"quantity"`
+	}
+
 	// StockReservation records a quantity of a product held for an order
 	StockReservation struct {
 		ReservationID string `json:"reservation_id"`
@@ -37,31 +45,15 @@ type (
 
 const version = "dev"
 
-func main() {
-	engineURL := os.Getenv("ARGYLL_ENGINE_URL")
-	if engineURL == "" {
-		engineURL = "http://localhost:8080"
-	}
+var inv = newInventory()
 
+//go:generate go run github.com/kode4food/argyll/sdk/go/gen/cmd/argyll-gen .
+
+func main() {
 	logger := log.New("stock-reservation-example", os.Getenv("ENV"), version)
 	slog.SetDefault(logger)
 
-	client := argyll.NewClient(engineURL, 30*time.Second)
-	inv := newInventory()
-
-	err := client.NewStep().WithName("Stock Reservation").
-		WithLabels(api.Labels{
-			"description": "reserve inventory for an order",
-			"domain":      "inventory",
-			"capability":  "reserve",
-			"example":     "true",
-		}).
-		Required("order", api.TypeObject).
-		Output("reservation", api.TypeObject).
-		WithCompensateHandler(inv.compensate).
-		Start(inv.handle)
-
-	if err != nil {
+	if err := gen.Serve(context.Background(), ArgyllSteps()...); err != nil {
 		slog.Error("Failed to setup stock reservation", log.Error(err))
 		os.Exit(1)
 	}
@@ -80,20 +72,14 @@ func newInventory() *inventory {
 	}
 }
 
-func (inv *inventory) handle(
-	_ *argyll.StepContext, args api.Args,
-) (api.Args, error) {
-	order, ok := args["order"].(map[string]any)
-	if !ok {
-		return nil, argyll.NewHTTPError(
-			http.StatusBadRequest, "order must be an object",
-		)
-	}
-
-	orderID, _ := order["id"].(string)
-	productID, _ := order["product_id"].(string)
-	quantityFloat, _ := order["quantity"].(float64)
-	quantity := int(quantityFloat)
+//argyll:wrap stock-reservation;name:Stock Reservation
+//argyll:compensate releaseStock
+//argyll:labels description: reserve inventory for an order
+//argyll:labels domain: inventory; capability: reserve; example: true
+func reserveStock(order Order) (reservation StockReservation, err error) {
+	orderID := order.ID
+	productID := order.ProductID
+	quantity := order.Quantity
 
 	slog.Info("Attempting stock reservation",
 		slog.String("order_id", orderID),
@@ -110,7 +96,7 @@ func (inv *inventory) handle(
 	if !ok {
 		slog.Warn("Product not found in stock system",
 			slog.String("product_id", productID))
-		return nil, argyll.NewHTTPError(
+		return StockReservation{}, argyll.NewHTTPError(
 			http.StatusNotFound,
 			fmt.Sprintf("product %s not found in stock system", productID),
 		)
@@ -121,7 +107,7 @@ func (inv *inventory) handle(
 			slog.String("product_id", productID),
 			slog.Int("requested", quantity),
 			slog.Int("available", currentStock))
-		return nil, argyll.NewHTTPError(
+		return StockReservation{}, argyll.NewHTTPError(
 			http.StatusConflict,
 			fmt.Sprintf("insufficient stock: requested %d, available %d",
 				quantity, currentStock),
@@ -131,7 +117,7 @@ func (inv *inventory) handle(
 	// Reserve the stock
 	inv.stockLevels[productID] = currentStock - quantity
 
-	reservation := StockReservation{
+	reservation = StockReservation{
 		ReservationID: fmt.Sprintf("RES-%d", time.Now().UnixNano()),
 		OrderID:       orderID,
 		ProductID:     productID,
@@ -154,21 +140,12 @@ func (inv *inventory) handle(
 		slog.Int("stock_before", currentStock),
 		slog.Int("stock_after", inv.stockLevels[productID]))
 
-	return api.Args{"reservation": reservation}, nil
+	return reservation, nil
 }
 
-func (inv *inventory) compensate(
-	_ *argyll.StepContext, _ api.Args, outputs api.Args,
-) error {
-	reservation, ok := outputs["reservation"].(map[string]any)
-	if !ok {
-		return argyll.NewHTTPError(
-			http.StatusBadRequest, "reservation must be an object",
-		)
-	}
-
-	reservationID, _ := reservation["reservation_id"].(string)
-	productID, _ := reservation["product_id"].(string)
+func releaseStock(reservation StockReservation) error {
+	reservationID := reservation.ReservationID
+	productID := reservation.ProductID
 
 	slog.Info("Attempting stock release",
 		slog.String("reservation_id", reservationID),

@@ -40,11 +40,6 @@ type (
 		httpClient *http.Client
 		timeout    time.Duration
 	}
-
-	compensateBody struct {
-		Input  api.Args `json:"input"`
-		Output api.Args `json:"output"`
-	}
 )
 
 const UserAgent = "Argyll-Engine/" + argyll.Version
@@ -92,8 +87,7 @@ func (c *HTTPClient) Invoke(
 	return parseResponse(step, respBody)
 }
 
-// InvokeCompensate sends a compensation request to the step's compensate
-// endpoint with the original inputs and the successful outputs
+// InvokeCompensate sends selected work attributes to the compensate endpoint
 func (c *HTTPClient) InvokeCompensate(req CompensateRequest) error {
 	step := req.Step
 	if step.HTTP == nil || step.HTTP.Compensate == nil {
@@ -101,8 +95,11 @@ func (c *HTTPClient) InvokeCompensate(req CompensateRequest) error {
 	}
 	action := step.HTTP.Compensate
 
-	merged := req.Inputs.Apply(req.Outputs)
-	endpoint, err := resolveEndpoint(action.Endpoint, merged)
+	args, err := buildCompensationArgs(req)
+	if err != nil {
+		return err
+	}
+	endpoint, err := resolveEndpoint(action.Endpoint, args)
 	if err != nil {
 		slog.Error("Failed to resolve compensate endpoint",
 			log.StepID(step.ID),
@@ -111,7 +108,7 @@ func (c *HTTPClient) InvokeCompensate(req CompensateRequest) error {
 	}
 
 	method := action.DefaultedMethod()
-	bodyReader, err := compensateRequestBody(method, req)
+	bodyReader, err := compensationRequestBody(method, args)
 	if err != nil {
 		slog.Error("Failed to marshal compensate request",
 			log.StepID(step.ID),
@@ -284,20 +281,11 @@ func requestBody(method string, args api.Args) (io.Reader, error) {
 	return bytes.NewBuffer(body), nil
 }
 
-func compensateRequestBody(
-	method string, req CompensateRequest,
-) (io.Reader, error) {
-	if method == "GET" {
+func compensationRequestBody(method string, args api.Args) (io.Reader, error) {
+	if method == "DELETE" {
 		return nil, nil
 	}
-
-	body, err := json.Marshal(
-		compensateBody{Input: req.Inputs, Output: req.Outputs},
-	)
-	if err != nil {
-		return nil, err
-	}
-	return bytes.NewBuffer(body), nil
+	return requestBody(method, args)
 }
 
 func parseResponse(step *api.Step, respBody []byte) (api.Args, error) {
@@ -314,6 +302,31 @@ func parseResponse(step *api.Step, respBody []byte) (api.Args, error) {
 	}
 
 	return outputs, nil
+}
+
+func buildCompensationArgs(req CompensateRequest) (api.Args, error) {
+	res := api.Args{}
+	for name, attr := range req.Step.Attributes {
+		if attr == nil || !attr.Compensated {
+			continue
+		}
+		mapped, _ := req.Step.MappedName(name)
+		source := req.Inputs
+		if attr.IsOutput() {
+			source = req.Outputs
+		}
+		value, ok := source[mapped]
+		if !ok {
+			continue
+		}
+		if _, ok := res[mapped]; ok {
+			return nil, fmt.Errorf(
+				"%w: %s", api.ErrCompensateArgConflict, mapped,
+			)
+		}
+		res[mapped] = value
+	}
+	return res, nil
 }
 
 func httpError(status int, contentType string, body []byte) error {

@@ -4,7 +4,7 @@ import responses
 
 from argyll import Client
 from argyll.errors import ClientError, FlowError
-from argyll.types import StepType
+from argyll.types import Handling, StepType
 
 
 def test_client_initialization():
@@ -381,6 +381,7 @@ def test_parse_step_with_all_fields():
                         "output": {
                             "role": "output",
                             "type": "number",
+                            "compensated": True,
                             "output": {"mapping": {"name": "result"}},
                         },
                     },
@@ -410,7 +411,7 @@ def test_parse_step_with_all_fields():
                     "flow": {
                         "goals": ["step-1", "step-2"],
                     },
-                    "memoizable": True,
+                    "handling": "compensated",
                 }
             ],
             "count": 1,
@@ -431,8 +432,9 @@ def test_parse_step_with_all_fields():
     assert step.attributes["const"].const is not None
     assert step.attributes["meta"].meta is not None
     assert step.attributes["output"].output is not None
+    assert step.attributes["output"].compensated is True
     assert step.script is not None
     assert step.predicate is not None
     assert step.work_config is not None
     assert step.flow is not None
-    assert step.memoizable is True
+    assert step.handling == Handling.COMPENSATED

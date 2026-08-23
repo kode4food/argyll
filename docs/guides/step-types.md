@@ -34,7 +34,7 @@ Does your work finish within ~10 seconds?
 - Simplest to implement
 - No background workers needed
 - Good for: lookups, transformations, fast API calls
-- Supports `http.compensate` for undoing succeeded work items when the step fails
+- Supports compensated handling for undoing succeeded work items when the step fails
 
 **Timeout:** Configure `http.timeout` per step (in milliseconds)
 
@@ -51,7 +51,7 @@ See [HTTP Steps](../concepts/steps.md#sync-http) for details.
 - Requires webhook for completion notification
 - Needs background worker infrastructure
 - Engine-provided receipt tokens make completion idempotent for webhook retries
-- Supports `http.compensate` for undoing succeeded work items when the step fails
+- Supports compensated handling for undoing succeeded work items when the step fails
 
 See [Async Steps Guide](./async-steps.md) for webhook setup and best practices.
 

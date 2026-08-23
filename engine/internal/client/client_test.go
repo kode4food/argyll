@@ -89,7 +89,7 @@ func TestHTTPError(t *testing.T) {
 	assert.Contains(t, err.Error(), "500")
 }
 
-func TestProblemDetailsPermanentFailure(t *testing.T) {
+func TestPermanentProblem(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Type", api.ProblemJSONContentType)
@@ -170,7 +170,7 @@ func TestProblemMediaRequired(t *testing.T) {
 	assert.NotContains(t, err.Error(), "validation failed")
 }
 
-func TestProblemDetailsRetryableFailure(t *testing.T) {
+func TestRetryableProblem(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Type", api.ProblemJSONContentType)
@@ -422,8 +422,9 @@ func TestMissingURLArg(t *testing.T) {
 	assert.ErrorIs(t, err, client.ErrMissingEndpointArg)
 }
 
-func TestCompensateUsesConfiguredMethod(t *testing.T) {
-	var gotMethod, gotPath string
+func TestCompensateMethod(t *testing.T) {
+	var gotMethod string
+	var gotPath string
 	var gotBody []byte
 	server := httptest.NewServer(http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
@@ -437,64 +438,113 @@ func TestCompensateUsesConfiguredMethod(t *testing.T) {
 
 	cl := client.NewHTTPClient(5 * time.Second)
 	st := &api.Step{
-		ID: "charge",
+		ID:       "charge",
+		Handling: api.HandlingCompensated,
 		HTTP: &api.HTTPConfig{
 			Invoke: api.HTTPAction{Endpoint: server.URL},
 			Compensate: &api.HTTPAction{
 				Endpoint: server.URL + "/refund/{charge_id}",
-				Method:   "DELETE",
+				Method:   "PUT",
 			},
+		},
+		Attributes: api.AttributeSpecs{
+			"amount":    {Role: api.RoleRequired, Compensated: true},
+			"secret":    {Role: api.RoleRequired},
+			"charge_id": {Role: api.RoleOutput, Compensated: true},
 		},
 	}
 
-	err := cl.InvokeCompensate(client.CompensateRequest{
-		Step:     st,
-		Inputs:   api.Args{"amount": 10},
-		Outputs:  api.Args{"charge_id": "ch_1"},
-		Metadata: api.Metadata{},
-	})
+	err := cl.InvokeCompensate(
+		client.CompensateRequest{
+			Step:     st,
+			Inputs:   api.Args{"amount": 10, "secret": "private"},
+			Outputs:  api.Args{"charge_id": "ch_1"},
+			Metadata: api.Metadata{},
+		},
+	)
 	assert.NoError(t, err)
-	assert.Equal(t, "DELETE", gotMethod)
+	assert.Equal(t, "PUT", gotMethod)
 	assert.Equal(t, "/refund/ch_1", gotPath)
 
-	var body map[string]api.Args
+	var body api.Args
 	assert.NoError(t, json.Unmarshal(gotBody, &body))
-	assert.Equal(t, "ch_1", body["output"]["charge_id"])
+	assert.Equal(t, float64(10), body["amount"])
+	assert.Equal(t, "ch_1", body["charge_id"])
+	assert.NotContains(t, body, api.Name("secret"))
 }
 
-func TestCompensateGetSendsNoBody(t *testing.T) {
-	var gotMethod string
-	var gotBody []byte
-	server := httptest.NewServer(http.HandlerFunc(
-		func(w http.ResponseWriter, r *http.Request) {
-			gotMethod = r.Method
-			gotBody, _ = io.ReadAll(r.Body)
-			w.WriteHeader(http.StatusNoContent)
-		},
-	))
-	defer server.Close()
-
+func TestCompensateConflict(t *testing.T) {
 	cl := client.NewHTTPClient(5 * time.Second)
 	st := &api.Step{
-		ID: "step",
+		ID:       "replace",
+		Handling: api.HandlingCompensated,
 		HTTP: &api.HTTPConfig{
-			Invoke: api.HTTPAction{Endpoint: server.URL},
+			Invoke: api.HTTPAction{Endpoint: "http://example.com"},
 			Compensate: &api.HTTPAction{
-				Endpoint: server.URL + "/undo",
-				Method:   "GET",
+				Endpoint: "http://example.com/undo",
+			},
+		},
+		Attributes: api.AttributeSpecs{
+			"request": {
+				Role:        api.RoleRequired,
+				Compensated: true,
+				Required: &api.RequiredConfig{
+					Mapping: &api.MappingConfig{Name: "value"},
+				},
+			},
+			"result": {
+				Role:        api.RoleOutput,
+				Compensated: true,
+				Output: &api.OutputConfig{
+					Mapping: &api.MappingConfig{Name: "value"},
+				},
 			},
 		},
 	}
 
-	err := cl.InvokeCompensate(client.CompensateRequest{
-		Step: st, Inputs: api.Args{}, Outputs: api.Args{},
-	})
-	assert.NoError(t, err)
-	assert.Equal(t, "GET", gotMethod)
-	assert.Empty(t, gotBody)
+	err := cl.InvokeCompensate(
+		client.CompensateRequest{
+			Step:    st,
+			Inputs:  api.Args{"value": "before"},
+			Outputs: api.Args{"value": "after"},
+		},
+	)
+	assert.ErrorIs(t, err, api.ErrCompensateArgConflict)
 }
 
-func TestCompensateTimeoutFallsBackToInvoke(t *testing.T) {
+func TestCompensateBody(t *testing.T) {
+	for _, method := range []string{"GET", "DELETE"} {
+		t.Run(method, func(t *testing.T) {
+			var gotBody []byte
+			server := httptest.NewServer(http.HandlerFunc(
+				func(w http.ResponseWriter, r *http.Request) {
+					assert.Equal(t, method, r.Method)
+					gotBody, _ = io.ReadAll(r.Body)
+					w.WriteHeader(http.StatusNoContent)
+				},
+			))
+			defer server.Close()
+
+			cl := client.NewHTTPClient(5 * time.Second)
+			st := &api.Step{
+				ID: "step",
+				HTTP: &api.HTTPConfig{
+					Invoke: api.HTTPAction{Endpoint: server.URL},
+					Compensate: &api.HTTPAction{
+						Endpoint: server.URL + "/undo",
+						Method:   method,
+					},
+				},
+			}
+
+			err := cl.InvokeCompensate(client.CompensateRequest{Step: st})
+			assert.NoError(t, err)
+			assert.Empty(t, gotBody)
+		})
+	}
+}
+
+func TestCompensateTimeout(t *testing.T) {
 	serverDone := make(chan struct{})
 	server := httptest.NewServer(http.HandlerFunc(
 		func(_ http.ResponseWriter, r *http.Request) {
@@ -520,7 +570,7 @@ func TestCompensateTimeoutFallsBackToInvoke(t *testing.T) {
 	assert.Error(t, err)
 }
 
-func TestCompensateWithoutConfig(t *testing.T) {
+func TestCompensateMissing(t *testing.T) {
 	cl := client.NewHTTPClient(5 * time.Second)
 	st := &api.Step{
 		ID:   "step",

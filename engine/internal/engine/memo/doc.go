@@ -1,2 +1,2 @@
-// Package memo caches memoizable step outputs
+// Package memo caches outputs from steps with memoized handling
 package memo

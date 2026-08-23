@@ -12,14 +12,14 @@ import (
 
 const retryBackoffMs = 200
 
-// TestMemoStepReusesToken verifies that memoizable steps reuse the same token
+// TestMemoStepReusesToken verifies that memoized steps reuse the same token
 // across retries
 func TestMemoStepReusesToken(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		assert.NoError(t, env.Engine.Start())
 
 		st := helpers.NewStepWithOutputs("memo-retry", "result")
-		st.Memoizable = true
+		st.Handling = api.HandlingMemoized
 		st.WorkConfig = &api.WorkConfig{
 			MaxRetries:  2,
 			InitBackoff: retryBackoffMs,
@@ -59,14 +59,13 @@ func TestMemoStepReusesToken(t *testing.T) {
 	})
 }
 
-// TestNonMemoStepReusesToken verifies that non-memoizable steps reuse the same
-// token across retries
+// TestNonMemoStepReusesToken verifies that standard steps reuse the same token
+// across retries
 func TestNonMemoStepReusesToken(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		assert.NoError(t, env.Engine.Start())
 
 		st := helpers.NewStepWithOutputs("non-memo-retry", "result")
-		st.Memoizable = false
 		st.WorkConfig = &api.WorkConfig{
 			MaxRetries:  2,
 			InitBackoff: retryBackoffMs,
@@ -112,7 +111,6 @@ func TestRetriesReuseToken(t *testing.T) {
 		assert.NoError(t, env.Engine.Start())
 
 		st := helpers.NewStepWithOutputs("multi-retry", "result")
-		st.Memoizable = false
 		st.WorkConfig = &api.WorkConfig{
 			MaxRetries:  3,
 			InitBackoff: retryBackoffMs,

@@ -78,6 +78,8 @@ export function useStepPersistence({
         httpMethod: normalizeHttpMethod(stepData.http?.invoke?.method),
         httpTimeout: stepData.http?.invoke?.timeout || 0,
         flowGoals: stepData.flow?.goals?.join(", ") || "",
+        handling: stepData.handling || "standard",
+        compensateEndpoint: stepData.http?.compensate?.endpoint || "",
       });
     },
     [isCreateMode]

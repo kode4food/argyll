@@ -1,8 +1,8 @@
-import { HTTPMethod, StepType } from "@/app/api";
+import { Handling, HTTPMethod, StepType } from "@/app/api";
 import { getValidationError, parseFlowGoals } from "./stepValidationUtils";
 import { Attribute } from "./stepEditorTypes";
 
-const baseArgs = {
+const BASE_ARGS = {
   isCreateMode: false,
   stepId: "step-1",
   attributes: [] as Attribute[],
@@ -12,10 +12,12 @@ const baseArgs = {
   httpMethod: "POST" as HTTPMethod,
   httpTimeout: 1000,
   flowGoals: "",
+  handling: "standard" as Handling,
+  compensateEndpoint: "",
 };
 
 describe("stepValidationUtils", () => {
-  test("parses comma and newline separated flow goals", () => {
+  test("parses flow goals", () => {
     expect(parseFlowGoals("step-a, step-b\n\nstep-c")).toEqual([
       "step-a",
       "step-b",
@@ -26,7 +28,7 @@ describe("stepValidationUtils", () => {
   test("requires step id in create mode", () => {
     expect(
       getValidationError({
-        ...baseArgs,
+        ...BASE_ARGS,
         isCreateMode: true,
         stepId: " ",
       })
@@ -36,7 +38,7 @@ describe("stepValidationUtils", () => {
   test("requires flow goals for flow steps", () => {
     expect(
       getValidationError({
-        ...baseArgs,
+        ...BASE_ARGS,
         stepType: "flow",
         flowGoals: " ",
       })
@@ -46,7 +48,7 @@ describe("stepValidationUtils", () => {
   test("requires script for script steps", () => {
     expect(
       getValidationError({
-        ...baseArgs,
+        ...BASE_ARGS,
         stepType: "script",
         script: " ",
       })
@@ -56,16 +58,16 @@ describe("stepValidationUtils", () => {
   test("requires endpoint for http steps", () => {
     expect(
       getValidationError({
-        ...baseArgs,
+        ...BASE_ARGS,
         endpoint: " ",
       })
     ).toEqual({ key: "stepEditor.endpointRequired" });
   });
 
-  test("requires GET endpoint params for required attributes", () => {
+  test("requires GET params", () => {
     expect(
       getValidationError({
-        ...baseArgs,
+        ...BASE_ARGS,
         httpMethod: "GET",
         endpoint: "http://example.com/{account_id}",
         attributes: [
@@ -83,10 +85,10 @@ describe("stepValidationUtils", () => {
     });
   });
 
-  test("uses mapping name when validating GET endpoint params", () => {
+  test("uses mapped GET params", () => {
     expect(
       getValidationError({
-        ...baseArgs,
+        ...BASE_ARGS,
         httpMethod: "GET",
         endpoint: "http://example.com/{customer_id}",
         attributes: [
@@ -105,9 +107,68 @@ describe("stepValidationUtils", () => {
   test("requires positive timeout for http steps", () => {
     expect(
       getValidationError({
-        ...baseArgs,
+        ...BASE_ARGS,
         httpTimeout: 0,
       })
     ).toEqual({ key: "stepEditor.timeoutPositive" });
+  });
+
+  test("requires an endpoint for compensated handling", () => {
+    expect(
+      getValidationError({
+        ...BASE_ARGS,
+        handling: "compensated",
+      })
+    ).toEqual({ key: "stepEditor.compensateEndpointRequired" });
+  });
+
+  test("rejects compensation with standard handling", () => {
+    expect(
+      getValidationError({
+        ...BASE_ARGS,
+        attributes: [
+          {
+            id: "attr-1",
+            name: "request",
+            role: "required",
+            dataType: "string",
+            compensated: true,
+          },
+        ],
+      })
+    ).toEqual({
+      key: "stepEditor.compensatedAttributeHandlingRequired",
+    });
+  });
+
+  test("rejects duplicate compensated inner names", () => {
+    expect(
+      getValidationError({
+        ...BASE_ARGS,
+        handling: "compensated",
+        compensateEndpoint: "http://example.com/undo",
+        attributes: [
+          {
+            id: "attr-1",
+            name: "request",
+            role: "required",
+            dataType: "string",
+            mappingName: "value",
+            compensated: true,
+          },
+          {
+            id: "attr-2",
+            name: "result",
+            role: "output",
+            dataType: "string",
+            mappingName: "value",
+            compensated: true,
+          },
+        ],
+      })
+    ).toEqual({
+      key: "stepEditor.compensatedAttributeConflict",
+      vars: { name: "value" },
+    });
   });
 });

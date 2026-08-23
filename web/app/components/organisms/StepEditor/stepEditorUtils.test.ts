@@ -16,7 +16,7 @@ const attribute = (overrides: Partial<Attribute> = {}): Attribute => ({
 });
 
 describe("stepEditorUtils", () => {
-  test("builds editor attributes from every attribute role", () => {
+  test("builds editor attributes", () => {
     const step: Step = {
       id: "test-step",
       name: "Test",
@@ -161,10 +161,11 @@ describe("stepEditorUtils", () => {
     }
   );
 
-  test("creates API attributes from editor attributes", () => {
+  test("creates API attributes", () => {
     const result = createStepAttributes([
       attribute({
         name: "input",
+        compensated: true,
         collect: "last",
         forEach: true,
         matchLanguage: " lua ",
@@ -205,6 +206,7 @@ describe("stepEditorUtils", () => {
     expect(result.input).toEqual({
       role: AttributeRole.Required,
       type: AttributeType.String,
+      compensated: true,
       required: {
         collect: "last",
         for_each: true,
@@ -250,6 +252,8 @@ describe("stepEditorUtils", () => {
     httpMethod: "POST",
     httpTimeout: 5000,
     flowGoals: "",
+    handling: "standard",
+    compensateEndpoint: "",
   };
   const validationCases: Array<
     [string, Partial<ValidationArgs>, ReturnType<typeof getValidationError>]

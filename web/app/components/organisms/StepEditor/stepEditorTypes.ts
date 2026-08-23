@@ -18,6 +18,7 @@ export interface Attribute {
   mappingName?: string;
   mappingLanguage?: string;
   mappingScript?: string;
+  compensated?: boolean;
   validationError?: string;
 }
 

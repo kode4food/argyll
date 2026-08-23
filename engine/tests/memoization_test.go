@@ -16,7 +16,7 @@ func TestMemoizationHit(t *testing.T) {
 
 		s := helpers.NewTestStepWithArgs(nil, nil)
 		s.ID = "memo"
-		s.Memoizable = true
+		s.Handling = api.HandlingMemoized
 		s.Attributes["out"] = &api.AttributeSpec{
 			Role: api.RoleOutput,
 			Type: api.TypeString,
@@ -46,7 +46,7 @@ func TestMemoizationHit(t *testing.T) {
 		assert.Equal(t, "v1", f2.Attributes["out"][0].Value)
 
 		invocations := env.MockClient.GetInvocations()
-		assert.Len(t, invocations, 1, "step should only be invoked once")
+		assert.Len(t, invocations, 1)
 	})
 }
 
@@ -56,7 +56,7 @@ func TestMemoizationMiss(t *testing.T) {
 
 		s := helpers.NewTestStepWithArgs([]api.Name{"in"}, nil)
 		s.ID = "memo"
-		s.Memoizable = true
+		s.Handling = api.HandlingMemoized
 		s.Attributes["out"] = &api.AttributeSpec{
 			Role: api.RoleOutput,
 			Type: api.TypeString,

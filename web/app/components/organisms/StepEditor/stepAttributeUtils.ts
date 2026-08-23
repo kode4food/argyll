@@ -16,7 +16,7 @@ import {
   AttributeRoleType,
 } from "./stepEditorTypes";
 
-const attrRoleType: Record<AttributeRole, AttributeRoleType> = {
+const ATTR_ROLE_TYPE: Record<AttributeRole, AttributeRoleType> = {
   [AttributeRole.Required]: "required",
   [AttributeRole.Optional]: "optional",
   [AttributeRole.Const]: "const",
@@ -38,7 +38,7 @@ function buildSingleAttribute(
   idx: AttributeIndex
 ): Attribute {
   const { index, timestamp } = idx;
-  const attrType = attrRoleType[spec.role];
+  const attrType = ATTR_ROLE_TYPE[spec.role];
   const prefix = ATTR_ID_PREFIX[spec.role];
   const inputConfig =
     spec.role === AttributeRole.Required
@@ -80,6 +80,7 @@ function buildSingleAttribute(
     mappingName: mappingConfig?.name,
     mappingLanguage: mappingConfig?.script?.language,
     mappingScript: mappingConfig?.script?.script,
+    compensated: spec.compensated,
   };
 }
 
@@ -139,7 +140,7 @@ function buildMappingConfig(a: Attribute): MappingConfig | undefined {
   return config;
 }
 
-const roleMap: Record<AttributeRoleType, AttributeRole> = {
+const ROLE_MAP: Record<AttributeRoleType, AttributeRole> = {
   required: AttributeRole.Required,
   optional: AttributeRole.Optional,
   const: AttributeRole.Const,
@@ -152,8 +153,9 @@ export function createStepAttributes(
 ): Record<string, AttributeSpec> {
   const stepAttributes: Record<string, AttributeSpec> = {};
   attributes.forEach((a) => {
-    const role = roleMap[a.role];
+    const role = ROLE_MAP[a.role];
     const spec: AttributeSpec = { role, type: a.dataType };
+    if (a.compensated) spec.compensated = true;
     const mapping = buildMappingConfig(a);
 
     if (a.role === "required") {

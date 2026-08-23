@@ -378,7 +378,7 @@ NewStep() Step
 - `WithPredicate(predicate api.ScriptConfig) Step` - Set the predicate gating the step
 
 #### Advanced
-- `WithForEach(name api.Name) Step` - Enable parallel array processing
+- `WithForEach(names ...api.Name) Step` - Enable parallel array processing
 - `WithFlowGoals(goals ...api.StepID) Step` - Configure child flow goals
 
 #### Registration

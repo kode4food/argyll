@@ -15,19 +15,18 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/log"
 )
 
-type (
-	// StepAddr is the port a step server listens on and the base URL it
-	// advertises to the engine
-	StepAddr struct {
-		BaseURL string
-		Port    string
-	}
+// StepAddr is the port a step server listens on and the base URL it
+// advertises to the engine
+type StepAddr struct {
+	BaseURL string
+	Port    string
+}
 
-	compensateBody struct {
-		Input  api.Args `json:"input"`
-		Output api.Args `json:"output"`
-	}
-)
+// EnvLookup identifies an environment variable and its fallback
+type EnvLookup struct {
+	Name    string
+	Default string
+}
 
 const (
 	MaxRegistrationAttempts = 5
@@ -43,8 +42,11 @@ var (
 // LocalStepAddr reads the step server address from the STEP_HOSTNAME and
 // STEP_PORT environment variables
 func LocalStepAddr() StepAddr {
-	port := EnvOr("STEP_PORT", strconv.Itoa(DefaultStepPort))
-	host := EnvOr("STEP_HOSTNAME", "localhost")
+	port := EnvOr(EnvLookup{
+		Name:    "STEP_PORT",
+		Default: strconv.Itoa(DefaultStepPort),
+	})
+	host := EnvOr(EnvLookup{Name: "STEP_HOSTNAME", Default: "localhost"})
 	return StepAddr{
 		BaseURL: fmt.Sprintf("http://%s:%s", host, port),
 		Port:    port,
@@ -53,11 +55,11 @@ func LocalStepAddr() StepAddr {
 
 // EnvOr returns the named environment variable, or the given default when it is
 // unset or empty
-func EnvOr(name, defaultValue string) string {
-	if v := os.Getenv(name); v != "" {
+func EnvOr(lookup EnvLookup) string {
+	if v := os.Getenv(lookup.Name); v != "" {
 		return v
 	}
-	return defaultValue
+	return lookup.Default
 }
 
 // HealthHandler serves the health endpoint the engine polls. An empty service
@@ -88,7 +90,8 @@ func setupStepServer(client *Client, step Step, handle StepHandler) error {
 	step = step.WithEndpoint(endpoint).
 		WithHealthCheck(addr.BaseURL + "/health")
 
-	if step.compensate != nil && step.step.HTTP.Compensate == nil {
+	comp := step.step.HTTP.Compensate
+	if step.compensate != nil && (comp == nil || comp.Endpoint == "") {
 		step = step.WithCompensate(endpoint + "/compensate")
 	}
 
@@ -133,7 +136,7 @@ func makeCompensateHandler(
 			return
 		}
 
-		var body compensateBody
+		var body api.Args
 		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 			WriteProblem(w, http.StatusBadRequest, "Invalid JSON")
 			return
@@ -222,7 +225,7 @@ func executeStepWithRecovery(
 }
 
 func executeCompensateWithRecovery(
-	ctx *StepContext, handler CompensateHandler, body compensateBody,
+	ctx *StepContext, handler CompensateHandler, args api.Args,
 ) (httpErr *HTTPError) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -236,7 +239,7 @@ func executeCompensateWithRecovery(
 			)
 		}
 	}()
-	if err := handler(ctx, body.Input, body.Output); err != nil {
+	if err := handler(ctx, args); err != nil {
 		if he, ok := errors.AsType[*HTTPError](err); ok {
 			return he
 		}

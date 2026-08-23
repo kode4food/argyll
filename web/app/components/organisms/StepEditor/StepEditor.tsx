@@ -15,7 +15,6 @@ import StepEditorBasicFields from "./StepEditorBasicFields";
 import StepEditorAttributesSection from "./StepEditorAttributesSection";
 import StepEditorFlowConfiguration from "./StepEditorFlowConfiguration";
 import StepEditorHttpConfiguration from "./StepEditorHttpConfiguration";
-import StepEditorHeader from "./StepEditorHeader";
 import StepEditorFooter from "./StepEditorFooter";
 import { predicateLanguageOptions } from "./stepEditorConstants";
 import { useScrollFade } from "@/app/hooks/useScrollFade";
@@ -44,8 +43,8 @@ const StepEditor: React.FC<StepEditorProps> = ({
     setScript,
     scriptLanguage,
     setScriptLanguage,
-    memoizable,
-    setMemoizable,
+    handling,
+    setHandling,
     saving,
     error,
     setError,
@@ -158,11 +157,6 @@ const StepEditor: React.FC<StepEditorProps> = ({
 
   if (!mounted) return null;
 
-  // Compensate only reaches the payload for HTTP steps, so a leftover value
-  // from an earlier step type must not lock memoizable
-  const isHttpStep = formStepType === "sync" || formStepType === "async";
-  const isMemoizableDisabled = isHttpStep && compensate.trim() !== "";
-
   const modalContent = (
     <div className={styles.backdrop} onClick={handleBackdropClick}>
       <div
@@ -174,13 +168,13 @@ const StepEditor: React.FC<StepEditorProps> = ({
         }}
         onClick={(e) => e.stopPropagation()}
       >
-        <StepEditorHeader
-          isCreateMode={isCreateMode}
-          stepId={stepId}
-          memoizable={memoizable}
-          memoizableDisabled={isMemoizableDisabled}
-          onMemoizableChange={setMemoizable}
-        />
+        <div className={styles.header}>
+          <h2 className={styles.title}>
+            {isCreateMode
+              ? t("stepEditor.modalCreateTitle")
+              : t("stepEditor.modalEditTitle", { id: stepId })}
+          </h2>
+        </div>
 
         <div className={styles.body}>
           <div
@@ -194,8 +188,10 @@ const StepEditor: React.FC<StepEditorProps> = ({
             {editorMode === "basic" ? (
               <>
                 <StepEditorBasicFields
+                  handling={handling}
                   isCreateMode={isCreateMode}
                   name={name}
+                  setHandling={setHandling}
                   setName={setName}
                   setStepId={setStepId}
                   setStepType={setStepType}
@@ -226,6 +222,7 @@ const StepEditor: React.FC<StepEditorProps> = ({
                   flowOutputOptions={flowOutputOptions}
                   removeAttribute={removeAttribute}
                   stepType={formStepType}
+                  handling={handling}
                   updateAttribute={updateAttribute}
                 />
 
@@ -257,7 +254,7 @@ const StepEditor: React.FC<StepEditorProps> = ({
                     compensateMethod={compensateMethod}
                     compensateTimeout={compensateTimeout}
                     httpTimeout={httpTimeout}
-                    memoizable={memoizable}
+                    handling={handling}
                     setEndpoint={setEndpoint}
                     setHttpMethod={setHttpMethod}
                     setHealthCheck={setHealthCheck}

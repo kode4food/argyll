@@ -1,10 +1,10 @@
 import React from "react";
-import { Step } from "@/app/api";
+import type { Step } from "@/app/api";
 import Tooltip from "@/app/components/atoms/Tooltip";
 import TooltipSection from "@/app/components/atoms/TooltipSection";
 import styles from "./StepHeader.module.css";
 import { useT } from "@/app/i18n";
-import { IconMemoizable } from "@/utils/iconRegistry";
+import { IconMemoized } from "@/utils/iconRegistry";
 
 interface StepHeaderProps {
   step: Step;
@@ -27,13 +27,13 @@ const StepHeader: React.FC<StepHeaderProps> = ({ step }) => {
         </TooltipSection>
         <TooltipSection title={t("tooltip.stepId")}>{step.id}</TooltipSection>
       </Tooltip>
-      {step.memoizable && (
+      {step.handling === "memoized" && (
         <span
           className={`step-type-icon ${styles.memoIcon}`}
-          aria-label={t("stepEditor.memoizableLabel")}
-          title={t("stepEditor.memoizableTitle")}
+          aria-label={t("stepEditor.handling.memoized")}
+          title={t("stepEditor.handling.memoized")}
         >
-          <IconMemoizable aria-hidden="true" />
+          <IconMemoized aria-hidden="true" />
         </span>
       )}
     </div>

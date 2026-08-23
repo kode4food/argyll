@@ -46,7 +46,7 @@ type (
 
 	// ChargeArgs are the inputs of the ChargeCard step
 	ChargeArgs struct {
-		OrderID  string `argyll:"for_each:true;collect:all"`
+		OrderID  string `argyll:"for_each:true;collect:all;compensated:true"`
 		Note     string `argyll:"role:optional"`
 		Currency string `argyll:"role:optional;default:USD;deadline:5000"`
 		Gateway  string `argyll:"role:const;value:stripe"`
@@ -56,7 +56,7 @@ type (
 
 	// ChargeResult is the output of the ChargeCard step
 	ChargeResult struct {
-		ChargeID string
+		ChargeID string `argyll:"compensated:true"`
 	}
 )
 
@@ -65,6 +65,7 @@ type (
 var ErrAmountNegative = errors.New("amount must not be negative")
 
 //argyll:step
+//argyll:memoize
 //argyll:labels description: score a customer for risk; domain: risk
 func CalculateRisk(args RiskArgs) (RiskResult, error) {
 	if args.Amount < 0 {
@@ -146,7 +147,7 @@ func GradeCustomer(
 
 //argyll:step charge-card-v2;name:Charge Card (v2)
 //argyll:compensate refundCard
-//argyll:props timeout: 2500; memoize: false
+//argyll:props timeout: 2500
 //argyll:props predicate: return args.amount > 0
 func ChargeCard(args ChargeArgs) ChargeResult {
 	return ChargeResult{
@@ -154,7 +155,12 @@ func ChargeCard(args ChargeArgs) ChargeResult {
 	}
 }
 
-func refundCard(_ ChargeArgs, _ ChargeResult) error {
+type refundCardArgs struct {
+	OrderID  string
+	ChargeID string
+}
+
+func refundCard(_ refundCardArgs) error {
 	return nil
 }
 

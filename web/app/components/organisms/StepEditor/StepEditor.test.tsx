@@ -246,7 +246,7 @@ describe("StepEditor", () => {
     });
   });
 
-  test("uses language-specific match script placeholders", async () => {
+  test("uses match placeholders", async () => {
     const step = createHttpStep();
 
     render(
@@ -317,6 +317,9 @@ describe("StepEditor", () => {
     );
 
     await waitFor(() => {
+      expect(
+        screen.getByText(t("stepEditor.modalCreateTitle"))
+      ).toBeInTheDocument();
       expect(
         screen.getByText(
           /Attributes describe how steps share data with each other/i
@@ -410,7 +413,7 @@ describe("StepEditor", () => {
     ).toBeInTheDocument();
   });
 
-  test("does not duplicate default mapping option in flow dropdown", async () => {
+  test("deduplicates default mappings", async () => {
     const step = createFlowStep();
     stepsInStore = [
       {
@@ -625,7 +628,7 @@ describe("StepEditor", () => {
     });
   });
 
-  test("uses language-specific mapping script placeholders", async () => {
+  test("uses mapping placeholders", async () => {
     const step = createHttpStep();
 
     render(
@@ -740,7 +743,7 @@ describe("StepEditor", () => {
 
     await waitFor(() => {
       const durationInputs = screen.getAllByTestId("duration-input");
-      const httpTimeoutInput = durationInputs[durationInputs.length - 2];
+      const httpTimeoutInput = durationInputs[durationInputs.length - 1];
       fireEvent.change(httpTimeoutInput, { target: { value: "0" } });
 
       const saveButton = screen.getByText(t("stepEditor.save"));
@@ -764,7 +767,7 @@ describe("StepEditor", () => {
 
     await waitFor(() => {
       const durationInputs = screen.getAllByTestId("duration-input");
-      const httpTimeoutInput = durationInputs[durationInputs.length - 2];
+      const httpTimeoutInput = durationInputs[durationInputs.length - 1];
       fireEvent.change(httpTimeoutInput, { target: { value: "" } });
 
       const saveButton = screen.getByText(t("stepEditor.save"));
@@ -996,7 +999,7 @@ describe("StepEditor", () => {
     expect(container.firstChild).toBeNull();
   });
 
-  test("renders with diagram container ref for sizing", async () => {
+  test("uses diagram container sizing", async () => {
     const step = createHttpStep();
     const div = document.createElement("div");
     Object.defineProperty(div, "getBoundingClientRect", {
@@ -1147,7 +1150,7 @@ describe("StepEditor", () => {
     });
   });
 
-  test("saves HTTP step with script set to undefined", async () => {
+  test("clears script from HTTP steps", async () => {
     const step = createHttpStep();
     mockUpdateStep.mockResolvedValue(undefined);
 
@@ -1170,7 +1173,7 @@ describe("StepEditor", () => {
     });
   });
 
-  test("saves script step with http set to undefined", async () => {
+  test("clears HTTP from script steps", async () => {
     const step = createScriptStep();
     mockUpdateStep.mockResolvedValue(undefined);
 

@@ -1,8 +1,8 @@
-.typeSelectWrapper {
+.fieldSelectWrapper {
   position: relative;
 }
 
-.typeSelectFace {
+.fieldSelectFace {
   composes: interactive hoverFill focusFill focusRing from "@/app/styles/components/interaction.module.css";
   --control-hover-bg: var(--color-info-bg);
   --control-hover-border: var(--color-info);
@@ -27,11 +27,11 @@
   text-align: left;
 }
 
-.typeSelectList {
+.fieldSelectList {
   min-width: 100%;
 }
 
-.typeSelectFaceOpen {
+.fieldSelectFaceOpen {
   background-color: var(--control-focus-bg);
   border-color: var(--color-info);
 }

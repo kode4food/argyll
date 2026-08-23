@@ -1,4 +1,4 @@
-import { AttributeSpec, HTTPMethod, Step, StepType } from "@/app/api";
+import { AttributeSpec, Handling, HTTPMethod, Step, StepType } from "@/app/api";
 import { parseFlowGoals } from "./stepValidationUtils";
 
 export type {
@@ -42,7 +42,7 @@ export function buildStepPayload({
   httpTimeout,
   flowGoals,
   flowCompensate,
-  memoizable,
+  handling,
 }: {
   stepId: string;
   name: string;
@@ -61,7 +61,7 @@ export function buildStepPayload({
   httpTimeout: number;
   flowGoals: string;
   flowCompensate: boolean;
-  memoizable: boolean;
+  handling: Handling;
 }): Step {
   const stepData: Step = {
     id: stepId.trim(),
@@ -74,7 +74,7 @@ export function buildStepPayload({
           script: predicate.trim(),
         }
       : undefined,
-    memoizable,
+    handling: handling === "standard" ? undefined : handling,
   };
 
   if (stepType === "flow") {
@@ -99,14 +99,15 @@ export function buildStepPayload({
         method: httpMethod,
         timeout: httpTimeout,
       },
-      compensate: compensateEndpoint
-        ? {
-            endpoint: compensateEndpoint,
-            method: compensateMethod,
-            // omitted means "inherit the invoke timeout"
-            ...(compensateTimeout > 0 && { timeout: compensateTimeout }),
-          }
-        : undefined,
+      compensate:
+        handling === "compensated" && compensateEndpoint
+          ? {
+              endpoint: compensateEndpoint,
+              method: compensateMethod,
+              // omitted means "inherit the invoke timeout"
+              ...(compensateTimeout > 0 && { timeout: compensateTimeout }),
+            }
+          : undefined,
       health: healthCheck.trim() || undefined,
     };
     stepData.script = undefined;

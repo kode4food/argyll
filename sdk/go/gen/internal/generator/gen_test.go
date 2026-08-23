@@ -84,7 +84,7 @@ func TestSplitHead(t *testing.T) {
 	}
 }
 
-func TestGeneratedFileMatchesRender(t *testing.T) {
+func TestGeneratedFile(t *testing.T) {
 	src, err := render(t, "../../../example")
 	assert.NoError(t, err)
 
@@ -102,6 +102,7 @@ func TestGeneratedSurface(t *testing.T) {
 
 	assert.Contains(t, text, "func ArgyllSteps() []gen.StepDef")
 	assert.Contains(t, text, "argyllCodecRiskArgs := codec.Struct(")
+	assert.Contains(t, text, "argyllCodecRefundCardArgs := codec.Struct(")
 	assert.NotContains(t, text, "var argyllCodecRiskArgs")
 	assert.NotContains(t, text, "\nvar argyll")
 	assert.NotContains(t, text, "\ntype argyll")
@@ -111,6 +112,7 @@ func TestContractInference(t *testing.T) {
 	step := steps(t, "../../../example")["calculate-risk"]
 	assert.Equal(t, api.Name("Calculate Risk"), step.Name)
 	assert.Equal(t, api.StepTypeSync, step.Type)
+	assert.Equal(t, api.HandlingMemoized, step.Handling)
 
 	attrs := step.Attributes
 	assert.Equal(t, api.TypeString, attrs["customer_id"].Type)
@@ -195,6 +197,15 @@ func TestFieldTags(t *testing.T) {
 	// a tag of "-" keeps the field off the wire entirely
 	assert.NotContains(t, text, "scratch")
 	assert.NotContains(t, text, "Scratch")
+}
+
+func TestMappingName(t *testing.T) {
+	src := "type In struct { " +
+		"Value string `argyll:\"outer;mapping:inner\"` }\n" +
+		"//argyll:step\nfunc Run(in In) {}\n"
+	out, err := renderSource(t, src)
+	assert.NoError(t, err)
+	assert.Contains(t, string(out), `codec.Field("inner"`)
 }
 
 func TestAttributeProps(t *testing.T) {
@@ -388,12 +399,27 @@ func TestAdditionalDiagnostics(t *testing.T) {
 				"func Run() {}",
 			want: "compensator Missing not found",
 		},
-		"compensator arguments match": {
+		"compensator takes one struct": {
 			src: "type In struct{}\ntype Out struct{}\n" +
 				"//argyll:step\n//argyll:compensate Undo\n" +
 				"func Run(In) Out { return Out{} }\n" +
 				"func Undo(Out, In) {}",
-			want: "compensator Undo argument 1",
+			want: "compensator Undo takes zero or one argument struct",
+		},
+		"compensator fields are selected": {
+			src: "type In struct { Value string }\n" +
+				"type UndoArgs struct { Value string }\n" +
+				"//argyll:step\n//argyll:compensate Undo\n" +
+				"func Run(In) {}\nfunc Undo(UndoArgs) {}",
+			want: "field value is not compensated",
+		},
+		"compensator field types match": {
+			src: "type In struct { Value string " +
+				"`argyll:\"compensated:true\"` }\n" +
+				"type UndoArgs struct { Value int }\n" +
+				"//argyll:step\n//argyll:compensate Undo\n" +
+				"func Run(In) {}\nfunc Undo(UndoArgs) {}",
+			want: "field value has type int; want string",
 		},
 		"compensator returns only error": {
 			src: "//argyll:step\n//argyll:compensate Undo\n" +
@@ -421,10 +447,20 @@ func TestAdditionalDiagnostics(t *testing.T) {
 			src:  "//argyll:wrap (left, ) -> ()\nfunc Bad(left int) {}",
 			want: "bad attribute name",
 		},
-		"memoize is boolean": {
-			src: "//argyll:step;memoize:sometimes\n" +
+		"handling is not a generator property": {
+			src: "//argyll:step;handling:memoized\n" +
 				"func Bad(in struct{}) {}",
-			want: "memoize\" needs true or false",
+			want: `unknown property "handling"`,
+		},
+		"memoize takes no value": {
+			src: "//argyll:step\n//argyll:memoize sometimes\n" +
+				"func Bad() {}",
+			want: "memoize takes no value",
+		},
+		"memoize and compensate are exclusive": {
+			src: "//argyll:step\n//argyll:memoize\n" +
+				"//argyll:compensate Undo\nfunc Bad() {}\nfunc Undo() {}",
+			want: "memoize and //argyll:compensate are mutually exclusive",
 		},
 		"timeout is milliseconds": {
 			src: "//argyll:step;timeout:soon\n" +
@@ -556,15 +592,16 @@ func TestStepShapesAndProps(t *testing.T) {
 	assert.Contains(t, string(out), "return ResultError(in)")
 }
 
-func TestCompensation(t *testing.T) {
-	src := "type In struct { Value string }\n" +
-		"type Out struct { ID string }\n" +
+func TestCompensate(t *testing.T) {
+	src := "type In struct { Value string `argyll:\"compensated:true\"` }\n" +
+		"type Out struct { ID string `argyll:\"compensated:true\"` }\n" +
+		"type UndoArgs struct { ID string }\n" +
 		"//argyll:step\n//argyll:compensate Undo\n" +
 		"func Run(in In) (Out, error) { return Out{}, nil }\n" +
-		"func Undo(in In, out Out) error { return nil }\n" +
+		"func Undo(UndoArgs) error { return nil }\n" +
 		"//argyll:wrap\n//argyll:compensate Unwrap\n" +
 		"func Wrapped(value string) (result int) { return 0 }\n" +
-		"func Unwrap(value string, result int) {}\n"
+		"func Unwrap(result int) {}\n"
 	src += "//argyll:step\n//argyll:compensate Reset\n" +
 		"func Empty() {}\nfunc Reset() {}\n"
 
@@ -572,10 +609,24 @@ func TestCompensation(t *testing.T) {
 	assert.NoError(t, err)
 	text := string(out)
 	assert.Contains(t, text, "/run/compensate")
-	assert.Contains(t, text, "return Undo(in, out)")
-	assert.Contains(t, text, "Unwrap(in.Value, out.Result)\n")
+	assert.Contains(t, text, `\"handling\":\"compensated\"`)
+	assert.Contains(t, text, `\"compensated\":true`)
+	assert.Contains(t, text, `\"result\":{\"output\":{},\"role\":`+
+		`\"output\",\"type\":\"number\",\"compensated\":true}`)
+	assert.Contains(t, text, "type argyllWrappedCompIn struct")
+	assert.NotContains(t, text, "CompensateIn")
+	assert.Contains(t, text, "return Undo(in)")
+	assert.Contains(t, text, "Unwrap(in.Result)\n")
 	assert.Contains(t, text, "Reset()\n")
 	assert.Contains(t, text, "Compensate: gen.Compensate(")
+}
+
+func TestMemoization(t *testing.T) {
+	out, err := renderSource(
+		t, "//argyll:step\n//argyll:memoize\nfunc Run() {}",
+	)
+	assert.NoError(t, err)
+	assert.Contains(t, string(out), `\"handling\":\"memoized\"`)
 }
 
 func TestGenerateIsIdempotent(t *testing.T) {
@@ -587,7 +638,7 @@ func TestGenerateIsIdempotent(t *testing.T) {
 	assert.Empty(t, written)
 }
 
-func TestGenerateRemovesStaleFile(t *testing.T) {
+func TestGenerateStale(t *testing.T) {
 	dir := filepath.Join("testdata", "nodirectives")
 	path := filepath.Join(dir, generator.GeneratedFile)
 	assert.NoError(t, os.WriteFile(path, []byte("package nodirectives\n"),
@@ -598,7 +649,7 @@ func TestGenerateRemovesStaleFile(t *testing.T) {
 	assert.NoFileExists(t, path)
 }
 
-func TestGenerateTemporaryPackage(t *testing.T) {
+func TestGenerateTemporary(t *testing.T) {
 	path := writeSource(t, "//argyll:step\nfunc Run(in struct{}) {}")
 	written, err := generator.Generate(".", "file="+path)
 	assert.NoError(t, err)

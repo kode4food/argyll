@@ -526,7 +526,7 @@ func TestSortedArgNames(t *testing.T) {
 	as.Equal("zebra", sorted[4])
 }
 
-func TestSortedArgNamesUsesMappingNames(t *testing.T) {
+func TestMappedArgNames(t *testing.T) {
 	as := assert.New(t)
 
 	st := &api.Step{
@@ -844,7 +844,7 @@ func TestEqualStep(t *testing.T) {
 	as.False(step1.Equal(step3))
 }
 
-func TestStepEqualRemainingFields(t *testing.T) {
+func TestEqualFields(t *testing.T) {
 	as := assert.New(t)
 	base := func() *api.Step {
 		return &api.Step{
@@ -862,7 +862,9 @@ func TestStepEqualRemainingFields(t *testing.T) {
 		change func(*api.Step)
 		name   string
 	}{
-		{name: "memoizable", change: func(s *api.Step) { s.Memoizable = true }},
+		{name: "handling", change: func(s *api.Step) {
+			s.Handling = api.HandlingMemoized
+		}},
 		{name: "flow", change: func(s *api.Step) {
 			s.Flow = &api.FlowConfig{Goals: []api.StepID{"goal"}}
 		}},
@@ -887,12 +889,13 @@ func TestStepEqualRemainingFields(t *testing.T) {
 	}
 }
 
-func TestCompensateParamsAndTimeout(t *testing.T) {
+func TestCompensateConfig(t *testing.T) {
 	as := assert.New(t)
 	step := &api.Step{
-		ID:   "test",
-		Name: "Test",
-		Type: api.StepTypeSync,
+		ID:       "test",
+		Name:     "Test",
+		Type:     api.StepTypeSync,
+		Handling: api.HandlingCompensated,
 		HTTP: &api.HTTPConfig{
 			Invoke: api.HTTPAction{Endpoint: "http://step/{input}"},
 			Compensate: &api.HTTPAction{
@@ -901,13 +904,18 @@ func TestCompensateParamsAndTimeout(t *testing.T) {
 		},
 		Attributes: api.AttributeSpecs{
 			"input": {
-				Role: api.RoleRequired,
-				Type: api.TypeString,
+				Role:        api.RoleRequired,
+				Type:        api.TypeString,
+				Compensated: true,
 				Required: &api.RequiredConfig{
 					Mapping: &api.MappingConfig{Name: "input"},
 				},
 			},
-			"result": {Role: api.RoleOutput, Type: api.TypeString},
+			"result": {
+				Role:        api.RoleOutput,
+				Type:        api.TypeString,
+				Compensated: true,
+			},
 			"fixed": {
 				Role:  api.RoleConst,
 				Type:  api.TypeString,
@@ -918,7 +926,7 @@ func TestCompensateParamsAndTimeout(t *testing.T) {
 	as.NoError(step.Validate())
 
 	step.HTTP.Compensate.Endpoint = ""
-	as.ErrorIs(step.Validate(), api.ErrStepEndpointEmpty)
+	as.ErrorIs(step.Validate(), api.ErrCompensateRequired)
 	step.HTTP.Compensate.Endpoint = "http://step/{input}/{result}"
 
 	step.HTTP.Compensate.Method = "PATCH"
@@ -932,6 +940,11 @@ func TestCompensateParamsAndTimeout(t *testing.T) {
 	step.HTTP.Compensate.Endpoint = "http://step/{missing}"
 	as.ErrorIs(step.Validate(), api.ErrUnknownURLParam)
 	step.HTTP.Compensate.Endpoint = "http://step/{input}/{result}"
+	step.Attributes["result"].Output = &api.OutputConfig{
+		Mapping: &api.MappingConfig{Name: "input"},
+	}
+	as.ErrorIs(step.Validate(), api.ErrCompensateArgConflict)
+	step.Attributes["result"].Output = nil
 
 	step.WorkConfig = &api.WorkConfig{Parallelism: -1}
 	as.ErrorIs(step.Validate(), api.ErrInvalidParallelism)
@@ -943,6 +956,62 @@ func TestCompensateParamsAndTimeout(t *testing.T) {
 
 	_, err := step.HashKey()
 	as.NoError(err)
+}
+
+func TestHandling(t *testing.T) {
+	tests := []struct {
+		change func(*api.Step)
+		want   error
+		name   string
+	}{
+		{
+			name: "invalid",
+			change: func(step *api.Step) {
+				step.Handling = "invalid"
+			},
+			want: api.ErrInvalidHandling,
+		},
+		{
+			name: "compensated_without_endpoint",
+			change: func(step *api.Step) {
+				step.Handling = api.HandlingCompensated
+			},
+			want: api.ErrCompensateRequired,
+		},
+		{
+			name: "compensated_with_empty_endpoint",
+			change: func(step *api.Step) {
+				step.Handling = api.HandlingCompensated
+				step.HTTP.Compensate = &api.HTTPAction{}
+			},
+			want: api.ErrCompensateRequired,
+		},
+		{
+			name: "standard_with_endpoint",
+			change: func(step *api.Step) {
+				step.HTTP.Compensate = &api.HTTPAction{
+					Endpoint: "http://example.com/undo",
+				}
+			},
+			want: api.ErrCompensateHandling,
+		},
+		{
+			name: "standard_with_compensated_attribute",
+			change: func(step *api.Step) {
+				step.Attributes["input"].Compensated = true
+			},
+			want: api.ErrAttributeCompensated,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			as := assert.New(t)
+			step := helpers.NewTestStep()
+			test.change(step)
+			as.ErrorIs(step.Validate(), test.want)
+		})
+	}
 }
 
 func TestStepInvalidAttributes(t *testing.T) {
@@ -1580,14 +1649,13 @@ func TestStepHashKey(t *testing.T) {
 		as.Equal(h1, h2)
 	})
 
-	t.Run("includes_memoizable", func(t *testing.T) {
+	t.Run("includes_handling", func(t *testing.T) {
 		s1 := &api.Step{
-			Type:       api.StepTypeSync,
-			Memoizable: false,
+			Type: api.StepTypeSync,
 		}
 		s2 := &api.Step{
-			Type:       api.StepTypeSync,
-			Memoizable: true,
+			Type:     api.StepTypeSync,
+			Handling: api.HandlingMemoized,
 		}
 		h1, err := s1.HashKey()
 		as.NoError(err)
@@ -1642,7 +1710,7 @@ func TestStepHashKey(t *testing.T) {
 	})
 }
 
-func TestStepValidateMappingNames(t *testing.T) {
+func TestMappingValidation(t *testing.T) {
 	as := assert.New(t)
 
 	t.Run("duplicate_input_inner_names", func(t *testing.T) {
@@ -1707,20 +1775,25 @@ func TestStepValidateMappingNames(t *testing.T) {
 		as.ErrorContains(err, "status")
 	})
 
-	t.Run("same_inner_name_input_and_output_allowed", func(t *testing.T) {
+	t.Run("same_inner_name_single_compensation_side", func(t *testing.T) {
 		st := &api.Step{
-			ID:   "test",
-			Name: "Test",
-			Type: api.StepTypeSync,
+			ID:       "test",
+			Name:     "Test",
+			Type:     api.StepTypeSync,
+			Handling: api.HandlingCompensated,
 			HTTP: &api.HTTPConfig{
 				Invoke: api.HTTPAction{
 					Endpoint: "http://example.com",
 					Timeout:  30 * api.Second,
 				},
+				Compensate: &api.HTTPAction{
+					Endpoint: "http://example.com/{data}",
+				},
 			},
 			Attributes: api.AttributeSpecs{
 				"user_data": {
-					Role: api.RoleRequired,
+					Role:        api.RoleRequired,
+					Compensated: true,
 					Required: &api.RequiredConfig{
 						Mapping: &api.MappingConfig{Name: "data"},
 					},
@@ -1735,5 +1808,41 @@ func TestStepValidateMappingNames(t *testing.T) {
 		}
 		err := st.Validate()
 		as.NoError(err)
+	})
+
+	t.Run("same_inner_name_compensation_conflict", func(t *testing.T) {
+		st := &api.Step{
+			ID:       "test",
+			Name:     "Test",
+			Type:     api.StepTypeSync,
+			Handling: api.HandlingCompensated,
+			HTTP: &api.HTTPConfig{
+				Invoke: api.HTTPAction{
+					Endpoint: "http://example.com",
+					Timeout:  30 * api.Second,
+				},
+				Compensate: &api.HTTPAction{
+					Endpoint: "http://example.com/undo",
+				},
+			},
+			Attributes: api.AttributeSpecs{
+				"request": {
+					Role:        api.RoleRequired,
+					Compensated: true,
+					Required: &api.RequiredConfig{
+						Mapping: &api.MappingConfig{Name: "data"},
+					},
+				},
+				"result": {
+					Role:        api.RoleOutput,
+					Compensated: true,
+					Output: &api.OutputConfig{
+						Mapping: &api.MappingConfig{Name: "data"},
+					},
+				},
+			},
+		}
+		err := st.Validate()
+		as.ErrorIs(err, api.ErrCompensateArgConflict)
 	})
 }

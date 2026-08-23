@@ -23,7 +23,7 @@ This directory contains the foundational concepts you need to understand Argyll.
 - **Side effect**: A change outside flow state, such as charging a card, sending an email, or updating a database.
 - **Idempotency / idempotent**: A request is idempotent when repeating it does not repeat its side effects. Use the receipt token as the idempotency key for external work.
 - **Predicate**: A condition script that decides whether a step should run.
-- **Memoization / memoizable**: Reusing a cached successful result for the same inputs instead of running the step again.
+- **Memoization / memoized**: Reusing a cached successful result for the same inputs instead of running the step again.
 - **Aggregate**: The event stream for one resource, such as the catalog, the cluster, or one flow.
 - **Projection**: Current state produced by applying an aggregate's events in order.
 - **Upstream / downstream**: An upstream step produces a value; a downstream step consumes that value later in the flow.

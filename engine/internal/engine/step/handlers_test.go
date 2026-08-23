@@ -10,7 +10,7 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
-func TestRegistryValidateNilHandler(t *testing.T) {
+func TestRegistryValidation(t *testing.T) {
 	reg := newRegistry(&testClient{})
 	// sync handler has no Validate func -- should return nil
 	err := reg.Validate(&api.Step{
@@ -22,7 +22,7 @@ func TestRegistryValidateNilHandler(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-func TestRegistryHealthUnknownWhenNilHandler(t *testing.T) {
+func TestRegistryHealthNil(t *testing.T) {
 	reg := newRegistry(&testClient{})
 	// sync handler has no Health func -- should return HealthUnknown
 	h, err := reg.Health(&api.Step{Type: api.StepTypeSync})
@@ -30,13 +30,13 @@ func TestRegistryHealthUnknownWhenNilHandler(t *testing.T) {
 	assert.Equal(t, api.HealthUnknown, h.Status)
 }
 
-func TestRegistryHealthUnknownType(t *testing.T) {
+func TestRegistryHealthType(t *testing.T) {
 	reg := newRegistry(&testClient{})
 	_, err := reg.Health(&api.Step{Type: "unknown"})
 	assert.ErrorIs(t, err, api.ErrInvalidStepType)
 }
 
-func TestRegistryChildrenNilWhenNoHandler(t *testing.T) {
+func TestRegistryChildrenNil(t *testing.T) {
 	reg := newRegistry(&testClient{})
 	// sync handler has no Children func -- should return nil
 	ids, err := reg.Children(&api.Step{Type: api.StepTypeSync})
@@ -44,20 +44,20 @@ func TestRegistryChildrenNilWhenNoHandler(t *testing.T) {
 	assert.Nil(t, ids)
 }
 
-func TestRegistryChildrenUnknownType(t *testing.T) {
+func TestRegistryChildrenType(t *testing.T) {
 	reg := newRegistry(&testClient{})
 	_, err := reg.Children(&api.Step{Type: "unknown"})
 	assert.ErrorIs(t, err, api.ErrInvalidStepType)
 }
 
-func TestRegistryCompensatorNilWhenNoHandler(t *testing.T) {
+func TestRegistryCompensatorNil(t *testing.T) {
 	reg := newRegistry(&testClient{})
 	comp, err := reg.Compensator(&api.Step{Type: api.StepTypeScript})
 	assert.NoError(t, err)
 	assert.Nil(t, comp)
 }
 
-func TestRegistryCompensatorUnknownType(t *testing.T) {
+func TestRegistryCompensatorType(t *testing.T) {
 	reg := newRegistry(&testClient{})
 	_, err := reg.Compensator(&api.Step{Type: "unknown"})
 	assert.ErrorIs(t, err, api.ErrInvalidStepType)
@@ -70,7 +70,7 @@ func TestFlowChildrenNilFlow(t *testing.T) {
 	assert.Nil(t, ids)
 }
 
-func TestFlowChildrenReturnsGoals(t *testing.T) {
+func TestFlowChildrenGoals(t *testing.T) {
 	reg := newRegistry(&testClient{})
 	st := &api.Step{
 		Type: api.StepTypeFlow,
@@ -85,7 +85,8 @@ func TestHTTPCompensatorInvokes(t *testing.T) {
 	cl := &testClient{}
 	reg := newRegistry(cl)
 	st := &api.Step{
-		Type: api.StepTypeSync,
+		Type:     api.StepTypeSync,
+		Handling: api.HandlingCompensated,
 		HTTP: &api.HTTPConfig{
 			Compensate: &api.HTTPAction{Endpoint: "http://test/undo"},
 		},
@@ -103,7 +104,7 @@ func TestHTTPCompensatorInvokes(t *testing.T) {
 	assert.Equal(t, 1, cl.compens)
 }
 
-func TestCompensatorNilWithoutEndpoint(t *testing.T) {
+func TestCompensatorEndpoint(t *testing.T) {
 	reg := newRegistry(&testClient{})
 	comp, err := reg.Compensator(&api.Step{
 		Type: api.StepTypeSync,
@@ -115,7 +116,7 @@ func TestCompensatorNilWithoutEndpoint(t *testing.T) {
 	assert.Nil(t, comp)
 }
 
-func TestApplyMetaInputsMapsAttribute(t *testing.T) {
+func TestMetaInputs(t *testing.T) {
 	cl := &testClient{outputs: api.Args{}}
 	reg := newRegistry(cl)
 	handler, err := reg.Lookup(api.StepTypeSync)
@@ -141,13 +142,13 @@ func TestApplyMetaInputsMapsAttribute(t *testing.T) {
 	assert.Equal(t, api.Token("my-token"), cl.inputs[api.Name("token")])
 }
 
-func TestScriptValidatorRejectsNilScript(t *testing.T) {
+func TestScriptValidationNil(t *testing.T) {
 	reg := newRegistry(&testClient{})
 	err := reg.Validate(&api.Step{Type: api.StepTypeScript})
 	assert.ErrorIs(t, err, api.ErrScriptRequired)
 }
 
-func TestScriptValidatorRejectsJPath(t *testing.T) {
+func TestScriptValidationJPath(t *testing.T) {
 	reg := newRegistry(&testClient{})
 	err := reg.Validate(&api.Step{
 		Type: api.StepTypeScript,
@@ -159,7 +160,7 @@ func TestScriptValidatorRejectsJPath(t *testing.T) {
 	assert.ErrorIs(t, err, step.ErrLangNotValid)
 }
 
-func TestScriptValidatorAcceptsValidLua(t *testing.T) {
+func TestScriptValidationLua(t *testing.T) {
 	reg := newRegistry(&testClient{})
 	err := reg.Validate(&api.Step{
 		Type: api.StepTypeScript,
@@ -191,7 +192,7 @@ func TestScriptHealthHealthy(t *testing.T) {
 	assert.Equal(t, api.HealthHealthy, h.Status)
 }
 
-func TestScriptHealthUnhealthyOnBadScript(t *testing.T) {
+func TestScriptHealthInvalid(t *testing.T) {
 	reg := newRegistry(&testClient{})
 	st := &api.Step{
 		Type: api.StepTypeScript,
@@ -206,7 +207,7 @@ func TestScriptHealthUnhealthyOnBadScript(t *testing.T) {
 	assert.NotEmpty(t, h.Error)
 }
 
-func TestScriptExecutorProducesOutput(t *testing.T) {
+func TestScriptOutput(t *testing.T) {
 	reg := newRegistry(&testClient{})
 	handler, err := reg.Lookup(api.StepTypeScript)
 	assert.NoError(t, err)
@@ -231,7 +232,7 @@ func TestScriptExecutorProducesOutput(t *testing.T) {
 	assert.Equal(t, api.HealthHealthy, calls.healthStatus)
 }
 
-func TestScriptExecutorMarksUnhealthyOnBadScript(t *testing.T) {
+func TestScriptFailure(t *testing.T) {
 	reg := newRegistry(&testClient{})
 	handler, err := reg.Lookup(api.StepTypeScript)
 	assert.NoError(t, err)

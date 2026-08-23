@@ -58,11 +58,11 @@ describe("StepHeader", () => {
     expect(header).toBeInTheDocument();
   });
 
-  test("renders memoizable icon in header", () => {
-    const step = { ...createStep("Test", false, false), memoizable: true };
+  test("renders memoized icon in header", () => {
+    const step = { ...createStep("Test", false, false), handling: "memoized" };
     render(<StepHeader step={step} />);
     expect(
-      screen.getByLabelText(t("stepEditor.memoizableLabel"))
-    ).toHaveAttribute("title", t("stepEditor.memoizableTitle"));
+      screen.getByLabelText(t("stepEditor.handling.memoized"))
+    ).toHaveAttribute("title", t("stepEditor.handling.memoized"));
   });
 });

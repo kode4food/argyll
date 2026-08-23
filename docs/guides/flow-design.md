@@ -253,12 +253,12 @@ Use parallel when steps don't depend on each other.
 ```
 
 ### Caching
-Mark expensive, deterministic steps as memoizable:
+Give expensive, deterministic steps memoized handling:
 ```json
 {
   "id": "exchange_rate_lookup",
   "name": "Exchange Rate Lookup",
-  "memoizable": true,
+  "handling": "memoized",
   "type": "sync",
   "http": { "endpoint": "https://api.exchangerate-api.com/rates", "timeout": 5000 },
   "attributes": {

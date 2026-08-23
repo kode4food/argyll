@@ -1,10 +1,6 @@
 import React from "react";
-import {
-  AttributeType,
-  metaKeys,
-  SCRIPT_LANGUAGE_JPATH,
-  StepType,
-} from "@/app/api";
+import { AttributeType, META_KEYS, SCRIPT_LANGUAGE_JPATH } from "@/app/api";
+import type { Handling, StepType } from "@/app/api";
 import DurationInput from "@/app/components/molecules/DurationInput";
 import ScriptLanguageInlineInput from "@/app/components/molecules/ScriptLanguageInlineInput";
 import SegmentedGroup from "@/app/components/molecules/SegmentedGroup";
@@ -12,15 +8,16 @@ import { useT } from "@/app/i18n";
 import {
   IconArrayMultiple,
   IconArraySingle,
+  IconCompensate,
   IconExpandDown,
   IconExpandUp,
   IconRemove,
   getArgIcon,
 } from "@/utils/iconRegistry";
-import { FlowInputOption } from "@/utils/flowPlanAttributeOptions";
+import type { FlowInputOption } from "@/utils/flowPlanAttributeOptions";
 import styles from "./StepEditor.module.css";
 import formStyles from "./StepEditorForm.module.css";
-import { Attribute } from "./stepEditorUtils";
+import type { Attribute } from "./stepEditorUtils";
 import {
   attributeRoleTypes,
   attributeTypes,
@@ -29,14 +26,16 @@ import {
 } from "./stepEditorConstants";
 import AttributeMappingPanel from "./AttributeMappingPanel";
 import ComboInput from "./ComboInput";
-import IconDropdown, { IconDropdownOption } from "./IconDropdown";
+import IconDropdown, { type IconDropdownOption } from "./IconDropdown";
 import InlineSelectDropdown, {
-  InlineSelectOption,
+  type InlineSelectOption,
 } from "./InlineSelectDropdown";
 
 interface AttributeRowProps {
   attr: Attribute;
   stepType: StepType;
+  handling: Handling;
+  compensatedInnerNames: Set<string>;
   flowInputOptions: FlowInputOption[];
   flowOutputOptions: string[];
   usedInputMappings: Map<string, string>;
@@ -48,6 +47,8 @@ interface AttributeRowProps {
 const AttributeRow: React.FC<AttributeRowProps> = ({
   attr,
   stepType,
+  handling,
+  compensatedInnerNames,
   flowInputOptions,
   flowOutputOptions,
   usedInputMappings,
@@ -66,6 +67,9 @@ const AttributeRow: React.FC<AttributeRowProps> = ({
   const hasMappingConfigured = Boolean(
     attr.mappingName?.trim() || attr.mappingScript?.trim()
   );
+  const innerName = attr.mappingName?.trim() || attr.name.trim();
+  const hasCompensationConflict =
+    !attr.compensated && compensatedInnerNames.has(innerName);
 
   const roleOptions: IconDropdownOption[] = attributeRoleTypes.map((type) => {
     const { Icon, className } = getArgIcon(type);
@@ -191,13 +195,38 @@ const AttributeRow: React.FC<AttributeRowProps> = ({
             options={roleOptions}
             value={attr.role}
           />
+          {handling === "compensated" && (
+            <button
+              type="button"
+              onClick={() =>
+                updateAttribute(attr.id, "compensated", !attr.compensated)
+              }
+              className={`${formStyles.iconDropdownFace} ${formStyles.compensateButton} ${
+                attr.compensated ? formStyles.compensateButtonActive : ""
+              }`}
+              disabled={hasCompensationConflict}
+              aria-pressed={Boolean(attr.compensated)}
+              aria-label={`${t("stepEditor.compensatedAttributeLabel")} ${
+                attr.name || attr.id
+              }`}
+              title={
+                hasCompensationConflict
+                  ? t("stepEditor.compensatedAttributeConflict", {
+                      name: innerName,
+                    })
+                  : t("stepEditor.compensatedAttributeTitle")
+              }
+            >
+              <IconCompensate className={styles.iconSm} />
+            </button>
+          )}
         </SegmentedGroup>
         {typeControl}
         {nameControl}
         {attr.role === "meta" && (
           <ComboInput
             value={attr.metaKey || ""}
-            suggestions={metaKeys}
+            suggestions={META_KEYS}
             onChange={(v) => updateAttribute(attr.id, "metaKey", v)}
             placeholder={t("stepEditor.metaKeyPlaceholder")}
             className={formStyles.argValueInput}

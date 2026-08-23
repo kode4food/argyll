@@ -89,7 +89,7 @@ func TestStepWithEmptyLabels(t *testing.T) {
 	assert.Equal(t, st, st.WithLabels(api.Labels{}))
 }
 
-func TestWithNameDoesNotOverrideID(t *testing.T) {
+func TestNameKeepsID(t *testing.T) {
 	st, err := testClient().NewStep().
 		WithID("custom-id").
 		WithName("Test Step").
@@ -570,37 +570,38 @@ func TestStepBuilderChaining(t *testing.T) {
 }
 
 func TestStepBuilderWithForEach(t *testing.T) {
-	t.Run("for_each_attribute", func(t *testing.T) {
+	t.Run("multiple attributes", func(t *testing.T) {
 		st, err := testClient().NewStep().WithName("Batch Step").
 			WithEndpoint("http://example.com").
 			Required("users", api.TypeArray).
-			WithForEach("users").
+			Optional("groups", api.TypeArray, "[]").
+			WithForEach("users", "groups").
 			Output("results", api.TypeArray).
 			Build()
 
 		assert.NoError(t, err)
 		assert.Equal(t, api.TypeArray, st.Attributes["users"].Type)
 		assert.True(t, st.Attributes["users"].Required.ForEach)
+		assert.True(t, st.Attributes["groups"].Optional.ForEach)
 	})
 }
 
 func TestStepBuilderWithLabels(t *testing.T) {
-	t.Run("with_label", func(t *testing.T) {
+	t.Run("with labels", func(t *testing.T) {
 		st, err := testClient().NewStep().WithName("Labeled Step").
 			WithEndpoint("http://example.com").
-			WithLabel("team", "core").
-			WithLabel("env", "dev").
+			WithLabels(api.Labels{"team": "core", "env": "dev"}).
 			Build()
 
 		assert.NoError(t, err)
 		assert.Equal(t, api.Labels{"team": "core", "env": "dev"}, st.Labels)
 	})
 
-	t.Run("with_labels_clone", func(t *testing.T) {
+	t.Run("clones labels", func(t *testing.T) {
 		labels := api.Labels{"team": "core"}
 		st, err := testClient().NewStep().WithName("Labeled Step").
 			WithEndpoint("http://example.com").
-			WithLabel("env", "dev").
+			WithLabels(api.Labels{"env": "dev"}).
 			WithLabels(labels).
 			Build()
 
@@ -612,24 +613,24 @@ func TestStepBuilderWithLabels(t *testing.T) {
 	})
 }
 
-func TestStepBuilderWithMemoizable(t *testing.T) {
-	t.Run("set_memoizable", func(t *testing.T) {
-		st, err := testClient().NewStep().WithName("Memoizable Step").
+func TestStepHandling(t *testing.T) {
+	t.Run("set_memoized", func(t *testing.T) {
+		st, err := testClient().NewStep().WithName("Memoized Step").
 			WithEndpoint("http://example.com").
-			WithMemoizable().
+			WithHandling(api.HandlingMemoized).
 			Build()
 
 		assert.NoError(t, err)
-		assert.True(t, st.Memoizable)
+		assert.Equal(t, api.HandlingMemoized, st.Handling)
 	})
 
-	t.Run("default_not_memoizable", func(t *testing.T) {
+	t.Run("default_standard", func(t *testing.T) {
 		st, err := testClient().NewStep().WithName("Regular Step").
 			WithEndpoint("http://example.com").
 			Build()
 
 		assert.NoError(t, err)
-		assert.False(t, st.Memoizable)
+		assert.Equal(t, api.HandlingStandard, st.DefaultedHandling())
 	})
 }
 
@@ -637,16 +638,22 @@ func TestWithCompensate(t *testing.T) {
 	compensate := "http://example.com/compensate"
 	st, err := testClient().NewStep().WithName("Test").
 		WithEndpoint("http://example.com/work").
+		Required("request", api.TypeString).
+		Output("result", api.TypeString).
 		WithCompensate(compensate).
+		WithCompensated("request", "result").
 		Build()
 
 	assert.NoError(t, err)
 	assert.NotNil(t, st.HTTP)
 	assert.NotNil(t, st.HTTP.Compensate)
+	assert.Equal(t, api.HandlingCompensated, st.Handling)
 	assert.Equal(t, compensate, st.HTTP.Compensate.Endpoint)
+	assert.True(t, st.Attributes["request"].Compensated)
+	assert.True(t, st.Attributes["result"].Compensated)
 }
 
-func TestWithCompensateMethodAndTimeout(t *testing.T) {
+func TestCompensateConfig(t *testing.T) {
 	st, err := testClient().NewStep().WithName("Test").
 		WithEndpoint("http://example.com/work").
 		WithTimeout(30 * api.Second).
@@ -662,7 +669,7 @@ func TestWithCompensateMethodAndTimeout(t *testing.T) {
 	assert.Equal(t, 5*api.Second, st.HTTP.CompensateTimeout())
 }
 
-func TestCompensateTimeoutFallsBackToInvoke(t *testing.T) {
+func TestCompensateTimeout(t *testing.T) {
 	st, err := testClient().NewStep().WithName("Test").
 		WithEndpoint("http://example.com/work").
 		WithTimeout(30 * api.Second).
@@ -672,16 +679,6 @@ func TestCompensateTimeoutFallsBackToInvoke(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, int64(0), st.HTTP.Compensate.Timeout)
 	assert.Equal(t, 30*api.Second, st.HTTP.CompensateTimeout())
-}
-
-func TestWithCompensateMemoizableReturnsError(t *testing.T) {
-	_, err := testClient().NewStep().WithName("Test").
-		WithEndpoint("http://example.com/work").
-		WithCompensate("http://example.com/compensate").
-		WithMemoizable().
-		Build()
-
-	assert.Error(t, err)
 }
 
 func testClient() *argyll.Client {

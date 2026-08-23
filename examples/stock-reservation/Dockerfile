@@ -23,8 +23,11 @@ RUN go mod edit -replace github.com/kode4food/argyll/engine=../../engine
 RUN go mod edit -replace github.com/kode4food/argyll/sdk/go=../../sdk/go
 RUN go mod download
 
+# Generate the step adapters
+RUN go generate ./...
+
 # Build the executable
-RUN CGO_ENABLED=0 GOOS=linux go build -o stock-reservation main.go
+RUN CGO_ENABLED=0 GOOS=linux go build -o stock-reservation .
 
 # Runtime stage
 FROM alpine:latest

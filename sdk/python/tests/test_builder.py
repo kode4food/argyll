@@ -13,11 +13,14 @@ from argyll.types import (
     AttributeType,
     ConstConfig,
     FlowConfig,
+    Handling,
     HTTPAction,
     HTTPConfig,
     InputCollect,
+    MappingConfig,
     MetaConfig,
     OptionalConfig,
+    OutputConfig,
     RequiredConfig,
     ScriptConfig,
     ScriptLanguage,
@@ -112,12 +115,15 @@ def test_step_builder_with_for_each():
         client.new_step()
         .with_name("Test")
         .required("items", AttributeType.ARRAY)
-        .with_for_each("items")
+        .optional("groups", AttributeType.ARRAY, "[]")
+        .with_for_each("items", "groups")
         .with_endpoint("http://localhost:8081/test")
     )
     step = builder.build()
     assert step.attributes["items"].required is not None
     assert step.attributes["items"].required.for_each is True
+    assert step.attributes["groups"].optional is not None
+    assert step.attributes["groups"].optional.for_each is True
 
 
 def test_step_builder_with_for_each_missing_attribute():
@@ -276,16 +282,16 @@ def test_step_builder_with_sync_execution():
     assert step.type == StepType.SYNC
 
 
-def test_step_builder_with_memoizable():
+def test_step_builder_with_handling():
     client = Client()
     builder = (
         client.new_step()
         .with_name("Test")
-        .with_memoizable()
+        .with_handling(Handling.MEMOIZED)
         .with_endpoint("http://localhost:8081/test")
     )
     step = builder.build()
-    assert step.memoizable is True
+    assert step.handling == Handling.MEMOIZED
 
 
 def test_step_builder_with_compensate():
@@ -295,12 +301,18 @@ def test_step_builder_with_compensate():
         client.new_step()
         .with_name("Test")
         .with_endpoint("http://localhost:8081/test")
+        .required("request", AttributeType.STRING)
+        .output("result", AttributeType.STRING)
         .with_compensate(compensate_url)
+        .compensated("request", "result")
     )
     step = builder.build()
     assert step.http is not None
     assert step.http.compensate is not None
+    assert step.handling == Handling.COMPENSATED
     assert step.http.compensate.endpoint == compensate_url
+    assert step.attributes["request"].compensated is True
+    assert step.attributes["result"].compensated is True
 
 
 def test_step_builder_compensate_method_and_timeout():
@@ -344,7 +356,7 @@ def test_step_builder_compensate_preserved_across_http_mutations():
 def test_step_builder_with_compensate_handler():
     client = Client()
 
-    def my_handler(ctx, inputs, outputs):
+    def my_handler(ctx, arguments):
         pass
 
     builder = (
@@ -579,7 +591,7 @@ def _make_step(**overrides):
         "predicate": None,
         "work_config": None,
         "flow": None,
-        "memoizable": False,
+        "handling": Handling.STANDARD,
     }
     data.update(overrides)
     return Step(**data)
@@ -632,6 +644,44 @@ def _make_step(**overrides):
                 invoke=HTTPAction(endpoint="http://localhost:8081/test"),
                 compensate=HTTPAction(endpoint=""),
             ),
+        ),
+        _make_step(
+            handling=Handling.COMPENSATED,
+            http=HTTPConfig(
+                invoke=HTTPAction(endpoint="http://localhost:8081/test"),
+            ),
+        ),
+        _make_step(
+            attributes={
+                "request": AttributeSpec(
+                    role=AttributeRole.REQUIRED,
+                    type=AttributeType.STRING,
+                    compensated=True,
+                ),
+            },
+        ),
+        _make_step(
+            handling=Handling.COMPENSATED,
+            http=HTTPConfig(
+                invoke=HTTPAction(endpoint="http://localhost:8081/test"),
+                compensate=HTTPAction(endpoint="http://localhost:8081/undo"),
+            ),
+            attributes={
+                "request": AttributeSpec(
+                    role=AttributeRole.REQUIRED,
+                    type=AttributeType.STRING,
+                    compensated=True,
+                    required=RequiredConfig(
+                        mapping=MappingConfig(name="value")
+                    ),
+                ),
+                "result": AttributeSpec(
+                    role=AttributeRole.OUTPUT,
+                    type=AttributeType.STRING,
+                    compensated=True,
+                    output=OutputConfig(mapping=MappingConfig(name="value")),
+                ),
+            },
         ),
         _make_step(
             type=StepType.FLOW,

@@ -50,6 +50,7 @@ Directives and field tags read the same way: a leading value names the thing, an
 ```go
 //argyll:step   charge-card-v2;name:Charge Card (v2)
 //argyll:wrap   score-v2(customer-id, amount) -> (score, approved)
+//argyll:memoize
 //argyll:compensate Refund
 //argyll:props  timeout: 2500; predicate: return args.amount > 0
 //argyll:labels domain: risk; tier: gold
@@ -59,19 +60,13 @@ Directives and field tags read the same way: a leading value names the thing, an
 Currency string `argyll:"iso_currency;role:optional;default:USD"`
 ```
 
-`compensate` names one function. `props` and `labels` take properties only, and
-both repeat, so a long set spreads across lines. Only `//argyll:wrap` takes an
-attribute spec: a `//argyll:step` or a field tag carrying one is an error rather
-than a silent no-op.
+`memoize` is a marker, while `compensate` names one function. They are mutually exclusive. `props` and `labels` take properties only, and both repeat, so a long set spreads across lines. Only `//argyll:wrap` takes an attribute spec: a `//argyll:step` or a field tag carrying one is an error rather than a silent no-op.
 
-An omitted ID is the function name in `kebab-case`. IDs use lowercase letters
-and digits, separated by hyphens.
+An omitted ID is the function name in `kebab-case`. IDs use lowercase letters and digits, separated by hyphens.
 
 ### `//argyll:step`
 
-A step function takes zero arguments or one argument struct, named or
-anonymous. It returns nothing, one outputs struct, an error, or an outputs
-struct followed by an error. Its function type must be one of:
+A step function takes zero arguments or one argument struct, named or anonymous. It returns nothing, one outputs struct, an error, or an outputs struct followed by an error. Its function type must be one of:
 
 ```go
 func()
@@ -117,27 +112,47 @@ An empty list is empty rather than inferred, so `() -> (score)` declares a step 
 
 The generator checks the arity against the signature at build time, and reports the file and line when they disagree. An omitted side whose parameters or results are unnamed reports the position and asks for the names. The wrapped function knows nothing about Argyll.
 
+### `//argyll:memoize`
+
+Marks a step as memoized:
+
+```go
+//argyll:step
+//argyll:memoize
+func CalculateRisk(args RiskArgs) (RiskResult, error)
+```
+
+The engine caches successful results for matching inputs. The marker takes no value and cannot be combined with `//argyll:compensate`.
+
 ### `//argyll:compensate`
 
 Names the function that reverses a successful step invocation:
 
 ```go
+type ChargeArgs struct {
+	OrderID string `argyll:"compensated:true"`
+}
+
+type ChargeResult struct {
+	ChargeID string `argyll:"compensated:true"`
+}
+
+type RefundArgs struct {
+	ChargeID string
+}
+
 //argyll:step
 //argyll:compensate Refund
 func Charge(args ChargeArgs) (ChargeResult, error)
 
-func Refund(args ChargeArgs, result ChargeResult) error
+func Refund(args RefundArgs) error
 ```
 
-A compensator receives the original inputs followed by the successful outputs.
-For `//argyll:step`, those are the input and output structs when present. For
-`//argyll:wrap`, they are the original positional parameters followed by the
-non-error results. It returns either nothing or an `error`.
+A `//argyll:step` compensator takes zero arguments or one argument struct. Every field in that struct must match an invocation-mapped attribute marked `compensated:true` on the step, but the struct may omit compensated attributes it does not use. The engine still sends every compensated attribute and the generated codec ignores the extras, so adding another compensated attribute does not break an existing compensator.
 
-The generator validates the complete signature and serves the function at
-`POST /<step-id>/compensate`. Referencing a function does not register it as a
-step; it needs its own `//argyll:step` or `//argyll:wrap` directive for that.
-Memoizable steps cannot have compensators.
+A `//argyll:wrap` compensator takes named positional arguments matching the wrapped step attributes it consumes. Those arguments select the attributes for compensation, and the generator builds the private flat struct and codec used by the HTTP handler. A compensator returns either nothing or an `error`.
+
+The generator validates the signature and serves the function at `POST /<step-id>/compensate`. The directive selects compensated handling; referencing the function does not register it as a step unless it has its own `//argyll:step` or `//argyll:wrap` directive.
 
 ### `//argyll:props`
 
@@ -150,16 +165,15 @@ Step properties, continuing the ones on the `//argyll:step` or `//argyll:wrap` l
 func ChargeCard(args ChargeArgs) (ChargeResult, error)
 ```
 
-| Property    | Effect                                                       |
-| ----------- | ------------------------------------------------------------ |
-| `name`      | Display name, defaulting to the function name in `Title Case` |
-| `memoize`   | `true` to memoize the step                                    |
-| `timeout`   | Invocation timeout in milliseconds                            |
-| `predicate` | Lua predicate gating the step                                 |
+| Property    | Effect                                                        |
+| ----------- | ------------------------------------------------------------- |
+| `name`      | Display name, defaulting to the function name in `Title Case`  |
+| `timeout`   | Invocation timeout in milliseconds                             |
+| `predicate` | Lua predicate gating the step                                  |
 
 Everything after the first `:` is the value, spaces and further colons included, so a Lua predicate needs no quoting. A value ends at the next `;`.
 
-Every property here is engine side: the engine memoizes, times out and evaluates predicates on its own, and the handler never learns it happened. Generated steps are synchronous and answer `POST`, so there is nothing to configure on either.
+Every property here is engine side: the engine times out and evaluates predicates on its own, and the handler never learns it happened. Generated steps are synchronous and answer `POST`, so there is nothing to configure on either.
 
 ### `//argyll:labels`
 
@@ -229,6 +243,7 @@ type ChargeArgs struct {
 | `for_each` | `true` to expand the attribute into one work item per element  |
 | `match`    | Lua match gate on a required input                             |
 | `mapping`  | Name the attribute is mapped to                                |
+| `compensated` | `true` to include the attribute in compensation requests    |
 
 Each property belongs to a role, and using one against the wrong role is an error naming both: `default` needs `optional`, `value` needs `const`, `key` needs `meta`, `match` needs `required`.
 

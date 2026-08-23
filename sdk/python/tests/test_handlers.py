@@ -7,6 +7,7 @@ from argyll import Client, StepContext, handlers
 from argyll.builder import StepBuilder
 from argyll.errors import HTTPError, WebhookError
 from argyll.handlers import AsyncContext, _execute_with_recovery
+from argyll.types import AttributeType
 
 
 def test_step_context_creation():
@@ -340,15 +341,21 @@ def test_step_server_compensate_handler(monkeypatch):
     monkeypatch.setattr(handlers.Flask, "run", fake_run, raising=True)
 
     client = _DummyClient()
-    builder = StepBuilder(client=client, name="Test Step")
+    builder = (
+        StepBuilder(client=client, name="Test Step")
+        .required("order", AttributeType.OBJECT)
+        .output("reservation", AttributeType.OBJECT)
+        .compensated("order")
+        .compensated("reservation")
+    )
 
     comp_calls = []
 
     def handler(step_ctx, args):
         return {"done": True}
 
-    def compensate_handler(step_ctx, inputs, outputs):
-        comp_calls.append((inputs, outputs))
+    def compensate_handler(step_ctx, arguments):
+        comp_calls.append(arguments)
 
     handlers.create_step_server(client, builder, handler, compensate_handler)
 
@@ -359,18 +366,26 @@ def test_step_server_compensate_handler(monkeypatch):
         step.http.compensate.endpoint
         == "http://localhost:9020/test-step/compensate"
     )
+    assert step.attributes["order"].compensated is True
+    assert step.attributes["reservation"].compensated is True
 
     app = captured["app"]
     test_client = app.test_client()
 
     resp = test_client.post(
         "/test-step/compensate",
-        json={"input": {"amount": 100}, "output": {"ref": "abc"}},
+        json={
+            "order": {"id": "order-1"},
+            "reservation": {"reservation_id": "res-1"},
+        },
         headers={"Argyll-Flow-ID": "flow-1"},
     )
     assert resp.status_code == 204
     assert len(comp_calls) == 1
-    assert comp_calls[0] == ({"amount": 100}, {"ref": "abc"})
+    assert comp_calls[0] == {
+        "order": {"id": "order-1"},
+        "reservation": {"reservation_id": "res-1"},
+    }
 
 
 def test_step_server_compensate_bad_json(monkeypatch):
@@ -385,7 +400,7 @@ def test_step_server_compensate_bad_json(monkeypatch):
     builder = StepBuilder(client=client, name="Test Step")
 
     handlers.create_step_server(
-        client, builder, lambda ctx, args: {}, lambda ctx, i, o: None
+        client, builder, lambda ctx, args: {}, lambda ctx, args: None
     )
 
     app = captured["app"]
@@ -409,7 +424,7 @@ def test_step_server_compensate_http_error(monkeypatch):
     client = _DummyClient()
     builder = StepBuilder(client=client, name="Test Step")
 
-    def compensate_handler(step_ctx, inputs, outputs):
+    def compensate_handler(step_ctx, arguments):
         raise HTTPError(422, "cannot undo")
 
     handlers.create_step_server(
@@ -420,7 +435,7 @@ def test_step_server_compensate_http_error(monkeypatch):
     test_client = app.test_client()
     resp = test_client.post(
         "/test-step/compensate",
-        json={"input": {}, "output": {}},
+        json={},
         headers={"Argyll-Flow-ID": "flow-1"},
     )
     assert resp.status_code == 422
@@ -438,7 +453,7 @@ def test_step_server_compensate_exception(monkeypatch):
     client = _DummyClient()
     builder = StepBuilder(client=client, name="Test Step")
 
-    def compensate_handler(step_ctx, inputs, outputs):
+    def compensate_handler(step_ctx, arguments):
         raise RuntimeError("comp boom")
 
     handlers.create_step_server(
@@ -449,7 +464,7 @@ def test_step_server_compensate_exception(monkeypatch):
     test_client = app.test_client()
     resp = test_client.post(
         "/test-step/compensate",
-        json={"input": {}, "output": {}},
+        json={},
         headers={"Argyll-Flow-ID": "flow-1"},
     )
     assert resp.status_code == 500

@@ -20,6 +20,44 @@ type (
 		compensate string
 	}
 
+	compHandlerConfig struct {
+		fn     *ast.FuncDecl
+		decl   stepDecl
+		fields []compField
+		wrap   bool
+	}
+
+	compField struct {
+		attr *api.AttributeSpec
+		name string
+		typ  types.Type
+	}
+
+	compAdapterConfig struct {
+		codec    string
+		typ      string
+		call     string
+		fallible bool
+	}
+
+	stepModelConfig struct {
+		function    *ast.FuncDecl
+		declaration stepDecl
+		attributes  api.AttributeSpecs
+		handler     string
+		compensate  string
+	}
+
+	attributeSets struct {
+		inputs  api.AttributeSpecs
+		outputs api.AttributeSpecs
+	}
+
+	directiveText struct {
+		comment   string
+		directive string
+	}
+
 	// directiveRef is a step or wrap directive and the text following it
 	directiveRef struct {
 		kind string
@@ -39,6 +77,7 @@ type (
 		labels     api.Labels
 		id         string
 		attrs      string
+		handling   api.Handling
 		compensate string
 		props      Options
 	}
@@ -49,6 +88,7 @@ const (
 	wrapDirective   = "//argyll:wrap"
 	propsDirective  = "//argyll:props"
 	labelsDirective = "//argyll:labels"
+	memoDirective   = "//argyll:memoize"
 	compDirective   = "//argyll:compensate"
 
 	// registration prepends the host the step server is reachable on
@@ -128,7 +168,7 @@ func (g *pkgGen) declOf(
 		}
 		labels[o.Key] = o.Value
 	}
-	compensate, err := compensationIn(fn)
+	handling, compensate, err := handlingIn(fn)
 	if err != nil {
 		return stepDecl{}, g.errorAt(fn, "%w", err)
 	}
@@ -136,17 +176,17 @@ func (g *pkgGen) declOf(
 		labels:     labels,
 		id:         id,
 		attrs:      decl.Attrs,
+		handling:   handling,
 		compensate: compensate,
 		props:      append(options, props...),
 	}, nil
 }
 
-func (g *pkgGen) model(
-	fn *ast.FuncDecl, decl stepDecl, attrs api.AttributeSpecs,
-	handler, compensate string,
-) (stepModel, error) {
+func (g *pkgGen) model(config *stepModelConfig) (stepModel, error) {
+	fn := config.function
+	decl := config.declaration
 	spec := &api.Step{
-		Attributes: attrs,
+		Attributes: config.attributes,
 		Labels:     decl.labels,
 		Type:       api.StepTypeSync,
 		ID:         api.StepID(decl.id),
@@ -155,8 +195,9 @@ func (g *pkgGen) model(
 			Invoke: api.HTTPAction{Endpoint: "/" + decl.id},
 			Health: healthPath,
 		},
+		Handling: decl.handling,
 	}
-	if compensate != "" {
+	if config.compensate != "" {
 		spec.HTTP.Compensate = &api.HTTPAction{
 			Endpoint: "/" + decl.id + "/compensate",
 		}
@@ -176,29 +217,9 @@ func (g *pkgGen) model(
 	}
 	return stepModel{
 		spec:       spec,
-		handler:    handler,
-		compensate: compensate,
+		handler:    config.handler,
+		compensate: config.compensate,
 	}, nil
-}
-
-func compensationIn(fn *ast.FuncDecl) (string, error) {
-	var res string
-	for _, c := range fn.Doc.List {
-		value, ok := directiveArgs(strings.TrimSpace(c.Text), compDirective)
-		if !ok {
-			continue
-		}
-		if res != "" {
-			return "", fmt.Errorf("%w: %s repeats", ErrBadDirective,
-				compDirective)
-		}
-		if !token.IsIdentifier(value) {
-			return "", fmt.Errorf("%w: %s needs a function name",
-				ErrBadDirective, compDirective)
-		}
-		res = value
-	}
-	return res, nil
 }
 
 // props and labels are their own directives, repeatable and options only,
@@ -207,7 +228,10 @@ func optionsIn(fn *ast.FuncDecl, directive string) (Options, error) {
 	var res Options
 	for _, c := range fn.Doc.List {
 		text := strings.TrimSpace(c.Text)
-		rest, ok := directiveArgs(text, directive)
+		rest, ok := directiveArgs(directiveText{
+			comment:   text,
+			directive: directive,
+		})
 		if !ok {
 			continue
 		}
@@ -253,33 +277,43 @@ func (g *pkgGen) stepFor(
 		return stepModel{}, err
 	}
 
-	body := syncBody(call, res != nil, hasErr, g.typeOf(res))
-	var compTypes []types.Type
-	var compArgs []string
-	if in != nil {
-		compTypes = append(compTypes, in)
-		compArgs = append(compArgs, "in")
+	body := syncBody(syncBodyArgs{
+		call:       call,
+		output:     res != nil,
+		fallible:   hasErr,
+		outputType: g.typeOf(res),
+	})
+	compFields, err := taggedCompFields(in, inAttrs)
+	if err != nil {
+		return stepModel{}, g.errorAt(fn, "%w", err)
 	}
-	if res != nil {
-		compTypes = append(compTypes, res)
-		compArgs = append(compArgs, "out")
+	outFields, err := taggedCompFields(res, outAttrs)
+	if err != nil {
+		return stepModel{}, g.errorAt(fn, "%w", err)
 	}
-	compensate, err := g.compensationHandler(
-		fn, decl, compTypes, compArgs, inCodec, outCodec,
-		g.typeOf(in), g.typeOf(res),
-	)
+	compFields = append(compFields, outFields...)
+	compensate, err := g.compHandler(&compHandlerConfig{
+		fn:     fn,
+		decl:   decl,
+		fields: compFields,
+	})
 	if err != nil {
 		return stepModel{}, err
 	}
-	return g.model(fn, decl, merge(inAttrs, outAttrs), syncHandler(
-		syncHandlerArgs{
+	attrs := mergeAttributes(attributeSets{inputs: inAttrs, outputs: outAttrs})
+	return g.model(&stepModelConfig{
+		function:    fn,
+		declaration: decl,
+		attributes:  attrs,
+		handler: syncHandler(syncHandlerArgs{
 			inCodec:  inCodec,
 			outCodec: outCodec,
 			inType:   g.typeOf(in),
 			outType:  g.typeOf(res),
 			body:     body,
-		},
-	), compensate)
+		}),
+		compensate: compensate,
+	})
 }
 
 func (g *pkgGen) wrapFor(
@@ -331,57 +365,63 @@ func (g *pkgGen) wrapFor(
 	if err != nil {
 		return stepModel{}, g.errorAt(fn, "%w", err)
 	}
-	compTypes := append(paramTypes(sig), res...)
-	compArgs := make([]string, 0, len(compTypes))
-	for _, name := range names.inputs {
-		compArgs = append(compArgs, "in."+ExportedName(name))
-	}
-	for _, name := range names.outputs {
-		compArgs = append(compArgs, "out."+ExportedName(name))
-	}
-	compensate, err := g.compensationHandler(
-		fn, decl, compTypes, compArgs, inCodec, outCodec, inType, outType,
+	compFields := namedCompFields(
+		names.inputs, paramTypes(sig), inAttrs,
 	)
+	compFields = append(compFields, namedCompFields(
+		names.outputs, res, outAttrs,
+	)...)
+	compensate, err := g.compHandler(&compHandlerConfig{
+		fn:     fn,
+		decl:   decl,
+		fields: compFields,
+		wrap:   true,
+	})
 	if err != nil {
 		return stepModel{}, err
 	}
 
-	return g.model(fn, decl, merge(inAttrs, outAttrs), syncHandler(
-		syncHandlerArgs{
+	attrs := mergeAttributes(attributeSets{inputs: inAttrs, outputs: outAttrs})
+	return g.model(&stepModelConfig{
+		function:    fn,
+		declaration: decl,
+		attributes:  attrs,
+		handler: syncHandler(syncHandlerArgs{
 			inCodec:  inCodec,
 			outCodec: outCodec,
 			inType:   inType,
 			outType:  outType,
 			body:     wrapBody(fn.Name.Name, names, outType, hasErr),
-		},
-	), compensate)
+		}),
+		compensate: compensate,
+	})
 }
 
-func (g *pkgGen) compensationHandler(
-	fn *ast.FuncDecl, decl stepDecl, want []types.Type, args []string,
-	inCodec, outCodec, inType, outType string,
-) (string, error) {
-	if decl.compensate == "" {
+func (g *pkgGen) compHandler(cfg *compHandlerConfig) (string, error) {
+	name := cfg.decl.compensate
+	if name == "" {
 		return "", nil
 	}
-	sig, err := g.compensationSignature(fn, decl.compensate, want)
+	sig, err := g.compSignature(cfg.fn, name)
 	if err != nil {
 		return "", err
 	}
-	call := fmt.Sprintf("%s(%s)", decl.compensate, strings.Join(args, ", "))
-	body := call + "\nreturn nil"
-	if sig.Results().Len() == 1 {
-		body = "return " + call
+	if sig.Params().Len() == 0 {
+		return compAdapter(compAdapterConfig{
+			codec:    "codec.Struct[struct{}]()",
+			typ:      "struct{}",
+			call:     name + "()",
+			fallible: sig.Results().Len() == 1,
+		}), nil
 	}
-	return fmt.Sprintf(
-		"gen.Compensate(\n%s, %s,\n"+
-			"func(in %s, out %s) error {\n%s\n})",
-		inCodec, outCodec, inType, outType, body,
-	), nil
+	if cfg.wrap {
+		return g.wrapCompHandler(cfg, sig)
+	}
+	return g.stepCompHandler(cfg, sig)
 }
 
-func (g *pkgGen) compensationSignature(
-	fn *ast.FuncDecl, name string, want []types.Type,
+func (g *pkgGen) compSignature(
+	fn *ast.FuncDecl, name string,
 ) (*types.Signature, error) {
 	obj := g.pkg.Types.Scope().Lookup(name)
 	if obj == nil {
@@ -399,19 +439,6 @@ func (g *pkgGen) compensationSignature(
 			"%w: compensator %s must be a plain non-variadic function",
 			ErrBadSignature, name)
 	}
-	if sig.Params().Len() != len(want) {
-		return nil, g.errorAt(fn,
-			"%w: compensator %s takes %d arguments; want %d",
-			ErrBadSignature, name, sig.Params().Len(), len(want))
-	}
-	for i, typ := range want {
-		if !types.Identical(sig.Params().At(i).Type(), typ) {
-			return nil, g.errorAt(fn,
-				"%w: compensator %s argument %d has type %s; want %s",
-				ErrBadSignature, name, i+1,
-				g.typeOf(sig.Params().At(i).Type()), g.typeOf(typ))
-		}
-	}
 	res := sig.Results()
 	if res.Len() > 1 || res.Len() == 1 && !isError(res.At(0).Type()) {
 		return nil, g.errorAt(fn,
@@ -421,11 +448,131 @@ func (g *pkgGen) compensationSignature(
 	return sig, nil
 }
 
-func merge(in, out api.AttributeSpecs) api.AttributeSpecs {
-	res := make(api.AttributeSpecs, len(in)+len(out))
-	maps.Copy(res, in)
-	maps.Copy(res, out)
-	return res
+func (g *pkgGen) stepCompHandler(
+	cfg *compHandlerConfig, sig *types.Signature,
+) (string, error) {
+	name := cfg.decl.compensate
+	params := sig.Params()
+	if params.Len() > 1 {
+		return "", g.errorAt(cfg.fn,
+			"%w: compensator %s takes zero or one argument struct",
+			ErrBadSignature, name)
+	}
+
+	typ := params.At(0).Type()
+	st, ok := typ.Underlying().(*types.Struct)
+	if !ok {
+		return "", g.errorAt(cfg.fn,
+			"%w: compensator %s argument %s is not a struct",
+			ErrBadSignature, name, g.typeOf(typ))
+	}
+	fields, err := structFields(st)
+	if err != nil {
+		return "", g.errorAt(cfg.fn, "%w", err)
+	}
+	available := make(map[string]types.Type, len(cfg.fields))
+	for _, f := range cfg.fields {
+		available[f.name] = f.typ
+	}
+	seen := make(map[string]bool, len(fields))
+	for _, f := range fields {
+		fieldName := resolveInnerName(f)
+		want, ok := available[fieldName]
+		if !ok {
+			return "", g.errorAt(cfg.fn,
+				"%w: compensator %s field %s is not compensated",
+				ErrBadSignature, name, fieldName)
+		}
+		if seen[fieldName] {
+			return "", g.errorAt(cfg.fn,
+				"%w: compensator %s repeats field %s",
+				ErrBadSignature, name, fieldName)
+		}
+		seen[fieldName] = true
+		if !types.Identical(f.Type(), want) {
+			return "", g.errorAt(cfg.fn,
+				"%w: compensator %s field %s has type %s; want %s",
+				ErrBadSignature, name, fieldName, g.typeOf(f.Type()),
+				g.typeOf(want))
+		}
+	}
+	codec, err := g.codecExpr(typ)
+	if err != nil {
+		return "", g.errorAt(cfg.fn, "%w", err)
+	}
+	return compAdapter(compAdapterConfig{
+		codec:    codec,
+		typ:      g.typeOf(typ),
+		call:     name + "(in)",
+		fallible: sig.Results().Len() == 1,
+	}), nil
+}
+
+func (g *pkgGen) wrapCompHandler(
+	cfg *compHandlerConfig, sig *types.Signature,
+) (string, error) {
+	name := cfg.decl.compensate
+	params := sig.Params()
+	names := make([]string, params.Len())
+	selectedTypes := make([]types.Type, params.Len())
+	args := make([]string, params.Len())
+	used := map[string]bool{}
+	for i := range params.Len() {
+		param := params.At(i)
+		paramName := SnakeCase(param.Name())
+		if param.Name() == "" || param.Name() == "_" {
+			return "", g.errorAt(cfg.fn,
+				"%w: compensator %s argument %d is unnamed",
+				ErrBadSignature, name, i+1)
+		}
+		var found *compField
+		for j := range cfg.fields {
+			field := &cfg.fields[j]
+			if SnakeCase(ExportedName(field.name)) != paramName {
+				continue
+			}
+			if found != nil {
+				return "", g.errorAt(cfg.fn,
+					"%w: compensator %s argument %s is ambiguous",
+					ErrBadSignature, name, param.Name())
+			}
+			found = field
+		}
+		if found == nil {
+			return "", g.errorAt(cfg.fn,
+				"%w: compensator %s argument %s is not a step attribute",
+				ErrBadSignature, name, param.Name())
+		}
+		if used[found.name] {
+			return "", g.errorAt(cfg.fn,
+				"%w: compensator %s repeats attribute %s",
+				ErrBadSignature, name, found.name)
+		}
+		used[found.name] = true
+		if !types.Identical(param.Type(), found.typ) {
+			return "", g.errorAt(cfg.fn,
+				"%w: compensator %s argument %s has type %s; want %s",
+				ErrBadSignature, name, param.Name(), g.typeOf(param.Type()),
+				g.typeOf(found.typ))
+		}
+		found.attr.Compensated = true
+		names[i] = found.name
+		selectedTypes[i] = found.typ
+		args[i] = "in." + ExportedName(found.name)
+	}
+
+	inType := "argyll" + cfg.fn.Name.Name + "CompIn"
+	codec, _, err := g.wrapStruct(inType, names, selectedTypes, false)
+	if err != nil {
+		return "", g.errorAt(cfg.fn, "%w", err)
+	}
+	call := fmt.Sprintf("%s(%s)", name, strings.Join(args, ", "))
+	return compAdapter(compAdapterConfig{
+		codec:    codec,
+		typ:      inType,
+		call:     call,
+		fallible: sig.Results().Len() == 1,
+	}), nil
 }
 
 func (g *pkgGen) contract(
@@ -533,7 +680,14 @@ func (g *pkgGen) signatureOf(fn *ast.FuncDecl) (*types.Signature, error) {
 
 func (g *pkgGen) errorAt(fn *ast.FuncDecl, format string, a ...any) error {
 	pos := g.pkg.Fset.Position(fn.Pos())
-	return fmt.Errorf("%s: %w", pos, fmt.Errorf(format, a...))
+	return fmt.Errorf("%w: %s", fmt.Errorf(format, a...), pos)
+}
+
+func mergeAttributes(attrs attributeSets) api.AttributeSpecs {
+	res := make(api.AttributeSpecs, len(attrs.inputs)+len(attrs.outputs))
+	maps.Copy(res, attrs.inputs)
+	maps.Copy(res, attrs.outputs)
+	return res
 }
 
 func directiveOf(fn *ast.FuncDecl) (directiveRef, bool) {
@@ -543,7 +697,10 @@ func directiveOf(fn *ast.FuncDecl) (directiveRef, bool) {
 	for _, c := range fn.Doc.List {
 		text := strings.TrimSpace(c.Text)
 		for _, d := range []string{stepDirective, wrapDirective} {
-			if args, ok := directiveArgs(text, d); ok {
+			if args, ok := directiveArgs(directiveText{
+				comment:   text,
+				directive: d,
+			}); ok {
 				return directiveRef{kind: d, args: args}, true
 			}
 		}
@@ -553,8 +710,8 @@ func directiveOf(fn *ast.FuncDecl) (directiveRef, bool) {
 
 // the head may follow the directive on a space, or its options directly on a
 // separator
-func directiveArgs(comment, directive string) (string, bool) {
-	rest, ok := strings.CutPrefix(comment, directive)
+func directiveArgs(text directiveText) (string, bool) {
+	rest, ok := strings.CutPrefix(text.comment, text.directive)
 	if !ok {
 		return "", false
 	}
@@ -624,16 +781,24 @@ func syncHandler(args syncHandlerArgs) string {
 	)
 }
 
-func syncBody(call string, hasOut, hasErr bool, outType string) string {
+type syncBodyArgs struct {
+	call       string
+	output     bool
+	fallible   bool
+	outputType string
+}
+
+func syncBody(args syncBodyArgs) string {
 	switch {
-	case hasOut && hasErr:
-		return "return " + call
-	case hasOut:
-		return "return " + call + ", nil"
-	case hasErr:
-		return fmt.Sprintf("return %s{}, %s", outType, call)
+	case args.output && args.fallible:
+		return "return " + args.call
+	case args.output:
+		return "return " + args.call + ", nil"
+	case args.fallible:
+		return fmt.Sprintf("return %s{}, %s", args.outputType, args.call)
 	default:
-		return fmt.Sprintf("%s\nreturn %s{}, nil", call, outType)
+		return fmt.Sprintf("%s\nreturn %s{}, nil", args.call,
+			args.outputType)
 	}
 }
 
@@ -680,4 +845,112 @@ func paramTypes(sig *types.Signature) []types.Type {
 func isError(t types.Type) bool {
 	named, ok := t.(*types.Named)
 	return ok && named.Obj().Pkg() == nil && named.Obj().Name() == "error"
+}
+
+func taggedCompFields(
+	t types.Type, attrs api.AttributeSpecs,
+) ([]compField, error) {
+	if t == nil {
+		return nil, nil
+	}
+	st, ok := t.Underlying().(*types.Struct)
+	if !ok {
+		return nil, fmt.Errorf("%w: compensation input is not a struct",
+			ErrBadSignature)
+	}
+	fields, err := structFields(st)
+	if err != nil {
+		return nil, err
+	}
+	var res []compField
+	for _, f := range fields {
+		attr := attrs[api.Name(f.attr)]
+		if attr == nil || !attr.Compensated {
+			continue
+		}
+		res = append(res, compField{
+			attr: attr,
+			name: resolveInnerName(f),
+			typ:  f.Type(),
+		})
+	}
+	return res, nil
+}
+
+func namedCompFields(
+	names []string, types []types.Type, attrs api.AttributeSpecs,
+) []compField {
+	res := make([]compField, len(names))
+	for i, name := range names {
+		res[i] = compField{
+			attr: attrs[api.Name(name)],
+			name: name,
+			typ:  types[i],
+		}
+	}
+	return res
+}
+
+func compAdapter(cfg compAdapterConfig) string {
+	body := cfg.call + "\nreturn nil"
+	if cfg.fallible {
+		body = "return " + cfg.call
+	}
+	return fmt.Sprintf(
+		"gen.Compensate(\n%s,\nfunc(in %s) error {\n%s\n})",
+		cfg.codec, cfg.typ, body,
+	)
+}
+
+func handlingIn(fn *ast.FuncDecl) (api.Handling, string, error) {
+	var memoized bool
+	var compensate string
+	for _, c := range fn.Doc.List {
+		text := strings.TrimSpace(c.Text)
+		if value, ok := directiveArgs(directiveText{
+			comment:   text,
+			directive: memoDirective,
+		}); ok {
+			if value != "" {
+				return "", "", fmt.Errorf("%w: %s takes no value",
+					ErrBadDirective, memoDirective)
+			}
+			if memoized {
+				return "", "", fmt.Errorf("%w: %s repeats",
+					ErrBadDirective, memoDirective)
+			}
+			memoized = true
+			continue
+		}
+
+		value, ok := directiveArgs(directiveText{
+			comment:   text,
+			directive: compDirective,
+		})
+		if !ok {
+			continue
+		}
+		if compensate != "" {
+			return "", "", fmt.Errorf("%w: %s repeats", ErrBadDirective,
+				compDirective)
+		}
+		if !token.IsIdentifier(value) {
+			return "", "", fmt.Errorf("%w: %s needs a function name",
+				ErrBadDirective, compDirective)
+		}
+		compensate = value
+	}
+	if memoized && compensate != "" {
+		return "", "", fmt.Errorf(
+			"%w: %s and %s are mutually exclusive",
+			ErrBadDirective, memoDirective, compDirective,
+		)
+	}
+	if memoized {
+		return api.HandlingMemoized, "", nil
+	}
+	if compensate != "" {
+		return api.HandlingCompensated, compensate, nil
+	}
+	return "", "", nil
 }

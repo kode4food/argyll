@@ -11,13 +11,14 @@ import (
 type (
 	// AttributeSpec defines the specification for a step attribute
 	AttributeSpec struct {
-		Required *RequiredConfig `json:"required,omitempty"`
-		Optional *OptionalConfig `json:"optional,omitempty"`
-		Const    *ConstConfig    `json:"const,omitempty"`
-		Meta     *MetaConfig     `json:"meta,omitempty"`
-		Output   *OutputConfig   `json:"output,omitempty"`
-		Role     AttributeRole   `json:"role"`
-		Type     AttributeType   `json:"type,omitempty"`
+		Required    *RequiredConfig `json:"required,omitempty"`
+		Optional    *OptionalConfig `json:"optional,omitempty"`
+		Const       *ConstConfig    `json:"const,omitempty"`
+		Meta        *MetaConfig     `json:"meta,omitempty"`
+		Output      *OutputConfig   `json:"output,omitempty"`
+		Role        AttributeRole   `json:"role"`
+		Type        AttributeType   `json:"type,omitempty"`
+		Compensated bool            `json:"compensated,omitempty"`
 	}
 
 	// RequiredConfig configures a required input attribute
@@ -402,11 +403,12 @@ func (s *AttributeSpec) Collect() InputCollect {
 func (s *AttributeSpec) Equal(other *AttributeSpec) bool {
 	return s.Role == other.Role &&
 		s.Type == other.Type &&
-		requiredConfigsEqual(s.Required, other.Required) &&
-		optionalConfigsEqual(s.Optional, other.Optional) &&
-		constConfigsEqual(s.Const, other.Const) &&
-		metaConfigsEqual(s.Meta, other.Meta) &&
-		outputConfigsEqual(s.Output, other.Output)
+		s.Compensated == other.Compensated &&
+		s.Required.equal(other.Required) &&
+		s.Optional.equal(other.Optional) &&
+		s.Const.equal(other.Const) &&
+		s.Meta.equal(other.Meta) &&
+		s.Output.equal(other.Output)
 }
 
 // Equal returns true if two attribute spec maps are equal
@@ -423,71 +425,81 @@ func (a AttributeSpecs) Equal(other AttributeSpecs) bool {
 	return true
 }
 
-func requiredConfigsEqual(a, b *RequiredConfig) bool {
-	if a == nil && b == nil {
+func (c *RequiredConfig) equal(other *RequiredConfig) bool {
+	if c == nil && other == nil {
 		return true
 	}
-	if a == nil || b == nil {
+	if c == nil || other == nil {
 		return false
 	}
-	return a.Collect == b.Collect &&
-		a.ForEach == b.ForEach &&
-		scriptsEqual(a.Match, b.Match) &&
-		mappingsEqual(a.Mapping, b.Mapping)
+	return c.Collect == other.Collect &&
+		c.ForEach == other.ForEach &&
+		c.Match.equal(other.Match) &&
+		c.Mapping.equal(other.Mapping)
 }
 
-func optionalConfigsEqual(a, b *OptionalConfig) bool {
-	if a == nil && b == nil {
+func (c *OptionalConfig) equal(other *OptionalConfig) bool {
+	if c == nil && other == nil {
 		return true
 	}
-	if a == nil || b == nil {
+	if c == nil || other == nil {
 		return false
 	}
-	return a.Collect == b.Collect &&
-		a.ForEach == b.ForEach &&
-		a.Default == b.Default &&
-		a.Deadline == b.Deadline &&
-		mappingsEqual(a.Mapping, b.Mapping)
+	return c.Collect == other.Collect &&
+		c.ForEach == other.ForEach &&
+		c.Default == other.Default &&
+		c.Deadline == other.Deadline &&
+		c.Mapping.equal(other.Mapping)
 }
 
-func constConfigsEqual(a, b *ConstConfig) bool {
-	if a == nil && b == nil {
+func (c *ConstConfig) equal(other *ConstConfig) bool {
+	if c == nil && other == nil {
 		return true
 	}
-	if a == nil || b == nil {
+	if c == nil || other == nil {
 		return false
 	}
-	return a.Value == b.Value
+	return c.Value == other.Value
 }
 
-func metaConfigsEqual(a, b *MetaConfig) bool {
-	if a == nil && b == nil {
+func (c *MetaConfig) equal(other *MetaConfig) bool {
+	if c == nil && other == nil {
 		return true
 	}
-	if a == nil || b == nil {
+	if c == nil || other == nil {
 		return false
 	}
-	return a.Key == b.Key
+	return c.Key == other.Key
 }
 
-func outputConfigsEqual(a, b *OutputConfig) bool {
-	if a == nil && b == nil {
+func (c *OutputConfig) equal(other *OutputConfig) bool {
+	if c == nil && other == nil {
 		return true
 	}
-	if a == nil || b == nil {
+	if c == nil || other == nil {
 		return false
 	}
-	return mappingsEqual(a.Mapping, b.Mapping)
+	return c.Mapping.equal(other.Mapping)
 }
 
-func mappingsEqual(a, b *MappingConfig) bool {
-	if a == nil && b == nil {
+func (c *MappingConfig) equal(other *MappingConfig) bool {
+	if c == nil && other == nil {
 		return true
 	}
-	if a == nil || b == nil {
+	if c == nil || other == nil {
 		return false
 	}
-	return a.Name == b.Name && scriptsEqual(a.Script, b.Script)
+	return c.Name == other.Name && c.Script.equal(other.Script)
+}
+
+func (c *ScriptConfig) equal(other *ScriptConfig) bool {
+	if c == nil && other == nil {
+		return true
+	}
+	if c == nil || other == nil {
+		return false
+	}
+	return c.Language == other.Language && c.Script == other.Script
 }
 
 func validateMapping(m *MappingConfig, name Name) error {
@@ -550,14 +562,4 @@ func validateDefaultValue(data string, attrType AttributeType) error {
 	default:
 		return nil
 	}
-}
-
-func scriptsEqual(a, b *ScriptConfig) bool {
-	if a == nil && b == nil {
-		return true
-	}
-	if a == nil || b == nil {
-		return false
-	}
-	return a.Language == b.Language && a.Script == b.Script
 }

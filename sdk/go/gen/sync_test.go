@@ -28,6 +28,11 @@ type (
 		Doubled int
 	}
 
+	compArgs struct {
+		Left  int
+		Total int
+	}
+
 	failCodec struct{}
 )
 
@@ -120,28 +125,29 @@ func TestSyncMethodNotAllowed(t *testing.T) {
 }
 
 func TestCompensate(t *testing.T) {
-	var gotIn sumArgs
-	var gotOut sumResult
-	h := gen.Compensate(sumArgsCodec(), sumResultCodec(),
-		func(in sumArgs, out sumResult) error {
-			gotIn, gotOut = in, out
+	var got compArgs
+	h := gen.Compensate(
+		compArgsCodec(),
+		func(args compArgs) error {
+			got = args
 			return nil
-		})
+		},
+	)
 
 	w := invoke(h, `{
-		"input":{"left":2,"right":3},
-		"output":{"total":5,"doubled":10}
+		"left":2,"right":3,"total":5,"doubled":10
 	}`)
 	assert.Equal(t, http.StatusNoContent, w.Code)
-	assert.Equal(t, sumArgs{Left: 2, Right: 3}, gotIn)
-	assert.Equal(t, sumResult{Total: 5, Doubled: 10}, gotOut)
+	assert.Equal(t, compArgs{Left: 2, Total: 5}, got)
 }
 
 func TestCompensateError(t *testing.T) {
-	h := gen.Compensate(sumArgsCodec(), sumResultCodec(),
-		func(sumArgs, sumResult) error { return errRefused })
+	h := gen.Compensate(
+		codec.Struct[struct{}](),
+		func(struct{}) error { return errRefused },
+	)
 
-	w := invoke(h, `{"input":{},"output":{}}`)
+	w := invoke(h, `{}`)
 	assert.Equal(t, http.StatusInternalServerError, w.Code)
 	assert.Contains(t, w.Body.String(), errRefused.Error())
 }
@@ -194,7 +200,7 @@ func TestRegisterBadSpec(t *testing.T) {
 	assert.Error(t, err)
 }
 
-func TestServeRegistrationFailure(t *testing.T) {
+func TestServeFailure(t *testing.T) {
 	t.Setenv("ARGYLL_ENGINE_URL", "http://127.0.0.1:1")
 	t.Setenv("STEP_PORT", "0")
 
@@ -204,8 +210,7 @@ func TestServeRegistrationFailure(t *testing.T) {
 func TestMux(t *testing.T) {
 	step := sumStep()
 	step.Compensate = gen.Compensate(
-		sumArgsCodec(), sumResultCodec(),
-		func(sumArgs, sumResult) error { return nil },
+		codec.Struct[struct{}](), func(struct{}) error { return nil },
 	)
 	srv := httptest.NewServer(gen.Mux(step))
 	defer srv.Close()
@@ -221,8 +226,9 @@ func TestMux(t *testing.T) {
 	defer func() { _ = res.Body.Close() }()
 	assert.Equal(t, http.StatusOK, res.StatusCode)
 
-	res, err = http.Post(srv.URL+"/sum/compensate", api.JSONContentType,
-		strings.NewReader(`{"input":{},"output":{}}`))
+	res, err = http.Post(
+		srv.URL+"/sum/compensate", api.JSONContentType, strings.NewReader(`{}`),
+	)
 	assert.NoError(t, err)
 	defer func() { _ = res.Body.Close() }()
 	assert.Equal(t, http.StatusNoContent, res.StatusCode)
@@ -277,6 +283,17 @@ func sumResultCodec() codec.Codec[sumResult] {
 		}),
 		codec.Field("doubled", codec.Int, func(v *sumResult) *int {
 			return &v.Doubled
+		}),
+	)
+}
+
+func compArgsCodec() codec.Codec[compArgs] {
+	return codec.Struct(
+		codec.Field("left", codec.Int, func(v *compArgs) *int {
+			return &v.Left
+		}),
+		codec.Field("total", codec.Int, func(v *compArgs) *int {
+			return &v.Total
 		}),
 	)
 }

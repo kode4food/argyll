@@ -239,7 +239,7 @@ client.NewStep().WithName("ProcessItems").
 client.NewStep().WithName("ExpensiveComputation").
     Required("input", api.TypeNumber).
     Output("result", api.TypeNumber).
-    WithMemoizable().
+    WithHandling(api.HandlingMemoized).
     WithEndpoint("http://localhost:8081/compute").
     Register(ctx)
 ```
@@ -305,7 +305,7 @@ See the [examples](../../examples) directory for complete working examples:
 - `Optional(name, type, default) Step` - Add optional input
 - `Const(name, type, value) Step` - Add const input
 - `Output(name, type) Step` - Declare output
-- `WithForEach(name) Step` - Enable array iteration
+- `WithForEach(names ...api.Name) Step` - Enable array iteration
 - `WithLabel(key, value) Step` - Add label
 - `WithLabels(labels) Step` - Add multiple labels
 - `WithFlowGoals(...stepIDs) Step` - Configure a flow step with child goals
@@ -317,7 +317,10 @@ See the [examples](../../examples) directory for complete working examples:
 - `WithPredicate(api.ScriptConfig) Step` - Set the predicate gating the step
 - `WithAsyncExecution() Step` - Enable async execution
 - `WithSyncExecution() Step` - Enable sync execution
-- `WithMemoizable() Step` - Enable result caching
+- `WithHandling(api.Handling) Step` - Select standard, memoized, or compensated handling
+- `WithCompensate(url) Step` - Set the compensation endpoint
+- `WithCompensateHandler(handler) Step` - Serve compensation locally
+- `WithCompensated(names ...api.Name) Step` - Include attributes in compensation requests
 - `Build() (*api.Step, error)` - Build step
 - `Register(ctx) error` - Register step
 - `Start(handler) error` - Register and start server

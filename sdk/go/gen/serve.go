@@ -17,7 +17,10 @@ const DefaultTimeout = 30 * time.Second
 // STEP_HOSTNAME and STEP_PORT environment variables
 func Serve(ctx context.Context, steps ...StepDef) error {
 	addr := argyll.LocalStepAddr()
-	engineURL := argyll.EnvOr("ARGYLL_ENGINE_URL", argyll.DefaultEngineURL)
+	engineURL := argyll.EnvOr(argyll.EnvLookup{
+		Name:    "ARGYLL_ENGINE_URL",
+		Default: argyll.DefaultEngineURL,
+	})
 
 	client := argyll.NewClient(engineURL, DefaultTimeout)
 	if err := Register(ctx, client, addr.BaseURL, steps...); err != nil {

@@ -1,4 +1,4 @@
-import { HTTPMethod, StepType } from "@/app/api";
+import { Handling, HTTPMethod, StepType } from "@/app/api";
 import { Attribute, ValidationError } from "./stepEditorTypes";
 import {
   validateAttributesList,
@@ -14,14 +14,14 @@ export function parseFlowGoals(value: string): string[] {
     .filter((goal) => goal.length > 0);
 }
 
-const endpointParamPattern = /\{([^{}]+)\}/g;
+const ENDPOINT_PARAM_PATTERN = /\{([^{}]+)\}/g;
 
 function validateGetEndpointParams(
   attributes: Attribute[],
   endpoint: string
 ): ValidationError | null {
   const params = new Set<string>();
-  for (const match of endpoint.matchAll(endpointParamPattern)) {
+  for (const match of endpoint.matchAll(ENDPOINT_PARAM_PATTERN)) {
     if (match[1]) {
       params.add(match[1]);
     }
@@ -47,6 +47,34 @@ function validateGetEndpointParams(
 function validateFlowStepConfig(flowGoals: string): ValidationError | null {
   if (parseFlowGoals(flowGoals).length === 0) {
     return { key: "stepEditor.flowGoalsRequired" };
+  }
+  return null;
+}
+
+function validateCompensation(
+  attributes: Attribute[],
+  handling: Handling,
+  endpoint: string
+): ValidationError | null {
+  if (handling === "compensated" && !endpoint.trim()) {
+    return { key: "stepEditor.compensateEndpointRequired" };
+  }
+
+  const compensated = attributes.filter((attr) => attr.compensated);
+  if (handling !== "compensated" && compensated.length > 0) {
+    return { key: "stepEditor.compensatedAttributeHandlingRequired" };
+  }
+
+  const names = new Set<string>();
+  for (const attr of compensated) {
+    const name = attr.mappingName?.trim() || attr.name.trim();
+    if (names.has(name)) {
+      return {
+        key: "stepEditor.compensatedAttributeConflict",
+        vars: { name },
+      };
+    }
+    names.add(name);
   }
   return null;
 }
@@ -84,6 +112,8 @@ export function getValidationError({
   httpMethod,
   httpTimeout,
   flowGoals,
+  handling,
+  compensateEndpoint,
 }: {
   isCreateMode: boolean;
   stepId: string;
@@ -94,6 +124,8 @@ export function getValidationError({
   httpMethod: HTTPMethod;
   httpTimeout: number;
   flowGoals: string;
+  handling: Handling;
+  compensateEndpoint: string;
 }): ValidationError | null {
   if (isCreateMode && !stepId.trim()) {
     return { key: "stepEditor.stepIdRequired" };
@@ -102,6 +134,12 @@ export function getValidationError({
   if (attrError) return attrError;
   const mappingError = validateMappings(attributes);
   if (mappingError) return mappingError;
+  const compensationError = validateCompensation(
+    attributes,
+    handling,
+    compensateEndpoint
+  );
+  if (compensationError) return compensationError;
 
   if (stepType === "flow") {
     return validateFlowStepConfig(flowGoals);

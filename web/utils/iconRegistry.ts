@@ -84,7 +84,8 @@ export const IconConnectionReconnecting = RefreshCw;
 export const IconConnectionError = AlertCircle;
 export const IconArraySingle = Square;
 export const IconArrayMultiple = Layers;
-export const IconMemoizable = NotebookPen;
+export const IconStandard = Play;
+export const IconMemoized = NotebookPen;
 export const IconCompensate = Undo2;
 export const IconEndpoint = Link2;
 export const IconHealthCheck = HeartPulse;
@@ -122,7 +123,7 @@ export const IconStepTypeAsync = Webhook;
 export const IconStepTypeScript = FileCode2;
 export const IconStepTypeFlow = Workflow;
 
-const argIconMap: Record<ArgType, ArgIconConfig> = {
+const ARG_ICON_MAP: Record<ArgType, ArgIconConfig> = {
   required: { Icon: IconAttributeRequired, className: "arg-icon input" },
   optional: { Icon: IconAttributeOptional, className: "arg-icon optional" },
   const: { Icon: IconAttributeConst, className: "arg-icon const" },
@@ -131,10 +132,10 @@ const argIconMap: Record<ArgType, ArgIconConfig> = {
 };
 
 export const getArgIcon = (argType: ArgType): ArgIconConfig => {
-  return argIconMap[argType];
+  return ARG_ICON_MAP[argType];
 };
 
-const stepTypeIconMap: Record<StepType, LucideIcon> = {
+const STEP_TYPE_ICON_MAP: Record<StepType, LucideIcon> = {
   sync: IconStepTypeSync,
   async: IconStepTypeAsync,
   script: IconStepTypeScript,
@@ -142,7 +143,7 @@ const stepTypeIconMap: Record<StepType, LucideIcon> = {
 };
 
 export const getStepTypeIcon = (stepType: StepType): LucideIcon => {
-  return stepTypeIconMap[stepType];
+  return STEP_TYPE_ICON_MAP[stepType];
 };
 
 export type { LucideIcon };

@@ -18,12 +18,17 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/util"
 )
 
-func TestMemoizableNoCompensate(t *testing.T) {
+type flowCompSteps struct {
+	producer *api.Step
+	consumer *api.Step
+}
+
+func TestCompensateHandling(t *testing.T) {
 	st := &api.Step{
-		ID:         "memo-comp-step",
-		Name:       "Memoizable Compensating Step",
-		Type:       api.StepTypeSync,
-		Memoizable: true,
+		ID:       "memo-comp-step",
+		Name:     "Memoized Compensating Step",
+		Type:     api.StepTypeSync,
+		Handling: api.HandlingMemoized,
 		HTTP: &api.HTTPConfig{
 			Invoke: api.HTTPAction{Endpoint: "http://test:8080/work"},
 			Compensate: &api.HTTPAction{
@@ -288,7 +293,7 @@ func TestCompFailDirectly(t *testing.T) {
 	})
 }
 
-func TestCompDeferredToHealthyPeer(t *testing.T) {
+func TestCompDeferred(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		cfg := util.MutableCopy(env.Config)
 		cfg.Raft.LocalID = "node-comp-peer"
@@ -353,7 +358,7 @@ func TestCompDeferredToHealthyPeer(t *testing.T) {
 	})
 }
 
-func TestCompFailOnPermanentError(t *testing.T) {
+func TestCompPermanentFailure(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		assert.NoError(t, env.Engine.Start())
 
@@ -457,7 +462,7 @@ func TestCompFailIdempotent(t *testing.T) {
 	})
 }
 
-func TestCompRetryNoopForMissingOrTerminalWork(t *testing.T) {
+func TestCompRetryNoop(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		st := newCompensatingStep("comp-retry-noop-step")
 		id := api.FlowID("wf-comp-retry-noop")
@@ -540,7 +545,7 @@ func TestCompDispatchRecovery(t *testing.T) {
 }
 
 func TestFlowCompensation(t *testing.T) {
-	newFlowCompStep := func(id api.StepID) (*api.Step, *api.Step) {
+	newFlowCompStep := func(id api.StepID) flowCompSteps {
 		producer := newCompensatingStep(id + "-producer")
 		producer.Attributes = api.AttributeSpecs{
 			"value": {Role: api.RoleOutput, Type: api.TypeString},
@@ -549,22 +554,20 @@ func TestFlowCompensation(t *testing.T) {
 		consumer.Attributes = api.AttributeSpecs{
 			"value": {Role: api.RoleRequired, Type: api.TypeString},
 		}
-		return producer, consumer
+		return flowCompSteps{producer: producer, consumer: consumer}
 	}
 
-	newFlowCompPlan := func(
-		producer, consumer *api.Step,
-	) *api.ExecutionPlan {
+	newFlowCompPlan := func(steps flowCompSteps) *api.ExecutionPlan {
 		return &api.ExecutionPlan{
-			Goals: []api.StepID{consumer.ID},
+			Goals: []api.StepID{steps.consumer.ID},
 			Steps: api.Steps{
-				producer.ID: producer,
-				consumer.ID: consumer,
+				steps.producer.ID: steps.producer,
+				steps.consumer.ID: steps.consumer,
 			},
 			Attributes: api.AttributeGraph{
 				"value": {
-					Providers: []api.StepID{producer.ID},
-					Consumers: []api.StepID{consumer.ID},
+					Providers: []api.StepID{steps.producer.ID},
+					Consumers: []api.StepID{steps.consumer.ID},
 				},
 			},
 		}
@@ -574,15 +577,16 @@ func TestFlowCompensation(t *testing.T) {
 		helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 			assert.NoError(t, env.Engine.Start())
 
-			producer, consumer := newFlowCompStep("flow-comp")
-			assert.NoError(t, env.Engine.RegisterStep(producer))
-			assert.NoError(t, env.Engine.RegisterStep(consumer))
+			steps := newFlowCompStep("flow-comp")
+			assert.NoError(t, env.Engine.RegisterStep(steps.producer))
+			assert.NoError(t, env.Engine.RegisterStep(steps.consumer))
 
-			env.MockClient.SetResponse(producer.ID, api.Args{"value": "abc"})
-			env.MockClient.SetError(consumer.ID, errors.New("permanent"))
+			env.MockClient.SetResponse(steps.producer.ID,
+				api.Args{"value": "abc"})
+			env.MockClient.SetError(steps.consumer.ID, errors.New("permanent"))
 
 			id := api.FlowID("wf-flow-comp")
-			pl := newFlowCompPlan(producer, consumer)
+			pl := newFlowCompPlan(steps)
 
 			env.WaitFor(wait.FlowDeactivated(id), func() {
 				assert.NoError(t, env.Engine.StartFlow(id, pl,
@@ -593,7 +597,7 @@ func TestFlowCompensation(t *testing.T) {
 			fl, err := env.Engine.GetFlowState(id)
 			assert.NoError(t, err)
 			assert.Equal(t, api.FlowFailed, fl.Status)
-			for _, work := range fl.Executions[producer.ID].WorkItems {
+			for _, work := range fl.Executions[steps.producer.ID].WorkItems {
 				assert.Equal(t, api.WorkCompensated, work.Status)
 			}
 		})
@@ -834,15 +838,16 @@ func TestFlowCompensation(t *testing.T) {
 		helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 			assert.NoError(t, env.Engine.Start())
 
-			producer, consumer := newFlowCompStep("no-flow-comp")
-			assert.NoError(t, env.Engine.RegisterStep(producer))
-			assert.NoError(t, env.Engine.RegisterStep(consumer))
+			steps := newFlowCompStep("no-flow-comp")
+			assert.NoError(t, env.Engine.RegisterStep(steps.producer))
+			assert.NoError(t, env.Engine.RegisterStep(steps.consumer))
 
-			env.MockClient.SetResponse(producer.ID, api.Args{"value": "abc"})
-			env.MockClient.SetError(consumer.ID, errors.New("permanent"))
+			env.MockClient.SetResponse(steps.producer.ID,
+				api.Args{"value": "abc"})
+			env.MockClient.SetError(steps.consumer.ID, errors.New("permanent"))
 
 			id := api.FlowID("wf-no-flow-comp")
-			pl := newFlowCompPlan(producer, consumer)
+			pl := newFlowCompPlan(steps)
 
 			env.WaitFor(wait.FlowDeactivated(id), func() {
 				assert.NoError(t, env.Engine.StartFlow(id, pl))
@@ -851,7 +856,7 @@ func TestFlowCompensation(t *testing.T) {
 			fl, err := env.Engine.GetFlowState(id)
 			assert.NoError(t, err)
 			assert.Equal(t, api.FlowFailed, fl.Status)
-			for _, work := range fl.Executions[producer.ID].WorkItems {
+			for _, work := range fl.Executions[steps.producer.ID].WorkItems {
 				assert.Equal(t, api.WorkSucceeded, work.Status)
 			}
 		})
@@ -963,9 +968,10 @@ func succeededWorkEvents(
 // newCompensatingStep returns a sync step with a compensate endpoint
 func newCompensatingStep(id api.StepID) *api.Step {
 	return &api.Step{
-		ID:   id,
-		Name: "Compensating Step",
-		Type: api.StepTypeSync,
+		ID:       id,
+		Name:     "Compensating Step",
+		Type:     api.StepTypeSync,
+		Handling: api.HandlingCompensated,
 		HTTP: &api.HTTPConfig{
 			Invoke: api.HTTPAction{Endpoint: "http://test:8080/work"},
 			Compensate: &api.HTTPAction{

@@ -86,7 +86,7 @@ class AsyncContext:
 
 
 StepHandler = Callable[[StepContext, Args], Args]
-CompensateHandler = Callable[[StepContext, Args, Args], None]
+CompensateHandler = Callable[[StepContext, Args], None]
 
 
 def create_step_server(
@@ -106,8 +106,9 @@ def create_step_server(
 
     builder = builder.with_endpoint(endpoint).with_health_check(health_endpoint)
 
+    compensate = builder._http.compensate if builder._http else None
     if compensate_handler is not None and not (
-        builder._http and builder._http.compensate
+        compensate and compensate.endpoint
     ):
         compensate_url = f"http://{hostname}:{port}/{step_id}/compensate"
         builder = builder.with_compensate(compensate_url)
@@ -168,7 +169,7 @@ def create_step_server(
                     metadata=metadata,
                 )
 
-                _ch(ctx, body.get("input", {}), body.get("output", {}))
+                _ch(ctx, body)
                 return "", 204
 
             except HTTPError as e:

@@ -16,6 +16,7 @@ export type WorkStatus =
 
 export type HealthStatus = "healthy" | "unhealthy" | "unconfigured" | "unknown";
 export type StepType = "sync" | "async" | "script" | "flow";
+export type Handling = "standard" | "memoized" | "compensated";
 export type HTTPMethod = "GET" | "POST" | "PUT" | "DELETE";
 
 export const SCRIPT_LANGUAGE_JPATH = "jpath";
@@ -70,14 +71,14 @@ export const META_KEY_STEP_ID = "step_id";
 export const META_KEY_RECEIPT_TOKEN = "receipt_token";
 export const META_KEY_WEBHOOK_URL = "webhook_url";
 
-export const metaKeys = [
+export const META_KEYS = [
   META_KEY_FLOW_ID,
   META_KEY_STEP_ID,
   META_KEY_RECEIPT_TOKEN,
   META_KEY_WEBHOOK_URL,
 ] as const;
 
-export type MetaKey = (typeof metaKeys)[number];
+export type MetaKey = (typeof META_KEYS)[number];
 
 export interface MetaConfig {
   key: string;
@@ -95,6 +96,7 @@ export interface AttributeSpec {
   const?: ConstConfig;
   meta?: MetaConfig;
   output?: OutputConfig;
+  compensated?: boolean;
 }
 
 export interface HTTPAction {
@@ -135,7 +137,7 @@ export interface Step {
   labels?: Record<string, string>;
   predicate?: ScriptConfig;
   work_config?: WorkConfig;
-  memoizable?: boolean;
+  handling?: Handling;
 
   // Type-specific configurations
   http?: HTTPConfig;

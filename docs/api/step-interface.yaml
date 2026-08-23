@@ -24,12 +24,12 @@ paths:
       summary: Compensate Work Item
       description: |
         Called by the engine when a step fails after one or more work items
-        have already succeeded. The engine sends the original inputs and outputs
-        for the work item so the handler can undo the completed work.
+        have already succeeded. The engine sends attributes marked
+        `compensated` as one flattened object so the handler can undo the work.
 
-        The engine sends this request only when `http.compensate` is configured
-        on the step. URL placeholders (`{param}`) are resolved from a merged
-        view of outputs and inputs, with outputs taking priority.
+        The engine sends this request only when handling is `compensated`.
+        Fields and URL placeholders use invocation-mapped names.
+        Two selected attributes cannot have the same inner name.
 
         Use `Argyll-Flow-ID`, `Argyll-Step-ID`, and `Argyll-Receipt-Token` as
         the idempotency key for the compensation side effect.
@@ -62,10 +62,8 @@ paths:
               refund:
                 summary: Refund a payment
                 value:
-                  input:
-                    amount: 49.99
-                  output:
-                    charge_id: "ch_abc123"
+                  amount: 49.99
+                  charge_id: "ch_abc123"
       responses:
         "200":
           description: Compensation completed successfully.
@@ -197,21 +195,12 @@ components:
     CompensateArgs:
       type: object
       description: |
-        Request body sent to the compensate endpoint. Contains the original
-        inputs and outputs for the work item being compensated.
-      properties:
-        input:
-          $ref: "#/components/schemas/Args"
-        output:
-          $ref: "#/components/schemas/Args"
-      required:
-        - input
-        - output
+        Compensated work-item attributes flattened under their
+        invocation-mapped names.
+      additionalProperties: true
       example:
-        input:
-          amount: 49.99
-        output:
-          charge_id: "ch_abc123"
+        amount: 49.99
+        charge_id: "ch_abc123"
     ProblemDetails:
       type: object
       description: RFC 9457 Problem Details response.
@@ -259,4 +248,4 @@ x-implementation-notes: |
   Permanent failure: return 4xx with `Content-Type: application/problem+json`.
   Retryable failure: return 5xx, timeout, or close the connection; Argyll records the work item as not completed and applies retry policy.
   Async completion: POST the same success output object or problem details object to `Argyll-Webhook-URL`.
-  Compensation: when `http.compensate` is configured, the engine POSTs {"input": ..., "output": ...} to the resolved compensate URL for each succeeded work item when the step fails. Use the receipt token as the idempotency key. Return 2xx on success, 5xx for temporary failures (retried), 4xx for permanent failures.
+  Compensation: when handling is `compensated`, the engine sends only attributes marked `compensated` as one flattened object using invocation-mapped names; the same names resolve URL placeholders. Duplicate selected inner names are invalid. Use the receipt token as the idempotency key. Return 2xx on success, 5xx for temporary failures (retried), 4xx for permanent failures.

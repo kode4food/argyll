@@ -9,8 +9,10 @@ describe("StepEditorBasicFields", () => {
     isCreateMode = true
   ) => {
     const props = {
+      handling: "standard" as const,
       isCreateMode,
       name: "Example Step",
+      setHandling: jest.fn(),
       setName: jest.fn(),
       setStepId: jest.fn(),
       setStepType: jest.fn(),
@@ -22,7 +24,7 @@ describe("StepEditorBasicFields", () => {
     return props;
   };
 
-  test("renders editable identity fields in create mode", () => {
+  test("renders create fields", () => {
     renderComponent();
 
     expect(
@@ -68,7 +70,7 @@ describe("StepEditorBasicFields", () => {
     expect(props.setStepType).toHaveBeenCalledWith("flow");
   });
 
-  test("marks the current type as selected in the dropdown", () => {
+  test("selects the current type", () => {
     renderComponent("async");
 
     fireEvent.click(
@@ -80,7 +82,41 @@ describe("StepEditorBasicFields", () => {
     );
   });
 
-  test("highlights the current type and lets mouse hover take over", () => {
+  test("changes handling", () => {
+    const props = renderComponent();
+
+    expect(document.querySelector(".lucide-play")).toBeInTheDocument();
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: t("stepEditor.handling.standard"),
+      })
+    );
+    fireEvent.click(
+      screen.getByRole("option", {
+        name: t("stepEditor.handling.compensated"),
+      })
+    );
+
+    expect(props.setHandling).toHaveBeenCalledWith("compensated");
+  });
+
+  test("disables compensation for non-HTTP steps", () => {
+    renderComponent("flow");
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: t("stepEditor.handling.standard"),
+      })
+    );
+
+    expect(
+      screen.getByRole("option", {
+        name: t("stepEditor.handling.compensated"),
+      })
+    ).toBeDisabled();
+  });
+
+  test("moves dropdown highlight", () => {
     renderComponent("async");
 
     fireEvent.click(

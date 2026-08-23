@@ -1,5 +1,11 @@
 import { useCallback, useMemo, useState } from "react";
-import { HTTPMethod, SCRIPT_LANGUAGE_LUA, Step, StepType } from "@/app/api";
+import {
+  Handling,
+  HTTPMethod,
+  SCRIPT_LANGUAGE_LUA,
+  Step,
+  StepType,
+} from "@/app/api";
 import {
   buildStepPayload,
   createStepAttributes,
@@ -19,7 +25,7 @@ export function useStepEditorForm(
 
   const [stepId, setStepId] = useState(step?.id || "");
   const [name, setName] = useState(step?.name || "");
-  const [stepType, setStepType] = useState<StepType>(step?.type || "sync");
+  const [stepType, setStepTypeState] = useState<StepType>(step?.type || "sync");
   const [predicate, setPredicate] = useState(step?.predicate?.script || "");
   const [predicateLanguage, setPredicateLanguage] = useState(
     step?.predicate?.language || SCRIPT_LANGUAGE_LUA
@@ -55,7 +61,9 @@ export function useStepEditorForm(
   const [flowCompensate, setFlowCompensate] = useState(
     step?.flow?.compensate || false
   );
-  const [memoizable, setMemoizable] = useState(step?.memoizable || false);
+  const [handling, setHandling] = useState<Handling>(
+    step?.handling || "standard"
+  );
 
   const {
     attributes,
@@ -63,7 +71,26 @@ export function useStepEditorForm(
     updateAttribute,
     removeAttribute,
     resetAttributes,
+    clearCompensated,
   } = useAttributeList(step, t);
+
+  const changeHandling = useCallback(
+    (next: Handling) => {
+      setHandling(next);
+      if (next !== "compensated") clearCompensated();
+    },
+    [clearCompensated]
+  );
+
+  const changeStepType = useCallback(
+    (next: StepType) => {
+      setStepTypeState(next);
+      if (next !== "sync" && next !== "async") {
+        changeHandling("standard");
+      }
+    },
+    [changeHandling]
+  );
 
   const buildStepData = useCallback((): Step => {
     const stepAttributes = createStepAttributes(attributes);
@@ -85,7 +112,7 @@ export function useStepEditorForm(
       httpTimeout,
       flowGoals,
       flowCompensate,
-      memoizable,
+      handling,
     });
   }, [
     attributes,
@@ -98,7 +125,7 @@ export function useStepEditorForm(
     healthCheck,
     httpMethod,
     httpTimeout,
-    memoizable,
+    handling,
     name,
     predicate,
     predicateLanguage,
@@ -112,7 +139,7 @@ export function useStepEditorForm(
     (stepData: Step) => {
       setStepId(stepData.id || "");
       setName(stepData.name || "");
-      setStepType(stepData.type || "sync");
+      setStepTypeState(stepData.type || "sync");
       setPredicate(stepData.predicate?.script || "");
       setPredicateLanguage(stepData.predicate?.language || SCRIPT_LANGUAGE_LUA);
       setScript(stepData.script?.script || "");
@@ -128,7 +155,7 @@ export function useStepEditorForm(
       );
       setCompensateTimeout(stepData.http?.compensate?.timeout || 0);
       setHttpTimeout(stepData.http?.invoke?.timeout || 5000);
-      setMemoizable(Boolean(stepData.memoizable));
+      setHandling(stepData.handling || "standard");
       resetAttributes(stepData);
     },
     [resetAttributes]
@@ -160,7 +187,7 @@ export function useStepEditorForm(
       isCreateMode,
       setStepId,
       setName,
-      setStepType,
+      setStepType: changeStepType,
       attributes,
       addAttribute,
       updateAttribute,
@@ -183,8 +210,8 @@ export function useStepEditorForm(
       setFlowGoals,
       flowCompensate,
       setFlowCompensate,
-      memoizable,
-      setMemoizable,
+      handling,
+      setHandling: changeHandling,
     }),
     [
       stepId,
@@ -204,7 +231,9 @@ export function useStepEditorForm(
       httpTimeout,
       flowGoals,
       flowCompensate,
-      memoizable,
+      handling,
+      changeHandling,
+      changeStepType,
     ]
   );
 
@@ -214,7 +243,7 @@ export function useStepEditorForm(
     name,
     setName,
     stepType,
-    setStepType,
+    setStepType: changeStepType,
     predicate,
     setPredicate,
     predicateLanguage,
@@ -241,8 +270,8 @@ export function useStepEditorForm(
     setFlowGoals,
     flowCompensate,
     setFlowCompensate,
-    memoizable,
-    setMemoizable,
+    handling,
+    setHandling: changeHandling,
     attributes,
     addAttribute,
     updateAttribute,

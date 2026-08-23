@@ -4,12 +4,12 @@
 
 ## How It Works
 
-1. **Mark a step as memoizable:**
+1. **Choose memoized handling:**
    ```json
    {
      "id": "calculate-discount",
      "name": "Calculate Discount",
-     "memoizable": true,
+     "handling": "memoized",
      "type": "sync",
      "http": { "endpoint": "https://api.example.com/discounts/calculate", "timeout": 5000 },
      "attributes": {
@@ -67,7 +67,7 @@ Two different step definitions with the same inputs will have different cache ke
 Cache is **per-work-item**, not aggregated across all work items of a step with `for_each`.
 
 ```
-Step: process-item [for_each, memoizable]
+Step: process-item [for_each, memoized]
 Inputs:
   items: [item-1, item-2, item-3]
 
@@ -118,7 +118,7 @@ Each work item is cached independently.
 Step: lookup-exchange-rate
 - Call external API (slow, reliable)
 - Same currency pair → same rate (deterministic)
-- Memoizable: YES
+- Handling: Memoized
 ```
 
 ### Don't Use ✗
@@ -133,7 +133,7 @@ Step: lookup-exchange-rate
 Step: process-payment
 - Makes payment (has side effects)
 - Current flow state affects result
-- Memoizable: NO (would skip actual payment on retry!)
+- Handling: Standard (memoization would skip the payment on retry)
 ```
 
 ## Configuration
@@ -145,7 +145,7 @@ Step: process-payment
 {
   "id": "lookup-exchange-rate",
   "name": "Lookup Exchange Rate",
-  "memoizable": true,
+  "handling": "memoized",
   "type": "sync",
   "http": { "endpoint": "https://api.example.com/rates", "timeout": 5000 },
   "attributes": {
@@ -160,23 +160,22 @@ Step: process-payment
 ```go
 step := argyll.
   NewStep().WithName("lookup-exchange-rate").
-  WithMemoizable().
+  WithHandling(api.HandlingMemoized).
   WithSync("https://api.example.com/rates")
 ```
 
-**Via Web UI:**
-Check "Cache step results (memoizable)" in step execution options.
+**Via Web UI:** Choose **Memoized** under **Handling**.
 
 ### Cache Size
 
 Configure via environment variable:
 ```bash
 MEMO_CACHE_SIZE=65536 # Default
-MEMO_CACHE_SIZE=8192  # Larger cache for more memoizable steps
+MEMO_CACHE_SIZE=8192  # Larger cache for more memoized steps
 ```
 
 Monitor cache size if:
-- You have many memoizable steps
+- You have many memoized steps
 - Step definitions produce large outputs
 - Flow executes with highly variable inputs
 
@@ -205,7 +204,7 @@ This prevents caching failures and accidentally skipping retries.
 {
   "id": "convert-currency",
   "name": "Convert Currency",
-  "memoizable": true,
+  "handling": "memoized",
   "type": "sync",
   "http": {
     "endpoint": "https://api.exchangerate-api.com/rates",
@@ -257,7 +256,7 @@ Cache is in-engine memory, not persisted in the shared Timebox store. Monitor en
 
 ## Interaction with For Each
 
-When a step with `for_each` and `memoizable` executes:
+When a step with `for_each` and `handling: "memoized"` executes:
 
 ```
 items = [apple, banana, apple]
@@ -271,16 +270,19 @@ Each work item's inputs are cached independently.
 
 ## Troubleshooting
 
-**Q: Step still executing even though I enabled memoizable?**
+**Q: Step still executing with memoized handling?**
+
 A: Check:
 - Inputs are identical (order matters for the hash)
 - Step definition hasn't changed (different code = different key)
 - Cache size isn't full (check `MEMO_CACHE_SIZE`)
 
 **Q: Cache got wrong results after I updated the step?**
+
 A: Cache is keyed by step definition. Updating the step creates a new cache key automatically. Old cached values are orphaned.
 
 **Q: Can I share cache across engine instances?**
+
 A: No, cache is in-process. Each instance caches independently. This is fine for redundancy (each instance still gets the benefit locally).
 
 ## Best Practices
@@ -289,4 +291,4 @@ A: No, cache is in-process. Each instance caches independently. This is fine for
 2. **Monitor cache hits**: Use logs to verify memoization is effective
 3. **Size appropriately**: Don't set `MEMO_CACHE_SIZE` too high (memory waste) or too low (excessive misses)
 4. **Update step versions**: When changing logic, update step ID/version to force recompute
-5. **Document decisions**: Add notes to step definition explaining why it's memoizable
+5. **Document decisions**: Add notes explaining why memoization is safe

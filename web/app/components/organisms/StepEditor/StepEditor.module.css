@@ -62,12 +62,6 @@
   align-items: center;
 }
 
-.headerControls {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-sm);
-}
-
 .title {
   margin: 0;
   font-size: var(--text-xl);

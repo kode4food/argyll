@@ -2,6 +2,7 @@
 
 import copy
 import re
+from dataclasses import replace
 from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional
 
 from ._validation import validate_step
@@ -14,6 +15,7 @@ from .types import (
     ConstConfig,
     FlowConfig,
     FlowID,
+    Handling,
     HTTPAction,
     HTTPConfig,
     InitArgs,
@@ -53,7 +55,7 @@ class StepBuilder:
         self._predicate: Optional[ScriptConfig] = None
         self._flow: Optional[FlowConfig] = None
         self._compensate_handler: Optional[Callable[..., Any]] = None
-        self._memoizable: bool = False
+        self._handling = Handling.STANDARD
 
     def _copy(self, **kwargs: Any) -> "StepBuilder":
         """Create a copy with updated attributes."""
@@ -123,38 +125,23 @@ class StepBuilder:
         )
         return self._copy(_attributes=new_attrs)
 
-    def with_for_each(self, name: str) -> "StepBuilder":
-        """Enable array iteration for attribute."""
-        if name not in self._attributes:
-            raise StepValidationError(f"Attribute {name} not defined")
-
+    def with_for_each(self, *names: str) -> "StepBuilder":
+        """Enable array iteration for attributes."""
         new_attrs = dict(self._attributes)
-        existing = new_attrs[name]
-        if existing.role == AttributeRole.REQUIRED:
-            rc = existing.required or RequiredConfig()
-            new_attrs[name] = AttributeSpec(
-                role=existing.role,
-                type=existing.type,
-                required=RequiredConfig(
-                    collect=rc.collect,
-                    for_each=True,
-                    match=rc.match,
-                    mapping=rc.mapping,
-                ),
-            )
-        elif existing.role == AttributeRole.OPTIONAL:
-            oc = existing.optional or OptionalConfig()
-            new_attrs[name] = AttributeSpec(
-                role=existing.role,
-                type=existing.type,
-                optional=OptionalConfig(
-                    collect=oc.collect,
-                    for_each=True,
-                    default=oc.default,
-                    deadline=oc.deadline,
-                    mapping=oc.mapping,
-                ),
-            )
+        for name in names:
+            if name not in new_attrs:
+                raise StepValidationError(f"Attribute {name} not defined")
+            existing = new_attrs[name]
+            if existing.role == AttributeRole.REQUIRED:
+                rc = existing.required or RequiredConfig()
+                new_attrs[name] = replace(
+                    existing, required=replace(rc, for_each=True)
+                )
+            elif existing.role == AttributeRole.OPTIONAL:
+                oc = existing.optional or OptionalConfig()
+                new_attrs[name] = replace(
+                    existing, optional=replace(oc, for_each=True)
+                )
         return self._copy(_attributes=new_attrs)
 
     def with_label(self, key: str, value: str) -> "StepBuilder":
@@ -185,13 +172,17 @@ class StepBuilder:
             health=overrides.get("health", base.health if base else ""),
         )
 
-    def _compensate_with(self, **overrides: Any) -> "HTTPAction":
-        """Return a copy of the compensate action with the given overrides."""
+    def _with_compensate(self, **overrides: Any) -> "StepBuilder":
+        """Return a copy with updated compensation."""
         base = self._http.compensate if self._http else None
-        return HTTPAction(
+        action = HTTPAction(
             endpoint=overrides.get("endpoint", base.endpoint if base else ""),
             method=overrides.get("method", base.method if base else ""),
             timeout=overrides.get("timeout", base.timeout if base else 0),
+        )
+        return self._copy(
+            _http=self._http_with(compensate=action),
+            _handling=Handling.COMPENSATED,
         )
 
     def with_endpoint(self, url: str) -> "StepBuilder":
@@ -207,26 +198,16 @@ class StepBuilder:
         return self._copy(_http=self._http_with(health=url))
 
     def with_compensate(self, url: str) -> "StepBuilder":
-        """Set the compensate endpoint for the step."""
-        return self._copy(
-            _http=self._http_with(
-                compensate=self._compensate_with(endpoint=url)
-            )
-        )
+        """Set the compensate endpoint and handling for the step."""
+        return self._with_compensate(endpoint=url)
 
     def with_compensate_method(self, method: str) -> "StepBuilder":
         """Set the HTTP method used to compensate the step."""
-        return self._copy(
-            _http=self._http_with(
-                compensate=self._compensate_with(method=method.upper())
-            )
-        )
+        return self._with_compensate(method=method.upper())
 
     def with_compensate_timeout(self, ms: int) -> "StepBuilder":
         """Set the compensate timeout in milliseconds."""
-        return self._copy(
-            _http=self._http_with(compensate=self._compensate_with(timeout=ms))
-        )
+        return self._with_compensate(timeout=ms)
 
     def with_timeout(self, ms: int) -> "StepBuilder":
         """Set execution timeout in milliseconds."""
@@ -255,14 +236,23 @@ class StepBuilder:
         """Configure sync execution."""
         return self._copy(_type=StepType.SYNC)
 
-    def with_memoizable(self) -> "StepBuilder":
-        """Enable result memoization."""
-        return self._copy(_memoizable=True)
+    def with_handling(self, handling: Handling) -> "StepBuilder":
+        """Set how completed work is retained or reversed."""
+        return self._copy(_handling=handling)
+
+    def compensated(self, *names: str) -> "StepBuilder":
+        """Include attributes in compensation requests."""
+        new_attrs = dict(self._attributes)
+        for name in names:
+            if name not in new_attrs:
+                raise StepValidationError(f"Attribute {name} not defined")
+            new_attrs[name] = replace(new_attrs[name], compensated=True)
+        return self._copy(_attributes=new_attrs)
 
     def with_compensate_handler(
         self, handler: Callable[..., Any]
     ) -> "StepBuilder":
-        """Register a compensate handler: (ctx, inputs, outputs) -> None."""
+        """Register a compensate handler: (ctx, arguments) -> None."""
         return self._copy(_compensate_handler=handler)
 
     def build(self) -> Step:
@@ -279,7 +269,7 @@ class StepBuilder:
             script=self._script,
             predicate=self._predicate,
             flow=self._flow,
-            memoizable=self._memoizable,
+            handling=self._handling,
         )
         validate_step(step)
         return step

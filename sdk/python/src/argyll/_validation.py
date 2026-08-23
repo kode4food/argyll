@@ -7,6 +7,8 @@ from ._attr_validation import (
 )
 from .errors import StepValidationError
 from .types import (
+    AttributeSpec,
+    Handling,
     Step,
     StepType,
 )
@@ -17,6 +19,7 @@ def validate_step(step: Step) -> None:
     _check_identity(step)
     _check_type_config(step)
     _check_attributes(step)
+    _check_compensation(step)
 
 
 def _check_identity(step: Step) -> None:
@@ -31,6 +34,12 @@ def _check_identity(step: Step) -> None:
         StepType.FLOW,
     }:
         raise StepValidationError(f"Invalid step type: {step.type}")
+    if step.handling not in {
+        Handling.STANDARD,
+        Handling.MEMOIZED,
+        Handling.COMPENSATED,
+    }:
+        raise StepValidationError(f"Invalid step handling: {step.handling}")
 
 
 def _check_type_config(step: Step) -> None:
@@ -44,10 +53,6 @@ def _check_type_config(step: Step) -> None:
                 raise StepValidationError(
                     f"Invalid HTTP method: {action.method}"
                 )
-        if step.http.compensate is not None and not (
-            step.http.compensate.endpoint
-        ):
-            raise StepValidationError("Compensate endpoint required")
         if step.flow is not None:
             raise StepValidationError("Flow config not allowed for HTTP steps")
         if step.script is not None:
@@ -85,3 +90,39 @@ def _check_attributes(step: Step) -> None:
         check_attribute_role_config(name, spec)
         check_attribute_default(name, spec)
         check_attribute_for_each(name, spec)
+
+
+def _check_compensation(step: Step) -> None:
+    action = step.http.compensate if step.http else None
+    if step.handling == Handling.COMPENSATED and (
+        action is None or not action.endpoint
+    ):
+        raise StepValidationError(
+            "Compensated handling requires a compensation endpoint"
+        )
+    if step.handling != Handling.COMPENSATED and action is not None:
+        raise StepValidationError(
+            "Compensation endpoint requires compensated handling"
+        )
+
+    names = set()
+    for name, spec in step.attributes.items():
+        if not spec.compensated:
+            continue
+        if step.handling != Handling.COMPENSATED:
+            raise StepValidationError(
+                f"Compensated attribute requires compensated handling: {name}"
+            )
+        mapped = _mapped_name(name, spec)
+        if mapped in names:
+            raise StepValidationError(
+                f"Conflicting compensation argument: {mapped}"
+            )
+        names.add(mapped)
+
+
+def _mapped_name(name: str, spec: AttributeSpec) -> str:
+    config = spec.output or spec.required or spec.optional
+    if config and config.mapping and config.mapping.name:
+        return config.mapping.name
+    return name

@@ -17,12 +17,12 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/util"
 )
 
-func TestMemoizableStepUsesCache(t *testing.T) {
+func TestMemoizedWork(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		assert.NoError(t, env.Engine.Start())
 
 		st := helpers.NewTestStep()
-		st.Memoizable = true
+		st.Handling = api.HandlingMemoized
 		assert.NoError(t, env.Engine.RegisterStep(st))
 
 		env.MockClient.SetResponse(st.ID, api.Args{"output": "cached"})
@@ -142,7 +142,7 @@ func TestDispatchOnHealthyPeer(t *testing.T) {
 	})
 }
 
-func TestDispatchAfterHealthRecovery(t *testing.T) {
+func TestDispatchRecovery(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		assert.NoError(t, env.Engine.Start())
 
@@ -263,7 +263,7 @@ func TestScriptWorkExecutes(t *testing.T) {
 	})
 }
 
-func TestScriptWorkUsesMappedInputName(t *testing.T) {
+func TestScriptMapping(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		assert.NoError(t, env.Engine.Start())
 
@@ -314,7 +314,7 @@ func TestScriptWorkUsesMappedInputName(t *testing.T) {
 	})
 }
 
-func TestUnsupportedStepTypeFailsFlow(t *testing.T) {
+func TestUnsupportedStep(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		assert.NoError(t, env.Engine.Start())
 
@@ -378,7 +378,7 @@ func TestParallelWorkItems(t *testing.T) {
 		}
 	})
 }
-func TestPredicateFailurePerWorkItem(t *testing.T) {
+func TestWorkPredicate(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		assert.NoError(t, env.Engine.Start())
 

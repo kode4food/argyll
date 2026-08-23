@@ -181,11 +181,28 @@ client.new_step().with_name("ProcessItems") \
 Cache step results for efficiency:
 
 ```python
+from argyll import Handling
+
 client.new_step().with_name("ExpensiveComputation") \
     .required("input", AttributeType.NUMBER) \
     .output("result", AttributeType.NUMBER) \
-    .with_memoizable() \
+    .with_handling(Handling.MEMOIZED) \
     .with_endpoint("http://localhost:8081/compute") \
+    .register()
+```
+
+### Compensation
+
+Select only the attributes the compensation endpoint needs. Configuring the endpoint selects compensated handling automatically:
+
+```python
+from argyll import AttributeType
+
+client.new_step().with_name("Reserve Stock") \
+    .required("order", AttributeType.OBJECT) \
+    .output("reservation", AttributeType.OBJECT) \
+    .compensated("reservation") \
+    .with_compensate("http://localhost:8081/reserve/compensate") \
     .register()
 ```
 

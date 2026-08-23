@@ -21,6 +21,10 @@ type Step struct {
 }
 
 var (
+	ErrDetachedStep = errors.New("step not created from client")
+)
+
+var (
 	camelCaseRegex = regexp.MustCompile(`([a-z0-9])([A-Z])`)
 	delimiterRegex = regexp.MustCompile(`[\s_]+`)
 )
@@ -103,27 +107,25 @@ func (s Step) Output(name api.Name, argType api.AttributeType) Step {
 	})
 }
 
-// WithForEach marks an attribute as supporting multi work items (arrays)
-func (s Step) WithForEach(name api.Name) Step {
-	attr, ok := s.step.Attributes[name]
-	if !ok {
-		return s
+// WithForEach marks attributes as supporting multi work items (arrays)
+func (s Step) WithForEach(names ...api.Name) Step {
+	for _, name := range names {
+		attr, ok := s.step.Attributes[name]
+		if !ok {
+			continue
+		}
+		cpy := util.MutableCopy(attr)
+		switch cpy.Role {
+		case api.RoleRequired:
+			cpy.Required = util.MutableCopy(cpy.Required)
+			cpy.Required.ForEach = true
+		case api.RoleOptional:
+			cpy.Optional = util.MutableCopy(cpy.Optional)
+			cpy.Optional.ForEach = true
+		}
+		s = s.withAttribute(name, cpy)
 	}
-	cpy := util.MutableCopy(attr)
-	switch cpy.Role {
-	case api.RoleRequired:
-		cpy.Required = util.MutableCopy(cpy.Required)
-		cpy.Required.ForEach = true
-	case api.RoleOptional:
-		cpy.Optional = util.MutableCopy(cpy.Optional)
-		cpy.Optional.ForEach = true
-	}
-	return s.withAttribute(name, cpy)
-}
-
-// WithLabel sets a single label for the step
-func (s Step) WithLabel(key, value string) Step {
-	return s.WithLabels(api.Labels{key: value})
+	return s
 }
 
 // WithLabels merges the provided labels into the step's labels
@@ -198,7 +200,7 @@ func (s Step) WithHealthCheck(endpoint string) Step {
 	})
 }
 
-// WithCompensate sets the compensate endpoint for the step
+// WithCompensate sets the compensate endpoint and selects compensated handling
 func (s Step) WithCompensate(endpoint string) Step {
 	return s.withCompensate(func(comp *api.HTTPAction) {
 		comp.Endpoint = endpoint
@@ -254,10 +256,24 @@ func (s Step) WithScriptExecution() Step {
 	return s.WithType(api.StepTypeScript)
 }
 
-// WithMemoizable marks the step as eligible for result memoization
-func (s Step) WithMemoizable() Step {
+// WithHandling sets how completed work is retained or reversed
+func (s Step) WithHandling(handling api.Handling) Step {
 	s.step = s.step.Copy()
-	s.step.Memoizable = true
+	s.step.Handling = handling
+	return s
+}
+
+// WithCompensated includes attributes in compensation requests
+func (s Step) WithCompensated(names ...api.Name) Step {
+	for _, name := range names {
+		attr, ok := s.step.Attributes[name]
+		if !ok {
+			continue
+		}
+		cpy := util.MutableCopy(attr)
+		cpy.Compensated = true
+		s = s.withAttribute(name, cpy)
+	}
 	return s
 }
 
@@ -285,7 +301,7 @@ func (s Step) Register(ctx context.Context) error {
 	}
 
 	if s.client == nil {
-		return errors.New("step not created from client")
+		return ErrDetachedStep
 	}
 
 	return s.client.RegisterStep(ctx, step)
@@ -295,7 +311,7 @@ func (s Step) Register(ctx context.Context) error {
 // handling requests
 func (s Step) Start(handler StepHandler) error {
 	if s.client == nil {
-		return errors.New("step not created from client")
+		return ErrDetachedStep
 	}
 
 	return setupStepServer(s.client, s, handler)
@@ -319,11 +335,13 @@ func (s Step) withHTTP(mutate func(*api.HTTPConfig)) Step {
 }
 
 func (s Step) withCompensate(mutate func(*api.HTTPAction)) Step {
-	return s.withHTTP(func(http *api.HTTPConfig) {
+	s = s.withHTTP(func(http *api.HTTPConfig) {
 		comp := util.MutableCopy(http.Compensate)
 		mutate(comp)
 		http.Compensate = comp
 	})
+	s.step.Handling = api.HandlingCompensated
+	return s
 }
 
 func toSnakeCase(s string) string {

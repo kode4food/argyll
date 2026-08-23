@@ -180,7 +180,7 @@ func (tx *flowTx) startPendingWork(step *api.Step) (api.WorkItems, error) {
 		}
 
 		inputs := ex.Inputs.Apply(work.Inputs)
-		if step.Memoizable {
+		if step.DefaultedHandling() == api.HandlingMemoized {
 			if cached, ok := tx.memoCache.Get(step, inputs); ok {
 				err := tx.handleMemoCacheHit(sid, tkn, cached)
 				if err != nil {

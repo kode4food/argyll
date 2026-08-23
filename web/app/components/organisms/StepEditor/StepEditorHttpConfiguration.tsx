@@ -1,6 +1,6 @@
 import React from "react";
 import DurationInput from "@/app/components/molecules/DurationInput";
-import { HTTPMethod } from "@/app/api";
+import type { Handling, HTTPMethod } from "@/app/api";
 import { useT } from "@/app/i18n";
 import {
   IconCompensate,
@@ -20,7 +20,7 @@ interface StepEditorHttpConfigurationProps {
   compensateMethod: HTTPMethod;
   compensateTimeout: number;
   httpTimeout: number;
-  memoizable: boolean;
+  handling: Handling;
   setEndpoint: (value: string) => void;
   setHttpMethod: (value: HTTPMethod) => void;
   setHealthCheck: (value: string) => void;
@@ -30,7 +30,7 @@ interface StepEditorHttpConfigurationProps {
   setHttpTimeout: (value: number) => void;
 }
 
-const methodOptions = [
+const METHOD_OPTIONS = [
   { value: "POST", label: "POST" },
   { value: "GET", label: "GET" },
   { value: "PUT", label: "PUT" },
@@ -47,7 +47,7 @@ const StepEditorHttpConfiguration: React.FC<
   compensateMethod,
   compensateTimeout,
   httpTimeout,
-  memoizable,
+  handling,
   setEndpoint,
   setHttpMethod,
   setHealthCheck,
@@ -74,7 +74,7 @@ const StepEditorHttpConfiguration: React.FC<
             <SegmentedGroup className={localStyles.methodSelect}>
               <InlineSelectDropdown
                 value={httpMethod}
-                options={methodOptions}
+                options={METHOD_OPTIONS}
                 onChange={(v) => setHttpMethod(v as HTTPMethod)}
               />
             </SegmentedGroup>
@@ -101,52 +101,47 @@ const StepEditorHttpConfiguration: React.FC<
             <DurationInput value={httpTimeout} onChange={setHttpTimeout} />
           </div>
         </div>
-        <div className={formStyles.row}>
-          <div className={formStyles.fieldNoFlex}>
-            <label className={formStyles.label}>
-              {t("stepEditor.httpMethodLabel")}
-            </label>
-            <SegmentedGroup className={localStyles.methodSelect}>
-              <InlineSelectDropdown
-                value={compensateMethod}
-                options={methodOptions}
-                onChange={(v) => setCompensateMethod(v as HTTPMethod)}
-                disabled={memoizable}
+        {handling === "compensated" && (
+          <div className={formStyles.row}>
+            <div className={formStyles.fieldNoFlex}>
+              <label className={formStyles.label}>
+                {t("stepEditor.httpMethodLabel")}
+              </label>
+              <SegmentedGroup className={localStyles.methodSelect}>
+                <InlineSelectDropdown
+                  value={compensateMethod}
+                  options={METHOD_OPTIONS}
+                  onChange={(v) => setCompensateMethod(v as HTTPMethod)}
+                />
+              </SegmentedGroup>
+            </div>
+            <div className={`${formStyles.field} ${formStyles.flex1}`}>
+              <label className={formStyles.labelWithIcon}>
+                <span className={formStyles.labelIcon}>
+                  <IconCompensate aria-hidden="true" />
+                </span>
+                {t("stepEditor.compensateLabel")}
+              </label>
+              <input
+                type="text"
+                value={compensate}
+                onChange={(e) => setCompensate(e.target.value)}
+                placeholder={t("stepEditor.compensatePlaceholder")}
+                className={formStyles.formControl}
               />
-            </SegmentedGroup>
+            </div>
+            <div className={formStyles.fieldNoFlex}>
+              <label className={formStyles.label}>
+                {t("stepEditor.timeoutLabel")}
+              </label>
+              <DurationInput
+                value={compensateTimeout}
+                onChange={setCompensateTimeout}
+                placeholderMs={httpTimeout}
+              />
+            </div>
           </div>
-          <div className={`${formStyles.field} ${formStyles.flex1}`}>
-            <label className={formStyles.labelWithIcon}>
-              <span className={formStyles.labelIcon}>
-                <IconCompensate aria-hidden="true" />
-              </span>
-              {t("stepEditor.compensateLabel")}
-            </label>
-            <input
-              type="text"
-              value={compensate}
-              onChange={(e) => setCompensate(e.target.value)}
-              placeholder={t("stepEditor.compensatePlaceholder")}
-              className={formStyles.formControl}
-              disabled={memoizable}
-              title={
-                memoizable
-                  ? t("stepEditor.compensateDisabledMemoizable")
-                  : undefined
-              }
-            />
-          </div>
-          <div className={formStyles.fieldNoFlex}>
-            <label className={formStyles.label}>
-              {t("stepEditor.timeoutLabel")}
-            </label>
-            <DurationInput
-              value={compensateTimeout}
-              onChange={setCompensateTimeout}
-              placeholderMs={httpTimeout}
-            />
-          </div>
-        </div>
+        )}
         <div className={formStyles.row}>
           <div className={formStyles.fieldNoFlex}>
             <label className={formStyles.label}>
