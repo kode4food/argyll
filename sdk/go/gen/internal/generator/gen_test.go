@@ -101,11 +101,11 @@ func TestGeneratedSurface(t *testing.T) {
 	text := string(src)
 
 	assert.Contains(t, text, "func ArgyllSteps() []gen.StepDef")
-	assert.Contains(t, text, "argyllCodecRiskArgs := codec.Struct(")
-	assert.Contains(t, text, "argyllCodecRefundCardArgs := codec.Struct(")
-	assert.NotContains(t, text, "var argyllCodecRiskArgs")
-	assert.NotContains(t, text, "\nvar argyll")
-	assert.NotContains(t, text, "\ntype argyll")
+	assert.Contains(t, text, "codecRiskArgs := codec.Struct(")
+	assert.Contains(t, text, "codecRefundCardArgs := codec.Struct(")
+	assert.NotContains(t, text, "var codecRiskArgs")
+	assert.NotContains(t, text, "\nvar codec")
+	assert.NotContains(t, text, "\ntype ScoreCustomerIn")
 }
 
 func TestContractInference(t *testing.T) {
@@ -139,7 +139,7 @@ func TestWrapContract(t *testing.T) {
 	assert.Contains(t, text,
 		"r0, r1, err := ScoreCustomer(in.CustomerId, in.Amount)")
 	assert.Contains(t, text,
-		"return argyllScoreCustomerOut{Score: r0, Approved: r1}, nil")
+		"return ScoreCustomerOut{Score: r0, Approved: r1}, nil")
 }
 
 func TestWrapInference(t *testing.T) {
@@ -151,14 +151,14 @@ func TestWrapInference(t *testing.T) {
 	// an ID beside the attribute spec, inputs inferred from the parameters
 	assert.Contains(t, byID, api.StepID("rate-customer-v2"))
 	assert.Contains(t, text,
-		"type argyllRateCustomerIn struct {\n\t\tCustomerId")
+		"type RateCustomerIn struct {\n\t\tCustomerId")
 
 	// both sides inferred, from named parameters and named results
 	assert.Contains(t, byID, api.StepID("grade-customer"))
 	assert.Contains(t, text,
-		"type argyllGradeCustomerIn struct {\n\t\tCustomerId")
+		"type GradeCustomerIn struct {\n\t\tCustomerId")
 	assert.Contains(t, text,
-		"type argyllGradeCustomerOut struct {\n\t\tScore")
+		"type GradeCustomerOut struct {\n\t\tScore")
 }
 
 func TestZeroOutputStep(t *testing.T) {
@@ -248,15 +248,15 @@ func TestRecursiveCodec(t *testing.T) {
 	text := string(src)
 
 	// a self-referential codec cannot be a plain var initializer
-	assert.Contains(t, text, "var argyllCodecNodeImpl codec.Codec[Node]")
+	assert.Contains(t, text, "var codecNodeImpl codec.Codec[Node]")
 	assert.Contains(t, text,
-		"argyllCodecNode := codec.Ref(&argyllCodecNodeImpl)")
-	assert.Contains(t, text, "argyllCodecNodeImpl = codec.Struct(")
-	assert.Contains(t, text, "codec.Slice(argyllCodecNode)")
-	assert.Contains(t, text, "codec.Optional(argyllCodecNode)")
+		"codecNode := codec.Ref(&codecNodeImpl)")
+	assert.Contains(t, text, "codecNodeImpl = codec.Struct(")
+	assert.Contains(t, text, "codec.Slice(codecNode)")
+	assert.Contains(t, text, "codec.Optional(codecNode)")
 
 	// non-recursive codecs stay plain
-	assert.Contains(t, text, "argyllCodecRiskArgs := codec.Struct(")
+	assert.Contains(t, text, "codecRiskArgs := codec.Struct(")
 }
 
 func TestNoDirectives(t *testing.T) {
@@ -613,7 +613,7 @@ func TestCompensate(t *testing.T) {
 	assert.Contains(t, text, `\"compensated\":true`)
 	assert.Contains(t, text, `\"result\":{\"output\":{},\"role\":`+
 		`\"output\",\"type\":\"number\",\"compensated\":true}`)
-	assert.Contains(t, text, "type argyllWrappedCompIn struct")
+	assert.Contains(t, text, "type WrappedCompIn struct")
 	assert.NotContains(t, text, "CompensateIn")
 	assert.Contains(t, text, "return Undo(in)")
 	assert.Contains(t, text, "Unwrap(in.Result)\n")

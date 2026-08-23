@@ -353,8 +353,8 @@ func (g *pkgGen) wrapFor(
 		return stepModel{}, err
 	}
 
-	inType := "argyll" + fn.Name.Name + "In"
-	outType := "argyll" + fn.Name.Name + "Out"
+	inType := fn.Name.Name + "In"
+	outType := fn.Name.Name + "Out"
 	inCodec, inAttrs, err := g.wrapStruct(
 		inType, names.inputs, paramTypes(sig), false,
 	)
@@ -561,7 +561,7 @@ func (g *pkgGen) wrapCompHandler(
 		args[i] = "in." + ExportedName(found.name)
 	}
 
-	inType := "argyll" + cfg.fn.Name.Name + "CompIn"
+	inType := cfg.fn.Name.Name + "CompIn"
 	codec, _, err := g.wrapStruct(inType, names, selectedTypes, false)
 	if err != nil {
 		return "", g.errorAt(cfg.fn, "%w", err)

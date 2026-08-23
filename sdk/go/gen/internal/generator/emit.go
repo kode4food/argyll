@@ -175,7 +175,7 @@ func (g *pkgGen) wrapStruct(
 	decl.WriteString("}")
 	g.decls = append(g.decls, decl.String())
 
-	codecVar := "argyllCodec" + strings.TrimPrefix(name, "argyll")
+	codecVar := "codec" + ExportedName(name)
 	g.decls = append(g.decls, renderStructDeclaration(structDeclaration{
 		name:   codecVar,
 		owner:  name,
@@ -282,9 +282,9 @@ func (g *pkgGen) structCodec(t types.Type, u *types.Struct) (string, error) {
 
 func (g *pkgGen) codecName(t types.Type) string {
 	if named, ok := t.(*types.Named); ok {
-		return "argyllCodec" + ExportedName(named.Obj().Name())
+		return "codec" + ExportedName(named.Obj().Name())
 	}
-	return fmt.Sprintf("argyllCodecAnon%d", len(g.codecs))
+	return fmt.Sprintf("codecAnon%d", len(g.codecs))
 }
 
 func (g *pkgGen) typeOf(t types.Type) string {
