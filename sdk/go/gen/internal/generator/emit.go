@@ -93,28 +93,22 @@ func (g *pkgGen) source() ([]byte, error) {
 	sb.WriteString(header)
 	fmt.Fprintf(&sb, "package %s\n\n", g.pkg.Name)
 	sb.WriteString(g.importBlock())
+	sb.WriteString(
+		"// ArgyllSteps returns the steps generated for this package\n" +
+			"func ArgyllSteps() []gen.StepDef {\n")
 	for _, d := range g.decls {
 		sb.WriteString(d)
 		sb.WriteString("\n\n")
 	}
 
-	names := make([]string, 0, len(g.steps))
+	sb.WriteString("return []gen.StepDef{\n")
 	for _, s := range g.steps {
-		name := ExportedName(string(s.spec.ID)) + "Step"
-		names = append(names, name)
-		decl, err := g.stepVar(name, s)
+		spec, err := json.Marshal(s.spec)
 		if err != nil {
 			return nil, err
 		}
-		sb.WriteString(decl)
-		sb.WriteString("\n\n")
-	}
-
-	sb.WriteString(
-		"// ArgyllSteps returns the steps generated for this package\n" +
-			"func ArgyllSteps() []gen.StepDef {\nreturn []gen.StepDef{\n")
-	for _, n := range names {
-		fmt.Fprintf(&sb, "%s,\n", n)
+		fmt.Fprintf(&sb, "{\nID: %q,\nSpec: %s,\nHandler: %s,\n},",
+			s.spec.ID, strconv.Quote(string(spec)), s.handler)
 	}
 	sb.WriteString("}\n}\n")
 
@@ -138,19 +132,6 @@ func (g *pkgGen) importBlock() string {
 	}
 	sb.WriteString(")\n\n")
 	return sb.String()
-}
-
-func (g *pkgGen) stepVar(name string, s stepModel) (string, error) {
-	spec, err := json.Marshal(s.spec)
-	if err != nil {
-		return "", err
-	}
-	var sb strings.Builder
-	fmt.Fprintf(&sb, "// %s exposes %s as an Argyll step\n"+
-		"var %s = gen.StepDef{\n", name, s.spec.ID, name)
-	fmt.Fprintf(&sb, "ID: %q,\nSpec: %s,\nHandler: %s,\n}\n",
-		s.spec.ID, strconv.Quote(string(spec)), s.handler)
-	return sb.String(), nil
 }
 
 func (g *pkgGen) wrapStruct(
@@ -303,7 +284,7 @@ func (g *pkgGen) qualifier(p *types.Package) string {
 
 func structDecl(name, owner string, fields []codecField, lazy bool) string {
 	if len(fields) == 0 {
-		return fmt.Sprintf("var %s = codec.Struct[%s]()", name, owner)
+		return fmt.Sprintf("%s := codec.Struct[%s]()", name, owner)
 	}
 	var sb strings.Builder
 	sb.WriteString("codec.Struct(\n")
@@ -314,12 +295,12 @@ func structDecl(name, owner string, fields []codecField, lazy bool) string {
 	}
 	sb.WriteString(")")
 	if !lazy {
-		return fmt.Sprintf("var %s = %s", name, sb.String())
+		return fmt.Sprintf("%s := %s", name, sb.String())
 	}
 	// a self-referential initializer is an initialization cycle
 	return fmt.Sprintf("var %sImpl codec.Codec[%s]\n\n"+
-		"var %s = codec.Ref(&%sImpl)\n\n"+
-		"func init() {\n%sImpl = %s\n}", name, owner, name, name, name,
+		"%s := codec.Ref(&%sImpl)\n\n"+
+		"%sImpl = %s", name, owner, name, name, name,
 		sb.String())
 }
 

@@ -136,7 +136,7 @@ func TestHTTPErrorStatus(t *testing.T) {
 }
 
 func TestRegisteredLabels(t *testing.T) {
-	byID := registerSteps(t, example.CalculateRiskStep)
+	byID := registerSteps(t, example.ArgyllSteps()...)
 
 	assert.Equal(t, api.Labels{
 		"description": "score a customer for risk",
@@ -145,7 +145,7 @@ func TestRegisteredLabels(t *testing.T) {
 }
 
 func TestRegisteredAttributeOptions(t *testing.T) {
-	byID := registerSteps(t, example.ChargeCardV2Step)
+	byID := registerSteps(t, example.ArgyllSteps()...)
 
 	step := byID["charge-card-v2"]
 	assert.Equal(t, api.Name("Charge Card (v2)"), step.Name)

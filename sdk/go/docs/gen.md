@@ -60,24 +60,27 @@ Currency string `argyll:"iso_currency;role:optional;default:USD"`
 
 `props` and `labels` take properties only, and both repeat, so a long set spreads across lines. Only `//argyll:wrap` takes an attribute spec: a `//argyll:step` or a field tag carrying one is an error rather than a silent no-op.
 
-An omitted ID is the function name in `kebab-case`. The ID also names the generated `StepDef` var, so it stays `kebab-case`: lowercase letters and digits, hyphen separated.
+An omitted ID is the function name in `kebab-case`. IDs use lowercase letters
+and digits, separated by hyphens.
 
 ### `//argyll:step`
 
-A function written to be a step. It takes one arguments struct, named or anonymous, and returns an outputs struct, an error, both, or neither:
+A step function takes zero arguments or one argument struct, named or
+anonymous. It returns nothing, one outputs struct, an error, or an outputs
+struct followed by an error. Its function type must be one of:
 
 ```go
-//argyll:step
-func CalculateRisk(args RiskArgs) (RiskResult, error)
-
-//argyll:step
-func Greet(args struct{ Name string }) struct{ Greeting string }
-
-//argyll:step
-func Audit(args AuditArgs) error
+func()
+func() Result
+func() (Result, error)
+func() error
+func(Args)
+func(Args) Result
+func(Args) error
+func(Args) (Result, error)
 ```
 
-Fields of the argument struct become step inputs, fields of the result struct become step outputs. Names default to the Go identifier in `snake_case`, and an [`argyll` field tag](#field-tags) sets the attribute name explicitly.
+Fields of the argument struct become step inputs, and fields of the result struct become step outputs. Zero-argument functions have no inputs; functions without a result struct have no outputs. Names default to the Go identifier in `snake_case`, and an [`argyll` field tag](#field-tags) sets the attribute name explicitly.
 
 ### `//argyll:wrap`
 

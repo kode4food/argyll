@@ -14,7 +14,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var specPattern = regexp.MustCompile(`(?m)^\tSpec:\s+(".*"),$`)
+var specPattern = regexp.MustCompile(`(?m)^\s*Spec:\s+(".*"),$`)
 
 func TestNames(t *testing.T) {
 	assert.Equal(t, "customer_id", generator.SnakeCase("CustomerID"))
@@ -95,6 +95,18 @@ func TestGeneratedFileMatchesRender(t *testing.T) {
 	assert.Equal(t, string(built), string(src))
 }
 
+func TestGeneratedSurface(t *testing.T) {
+	src, err := render(t, "../../../example")
+	assert.NoError(t, err)
+	text := string(src)
+
+	assert.Contains(t, text, "func ArgyllSteps() []gen.StepDef")
+	assert.Contains(t, text, "argyllCodecRiskArgs := codec.Struct(")
+	assert.NotContains(t, text, "var argyllCodecRiskArgs")
+	assert.NotContains(t, text, "\nvar argyll")
+	assert.NotContains(t, text, "\ntype argyll")
+}
+
 func TestContractInference(t *testing.T) {
 	step := steps(t, "../../../example")["calculate-risk"]
 	assert.Equal(t, api.Name("Calculate Risk"), step.Name)
@@ -136,14 +148,15 @@ func TestWrapInference(t *testing.T) {
 
 	// an ID beside the attribute spec, inputs inferred from the parameters
 	assert.Contains(t, byID, api.StepID("rate-customer-v2"))
-	assert.Contains(t, text, "type argyllRateCustomerIn struct {\n\tCustomerId")
+	assert.Contains(t, text,
+		"type argyllRateCustomerIn struct {\n\t\tCustomerId")
 
 	// both sides inferred, from named parameters and named results
 	assert.Contains(t, byID, api.StepID("grade-customer"))
 	assert.Contains(t, text,
-		"type argyllGradeCustomerIn struct {\n\tCustomerId")
+		"type argyllGradeCustomerIn struct {\n\t\tCustomerId")
 	assert.Contains(t, text,
-		"type argyllGradeCustomerOut struct {\n\tScore")
+		"type argyllGradeCustomerOut struct {\n\t\tScore")
 }
 
 func TestZeroOutputStep(t *testing.T) {
@@ -226,13 +239,13 @@ func TestRecursiveCodec(t *testing.T) {
 	// a self-referential codec cannot be a plain var initializer
 	assert.Contains(t, text, "var argyllCodecNodeImpl codec.Codec[Node]")
 	assert.Contains(t, text,
-		"var argyllCodecNode = codec.Ref(&argyllCodecNodeImpl)")
+		"argyllCodecNode := codec.Ref(&argyllCodecNodeImpl)")
 	assert.Contains(t, text, "argyllCodecNodeImpl = codec.Struct(")
 	assert.Contains(t, text, "codec.Slice(argyllCodecNode)")
 	assert.Contains(t, text, "codec.Optional(argyllCodecNode)")
 
 	// non-recursive codecs stay plain
-	assert.Contains(t, text, "var argyllCodecRiskArgs = codec.Struct(")
+	assert.Contains(t, text, "argyllCodecRiskArgs := codec.Struct(")
 }
 
 func TestNoDirectives(t *testing.T) {
@@ -248,7 +261,7 @@ func TestDiagnostics(t *testing.T) {
 	}{
 		"step arity": {
 			pattern: "./testdata/badstep",
-			wants:   []string{"TooManyArgs", "one arguments struct"},
+			wants:   []string{"TooManyArgs", "zero or one argument struct"},
 		},
 		"wrap arity": {
 			pattern: "./testdata/badwrap",
@@ -344,6 +357,11 @@ func TestAdditionalDiagnostics(t *testing.T) {
 		"step input is a struct": {
 			src:  "//argyll:step\nfunc Bad(in int) {}",
 			want: "int is not a struct",
+		},
+		"step has at most one input": {
+			src: "//argyll:step\n" +
+				"func Bad(left, right struct{}) {}",
+			want: "takes zero or one argument struct",
 		},
 		"step output is a struct": {
 			src: "//argyll:step\n" +
@@ -492,16 +510,29 @@ func TestStepShapesAndProps(t *testing.T) {
 		"`argyll:\";collect:all;for_each:true;mapping:fallback\"`\n" +
 		"}\n" +
 		"type Out struct { Result string `argyll:\";mapping:result\"` }\n" +
+		"//argyll:step\nfunc Empty() {}\n" +
+		"//argyll:step\nfunc EmptyError() error { " +
+		"return errors.New(\"bad\") }\n" +
+		"//argyll:step\nfunc Source() Out { return Out{} }\n" +
+		"//argyll:step\nfunc SourceError() (Out, error) { " +
+		"return Out{}, nil }\n" +
 		"//argyll:step\nfunc NoResult(in In) {}\n" +
 		"//argyll:step\nfunc ErrorOnly(in In) error { " +
 		"return errors.New(\"bad\") }\n" +
-		"//argyll:step\nfunc ResultOnly(in In) Out { return Out{} }\n"
+		"//argyll:step\nfunc ResultOnly(in In) Out { return Out{} }\n" +
+		"//argyll:step\nfunc ResultError(in In) (Out, error) { " +
+		"return Out{}, nil }\n"
 
 	out, err := renderSource(t, src)
 	assert.NoError(t, err)
+	assert.Contains(t, string(out), "Empty()")
+	assert.Contains(t, string(out), "return struct{}{}, EmptyError()")
+	assert.Contains(t, string(out), "return Source(), nil")
+	assert.Contains(t, string(out), "return SourceError()")
 	assert.Contains(t, string(out), "NoResult(in)")
 	assert.Contains(t, string(out), "return struct{}{}, ErrorOnly(in)")
 	assert.Contains(t, string(out), "return ResultOnly(in), nil")
+	assert.Contains(t, string(out), "return ResultError(in)")
 }
 
 func TestGenerateIsIdempotent(t *testing.T) {

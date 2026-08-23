@@ -189,12 +189,18 @@ func optionsIn(fn *ast.FuncDecl, directive string) (Options, error) {
 func (g *pkgGen) stepFor(
 	fn *ast.FuncDecl, sig *types.Signature, decl stepDecl,
 ) (stepModel, error) {
-	if sig.Params().Len() != 1 {
+	n := sig.Params().Len()
+	if n > 1 {
 		return stepModel{}, g.errorAt(fn,
-			"%w: %s takes one arguments struct",
+			"%w: %s takes zero or one argument struct",
 			ErrBadSignature, fn.Name.Name)
 	}
-	in := sig.Params().At(0).Type()
+	var in types.Type
+	call := fn.Name.Name + "()"
+	if n == 1 {
+		in = sig.Params().At(0).Type()
+		call = fn.Name.Name + "(in)"
+	}
 	inCodec, inAttrs, err := g.contract(fn, in, false)
 	if err != nil {
 		return stepModel{}, err
@@ -209,7 +215,6 @@ func (g *pkgGen) stepFor(
 		return stepModel{}, err
 	}
 
-	call := fn.Name.Name + "(in)"
 	body := syncBody(call, res != nil, hasErr, g.typeOf(res))
 	return g.model(fn, decl, merge(inAttrs, outAttrs), syncHandler(
 		syncHandlerArgs{
