@@ -107,8 +107,12 @@ func (g *pkgGen) source() ([]byte, error) {
 		if err != nil {
 			return nil, err
 		}
-		fmt.Fprintf(&sb, "{\nID: %q,\nSpec: %s,\nHandler: %s,\n},",
+		fmt.Fprintf(&sb, "{\nID: %q,\nSpec: %s,\nHandler: %s,\n",
 			s.spec.ID, strconv.Quote(string(spec)), s.handler)
+		if s.compensate != "" {
+			fmt.Fprintf(&sb, "Compensate: %s,\n", s.compensate)
+		}
+		sb.WriteString("},")
 	}
 	sb.WriteString("}\n}\n")
 

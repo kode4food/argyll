@@ -53,6 +53,11 @@ type (
 		FlowID   string `argyll:"flow;role:meta;key:flow_id"`
 		Amount   int64  `argyll:"match:return args.amount > 0"`
 	}
+
+	// ChargeResult is the output of the ChargeCard step
+	ChargeResult struct {
+		ChargeID string
+	}
 )
 
 //go:generate go run ../gen/cmd/argyll-gen .
@@ -140,12 +145,17 @@ func GradeCustomer(
 }
 
 //argyll:step charge-card-v2;name:Charge Card (v2)
+//argyll:compensate refundCard
 //argyll:props timeout: 2500; memoize: false
 //argyll:props predicate: return args.amount > 0
-func ChargeCard(args ChargeArgs) struct{ ChargeID string } {
-	return struct{ ChargeID string }{
+func ChargeCard(args ChargeArgs) ChargeResult {
+	return ChargeResult{
 		ChargeID: args.Gateway + ":" + args.OrderID + ":" + args.Currency,
 	}
+}
+
+func refundCard(_ ChargeArgs, _ ChargeResult) error {
+	return nil
 }
 
 //argyll:step

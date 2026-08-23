@@ -50,6 +50,7 @@ Directives and field tags read the same way: a leading value names the thing, an
 ```go
 //argyll:step   charge-card-v2;name:Charge Card (v2)
 //argyll:wrap   score-v2(customer-id, amount) -> (score, approved)
+//argyll:compensate Refund
 //argyll:props  timeout: 2500; predicate: return args.amount > 0
 //argyll:labels domain: risk; tier: gold
 ```
@@ -58,7 +59,10 @@ Directives and field tags read the same way: a leading value names the thing, an
 Currency string `argyll:"iso_currency;role:optional;default:USD"`
 ```
 
-`props` and `labels` take properties only, and both repeat, so a long set spreads across lines. Only `//argyll:wrap` takes an attribute spec: a `//argyll:step` or a field tag carrying one is an error rather than a silent no-op.
+`compensate` names one function. `props` and `labels` take properties only, and
+both repeat, so a long set spreads across lines. Only `//argyll:wrap` takes an
+attribute spec: a `//argyll:step` or a field tag carrying one is an error rather
+than a silent no-op.
 
 An omitted ID is the function name in `kebab-case`. IDs use lowercase letters
 and digits, separated by hyphens.
@@ -112,6 +116,28 @@ func CalculateRisk(customerID string, amount int64) (int, bool, error)
 An empty list is empty rather than inferred, so `() -> (score)` declares a step with no inputs.
 
 The generator checks the arity against the signature at build time, and reports the file and line when they disagree. An omitted side whose parameters or results are unnamed reports the position and asks for the names. The wrapped function knows nothing about Argyll.
+
+### `//argyll:compensate`
+
+Names the function that reverses a successful step invocation:
+
+```go
+//argyll:step
+//argyll:compensate Refund
+func Charge(args ChargeArgs) (ChargeResult, error)
+
+func Refund(args ChargeArgs, result ChargeResult) error
+```
+
+A compensator receives the original inputs followed by the successful outputs.
+For `//argyll:step`, those are the input and output structs when present. For
+`//argyll:wrap`, they are the original positional parameters followed by the
+non-error results. It returns either nothing or an `error`.
+
+The generator validates the complete signature and serves the function at
+`POST /<step-id>/compensate`. Referencing a function does not register it as a
+step; it needs its own `//argyll:step` or `//argyll:wrap` directive for that.
+Memoizable steps cannot have compensators.
 
 ### `//argyll:props`
 

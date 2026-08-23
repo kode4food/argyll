@@ -49,6 +49,9 @@ func Mux(steps ...StepDef) *http.ServeMux {
 	mux.HandleFunc("/health", argyll.HealthHandler(""))
 	for _, s := range steps {
 		mux.HandleFunc("/"+string(s.ID), s.Handler)
+		if s.Compensate != nil {
+			mux.HandleFunc("/"+string(s.ID)+"/compensate", s.Compensate)
+		}
 	}
 	return mux
 }

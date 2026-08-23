@@ -119,6 +119,33 @@ func TestSyncMethodNotAllowed(t *testing.T) {
 	assert.Equal(t, http.StatusMethodNotAllowed, w.Code)
 }
 
+func TestCompensate(t *testing.T) {
+	var gotIn sumArgs
+	var gotOut sumResult
+	h := gen.Compensate(sumArgsCodec(), sumResultCodec(),
+		func(in sumArgs, out sumResult) error {
+			gotIn, gotOut = in, out
+			return nil
+		})
+
+	w := invoke(h, `{
+		"input":{"left":2,"right":3},
+		"output":{"total":5,"doubled":10}
+	}`)
+	assert.Equal(t, http.StatusNoContent, w.Code)
+	assert.Equal(t, sumArgs{Left: 2, Right: 3}, gotIn)
+	assert.Equal(t, sumResult{Total: 5, Doubled: 10}, gotOut)
+}
+
+func TestCompensateError(t *testing.T) {
+	h := gen.Compensate(sumArgsCodec(), sumResultCodec(),
+		func(sumArgs, sumResult) error { return errRefused })
+
+	w := invoke(h, `{"input":{},"output":{}}`)
+	assert.Equal(t, http.StatusInternalServerError, w.Code)
+	assert.Contains(t, w.Body.String(), errRefused.Error())
+}
+
 func TestRegisterFailure(t *testing.T) {
 	engine := httptest.NewServer(http.HandlerFunc(
 		func(w http.ResponseWriter, _ *http.Request) {
@@ -175,7 +202,12 @@ func TestServeRegistrationFailure(t *testing.T) {
 }
 
 func TestMux(t *testing.T) {
-	srv := httptest.NewServer(gen.Mux(sumStep()))
+	step := sumStep()
+	step.Compensate = gen.Compensate(
+		sumArgsCodec(), sumResultCodec(),
+		func(sumArgs, sumResult) error { return nil },
+	)
+	srv := httptest.NewServer(gen.Mux(step))
 	defer srv.Close()
 
 	res, err := http.Get(srv.URL + "/health")
@@ -188,6 +220,12 @@ func TestMux(t *testing.T) {
 	assert.NoError(t, err)
 	defer func() { _ = res.Body.Close() }()
 	assert.Equal(t, http.StatusOK, res.StatusCode)
+
+	res, err = http.Post(srv.URL+"/sum/compensate", api.JSONContentType,
+		strings.NewReader(`{"input":{},"output":{}}`))
+	assert.NoError(t, err)
+	defer func() { _ = res.Body.Close() }()
+	assert.Equal(t, http.StatusNoContent, res.StatusCode)
 }
 
 func TestPanicErrorUnwraps(t *testing.T) {

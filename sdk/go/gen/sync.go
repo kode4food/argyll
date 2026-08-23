@@ -43,7 +43,7 @@ func Sync[I, O any](
 		}
 		res, err := invoke(fn, args)
 		if err != nil {
-			writeFailure(w, err)
+			writeFailure(w, err, FailureStatus, "Step")
 			return
 		}
 		writeValue(w, http.StatusOK, out, res)
@@ -86,9 +86,11 @@ func decodeBody[T any](
 	return v, true
 }
 
-func writeFailure(w http.ResponseWriter, err error) {
+func writeFailure(
+	w http.ResponseWriter, err error, fallback int, action string,
+) {
 	if pe, ok := errors.AsType[*PanicError](err); ok {
-		slog.Error("Step function panicked",
+		slog.Error(action+" function panicked",
 			slog.Any("panic", pe.Value),
 			slog.String("stack", string(pe.Stack)))
 		argyll.WriteProblem(w, PanicStatus, pe.Error())
@@ -98,7 +100,7 @@ func writeFailure(w http.ResponseWriter, err error) {
 		argyll.WriteProblem(w, he.StatusCode, he.Message)
 		return
 	}
-	argyll.WriteProblem(w, FailureStatus, err.Error())
+	argyll.WriteProblem(w, fallback, err.Error())
 }
 
 func writeValue[T any](

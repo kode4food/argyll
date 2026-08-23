@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"go/ast"
+	"go/token"
 	"go/types"
 	"maps"
 	"regexp"
@@ -14,8 +15,9 @@ import (
 
 type (
 	stepModel struct {
-		spec    *api.Step
-		handler string
+		spec       *api.Step
+		handler    string
+		compensate string
 	}
 
 	// directiveRef is a step or wrap directive and the text following it
@@ -34,10 +36,11 @@ type (
 	// stepDecl is what a directive declares, gathered from its own line and
 	// from any props and labels directives
 	stepDecl struct {
-		labels api.Labels
-		id     string
-		attrs  string
-		props  Options
+		labels     api.Labels
+		id         string
+		attrs      string
+		compensate string
+		props      Options
 	}
 )
 
@@ -46,6 +49,7 @@ const (
 	wrapDirective   = "//argyll:wrap"
 	propsDirective  = "//argyll:props"
 	labelsDirective = "//argyll:labels"
+	compDirective   = "//argyll:compensate"
 
 	// registration prepends the host the step server is reachable on
 	healthPath = "/health"
@@ -56,7 +60,6 @@ var (
 	ErrBadDirective = errors.New("invalid argyll directive")
 )
 
-// a step ID also names the generated var, so it stays kebab-case
 var validStepID = regexp.MustCompile(`^[a-z][a-z0-9]*(-[a-z0-9]+)*$`)
 
 func (g *pkgGen) addFunc(fn *ast.FuncDecl) error {
@@ -125,16 +128,22 @@ func (g *pkgGen) declOf(
 		}
 		labels[o.Key] = o.Value
 	}
+	compensate, err := compensationIn(fn)
+	if err != nil {
+		return stepDecl{}, g.errorAt(fn, "%w", err)
+	}
 	return stepDecl{
-		labels: labels,
-		id:     id,
-		attrs:  decl.Attrs,
-		props:  append(options, props...),
+		labels:     labels,
+		id:         id,
+		attrs:      decl.Attrs,
+		compensate: compensate,
+		props:      append(options, props...),
 	}, nil
 }
 
 func (g *pkgGen) model(
-	fn *ast.FuncDecl, decl stepDecl, attrs api.AttributeSpecs, handler string,
+	fn *ast.FuncDecl, decl stepDecl, attrs api.AttributeSpecs,
+	handler, compensate string,
 ) (stepModel, error) {
 	spec := &api.Step{
 		Attributes: attrs,
@@ -146,6 +155,11 @@ func (g *pkgGen) model(
 			Invoke: api.HTTPAction{Endpoint: "/" + decl.id},
 			Health: healthPath,
 		},
+	}
+	if compensate != "" {
+		spec.HTTP.Compensate = &api.HTTPAction{
+			Endpoint: "/" + decl.id + "/compensate",
+		}
 	}
 	for _, o := range decl.props {
 		set, ok := stepSetters[o.Key]
@@ -160,7 +174,31 @@ func (g *pkgGen) model(
 	if err := spec.Validate(); err != nil {
 		return stepModel{}, g.errorAt(fn, "%w", err)
 	}
-	return stepModel{spec: spec, handler: handler}, nil
+	return stepModel{
+		spec:       spec,
+		handler:    handler,
+		compensate: compensate,
+	}, nil
+}
+
+func compensationIn(fn *ast.FuncDecl) (string, error) {
+	var res string
+	for _, c := range fn.Doc.List {
+		value, ok := directiveArgs(strings.TrimSpace(c.Text), compDirective)
+		if !ok {
+			continue
+		}
+		if res != "" {
+			return "", fmt.Errorf("%w: %s repeats", ErrBadDirective,
+				compDirective)
+		}
+		if !token.IsIdentifier(value) {
+			return "", fmt.Errorf("%w: %s needs a function name",
+				ErrBadDirective, compDirective)
+		}
+		res = value
+	}
+	return res, nil
 }
 
 // props and labels are their own directives, repeatable and options only,
@@ -216,6 +254,23 @@ func (g *pkgGen) stepFor(
 	}
 
 	body := syncBody(call, res != nil, hasErr, g.typeOf(res))
+	var compTypes []types.Type
+	var compArgs []string
+	if in != nil {
+		compTypes = append(compTypes, in)
+		compArgs = append(compArgs, "in")
+	}
+	if res != nil {
+		compTypes = append(compTypes, res)
+		compArgs = append(compArgs, "out")
+	}
+	compensate, err := g.compensationHandler(
+		fn, decl, compTypes, compArgs, inCodec, outCodec,
+		g.typeOf(in), g.typeOf(res),
+	)
+	if err != nil {
+		return stepModel{}, err
+	}
 	return g.model(fn, decl, merge(inAttrs, outAttrs), syncHandler(
 		syncHandlerArgs{
 			inCodec:  inCodec,
@@ -224,7 +279,7 @@ func (g *pkgGen) stepFor(
 			outType:  g.typeOf(res),
 			body:     body,
 		},
-	))
+	), compensate)
 }
 
 func (g *pkgGen) wrapFor(
@@ -276,6 +331,20 @@ func (g *pkgGen) wrapFor(
 	if err != nil {
 		return stepModel{}, g.errorAt(fn, "%w", err)
 	}
+	compTypes := append(paramTypes(sig), res...)
+	compArgs := make([]string, 0, len(compTypes))
+	for _, name := range names.inputs {
+		compArgs = append(compArgs, "in."+ExportedName(name))
+	}
+	for _, name := range names.outputs {
+		compArgs = append(compArgs, "out."+ExportedName(name))
+	}
+	compensate, err := g.compensationHandler(
+		fn, decl, compTypes, compArgs, inCodec, outCodec, inType, outType,
+	)
+	if err != nil {
+		return stepModel{}, err
+	}
 
 	return g.model(fn, decl, merge(inAttrs, outAttrs), syncHandler(
 		syncHandlerArgs{
@@ -285,7 +354,71 @@ func (g *pkgGen) wrapFor(
 			outType:  outType,
 			body:     wrapBody(fn.Name.Name, names, outType, hasErr),
 		},
-	))
+	), compensate)
+}
+
+func (g *pkgGen) compensationHandler(
+	fn *ast.FuncDecl, decl stepDecl, want []types.Type, args []string,
+	inCodec, outCodec, inType, outType string,
+) (string, error) {
+	if decl.compensate == "" {
+		return "", nil
+	}
+	sig, err := g.compensationSignature(fn, decl.compensate, want)
+	if err != nil {
+		return "", err
+	}
+	call := fmt.Sprintf("%s(%s)", decl.compensate, strings.Join(args, ", "))
+	body := call + "\nreturn nil"
+	if sig.Results().Len() == 1 {
+		body = "return " + call
+	}
+	return fmt.Sprintf(
+		"gen.Compensate(\n%s, %s,\n"+
+			"func(in %s, out %s) error {\n%s\n})",
+		inCodec, outCodec, inType, outType, body,
+	), nil
+}
+
+func (g *pkgGen) compensationSignature(
+	fn *ast.FuncDecl, name string, want []types.Type,
+) (*types.Signature, error) {
+	obj := g.pkg.Types.Scope().Lookup(name)
+	if obj == nil {
+		return nil, g.errorAt(fn, "%w: compensator %s not found",
+			ErrBadSignature, name)
+	}
+	declared, ok := obj.(*types.Func)
+	if !ok {
+		return nil, g.errorAt(fn,
+			"%w: compensator %s must be a function", ErrBadSignature, name)
+	}
+	sig := declared.Type().(*types.Signature)
+	if sig.Recv() != nil || sig.TypeParams() != nil || sig.Variadic() {
+		return nil, g.errorAt(fn,
+			"%w: compensator %s must be a plain non-variadic function",
+			ErrBadSignature, name)
+	}
+	if sig.Params().Len() != len(want) {
+		return nil, g.errorAt(fn,
+			"%w: compensator %s takes %d arguments; want %d",
+			ErrBadSignature, name, sig.Params().Len(), len(want))
+	}
+	for i, typ := range want {
+		if !types.Identical(sig.Params().At(i).Type(), typ) {
+			return nil, g.errorAt(fn,
+				"%w: compensator %s argument %d has type %s; want %s",
+				ErrBadSignature, name, i+1,
+				g.typeOf(sig.Params().At(i).Type()), g.typeOf(typ))
+		}
+	}
+	res := sig.Results()
+	if res.Len() > 1 || res.Len() == 1 && !isError(res.At(0).Type()) {
+		return nil, g.errorAt(fn,
+			"%w: compensator %s must return nothing or error",
+			ErrBadSignature, name)
+	}
+	return sig, nil
 }
 
 func merge(in, out api.AttributeSpecs) api.AttributeSpecs {

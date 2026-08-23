@@ -383,6 +383,27 @@ func TestAdditionalDiagnostics(t *testing.T) {
 				"func Bad[T any](in struct{}) {}",
 			want: "must be a plain generic-free function",
 		},
+		"compensator exists": {
+			src: "//argyll:step\n//argyll:compensate Missing\n" +
+				"func Run() {}",
+			want: "compensator Missing not found",
+		},
+		"compensator arguments match": {
+			src: "type In struct{}\ntype Out struct{}\n" +
+				"//argyll:step\n//argyll:compensate Undo\n" +
+				"func Run(In) Out { return Out{} }\n" +
+				"func Undo(Out, In) {}",
+			want: "compensator Undo argument 1",
+		},
+		"compensator returns only error": {
+			src: "//argyll:step\n//argyll:compensate Undo\n" +
+				"func Run() {}\nfunc Undo() int { return 0 }",
+			want: "must return nothing or error",
+		},
+		"compensator directive names a function": {
+			src:  "//argyll:step\n//argyll:compensate\nfunc Run() {}",
+			want: "needs a function name",
+		},
 		"wrap input count matches": {
 			src: "//argyll:wrap (left) -> ()\n" +
 				"func Bad(left, right int) {}",
@@ -533,6 +554,28 @@ func TestStepShapesAndProps(t *testing.T) {
 	assert.Contains(t, string(out), "return struct{}{}, ErrorOnly(in)")
 	assert.Contains(t, string(out), "return ResultOnly(in), nil")
 	assert.Contains(t, string(out), "return ResultError(in)")
+}
+
+func TestCompensation(t *testing.T) {
+	src := "type In struct { Value string }\n" +
+		"type Out struct { ID string }\n" +
+		"//argyll:step\n//argyll:compensate Undo\n" +
+		"func Run(in In) (Out, error) { return Out{}, nil }\n" +
+		"func Undo(in In, out Out) error { return nil }\n" +
+		"//argyll:wrap\n//argyll:compensate Unwrap\n" +
+		"func Wrapped(value string) (result int) { return 0 }\n" +
+		"func Unwrap(value string, result int) {}\n"
+	src += "//argyll:step\n//argyll:compensate Reset\n" +
+		"func Empty() {}\nfunc Reset() {}\n"
+
+	out, err := renderSource(t, src)
+	assert.NoError(t, err)
+	text := string(out)
+	assert.Contains(t, text, "/run/compensate")
+	assert.Contains(t, text, "return Undo(in, out)")
+	assert.Contains(t, text, "Unwrap(in.Value, out.Result)\n")
+	assert.Contains(t, text, "Reset()\n")
+	assert.Contains(t, text, "Compensate: gen.Compensate(")
 }
 
 func TestGenerateIsIdempotent(t *testing.T) {

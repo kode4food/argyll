@@ -9,11 +9,12 @@ import (
 )
 
 // StepDef is a generated step: its specification in the wire form the engine
-// accepts, and the handler serving it
+// accepts, and the handlers serving it
 type StepDef struct {
-	Handler http.HandlerFunc
-	ID      api.StepID
-	Spec    string
+	Handler    http.HandlerFunc
+	Compensate http.HandlerFunc
+	ID         api.StepID
+	Spec       string
 }
 
 // Step decodes the step specification
