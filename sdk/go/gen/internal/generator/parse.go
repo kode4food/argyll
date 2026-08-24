@@ -74,12 +74,13 @@ type (
 	// stepDecl is what a directive declares, gathered from its own line and
 	// from any props and labels directives
 	stepDecl struct {
-		labels     api.Labels
-		id         string
-		attrs      string
-		handling   api.Handling
-		compensate string
-		props      Options
+		labels      api.Labels
+		id          string
+		attrs       string
+		handling    api.Handling
+		compensate  string
+		compTimeout int64
+		props       Options
 	}
 )
 
@@ -168,18 +169,16 @@ func (g *pkgGen) declOf(
 		}
 		labels[o.Key] = o.Value
 	}
-	handling, compensate, err := handlingIn(fn)
-	if err != nil {
+	res := stepDecl{
+		labels: labels,
+		id:     id,
+		attrs:  decl.Attrs,
+		props:  append(options, props...),
+	}
+	if err := handlingIn(fn, &res); err != nil {
 		return stepDecl{}, g.errorAt(fn, "%w", err)
 	}
-	return stepDecl{
-		labels:     labels,
-		id:         id,
-		attrs:      decl.Attrs,
-		handling:   handling,
-		compensate: compensate,
-		props:      append(options, props...),
-	}, nil
+	return res, nil
 }
 
 func (g *pkgGen) model(config *stepModelConfig) (stepModel, error) {
@@ -200,6 +199,7 @@ func (g *pkgGen) model(config *stepModelConfig) (stepModel, error) {
 	if config.compensate != "" {
 		spec.HTTP.Compensate = &api.HTTPAction{
 			Endpoint: "/" + decl.id + "/compensate",
+			Timeout:  decl.compTimeout,
 		}
 	}
 	for _, o := range decl.props {
@@ -902,9 +902,8 @@ func compAdapter(cfg compAdapterConfig) string {
 	)
 }
 
-func handlingIn(fn *ast.FuncDecl) (api.Handling, string, error) {
+func handlingIn(fn *ast.FuncDecl, decl *stepDecl) error {
 	var memoized bool
-	var compensate string
 	for _, c := range fn.Doc.List {
 		text := strings.TrimSpace(c.Text)
 		if value, ok := directiveArgs(directiveText{
@@ -912,11 +911,11 @@ func handlingIn(fn *ast.FuncDecl) (api.Handling, string, error) {
 			directive: memoDirective,
 		}); ok {
 			if value != "" {
-				return "", "", fmt.Errorf("%w: %s takes no value",
+				return fmt.Errorf("%w: %s takes no value",
 					ErrBadDirective, memoDirective)
 			}
 			if memoized {
-				return "", "", fmt.Errorf("%w: %s repeats",
+				return fmt.Errorf("%w: %s repeats",
 					ErrBadDirective, memoDirective)
 			}
 			memoized = true
@@ -930,27 +929,40 @@ func handlingIn(fn *ast.FuncDecl) (api.Handling, string, error) {
 		if !ok {
 			continue
 		}
-		if compensate != "" {
-			return "", "", fmt.Errorf("%w: %s repeats", ErrBadDirective,
+		if decl.compensate != "" {
+			return fmt.Errorf("%w: %s repeats", ErrBadDirective,
 				compDirective)
 		}
-		if !token.IsIdentifier(value) {
-			return "", "", fmt.Errorf("%w: %s needs a function name",
+		name, opts, err := ParseOptions(value)
+		if err != nil {
+			return err
+		}
+		if !token.IsIdentifier(name) {
+			return fmt.Errorf("%w: %s needs a function name",
 				ErrBadDirective, compDirective)
 		}
-		compensate = value
+		for _, o := range opts {
+			if o.Key != timeoutProp {
+				return fmt.Errorf("%w: unknown property %q", ErrBadProp, o.Key)
+			}
+			ms, err := parseMillis(o)
+			if err != nil {
+				return err
+			}
+			decl.compTimeout = ms
+		}
+		decl.compensate = name
 	}
-	if memoized && compensate != "" {
-		return "", "", fmt.Errorf(
-			"%w: %s and %s are mutually exclusive",
+	if memoized && decl.compensate != "" {
+		return fmt.Errorf("%w: %s and %s are mutually exclusive",
 			ErrBadDirective, memoDirective, compDirective,
 		)
 	}
 	if memoized {
-		return api.HandlingMemoized, "", nil
+		decl.handling = api.HandlingMemoized
 	}
-	if compensate != "" {
-		return api.HandlingCompensated, compensate, nil
+	if decl.compensate != "" {
+		decl.handling = api.HandlingCompensated
 	}
-	return "", "", nil
+	return nil
 }

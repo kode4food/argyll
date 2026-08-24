@@ -442,6 +442,16 @@ func TestAdditionalDiagnostics(t *testing.T) {
 			src:  "//argyll:step\n//argyll:compensate\nfunc Run() {}",
 			want: "needs a function name",
 		},
+		"compensator timeout is milliseconds": {
+			src: "//argyll:step\n//argyll:compensate Undo;timeout:soon\n" +
+				"func Run() {}\nfunc Undo() {}",
+			want: "timeout\" needs milliseconds",
+		},
+		"compensator properties are known": {
+			src: "//argyll:step\n//argyll:compensate Undo;retries:3\n" +
+				"func Run() {}\nfunc Undo() {}",
+			want: `unknown property "retries"`,
+		},
 		"wrap input count matches": {
 			src: "//argyll:wrap (left) -> ()\n" +
 				"func Bad(left, right int) {}",
@@ -613,7 +623,7 @@ func TestCompensate(t *testing.T) {
 	src := "type In struct { Value string `argyll:\"compensated:true\"` }\n" +
 		"type Out struct { ID string `argyll:\"compensated:true\"` }\n" +
 		"type UndoArgs struct { ID string }\n" +
-		"//argyll:step\n//argyll:compensate Undo\n" +
+		"//argyll:step\n//argyll:compensate Undo;timeout:2500\n" +
 		"func Run(in In) (Out, error) { return Out{}, nil }\n" +
 		"func Undo(UndoArgs) error { return nil }\n" +
 		"//argyll:wrap\n//argyll:compensate Unwrap\n" +
@@ -626,6 +636,8 @@ func TestCompensate(t *testing.T) {
 	assert.NoError(t, err)
 	text := string(out)
 	assert.Contains(t, text, "/run/compensate")
+	assert.Contains(t, text, `\"compensate\":{`+
+		`\"endpoint\":\"/run/compensate\",\"timeout\":2500}`)
 	assert.Contains(t, text, `\"handling\":\"compensated\"`)
 	assert.Contains(t, text, `\"compensated\":true`)
 	assert.Contains(t, text, `\"result\":{\"output\":{},\"role\":`+

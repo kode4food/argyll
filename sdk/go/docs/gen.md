@@ -142,7 +142,7 @@ type RefundArgs struct {
 }
 
 //argyll:step
-//argyll:compensate Refund
+//argyll:compensate Refund;timeout:5000
 func Charge(args ChargeArgs) (ChargeResult, error)
 
 func Refund(args RefundArgs) error
@@ -152,7 +152,7 @@ A `//argyll:step` compensator takes zero arguments or one argument struct. Every
 
 A `//argyll:wrap` compensator takes named positional arguments matching the wrapped step attributes it consumes. Those arguments select the attributes for compensation, and the generator builds the private flat struct and codec used by the HTTP handler. A compensator returns either nothing or an `error`.
 
-The generator validates the signature and serves the function at `POST /<step-id>/compensate`. The directive selects compensated handling; referencing the function does not register it as a step unless it has its own `//argyll:step` or `//argyll:wrap` directive.
+The generator validates the signature and serves the function at `POST /<step-id>/compensate`. The optional `timeout` property overrides the invocation timeout for compensation; without it, compensation inherits the step's `timeout`. The directive selects compensated handling; referencing the function does not register it as a step unless it has its own `//argyll:step` or `//argyll:wrap` directive.
 
 ### `//argyll:props`
 
@@ -180,7 +180,7 @@ func ChargeCard(args ChargeArgs) (ChargeResult, error)
 
 Everything after the first `:` is the value, spaces and further colons included, so a Lua predicate needs no quoting. A value ends at the next `;`.
 
-Every property here is engine side: the engine times out and evaluates predicates on its own, and the handler never learns it happened. Generated steps are synchronous and answer `POST`, so there is nothing to configure on either.
+Every property here is engine side: the engine handles timeouts, predicates, retries, and parallelism on its own, and the handler never learns it happened. Generated steps are synchronous and answer `POST`, so there is nothing to configure on either.
 
 ### `//argyll:labels`
 
