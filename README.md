@@ -4,98 +4,24 @@
 
 [![Build Status](https://github.com/kode4food/argyll/workflows/Build/badge.svg)](https://github.com/kode4food/argyll/actions) [![Code Coverage](https://qlty.sh/gh/kode4food/projects/argyll/coverage.svg)](https://qlty.sh/gh/kode4food/projects/argyll) [![Maintainability](https://qlty.sh/gh/kode4food/projects/argyll/maintainability.svg)](https://qlty.sh/gh/kode4food/projects/argyll) [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/kode4food/argyll/blob/main/LICENSE)
 
-Argyll is a goal-driven orchestrator. You declare what you want to achieve, the engine builds an execution plan, and it executes only the minimal set of steps needed. All state changes are immutable events, giving you a complete audit trail.
+Argyll is a goal-driven orchestrator. It builds the minimum execution plan needed to reach a Flow's Goals. Steps declare named inputs and outputs; Argyll connects them, runs independent work in parallel, and records every state change for recovery and inspection.
 
 ![Argyll UI Screenshot](./docs/img/screenshot.gif)
 
-## Getting Started
+## Run Argyll
 
 ```bash
-# Start with Docker Compose
 docker compose up
-# Engine: http://localhost:8080
-# UI: http://localhost:3001
 ```
 
-**New to Argyll?** Start here:
-
-1. [Quickstart](docs/quickstart.md) - 5-minute end-to-end example
-2. [Core Concepts](docs/concepts/index.md) - Goals, steps, flows, events
-3. [Full Documentation](docs/README.md) - Complete docs map
-
-## How It Works
-
-1. **Define steps** with inputs and outputs
-2. **Create a flow** by specifying goal steps
-3. **Engine computes** the minimal execution plan
-4. **Execute and audit** - all state changes recorded as events
-
-## Key Features
-
-- **Event Sourcing**: Complete audit trail of all state changes
-- **Lazy Evaluation**: Execute only what's needed to reach goals
-- **Clustered Engine**: Shared Timebox store over Raft
-- **Real-Time UI**: WebSocket updates, live flow monitoring
-- **Four Step Types**: Sync/Async HTTP, Lua scripts, Sub-flows
-- **Built-In Retry**: Configurable backoff strategies
-
-## Installation
-
-```bash
-# Docker Compose (all services)
-docker compose up
-
-# Go
-go install github.com/kode4food/argyll/cmd/argyll@latest
-
-# Manual local testing
-cd engine
-go run ./cmd/argyll
-
-# Local 3-node cluster
-./start.sh
-```
-
-## API Overview
-
-Full OpenAPI spec: [docs/api/engine-api.yaml](docs/api/engine-api.yaml)
-
-```bash
-# Steps
-POST   /engine/step                # Register step
-GET    /engine/step                # List all steps
-GET    /engine/step/:stepID        # Get step
-PUT    /engine/step/:stepID        # Update step
-DELETE /engine/step/:stepID        # Delete step
-
-# Flows
-POST   /engine/flow                      # Start flow
-GET    /engine/flow                      # List flows
-POST   /engine/flow/query                # Query flows
-GET    /engine/flow/:flowID              # Get flow state
-GET    /engine/flow/:flowID/status       # Get flow status
-GET    /engine/flow/:flowID/events       # Get flow events
-POST   /engine/plan                      # Preview execution plan
-
-# Engine & Health
-GET    /engine                           # Get complete engine state
-GET    /engine/catalog                   # Get catalog state
-GET    /engine/catalog/events            # Get catalog events
-GET    /engine/cluster                   # Get cluster state
-GET    /engine/cluster/events            # Get cluster events
-GET    /engine/health                    # Get step health status
-GET    /engine/ws                        # WebSocket event stream
-```
+The engine is available at `http://localhost:8080` and the UI at `http://localhost:3001`.
 
 ## Documentation
 
-- **[Getting Started](docs/)** - Quickstart, dev setup, concepts
-- **[How-To Guides](docs/guides/)** - Step types, parallelism, predicates, configuration
-- **[Go SDK](sdk/go/)** - Building steps in Go
-- **[Python SDK](sdk/python/)** - Building steps in Python
-- **[API Reference](docs/api/)** - OpenAPI specs and curl examples
-- **[Examples](examples/)** - 7 runnable example steps
+- [Quick Start](https://www.argyll.app/docs/getting-started/quickstart/)
+- [Concepts and Guides](https://www.argyll.app/docs/)
+- [Go SDK](https://www.argyll.app/docs/sdks/go/)
+- [Python SDK](https://www.argyll.app/docs/sdks/python/)
+- [Project development and API specifications](docs/)
 
-## Status
-
-Work in progress. Core features stable. Not yet production-ready. Use at your own risk.
+Argyll is under active development. Core flow execution, retries, async work, memoization, compensation, SDKs, and the web UI are available today.

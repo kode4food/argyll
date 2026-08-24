@@ -1,153 +1,33 @@
 # Argyll Python SDK
 
-Python SDK for building steps and flows with the Argyll Goal-Driven Orchestrator.
-
-## Installation
+## Install
 
 ```bash
 pip install argyll-sdk
 ```
 
-## Quick Start
-
-### Define a Sync Step
+Define and serve a Step with the fluent builder:
 
 ```python
-from argyll import Client, StepContext, AttributeType
+from argyll import AttributeType, Client, StepContext
 
 client = Client("http://localhost:8080")
 
-def handle_greeting(ctx: StepContext, args: dict) -> dict:
-    name = args.get("name", "World")
-    greeting = f"Hello, {name}!"
-    return {"greeting": greeting}
+
+def greet(ctx: StepContext, args: dict) -> dict:
+    return {"greeting": f"Hello, {args['name']}"}
+
 
 client.new_step().with_name("Greeting") \
     .required("name", AttributeType.STRING) \
     .output("greeting", AttributeType.STRING) \
-    .start(handle_greeting)
+    .start(greet)
 ```
 
-### Define an Async Step
+See the [Python SDK guide](https://www.argyll.app/docs/sdks/python/) for HTTP, async, script, compensation, and Flow examples.
 
-```python
-from argyll import AsyncContext, AttributeType, Client, StepContext
-from argyll.errors import HTTPError
-import threading
-
-client = Client("http://localhost:8080")
-
-def handle_async_task(ctx: StepContext, args: dict) -> dict:
-    # Extract webhook URL from metadata
-    webhook_url = ctx.metadata.get("webhook_url")
-    if not webhook_url:
-        raise HTTPError(400, "No webhook URL")
-
-    async_ctx = AsyncContext(context=ctx, webhook_url=webhook_url)
-
-    # Start background processing
-    def process():
-        try:
-            # Do long-running work
-            result = {"status": "completed"}
-            async_ctx.success(result)
-        except Exception as e:
-            async_ctx.fail(str(e))
-
-    threading.Thread(target=process).start()
-
-    # Return immediately
-    return {}
-
-client.new_step().with_name("AsyncTask") \
-    .with_async_execution() \
-    .output("status", AttributeType.STRING) \
-    .start(handle_async_task)
-```
-
-### Define a Script Step
-
-```python
-from argyll import Client, AttributeType, ScriptConfig, ScriptLanguage
-
-client = Client("http://localhost:8080")
-
-client.new_step().with_name("Double") \
-    .required("value", AttributeType.NUMBER) \
-    .output("result", AttributeType.NUMBER) \
-    .with_script(ScriptConfig(
-        language=ScriptLanguage.LUA,
-        script="return {result = value * 2}",
-    )) \
-    .register()
-```
-
-### Execute a Flow
-
-```python
-from argyll import Client
-
-client = Client("http://localhost:8080")
-
-client.new_flow("greeting-flow-123") \
-    .with_goals("greeting") \
-    .with_initial_state({"name": ["Alice"]}) \
-    .start()
-```
-
-### Define a Flow Step
-
-```python
-from argyll import Client
-
-client = Client("http://localhost:8080")
-
-client.new_step().with_name("Child Flow Wrapper") \
-    .with_flow_goals("child-goal") \
-    .register()
-```
-
-## Features
-
-- **Type-safe builders** - Immutable builder pattern with full type hints
-- **Sync and async steps** - Support for both synchronous and asynchronous execution
-- **Configurable HTTP methods** - `POST` by default, with explicit `GET`, `PUT`, or `DELETE` when needed
-- **Script steps** - Execute Lua scripts
-- **Flow orchestration** - Define and execute multi-step flows
-- **Result memoization** - Cache step results for efficiency
-- **Conditional execution** - Use predicates to control step execution
-- **Array iteration** - Process arrays with `for_each`
-
-## Development
-
-Install development dependencies:
-
-```bash
-make install
-```
-
-Run tests with coverage:
-
-```bash
-make test-cov
-```
-
-Format code:
-
-```bash
-make format
-```
-
-Run all checks (format, lint, type-check, test):
+## Develop
 
 ```bash
 make check
 ```
-
-## API Reference
-
-See the [documentation](docs/) for detailed API reference.
-
-## License
-
-Apache 2.0
