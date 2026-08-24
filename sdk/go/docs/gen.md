@@ -162,14 +162,21 @@ Step properties, continuing the ones on the `//argyll:step` or `//argyll:wrap` l
 //argyll:step charge-card
 //argyll:props name: Charge Card; timeout: 2500
 //argyll:props predicate: return args.amount > 0
+//argyll:props max_retries: 3; init_backoff: 100; max_backoff: 5000
+//argyll:props backoff_type: exponential; parallelism: 4
 func ChargeCard(args ChargeArgs) (ChargeResult, error)
 ```
 
-| Property    | Effect                                                        |
-| ----------- | ------------------------------------------------------------- |
-| `name`      | Display name, defaulting to the function name in `Title Case`  |
-| `timeout`   | Invocation timeout in milliseconds                             |
-| `predicate` | Lua predicate gating the step                                  |
+| Property       | Effect                                                        |
+| -------------- | ------------------------------------------------------------- |
+| `name`         | Display name, defaulting to the function name in `Title Case`  |
+| `timeout`      | Invocation timeout in milliseconds                             |
+| `predicate`    | Lua predicate gating the step                                  |
+| `backoff_type` | Retry backoff: `fixed`, `linear` or `exponential`                |
+| `max_retries`  | Maximum retries; `-1` retries without a limit                   |
+| `init_backoff` | Initial retry delay in milliseconds                             |
+| `max_backoff`  | Maximum retry delay in milliseconds                             |
+| `parallelism`  | Maximum concurrent work items                                   |
 
 Everything after the first `:` is the value, spaces and further colons included, so a Lua predicate needs no quoting. A value ends at the next `;`.
 

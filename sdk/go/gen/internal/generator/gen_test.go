@@ -242,6 +242,18 @@ func TestStepProps(t *testing.T) {
 	assert.NotContains(t, byID, api.StepID("charge-card"))
 }
 
+func TestWorkConfig(t *testing.T) {
+	src := "//argyll:step\n" +
+		"//argyll:props backoff_type:exponential;max_retries:3\n" +
+		"//argyll:props init_backoff:100;max_backoff:5000;parallelism:4\n" +
+		"func Run() {}\n"
+	out, err := renderSource(t, src)
+	assert.NoError(t, err)
+	assert.Contains(t, string(out), `\"work_config\":{`+
+		`\"backoff_type\":\"exponential\",\"max_retries\":3,`+
+		`\"init_backoff\":100,\"max_backoff\":5000,\"parallelism\":4}`)
+}
+
 func TestRecursiveCodec(t *testing.T) {
 	src, err := render(t, "../../../example")
 	assert.NoError(t, err)
@@ -466,6 +478,11 @@ func TestAdditionalDiagnostics(t *testing.T) {
 			src: "//argyll:step;timeout:soon\n" +
 				"func Bad(in struct{}) {}",
 			want: "timeout\" needs milliseconds",
+		},
+		"parallelism is an integer": {
+			src: "//argyll:step;parallelism:many\n" +
+				"func Bad(in struct{}) {}",
+			want: "parallelism\" needs an integer",
 		},
 		"props need options": {
 			src: "//argyll:step\n//argyll:props\n" +

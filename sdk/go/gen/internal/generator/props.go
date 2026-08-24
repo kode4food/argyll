@@ -17,9 +17,14 @@ type (
 )
 
 const (
-	nameProp      = "name"
-	timeoutProp   = "timeout"
-	predicateProp = "predicate"
+	nameProp        = "name"
+	timeoutProp     = "timeout"
+	predicateProp   = "predicate"
+	backoffTypeProp = "backoff_type"
+	maxRetriesProp  = "max_retries"
+	initBackoffProp = "init_backoff"
+	maxBackoffProp  = "max_backoff"
+	parallelismProp = "parallelism"
 
 	roleProp        = "role"
 	defaultProp     = "default"
@@ -52,6 +57,42 @@ var stepSetters = map[string]stepSetter{
 	},
 	predicateProp: func(s *api.Step, v string) error {
 		s.Predicate = &api.ScriptConfig{Language: scriptLanguage, Script: v}
+		return nil
+	},
+	backoffTypeProp: func(s *api.Step, v string) error {
+		initWorkConfig(s).BackoffType = v
+		return nil
+	},
+	maxRetriesProp: func(s *api.Step, v string) error {
+		n, err := parseInt(Option{Key: maxRetriesProp, Value: v})
+		if err != nil {
+			return err
+		}
+		initWorkConfig(s).MaxRetries = n
+		return nil
+	},
+	initBackoffProp: func(s *api.Step, v string) error {
+		ms, err := parseMillis(Option{Key: initBackoffProp, Value: v})
+		if err != nil {
+			return err
+		}
+		initWorkConfig(s).InitBackoff = ms
+		return nil
+	},
+	maxBackoffProp: func(s *api.Step, v string) error {
+		ms, err := parseMillis(Option{Key: maxBackoffProp, Value: v})
+		if err != nil {
+			return err
+		}
+		initWorkConfig(s).MaxBackoff = ms
+		return nil
+	},
+	parallelismProp: func(s *api.Step, v string) error {
+		n, err := parseInt(Option{Key: parallelismProp, Value: v})
+		if err != nil {
+			return err
+		}
+		initWorkConfig(s).Parallelism = n
 		return nil
 	},
 }
@@ -196,4 +237,19 @@ func parseMillis(o Option) (int64, error) {
 		return 0, fmt.Errorf("%w: %q needs milliseconds", ErrBadProp, o.Key)
 	}
 	return ms, nil
+}
+
+func parseInt(o Option) (int, error) {
+	n, err := strconv.Atoi(o.Value)
+	if err != nil {
+		return 0, fmt.Errorf("%w: %q needs an integer", ErrBadProp, o.Key)
+	}
+	return n, nil
+}
+
+func initWorkConfig(s *api.Step) *api.WorkConfig {
+	if s.WorkConfig == nil {
+		s.WorkConfig = &api.WorkConfig{}
+	}
+	return s.WorkConfig
 }
