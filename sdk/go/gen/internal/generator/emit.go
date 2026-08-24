@@ -54,8 +54,10 @@ const (
 	// GeneratedFile is the file argyll-gen writes into each package
 	GeneratedFile = "zz_argyll_gen.go"
 
-	fieldTag  = "argyll"
-	skipField = "-"
+	fieldTag   = "argyll"
+	matchTag   = "argyll-match"
+	mappingTag = "argyll-mapping"
+	skipField  = "-"
 
 	codecPackage   = "github.com/kode4food/argyll/sdk/go/codec"
 	runtimePackage = "github.com/kode4food/argyll/sdk/go/gen"
@@ -418,7 +420,8 @@ func structFields(s *types.Struct) ([]fieldSpec, error) {
 }
 
 func attrOf(f *types.Var, tag string) (fieldSpec, bool, error) {
-	text := strings.TrimSpace(reflect.StructTag(tag).Get(fieldTag))
+	tags := reflect.StructTag(tag)
+	text := strings.TrimSpace(tags.Get(fieldTag))
 	if text == skipField {
 		return fieldSpec{}, false, nil
 	}
@@ -439,6 +442,12 @@ func attrOf(f *types.Var, tag string) (fieldSpec, bool, error) {
 	}
 	if name == "" {
 		name = SnakeCase(f.Name())
+	}
+	if script, ok := tags.Lookup(matchTag); ok {
+		options = append(options, Option{Key: matchTag, Value: script})
+	}
+	if script, ok := tags.Lookup(mappingTag); ok {
+		options = append(options, Option{Key: mappingTag, Value: script})
 	}
 	return fieldSpec{Var: f, attr: name, options: options}, true, nil
 }

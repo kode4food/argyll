@@ -52,7 +52,9 @@ Directives and field tags read the same way: a leading value names the thing, an
 //argyll:wrap   score-v2(customer-id, amount) -> (score, approved)
 //argyll:memoize
 //argyll:compensate Refund
-//argyll:props  timeout: 2500; predicate: return args.amount > 0
+//argyll:predicate return args.amount > 0
+//argyll:work max_retries: 3; backoff_type: exponential
+//argyll:http timeout: 2500
 //argyll:labels domain: risk; tier: gold
 ```
 
@@ -60,9 +62,11 @@ Directives and field tags read the same way: a leading value names the thing, an
 Currency string `argyll:"iso_currency;role:optional;default:USD"`
 ```
 
-`memoize` is a marker, while `compensate` names one function. They are mutually exclusive. `props` and `labels` take properties only, and both repeat, so a long set spreads across lines. Only `//argyll:wrap` takes an attribute spec: a `//argyll:step` or a field tag carrying one is an error rather than a silent no-op.
+`memoize` is a marker, while `compensate` names one function. They are mutually exclusive. `http`, `work` and `labels` take properties only, and each repeats so a long set spreads across lines. Only `//argyll:wrap` takes an attribute spec: a `//argyll:step` or a field tag carrying one is an error rather than a silent no-op.
 
 An omitted ID is the function name in `kebab-case`. IDs use lowercase letters and digits, separated by hyphens.
+
+The optional `name` property follows the ID on `//argyll:step` or `//argyll:wrap`, defaulting to the function name in `Title Case`.
 
 ### `//argyll:step`
 
@@ -112,6 +116,41 @@ An empty list is empty rather than inferred, so `() -> (score)` declares a step 
 
 The generator checks the arity against the signature at build time, and reports the file and line when they disagree. An omitted side whose parameters or results are unnamed reports the position and asks for the names. The wrapped function knows nothing about Argyll.
 
+### `//argyll:predicate`
+
+Declares the script that gates the step, defaulting to Lua:
+
+```go
+//argyll:step
+//argyll:predicate return args.amount > 0
+func ChargeCard(args ChargeArgs) (ChargeResult, error)
+```
+
+Optionally prefix the script with `lua:` or `jpath:` to select its language:
+
+```go
+//argyll:predicate jpath:$.items[?(@.status=="ready")]
+```
+
+Any other prefix is part of the default Lua script.
+
+### `//argyll:work`
+
+Configures retries and work item concurrency. It is repeatable:
+
+```go
+//argyll:work max_retries: 3; init_backoff: 100; max_backoff: 5000
+//argyll:work backoff_type: exponential; parallelism: 4
+```
+
+| Property       | Effect                                                        |
+| -------------- | ------------------------------------------------------------- |
+| `backoff_type` | Retry backoff: `fixed`, `linear` or `exponential`             |
+| `max_retries`  | Maximum retries; `-1` retries without a limit                 |
+| `init_backoff` | Initial retry delay in milliseconds                           |
+| `max_backoff`  | Maximum retry delay in milliseconds                           |
+| `parallelism`  | Maximum concurrent work items                                 |
+
 ### `//argyll:memoize`
 
 Marks a step as memoized:
@@ -154,33 +193,21 @@ A `//argyll:wrap` compensator takes named positional arguments matching the wrap
 
 The generator validates the signature and serves the function at `POST /<step-id>/compensate`. The optional `timeout` property overrides the invocation timeout for compensation; without it, compensation inherits the step's `timeout`. The directive selects compensated handling; referencing the function does not register it as a step unless it has its own `//argyll:step` or `//argyll:wrap` directive.
 
-### `//argyll:props`
+### `//argyll:http`
 
-Step properties, continuing the ones on the `//argyll:step` or `//argyll:wrap` line:
+Configures the generated step's HTTP invocation:
 
 ```go
-//argyll:step charge-card
-//argyll:props name: Charge Card; timeout: 2500
-//argyll:props predicate: return args.amount > 0
-//argyll:props max_retries: 3; init_backoff: 100; max_backoff: 5000
-//argyll:props backoff_type: exponential; parallelism: 4
+//argyll:step charge-card;name:Charge Card
+//argyll:http timeout: 2500
 func ChargeCard(args ChargeArgs) (ChargeResult, error)
 ```
 
-| Property       | Effect                                                        |
-| -------------- | ------------------------------------------------------------- |
-| `name`         | Display name, defaulting to the function name in `Title Case`  |
-| `timeout`      | Invocation timeout in milliseconds                             |
-| `predicate`    | Lua predicate gating the step                                  |
-| `backoff_type` | Retry backoff: `fixed`, `linear` or `exponential`                |
-| `max_retries`  | Maximum retries; `-1` retries without a limit                   |
-| `init_backoff` | Initial retry delay in milliseconds                             |
-| `max_backoff`  | Maximum retry delay in milliseconds                             |
-| `parallelism`  | Maximum concurrent work items                                   |
+| Property  | Effect                            |
+| --------- | --------------------------------- |
+| `timeout` | Invocation timeout in milliseconds |
 
-Everything after the first `:` is the value, spaces and further colons included, so a Lua predicate needs no quoting. A value ends at the next `;`.
-
-Every property here is engine side: the engine handles timeouts, predicates, retries, and parallelism on its own, and the handler never learns it happened. Generated steps are synchronous and answer `POST`, so there is nothing to configure on either.
+The engine enforces `timeout`, and the handler never learns it happened. Generated steps are synchronous and answer `POST`, so their endpoint and method are not configurable.
 
 ### `//argyll:labels`
 
@@ -235,7 +262,7 @@ type ChargeArgs struct {
 	Currency string `argyll:"role:optional;default:USD;deadline:5000"`
 	Gateway  string `argyll:"role:const;value:stripe"`
 	FlowID   string `argyll:"flow;role:meta;key:flow_id"`
-	Amount   int64  `argyll:"match:return args.amount > 0"`
+	Amount   int64  `argyll-match:"lua:return args.amount > 0"`
 }
 ```
 
@@ -248,17 +275,24 @@ type ChargeArgs struct {
 | `collect`  | `first`, `last`, `all`, `some` or `none`                       |
 | `deadline` | Collection deadline of an optional input, in milliseconds      |
 | `for_each` | `true` to expand the attribute into one work item per element  |
-| `match`    | Lua match gate on a required input                             |
 | `mapping`  | Name the attribute is mapped to                                |
 | `compensated` | `true` to include the attribute in compensation requests    |
 
-Each property belongs to a role, and using one against the wrong role is an error naming both: `default` needs `optional`, `value` needs `const`, `key` needs `meta`, `match` needs `required`.
+Each property belongs to a role, and using one against the wrong role is an error naming both: `default` needs `optional`, `value` needs `const`, `key` needs `meta`, and `mapping` needs an input or output.
 
 `default` and `value` reach the engine as JSON, and the generator quotes the value of a string attribute for you, so `default:USD` is written plainly.
 
+Match and mapping scripts use separate tags so their contents, including semicolons, remain opaque:
+
+```go
+Value string `argyll-match:"jpath:$.ready" argyll-mapping:"lua:x = value; return x"`
+```
+
+Both tags use `[language:]script`, where the optional known language is `lua` or `jpath`. `argyll-match` defaults to JPath; `argyll-mapping` defaults to Lua. A match needs a required input, while a mapping script needs an input or output.
+
 A `for_each` attribute is declared as an array and arrives one element at a time, so the Go field carries the element type: `OrderID string` above declares `order_id` as an array and receives a single order ID per work item.
 
-Properties belong to the attributes of a step, which are the fields of its arguments and outputs structs. An output takes a name and a `mapping`, nothing else. Fields nested inside those structs are values within an attribute rather than attributes themselves, so only their name applies. A `//argyll:wrap` step names its attributes in the directive rather than in a struct, and those names are used verbatim, overriding the `snake_case` default the same way a field tag does.
+Properties belong to the attributes of a step, which are the fields of its arguments and outputs structs. An output can set its name, `mapping`, `argyll-mapping` script, and compensation flag. Fields nested inside those structs are values within an attribute rather than attributes themselves, so only their name applies. A `//argyll:wrap` step names its attributes in the directive rather than in a struct, and those names are used verbatim, overriding the `snake_case` default the same way a field tag does.
 
 ### Attribute types
 

@@ -53,12 +53,6 @@ type (
 		outputs api.AttributeSpecs
 	}
 
-	directiveText struct {
-		comment   string
-		directive string
-	}
-
-	// directiveRef is a step or wrap directive and the text following it
 	directiveRef struct {
 		kind string
 		args string
@@ -71,26 +65,32 @@ type (
 		outputs []string
 	}
 
-	// stepDecl is what a directive declares, gathered from its own line and
-	// from any props and labels directives
+	// stepDecl is what a step's directives declare
 	stepDecl struct {
 		labels      api.Labels
+		predicate   *api.ScriptConfig
 		id          string
 		attrs       string
 		handling    api.Handling
 		compensate  string
 		compTimeout int64
-		props       Options
+		options     Options
+		http        Options
+		work        Options
 	}
 )
 
 const (
-	stepDirective   = "//argyll:step"
-	wrapDirective   = "//argyll:wrap"
-	propsDirective  = "//argyll:props"
-	labelsDirective = "//argyll:labels"
-	memoDirective   = "//argyll:memoize"
-	compDirective   = "//argyll:compensate"
+	directivePrefix    = "//argyll:"
+	stepDirective      = "step"
+	wrapDirective      = "wrap"
+	propsDirective     = "props"
+	httpDirective      = "http"
+	workDirective      = "work"
+	predicateDirective = "predicate"
+	labelsDirective    = "labels"
+	memoDirective      = "memoize"
+	compDirective      = "compensate"
 
 	// registration prepends the host the step server is reachable on
 	healthPath = "/health"
@@ -143,7 +143,7 @@ func (g *pkgGen) declOf(
 	if decl.Attrs != "" && !wrap {
 		return stepDecl{}, g.errorAt(fn,
 			"%w: %s takes no attribute spec, so name them in the struct",
-			ErrBadDirective, stepDirective)
+			ErrBadDirective, directivePrefix+stepDirective)
 	}
 	id := decl.Name
 	if id == "" {
@@ -154,11 +154,27 @@ func (g *pkgGen) declOf(
 			ErrBadDirective, id)
 	}
 
-	props, err := optionsIn(fn, propsDirective)
+	legacy, err := optionsIn(fn, propsDirective)
+	if err != nil {
+		return stepDecl{}, g.errorAt(fn, "%w", err)
+	}
+	if len(legacy) > 0 {
+		return stepDecl{}, g.errorAt(fn, "%w: %s is not supported",
+			ErrBadDirective, directivePrefix+propsDirective)
+	}
+	http, err := optionsIn(fn, httpDirective)
+	if err != nil {
+		return stepDecl{}, g.errorAt(fn, "%w", err)
+	}
+	work, err := optionsIn(fn, workDirective)
 	if err != nil {
 		return stepDecl{}, g.errorAt(fn, "%w", err)
 	}
 	declared, err := optionsIn(fn, labelsDirective)
+	if err != nil {
+		return stepDecl{}, g.errorAt(fn, "%w", err)
+	}
+	predicate, err := parsePredicate(fn)
 	if err != nil {
 		return stepDecl{}, g.errorAt(fn, "%w", err)
 	}
@@ -170,10 +186,13 @@ func (g *pkgGen) declOf(
 		labels[o.Key] = o.Value
 	}
 	res := stepDecl{
-		labels: labels,
-		id:     id,
-		attrs:  decl.Attrs,
-		props:  append(options, props...),
+		labels:    labels,
+		predicate: predicate,
+		id:        id,
+		attrs:     decl.Attrs,
+		options:   options,
+		http:      http,
+		work:      work,
 	}
 	if err := handlingIn(fn, &res); err != nil {
 		return stepDecl{}, g.errorAt(fn, "%w", err)
@@ -187,6 +206,7 @@ func (g *pkgGen) model(config *stepModelConfig) (stepModel, error) {
 	spec := &api.Step{
 		Attributes: config.attributes,
 		Labels:     decl.labels,
+		Predicate:  decl.predicate,
 		Type:       api.StepTypeSync,
 		ID:         api.StepID(decl.id),
 		Name:       api.Name(TitleCase(fn.Name.Name)),
@@ -202,15 +222,17 @@ func (g *pkgGen) model(config *stepModelConfig) (stepModel, error) {
 			Timeout:  decl.compTimeout,
 		}
 	}
-	for _, o := range decl.props {
-		set, ok := stepSetters[o.Key]
-		if !ok {
-			return stepModel{}, g.errorAt(fn, "%w: unknown property %q",
-				ErrBadProp, o.Key)
-		}
-		if err := set(spec, o.Value); err != nil {
-			return stepModel{}, g.errorAt(fn, "%w", err)
-		}
+	if err := applyOptions(spec, decl.options, stepSetters); err != nil {
+		return stepModel{}, g.errorAt(fn, "%w", err)
+	}
+	if err := applyOptions(spec.HTTP, decl.http, httpSetters); err != nil {
+		return stepModel{}, g.errorAt(fn, "%w", err)
+	}
+	if len(decl.work) > 0 {
+		spec.WorkConfig = &api.WorkConfig{}
+	}
+	if err := applyOptions(spec.WorkConfig, decl.work, workSetters); err != nil {
+		return stepModel{}, g.errorAt(fn, "%w", err)
 	}
 	if err := spec.Validate(); err != nil {
 		return stepModel{}, g.errorAt(fn, "%w", err)
@@ -222,26 +244,23 @@ func (g *pkgGen) model(config *stepModelConfig) (stepModel, error) {
 	}, nil
 }
 
-// props and labels are their own directives, repeatable and options only,
-// so a long set can spread across lines
+// http, work and labels are repeatable option-only directives, so a long set
+// can spread across lines
 func optionsIn(fn *ast.FuncDecl, directive string) (Options, error) {
 	var res Options
 	for _, c := range fn.Doc.List {
-		text := strings.TrimSpace(c.Text)
-		rest, ok := directiveArgs(directiveText{
-			comment:   text,
-			directive: directive,
-		})
-		if !ok {
+		ref, ok := parseDirective(c.Text)
+		if !ok || ref.kind != directive {
 			continue
 		}
-		head, options, err := ParseOptions(rest)
+		head, options, err := ParseOptions(ref.args)
 		if err != nil {
 			return nil, err
 		}
 		if head != "" || len(options) == 0 {
 			return nil, fmt.Errorf("%w: %s takes key%svalue options, got %q",
-				ErrBadDirective, directive, optionAssign, rest)
+				ErrBadDirective, directivePrefix+directive, optionAssign,
+				ref.args)
 		}
 		res = append(res, options...)
 	}
@@ -695,30 +714,31 @@ func directiveOf(fn *ast.FuncDecl) (directiveRef, bool) {
 		return directiveRef{}, false
 	}
 	for _, c := range fn.Doc.List {
-		text := strings.TrimSpace(c.Text)
-		for _, d := range []string{stepDirective, wrapDirective} {
-			if args, ok := directiveArgs(directiveText{
-				comment:   text,
-				directive: d,
-			}); ok {
-				return directiveRef{kind: d, args: args}, true
-			}
+		ref, ok := parseDirective(c.Text)
+		if !ok {
+			continue
+		}
+		switch ref.kind {
+		case stepDirective, wrapDirective:
+			return ref, true
 		}
 	}
 	return directiveRef{}, false
 }
 
-// the head may follow the directive on a space, or its options directly on a
-// separator
-func directiveArgs(text directiveText) (string, bool) {
-	rest, ok := strings.CutPrefix(text.comment, text.directive)
-	if !ok {
-		return "", false
+func parseDirective(text string) (directiveRef, bool) {
+	rest, ok := strings.CutPrefix(strings.TrimSpace(text), directivePrefix)
+	if !ok || rest == "" {
+		return directiveRef{}, false
 	}
-	if rest != "" && !strings.ContainsAny(rest[:1], " \t"+optionSeparator) {
-		return "", false
+	i := strings.IndexAny(rest, " \t"+optionSeparator)
+	if i < 0 {
+		return directiveRef{kind: rest}, true
 	}
-	return strings.TrimSpace(rest), true
+	return directiveRef{
+		kind: rest[:i],
+		args: strings.TrimSpace(rest[i:]),
+	}, true
 }
 
 func parseWrap(attrs string) (wrapNames, error) {
@@ -902,44 +922,61 @@ func compAdapter(cfg compAdapterConfig) string {
 	)
 }
 
+func parsePredicate(fn *ast.FuncDecl) (*api.ScriptConfig, error) {
+	var res *api.ScriptConfig
+	for _, c := range fn.Doc.List {
+		ref, ok := parseDirective(c.Text)
+		if !ok || ref.kind != predicateDirective {
+			continue
+		}
+		if res != nil {
+			return nil, fmt.Errorf("%w: %s repeats",
+				ErrBadDirective, directivePrefix+predicateDirective)
+		}
+		cfg := &api.ScriptConfig{Language: api.ScriptLangLua}
+		if !parseScript(cfg, ref.args) {
+			return nil, fmt.Errorf("%w: %s needs a script",
+				ErrBadDirective, directivePrefix+predicateDirective)
+		}
+		res = cfg
+	}
+	return res, nil
+}
+
 func handlingIn(fn *ast.FuncDecl, decl *stepDecl) error {
 	var memoized bool
 	for _, c := range fn.Doc.List {
-		text := strings.TrimSpace(c.Text)
-		if value, ok := directiveArgs(directiveText{
-			comment:   text,
-			directive: memoDirective,
-		}); ok {
-			if value != "" {
+		ref, ok := parseDirective(c.Text)
+		if !ok {
+			continue
+		}
+		if ref.kind == memoDirective {
+			if ref.args != "" {
 				return fmt.Errorf("%w: %s takes no value",
-					ErrBadDirective, memoDirective)
+					ErrBadDirective, directivePrefix+memoDirective)
 			}
 			if memoized {
 				return fmt.Errorf("%w: %s repeats",
-					ErrBadDirective, memoDirective)
+					ErrBadDirective, directivePrefix+memoDirective)
 			}
 			memoized = true
 			continue
 		}
 
-		value, ok := directiveArgs(directiveText{
-			comment:   text,
-			directive: compDirective,
-		})
-		if !ok {
+		if ref.kind != compDirective {
 			continue
 		}
 		if decl.compensate != "" {
 			return fmt.Errorf("%w: %s repeats", ErrBadDirective,
-				compDirective)
+				directivePrefix+compDirective)
 		}
-		name, opts, err := ParseOptions(value)
+		name, opts, err := ParseOptions(ref.args)
 		if err != nil {
 			return err
 		}
 		if !token.IsIdentifier(name) {
 			return fmt.Errorf("%w: %s needs a function name",
-				ErrBadDirective, compDirective)
+				ErrBadDirective, directivePrefix+compDirective)
 		}
 		for _, o := range opts {
 			if o.Key != timeoutProp {
@@ -955,7 +992,8 @@ func handlingIn(fn *ast.FuncDecl, decl *stepDecl) error {
 	}
 	if memoized && decl.compensate != "" {
 		return fmt.Errorf("%w: %s and %s are mutually exclusive",
-			ErrBadDirective, memoDirective, compDirective,
+			ErrBadDirective, directivePrefix+memoDirective,
+			directivePrefix+compDirective,
 		)
 	}
 	if memoized {

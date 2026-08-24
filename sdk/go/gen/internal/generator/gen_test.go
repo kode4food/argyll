@@ -208,6 +208,30 @@ func TestMappingName(t *testing.T) {
 	assert.Contains(t, string(out), `codec.Field("inner"`)
 }
 
+func TestAttributeScripts(t *testing.T) {
+	src := "type In struct {\n" +
+		"Default string `argyll-match:\"$.ready\" " +
+		"argyll-mapping:\"value = value; return value\"`\n" +
+		"Lua string `argyll-match:\"lua:value = true; return value\"`\n" +
+		"}\n" +
+		"type Out struct { Value string " +
+		"`argyll-mapping:\"jpath:$\"` }\n" +
+		"//argyll:step\nfunc Run(in In) Out { return Out{} }\n"
+	out, err := renderSource(t, src)
+	assert.NoError(t, err)
+	text := string(out)
+	assert.Contains(t, text, `\"match\":{`+
+		`\"language\":\"jpath\",\"script\":\"$.ready\"}`)
+	assert.Contains(t, text, `\"script\":{`+
+		`\"language\":\"lua\",`+
+		`\"script\":\"value = value; return value\"}`)
+	assert.Contains(t, text, `\"match\":{`+
+		`\"language\":\"lua\",`+
+		`\"script\":\"value = true; return value\"}`)
+	assert.Contains(t, text, `\"script\":{`+
+		`\"language\":\"jpath\",\"script\":\"$\"}`)
+}
+
 func TestAttributeProps(t *testing.T) {
 	attrs := steps(t, "../../../example")["charge-card-v2"].Attributes
 
@@ -226,13 +250,13 @@ func TestAttributeProps(t *testing.T) {
 	assert.Equal(t, `"stripe"`, attrs["gateway"].Const.Value)
 }
 
-func TestStepProps(t *testing.T) {
+func TestStepConfig(t *testing.T) {
 	byID := steps(t, "../../../example")
 	step := byID["charge-card-v2"]
 
 	assert.Equal(t, api.Name("Charge Card (v2)"), step.Name)
 	assert.Equal(t, int64(2500), step.HTTP.Invoke.Timeout)
-	assert.Equal(t, "lua", step.Predicate.Language)
+	assert.Equal(t, api.ScriptLangLua, step.Predicate.Language)
 
 	// the endpoints are paths until the step server knows its own host
 	assert.Equal(t, "/charge-card-v2", step.HTTP.Invoke.Endpoint)
@@ -242,10 +266,31 @@ func TestStepProps(t *testing.T) {
 	assert.NotContains(t, byID, api.StepID("charge-card"))
 }
 
+func TestPredicate(t *testing.T) {
+	src := "//argyll:step one\n" +
+		"//argyll:predicate jpath:$.active\n" +
+		"func One() {}\n" +
+		"//argyll:step two\n" +
+		"//argyll:predicate lua:ready = true; return ready\n" +
+		"func Two() {}\n" +
+		"//argyll:step three\n" +
+		"//argyll:predicate custom:ready()\n" +
+		"func Three() {}\n"
+	out, err := renderSource(t, src)
+	assert.NoError(t, err)
+	assert.Contains(t, string(out), `\"predicate\":{`+
+		`\"language\":\"jpath\",\"script\":\"$.active\"}`)
+	assert.Contains(t, string(out), `\"predicate\":{`+
+		`\"language\":\"lua\",`+
+		`\"script\":\"ready = true; return ready\"}`)
+	assert.Contains(t, string(out), `\"predicate\":{`+
+		`\"language\":\"lua\",\"script\":\"custom:ready()\"}`)
+}
+
 func TestWorkConfig(t *testing.T) {
 	src := "//argyll:step\n" +
-		"//argyll:props backoff_type:exponential;max_retries:3\n" +
-		"//argyll:props init_backoff:100;max_backoff:5000;parallelism:4\n" +
+		"//argyll:work backoff_type:exponential;max_retries:3\n" +
+		"//argyll:work init_backoff:100;max_backoff:5000;parallelism:4\n" +
 		"func Run() {}\n"
 	out, err := renderSource(t, src)
 	assert.NoError(t, err)
@@ -273,6 +318,10 @@ func TestRecursiveCodec(t *testing.T) {
 
 func TestNoDirectives(t *testing.T) {
 	src, err := render(t, "./testdata/nodirectives")
+	assert.NoError(t, err)
+	assert.Nil(t, src)
+
+	src, err = renderSource(t, "//argyll:stepper\nfunc Run() {}")
 	assert.NoError(t, err)
 	assert.Nil(t, src)
 }
@@ -485,24 +534,56 @@ func TestAdditionalDiagnostics(t *testing.T) {
 			want: "memoize and //argyll:compensate are mutually exclusive",
 		},
 		"timeout is milliseconds": {
-			src: "//argyll:step;timeout:soon\n" +
+			src: "//argyll:step\n//argyll:http timeout:soon\n" +
 				"func Bad(in struct{}) {}",
 			want: "timeout\" needs milliseconds",
 		},
+		"http properties need http": {
+			src:  "//argyll:step;timeout:2\nfunc Bad() {}",
+			want: `unknown property "timeout"`,
+		},
 		"parallelism is an integer": {
-			src: "//argyll:step;parallelism:many\n" +
+			src: "//argyll:step\n//argyll:work parallelism:many\n" +
 				"func Bad(in struct{}) {}",
 			want: "parallelism\" needs an integer",
 		},
-		"props need options": {
-			src: "//argyll:step\n//argyll:props\n" +
+		"work needs options": {
+			src:  "//argyll:step\n//argyll:work\nfunc Bad() {}",
+			want: "takes key:value options",
+		},
+		"work properties need work": {
+			src: "//argyll:step\n//argyll:http parallelism:2\n" +
+				"func Bad() {}",
+			want: `unknown property "parallelism"`,
+		},
+		"predicate needs a script": {
+			src:  "//argyll:step\n//argyll:predicate\nfunc Bad() {}",
+			want: "predicate needs a script",
+		},
+		"predicate does not repeat": {
+			src: "//argyll:step\n//argyll:predicate return true\n" +
+				"//argyll:predicate return false\nfunc Bad() {}",
+			want: "predicate repeats",
+		},
+		"predicate property needs directive": {
+			src: "//argyll:step\n" +
+				"//argyll:http predicate:return true\nfunc Bad() {}",
+			want: `unknown property "predicate"`,
+		},
+		"http needs options": {
+			src: "//argyll:step\n//argyll:http\n" +
 				"func Bad(in struct{}) {}",
 			want: "takes key:value options",
 		},
-		"props have no head": {
-			src: "//argyll:step\n//argyll:props stray;name:Bad\n" +
+		"http has no head": {
+			src: "//argyll:step\n//argyll:http stray;timeout:2\n" +
 				"func Bad(in struct{}) {}",
 			want: "takes key:value options",
+		},
+		"props are not supported": {
+			src: "//argyll:step\n//argyll:props timeout:2\n" +
+				"func Bad(in struct{}) {}",
+			want: "//argyll:props is not supported",
 		},
 		"roles are known": {
 			src: "type In struct { Value string `argyll:\";role:weird\"` }\n" +
@@ -523,9 +604,9 @@ func TestAdditionalDiagnostics(t *testing.T) {
 		},
 		"match needs a required input": {
 			src: "type In struct { Value *string " +
-				"`argyll:\";match:return true\"` }\n" +
+				"`argyll-match:\"return true\"` }\n" +
 				"//argyll:step\nfunc Bad(in In) {}",
-			want: "match\" needs role",
+			want: "argyll-match\" needs role",
 		},
 		"mapping needs an input or output": {
 			src: "type In struct { Value string " +
@@ -556,8 +637,8 @@ func TestAdditionalDiagnostics(t *testing.T) {
 			src:  "//argyll:step;bad\nfunc Bad(in struct{}) {}",
 			want: "invalid argyll option",
 		},
-		"props options are valid": {
-			src: "//argyll:step\n//argyll:props;bad\n" +
+		"http options are valid": {
+			src: "//argyll:step\n//argyll:http;bad\n" +
 				"func Bad(in struct{}) {}",
 			want: "invalid argyll option",
 		},

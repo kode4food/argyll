@@ -51,7 +51,7 @@ type (
 		Currency string `argyll:"role:optional;default:USD;deadline:5000"`
 		Gateway  string `argyll:"role:const;value:stripe"`
 		FlowID   string `argyll:"flow;role:meta;key:flow_id"`
-		Amount   int64  `argyll:"match:return args.amount > 0"`
+		Amount   int64  `argyll-match:"lua:return args.amount > 0"`
 	}
 
 	// ChargeResult is the output of the ChargeCard step
@@ -147,8 +147,8 @@ func GradeCustomer(
 
 //argyll:step charge-card-v2;name:Charge Card (v2)
 //argyll:compensate refundCard
-//argyll:props timeout: 2500
-//argyll:props predicate: return args.amount > 0
+//argyll:http timeout: 2500
+//argyll:predicate return args.amount > 0
 func ChargeCard(args ChargeArgs) ChargeResult {
 	return ChargeResult{
 		ChargeID: args.Gateway + ":" + args.OrderID + ":" + args.Currency,
