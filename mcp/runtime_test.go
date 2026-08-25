@@ -38,7 +38,7 @@ func TestNewServerTrimsTrailingSlash(t *testing.T) {
 	hc := &http.Client{
 		Transport: roundTripperFunc(
 			func(r *http.Request) (*http.Response, error) {
-				assert.Equal(t, "/engine/step", r.URL.Path)
+				assert.Equal(t, "/engine/steps", r.URL.Path)
 				return jsonResponse(
 					http.StatusOK,
 					[]byte(`{"steps":[]}`),
@@ -56,7 +56,7 @@ func TestQueryFlowsTool(t *testing.T) {
 	hc := &http.Client{
 		Transport: roundTripperFunc(
 			func(r *http.Request) (*http.Response, error) {
-				if r.URL.Path != "/engine/flow/query" ||
+				if r.URL.Path != "/engine/flows/query" ||
 					r.Method != http.MethodPost {
 					return jsonResponse(
 						http.StatusNotFound,
@@ -96,7 +96,7 @@ func TestGetFlowStatusTool(t *testing.T) {
 	hc := &http.Client{
 		Transport: roundTripperFunc(
 			func(r *http.Request) (*http.Response, error) {
-				if r.URL.Path != "/engine/flow/wf-123/status" ||
+				if r.URL.Path != "/engine/flows/wf-123/status" ||
 					r.Method != http.MethodGet {
 					return jsonResponse(
 						http.StatusNotFound, []byte(`{"error":"not found"}`),

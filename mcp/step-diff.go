@@ -54,7 +54,7 @@ func (s *Server) applyProposedSteps(args applyProposedStepsArgs) (any, error) {
 	for _, d := range diffs {
 		switch d.Action {
 		case "create":
-			res, err := s.httpPost("/engine/step", d.Proposed)
+			res, err := s.httpPost("/engine/steps", d.Proposed)
 			if err != nil {
 				return nil, err
 			}
@@ -74,7 +74,7 @@ func (s *Server) applyProposedSteps(args applyProposedStepsArgs) (any, error) {
 				})
 				continue
 			}
-			res, err := s.httpPut("/engine/step/"+d.ID, d.Proposed)
+			res, err := s.httpPut("/engine/steps/"+d.ID, d.Proposed)
 			if err != nil {
 				return nil, err
 			}
@@ -136,7 +136,7 @@ func (s *Server) verifyAppliedSteps(
 }
 
 func (s *Server) currentSteps() (map[string]map[string]any, error) {
-	payload, err := s.httpGet("/engine/step")
+	payload, err := s.httpGet("/engine/steps")
 	if err != nil {
 		return nil, err
 	}

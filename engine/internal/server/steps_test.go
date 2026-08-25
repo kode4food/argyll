@@ -17,7 +17,7 @@ import (
 
 func TestListStepsEmpty(t *testing.T) {
 	withTestServerEnv(t, func(testEnv *testServerEnv) {
-		req := httptest.NewRequest("GET", "/engine/step", nil)
+		req := httptest.NewRequest("GET", "/engine/steps", nil)
 		w := httptest.NewRecorder()
 
 		router := testEnv.Server.SetupRoutes()
@@ -39,7 +39,7 @@ func TestDeleteStepSuccessful(t *testing.T) {
 		err := testEnv.Engine.RegisterStep(st)
 		assert.NoError(t, err)
 
-		req := httptest.NewRequest("DELETE", "/engine/step/to-delete", nil)
+		req := httptest.NewRequest("DELETE", "/engine/steps/to-delete", nil)
 		w := httptest.NewRecorder()
 
 		router := testEnv.Server.SetupRoutes()
@@ -60,7 +60,7 @@ func TestGetStepExists(t *testing.T) {
 		err := testEnv.Engine.RegisterStep(st)
 		assert.NoError(t, err)
 
-		req := httptest.NewRequest("GET", "/engine/step/existing-step", nil)
+		req := httptest.NewRequest("GET", "/engine/steps/existing-step", nil)
 		w := httptest.NewRecorder()
 
 		router := testEnv.Server.SetupRoutes()
@@ -88,7 +88,7 @@ func TestListStepsWithMultiple(t *testing.T) {
 		err = testEnv.Engine.RegisterStep(step3)
 		assert.NoError(t, err)
 
-		req := httptest.NewRequest("GET", "/engine/step", nil)
+		req := httptest.NewRequest("GET", "/engine/steps", nil)
 		w := httptest.NewRecorder()
 
 		router := testEnv.Server.SetupRoutes()
@@ -122,7 +122,7 @@ func TestCreateStepConflict(t *testing.T) {
 
 		body, _ := json.Marshal(differentStep)
 		req := httptest.NewRequest(
-			"POST", "/engine/step", bytes.NewReader(body),
+			"POST", "/engine/steps", bytes.NewReader(body),
 		)
 		req.Header.Set("Content-Type", api.JSONContentType)
 		w := httptest.NewRecorder()
@@ -140,7 +140,7 @@ func TestCreateStep(t *testing.T) {
 
 		body, _ := json.Marshal(st)
 		req := httptest.NewRequest(
-			"POST", "/engine/step", bytes.NewReader(body),
+			"POST", "/engine/steps", bytes.NewReader(body),
 		)
 		req.Header.Set("Content-Type", api.JSONContentType)
 		w := httptest.NewRecorder()
@@ -160,7 +160,7 @@ func TestCreateStepIdempotent(t *testing.T) {
 
 		body, _ := json.Marshal(st)
 		req := httptest.NewRequest(
-			"POST", "/engine/step", bytes.NewReader(body),
+			"POST", "/engine/steps", bytes.NewReader(body),
 		)
 		req.Header.Set("Content-Type", api.JSONContentType)
 		w := httptest.NewRecorder()
@@ -175,7 +175,7 @@ func TestCreateStepIdempotent(t *testing.T) {
 func TestCreateStepInvalidBody(t *testing.T) {
 	withTestServerEnv(t, func(testEnv *testServerEnv) {
 		req := httptest.NewRequest(
-			"POST", "/engine/step", bytes.NewReader([]byte("not-json")),
+			"POST", "/engine/steps", bytes.NewReader([]byte("not-json")),
 		)
 		req.Header.Set("Content-Type", api.JSONContentType)
 		w := httptest.NewRecorder()
@@ -191,7 +191,7 @@ func TestCreateStepValid(t *testing.T) {
 	withTestServerEnv(t, func(testEnv *testServerEnv) {
 		body, _ := json.Marshal(&api.Step{})
 		req := httptest.NewRequest(
-			"POST", "/engine/step", bytes.NewReader(body),
+			"POST", "/engine/steps", bytes.NewReader(body),
 		)
 		req.Header.Set("Content-Type", api.JSONContentType)
 		w := httptest.NewRecorder()
@@ -210,7 +210,7 @@ func TestListSteps(t *testing.T) {
 		err := testEnv.Engine.RegisterStep(st)
 		assert.NoError(t, err)
 
-		req := httptest.NewRequest("GET", "/engine/step", nil)
+		req := httptest.NewRequest("GET", "/engine/steps", nil)
 		w := httptest.NewRecorder()
 
 		router := testEnv.Server.SetupRoutes()
@@ -234,7 +234,7 @@ func TestGetStep(t *testing.T) {
 		err := testEnv.Engine.RegisterStep(st)
 		assert.NoError(t, err)
 
-		req := httptest.NewRequest("GET", "/engine/step/get-step", nil)
+		req := httptest.NewRequest("GET", "/engine/steps/get-step", nil)
 		w := httptest.NewRecorder()
 
 		router := testEnv.Server.SetupRoutes()
@@ -256,7 +256,7 @@ func TestDeleteStep(t *testing.T) {
 		err := testEnv.Engine.RegisterStep(st)
 		assert.NoError(t, err)
 
-		req := httptest.NewRequest("DELETE", "/engine/step/delete-step", nil)
+		req := httptest.NewRequest("DELETE", "/engine/steps/delete-step", nil)
 		w := httptest.NewRecorder()
 
 		router := testEnv.Server.SetupRoutes()
@@ -268,7 +268,7 @@ func TestDeleteStep(t *testing.T) {
 
 func TestDeleteStepNotFound(t *testing.T) {
 	withTestServerEnv(t, func(testEnv *testServerEnv) {
-		req := httptest.NewRequest("DELETE", "/engine/step/missing-step", nil)
+		req := httptest.NewRequest("DELETE", "/engine/steps/missing-step", nil)
 		w := httptest.NewRecorder()
 
 		router := testEnv.Server.SetupRoutes()
@@ -294,7 +294,7 @@ func TestUpdateStep(t *testing.T) {
 
 		body, _ := json.Marshal(updatedStep)
 		req := httptest.NewRequest(
-			"PUT", "/engine/step/update-step", bytes.NewReader(body),
+			"PUT", "/engine/steps/update-step", bytes.NewReader(body),
 		)
 		req.Header.Set("Content-Type", api.JSONContentType)
 		w := httptest.NewRecorder()
@@ -317,7 +317,7 @@ func TestUpdateStepMismatchStatus(t *testing.T) {
 
 		body, _ := json.Marshal(updatedStep)
 		req := httptest.NewRequest(
-			"PUT", "/engine/step/update-step-mismatch", bytes.NewReader(body),
+			"PUT", "/engine/steps/update-step-mismatch", bytes.NewReader(body),
 		)
 		req.Header.Set("Content-Type", api.JSONContentType)
 		w := httptest.NewRecorder()
@@ -331,7 +331,7 @@ func TestUpdateStepMismatchStatus(t *testing.T) {
 
 func TestGetStepNotFound(t *testing.T) {
 	withTestServerEnv(t, func(testEnv *testServerEnv) {
-		req := httptest.NewRequest("GET", "/engine/step/nonexistent", nil)
+		req := httptest.NewRequest("GET", "/engine/steps/nonexistent", nil)
 		w := httptest.NewRecorder()
 
 		router := testEnv.Server.SetupRoutes()
@@ -343,7 +343,7 @@ func TestGetStepNotFound(t *testing.T) {
 
 func TestDeleteStepMissing(t *testing.T) {
 	withTestServerEnv(t, func(testEnv *testServerEnv) {
-		req := httptest.NewRequest("DELETE", "/engine/step/nonexistent", nil)
+		req := httptest.NewRequest("DELETE", "/engine/steps/nonexistent", nil)
 		w := httptest.NewRecorder()
 
 		router := testEnv.Server.SetupRoutes()
@@ -361,7 +361,7 @@ func TestDeleteStepMissing(t *testing.T) {
 func TestCreateStepInvalidRequest(t *testing.T) {
 	withTestServerEnv(t, func(testEnv *testServerEnv) {
 		req := httptest.NewRequest(
-			"POST", "/engine/step", bytes.NewReader([]byte("invalid json")),
+			"POST", "/engine/steps", bytes.NewReader([]byte("invalid json")),
 		)
 		req.Header.Set("Content-Type", api.JSONContentType)
 		w := httptest.NewRecorder()
@@ -383,7 +383,7 @@ func TestCreateStepValidBody(t *testing.T) {
 
 		body, _ := json.Marshal(st)
 		req := httptest.NewRequest(
-			"POST", "/engine/step", bytes.NewReader(body),
+			"POST", "/engine/steps", bytes.NewReader(body),
 		)
 		req.Header.Set("Content-Type", api.JSONContentType)
 		w := httptest.NewRecorder()
@@ -406,7 +406,7 @@ func TestUpdateStepMismatchMessage(t *testing.T) {
 
 		body, _ := json.Marshal(updatedStep)
 		req := httptest.NewRequest(
-			"PUT", "/engine/step/original-step", bytes.NewReader(body),
+			"PUT", "/engine/steps/original-step", bytes.NewReader(body),
 		)
 		req.Header.Set("Content-Type", api.JSONContentType)
 		w := httptest.NewRecorder()
@@ -435,7 +435,7 @@ func TestUpdateValidationError(t *testing.T) {
 
 		body, _ := json.Marshal(invalidStep)
 		req := httptest.NewRequest(
-			"PUT", "/engine/step/update-step", bytes.NewReader(body),
+			"PUT", "/engine/steps/update-step", bytes.NewReader(body),
 		)
 		req.Header.Set("Content-Type", api.JSONContentType)
 		w := httptest.NewRecorder()
@@ -453,7 +453,7 @@ func TestUpdateStepNotFound(t *testing.T) {
 
 		body, _ := json.Marshal(st)
 		req := httptest.NewRequest(
-			"PUT", "/engine/step/nonexistent", bytes.NewReader(body),
+			"PUT", "/engine/steps/nonexistent", bytes.NewReader(body),
 		)
 		req.Header.Set("Content-Type", api.JSONContentType)
 		w := httptest.NewRecorder()
@@ -470,7 +470,7 @@ func TestUpdateStepInvalidJSON(t *testing.T) {
 	withTestServerEnv(t, func(env *testServerEnv) {
 		req := httptest.NewRequest(
 			"PUT",
-			"/engine/step/test-step",
+			"/engine/steps/test-step",
 			bytes.NewReader([]byte("invalid json")),
 		)
 		req.Header.Set("Content-Type", api.JSONContentType)
@@ -492,7 +492,7 @@ func TestCreateStepDuplicate(t *testing.T) {
 
 		body, _ := json.Marshal(st)
 		req := httptest.NewRequest(
-			"POST", "/engine/step", bytes.NewReader(body),
+			"POST", "/engine/steps", bytes.NewReader(body),
 		)
 		req.Header.Set("Content-Type", api.JSONContentType)
 		w := httptest.NewRecorder()
@@ -513,7 +513,7 @@ func TestCreateStepInvalidScript(t *testing.T) {
 
 		body, _ := json.Marshal(st)
 		req := httptest.NewRequest(
-			"POST", "/engine/step", bytes.NewReader(body),
+			"POST", "/engine/steps", bytes.NewReader(body),
 		)
 		req.Header.Set("Content-Type", api.JSONContentType)
 		w := httptest.NewRecorder()
@@ -529,7 +529,7 @@ func TestCreateStepInvalidScript(t *testing.T) {
 func TestCreateStepInvalidText(t *testing.T) {
 	withTestServerEnv(t, func(env *testServerEnv) {
 		req := httptest.NewRequest(
-			"POST", "/engine/step", bytes.NewReader([]byte("not json")),
+			"POST", "/engine/steps", bytes.NewReader([]byte("not json")),
 		)
 		req.Header.Set("Content-Type", api.JSONContentType)
 		w := httptest.NewRecorder()
@@ -545,7 +545,7 @@ func TestCreateStepBodyTooLarge(t *testing.T) {
 	withTestServerEnv(t, func(env *testServerEnv) {
 		body := bytes.Repeat([]byte("x"), server.MaxStepBodyBytes+1)
 		req := httptest.NewRequest(
-			"POST", "/engine/step", bytes.NewReader(body),
+			"POST", "/engine/steps", bytes.NewReader(body),
 		)
 		req.Header.Set("Content-Type", api.JSONContentType)
 		w := httptest.NewRecorder()
@@ -565,7 +565,7 @@ func TestUpdateStepBodyTooLarge(t *testing.T) {
 
 		body := bytes.Repeat([]byte("x"), server.MaxStepBodyBytes+1)
 		req := httptest.NewRequest(
-			"PUT", "/engine/step/large-update-step", bytes.NewReader(body),
+			"PUT", "/engine/steps/large-update-step", bytes.NewReader(body),
 		)
 		req.Header.Set("Content-Type", api.JSONContentType)
 		w := httptest.NewRecorder()
@@ -584,7 +584,7 @@ func TestDeleteStepInternalError(t *testing.T) {
 		assert.NoError(t, err)
 
 		req := httptest.NewRequest(
-			"DELETE", "/engine/step/test-delete-step", nil,
+			"DELETE", "/engine/steps/test-delete-step", nil,
 		)
 		w := httptest.NewRecorder()
 
@@ -608,7 +608,7 @@ func TestListStepsRunning(t *testing.T) {
 		err = env.Engine.RegisterStep(step2)
 		assert.NoError(t, err)
 
-		req := httptest.NewRequest("GET", "/engine/step", nil)
+		req := httptest.NewRequest("GET", "/engine/steps", nil)
 		w := httptest.NewRecorder()
 
 		router := env.Server.SetupRoutes()

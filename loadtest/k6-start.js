@@ -28,7 +28,7 @@ export function setup() {
     },
   };
 
-  const res = http.post(`${ENGINE_URL}/engine/step`, JSON.stringify(step), {
+  const res = http.post(`${ENGINE_URL}/engine/steps`, JSON.stringify(step), {
     headers: { 'Content-Type': 'application/json' },
   });
 
@@ -45,7 +45,7 @@ export default function (data) {
 
   // Start flow
   const startRes = http.post(
-    `${ENGINE_URL}/engine/flow`,
+    `${ENGINE_URL}/engine/flows`,
     JSON.stringify({
       id: flowId,
       goals: [data.stepId],

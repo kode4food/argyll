@@ -25,6 +25,7 @@ type (
 	CatalogState struct {
 		LastUpdated time.Time      `json:"last_updated"`
 		Steps       Steps          `json:"steps"`
+		Spaces      Spaces         `json:"spaces"`
 		Attributes  AttributeGraph `json:"attributes"`
 	}
 
@@ -48,6 +49,7 @@ type (
 		Plan          *ExecutionPlan  `json:"plan"`
 		Metadata      Metadata        `json:"metadata,omitempty"`
 		Labels        Labels          `json:"labels,omitempty"`
+		SpaceID       SpaceID         `json:"space_id,omitempty"`
 		Attributes    AttributeValues `json:"attributes"`
 		DeactivatedAt time.Time       `json:"deactivated_at"`
 		Executions    Executions      `json:"executions"`
@@ -136,6 +138,17 @@ const (
 	HealthUnknown   HealthStatus = "unknown"
 )
 
+// Query returns the registered steps accepted by the predicate
+func (c CatalogState) Query(predicate func(*Step) bool) Steps {
+	res := Steps{}
+	for id, st := range c.Steps {
+		if predicate(st) {
+			res[id] = st
+		}
+	}
+	return res
+}
+
 // SetStep returns a new CatalogState with the specified step registered
 func (c CatalogState) SetStep(id StepID, step *Step) CatalogState {
 	c.Steps = maps.Clone(c.Steps)
@@ -159,6 +172,23 @@ func (c CatalogState) DeleteStep(id StepID) CatalogState {
 	c.Steps = maps.Clone(c.Steps)
 	delete(c.Steps, id)
 	c.Attributes = c.Attributes.RemoveStep(step)
+	return c
+}
+
+// SetSpace returns a new CatalogState with the specified space registered
+func (c CatalogState) SetSpace(id SpaceID, space Space) CatalogState {
+	c.Spaces = maps.Clone(c.Spaces)
+	if c.Spaces == nil {
+		c.Spaces = Spaces{}
+	}
+	c.Spaces[id] = space
+	return c
+}
+
+// DeleteSpace returns a new CatalogState with the specified space removed
+func (c CatalogState) DeleteSpace(id SpaceID) CatalogState {
+	c.Spaces = maps.Clone(c.Spaces)
+	delete(c.Spaces, id)
 	return c
 }
 

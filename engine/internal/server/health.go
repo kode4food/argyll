@@ -216,7 +216,7 @@ func (s *Server) handleEngineHealth(c *gin.Context) {
 }
 
 func (s *Server) handleEngineHealthByID(c *gin.Context) {
-	sid := api.StepID(c.Param("stepID"))
+	sid := api.StepID(c.Param("step_id"))
 
 	cat, err := s.engine.GetCatalogState()
 	if err != nil {

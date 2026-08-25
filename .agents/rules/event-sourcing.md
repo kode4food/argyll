@@ -242,7 +242,7 @@ Example:
 ## Flow Execution Flow
 
 ```text
-POST /engine/flow (server)
+POST /engine/flows (server)
   ↓
 Server validates request, builds the plan, calls engine.StartFlow()
   ↓

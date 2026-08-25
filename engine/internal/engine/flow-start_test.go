@@ -205,7 +205,7 @@ func TestStartChildFlowUsesPlan(t *testing.T) {
 		parentPlan, err := plan.Create(&plan.Request{
 			Match:    env.Engine.Matcher,
 			Children: env.Engine.Children,
-			Catalog:  cat,
+			Steps:    cat.Steps,
 			Goals:    []api.StepID{parent.ID},
 			Init:     api.InitArgs{},
 		})
@@ -281,7 +281,7 @@ func TestStartChildFlowSetsParentMetadata(t *testing.T) {
 		parentPlan, err := plan.Create(&plan.Request{
 			Match:    env.Engine.Matcher,
 			Children: env.Engine.Children,
-			Catalog:  cat,
+			Steps:    cat.Steps,
 			Goals:    []api.StepID{parent.ID},
 			Init:     api.InitArgs{},
 		})
@@ -349,7 +349,7 @@ func TestStartChildFlowDuplicateID(t *testing.T) {
 			parentPlan, err := plan.Create(&plan.Request{
 				Match:    env.Engine.Matcher,
 				Children: env.Engine.Children,
-				Catalog:  cat,
+				Steps:    cat.Steps,
 				Goals:    []api.StepID{parent.ID},
 				Init:     api.InitArgs{},
 			})
@@ -413,7 +413,7 @@ func TestStartChildFlowDuplicateID(t *testing.T) {
 			parentPlan, err := plan.Create(&plan.Request{
 				Match:    env.Engine.Matcher,
 				Children: env.Engine.Children,
-				Catalog:  cat,
+				Steps:    cat.Steps,
 				Goals:    []api.StepID{parent.ID},
 				Init:     api.InitArgs{},
 			})

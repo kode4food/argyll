@@ -67,6 +67,7 @@ func (e *Engine) StartFlow(
 				Init:       opts.Init,
 				Metadata:   opts.Metadata,
 				Labels:     opts.Labels,
+				SpaceID:    opts.SpaceID,
 				Compensate: opts.Compensate,
 			},
 		); err != nil {

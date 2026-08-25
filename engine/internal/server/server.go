@@ -70,25 +70,32 @@ func (s *Server) SetupRoutes() *gin.Engine {
 	// Health check
 	router.GET("/health", s.handleHealth)
 
-	// Webhook endpoint
-	router.POST("/webhook/:flowID/:stepID/:token", s.handleWebhook)
+	// Callback endpoint
+	router.POST("/callbacks/:flow_id/:step_id/:token", s.handleWebhook)
 
 	// Engine endpoints
 	eng := router.Group("/engine")
 	{
 		eng.GET("", s.handleEngine)
-		eng.GET("/", s.handleEngine)
 
 		// Step endpoints
-		eng.GET("/step", s.listSteps)
-		eng.POST("/step", s.createStep)
-		eng.GET("/step/:stepID", s.getStep)
-		eng.PUT("/step/:stepID", s.updateStep)
-		eng.DELETE("/step/:stepID", s.deleteStep)
+		eng.GET("/steps", s.listSteps)
+		eng.POST("/steps", s.createStep)
+		eng.GET("/steps/:step_id", s.getStep)
+		eng.PUT("/steps/:step_id", s.updateStep)
+		eng.DELETE("/steps/:step_id", s.deleteStep)
+
+		// Space endpoints
+		eng.GET("/spaces", s.listSpaces)
+		eng.POST("/spaces", s.createSpace)
+		eng.GET("/spaces/:space_id", s.getSpace)
+		eng.GET("/spaces/:space_id/steps", s.listSpaceSteps)
+		eng.PUT("/spaces/:space_id", s.updateSpace)
+		eng.DELETE("/spaces/:space_id", s.deleteSpace)
 
 		// Health endpoints
 		eng.GET("/health", s.handleEngineHealth)
-		eng.GET("/health/:stepID", s.handleEngineHealthByID)
+		eng.GET("/health/:step_id", s.handleEngineHealthByID)
 
 		// Plan preview
 		eng.POST("/plan", s.handlePlanPreview)
@@ -102,12 +109,12 @@ func (s *Server) SetupRoutes() *gin.Engine {
 		eng.GET("/cluster/events", s.getClusterEvents)
 
 		// Flow endpoints
-		eng.GET("/flow", s.listFlows)
-		eng.POST("/flow", s.startFlow)
-		eng.POST("/flow/query", s.queryFlows)
-		eng.GET("/flow/:flowID/status", s.getFlowStatus)
-		eng.GET("/flow/:flowID/events", s.getFlowEvents)
-		eng.GET("/flow/:flowID", s.getFlow)
+		eng.GET("/flows", s.listFlows)
+		eng.POST("/flows", s.startFlow)
+		eng.POST("/flows/query", s.queryFlows)
+		eng.GET("/flows/:flow_id/status", s.getFlowStatus)
+		eng.GET("/flows/:flow_id/events", s.getFlowEvents)
+		eng.GET("/flows/:flow_id", s.getFlow)
 
 		// WebSocket
 		eng.GET("/ws", s.handleWebSocket)

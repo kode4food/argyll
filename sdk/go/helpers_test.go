@@ -20,7 +20,7 @@ func TestSetupStepWithMockEngine(t *testing.T) {
 	mockEngine := newHTTPTestServer(t, http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
 			attempts++
-			if r.URL.Path == "/engine/step" && r.Method == http.MethodPost {
+			if r.URL.Path == "/engine/steps" && r.Method == http.MethodPost {
 				select {
 				case requested <- struct{}{}:
 				default:

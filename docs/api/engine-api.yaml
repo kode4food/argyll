@@ -174,7 +174,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
-  /engine/step:
+  /engine/steps:
     get:
       summary: List Registered Steps
       description: Retrieve all steps currently registered with the engine
@@ -273,7 +273,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
-  /engine/step/{stepId}:
+  /engine/steps/{step_id}:
     get:
       summary: Get Step Details
       description: Retrieve details of a specific registered step
@@ -281,7 +281,7 @@ paths:
       tags:
         - Steps
       parameters:
-        - name: stepId
+        - name: step_id
           in: path
           required: true
           description: Unique identifier of the step
@@ -316,7 +316,7 @@ paths:
       tags:
         - Steps
       parameters:
-        - name: stepId
+        - name: step_id
           in: path
           required: true
           description: Unique identifier of the step
@@ -363,7 +363,7 @@ paths:
       tags:
         - Steps
       parameters:
-        - name: stepId
+        - name: step_id
           in: path
           required: true
           description: Unique identifier of the step
@@ -390,6 +390,166 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /engine/spaces:
+    get:
+      summary: List Spaces
+      description: Retrieve all dynamic planning spaces
+      operationId: listSpaces
+      tags:
+        - Spaces
+      responses:
+        "200":
+          description: List of spaces
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SpacesListResponse"
+        "500":
+          description: Failed to list spaces
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    post:
+      summary: Register Space
+      description: Register a dynamic label-selected planning scope
+      operationId: registerSpace
+      tags:
+        - Spaces
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Space"
+      responses:
+        "201":
+          description: Space registered successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SpaceRegisteredResponse"
+        "400":
+          description: Invalid space definition
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Space already exists with this ID
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /engine/spaces/{space_id}:
+    parameters:
+      - name: space_id
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      summary: Get Space
+      operationId: getSpace
+      tags:
+        - Spaces
+      responses:
+        "200":
+          description: Space definition
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Space"
+        "404":
+          description: Space not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    put:
+      summary: Update Space
+      description: Update the selector used by future flow starts
+      operationId: updateSpace
+      tags:
+        - Spaces
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Space"
+      responses:
+        "200":
+          description: Space updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SpaceRegisteredResponse"
+        "400":
+          description: Invalid space definition or ID mismatch
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Space not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      summary: Unregister Space
+      operationId: unregisterSpace
+      tags:
+        - Spaces
+      responses:
+        "200":
+          description: Space unregistered successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+        "404":
+          description: Space not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /engine/spaces/{space_id}/steps:
+    parameters:
+      - name: space_id
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      summary: List Space Steps
+      description: Resolve the current registered Steps selected by a Space
+      operationId: listSpaceSteps
+      tags:
+        - Spaces
+      responses:
+        "200":
+          description: Steps currently belonging to the Space
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StepsListResponse"
+        "404":
+          description: Space not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Failed to retrieve the Catalog
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /engine/health:
     get:
       summary: Step Health Status
@@ -411,7 +571,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
-  /engine/health/{stepId}:
+  /engine/health/{step_id}:
     get:
       summary: Step Health Details
       description: Get detailed health information for a specific step
@@ -419,7 +579,7 @@ paths:
       tags:
         - Health
       parameters:
-        - name: stepId
+        - name: step_id
           in: path
           required: true
           description: Unique identifier of the step
@@ -494,13 +654,13 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
-  /engine/flow:
+  /engine/flows:
     get:
       summary: List Flows
       description: |
         Retrieve non-child flows in the system (`active`, `completed`, and `failed`), sorted by most-recent activity within each status group.
 
-        This endpoint uses the same query engine as `/engine/flow/query`. Status, ID-prefix, and label filtering are resolved from flow-store indexes without loading full flow state. A terminal flow remains indexed as `active` until `flow_deactivated` records that no remaining work can produce external side effects (changes outside flow state).
+        This endpoint uses the same query engine as `/engine/flows/query`. Status, ID-prefix, and label filtering are resolved from flow-store indexes without loading full flow state. A terminal flow remains indexed as `active` until `flow_deactivated` records that no remaining work can produce external side effects (changes outside flow state).
       operationId: listFlows
       tags:
         - Flows
@@ -523,6 +683,8 @@ paths:
       summary: Start Flow
       description: |
         Create and start a new flow execution with goal-driven planning.
+
+        If `space_id` is omitted, planning uses the complete global step catalog. If supplied, the current Space selector is resolved against registered Step labels before planning.
 
         The engine will:
         1. Create an execution plan containing only necessary steps
@@ -557,7 +719,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
         "404":
-          description: One or more goal steps were not found
+          description: A goal step or requested Space was not found
           content:
             application/json:
               schema:
@@ -575,7 +737,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
-  /engine/flow/query:
+  /engine/flows/query:
     post:
       summary: Query Flows
       description: |
@@ -611,7 +773,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
-  /engine/flow/{flowId}:
+  /engine/flows/{flow_id}:
     get:
       summary: Get Flow State
       description: |
@@ -624,7 +786,7 @@ paths:
       tags:
         - Flows
       parameters:
-        - name: flowId
+        - name: flow_id
           in: path
           required: true
           description: Unique identifier of the flow
@@ -651,7 +813,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
-  /engine/flow/{flowId}/status:
+  /engine/flows/{flow_id}/status:
     get:
       summary: Get Flow Status
       description: |
@@ -665,14 +827,14 @@ paths:
         enters terminal state while work that has already started or
         compensation can still produce external side effects; it
         changes to `completed` or `failed` when `flow_deactivated` is recorded.
-        Use `GET /engine/flow/{flowId}` or terminal flow events to observe and
+        Use `GET /engine/flows/{flow_id}` or terminal flow events to observe and
         act on an outcome before deactivation. This indexed endpoint reports
         final status only after remaining work can no longer produce external side effects.
       operationId: getFlowStatus
       tags:
         - Flows
       parameters:
-        - name: flowId
+        - name: flow_id
           in: path
           required: true
           description: Unique identifier of the flow
@@ -699,7 +861,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
-  /engine/flow/{flowId}/events:
+  /engine/flows/{flow_id}/events:
     get:
       summary: Flow Events
       description: Get all raw events for a flow aggregate, from sequence zero to the present. Returns 404 if no events exist for the given flow ID
@@ -707,7 +869,7 @@ paths:
       tags:
         - Flows
       parameters:
-        - name: flowId
+        - name: flow_id
           in: path
           required: true
           description: Unique identifier of the flow
@@ -734,28 +896,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
-  /webhook/{flowId}/{stepId}/{token}:
+  /callbacks/{flow_id}/{step_id}/{token}:
     post:
-      summary: Webhook Callback for Async Steps
+      summary: Async Step Callback
       description: |
         Receive asynchronous step completion results. This endpoint is called by
         async steps when they complete processing.
 
         The `token` parameter is a receipt token generated by the engine when the
-        async step was started. It validates that the webhook is for a legitimate
+        async step was started. It validates that the callback is for a legitimate
         in-progress step execution.
-      operationId: handleWebhook
+      operationId: handleCallback
       tags:
-        - Webhooks
+        - Callbacks
       parameters:
-        - name: flowId
+        - name: flow_id
           in: path
           required: true
           description: Flow ID
           schema:
             type: string
           example: "wf-async-processing-001"
-        - name: stepId
+        - name: step_id
           in: path
           required: true
           description: Step ID
@@ -926,6 +1088,7 @@ components:
       type: object
       required:
         - steps
+        - spaces
         - attributes
         - last_updated
       properties:
@@ -938,6 +1101,11 @@ components:
           description: Map of step ID to step registration
           additionalProperties:
             $ref: "#/components/schemas/StepRegistration"
+        spaces:
+          type: object
+          description: Map of space ID to dynamic planning space
+          additionalProperties:
+            $ref: "#/components/schemas/Space"
         attributes:
           type: object
           description: Engine-level attribute dependency graph
@@ -1028,6 +1196,7 @@ components:
       type: object
       required:
         - steps
+        - spaces
         - health
         - attributes
         - last_updated
@@ -1037,6 +1206,11 @@ components:
           description: Map of step ID to step registration
           additionalProperties:
             $ref: "#/components/schemas/StepRegistration"
+        spaces:
+          type: object
+          description: Map of space ID to dynamic planning space
+          additionalProperties:
+            $ref: "#/components/schemas/Space"
         health:
           type: object
           description: Per-node resolved step health keyed by node ID
@@ -1149,7 +1323,8 @@ components:
           additionalProperties:
             type: string
         predicate:
-          $ref: "#/components/schemas/ScriptConfig"
+          allOf:
+            - $ref: "#/components/schemas/ScriptConfig"
           description: Optional script-based predicate for conditional execution
         handling:
           type: string
@@ -1252,8 +1427,10 @@ components:
           default: false
           example: false
         match:
-          $ref: "#/components/schemas/ScriptConfig"
-          description: Optional predicate evaluated against each candidate value before collection. Lua receives one candidate as `value`; JSONPath (`jpath`) evaluates one candidate as its document. Collect semantics are then applied over matching candidates: `some` requires at least one match, `all` requires every upstream candidate to match, and `none` requires no candidate to match.
+          allOf:
+            - $ref: "#/components/schemas/ScriptConfig"
+          description: >
+            Optional predicate evaluated against each candidate value before collection. Lua receives one candidate as `value`; JSONPath (`jpath`) evaluates one candidate as its document. Collect semantics are then applied over matching candidates: `some` requires at least one match, `all` requires every upstream candidate to match, and `none` requires no candidate to match.
         mapping:
           $ref: "#/components/schemas/MappingConfig"
 
@@ -1549,6 +1726,62 @@ components:
           description: Total number of registered steps
           example: 12
 
+    LabelSelector:
+      type: object
+      properties:
+        match_labels:
+          type: object
+          description: Step labels to match, combined with AND
+          additionalProperties:
+            type: string
+
+    Space:
+      type: object
+      required:
+        - id
+        - name
+        - selector
+      properties:
+        id:
+          type: string
+          description: Stable space identifier
+          example: "payments"
+        name:
+          type: string
+          description: Human-readable space name
+          example: "Payments"
+        description:
+          type: string
+          description: Optional space description
+        selector:
+          $ref: "#/components/schemas/LabelSelector"
+
+    SpaceRegisteredResponse:
+      type: object
+      required:
+        - message
+        - space
+      properties:
+        message:
+          type: string
+          example: "Space registered"
+        space:
+          $ref: "#/components/schemas/Space"
+
+    SpacesListResponse:
+      type: object
+      required:
+        - spaces
+        - count
+      properties:
+        spaces:
+          type: array
+          items:
+            $ref: "#/components/schemas/Space"
+        count:
+          type: integer
+          description: Total number of spaces
+
     ExecutionPlanRequest:
       type: object
       required:
@@ -1609,7 +1842,8 @@ components:
           additionalProperties:
             $ref: "#/components/schemas/Dependencies"
         excluded:
-          $ref: "#/components/schemas/ExcludedSteps"
+          allOf:
+            - $ref: "#/components/schemas/ExcludedSteps"
           description: Steps encountered during dependency traversal that were not included in the plan, grouped by reason
 
     ExcludedSteps:
@@ -1694,6 +1928,10 @@ components:
             items: {}
           example:
             input_text: ["Hello, Argyll!"]
+        space_id:
+          type: string
+          description: Optional planning space; omitted uses the global catalog
+          example: "payments"
         labels:
           type: object
           description: Optional labels for the flow
@@ -1878,7 +2116,8 @@ components:
           format: date-time
           description: Timestamp of last state update
         plan:
-          $ref: "#/components/schemas/ExecutionPlan"
+          allOf:
+            - $ref: "#/components/schemas/ExecutionPlan"
           description: Immutable execution plan for this flow
         metadata:
           type: object
@@ -1889,6 +2128,9 @@ components:
           description: Optional flow labels
           additionalProperties:
             type: string
+        space_id:
+          type: string
+          description: Planning space requested when this flow was started
         attributes:
           type: object
           description: Map of attribute name to ordered list of values, including which step produced each value
@@ -2054,11 +2296,13 @@ tags:
     description: Engine state and status
   - name: Steps
     description: Step registration and management
+  - name: Spaces
+    description: Dynamic planning scopes over registered Steps
   - name: Health
     description: Health monitoring for steps and engine
   - name: Flows
     description: Flow creation, execution, and monitoring
-  - name: Webhooks
-    description: Webhook callbacks for async steps
+  - name: Callbacks
+    description: Async step completion callbacks
   - name: WebSocket
     description: Real-time event streaming

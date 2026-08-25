@@ -73,7 +73,7 @@ func (s *Server) createStep(c *gin.Context) {
 }
 
 func (s *Server) getStep(c *gin.Context) {
-	sid := api.StepID(c.Param("stepID"))
+	sid := api.StepID(c.Param("step_id"))
 
 	cat, err := s.engine.GetCatalogState()
 	if err != nil {
@@ -96,7 +96,7 @@ func (s *Server) getStep(c *gin.Context) {
 }
 
 func (s *Server) updateStep(c *gin.Context) {
-	sid := api.StepID(c.Param("stepID"))
+	sid := api.StepID(c.Param("step_id"))
 
 	c.Request.Body = http.MaxBytesReader(
 		c.Writer, c.Request.Body, MaxStepBodyBytes,
@@ -151,7 +151,7 @@ func (s *Server) updateStep(c *gin.Context) {
 }
 
 func (s *Server) deleteStep(c *gin.Context) {
-	sid := api.StepID(c.Param("stepID"))
+	sid := api.StepID(c.Param("step_id"))
 
 	cat, err := s.engine.GetCatalogState()
 	if err != nil {

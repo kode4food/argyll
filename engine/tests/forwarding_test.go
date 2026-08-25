@@ -52,7 +52,7 @@ func TestFollowerWrite(t *testing.T) {
 	st := helpers.NewSimpleStep("forwarded-step")
 	w := postJSON(t, postJSONArgs{
 		handler: follower.server.SetupRoutes(),
-		path:    "/engine/step",
+		path:    "/engine/steps",
 		body:    st,
 		want:    http.StatusCreated,
 	})
@@ -119,7 +119,7 @@ func TestFollowerWriteStartup(t *testing.T) {
 		follower := followers[attempt%len(followers)]
 		attempt++
 
-		w := tryPostJSON(follower.server.SetupRoutes(), "/engine/step", st)
+		w := tryPostJSON(follower.server.SetupRoutes(), "/engine/steps", st)
 		if w.Code != http.StatusCreated {
 			return false
 		}

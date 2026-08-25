@@ -393,7 +393,7 @@ def test_step_builder_chaining():
 def test_step_builder_register():
     responses.add(
         responses.POST,
-        "http://localhost:8080/engine/step",
+        "http://localhost:8080/engine/steps",
         json={},
         status=200,
     )
@@ -454,7 +454,7 @@ def test_flow_builder_with_initial_state():
 def test_flow_builder_start():
     responses.add(
         responses.POST,
-        "http://localhost:8080/engine/flow",
+        "http://localhost:8080/engine/flows",
         json={},
         status=200,
     )
@@ -562,7 +562,7 @@ def test_flow_builder_start_error():
 
     responses.add(
         responses.POST,
-        "http://localhost:8080/engine/flow",
+        "http://localhost:8080/engine/flows",
         json={"error": "Invalid flow"},
         status=400,
     )

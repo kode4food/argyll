@@ -48,7 +48,8 @@ examples/        # Sample step implementations
 
 - Engine API: `/docs/api/engine-api.yaml`
 - Step Interface: `/docs/api/step-interface.yaml`
-- Base path: `/engine/`
+- Base path: `/engine`
+- API design must follow the [Zalando RESTful API and Event Scheme Guidelines](https://opensource.zalando.com/restful-api-guidelines/)
 
 ### Step Request/Response
 

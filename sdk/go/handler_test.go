@@ -19,7 +19,7 @@ import (
 func TestHTTPError(t *testing.T) {
 	engineServer := newHTTPTestServer(t, http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
-			if r.URL.Path == "/engine/step" && r.Method == http.MethodPost {
+			if r.URL.Path == "/engine/steps" && r.Method == http.MethodPost {
 				w.WriteHeader(http.StatusCreated)
 				return
 			}
@@ -53,7 +53,7 @@ func TestHTTPError(t *testing.T) {
 func TestStepRequests(t *testing.T) {
 	engineServer := newHTTPTestServer(t, http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
-			if r.URL.Path == "/engine/step" && r.Method == http.MethodPost {
+			if r.URL.Path == "/engine/steps" && r.Method == http.MethodPost {
 				w.WriteHeader(http.StatusCreated)
 				return
 			}
@@ -90,7 +90,7 @@ func TestStepRequests(t *testing.T) {
 func TestStepHandlerPlainError(t *testing.T) {
 	engineServer := newHTTPTestServer(t, http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
-			if r.URL.Path == "/engine/step" && r.Method == http.MethodPost {
+			if r.URL.Path == "/engine/steps" && r.Method == http.MethodPost {
 				w.WriteHeader(http.StatusCreated)
 				return
 			}
@@ -124,7 +124,7 @@ func TestStepHandlerPlainError(t *testing.T) {
 func TestPanic(t *testing.T) {
 	engineServer := newHTTPTestServer(t, http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
-			if r.URL.Path == "/engine/step" && r.Method == http.MethodPost {
+			if r.URL.Path == "/engine/steps" && r.Method == http.MethodPost {
 				w.WriteHeader(http.StatusCreated)
 				return
 			}
@@ -166,10 +166,10 @@ func TestStartConflict(t *testing.T) {
 	engineServer := newHTTPTestServer(t, http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
 			switch {
-			case r.URL.Path == "/engine/step" && r.Method == http.MethodPost:
+			case r.URL.Path == "/engine/steps" && r.Method == http.MethodPost:
 				postCount++
 				w.WriteHeader(http.StatusConflict)
-			case r.URL.Path == "/engine/step/test-step" &&
+			case r.URL.Path == "/engine/steps/test-step" &&
 				r.Method == http.MethodPut:
 				putCount++
 				w.WriteHeader(http.StatusOK)
@@ -204,7 +204,7 @@ func TestHTTPErrorMessage(t *testing.T) {
 func TestCompensateSuccess(t *testing.T) {
 	engineServer := newHTTPTestServer(t, http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
-			if r.URL.Path == "/engine/step" && r.Method == http.MethodPost {
+			if r.URL.Path == "/engine/steps" && r.Method == http.MethodPost {
 				w.WriteHeader(http.StatusCreated)
 				return
 			}
@@ -256,7 +256,7 @@ func TestCompensateSuccess(t *testing.T) {
 func TestCompensateRequests(t *testing.T) {
 	engineServer := newHTTPTestServer(t, http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
-			if r.URL.Path == "/engine/step" && r.Method == http.MethodPost {
+			if r.URL.Path == "/engine/steps" && r.Method == http.MethodPost {
 				w.WriteHeader(http.StatusCreated)
 				return
 			}
@@ -317,7 +317,7 @@ func TestCompensateErrors(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			engineServer := newHTTPTestServer(t, http.HandlerFunc(
 				func(w http.ResponseWriter, r *http.Request) {
-					if r.URL.Path == "/engine/step" &&
+					if r.URL.Path == "/engine/steps" &&
 						r.Method == http.MethodPost {
 						w.WriteHeader(http.StatusCreated)
 						return
@@ -363,7 +363,7 @@ func TestCompensateErrors(t *testing.T) {
 func TestCompensatePanic(t *testing.T) {
 	engineServer := newHTTPTestServer(t, http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
-			if r.URL.Path == "/engine/step" && r.Method == http.MethodPost {
+			if r.URL.Path == "/engine/steps" && r.Method == http.MethodPost {
 				w.WriteHeader(http.StatusCreated)
 				return
 			}

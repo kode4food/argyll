@@ -1006,10 +1006,10 @@ func createPlan(
 	cat api.CatalogState, goals []api.StepID, init api.InitArgs,
 ) (*api.ExecutionPlan, error) {
 	return plan.Create(&plan.Request{
-		Match:   testEval,
-		Catalog: cat,
-		Goals:   goals,
-		Init:    init,
+		Match: testEval,
+		Steps: cat.Steps,
+		Goals: goals,
+		Init:  init,
 	})
 }
 
@@ -1017,10 +1017,10 @@ func previewPlan(
 	cat api.CatalogState, goals []api.StepID, init api.InitArgs,
 ) (*api.ExecutionPlan, error) {
 	return plan.Preview(&plan.Request{
-		Match:   testEval,
-		Catalog: cat,
-		Goals:   goals,
-		Init:    init,
+		Match: testEval,
+		Steps: cat.Steps,
+		Goals: goals,
+		Init:  init,
 	})
 }
 

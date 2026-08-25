@@ -34,6 +34,7 @@ func (s *Server) handleEngine(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"last_updated": last,
 		"steps":        cat.Steps,
+		"spaces":       cat.Spaces,
 		"attributes":   cat.Attributes,
 		"health":       completeClusterHealth(cat, cluster).Nodes,
 	})

@@ -41,8 +41,8 @@ type (
 const (
 	DefaultStepPort = 8081
 
-	routeSteps = "/engine/step"
-	routeFlow  = "/engine/flow"
+	routeSteps = "/engine/steps"
+	routeFlows = "/engine/flows"
 )
 
 var (
@@ -96,7 +96,7 @@ func (c *FlowClient) GetState(ctx context.Context) (api.FlowState, error) {
 	var result api.FlowState
 	err := c.doHTTPRequest(ctx, httpRequest{
 		Method:    "GET",
-		URL:       c.url("%s/%s", routeFlow, c.flowID),
+		URL:       c.url("%s/%s", routeFlows, c.flowID),
 		ErrorType: ErrGetFlow,
 		Accepted:  []int{http.StatusOK},
 		Result:    &result,
@@ -114,7 +114,7 @@ func (c *FlowClient) GetStatus(
 	var result api.FlowStatusResponse
 	err := c.doHTTPRequest(ctx, httpRequest{
 		Method:    "GET",
-		URL:       c.url("%s/%s/status", routeFlow, c.flowID),
+		URL:       c.url("%s/%s/status", routeFlows, c.flowID),
 		ErrorType: ErrGetFlowStatus,
 		Accepted:  []int{http.StatusOK},
 		Result:    &result,
@@ -190,7 +190,7 @@ func (c *Client) startFlow(
 ) error {
 	return c.doHTTPRequest(ctx, httpRequest{
 		Method:    "POST",
-		URL:       c.url(routeFlow),
+		URL:       c.url(routeFlows),
 		Body:      req,
 		ErrorType: ErrStartFlow,
 		Accepted:  []int{http.StatusOK, http.StatusCreated},

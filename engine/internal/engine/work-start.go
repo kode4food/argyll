@@ -53,7 +53,7 @@ func (e *ExecContext) Metadata() api.Metadata {
 }
 
 func (e *ExecContext) WebhookURL(tkn api.Token) string {
-	return e.engine.config.WebhookBaseURL + "/webhook/" +
+	return e.engine.config.WebhookBaseURL + "/callbacks/" +
 		string(e.flowID) + "/" + string(e.stepID) + "/" + string(tkn)
 }
 

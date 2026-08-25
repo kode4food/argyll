@@ -27,7 +27,7 @@ def test_client_strips_engine_suffix():
 def test_list_steps_empty():
     responses.add(
         responses.GET,
-        "http://localhost:8080/engine/step",
+        "http://localhost:8080/engine/steps",
         json={"steps": []},
         status=200,
     )
@@ -41,7 +41,7 @@ def test_list_steps_empty():
 def test_list_steps_with_data():
     responses.add(
         responses.GET,
-        "http://localhost:8080/engine/step",
+        "http://localhost:8080/engine/steps",
         json={
             "steps": [
                 {
@@ -73,7 +73,7 @@ def test_list_steps_with_data():
 def test_list_steps_with_list_payload():
     responses.add(
         responses.GET,
-        "http://localhost:8080/engine/step",
+        "http://localhost:8080/engine/steps",
         json=[
             {
                 "id": "step-1",
@@ -100,7 +100,7 @@ def test_list_steps_with_list_payload():
 def test_register_step():
     responses.add(
         responses.POST,
-        "http://localhost:8080/engine/step",
+        "http://localhost:8080/engine/steps",
         json={},
         status=200,
     )
@@ -120,7 +120,7 @@ def test_register_step():
 
     assert len(responses.calls) == 1
     assert responses.calls[0].request.url == (
-        "http://localhost:8080/engine/step"
+        "http://localhost:8080/engine/steps"
     )
 
 
@@ -131,7 +131,7 @@ def test_register_step_error(monkeypatch):
     monkeypatch.setattr(client_module.time, "sleep", lambda _: None)
     responses.add(
         responses.POST,
-        "http://localhost:8080/engine/step",
+        "http://localhost:8080/engine/steps",
         json={"error": "Invalid step"},
         status=400,
     )
@@ -161,13 +161,13 @@ def test_register_step_error(monkeypatch):
 def test_register_step_conflict():
     responses.add(
         responses.POST,
-        "http://localhost:8080/engine/step",
+        "http://localhost:8080/engine/steps",
         json={},
         status=409,
     )
     responses.add(
         responses.PUT,
-        "http://localhost:8080/engine/step/test-step",
+        "http://localhost:8080/engine/steps/test-step",
         json={},
         status=200,
     )
@@ -196,12 +196,12 @@ def test_register_step_update_error(monkeypatch):
     monkeypatch.setattr(client_module.time, "sleep", lambda _: None)
     responses.add(
         responses.POST,
-        "http://localhost:8080/engine/step",
+        "http://localhost:8080/engine/steps",
         status=409,
     )
     responses.add(
         responses.PUT,
-        "http://localhost:8080/engine/step/test-step",
+        "http://localhost:8080/engine/steps/test-step",
         status=500,
     )
     step = Step(
@@ -225,19 +225,19 @@ def test_register_step_retry(monkeypatch):
     monkeypatch.setattr(client_module.time, "sleep", lambda _: None)
     responses.add(
         responses.POST,
-        "http://localhost:8080/engine/step",
+        "http://localhost:8080/engine/steps",
         json={"error": "temporary"},
         status=503,
     )
     responses.add(
         responses.POST,
-        "http://localhost:8080/engine/step",
+        "http://localhost:8080/engine/steps",
         json={"error": "temporary"},
         status=503,
     )
     responses.add(
         responses.POST,
-        "http://localhost:8080/engine/step",
+        "http://localhost:8080/engine/steps",
         json={},
         status=200,
     )
@@ -282,7 +282,7 @@ def test_flow_client():
 def test_flow_client_get_state():
     responses.add(
         responses.GET,
-        "http://localhost:8080/engine/flow/flow-123",
+        "http://localhost:8080/engine/flows/flow-123",
         json={"status": "active", "attributes": {}},
         status=200,
     )
@@ -297,7 +297,7 @@ def test_flow_client_get_state():
 def test_flow_client_get_state_error():
     responses.add(
         responses.GET,
-        "http://localhost:8080/engine/flow/flow-123",
+        "http://localhost:8080/engine/flows/flow-123",
         json={"error": "Not found"},
         status=404,
     )
@@ -316,7 +316,7 @@ def test_flow_client_get_state_error():
 def test_list_steps_error():
     responses.add(
         responses.GET,
-        "http://localhost:8080/engine/step",
+        "http://localhost:8080/engine/steps",
         json={"error": "Server error"},
         status=500,
     )
@@ -333,7 +333,7 @@ def test_list_steps_error():
 def test_parse_step_with_all_fields():
     responses.add(
         responses.GET,
-        "http://localhost:8080/engine/step",
+        "http://localhost:8080/engine/steps",
         json={
             "steps": [
                 {

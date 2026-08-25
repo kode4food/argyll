@@ -120,7 +120,7 @@ func (s *Server) registerStepReadTools(srv server.Server) {
 		"list_steps",
 		"List registered steps in the engine",
 		func(*server.Context, any) (any, error) {
-			payload, err := s.httpGet("/engine/step")
+			payload, err := s.httpGet("/engine/steps")
 			return toolResult(payload, err)
 		},
 	)
@@ -131,7 +131,7 @@ func (s *Server) registerStepReadTools(srv server.Server) {
 			if args.ID == "" {
 				return nil, errInvalidParams("id is required")
 			}
-			payload, err := s.httpGet("/engine/step/" + args.ID)
+			payload, err := s.httpGet("/engine/steps/" + args.ID)
 			return toolResult(payload, err)
 		},
 	)
@@ -145,7 +145,7 @@ func (s *Server) registerStepWriteTools(srv server.Server) {
 			if args.ID == "" {
 				return nil, errInvalidParams("id is required")
 			}
-			payload, err := s.httpDelete("/engine/step/" + args.ID)
+			payload, err := s.httpDelete("/engine/steps/" + args.ID)
 			return toolResult(payload, err)
 		},
 	)
@@ -156,7 +156,7 @@ func (s *Server) registerStepWriteTools(srv server.Server) {
 			if len(args.Step) == 0 {
 				return nil, errInvalidParams("step body is required")
 			}
-			payload, err := s.httpPost("/engine/step", args.Step)
+			payload, err := s.httpPost("/engine/steps", args.Step)
 			return toolResult(payload, err)
 		},
 	)
@@ -170,7 +170,7 @@ func (s *Server) registerStepWriteTools(srv server.Server) {
 			if len(args.Step) == 0 {
 				return nil, errInvalidParams("step body is required")
 			}
-			payload, err := s.httpPut("/engine/step/"+args.ID, args.Step)
+			payload, err := s.httpPut("/engine/steps/"+args.ID, args.Step)
 			return toolResult(payload, err)
 		},
 	)
@@ -196,7 +196,7 @@ func (s *Server) registerFlowReadTools(srv server.Server) {
 		"list_flows",
 		"List all flows in the engine",
 		func(*server.Context, any) (any, error) {
-			payload, err := s.httpGet("/engine/flow")
+			payload, err := s.httpGet("/engine/flows")
 			return toolResult(payload, err)
 		},
 	)
@@ -207,7 +207,7 @@ func (s *Server) registerFlowReadTools(srv server.Server) {
 			if args.ID == "" {
 				return nil, errInvalidParams("id is required")
 			}
-			payload, err := s.httpGet("/engine/flow/" + args.ID)
+			payload, err := s.httpGet("/engine/flows/" + args.ID)
 			return toolResult(payload, err)
 		},
 	)
@@ -218,7 +218,7 @@ func (s *Server) registerFlowReadTools(srv server.Server) {
 			if args.ID == "" {
 				return nil, errInvalidParams("id is required")
 			}
-			payload, err := s.httpGet("/engine/flow/" + args.ID + "/status")
+			payload, err := s.httpGet("/engine/flows/" + args.ID + "/status")
 			return toolResult(payload, err)
 		},
 	)
@@ -226,7 +226,7 @@ func (s *Server) registerFlowReadTools(srv server.Server) {
 		"query_flows",
 		"Query flows by status, ID prefix, labels, and pagination",
 		func(_ *server.Context, args queryFlowsArgs) (any, error) {
-			payload, err := s.httpPost("/engine/flow/query", args)
+			payload, err := s.httpPost("/engine/flows/query", args)
 			return toolResult(payload, err)
 		},
 	)
@@ -240,7 +240,7 @@ func (s *Server) registerFlowWriteTools(srv server.Server) {
 			if len(args.Flow) == 0 {
 				return nil, errInvalidParams("flow body is required")
 			}
-			payload, err := s.httpPost("/engine/flow", args.Flow)
+			payload, err := s.httpPost("/engine/flows", args.Flow)
 			return toolResult(payload, err)
 		},
 	)

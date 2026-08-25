@@ -5,17 +5,37 @@ import "time"
 type (
 	// StepRegisteredEvent is emitted when a step is registered with the engine
 	StepRegisteredEvent struct {
-		Step *Step `json:"step"`
+		Step   *Step     `json:"step"`
+		Spaces []SpaceID `json:"spaces,omitempty"`
 	}
 
 	// StepUnregisteredEvent is emitted when a step is removed from the engine
 	StepUnregisteredEvent struct {
-		StepID StepID `json:"step_id"`
+		StepID StepID    `json:"step_id"`
+		Spaces []SpaceID `json:"spaces,omitempty"`
 	}
 
 	// StepUpdatedEvent is emitted when a step definition is modified
 	StepUpdatedEvent struct {
-		Step *Step `json:"step"`
+		Step   *Step     `json:"step"`
+		Spaces []SpaceID `json:"spaces,omitempty"`
+	}
+
+	// SpaceRegisteredEvent is emitted when a space is registered
+	SpaceRegisteredEvent struct {
+		Space Space `json:"space"`
+		Steps Steps `json:"steps,omitempty"`
+	}
+
+	// SpaceUpdatedEvent is emitted when a space is updated
+	SpaceUpdatedEvent struct {
+		Space Space `json:"space"`
+		Steps Steps `json:"steps,omitempty"`
+	}
+
+	// SpaceUnregisteredEvent is emitted when a space is removed
+	SpaceUnregisteredEvent struct {
+		SpaceID SpaceID `json:"space_id"`
 	}
 
 	// StepHealthChangedEvent is emitted when a step's health status changes
@@ -32,6 +52,7 @@ type (
 		Init       InitArgs       `json:"init"`
 		Metadata   Metadata       `json:"metadata,omitempty"`
 		Labels     Labels         `json:"labels,omitempty"`
+		SpaceID    SpaceID        `json:"space_id,omitempty"`
 		FlowID     FlowID         `json:"flow_id"`
 		Compensate bool           `json:"compensate,omitempty"`
 	}
@@ -185,6 +206,9 @@ const (
 	EventTypeStepRegistered     EventType = "step_registered"
 	EventTypeStepUnregistered   EventType = "step_unregistered"
 	EventTypeStepUpdated        EventType = "step_updated"
+	EventTypeSpaceRegistered    EventType = "space_registered"
+	EventTypeSpaceUpdated       EventType = "space_updated"
+	EventTypeSpaceUnregistered  EventType = "space_unregistered"
 	EventTypeStepHealthChanged  EventType = "step_health_changed"
 	EventTypeFlowDeactivated    EventType = "flow_deactivated"
 	EventTypeFlowStarted        EventType = "flow_started"

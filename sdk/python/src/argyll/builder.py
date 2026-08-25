@@ -330,7 +330,7 @@ class FlowBuilder:
         """Execute the flow."""
         from .errors import FlowError
 
-        url = f"{self._client.base_url}/engine/flow"
+        url = f"{self._client.base_url}/engine/flows"
         payload = {
             "id": self._flow_id,
             "goals": self._goals,

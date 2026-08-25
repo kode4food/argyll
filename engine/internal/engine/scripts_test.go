@@ -93,7 +93,7 @@ func TestCreatePlanEmbedsChildPlans(t *testing.T) {
 		pl, err := plan.Create(&plan.Request{
 			Match:    eng.Matcher,
 			Children: eng.Children,
-			Catalog:  cat,
+			Steps:    cat.Steps,
 			Goals:    []api.StepID{parent.ID},
 			Init:     api.InitArgs{},
 		})

@@ -19,81 +19,34 @@ servers:
         default: "8081"
 
 paths:
-  /{compensateEndpoint}:
+  /{endpoint}:
     post:
-      summary: Compensate Work Item
+      summary: Handle Work Item
       description: |
-        Called by the engine when a step fails after one or more work items
-        have already succeeded. The engine sends attributes marked
-        `compensated` as one flattened object so the handler can undo the work.
+        The engine calls the configured invocation or compensation endpoint
+        with a flattened JSON object using invocation-mapped field names.
 
-        The engine sends this request only when handling is `compensated`.
-        Fields and URL placeholders use invocation-mapped names.
-        Two selected attributes cannot have the same inner name.
+        An invocation receives the step's input arguments. The configured
+        method may be `GET`, `POST`, `PUT`, or `DELETE`; `GET` sends no body.
+        Async invocations also receive `Argyll-Webhook-URL` and complete later
+        by POSTing to that URL.
+
+        A compensation call is made after a compensated step fails following
+        one or more successful work items. It receives the attributes marked
+        `compensated` so the handler can undo the work.
 
         Use `Argyll-Flow-ID`, `Argyll-Step-ID`, and `Argyll-Receipt-Token` as
-        the idempotency key for the compensation side effect.
+        the idempotency key for side effects.
 
-        - 2xx: compensation succeeded.
-        - 5xx or transport error: temporary failure; engine retries using the
+        - 2xx: invocation or compensation succeeded.
+        - 5xx or transport error: temporary failure; the engine retries using the
           step's `work_config` backoff settings.
-        - 4xx: permanent compensation failure; engine marks the work item
-          `compensation_failed`.
-      operationId: compensateWorkItem
+        - 4xx: permanent failure.
+      operationId: handleWorkItem
       tags:
         - Step Execution
       parameters:
-        - name: compensateEndpoint
-          in: path
-          required: true
-          schema:
-            type: string
-          example: refund
-        - $ref: "#/components/parameters/ArgyllFlowID"
-        - $ref: "#/components/parameters/ArgyllStepID"
-        - $ref: "#/components/parameters/ArgyllReceiptToken"
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/CompensateArgs"
-            examples:
-              refund:
-                summary: Refund a payment
-                value:
-                  amount: 49.99
-                  charge_id: "ch_abc123"
-      responses:
-        "200":
-          description: Compensation completed successfully.
-        "204":
-          description: Compensation completed successfully with no body.
-        "400":
-          $ref: "#/components/responses/Problem"
-        "404":
-          $ref: "#/components/responses/Problem"
-        "422":
-          $ref: "#/components/responses/Problem"
-        "500":
-          $ref: "#/components/responses/Problem"
-        "503":
-          $ref: "#/components/responses/Problem"
-
-  /{stepEndpoint}:
-    post:
-      summary: Execute Step
-      description: |
-        Execute a step with JSON input arguments.
-
-        The engine may invoke steps with the configured method (`GET`, `POST`, `PUT`, or `DELETE`). For `POST`, `PUT`, and `DELETE`, the request body is a JSON object containing the step arguments. For `GET`, no body is sent; endpoint placeholders are resolved from runtime arguments.
-
-        Use `Argyll-Flow-ID`, `Argyll-Step-ID`, and `Argyll-Receipt-Token` as the idempotency key for side effects. Async steps also receive `Argyll-Webhook-URL`.
-      operationId: executeStep
-      tags:
-        - Step Execution
-      parameters:
-        - name: stepEndpoint
+        - name: endpoint
           in: path
           required: true
           schema:
@@ -110,19 +63,19 @@ paths:
             schema:
               $ref: "#/components/schemas/Args"
             examples:
-              simpleProcessor:
-                summary: Simple text processing
+              execution:
+                summary: Execute a text-processing step
                 value:
                   input_text: "Hello World"
                   format: "uppercase"
-              dataEnrichment:
-                summary: Data enrichment
+              compensation:
+                summary: Compensate a payment
                 value:
-                  user_id: "12345"
-                  enrich_fields: ["profile", "preferences", "activity"]
+                  amount: 49.99
+                  charge_id: "ch_abc123"
       responses:
         "200":
-          description: Step completed successfully and returned output arguments.
+          description: Work completed successfully.
           content:
             application/json:
               schema:
@@ -134,7 +87,7 @@ paths:
                     character_count: 11
                     processing_time_ms: 15
         "204":
-          description: Step completed successfully with no outputs.
+          description: Work completed successfully with no body.
         "400":
           $ref: "#/components/responses/Problem"
         "404":
@@ -182,7 +135,7 @@ components:
         type: string
         format: uri
       description: Async steps POST completion outputs or problem details to this URL.
-      example: http://localhost:8080/webhook/wf-123/text-processor/tok_abc123xyz
+      example: http://localhost:8080/callbacks/wf-123/text-processor/tok_abc123xyz
 
   schemas:
     Args:
@@ -192,15 +145,6 @@ components:
       example:
         input_text: "Hello World"
         format: "uppercase"
-    CompensateArgs:
-      type: object
-      description: |
-        Compensated work-item attributes flattened under their
-        invocation-mapped names.
-      additionalProperties: true
-      example:
-        amount: 49.99
-        charge_id: "ch_abc123"
     ProblemDetails:
       type: object
       description: RFC 9457 Problem Details response.

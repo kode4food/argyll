@@ -145,7 +145,7 @@ func TestHTTPHandlerPropagatesMetadata(t *testing.T) {
 
 	rt, calls := newRuntime(
 		"flow-1", "step-1", api.Metadata{"source": "test"},
-		"http://example.test/webhook",
+		"http://example.test/callbacks/flow-1/step-1/token-1",
 	)
 	st := &api.Step{
 		ID:   "step-1",
@@ -176,7 +176,7 @@ func TestHTTPHandlerAsyncAddsWebhookURL(t *testing.T) {
 
 	rt, calls := newRuntime(
 		"flow-1", "step-1", api.Metadata{"source": "test"},
-		"http://example.test/webhook",
+		"http://example.test/callbacks/flow-1/step-1/token-1",
 	)
 	st := &api.Step{
 		ID:   "step-1",
@@ -189,7 +189,9 @@ func TestHTTPHandlerAsyncAddsWebhookURL(t *testing.T) {
 	err = handler.Execute(rt, st, api.Args{"input": "value"}, "token-1")
 	assert.NoError(t, err)
 	assert.Equal(t, 1, cl.invoked)
-	assert.Equal(t, "http://example.test/webhook", cl.meta[api.MetaWebhookURL])
+	assert.Equal(t,
+		"http://example.test/callbacks/flow-1/step-1/token-1",
+		cl.meta[api.MetaWebhookURL])
 	assert.Equal(t, api.Token("token-1"), cl.meta[api.MetaReceiptToken])
 	assert.Equal(t, 0, calls.completeCalls)
 	assert.Equal(t, 1, calls.webhookCalls)

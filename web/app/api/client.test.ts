@@ -30,12 +30,12 @@ describe("ArgyllApi", () => {
   });
 
   test.each([
-    ["registers", () => api.registerStep(step), "POST", "/engine/step"],
+    ["registers", () => api.registerStep(step), "POST", "/engine/steps"],
     [
       "updates",
       () => api.updateStep(step.id, step),
       "PUT",
-      `/engine/step/${step.id}`,
+      `/engine/steps/${step.id}`,
     ],
   ])("%s a step", async (_, request, method, path) => {
     respond({ step });
@@ -60,7 +60,7 @@ describe("ArgyllApi", () => {
       })
     ).resolves.toEqual(response);
     expect(fetchMock).toHaveBeenCalledWith(
-      "http://localhost:8080/engine/flow",
+      "http://localhost:8080/engine/flows",
       expect.objectContaining({
         method: "POST",
         body: JSON.stringify({
@@ -78,7 +78,7 @@ describe("ArgyllApi", () => {
 
     await expect(api.listFlowsPage()).resolves.toEqual({ flows: [] });
     expect(fetchMock).toHaveBeenCalledWith(
-      "http://localhost:8080/engine/flow/query",
+      "http://localhost:8080/engine/flows/query",
       expect.objectContaining({
         body: JSON.stringify({ sort: "recent_desc" }),
       })

@@ -21,7 +21,7 @@ docker compose up
 ## Run the Complete Flow
 
 ```bash
-curl -X POST http://localhost:8080/engine/flow \
+curl -X POST http://localhost:8080/engine/flows \
   -H "Content-Type: application/json" \
   -d '{
     "id": "complete-order-flow",
@@ -39,7 +39,7 @@ The Goal pulls in customer resolution, inventory lookup, order creation, stock r
 Inspect the Flow through the UI at `http://localhost:3001` or the API:
 
 ```bash
-curl http://localhost:8080/engine/flow/complete-order-flow
+curl http://localhost:8080/engine/flows/complete-order-flow
 ```
 
 Each service can also run directly from its directory with `go run .`. See the [documentation](https://www.argyll.app/docs/) for focused examples of Flow design, async callbacks, Work Items, and compensation.

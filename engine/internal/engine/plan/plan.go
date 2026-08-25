@@ -15,7 +15,7 @@ type (
 	Request struct {
 		Match    policy.Matcher
 		Children ChildrenFunc
-		Catalog  api.CatalogState
+		Steps    api.Steps
 		Goals    []api.StepID
 		Init     api.InitArgs
 	}
@@ -41,11 +41,12 @@ type (
 	}
 
 	planArgs struct {
-		cat       api.CatalogState
-		match     policy.Matcher
-		providers selectProviders
-		init      api.InitArgs
-		goals     []api.StepID
+		dependencies api.AttributeGraph
+		candidates   api.Steps
+		match        policy.Matcher
+		providers    selectProviders
+		init         api.InitArgs
+		goals        []api.StepID
 	}
 
 	selectProviders func(*builder, []api.StepID) []api.StepID
@@ -62,26 +63,16 @@ var (
 // called for each step in the plan to discover child goals, and the result is
 // built recursively and attached to ExecutionPlan.Children
 func Create(req *Request) (*api.ExecutionPlan, error) {
-	return create(planArgs{
-		match:     req.Match,
-		cat:       req.Catalog,
-		goals:     req.Goals,
-		providers: strictProviders,
-		init:      req.Init,
-	}, req.Children, util.Set[api.StepID]{})
+	return create(newPlanArgs(req, strictProviders), req.Children,
+		util.Set[api.StepID]{})
 }
 
 // Preview builds an execution plan for preview purposes. Unlike Create, it
 // falls back to unsatisfied provider chains when no satisfiable provider exists
 // so the UI can show the full dependency path back to missing init inputs
 func Preview(req *Request) (*api.ExecutionPlan, error) {
-	return create(planArgs{
-		match:     req.Match,
-		cat:       req.Catalog,
-		goals:     req.Goals,
-		providers: previewProviders,
-		init:      req.Init,
-	}, req.Children, util.Set[api.StepID]{})
+	return create(newPlanArgs(req, previewProviders), req.Children,
+		util.Set[api.StepID]{})
 }
 
 // ChildPlanInit derives init args for a child plan from a parent step
@@ -95,6 +86,21 @@ func ChildPlanInit(step *api.Step) api.InitArgs {
 		res[mapped] = []any{true}
 	}
 	return res
+}
+
+func newPlanArgs(req *Request, providers selectProviders) planArgs {
+	dependencies := api.AttributeGraph{}
+	for _, st := range req.Steps {
+		dependencies = dependencies.AddStep(st)
+	}
+	return planArgs{
+		dependencies: dependencies,
+		candidates:   req.Steps,
+		match:        req.Match,
+		providers:    providers,
+		init:         req.Init,
+		goals:        req.Goals,
+	}
 }
 
 func create(
@@ -117,11 +123,12 @@ func create(
 		}
 		ancestors.Add(sid)
 		childPlan, err := create(planArgs{
-			match:     args.match,
-			cat:       args.cat,
-			goals:     childGoals,
-			providers: args.providers,
-			init:      ChildPlanInit(st),
+			dependencies: args.dependencies,
+			candidates:   args.candidates,
+			match:        args.match,
+			providers:    args.providers,
+			init:         ChildPlanInit(st),
+			goals:        childGoals,
 		}, children, ancestors)
 		ancestors.Remove(sid)
 		if err != nil {
@@ -140,7 +147,7 @@ func build(args planArgs) (*api.ExecutionPlan, error) {
 		return nil, ErrNoGoals
 	}
 
-	if err := validateGoals(args.cat, args.goals); err != nil {
+	if err := validateGoals(args.candidates, args.goals); err != nil {
 		return nil, err
 	}
 
@@ -195,7 +202,7 @@ func (b *builder) computeSatisfiable() {
 	progress := true
 	for progress {
 		progress = false
-		for _, st := range b.cat.Steps {
+		for _, st := range b.candidates {
 			if b.satisfiable.Contains(st.ID) {
 				continue
 			}
@@ -233,7 +240,7 @@ func (b *builder) collectStep(stepID api.StepID) error {
 	}
 	b.visited.Add(stepID)
 
-	st := b.cat.Steps[stepID]
+	st := b.candidates[stepID]
 	if blocked := b.blockedInputs(st); len(blocked) > 0 {
 		b.blocked[stepID] = blocked
 		return nil
@@ -322,7 +329,7 @@ func (b *builder) blockedInputs(step *api.Step) []api.Name {
 
 func (b *builder) markSatisfied(name api.Name) {
 	for _, providerID := range b.findProviders(name) {
-		st := b.cat.Steps[providerID]
+		st := b.candidates[providerID]
 		if b.outputsAvailable(st) {
 			b.visited.Add(providerID)
 		}
@@ -369,7 +376,7 @@ func (b *builder) includeProviders(
 }
 
 func (b *builder) findProviders(name api.Name) []api.StepID {
-	if deps, ok := b.cat.Attributes[name]; ok {
+	if deps, ok := b.dependencies[name]; ok {
 		return deps.Providers
 	}
 	return nil
@@ -388,7 +395,7 @@ func (b *builder) outputsAvailable(step *api.Step) bool {
 
 func (b *builder) buildPlan() {
 	for id := range b.included {
-		st := b.cat.Steps[id]
+		st := b.candidates[id]
 		b.steps[id] = st
 		for name, attr := range st.Attributes {
 			if attr.IsOutput() {
@@ -398,7 +405,7 @@ func (b *builder) buildPlan() {
 	}
 
 	for id := range b.included {
-		st := b.cat.Steps[id]
+		st := b.candidates[id]
 		for name, attr := range st.Attributes {
 			if attr.IsInput() && b.inputSatisfied(name) {
 				b.addConsumer(name, id)
@@ -411,7 +418,7 @@ func (b *builder) inputSatisfied(name api.Name) bool {
 	if b.satisfied.Contains(name) {
 		return true
 	}
-	if deps, ok := b.cat.Attributes[name]; ok {
+	if deps, ok := b.dependencies[name]; ok {
 		if slices.ContainsFunc(deps.Providers, b.included.Contains) {
 			return true
 		}
@@ -436,7 +443,7 @@ func (b *builder) buildExcluded() api.ExcludedSteps {
 		Missing:   map[api.StepID][]api.Name{},
 	}
 	for sid := range b.visited {
-		st := b.cat.Steps[sid]
+		st := b.candidates[sid]
 		if b.included.Contains(sid) {
 			continue
 		}
@@ -482,9 +489,9 @@ func (b *builder) getRequiredInputs() []api.Name {
 	return required
 }
 
-func validateGoals(cat api.CatalogState, goals []api.StepID) error {
+func validateGoals(steps api.Steps, goals []api.StepID) error {
 	for _, goalID := range goals {
-		if _, ok := cat.Steps[goalID]; !ok {
+		if _, ok := steps[goalID]; !ok {
 			return ErrStepNotFound
 		}
 	}

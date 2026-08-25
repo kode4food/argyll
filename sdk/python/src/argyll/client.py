@@ -29,7 +29,7 @@ class FlowClient:
 
     def get_state(self) -> Dict[str, Any]:
         """Get the current flow state."""
-        url = f"{self._client.base_url}/engine/flow/{self._flow_id}"
+        url = f"{self._client.base_url}/engine/flows/{self._flow_id}"
         try:
             resp = self._client.session.get(url, timeout=self._client.timeout)
             resp.raise_for_status()
@@ -57,7 +57,7 @@ class Client:
 
     def list_steps(self) -> List[Step]:
         """List all registered steps."""
-        url = f"{self.base_url}/engine/step"
+        url = f"{self.base_url}/engine/steps"
         try:
             resp = self.session.get(url, timeout=self.timeout)
             resp.raise_for_status()
@@ -99,7 +99,7 @@ class Client:
 
     def _create_step(self, step: Step) -> None:
         """Create a step registration."""
-        url = f"{self.base_url}/engine/step"
+        url = f"{self.base_url}/engine/steps"
         try:
             resp = self.session.post(
                 url, json=step.to_dict(), timeout=self.timeout
@@ -112,7 +112,7 @@ class Client:
 
     def _update_step(self, step: Step) -> None:
         """Update an existing step registration."""
-        url = f"{self.base_url}/engine/step/{step.id}"
+        url = f"{self.base_url}/engine/steps/{step.id}"
         try:
             resp = self.session.put(
                 url, json=step.to_dict(), timeout=self.timeout

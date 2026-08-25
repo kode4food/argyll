@@ -33,7 +33,7 @@ func (s *Server) collectExistingSteps(
 		return res, warnings
 	}
 
-	payload, err := s.httpGet("/engine/step")
+	payload, err := s.httpGet("/engine/steps")
 	if err != nil {
 		warnings = append(
 			warnings,

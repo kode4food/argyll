@@ -18,8 +18,8 @@ var (
 )
 
 func (s *Server) handleWebhook(c *gin.Context) {
-	fid := api.FlowID(c.Param("flowID"))
-	sid := api.StepID(c.Param("stepID"))
+	fid := api.FlowID(c.Param("flow_id"))
+	sid := api.StepID(c.Param("step_id"))
 	tkn := api.Token(c.Param("token"))
 
 	fl, err := s.engine.GetFlowState(fid)

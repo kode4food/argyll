@@ -366,7 +366,7 @@ func TestSkipChildFlows(t *testing.T) {
 		pl, err := plan.Create(&plan.Request{
 			Match:    env.Engine.Matcher,
 			Children: env.Engine.Children,
-			Catalog:  cat,
+			Steps:    cat.Steps,
 			Goals:    []api.StepID{parent.ID},
 			Init:     api.InitArgs{},
 		})

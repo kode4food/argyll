@@ -39,7 +39,7 @@ func TestHookInvalidWorkItem(t *testing.T) {
 
 		body, _ := json.Marshal(api.Args{})
 		req := httptest.NewRequest("POST",
-			"/webhook/invalid-work-flow/"+string(st.ID)+"/fake-token",
+			"/callbacks/invalid-work-flow/"+string(st.ID)+"/fake-token",
 			bytes.NewReader(body))
 		req.Header.Set("Content-Type", api.JSONContentType)
 		w := httptest.NewRecorder()
@@ -54,7 +54,7 @@ func TestHookInvalidWorkItem(t *testing.T) {
 func TestHookFlowMissing(t *testing.T) {
 	withTestServerEnv(t, func(env *testServerEnv) {
 		req := httptest.NewRequest("POST",
-			"/webhook/missing-flow/step/token",
+			"/callbacks/missing-flow/step/token",
 			bytes.NewReader([]byte(`{"success":true}`)))
 		req.Header.Set("Content-Type", api.JSONContentType)
 		w := httptest.NewRecorder()
@@ -89,7 +89,7 @@ func TestHookExecutionMissing(t *testing.T) {
 		assert.NoError(t, err)
 
 		req := httptest.NewRequest("POST",
-			"/webhook/missing-exec-flow/unknown-step/token",
+			"/callbacks/missing-exec-flow/unknown-step/token",
 			bytes.NewReader([]byte(`{"success":true}`)))
 		req.Header.Set("Content-Type", api.JSONContentType)
 		w := httptest.NewRecorder()
@@ -147,7 +147,7 @@ func TestHookCompleteTwice(t *testing.T) {
 
 		body, _ := json.Marshal(api.Args{"output": "value1"})
 		req := httptest.NewRequest("POST",
-			"/webhook/double-complete-flow/"+string(st.ID)+"/"+string(tkn),
+			"/callbacks/double-complete-flow/"+string(st.ID)+"/"+string(tkn),
 			bytes.NewReader(body))
 		req.Header.Set("Content-Type", api.JSONContentType)
 
@@ -164,7 +164,7 @@ func TestHookCompleteTwice(t *testing.T) {
 		// Second webhook call with same token is a duplicate terminal callback
 		body, _ = json.Marshal(api.Args{"output": "value2"})
 		req = httptest.NewRequest("POST",
-			"/webhook/double-complete-flow/"+string(st.ID)+"/"+string(tkn),
+			"/callbacks/double-complete-flow/"+string(st.ID)+"/"+string(tkn),
 			bytes.NewReader(body))
 		req.Header.Set("Content-Type", api.JSONContentType)
 		w = httptest.NewRecorder()
@@ -222,7 +222,7 @@ func TestHookFailTwice(t *testing.T) {
 			http.StatusUnprocessableEntity, "error1",
 		))
 		req := httptest.NewRequest("POST",
-			"/webhook/double-fail-flow/"+string(st.ID)+"/"+string(tkn),
+			"/callbacks/double-fail-flow/"+string(st.ID)+"/"+string(tkn),
 			bytes.NewReader(body))
 		req.Header.Set("Content-Type", api.ProblemJSONContentType)
 		w := httptest.NewRecorder()
@@ -237,7 +237,7 @@ func TestHookFailTwice(t *testing.T) {
 			http.StatusUnprocessableEntity, "error2",
 		))
 		req = httptest.NewRequest("POST",
-			"/webhook/double-fail-flow/"+string(st.ID)+"/"+string(tkn),
+			"/callbacks/double-fail-flow/"+string(st.ID)+"/"+string(tkn),
 			bytes.NewReader(body))
 		req.Header.Set("Content-Type", api.ProblemJSONContentType)
 		w = httptest.NewRecorder()
@@ -295,7 +295,7 @@ func TestHookSuccess(t *testing.T) {
 
 		body, _ := json.Marshal(api.Args{"result": "success"})
 		req := httptest.NewRequest("POST",
-			"/webhook/webhook-success-flow/"+string(st.ID)+"/"+string(tkn),
+			"/callbacks/webhook-success-flow/"+string(st.ID)+"/"+string(tkn),
 			bytes.NewReader(body))
 		req.Header.Set("Content-Type", api.JSONContentType)
 		w := httptest.NewRecorder()
@@ -352,7 +352,7 @@ func TestHookWorkFailure(t *testing.T) {
 			http.StatusUnprocessableEntity, "step failed",
 		))
 		req := httptest.NewRequest("POST",
-			"/webhook/webhook-fail-flow/"+string(st.ID)+"/"+string(tkn),
+			"/callbacks/webhook-fail-flow/"+string(st.ID)+"/"+string(tkn),
 			bytes.NewReader(body))
 		req.Header.Set("Content-Type", api.ProblemJSONContentType)
 		w := httptest.NewRecorder()
@@ -406,7 +406,7 @@ func TestHookInvalidJSON(t *testing.T) {
 		}
 
 		req := httptest.NewRequest("POST",
-			"/webhook/webhook-badjson-flow/"+string(st.ID)+"/"+string(tkn),
+			"/callbacks/webhook-badjson-flow/"+string(st.ID)+"/"+string(tkn),
 			bytes.NewReader([]byte("invalid json")))
 		req.Header.Set("Content-Type", api.JSONContentType)
 		w := httptest.NewRecorder()

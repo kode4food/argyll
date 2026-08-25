@@ -15,7 +15,7 @@ func TestDiffProposedStepsTool(t *testing.T) {
 	hc := &http.Client{
 		Transport: roundTripperFunc(
 			func(r *http.Request) (*http.Response, error) {
-				if r.URL.Path != "/engine/step" || r.Method != http.MethodGet {
+				if r.URL.Path != "/engine/steps" || r.Method != http.MethodGet {
 					return jsonResponse(
 						http.StatusNotFound, []byte(`{"error":"not found"}`),
 					), nil
@@ -127,7 +127,7 @@ func TestApplyProposedStepsTool(t *testing.T) {
 		Transport: roundTripperFunc(
 			func(r *http.Request) (*http.Response, error) {
 				switch {
-				case r.URL.Path == "/engine/step" && r.Method == http.MethodGet:
+				case r.URL.Path == "/engine/steps" && r.Method == http.MethodGet:
 					return jsonResponse(http.StatusOK, []byte(`{
 						"steps": [
 							{
@@ -163,7 +163,7 @@ func TestApplyProposedStepsTool(t *testing.T) {
 						],
 						"count": 2
 					}`)), nil
-				case r.URL.Path == "/engine/step" &&
+				case r.URL.Path == "/engine/steps" &&
 					r.Method == http.MethodPost:
 					var body map[string]any
 					data, err := io.ReadAll(r.Body)
@@ -175,7 +175,7 @@ func TestApplyProposedStepsTool(t *testing.T) {
 						http.StatusCreated,
 						[]byte(`{"message":"created"}`),
 					), nil
-				case r.URL.Path == "/engine/step/update-step" &&
+				case r.URL.Path == "/engine/steps/update-step" &&
 					r.Method == http.MethodPut:
 					var body map[string]any
 					data, err := io.ReadAll(r.Body)
@@ -264,7 +264,7 @@ func TestApplyProposedStepsVerifiesSemanticReadback(t *testing.T) {
 		Transport: roundTripperFunc(
 			func(r *http.Request) (*http.Response, error) {
 				switch {
-				case r.URL.Path == "/engine/step" && r.Method == http.MethodGet:
+				case r.URL.Path == "/engine/steps" && r.Method == http.MethodGet:
 					gets++
 					if gets == 1 {
 						return jsonResponse(
@@ -288,7 +288,7 @@ func TestApplyProposedStepsVerifiesSemanticReadback(t *testing.T) {
 						],
 						"count": 1
 					}`)), nil
-				case r.URL.Path == "/engine/step" &&
+				case r.URL.Path == "/engine/steps" &&
 					r.Method == http.MethodPost:
 					return jsonResponse(
 						http.StatusCreated,

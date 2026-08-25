@@ -30,7 +30,7 @@ export function setup() {
     },
   };
 
-  const res = http.post(`${ENGINE_URL}/engine/step`, JSON.stringify(step), {
+  const res = http.post(`${ENGINE_URL}/engine/steps`, JSON.stringify(step), {
     headers: { 'Content-Type': 'application/json' },
   });
 
@@ -47,7 +47,7 @@ export default function (data) {
 
   // Start flow
   const startRes = http.post(
-    `${ENGINE_URL}/engine/flow`,
+    `${ENGINE_URL}/engine/flows`,
     JSON.stringify({
       id: flowId,
       goals: [data.stepId],
@@ -75,7 +75,7 @@ export default function (data) {
   while (!completed && attempts < maxAttempts) {
     sleep(0.1);
 
-    const statusRes = http.get(`${ENGINE_URL}/engine/flow/${flowId}/status`, {
+    const statusRes = http.get(`${ENGINE_URL}/engine/flows/${flowId}/status`, {
       tags: { name: 'GetFlowStatus' },
     });
 

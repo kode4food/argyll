@@ -18,6 +18,7 @@ var (
 func NewCatalogState() api.CatalogState {
 	return api.CatalogState{
 		Steps:      api.Steps{},
+		Spaces:     api.Spaces{},
 		Attributes: api.AttributeGraph{},
 	}
 }
@@ -34,9 +35,12 @@ func IsCatalogEventID(id timebox.AggregateID) bool {
 
 func makeCatalogAppliers() timebox.Appliers[api.CatalogState] {
 	return MakeAppliers(map[api.EventType]timebox.Applier[api.CatalogState]{
-		api.EventTypeStepRegistered:   timebox.MakeApplier(stepRegistered),
-		api.EventTypeStepUnregistered: timebox.MakeApplier(stepUnregistered),
-		api.EventTypeStepUpdated:      timebox.MakeApplier(stepUpdated),
+		api.EventTypeStepRegistered:    timebox.MakeApplier(stepRegistered),
+		api.EventTypeStepUnregistered:  timebox.MakeApplier(stepUnregistered),
+		api.EventTypeStepUpdated:       timebox.MakeApplier(stepUpdated),
+		api.EventTypeSpaceRegistered:   timebox.MakeApplier(spaceRegistered),
+		api.EventTypeSpaceUpdated:      timebox.MakeApplier(spaceUpdated),
+		api.EventTypeSpaceUnregistered: timebox.MakeApplier(spaceUnregistered),
 	})
 }
 
@@ -61,5 +65,29 @@ func stepUpdated(
 ) api.CatalogState {
 	return st.
 		SetStep(data.Step.ID, data.Step).
+		SetLastUpdated(ev.Timestamp)
+}
+
+func spaceRegistered(
+	st api.CatalogState, ev *timebox.Event, data api.SpaceRegisteredEvent,
+) api.CatalogState {
+	return st.
+		SetSpace(data.Space.ID, data.Space).
+		SetLastUpdated(ev.Timestamp)
+}
+
+func spaceUpdated(
+	st api.CatalogState, ev *timebox.Event, data api.SpaceUpdatedEvent,
+) api.CatalogState {
+	return st.
+		SetSpace(data.Space.ID, data.Space).
+		SetLastUpdated(ev.Timestamp)
+}
+
+func spaceUnregistered(
+	st api.CatalogState, ev *timebox.Event, data api.SpaceUnregisteredEvent,
+) api.CatalogState {
+	return st.
+		DeleteSpace(data.SpaceID).
 		SetLastUpdated(ev.Timestamp)
 }

@@ -1,7 +1,6 @@
 package engine_test
 
 import (
-	"strings"
 	"testing"
 	"time"
 
@@ -219,8 +218,7 @@ func TestAsyncMetadata(t *testing.T) {
 
 		webhook, ok := md[api.MetaWebhookURL].(string)
 		assert.True(t, ok)
-		assert.True(t, strings.Contains(webhook, "wf-async-meta"))
-		assert.True(t, strings.Contains(webhook, "async-meta"))
+		assert.Contains(t, webhook, "/callbacks/wf-async-meta/async-meta/")
 	})
 }
 

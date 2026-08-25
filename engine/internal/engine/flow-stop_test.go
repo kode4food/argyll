@@ -106,7 +106,7 @@ func TestFlowStepChildSuccess(t *testing.T) {
 		pl, err := plan.Create(&plan.Request{
 			Match:    env.Engine.Matcher,
 			Children: env.Engine.Children,
-			Catalog:  cat,
+			Steps:    cat.Steps,
 			Goals:    []api.StepID{parent.ID},
 			Init:     api.InitArgs{},
 		})
@@ -175,7 +175,7 @@ func TestChildFlowLease(t *testing.T) {
 		pl, err := plan.Create(&plan.Request{
 			Match:    env.Engine.Matcher,
 			Children: env.Engine.Children,
-			Catalog:  cat,
+			Steps:    cat.Steps,
 			Goals:    []api.StepID{parent.ID},
 			Init:     api.InitArgs{},
 		})
@@ -299,7 +299,7 @@ func TestFlowStepChildFailureParentFails(t *testing.T) {
 		pl, err := plan.Create(&plan.Request{
 			Match:    env.Engine.Matcher,
 			Children: env.Engine.Children,
-			Catalog:  cat,
+			Steps:    cat.Steps,
 			Goals:    []api.StepID{parent.ID},
 			Init:     api.InitArgs{},
 		})
@@ -334,7 +334,7 @@ func TestFlowStepMissingGoalParentFails(t *testing.T) {
 		_, err = plan.Create(&plan.Request{
 			Match:    env.Engine.Matcher,
 			Children: env.Engine.Children,
-			Catalog:  cat,
+			Steps:    cat.Steps,
 			Goals:    []api.StepID{parent.ID},
 			Init:     api.InitArgs{},
 		})
@@ -391,7 +391,7 @@ func TestFlowStepMapping(t *testing.T) {
 		pl, err := plan.Create(&plan.Request{
 			Match:    env.Engine.Matcher,
 			Children: env.Engine.Children,
-			Catalog:  cat,
+			Steps:    cat.Steps,
 			Goals:    []api.StepID{parent.ID},
 			Init:     api.InitArgs{},
 		})
@@ -454,7 +454,7 @@ func TestFlowStepMissingOutput(t *testing.T) {
 		pl, err := plan.Create(&plan.Request{
 			Match:    env.Engine.Matcher,
 			Children: env.Engine.Children,
-			Catalog:  cat,
+			Steps:    cat.Steps,
 			Goals:    []api.StepID{parent.ID},
 			Init:     api.InitArgs{},
 		})

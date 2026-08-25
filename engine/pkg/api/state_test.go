@@ -10,6 +10,31 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
+func TestCatalogQuery(t *testing.T) {
+	matching := &api.Step{
+		ID:     "matching",
+		Labels: api.Labels{"domain": "payments"},
+	}
+	excluded := &api.Step{
+		ID:     "excluded",
+		Labels: api.Labels{"domain": "orders"},
+	}
+	missing := &api.Step{ID: "missing"}
+	cat := api.CatalogState{Steps: api.Steps{
+		matching.ID: matching,
+		excluded.ID: excluded,
+		missing.ID:  missing,
+	}}
+	space := api.Space{Selector: api.LabelSelector{
+		MatchLabels: api.Labels{"domain": "payments"},
+	}}
+
+	steps := cat.Query(space.Matches)
+
+	assert.Equal(t, api.Steps{matching.ID: matching}, steps)
+	assert.Len(t, cat.Steps, 3)
+}
+
 func TestSetStep(t *testing.T) {
 	original := &api.CatalogState{
 		Steps: api.Steps{
@@ -40,6 +65,26 @@ func TestDeleteStep(t *testing.T) {
 	assert.Nil(t, result.Steps["step1"])
 	assert.NotNil(t, result.Steps["step2"])
 	assert.Len(t, original.Steps, 2)
+}
+
+func TestSetSpace(t *testing.T) {
+	space := api.Space{
+		ID:   "payments",
+		Name: "Payments",
+		Selector: api.LabelSelector{MatchLabels: api.Labels{
+			"domain": "payments",
+		}},
+	}
+	original := api.CatalogState{Spaces: api.Spaces{}}
+
+	result := original.SetSpace(space.ID, space)
+
+	assert.Empty(t, original.Spaces)
+	assert.Equal(t, space, result.Spaces[space.ID])
+
+	deleted := result.DeleteSpace(space.ID)
+	assert.Contains(t, result.Spaces, space.ID)
+	assert.NotContains(t, deleted.Spaces, space.ID)
 }
 
 func TestSetHealth(t *testing.T) {

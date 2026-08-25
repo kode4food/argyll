@@ -17,8 +17,10 @@ func TestNewCatalogState(t *testing.T) {
 
 	assert.NotNil(t, cat)
 	assert.NotNil(t, cat.Steps)
+	assert.NotNil(t, cat.Spaces)
 	assert.NotNil(t, cat.Attributes)
 	assert.Empty(t, cat.Steps)
+	assert.Empty(t, cat.Spaces)
 	assert.Empty(t, cat.Attributes)
 }
 
@@ -150,4 +152,41 @@ func TestStepUpdated(t *testing.T) {
 	assert.Equal(t, newStep, result.Steps["test-step"])
 	assert.Equal(t, api.Name("New Name"), result.Steps["test-step"].Name)
 	assert.True(t, result.LastUpdated.Equal(now))
+}
+
+func TestSpaceEvents(t *testing.T) {
+	cat := events.NewCatalogState()
+	space := api.Space{ID: "payments", Name: "Payments"}
+
+	cat = applyCatalogEvent(t, cat, api.EventTypeSpaceRegistered,
+		api.SpaceRegisteredEvent{Space: space})
+	assert.Equal(t, space, cat.Spaces[space.ID])
+
+	updated := api.Space{
+		ID:          space.ID,
+		Name:        space.Name,
+		Description: "Updated",
+	}
+	cat = applyCatalogEvent(t, cat, api.EventTypeSpaceUpdated,
+		api.SpaceUpdatedEvent{Space: updated})
+	assert.Equal(t, updated, cat.Spaces[space.ID])
+
+	cat = applyCatalogEvent(t, cat, api.EventTypeSpaceUnregistered,
+		api.SpaceUnregisteredEvent{SpaceID: space.ID})
+	assert.NotContains(t, cat.Spaces, space.ID)
+}
+
+func applyCatalogEvent(
+	t *testing.T, cat api.CatalogState, typ api.EventType, value any,
+) api.CatalogState {
+	t.Helper()
+	data, err := json.Marshal(value)
+	assert.NoError(t, err)
+	ev := &timebox.Event{
+		Timestamp:   scheduler.Now(),
+		AggregateID: events.CatalogKey,
+		Type:        timebox.EventType(typ),
+		Data:        data,
+	}
+	return events.CatalogAppliers[ev.Type](cat, ev)
 }

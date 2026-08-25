@@ -27,14 +27,19 @@ def test_async_context_creation():
     step_ctx = StepContext(
         client=flow_client,
         step_id="step-1",
-        metadata={"webhook_url": "http://localhost:8080/webhook"},
+        metadata={
+            "webhook_url": "http://localhost:8080/callbacks/flow-123/step-1/token"
+        },
     )
     async_ctx = AsyncContext(
-        context=step_ctx, webhook_url="http://localhost:8080/webhook"
+        context=step_ctx,
+        webhook_url="http://localhost:8080/callbacks/flow-123/step-1/token",
     )
     assert async_ctx.flow_id == "flow-123"
     assert async_ctx.step_id == "step-1"
-    assert async_ctx.webhook_url == "http://localhost:8080/webhook"
+    assert async_ctx.webhook_url == (
+        "http://localhost:8080/callbacks/flow-123/step-1/token"
+    )
 
 
 def test_async_context_properties():
@@ -43,20 +48,25 @@ def test_async_context_properties():
     step_ctx = StepContext(
         client=flow_client,
         step_id="step-1",
-        metadata={"webhook_url": "http://localhost:8080/webhook"},
+        metadata={
+            "webhook_url": "http://localhost:8080/callbacks/flow-123/step-1/token"
+        },
     )
     async_ctx = AsyncContext(
-        context=step_ctx, webhook_url="http://localhost:8080/webhook"
+        context=step_ctx,
+        webhook_url="http://localhost:8080/callbacks/flow-123/step-1/token",
     )
     assert async_ctx.client is flow_client
-    assert async_ctx.metadata["webhook_url"] == "http://localhost:8080/webhook"
+    assert async_ctx.metadata["webhook_url"] == (
+        "http://localhost:8080/callbacks/flow-123/step-1/token"
+    )
 
 
 @responses.activate
 def test_async_context_success():
     responses.add(
         responses.POST,
-        "http://localhost:8080/webhook",
+        "http://localhost:8080/callbacks/flow-123/step-1/token",
         json={},
         status=200,
     )
@@ -66,10 +76,13 @@ def test_async_context_success():
     step_ctx = StepContext(
         client=flow_client,
         step_id="step-1",
-        metadata={"webhook_url": "http://localhost:8080/webhook"},
+        metadata={
+            "webhook_url": "http://localhost:8080/callbacks/flow-123/step-1/token"
+        },
     )
     async_ctx = AsyncContext(
-        context=step_ctx, webhook_url="http://localhost:8080/webhook"
+        context=step_ctx,
+        webhook_url="http://localhost:8080/callbacks/flow-123/step-1/token",
     )
 
     async_ctx.success({"result": "done"})
@@ -85,7 +98,7 @@ def test_async_context_success():
 def test_async_context_fail():
     responses.add(
         responses.POST,
-        "http://localhost:8080/webhook",
+        "http://localhost:8080/callbacks/flow-123/step-1/token",
         json={},
         status=200,
     )
@@ -95,10 +108,13 @@ def test_async_context_fail():
     step_ctx = StepContext(
         client=flow_client,
         step_id="step-1",
-        metadata={"webhook_url": "http://localhost:8080/webhook"},
+        metadata={
+            "webhook_url": "http://localhost:8080/callbacks/flow-123/step-1/token"
+        },
     )
     async_ctx = AsyncContext(
-        context=step_ctx, webhook_url="http://localhost:8080/webhook"
+        context=step_ctx,
+        webhook_url="http://localhost:8080/callbacks/flow-123/step-1/token",
     )
 
     async_ctx.fail("Something went wrong")
@@ -118,7 +134,7 @@ def test_async_context_fail():
 def test_async_context_complete():
     responses.add(
         responses.POST,
-        "http://localhost:8080/webhook",
+        "http://localhost:8080/callbacks/flow-123/step-1/token",
         json={},
         status=200,
     )
@@ -128,10 +144,13 @@ def test_async_context_complete():
     step_ctx = StepContext(
         client=flow_client,
         step_id="step-1",
-        metadata={"webhook_url": "http://localhost:8080/webhook"},
+        metadata={
+            "webhook_url": "http://localhost:8080/callbacks/flow-123/step-1/token"
+        },
     )
     async_ctx = AsyncContext(
-        context=step_ctx, webhook_url="http://localhost:8080/webhook"
+        context=step_ctx,
+        webhook_url="http://localhost:8080/callbacks/flow-123/step-1/token",
     )
 
     async_ctx.complete({"data": "value"})
@@ -147,7 +166,7 @@ def test_async_context_complete():
 def test_async_context_webhook_error():
     responses.add(
         responses.POST,
-        "http://localhost:8080/webhook",
+        "http://localhost:8080/callbacks/flow-123/step-1/token",
         json={"error": "fail"},
         status=500,
     )
@@ -157,10 +176,13 @@ def test_async_context_webhook_error():
     step_ctx = StepContext(
         client=flow_client,
         step_id="step-1",
-        metadata={"webhook_url": "http://localhost:8080/webhook"},
+        metadata={
+            "webhook_url": "http://localhost:8080/callbacks/flow-123/step-1/token"
+        },
     )
     async_ctx = AsyncContext(
-        context=step_ctx, webhook_url="http://localhost:8080/webhook"
+        context=step_ctx,
+        webhook_url="http://localhost:8080/callbacks/flow-123/step-1/token",
     )
 
     with pytest.raises(WebhookError):

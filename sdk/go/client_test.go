@@ -25,7 +25,7 @@ func TestRegisterStepSuccess(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
 			assert.Equal(t, "POST", r.Method)
-			assert.Equal(t, "/engine/step", r.URL.Path)
+			assert.Equal(t, "/engine/steps", r.URL.Path)
 			assert.Equal(t, api.JSONContentType, r.Header.Get("Content-Type"))
 
 			var step api.Step
@@ -90,7 +90,7 @@ func TestStartSuccess(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
 			assert.Equal(t, "POST", r.Method)
-			assert.Equal(t, "/engine/flow", r.URL.Path)
+			assert.Equal(t, "/engine/flows", r.URL.Path)
 
 			var req api.CreateFlowRequest
 			err := json.NewDecoder(r.Body).Decode(&req)
@@ -130,7 +130,7 @@ func TestListStepsSuccess(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
 			assert.Equal(t, "GET", r.Method)
-			assert.Equal(t, "/engine/step", r.URL.Path)
+			assert.Equal(t, "/engine/steps", r.URL.Path)
 
 			response := api.StepsListResponse{
 				Steps: []*api.Step{
@@ -201,7 +201,7 @@ func TestFlowGetState(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
 			assert.Equal(t, "GET", r.Method)
-			assert.Equal(t, "/engine/flow/my-flow", r.URL.Path)
+			assert.Equal(t, "/engine/flows/my-flow", r.URL.Path)
 
 			fl := api.FlowState{
 				ID:     "my-flow",
@@ -226,7 +226,7 @@ func TestFlowGetStatus(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
 			assert.Equal(t, "GET", r.Method)
-			assert.Equal(t, "/engine/flow/my-flow/status", r.URL.Path)
+			assert.Equal(t, "/engine/flows/my-flow/status", r.URL.Path)
 
 			resp := api.FlowStatusResponse{
 				ID:     "my-flow",

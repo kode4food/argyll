@@ -28,6 +28,7 @@ type (
 	CreateFlowRequest struct {
 		Init       InitArgs `json:"init"`
 		ID         FlowID   `json:"id"`
+		SpaceID    SpaceID  `json:"space_id,omitempty"`
 		Labels     Labels   `json:"labels,omitempty"`
 		Goals      []StepID `json:"goals"`
 		Compensate bool     `json:"compensate,omitempty"`
@@ -89,6 +90,18 @@ type (
 	StepsListResponse struct {
 		Steps []*Step `json:"steps"`
 		Count int     `json:"count"`
+	}
+
+	// SpaceRegisteredResponse is returned when a space write succeeds
+	SpaceRegisteredResponse struct {
+		Space   Space  `json:"space"`
+		Message string `json:"message"`
+	}
+
+	// SpacesListResponse contains a list of spaces
+	SpacesListResponse struct {
+		Spaces []Space `json:"spaces"`
+		Count  int     `json:"count"`
 	}
 
 	// HealthResponse provides service health information

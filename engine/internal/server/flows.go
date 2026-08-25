@@ -128,7 +128,15 @@ func (s *Server) startFlow(c *gin.Context) {
 		return
 	}
 
-	pl := s.createPlan(c, req.Goals, req.Init, plan.Create)
+	steps, ok := s.planningSteps(c, req.SpaceID)
+	if !ok {
+		return
+	}
+	pl := s.createPlan(c, &plan.Request{
+		Steps: steps,
+		Goals: req.Goals,
+		Init:  req.Init,
+	}, plan.Create)
 	if pl == nil {
 		return
 	}
@@ -139,6 +147,9 @@ func (s *Server) startFlow(c *gin.Context) {
 	}
 	if len(req.Labels) > 0 {
 		apps = append(apps, flow.WithLabels(req.Labels))
+	}
+	if req.SpaceID != "" {
+		apps = append(apps, flow.WithSpace(req.SpaceID))
 	}
 	err := s.engine.StartFlow(req.ID, pl, apps...)
 	if err == nil {
@@ -169,7 +180,7 @@ func (s *Server) startFlow(c *gin.Context) {
 }
 
 func (s *Server) getFlow(c *gin.Context) {
-	id := api.FlowID(c.Param("flowID"))
+	id := api.FlowID(c.Param("flow_id"))
 
 	fl, err := s.engine.GetFlowState(id)
 	if err == nil {
@@ -191,7 +202,7 @@ func (s *Server) getFlow(c *gin.Context) {
 }
 
 func (s *Server) getFlowEvents(c *gin.Context) {
-	id := api.FlowID(c.Param("flowID"))
+	id := api.FlowID(c.Param("flow_id"))
 	evs, err := s.engine.GetFlowEvents(id)
 	if writeError(c, ErrGetFlowEvents, err) {
 		return
@@ -207,7 +218,7 @@ func (s *Server) getFlowEvents(c *gin.Context) {
 }
 
 func (s *Server) getFlowStatus(c *gin.Context) {
-	id := api.FlowID(c.Param("flowID"))
+	id := api.FlowID(c.Param("flow_id"))
 
 	status, err := s.engine.GetFlowStatus(id)
 	if err == nil {
@@ -232,31 +243,18 @@ func (s *Server) getFlowStatus(c *gin.Context) {
 }
 
 func (s *Server) createPlan(
-	c *gin.Context, goals []api.StepID, init api.InitArgs, planner plan.Planner,
+	c *gin.Context, req *plan.Request, planner plan.Planner,
 ) *api.ExecutionPlan {
-	cat, err := s.engine.GetCatalogState()
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, api.ErrorResponse{
-			Error:  fmt.Sprintf("%s: %v", ErrGetCatalogState, err),
-			Status: http.StatusInternalServerError,
-		})
-		return nil
-	}
-
-	pl, err := planner(&plan.Request{
-		Match:    s.engine.Matcher,
-		Children: s.engine.Children,
-		Catalog:  cat,
-		Goals:    goals,
-		Init:     init,
-	})
+	req.Match = s.engine.Matcher
+	req.Children = s.engine.Children
+	pl, err := planner(req)
 	if err == nil {
 		return pl
 	}
 
 	if errors.Is(err, plan.ErrStepNotFound) {
 		c.JSON(http.StatusNotFound, api.ErrorResponse{
-			Error:  fmt.Sprintf("%s: %v", err.Error(), goals),
+			Error:  fmt.Sprintf("%s: %v", err.Error(), req.Goals),
 			Status: http.StatusNotFound,
 		})
 		return nil
@@ -266,6 +264,31 @@ func (s *Server) createPlan(
 		Status: http.StatusInternalServerError,
 	})
 	return nil
+}
+
+func (s *Server) planningSteps(
+	c *gin.Context, spaceID api.SpaceID,
+) (api.Steps, bool) {
+	cat, err := s.engine.GetCatalogState()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, api.ErrorResponse{
+			Error:  fmt.Sprintf("%s: %v", ErrGetCatalogState, err),
+			Status: http.StatusInternalServerError,
+		})
+		return nil, false
+	}
+	if spaceID == "" {
+		return cat.Steps, true
+	}
+	space, ok := cat.Spaces[spaceID]
+	if !ok {
+		c.JSON(http.StatusNotFound, api.ErrorResponse{
+			Error:  fmt.Sprintf("%s: %s", engine.ErrSpaceNotFound, spaceID),
+			Status: http.StatusNotFound,
+		})
+		return nil, false
+	}
+	return cat.Query(space.Matches), true
 }
 
 func (s *Server) handlePlanPreview(c *gin.Context) {
@@ -286,7 +309,15 @@ func (s *Server) handlePlanPreview(c *gin.Context) {
 		return
 	}
 
-	pl := s.createPlan(c, req.Goals, req.Init, plan.Preview)
+	steps, ok := s.planningSteps(c, "")
+	if !ok {
+		return
+	}
+	pl := s.createPlan(c, &plan.Request{
+		Steps: steps,
+		Goals: req.Goals,
+		Init:  req.Init,
+	}, plan.Preview)
 	if pl != nil {
 		c.JSON(http.StatusOK, pl)
 	}

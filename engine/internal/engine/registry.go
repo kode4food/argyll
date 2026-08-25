@@ -105,8 +105,13 @@ func (tx *CatalogTx) Update(step *api.Step) error {
 }
 
 func (tx *CatalogTx) Remove(stepID api.StepID) error {
+	st := tx.ag.Value()
+	var spaces []api.SpaceID
+	if step, ok := st.Steps[stepID]; ok {
+		spaces = matchingSpaceIDs(st, step)
+	}
 	return events.Raise(tx.ag, api.EventTypeStepUnregistered,
-		api.StepUnregisteredEvent{StepID: stepID},
+		api.StepUnregisteredEvent{StepID: stepID, Spaces: spaces},
 	)
 }
 
@@ -126,7 +131,10 @@ func (e *Engine) raiseStepRegisteredEvent(
 	step *api.Step, ag *CatalogAggregator,
 ) error {
 	if err := events.Raise(ag, api.EventTypeStepRegistered,
-		api.StepRegisteredEvent{Step: step},
+		api.StepRegisteredEvent{
+			Step:   step,
+			Spaces: matchingSpaceIDs(ag.Value(), step),
+		},
 	); err != nil {
 		return err
 	}
@@ -140,7 +148,10 @@ func (e *Engine) raiseStepUpdatedEvent(
 	step *api.Step, ag *CatalogAggregator,
 ) error {
 	if err := events.Raise(ag, api.EventTypeStepUpdated,
-		api.StepUpdatedEvent{Step: step},
+		api.StepUpdatedEvent{
+			Step:   step,
+			Spaces: matchingSpaceIDs(ag.Value(), step),
+		},
 	); err != nil {
 		return err
 	}

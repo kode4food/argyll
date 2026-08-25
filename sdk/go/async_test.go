@@ -18,7 +18,7 @@ func TestNewAsyncContext(t *testing.T) {
 	meta := api.Metadata{
 		api.MetaFlowID: "test-flow",
 		api.MetaStepID: "test-step",
-		api.MetaWebhookURL: "http://localhost:8080/webhook/" +
+		api.MetaWebhookURL: "http://localhost:8080/callbacks/" +
 			"test-flow/test-step/t123",
 	}
 
@@ -35,7 +35,7 @@ func TestNewAsyncContext(t *testing.T) {
 	assert.Equal(t, "test-flow", ac.FlowID())
 	assert.Equal(t, "test-step", ac.StepID())
 	assert.Equal(t,
-		"http://localhost:8080/webhook/test-flow/test-step/t123",
+		"http://localhost:8080/callbacks/test-flow/test-step/t123",
 		ac.WebhookURL(),
 	)
 }

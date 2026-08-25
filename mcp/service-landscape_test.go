@@ -188,7 +188,7 @@ func TestAnalyzeServiceLandscapeWithRegisteredSteps(t *testing.T) {
 	hc := &http.Client{
 		Transport: roundTripperFunc(
 			func(r *http.Request) (*http.Response, error) {
-				if r.URL.Path != "/engine/step" || r.Method != http.MethodGet {
+				if r.URL.Path != "/engine/steps" || r.Method != http.MethodGet {
 					return jsonResponse(
 						http.StatusNotFound, []byte(`{"error":"not found"}`),
 					), nil

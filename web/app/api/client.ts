@@ -50,7 +50,7 @@ export class ArgyllApi {
   }
 
   async registerStep(step: Step): Promise<Step> {
-    const response = await this.request<{ step: Step }>("/engine/step", {
+    const response = await this.request<{ step: Step }>("/engine/steps", {
       method: "POST",
       body: JSON.stringify(step),
     });
@@ -59,7 +59,7 @@ export class ArgyllApi {
 
   async updateStep(stepId: string, step: Step): Promise<Step> {
     const response = await this.request<{ step: Step }>(
-      `/engine/step/${stepId}`,
+      `/engine/steps/${stepId}`,
       {
         method: "PUT",
         body: JSON.stringify(step),
@@ -70,7 +70,7 @@ export class ArgyllApi {
 
   async startFlow(request: StartFlowRequest): Promise<unknown> {
     const { id, goalSteps, initialState, compensate = false } = request;
-    return this.request("/engine/flow", {
+    return this.request("/engine/flows", {
       method: "POST",
       body: JSON.stringify({
         id,
@@ -82,7 +82,7 @@ export class ArgyllApi {
   }
 
   async queryFlows(request: QueryFlowsRequest): Promise<QueryFlowsResponse> {
-    return this.request("/engine/flow/query", {
+    return this.request("/engine/flows/query", {
       method: "POST",
       body: JSON.stringify(request),
     });

@@ -215,7 +215,7 @@ func TestGetFlowEvents(t *testing.T) {
 		assert.NoError(t, testEnv.Engine.StartFlow("flow-events-id", pl))
 
 		req := httptest.NewRequest(
-			"GET", "/engine/flow/flow-events-id/events", nil,
+			"GET", "/engine/flows/flow-events-id/events", nil,
 		)
 		w := httptest.NewRecorder()
 
@@ -234,7 +234,7 @@ func TestGetFlowEvents(t *testing.T) {
 func TestGetFlowEventsNotFound(t *testing.T) {
 	withTestServerEnv(t, func(testEnv *testServerEnv) {
 		req := httptest.NewRequest(
-			"GET", "/engine/flow/nonexistent-flow/events", nil,
+			"GET", "/engine/flows/nonexistent-flow/events", nil,
 		)
 		w := httptest.NewRecorder()
 
