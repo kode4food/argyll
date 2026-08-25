@@ -19,7 +19,7 @@ type (
 	StructField[S any] interface {
 		Name() string
 		decode(*jsontext.Decoder, *S) error
-		encode(*jsontext.Encoder, *S) error
+		encode(*jsontext.Encoder, *S, *encodeState) error
 	}
 
 	// Numeric is any Go type whose JSON representation is a number
@@ -29,9 +29,15 @@ type (
 			~float32 | ~float64
 	}
 
+	stateCodec[T any] interface {
+		encode(*jsontext.Encoder, T, *encodeState) error
+	}
+
 	textCodec[T ~string]   struct{}
 	boolCodec[T ~bool]     struct{}
 	numberCodec[T Numeric] struct{}
+	stateSliceCodec[T any] struct{ sliceCodec[T] }
+	stateMapCodec[T any]   struct{ mapCodec[T] }
 	sliceCodec[T any]      struct{ elem Codec[T] }
 	optionalCodec[T any]   struct{ elem Codec[T] }
 	mapCodec[T any]        struct{ elem Codec[T] }
@@ -47,6 +53,10 @@ type (
 		ptr   func(*S) *T
 		name  string
 	}
+
+	encodeState struct {
+		active map[any]bool
+	}
 )
 
 var (
@@ -58,6 +68,7 @@ var (
 
 	ErrUnexpectedToken = errors.New("unexpected JSON token")
 	ErrUnexpectedEnd   = errors.New("unexpected end of JSON input")
+	ErrCyclicValue     = errors.New("cyclic value")
 )
 
 // Text returns a codec for any string-like type
@@ -77,7 +88,11 @@ func Number[T Numeric]() Codec[T] {
 
 // Slice returns a codec for a JSON array of the element codec's type
 func Slice[T any](elem Codec[T]) Codec[[]T] {
-	return sliceCodec[T]{elem: elem}
+	c := sliceCodec[T]{elem: elem}
+	if _, ok := elem.(stateCodec[T]); ok {
+		return stateSliceCodec[T]{sliceCodec: c}
+	}
+	return c
 }
 
 // Optional returns a codec mapping JSON null to a nil pointer
@@ -87,7 +102,11 @@ func Optional[T any](elem Codec[T]) Codec[*T] {
 
 // Map returns a codec for a JSON object with uniformly typed members
 func Map[T any](elem Codec[T]) Codec[map[string]T] {
-	return mapCodec[T]{elem: elem}
+	c := mapCodec[T]{elem: elem}
+	if _, ok := elem.(stateCodec[T]); ok {
+		return stateMapCodec[T]{mapCodec: c}
+	}
+	return c
 }
 
 // Ref returns a codec that reads target when used rather than when
@@ -210,6 +229,10 @@ func (c sliceCodec[T]) Encode(e *jsontext.Encoder, v []T) error {
 	return e.WriteToken(jsontext.EndArray)
 }
 
+func (c stateSliceCodec[T]) Encode(e *jsontext.Encoder, v []T) error {
+	return encodeValue(c, e, v, &encodeState{})
+}
+
 func (c optionalCodec[T]) Decode(d *jsontext.Decoder) (*T, error) {
 	if null, err := readNull(d); err != nil || null {
 		return nil, err
@@ -222,10 +245,7 @@ func (c optionalCodec[T]) Decode(d *jsontext.Decoder) (*T, error) {
 }
 
 func (c optionalCodec[T]) Encode(e *jsontext.Encoder, v *T) error {
-	if v == nil {
-		return e.WriteToken(jsontext.Null)
-	}
-	return c.elem.Encode(e, *v)
+	return encodeValue(c, e, v, &encodeState{})
 }
 
 func (c mapCodec[T]) Decode(d *jsontext.Decoder) (map[string]T, error) {
@@ -265,12 +285,18 @@ func (c mapCodec[T]) Encode(e *jsontext.Encoder, v map[string]T) error {
 	return e.WriteToken(jsontext.EndObject)
 }
 
+func (c stateMapCodec[T]) Encode(
+	e *jsontext.Encoder, v map[string]T,
+) error {
+	return encodeValue(c, e, v, &encodeState{})
+}
+
 func (c refCodec[T]) Decode(d *jsontext.Decoder) (T, error) {
 	return (*c.target).Decode(d)
 }
 
 func (c refCodec[T]) Encode(e *jsontext.Encoder, v T) error {
-	return (*c.target).Encode(e, v)
+	return encodeValue(c, e, v, &encodeState{})
 }
 
 func (c *structCodec[S]) Decode(d *jsontext.Decoder) (S, error) {
@@ -301,6 +327,66 @@ func (c *structCodec[S]) Decode(d *jsontext.Decoder) (S, error) {
 }
 
 func (c *structCodec[S]) Encode(e *jsontext.Encoder, v S) error {
+	return encodeValue(c, e, v, &encodeState{})
+}
+
+func (f structField[S, T]) Name() string {
+	return f.name
+}
+
+func (c stateSliceCodec[T]) encode(
+	e *jsontext.Encoder, v []T, state *encodeState,
+) error {
+	if err := e.WriteToken(jsontext.BeginArray); err != nil {
+		return err
+	}
+	for _, elem := range v {
+		if err := encodeValue(c.elem, e, elem, state); err != nil {
+			return err
+		}
+	}
+	return e.WriteToken(jsontext.EndArray)
+}
+
+func (c optionalCodec[T]) encode(
+	e *jsontext.Encoder, v *T, state *encodeState,
+) error {
+	if v == nil {
+		return e.WriteToken(jsontext.Null)
+	}
+	if err := state.enter(v); err != nil {
+		return err
+	}
+	defer state.leave(v)
+	return encodeValue(c.elem, e, *v, state)
+}
+
+func (c stateMapCodec[T]) encode(
+	e *jsontext.Encoder, v map[string]T, state *encodeState,
+) error {
+	if err := e.WriteToken(jsontext.BeginObject); err != nil {
+		return err
+	}
+	for name, elem := range v {
+		if err := e.WriteToken(jsontext.String(name)); err != nil {
+			return err
+		}
+		if err := encodeValue(c.elem, e, elem, state); err != nil {
+			return err
+		}
+	}
+	return e.WriteToken(jsontext.EndObject)
+}
+
+func (c refCodec[T]) encode(
+	e *jsontext.Encoder, v T, state *encodeState,
+) error {
+	return encodeValue(*c.target, e, v, state)
+}
+
+func (c *structCodec[S]) encode(
+	e *jsontext.Encoder, v S, state *encodeState,
+) error {
 	if err := e.WriteToken(jsontext.BeginObject); err != nil {
 		return err
 	}
@@ -308,15 +394,11 @@ func (c *structCodec[S]) Encode(e *jsontext.Encoder, v S) error {
 		if err := e.WriteToken(jsontext.String(f.Name())); err != nil {
 			return err
 		}
-		if err := f.encode(e, &v); err != nil {
+		if err := f.encode(e, &v, state); err != nil {
 			return err
 		}
 	}
 	return e.WriteToken(jsontext.EndObject)
-}
-
-func (f structField[S, T]) Name() string {
-	return f.name
 }
 
 func (f structField[S, T]) decode(d *jsontext.Decoder, s *S) error {
@@ -328,8 +410,25 @@ func (f structField[S, T]) decode(d *jsontext.Decoder, s *S) error {
 	return nil
 }
 
-func (f structField[S, T]) encode(e *jsontext.Encoder, s *S) error {
-	return f.codec.Encode(e, *f.ptr(s))
+func (f structField[S, T]) encode(
+	e *jsontext.Encoder, s *S, state *encodeState,
+) error {
+	return encodeValue(f.codec, e, *f.ptr(s), state)
+}
+
+func (s *encodeState) enter(v any) error {
+	if s.active[v] {
+		return fmt.Errorf("%w: %T", ErrCyclicValue, v)
+	}
+	if s.active == nil {
+		s.active = map[any]bool{}
+	}
+	s.active[v] = true
+	return nil
+}
+
+func (s *encodeState) leave(v any) {
+	delete(s.active, v)
 }
 
 func integral[T Numeric]() bool {
@@ -369,4 +468,13 @@ func readToken(d *jsontext.Decoder) (jsontext.Token, error) {
 func unexpected(want string, got jsontext.Kind) error {
 	return fmt.Errorf("%w: expected %s, got %s",
 		ErrUnexpectedToken, want, got)
+}
+
+func encodeValue[T any](
+	c Codec[T], e *jsontext.Encoder, v T, state *encodeState,
+) error {
+	if c, ok := c.(stateCodec[T]); ok {
+		return c.encode(e, v, state)
+	}
+	return c.Encode(e, v)
 }

@@ -25,6 +25,13 @@ type (
 		Children []node
 	}
 
+	graph struct {
+		Left     *graph
+		Right    *graph
+		Children []*graph
+		Named    map[string]*graph
+	}
+
 	failCodec struct{}
 
 	namedScalar struct {
@@ -40,9 +47,11 @@ const nodeJSON = `{"name":"a","children":[` +
 	`{"name":"b","children":[{"name":"c","children":[]}]}]}`
 
 var (
-	errCodec  = errors.New("codec failed")
-	nodeImpl  codec.Codec[node]
-	nodeCodec = codec.Ref(&nodeImpl)
+	errCodec   = errors.New("codec failed")
+	nodeImpl   codec.Codec[node]
+	nodeCodec  = codec.Ref(&nodeImpl)
+	graphImpl  codec.Codec[graph]
+	graphCodec = codec.Ref(&graphImpl)
 )
 
 func TestScalars(t *testing.T) {
@@ -175,6 +184,18 @@ func TestOptionalEncoding(t *testing.T) {
 	var sb strings.Builder
 	assert.NoError(t, codec.EncodeTo(codec.Optional(codec.Int), &sb, nil))
 	assert.Equal(t, "null", strings.TrimSpace(sb.String()))
+
+	s := []string{"value"}
+	sb.Reset()
+	assert.NoError(t,
+		codec.EncodeTo(codec.Optional(codec.Slice(codec.String)), &sb, &s))
+	assert.JSONEq(t, `["value"]`, sb.String())
+
+	m := map[string]string{"key": "value"}
+	sb.Reset()
+	assert.NoError(t,
+		codec.EncodeTo(codec.Optional(codec.Map(codec.String)), &sb, &m))
+	assert.JSONEq(t, `{"key":"value"}`, sb.String())
 }
 
 func TestFloatEncoding(t *testing.T) {
@@ -195,6 +216,32 @@ func TestRefRecursion(t *testing.T) {
 	var out strings.Builder
 	assert.NoError(t, codec.EncodeTo(nodeCodec, &out, v))
 	assert.JSONEq(t, nodeJSON, out.String())
+}
+
+func TestCycle(t *testing.T) {
+	root := graph{}
+	root.Left = &root
+
+	var out strings.Builder
+	err := codec.EncodeTo(graphCodec, &out, root)
+	assert.ErrorIs(t, err, codec.ErrCyclicValue)
+
+	root = graph{}
+	root.Children = []*graph{&root}
+	out.Reset()
+	err = codec.EncodeTo(graphCodec, &out, root)
+	assert.ErrorIs(t, err, codec.ErrCyclicValue)
+
+	root = graph{}
+	root.Named = map[string]*graph{"root": &root}
+	out.Reset()
+	err = codec.EncodeTo(graphCodec, &out, root)
+	assert.ErrorIs(t, err, codec.ErrCyclicValue)
+
+	leaf := &graph{}
+	root = graph{Left: leaf, Right: leaf}
+	out.Reset()
+	assert.NoError(t, codec.EncodeTo(graphCodec, &out, root))
 }
 
 func TestCompositeCodecErrors(t *testing.T) {
@@ -235,6 +282,26 @@ func init() {
 		codec.Field("children", codec.Slice(nodeCodec),
 			func(v *node) *[]node {
 				return &v.Children
+			}),
+	)
+	graphImpl = codec.Struct(
+		codec.Field("left", codec.Optional(graphCodec),
+			func(v *graph) **graph {
+				return &v.Left
+			}),
+		codec.Field("right", codec.Optional(graphCodec),
+			func(v *graph) **graph {
+				return &v.Right
+			}),
+		codec.Field("children",
+			codec.Slice(codec.Optional(graphCodec)),
+			func(v *graph) *[]*graph {
+				return &v.Children
+			}),
+		codec.Field("named",
+			codec.Map(codec.Optional(graphCodec)),
+			func(v *graph) *map[string]*graph {
+				return &v.Named
 			}),
 	)
 }
