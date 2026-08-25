@@ -383,6 +383,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Goal in use
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
         "500":
           description: Failed to unregister step
           content:
@@ -498,6 +504,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Goal not in Space
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
     delete:
       summary: Unregister Space
       operationId: unregisterSpace
@@ -512,6 +524,12 @@ paths:
                 $ref: "#/components/schemas/MessageResponse"
         "404":
           description: Space not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Space in use
           content:
             application/json:
               schema:
@@ -1648,6 +1666,12 @@ components:
             type: string
           minItems: 1
           example: ["child-goal"]
+        space_id:
+          type: string
+          description: |
+            Optional Space that restricts planning for the child flow. Every goal
+            must be a current member of the Space.
+          example: "payments"
         compensate:
           type: boolean
           description: |

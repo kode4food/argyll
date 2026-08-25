@@ -289,7 +289,10 @@ class Client:
         flow = None
         if "flow" in data:
             flow_data = data["flow"]
-            flow = FlowConfig(goals=flow_data["goals"])
+            flow = FlowConfig(
+                goals=flow_data["goals"],
+                space_id=flow_data.get("space_id", ""),
+            )
 
         return Step(
             id=data["id"],

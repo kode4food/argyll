@@ -229,6 +229,20 @@ func TestStepValidation(t *testing.T) {
 			errorContains: "flow goals required",
 		},
 		{
+			name: "invalid_flow_space_id",
+			step: &api.Step{
+				ID:   "test-id",
+				Name: "Test Flow",
+				Type: api.StepTypeFlow,
+				Flow: &api.FlowConfig{
+					Goals:   []api.StepID{"goal"},
+					SpaceID: "invalid:space",
+				},
+			},
+			expectError:   true,
+			errorContains: "space ID contains invalid characters",
+		},
+		{
 			name: "flow_with_http_config",
 			step: &api.Step{
 				ID:   "test-id",
@@ -735,9 +749,14 @@ func TestEqualFlowConfig(t *testing.T) {
 	config3 := &api.FlowConfig{
 		Goals: []api.StepID{"goal-2"},
 	}
+	config4 := &api.FlowConfig{
+		Goals:   []api.StepID{"goal-1"},
+		SpaceID: "restricted",
+	}
 
 	as.True(config1.Equal(config2))
 	as.False(config1.Equal(config3))
+	as.False(config1.Equal(config4))
 	as.True((*api.FlowConfig)(nil).Equal(nil))
 	as.False(config1.Equal(nil))
 }

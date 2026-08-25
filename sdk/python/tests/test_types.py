@@ -260,9 +260,10 @@ def test_work_config_to_dict():
 def test_flow_config_to_dict():
     from argyll.types import FlowConfig
 
-    config = FlowConfig(goals=["step-1", "step-2"])
+    config = FlowConfig(goals=["step-1", "step-2"], space_id="payments")
     result = config.to_dict()
     assert result["goals"] == ["step-1", "step-2"]
+    assert result["space_id"] == "payments"
 
 
 def test_step_with_all_fields():

@@ -28,6 +28,7 @@ var (
 	ErrInvalidStep        = errors.New("invalid step")
 	ErrStepExists         = errors.New("step exists")
 	ErrStepNotFound       = errors.New("step not found")
+	ErrSubFlowGoalInUse   = errors.New("goal in use")
 	ErrTypeConflict       = errors.New("attribute type conflict")
 	ErrCircularDependency = errors.New("circular dependency detected")
 )
@@ -106,6 +107,9 @@ func (tx *CatalogTx) Update(step *api.Step) error {
 
 func (tx *CatalogTx) Remove(stepID api.StepID) error {
 	st := tx.ag.Value()
+	if ref, ok := spaceSubFlowGoal(st, stepID); ok {
+		return fmt.Errorf("%w: %s", ErrSubFlowGoalInUse, ref)
+	}
 	var spaces []api.SpaceID
 	if step, ok := st.Steps[stepID]; ok {
 		spaces = matchingSpaceIDs(st, step)
@@ -190,6 +194,7 @@ func validateStepUpsert(
 ) error {
 	if err := call.Perform(
 		call.WithArgs(validateAttributeTypes, st, newStep),
+		call.WithArgs(validateSpaceSubFlows, st, newStep),
 		func() error { return detectStepCycles(st, newStep, children) },
 	); err != nil {
 		return errors.Join(ErrInvalidStep, err)

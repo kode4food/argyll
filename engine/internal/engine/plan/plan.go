@@ -15,6 +15,7 @@ type (
 	Request struct {
 		Match    policy.Matcher
 		Children ChildrenFunc
+		Catalog  api.CatalogState
 		Steps    api.Steps
 		Goals    []api.StepID
 		Init     api.InitArgs
@@ -43,6 +44,7 @@ type (
 	planArgs struct {
 		dependencies api.AttributeGraph
 		candidates   api.Steps
+		catalog      api.CatalogState
 		match        policy.Matcher
 		providers    selectProviders
 		init         api.InitArgs
@@ -55,6 +57,7 @@ type (
 var (
 	ErrNoGoals            = errors.New("at least one goal step is required")
 	ErrStepNotFound       = errors.New("step not found")
+	ErrSpaceNotFound      = errors.New("space not found")
 	ErrCircularDependency = errors.New("circular dependency detected")
 )
 
@@ -89,13 +92,10 @@ func ChildPlanInit(step *api.Step) api.InitArgs {
 }
 
 func newPlanArgs(req *Request, providers selectProviders) planArgs {
-	dependencies := api.AttributeGraph{}
-	for _, st := range req.Steps {
-		dependencies = dependencies.AddStep(st)
-	}
 	return planArgs{
-		dependencies: dependencies,
+		dependencies: dependencyGraph(req.Steps),
 		candidates:   req.Steps,
+		catalog:      req.Catalog,
 		match:        req.Match,
 		providers:    providers,
 		init:         req.Init,
@@ -121,10 +121,23 @@ func create(
 		if ancestors.Contains(sid) {
 			return nil, fmt.Errorf("%w: step %s", ErrCircularDependency, sid)
 		}
+		candidates := args.candidates
+		dependencies := args.dependencies
+		if st.Flow != nil && st.Flow.SpaceID != "" {
+			space, ok := args.catalog.Spaces[st.Flow.SpaceID]
+			if !ok {
+				return nil, fmt.Errorf(
+					"%w: %s", ErrSpaceNotFound, st.Flow.SpaceID,
+				)
+			}
+			candidates = args.catalog.Query(space.Matches)
+			dependencies = dependencyGraph(candidates)
+		}
 		ancestors.Add(sid)
 		childPlan, err := create(planArgs{
-			dependencies: args.dependencies,
-			candidates:   args.candidates,
+			dependencies: dependencies,
+			candidates:   candidates,
+			catalog:      args.catalog,
 			match:        args.match,
 			providers:    args.providers,
 			init:         ChildPlanInit(st),
@@ -541,4 +554,12 @@ func previewProviders(b *builder, providers []api.StepID) []api.StepID {
 		return res
 	}
 	return providers
+}
+
+func dependencyGraph(steps api.Steps) api.AttributeGraph {
+	res := api.AttributeGraph{}
+	for _, st := range steps {
+		res = res.AddStep(st)
+	}
+	return res
 }

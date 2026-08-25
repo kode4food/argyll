@@ -223,8 +223,17 @@ class StepBuilder:
 
     def with_flow_goals(self, *goal_ids: StepID) -> "StepBuilder":
         """Configure flow step with goal IDs."""
+        flow = self._flow or FlowConfig(goals=[])
         return self._copy(
-            _flow=FlowConfig(goals=list(goal_ids)),
+            _flow=replace(flow, goals=list(goal_ids)),
+            _type=StepType.FLOW,
+        )
+
+    def with_flow_space(self, space_id: str) -> "StepBuilder":
+        """Restrict a child flow to a planning space."""
+        flow = self._flow or FlowConfig(goals=[])
+        return self._copy(
+            _flow=replace(flow, space_id=space_id),
             _type=StepType.FLOW,
         )
 

@@ -299,12 +299,14 @@ func TestWithScriptExecution(t *testing.T) {
 
 func TestWithFlowGoals(t *testing.T) {
 	st, err := testClient().NewStep().WithName("Flow Step").
+		WithFlowSpace("payments").
 		WithFlowGoals("goal-a", "goal-b").
 		Build()
 
 	assert.NoError(t, err)
 	assert.Equal(t, api.StepTypeFlow, st.Type)
 	assert.Equal(t, []api.StepID{"goal-a", "goal-b"}, st.Flow.Goals)
+	assert.Equal(t, api.SpaceID("payments"), st.Flow.SpaceID)
 }
 
 func TestWithPredicate(t *testing.T) {

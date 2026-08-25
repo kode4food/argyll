@@ -266,11 +266,22 @@ func (r *healthResolver) previewFlowPlan(
 		return nil, err
 	}
 
+	steps := r.cat.Steps
+	st := r.steps[stepID]
+	if st.Flow != nil && st.Flow.SpaceID != "" {
+		space, ok := r.cat.Spaces[st.Flow.SpaceID]
+		if !ok {
+			return nil, fmt.Errorf("%w: %s", plan.ErrSpaceNotFound,
+				st.Flow.SpaceID)
+		}
+		steps = r.cat.Query(space.Matches)
+	}
 	pl, err := plan.Create(&plan.Request{
-		Match: r.match,
-		Steps: r.cat.Steps,
-		Goals: children,
-		Init:  api.InitArgs{},
+		Match:   r.match,
+		Catalog: r.cat,
+		Steps:   steps,
+		Goals:   children,
+		Init:    api.InitArgs{},
 	})
 	if err != nil {
 		r.planErrs[stepID] = err

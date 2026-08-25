@@ -133,6 +133,13 @@ func (s *Server) updateSpace(c *gin.Context) {
 		})
 		return
 	}
+	if errors.Is(err, engine.ErrSpaceGoalExcluded) {
+		c.JSON(http.StatusConflict, api.ErrorResponse{
+			Error:  err.Error(),
+			Status: http.StatusConflict,
+		})
+		return
+	}
 	if errors.Is(err, engine.ErrInvalidSpace) {
 		c.JSON(http.StatusBadRequest, api.ErrorResponse{
 			Error:  err.Error(),
@@ -159,6 +166,13 @@ func (s *Server) deleteSpace(c *gin.Context) {
 		c.JSON(http.StatusNotFound, api.ErrorResponse{
 			Error:  err.Error(),
 			Status: http.StatusNotFound,
+		})
+		return
+	}
+	if errors.Is(err, engine.ErrSpaceInUse) {
+		c.JSON(http.StatusConflict, api.ErrorResponse{
+			Error:  err.Error(),
+			Status: http.StatusConflict,
 		})
 		return
 	}

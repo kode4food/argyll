@@ -548,12 +548,14 @@ def test_step_builder_with_flow_goals():
     builder = (
         client.new_step()
         .with_name("FlowStep")
+        .with_flow_space("payments")
         .with_flow_goals("step-1", "step-2")
     )
     step = builder.build()
     assert step.type == StepType.FLOW
     assert step.flow is not None
     assert step.flow.goals == ["step-1", "step-2"]
+    assert step.flow.space_id == "payments"
 
 
 @responses.activate

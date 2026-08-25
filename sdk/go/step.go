@@ -185,6 +185,15 @@ func (s Step) WithFlowGoals(goals ...api.StepID) Step {
 	return s
 }
 
+// WithFlowSpace restricts a child flow to the specified planning space
+func (s Step) WithFlowSpace(spaceID api.SpaceID) Step {
+	s.step = s.step.Copy()
+	s.step.Flow = util.MutableCopy(s.step.Flow)
+	s.step.Flow.SpaceID = spaceID
+	s.step.Type = api.StepTypeFlow
+	return s
+}
+
 // WithScript sets the script to execute for this step
 func (s Step) WithScript(script api.ScriptConfig) Step {
 	s.step = s.step.Copy()

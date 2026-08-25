@@ -293,10 +293,14 @@ class FlowConfig:
     """Flow configuration for flow steps."""
 
     goals: List[StepID]
+    space_id: str = ""
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert to API dictionary format."""
-        return {"goals": self.goals}
+        result: Dict[str, Any] = {"goals": self.goals}
+        if self.space_id:
+            result["space_id"] = self.space_id
+        return result
 
 
 @dataclass(frozen=True)

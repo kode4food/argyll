@@ -172,6 +172,13 @@ func (s *Server) deleteStep(c *gin.Context) {
 
 	err = s.engine.UnregisterStep(sid)
 	if err != nil {
+		if errors.Is(err, engine.ErrSubFlowGoalInUse) {
+			c.JSON(http.StatusConflict, api.ErrorResponse{
+				Error:  err.Error(),
+				Status: http.StatusConflict,
+			})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, api.ErrorResponse{
 			Error:  fmt.Sprintf("%s: %v", ErrUnregisterStep, err),
 			Status: http.StatusInternalServerError,

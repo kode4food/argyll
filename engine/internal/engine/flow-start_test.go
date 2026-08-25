@@ -298,11 +298,13 @@ func TestStartChildFlowSetsParentMetadata(t *testing.T) {
 			Plan:     parentPlan.Children[parent.ID],
 			Init:     api.InitArgs{},
 			Metadata: meta,
+			SpaceID:  "payments",
 		})
 		assert.NoError(t, err)
 
 		childFlow, err := env.Engine.GetFlowState(childID)
 		assert.NoError(t, err)
+		assert.Equal(t, api.SpaceID("payments"), childFlow.SpaceID)
 		assert.Equal(t, meta["source"], childFlow.Metadata["source"])
 		assert.Equal(t,
 			parentFS.FlowID, childFlow.Metadata[api.MetaParentFlowID],

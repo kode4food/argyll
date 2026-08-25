@@ -106,3 +106,57 @@ func TestCreatePlanEmbedsChildPlans(t *testing.T) {
 		}
 	})
 }
+
+func TestCreatePlanRestrictsChildFlowToSpace(t *testing.T) {
+	helpers.WithEngine(t, func(eng *engine.Engine) {
+		provider := helpers.NewSimpleStep("provider")
+		provider.Attributes = api.AttributeSpecs{
+			"input": {Role: api.RoleOutput, Type: api.TypeString},
+		}
+		assert.NoError(t, eng.RegisterStep(provider))
+
+		goal := helpers.NewSimpleStep("goal")
+		goal.Labels = api.Labels{"domain": "payments"}
+		goal.Attributes = api.AttributeSpecs{
+			"input": {Role: api.RoleRequired, Type: api.TypeString},
+		}
+		assert.NoError(t, eng.RegisterStep(goal))
+
+		space := api.Space{
+			ID:   "payments",
+			Name: "Payments",
+			Selector: api.LabelSelector{MatchLabels: api.Labels{
+				"domain": "payments",
+			}},
+		}
+		assert.NoError(t, eng.RegisterSpace(space))
+
+		parent := &api.Step{
+			ID:         "parent",
+			Name:       "Parent",
+			Type:       api.StepTypeFlow,
+			Attributes: api.AttributeSpecs{},
+			Flow: &api.FlowConfig{
+				Goals:   []api.StepID{goal.ID},
+				SpaceID: space.ID,
+			},
+		}
+		assert.NoError(t, eng.RegisterStep(parent))
+
+		cat, err := eng.GetCatalogState()
+		assert.NoError(t, err)
+		pl, err := plan.Create(&plan.Request{
+			Match:    eng.Matcher,
+			Children: eng.Children,
+			Catalog:  cat,
+			Steps:    cat.Steps,
+			Goals:    []api.StepID{parent.ID},
+			Init:     api.InitArgs{},
+		})
+		assert.NoError(t, err)
+
+		child := pl.Children[parent.ID]
+		assert.NotContains(t, child.Steps, provider.ID)
+		assert.Contains(t, child.Required, api.Name("input"))
+	})
+}

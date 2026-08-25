@@ -67,6 +67,7 @@ type (
 	// FlowConfig configures flow-based step execution
 	FlowConfig struct {
 		Goals      []StepID `json:"goals"`
+		SpaceID    SpaceID  `json:"space_id,omitempty"`
 		Compensate bool     `json:"compensate,omitempty"`
 	}
 
@@ -555,6 +556,9 @@ func (s *Step) validateFlowConfig() error {
 	if len(s.Flow.Goals) == 0 {
 		return ErrFlowGoalsRequired
 	}
+	if s.Flow.SpaceID != "" && SanitizeID(s.Flow.SpaceID) != s.Flow.SpaceID {
+		return ErrSpaceIDInvalid
+	}
 	return nil
 }
 
@@ -721,7 +725,8 @@ func (c *FlowConfig) Equal(other *FlowConfig) bool {
 	if c == nil || other == nil {
 		return c == other
 	}
-	return c.Compensate == other.Compensate &&
+	return c.SpaceID == other.SpaceID &&
+		c.Compensate == other.Compensate &&
 		slices.Equal(c.Goals, other.Goals)
 }
 

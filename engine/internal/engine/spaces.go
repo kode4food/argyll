@@ -10,9 +10,11 @@ import (
 )
 
 var (
-	ErrInvalidSpace  = errors.New("invalid space")
-	ErrSpaceExists   = errors.New("space exists")
-	ErrSpaceNotFound = errors.New("space not found")
+	ErrInvalidSpace      = errors.New("invalid space")
+	ErrSpaceExists       = errors.New("space exists")
+	ErrSpaceNotFound     = errors.New("space not found")
+	ErrSpaceInUse        = errors.New("space in use")
+	ErrSpaceGoalExcluded = errors.New("goal not in space")
 )
 
 // RegisterSpace persists a new planning space
@@ -65,6 +67,9 @@ func (e *Engine) UpdateSpace(space api.Space) error {
 		if old.Equal(space) {
 			return nil
 		}
+		if err := validateSpaceGoals(st, space); err != nil {
+			return err
+		}
 		return events.Raise(tx.ag, api.EventTypeSpaceUpdated,
 			api.SpaceUpdatedEvent{
 				Space: space,
@@ -77,8 +82,12 @@ func (e *Engine) UpdateSpace(space api.Space) error {
 // UnregisterSpace removes a planning space
 func (e *Engine) UnregisterSpace(spaceID api.SpaceID) error {
 	return e.CatalogTx(func(tx *CatalogTx) error {
-		if _, ok := tx.ag.Value().Spaces[spaceID]; !ok {
+		st := tx.ag.Value()
+		if _, ok := st.Spaces[spaceID]; !ok {
 			return fmt.Errorf("%w: %s", ErrSpaceNotFound, spaceID)
+		}
+		if ref, ok := spaceSubFlow(st, spaceID); ok {
+			return fmt.Errorf("%w: %s", ErrSpaceInUse, ref)
 		}
 		return events.Raise(tx.ag, api.EventTypeSpaceUnregistered,
 			api.SpaceUnregisteredEvent{SpaceID: spaceID},
@@ -95,4 +104,71 @@ func matchingSpaceIDs(cat api.CatalogState, step *api.Step) []api.SpaceID {
 	}
 	slices.Sort(res)
 	return res
+}
+
+func validateSpaceSubFlows(cat api.CatalogState, newStep *api.Step) error {
+	steps := stepsIncluding(cat, newStep)
+	for _, st := range steps {
+		if st.Flow == nil || st.Flow.SpaceID == "" {
+			continue
+		}
+		space, ok := cat.Spaces[st.Flow.SpaceID]
+		if !ok {
+			return fmt.Errorf("%w: %s", ErrSpaceNotFound, st.Flow.SpaceID)
+		}
+		if err := validateSubFlowGoals(steps, st, space); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func validateSpaceGoals(cat api.CatalogState, space api.Space) error {
+	for _, st := range cat.Steps {
+		if st.Flow == nil || st.Flow.SpaceID != space.ID {
+			continue
+		}
+		if err := validateSubFlowGoals(cat.Steps, st, space); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func validateSubFlowGoals(
+	steps api.Steps, st *api.Step, space api.Space,
+) error {
+	for _, goalID := range st.Flow.Goals {
+		goal, ok := steps[goalID]
+		if !ok {
+			return fmt.Errorf("%w: %s", ErrStepNotFound, goalID)
+		}
+		if !space.Matches(goal) {
+			return fmt.Errorf("%w: %s", ErrSpaceGoalExcluded, goalID)
+		}
+	}
+	return nil
+}
+
+func spaceSubFlow(
+	cat api.CatalogState, spaceID api.SpaceID,
+) (api.StepID, bool) {
+	for id, st := range cat.Steps {
+		if st.Flow != nil && st.Flow.SpaceID == spaceID {
+			return id, true
+		}
+	}
+	return "", false
+}
+
+func spaceSubFlowGoal(
+	cat api.CatalogState, goalID api.StepID,
+) (api.StepID, bool) {
+	for id, st := range cat.Steps {
+		if st.Flow != nil && st.Flow.SpaceID != "" &&
+			slices.Contains(st.Flow.Goals, goalID) {
+			return id, true
+		}
+	}
+	return "", false
 }
