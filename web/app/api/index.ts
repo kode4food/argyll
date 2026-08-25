@@ -18,6 +18,8 @@ export type {
   FlowConfig,
   WorkConfig,
   Step,
+  Space,
+  LabelSelector,
   ExecutionPlan,
   FlowContext,
   FlowSummary,
@@ -29,7 +31,6 @@ export type {
   WorkState,
   FlowSort,
   QueryFlowsRequest,
-  EngineState,
   NodeStepHealth,
 } from "./types";
 

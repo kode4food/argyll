@@ -1752,10 +1752,14 @@ components:
 
     LabelSelector:
       type: object
+      required:
+        - match_labels
       properties:
         match_labels:
           type: object
-          description: Step labels to match, combined with AND
+          description: Step labels to match, combined with AND. At least one
+            entry is required
+          minProperties: 1
           additionalProperties:
             type: string
 
@@ -1818,6 +1822,10 @@ components:
             type: string
           minItems: 1
           example: ["text-processor"]
+        space_id:
+          type: string
+          description: Restricts planning to the steps matched by this Space
+          example: risk
         init:
           type: object
           description: Initial flow attribute values

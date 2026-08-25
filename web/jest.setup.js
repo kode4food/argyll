@@ -133,3 +133,14 @@ jest.mock("enhanced-ms", () => ({
   createMs: () => (value) =>
     typeof value === "number" ? formatDuration(value) : parseDuration(value),
 }));
+
+// jsdom does not implement HTMLDialogElement modal behaviour
+if (!HTMLDialogElement.prototype.showModal) {
+  HTMLDialogElement.prototype.showModal = function () {
+    this.open = true;
+  };
+  HTMLDialogElement.prototype.close = function () {
+    this.open = false;
+    this.dispatchEvent(new Event("close"));
+  };
+}

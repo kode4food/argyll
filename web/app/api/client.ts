@@ -1,9 +1,9 @@
 import { apiConfig } from "@/constants/common";
 import {
-  EngineState,
   ExecutionPlan,
   QueryFlowsResponse,
   QueryFlowsRequest,
+  Space,
   Step,
 } from "./types";
 
@@ -14,6 +14,14 @@ export interface StartFlowRequest {
   goalSteps: string[];
   initialState: Record<string, unknown[]>;
   compensate?: boolean;
+  spaceId?: string;
+}
+
+export interface ExecutionPlanOptions {
+  goalSteps: string[];
+  initialState?: Record<string, any[]>;
+  spaceId?: string;
+  signal?: AbortSignal;
 }
 
 export class ArgyllApi {
@@ -68,8 +76,37 @@ export class ArgyllApi {
     return response.step;
   }
 
+  async registerSpace(space: Space): Promise<Space> {
+    const response = await this.request<{ space: Space }>("/engine/spaces", {
+      method: "POST",
+      body: JSON.stringify(space),
+    });
+    return response.space;
+  }
+
+  async updateSpace(spaceId: string, space: Space): Promise<Space> {
+    const response = await this.request<{ space: Space }>(
+      `/engine/spaces/${spaceId}`,
+      {
+        method: "PUT",
+        body: JSON.stringify(space),
+      }
+    );
+    return response.space;
+  }
+
+  async unregisterSpace(spaceId: string): Promise<void> {
+    await this.request(`/engine/spaces/${spaceId}`, { method: "DELETE" });
+  }
+
   async startFlow(request: StartFlowRequest): Promise<unknown> {
-    const { id, goalSteps, initialState, compensate = false } = request;
+    const {
+      id,
+      goalSteps,
+      initialState,
+      compensate = false,
+      spaceId,
+    } = request;
     return this.request("/engine/flows", {
       method: "POST",
       body: JSON.stringify({
@@ -77,6 +114,7 @@ export class ArgyllApi {
         goals: goalSteps,
         init: initialState,
         compensate,
+        ...(spaceId && { space_id: spaceId }),
       }),
     });
   }
@@ -100,21 +138,17 @@ export class ArgyllApi {
   }
 
   async getExecutionPlan(
-    goalSteps: string[],
-    initialState: Record<string, any[]> = {},
-    signal?: AbortSignal
+    request: ExecutionPlanOptions
   ): Promise<ExecutionPlan> {
+    const { goalSteps, initialState = {}, spaceId, signal } = request;
     return this.request("/engine/plan", {
       method: "POST",
       body: JSON.stringify({
         goals: goalSteps,
         init: initialState,
+        ...(spaceId && { space_id: spaceId }),
       }),
       signal,
     });
-  }
-
-  async getEngine(): Promise<EngineState> {
-    return this.request("/engine");
   }
 }

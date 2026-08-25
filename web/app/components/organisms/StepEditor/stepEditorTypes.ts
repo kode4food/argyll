@@ -3,6 +3,12 @@ import { AttributeType, InputCollect } from "@/app/api";
 export type AttributeRoleType =
   "required" | "optional" | "const" | "meta" | "output";
 
+export interface Label {
+  id: string;
+  key: string;
+  value: string;
+}
+
 export interface Attribute {
   id: string;
   role: AttributeRoleType;

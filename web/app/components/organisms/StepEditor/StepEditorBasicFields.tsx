@@ -1,18 +1,16 @@
 import React from "react";
 import type { Handling, StepType } from "@/app/api";
 import { useT } from "@/app/i18n";
-import useDropdown from "@/app/hooks/useDropdown";
+import SelectField, {
+  type SelectFieldOption,
+} from "@/app/components/molecules/SelectField";
 import {
   getStepTypeIcon,
   IconCompensate,
   IconMemoized,
   IconStandard,
-  type LucideIcon,
 } from "@/utils/iconRegistry";
-import dropdownStyles from "@/app/styles/components/dropdown.module.css";
-import styles from "./StepEditor.module.css";
 import formStyles from "./StepEditorForm.module.css";
-import localStyles from "./StepEditorBasicFields.module.css";
 
 interface StepEditorBasicFieldsProps {
   handling: Handling;
@@ -24,21 +22,6 @@ interface StepEditorBasicFieldsProps {
   setStepType: (value: StepType) => void;
   stepId: string;
   stepType: StepType;
-}
-
-interface FieldSelectOption {
-  disabled?: boolean;
-  Icon: LucideIcon;
-  label: string;
-  title?: string;
-  value: string;
-}
-
-interface FieldSelectProps {
-  label: string;
-  onChange: (value: string) => void;
-  options: FieldSelectOption[];
-  value: string;
 }
 
 const STEP_TYPE_OPTIONS = [
@@ -64,83 +47,6 @@ const STEP_TYPE_OPTIONS = [
   },
 ];
 
-const FieldSelect: React.FC<FieldSelectProps> = ({
-  label,
-  onChange,
-  options,
-  value,
-}) => {
-  const {
-    open,
-    setOpen,
-    highlightedIndex,
-    setHighlightedIndex,
-    wrapperRef,
-    handleKeyDown,
-  } = useDropdown(options, value, onChange);
-  const selected = options.find((option) => option.value === value);
-  const SelectedIcon = selected?.Icon;
-
-  return (
-    <div className={`${formStyles.field} ${formStyles.flex1}`}>
-      <label className={formStyles.label}>{label}</label>
-      <div
-        ref={wrapperRef}
-        className={localStyles.fieldSelectWrapper}
-        onKeyDown={handleKeyDown}
-      >
-        <button
-          type="button"
-          onClick={() => setOpen((isOpen) => !isOpen)}
-          className={`${localStyles.fieldSelectFace} ${
-            open ? localStyles.fieldSelectFaceOpen : ""
-          }`}
-          aria-expanded={open}
-          aria-haspopup="listbox"
-        >
-          {SelectedIcon && <SelectedIcon className={styles.iconSm} />}
-          <span>{selected?.label ?? value}</span>
-        </button>
-        {open && (
-          <div
-            className={`${dropdownStyles.list} ${localStyles.fieldSelectList}`}
-            role="listbox"
-            data-ui-overlay="dropdown"
-          >
-            {options.map((option, index) => (
-              <button
-                key={option.value}
-                type="button"
-                role="option"
-                aria-selected={value === option.value}
-                title={option.title ?? option.label}
-                disabled={option.disabled}
-                className={`${dropdownStyles.item} ${
-                  value === option.value ? dropdownStyles.itemActive : ""
-                } ${option.disabled ? dropdownStyles.itemDisabled : ""} ${
-                  index === highlightedIndex
-                    ? dropdownStyles.itemHighlighted
-                    : ""
-                }`}
-                onMouseEnter={() => setHighlightedIndex(index)}
-                onClick={() => {
-                  onChange(option.value);
-                  setOpen(false);
-                }}
-              >
-                <span className={dropdownStyles.itemIcon}>
-                  <option.Icon className={styles.iconSm} />
-                </span>
-                <span className={dropdownStyles.itemLabel}>{option.label}</span>
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-};
-
 const StepEditorBasicFields: React.FC<StepEditorBasicFieldsProps> = ({
   handling,
   isCreateMode,
@@ -161,7 +67,7 @@ const StepEditorBasicFields: React.FC<StepEditorBasicFieldsProps> = ({
       value,
     })
   );
-  const handlingOptions: FieldSelectOption[] = [
+  const handlingOptions: SelectFieldOption[] = [
     {
       Icon: IconStandard,
       label: t("stepEditor.handling.standard"),
@@ -207,13 +113,15 @@ const StepEditorBasicFields: React.FC<StepEditorBasicFieldsProps> = ({
           placeholder={t("stepEditor.stepNamePlaceholder")}
         />
       </div>
-      <FieldSelect
+      <SelectField
+        className={formStyles.flex1}
         label={t("stepEditor.typeLabel")}
         onChange={(value) => setStepType(value as StepType)}
         options={typeOptions}
         value={stepType}
       />
-      <FieldSelect
+      <SelectField
+        className={formStyles.flex1}
         label={t("stepEditor.handlingLabel")}
         onChange={(value) => setHandling(value as Handling)}
         options={handlingOptions}

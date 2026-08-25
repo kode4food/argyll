@@ -22,7 +22,8 @@ import { useStepVisibility } from "./useStepVisibility";
 import { useNodeCalculation } from "./useNodeCalculation";
 import { useEdgeCalculation } from "@/app/hooks/useEdgeCalculation";
 import { useAutoLayout } from "./useAutoLayout";
-import { saveNodePositions } from "@/utils/nodePositioning";
+import { NodePositionScope, saveNodePositions } from "@/utils/nodePositioning";
+import { useSpaceSelection } from "@/app/store/flowStore";
 import { useUI } from "@/app/contexts/UIContext";
 import { useKeyboardShortcuts } from "@/app/hooks/useKeyboardShortcuts";
 import { useDiagramSelection } from "@/app/contexts/DiagramSelectionContext";
@@ -49,9 +50,19 @@ const OverviewDiagramViewInner: React.FC<OverviewDiagramViewProps> = ({
   const activeGoalStepId =
     goalSteps.length > 0 ? goalSteps[goalSteps.length - 1] : null;
   const reactFlowInstance = useReactFlow();
-  const viewportKey = "overview";
-  const { diagramContainerRef, focusedPreviewAttribute, updatePreviewPlan } =
-    useUI();
+  const {
+    diagramContainerRef,
+    focusedPreviewAttribute,
+    updatePreviewPlan,
+    spaceId,
+  } = useUI();
+  const spaceSelection = useSpaceSelection();
+  const selected = spaceId ? spaceSelection[spaceId] : null;
+  const viewportKey = spaceId ? `space:${spaceId}` : "overview";
+  const positionScope = React.useMemo<NodePositionScope>(
+    () => (spaceId ? { type: "space", spaceId } : { type: "overview" }),
+    [spaceId]
+  );
   const fitView = useFitView();
   const { previewPlan, handleStepClick, clearPreview } =
     useExecutionPlanPreview(goalSteps, setGoalSteps);
@@ -71,7 +82,8 @@ const OverviewDiagramViewInner: React.FC<OverviewDiagramViewProps> = ({
 
   const { visibleSteps, previewStepIds } = useStepVisibility(
     steps,
-    previewPlan
+    previewPlan,
+    selected
   );
 
   const initialNodes = useNodeCalculation(
@@ -80,7 +92,8 @@ const OverviewDiagramViewInner: React.FC<OverviewDiagramViewProps> = ({
     previewPlan,
     previewStepIds,
     handleStepClick,
-    diagramContainerRef
+    diagramContainerRef,
+    positionScope
   );
 
   const initialEdges = useEdgeCalculation(
@@ -89,7 +102,7 @@ const OverviewDiagramViewInner: React.FC<OverviewDiagramViewProps> = ({
     focusedPreviewAttribute
   );
 
-  const { plan } = useLayoutPlan(visibleSteps, []);
+  const { plan } = useLayoutPlan(visibleSteps, [], positionScope);
   const previewStepCount = previewPlan
     ? Object.keys(previewPlan.steps).length
     : 0;
@@ -109,13 +122,13 @@ const OverviewDiagramViewInner: React.FC<OverviewDiagramViewProps> = ({
       if (positionChanges.length > 0) {
         setTimeout(() => {
           setNodes((currentNodes) => {
-            saveNodePositions(currentNodes);
+            saveNodePositions(currentNodes, positionScope);
             return currentNodes;
           });
         }, 0);
       }
     },
-    [onNodesChange, setNodes]
+    [onNodesChange, setNodes, positionScope]
   );
 
   const handlePaneClick = useCallback(() => {
@@ -299,10 +312,13 @@ const OverviewDiagramViewInner: React.FC<OverviewDiagramViewProps> = ({
   );
 };
 
-const OverviewDiagramView: React.FC<OverviewDiagramViewProps> = (props) => (
-  <ReactFlowProvider>
-    <OverviewDiagramViewInner {...props} />
-  </ReactFlowProvider>
-);
+const OverviewDiagramView: React.FC<OverviewDiagramViewProps> = (props) => {
+  const { spaceId } = useUI();
+  return (
+    <ReactFlowProvider key={spaceId ?? "overview"}>
+      <OverviewDiagramViewInner {...props} />
+    </ReactFlowProvider>
+  );
+};
 
 export default OverviewDiagramView;

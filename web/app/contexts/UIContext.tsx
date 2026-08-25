@@ -2,11 +2,13 @@ import React, {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useRef,
   useState,
 } from "react";
 import { api, ExecutionPlan } from "../api";
+import { useSpaces } from "../store/flowStore";
 
 interface UIContextType {
   diagramContainerRef: React.RefObject<HTMLDivElement | null>;
@@ -18,6 +20,8 @@ interface UIContextType {
   goalSteps: string[];
   toggleGoalStep: (stepId: string) => void;
   setGoalSteps: (stepIds: string[]) => void;
+  spaceId: string | null;
+  setSpaceId: (spaceId: string | null) => void;
   updatePreviewPlan: (
     goalSteps: string[],
     initialState: Record<string, any>
@@ -37,9 +41,13 @@ export const UIProvider: React.FC<{ children: React.ReactNode }> = ({
     string | null
   >(null);
   const [goalSteps, setGoalStepsState] = useState<string[]>([]);
+  const [spaceId, setSpaceIdState] = useState<string | null>(null);
+  const spaces = useSpaces();
   const diagramContainerRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
+  // Read by updatePreviewPlan so its identity stays stable across space changes
+  const spaceIdRef = useRef<string | null>(null);
 
   const setPreviewPlan = useCallback((plan: ExecutionPlan | null) => {
     setPreviewPlanState(plan);
@@ -81,11 +89,12 @@ export const UIProvider: React.FC<{ children: React.ReactNode }> = ({
       abortControllerRef.current = abortController;
 
       try {
-        const plan = await api.getExecutionPlan(
+        const plan = await api.getExecutionPlan({
           goalSteps,
           initialState,
-          abortController.signal
-        );
+          spaceId: spaceIdRef.current ?? undefined,
+          signal: abortController.signal,
+        });
 
         // Only update state if this request wasn't aborted
         if (!abortController.signal.aborted) {
@@ -102,6 +111,26 @@ export const UIProvider: React.FC<{ children: React.ReactNode }> = ({
     },
     []
   );
+
+  // A scope change invalidates any preview built against the previous scope
+  const setSpaceId = useCallback((nextSpaceId: string | null) => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+    spaceIdRef.current = nextSpaceId;
+    setSpaceIdState(nextSpaceId);
+    setGoalStepsState([]);
+    setPreviewPlanState(null);
+    setFocusedPreviewAttributeState(null);
+  }, []);
+
+  // A Space can be deleted while it is selected, leaving nothing to scope to
+  useEffect(() => {
+    if (spaceId && !spaces.some((space) => space.id === spaceId)) {
+      setSpaceId(null);
+    }
+  }, [spaces, spaceId, setSpaceId]);
 
   const clearPreviewPlan = useCallback(() => {
     // Cancel any pending request when clearing
@@ -135,6 +164,8 @@ export const UIProvider: React.FC<{ children: React.ReactNode }> = ({
       updatePreviewPlan,
       clearPreviewPlan,
       setGoalSteps,
+      spaceId,
+      setSpaceId,
     }),
     [
       focusedPreviewAttribute,
@@ -146,6 +177,8 @@ export const UIProvider: React.FC<{ children: React.ReactNode }> = ({
       updatePreviewPlan,
       clearPreviewPlan,
       setGoalSteps,
+      spaceId,
+      setSpaceId,
     ]
   );
 

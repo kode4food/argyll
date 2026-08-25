@@ -4,6 +4,7 @@ import {
   IconAttributeStatusSatisfied,
   IconAttributeOptional,
   IconAttributeStatusSkipped,
+  IconAttributes,
   LucideIcon,
 } from "@/utils/iconRegistry";
 import ScriptEditor from "@/app/components/molecules/ScriptEditor";
@@ -96,6 +97,9 @@ const FlowAttributesSection: React.FC<FlowAttributesSectionProps> = ({
     <section className={`${styles.sectionCard} ${styles.attributesSection}`}>
       <div className={styles.sectionHeader}>
         <div className={styles.sectionTitle}>
+          <span className={styles.sectionTitleIcon}>
+            <IconAttributes aria-hidden="true" />
+          </span>
           {t("flowCreate.requiredAttributesLabel")}
         </div>
         <EditorModeToggle

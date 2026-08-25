@@ -35,6 +35,7 @@ func (s *Server) handleEngine(c *gin.Context) {
 		"last_updated": last,
 		"steps":        cat.Steps,
 		"spaces":       cat.Spaces,
+		"selection":    cat.Selection,
 		"attributes":   cat.Attributes,
 		"health":       completeClusterHealth(cat, cluster).Nodes,
 	})

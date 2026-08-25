@@ -20,6 +20,7 @@ let mockFlowError: string | null = null;
 
 jest.mock("@/app/store/flowStore", () => ({
   useFlowError: () => mockFlowError,
+  useSpaces: () => [],
 }));
 
 describe("OverviewPage", () => {

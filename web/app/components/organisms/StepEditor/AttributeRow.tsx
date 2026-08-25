@@ -25,7 +25,7 @@ import {
   inputCollectTypes,
 } from "./stepEditorConstants";
 import AttributeMappingPanel from "./AttributeMappingPanel";
-import ComboInput from "./ComboInput";
+import ComboInput from "@/app/components/molecules/ComboInput";
 import IconDropdown, { type IconDropdownOption } from "./IconDropdown";
 import InlineSelectDropdown, {
   type InlineSelectOption,

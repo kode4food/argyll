@@ -6,6 +6,8 @@ import {
   ArrowRightLeft,
   ArrowRight,
   Ban,
+  Boxes,
+  Braces,
   ChevronDown,
   ChevronUp,
   Award,
@@ -16,10 +18,12 @@ import {
   CircleHelp,
   CircleSlash,
   Clock,
+  Ellipsis,
   Command,
   NotebookPen,
   FileCode2,
   Filter,
+  GitBranch,
   Globe,
   Info,
   HeartPulse,
@@ -38,6 +42,8 @@ import {
   Square,
   Sun,
   Tag,
+  Tags,
+  Target,
   Trash2,
   Undo2,
   Webhook,
@@ -106,6 +112,14 @@ export const IconAttributeOptional = CircleHelp;
 export const IconAttributeConst = Lock;
 export const IconAttributeMeta = Tag;
 export const IconAttributeOutput = ArrowLeft;
+export const IconAttributeLabel = Tags;
+export const IconSpace = Boxes;
+export const IconManage = Ellipsis;
+
+/* Step editor section headers */
+export const IconAttributes = Braces;
+export const IconFlowGoals = Target;
+export const IconPredicate = GitBranch;
 
 export const IconAttributeStatusSatisfied = CheckCircle2;
 export const IconAttributeStatusMissing = AlertCircle;

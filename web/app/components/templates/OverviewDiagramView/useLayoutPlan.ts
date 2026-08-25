@@ -2,21 +2,25 @@ import { useMemo, useEffect } from "react";
 import { Node } from "@xyflow/react";
 import { Step } from "@/app/api";
 import { generateOverviewPlan, shouldApplyAutoLayout } from "./layoutUtils";
-import { saveNodePositions } from "@/utils/nodePositioning";
+import { NodePositionScope, saveNodePositions } from "@/utils/nodePositioning";
 
-export function useLayoutPlan(visibleSteps: Step[], arrangedNodes: Node[]) {
+export function useLayoutPlan(
+  visibleSteps: Step[],
+  arrangedNodes: Node[],
+  scope?: NodePositionScope
+) {
   const plan = useMemo(() => {
-    if (!shouldApplyAutoLayout(visibleSteps)) {
+    if (!shouldApplyAutoLayout(visibleSteps, scope)) {
       return null;
     }
     return generateOverviewPlan(visibleSteps);
-  }, [visibleSteps]);
+  }, [visibleSteps, scope]);
 
   useEffect(() => {
     if (plan && arrangedNodes.length > 0) {
-      saveNodePositions(arrangedNodes);
+      saveNodePositions(arrangedNodes, scope);
     }
-  }, [arrangedNodes, plan]);
+  }, [arrangedNodes, plan, scope]);
 
   return { plan };
 }

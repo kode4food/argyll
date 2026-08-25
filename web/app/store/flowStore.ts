@@ -1,11 +1,11 @@
 import { create } from "zustand";
 import { devtools } from "zustand/middleware";
 import {
-  api,
   ExecutionPlan,
   ExecutionResult,
   FlowContext,
   FlowSummary,
+  Space,
   Step,
   WorkState,
 } from "../api";
@@ -47,6 +47,9 @@ declare global {
 
 interface FlowState {
   steps: Step[];
+  spaces: Space[];
+  // Step IDs each Space selects, projected by the engine
+  spaceSelection: Record<string, Set<string>>;
   healthByNode: Record<string, Record<string, StepHealthInfo>>;
   stepHealth: Record<string, StepHealthInfo>;
   healthNodeIds: string[];
@@ -65,7 +68,6 @@ interface FlowState {
   engineConnectionStatus: ConnectionStatus;
   engineReconnectAttempt: number;
   engineReconnectRequest: number;
-  loadSteps: () => Promise<void>;
   loadFlows: () => Promise<void>;
   loadMoreFlows: () => Promise<void>;
   addStep: (step: Step) => void;
@@ -91,7 +93,14 @@ interface FlowState {
   ) => void;
   requestEngineReconnect: () => void;
   setVisibleFlowIDs: (flowIDs: string[]) => void;
-  setCatalogState: (steps: Record<string, Step>) => void;
+  setStepSpaces: (stepId: string, spaces: string[]) => void;
+  setSpace: (space: Space, stepIds: string[]) => void;
+  removeSpace: (spaceId: string) => void;
+  setCatalogState: (
+    steps: Record<string, Step>,
+    spaces?: Record<string, Space>,
+    selection?: Record<string, string[]>
+  ) => void;
   setHealthState: (
     healthByNode: Record<string, Record<string, StepHealthInfo>>
   ) => void;
@@ -102,6 +111,8 @@ export const useFlowStore = create<FlowState>()(
   devtools(
     (set, get) => ({
       steps: [],
+      spaces: [],
+      spaceSelection: {},
       healthByNode: {},
       stepHealth: {},
       healthNodeIds: [],
@@ -120,26 +131,6 @@ export const useFlowStore = create<FlowState>()(
       engineConnectionStatus: "connecting",
       engineReconnectAttempt: 0,
       engineReconnectRequest: 0,
-
-      loadSteps: async () => {
-        try {
-          const engineData = await api.getEngine();
-          get().setCatalogState(engineData.steps || {});
-          const healthByNode: Record<string, Record<string, any>> = {};
-          for (const [nodeId, node] of Object.entries(
-            engineData.health || {}
-          )) {
-            healthByNode[nodeId] = node.health ?? {};
-          }
-          get().setHealthState(healthByNode);
-        } catch (error) {
-          console.error("Failed to load steps:", error);
-          set({
-            error:
-              error instanceof Error ? error.message : "Failed to load steps",
-          });
-        }
-      },
 
       loadFlows: async () => {
         if (get().flowsLoading) return;
@@ -354,14 +345,71 @@ export const useFlowStore = create<FlowState>()(
         }));
       },
 
+      setSpace: (space: Space, stepIds: string[]) => {
+        set((state) => ({
+          spaces: [
+            ...state.spaces.filter((s) => s.id !== space.id),
+            space,
+          ].sort((a, b) => a.name.localeCompare(b.name)),
+          spaceSelection: {
+            ...state.spaceSelection,
+            [space.id]: new Set(stepIds),
+          },
+        }));
+      },
+
+      removeSpace: (spaceId: string) => {
+        set((state) => {
+          const selection = { ...state.spaceSelection };
+          delete selection[spaceId];
+          return {
+            spaces: state.spaces.filter((s) => s.id !== spaceId),
+            spaceSelection: selection,
+          };
+        });
+      },
+
+      setStepSpaces: (stepId: string, spaces: string[]) => {
+        set((state) => {
+          const next: Record<string, Set<string>> = {};
+          Object.entries(state.spaceSelection).forEach(([spaceId, steps]) => {
+            if (spaces.includes(spaceId) === steps.has(stepId)) {
+              next[spaceId] = steps;
+              return;
+            }
+            const updated = new Set(steps);
+            if (spaces.includes(spaceId)) {
+              updated.add(stepId);
+            } else {
+              updated.delete(stepId);
+            }
+            next[spaceId] = updated;
+          });
+          spaces.forEach((spaceId) => {
+            if (!next[spaceId]) next[spaceId] = new Set([stepId]);
+          });
+          return { spaceSelection: next };
+        });
+      },
+
       setVisibleFlowIDs: (flowIDs: string[]) => {
         set({ visibleFlowIDs: flowIDs });
       },
 
-      setCatalogState: (steps) => {
+      setCatalogState: (steps, spaces, selection) => {
         const nextSteps = Object.values(steps).sort(compareSteps);
         set({
           steps: nextSteps,
+          ...(spaces && {
+            spaces: Object.values(spaces).sort((a, b) =>
+              a.name.localeCompare(b.name)
+            ),
+          }),
+          ...(selection && {
+            spaceSelection: Object.fromEntries(
+              Object.entries(selection).map(([id, ids]) => [id, new Set(ids)])
+            ),
+          }),
           stepHealth: toStepHealthMap(get().healthByNode, toStepMap(nextSteps)),
         });
       },
@@ -412,6 +460,9 @@ if (isDevHost) {
 
 // State selectors
 export const useSteps = () => useFlowStore((state) => state.steps);
+export const useSpaces = () => useFlowStore((state) => state.spaces);
+export const useSpaceSelection = () =>
+  useFlowStore((state) => state.spaceSelection);
 export const useFlows = () => useFlowStore((state) => state.flows);
 export const useFlowsHasMore = () =>
   useFlowStore((state) => state.flowsHasMore);
@@ -436,7 +487,6 @@ export const useRequestEngineReconnect = () =>
 
 // Action selectors
 type ActionKeys =
-  | "loadSteps"
   | "loadFlows"
   | "loadMoreFlows"
   | "addFlow"
@@ -449,7 +499,6 @@ const createActionHook =
   () =>
     useFlowStore((state) => state[key]);
 
-export const useLoadSteps = createActionHook("loadSteps");
 export const useLoadFlows = createActionHook("loadFlows");
 export const useLoadMoreFlows = createActionHook("loadMoreFlows");
 export const useAddFlow = createActionHook("addFlow");

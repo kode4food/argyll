@@ -1,8 +1,9 @@
 import React from "react";
 import DurationInput from "@/app/components/molecules/DurationInput";
-import type { Handling, HTTPMethod } from "@/app/api";
+import type { Handling, HTTPMethod, StepType } from "@/app/api";
 import { useT } from "@/app/i18n";
 import {
+  getStepTypeIcon,
   IconCompensate,
   IconEndpoint,
   IconHealthCheck,
@@ -21,6 +22,7 @@ interface StepEditorHttpConfigurationProps {
   compensateTimeout: number;
   httpTimeout: number;
   handling: Handling;
+  stepType: StepType;
   setEndpoint: (value: string) => void;
   setHttpMethod: (value: HTTPMethod) => void;
   setHealthCheck: (value: string) => void;
@@ -48,6 +50,7 @@ const StepEditorHttpConfiguration: React.FC<
   compensateTimeout,
   httpTimeout,
   handling,
+  stepType,
   setEndpoint,
   setHttpMethod,
   setHealthCheck,
@@ -57,11 +60,15 @@ const StepEditorHttpConfiguration: React.FC<
   setHttpTimeout,
 }) => {
   const t = useT();
+  const StepTypeIcon = getStepTypeIcon(stepType);
 
   return (
     <div className={formStyles.section}>
       <div className={formStyles.sectionHeader}>
-        <label className={formStyles.label}>
+        <label className={formStyles.labelWithIcon}>
+          <span className={formStyles.labelIcon}>
+            <StepTypeIcon aria-hidden="true" />
+          </span>
           {t("stepEditor.httpConfigLabel")}
         </label>
       </div>

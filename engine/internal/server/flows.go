@@ -252,15 +252,14 @@ func (s *Server) createPlan(
 	req.Catalog = cat
 	req.Steps = cat.Steps
 	if spaceID != "" {
-		space, ok := cat.Spaces[spaceID]
-		if !ok {
+		if _, ok := cat.Spaces[spaceID]; !ok {
 			c.JSON(http.StatusNotFound, api.ErrorResponse{
 				Error:  fmt.Sprintf("%s: %s", engine.ErrSpaceNotFound, spaceID),
 				Status: http.StatusNotFound,
 			})
 			return nil
 		}
-		req.Steps = cat.Query(space.Matches)
+		req.Steps = cat.SpaceSteps(spaceID)
 	}
 	req.Match = s.engine.Matcher
 	req.Children = s.engine.Children
@@ -305,7 +304,7 @@ func (s *Server) handlePlanPreview(c *gin.Context) {
 	pl := s.createPlan(c, &plan.Request{
 		Goals: req.Goals,
 		Init:  req.Init,
-	}, plan.Preview, "")
+	}, plan.Preview, req.SpaceID)
 	if pl != nil {
 		c.JSON(http.StatusOK, pl)
 	}

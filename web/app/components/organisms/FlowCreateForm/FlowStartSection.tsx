@@ -32,7 +32,12 @@ const FlowStartSection: React.FC<FlowStartSectionProps> = ({
   return (
     <fieldset className={styles.section} disabled={disabled}>
       <div className={styles.labelRow}>
-        <label className={styles.label}>{t("flowCreate.startFlowLabel")}</label>
+        <label className={styles.label}>
+          <span className={styles.labelIcon}>
+            <IconStartFlow aria-hidden="true" />
+          </span>
+          {t("flowCreate.startFlowLabel")}
+        </label>
         <IconCheckbox
           checked={compensate}
           Icon={IconCompensate}

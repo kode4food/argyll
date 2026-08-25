@@ -1,0 +1,57 @@
+.section {
+  composes: section from "@/app/styles/components/form.module.css";
+}
+
+.sectionHeader {
+  composes: sectionHeader from "@/app/styles/components/form.module.css";
+}
+
+.label {
+  composes: labelWithIcon from "@/app/styles/components/form.module.css";
+}
+
+.labelIcon {
+  composes: labelIcon from "@/app/styles/components/form.module.css";
+}
+
+.rows {
+  composes: rowList from "@/app/styles/components/form.module.css";
+}
+
+.row {
+  composes: row from "@/app/styles/components/form.module.css";
+}
+
+.addButton {
+  composes: addButton from "@/app/styles/components/form.module.css";
+}
+
+.removeButton {
+  composes: removeButton from "@/app/styles/components/form.module.css";
+}
+
+.keyInput {
+  flex: 0 0 160px;
+}
+
+.valueInput {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.icon {
+  composes: iconBox from "@/app/styles/components/icon.module.css";
+}
+
+.iconSm {
+  width: 0.875rem;
+  height: 0.875rem;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.iconSm svg {
+  width: 100%;
+  height: 100%;
+}

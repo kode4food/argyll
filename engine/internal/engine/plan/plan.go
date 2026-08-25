@@ -124,13 +124,12 @@ func create(
 		candidates := args.candidates
 		dependencies := args.dependencies
 		if st.Flow != nil && st.Flow.SpaceID != "" {
-			space, ok := args.catalog.Spaces[st.Flow.SpaceID]
-			if !ok {
+			if _, ok := args.catalog.Spaces[st.Flow.SpaceID]; !ok {
 				return nil, fmt.Errorf(
 					"%w: %s", ErrSpaceNotFound, st.Flow.SpaceID,
 				)
 			}
-			candidates = args.catalog.Query(space.Matches)
+			candidates = args.catalog.SpaceSteps(st.Flow.SpaceID)
 			dependencies = dependencyGraph(candidates)
 		}
 		ancestors.Add(sid)

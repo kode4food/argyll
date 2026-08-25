@@ -9,21 +9,26 @@ export interface StepVisibilityResult {
 
 export function useStepVisibility(
   steps: Step[] = [],
-  previewPlan?: ExecutionPlan | null
+  previewPlan?: ExecutionPlan | null,
+  selected?: Set<string> | null
 ): StepVisibilityResult {
   return useMemo(() => {
+    const scopedSteps = selected
+      ? steps.filter((step) => selected.has(step.id))
+      : steps;
+
     if (previewPlan?.steps) {
       const planSteps = getStepsFromPlan(previewPlan);
       const planStepIds = new Set(planSteps.map((step) => step.id));
       return {
-        visibleSteps: steps,
+        visibleSteps: scopedSteps,
         previewStepIds: planStepIds,
       };
     }
 
     return {
-      visibleSteps: steps,
+      visibleSteps: scopedSteps,
       previewStepIds: null,
     };
-  }, [steps, previewPlan]);
+  }, [steps, previewPlan, selected]);
 }

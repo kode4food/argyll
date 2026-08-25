@@ -2,6 +2,7 @@ import React from "react";
 import SegmentedControl from "@/app/components/atoms/SegmentedControl";
 import { SCRIPT_LANGUAGE_LUA } from "@/app/api";
 import ScriptEditor from "@/app/components/molecules/ScriptEditor";
+import { type LucideIcon } from "@/utils/iconRegistry";
 import formStyles from "../StepEditorForm.module.css";
 import { useT } from "@/app/i18n";
 
@@ -11,6 +12,7 @@ interface ScriptLanguageOption {
 }
 
 interface ScriptConfigEditorProps {
+  Icon: LucideIcon;
   label: string;
   value: string;
   onChange: (value: string) => void;
@@ -30,6 +32,7 @@ const defaultLanguageOptions: ScriptLanguageOption[] = [
  * Combines language selector and code editor into a single reusable component.
  */
 const ScriptConfigEditor: React.FC<ScriptConfigEditorProps> = ({
+  Icon,
   label,
   value,
   onChange,
@@ -44,7 +47,12 @@ const ScriptConfigEditor: React.FC<ScriptConfigEditorProps> = ({
   return (
     <div className={formStyles.section}>
       <div className={formStyles.sectionHeader}>
-        <label className={formStyles.label}>{label}</label>
+        <label className={formStyles.labelWithIcon}>
+          <span className={formStyles.labelIcon}>
+            <Icon aria-hidden="true" />
+          </span>
+          {label}
+        </label>
         {!readOnly && (
           <SegmentedControl
             options={languageOptions.map((opt) => ({

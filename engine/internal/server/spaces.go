@@ -85,15 +85,14 @@ func (s *Server) listSpaceSteps(c *gin.Context) {
 		return
 	}
 	id := api.SpaceID(c.Param("space_id"))
-	space, ok := cat.Spaces[id]
-	if !ok {
+	if _, ok := cat.Spaces[id]; !ok {
 		c.JSON(http.StatusNotFound, api.ErrorResponse{
 			Error:  fmt.Sprintf("%s: %s", engine.ErrSpaceNotFound, id),
 			Status: http.StatusNotFound,
 		})
 		return
 	}
-	selected := cat.Query(space.Matches)
+	selected := cat.SpaceSteps(id)
 	steps := make([]*api.Step, 0, len(selected))
 	for _, st := range selected {
 		steps = append(steps, st)

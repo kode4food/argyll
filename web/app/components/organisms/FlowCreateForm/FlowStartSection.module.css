@@ -18,7 +18,10 @@
 
 .label {
   composes: sectionTitle from "./FlowCreateFormControls.module.css";
-  display: block;
+}
+
+.labelIcon {
+  composes: sectionTitleIcon from "./FlowCreateFormControls.module.css";
 }
 
 .section:disabled {

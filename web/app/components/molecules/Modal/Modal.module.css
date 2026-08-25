@@ -1,0 +1,63 @@
+.dialog {
+  --panel-text: var(--color-dark-text);
+  --panel-text-muted: color-mix(
+    in srgb,
+    var(--color-dark-text) 68%,
+    transparent
+  );
+  background-color: var(--color-dark-bg);
+  border: none;
+  border-radius: var(--radius-xl);
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+  max-width: calc(100vw - (var(--spacing-md) * 2));
+  max-height: calc(100vh - (var(--spacing-md) * 2));
+  color: var(--panel-text);
+}
+
+.dialog:not([open]) {
+  display: none;
+}
+
+.dialog::backdrop {
+  background-color: var(--overlay-backdrop-dialog);
+}
+
+.header {
+  padding: var(--spacing-lg) var(--spacing-padding-lg) var(--spacing-md)
+    var(--spacing-padding-lg);
+  border-bottom: 1px solid
+    color-mix(in srgb, var(--color-dark-bg) 70%, var(--color-darken));
+  flex-shrink: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.title {
+  margin: 0;
+  font-size: var(--text-xl);
+  font-weight: var(--font-semibold);
+  color: var(--panel-text);
+}
+
+.body {
+  padding: var(--spacing-padding-lg);
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.footer {
+  padding: var(--spacing-padding-lg);
+  border-top: 1px solid
+    color-mix(in srgb, var(--color-dark-bg) 70%, var(--color-darken));
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--spacing-md);
+  flex-shrink: 0;
+}

@@ -17,6 +17,13 @@
   color: var(--panel-text);
   font-size: var(--text-sm);
   font-weight: var(--font-medium);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+.sectionTitleIcon {
+  composes: iconBox from "@/app/styles/components/icon.module.css";
 }
 
 .input {

@@ -11,6 +11,8 @@
   "stepEditor.matchScriptPlaceholderLua": "return value == \"email\"",
   "stepEditor.stepIdPlaceholder": "my-step",
   "stepEditor.stepNamePlaceholder": "My Step",
+  "spaceManager.idPlaceholder": "my-space",
+  "spaceManager.namePlaceholder": "My Space",
   "stepEditor.typeAsyncLabel": "Async",
   "stepEditor.typeFlowLabel": "Flow",
   "stepEditor.typeScriptLabel": "Script",

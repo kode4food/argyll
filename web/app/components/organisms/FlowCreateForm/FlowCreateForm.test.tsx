@@ -302,12 +302,13 @@ describe("FlowCreateForm", () => {
       goalSteps: ["step-1"],
     });
 
-    const { container } = renderWithProvider({
+    renderWithProvider({
       newID: "test-id",
       creating: true,
     });
 
-    expect(container.querySelector(".lucide-play")).not.toBeInTheDocument();
+    const startButton = screen.getByRole("button", { name: t("common.start") });
+    expect(startButton.querySelector(".lucide-play")).not.toBeInTheDocument();
   });
 
   test("shows warning when no steps are registered", () => {

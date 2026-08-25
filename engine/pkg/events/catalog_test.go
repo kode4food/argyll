@@ -176,6 +176,57 @@ func TestSpaceEvents(t *testing.T) {
 	assert.NotContains(t, cat.Spaces, space.ID)
 }
 
+func TestSpaceSelectionProjection(t *testing.T) {
+	cat := events.NewCatalogState()
+	space := api.Space{
+		ID:   "payments",
+		Name: "Payments",
+		Selector: api.LabelSelector{
+			MatchLabels: api.Labels{"domain": "payments"},
+		},
+	}
+	inside := &api.Step{ID: "inside", Labels: api.Labels{
+		"domain": "payments",
+	}}
+	outside := &api.Step{ID: "outside", Labels: api.Labels{
+		"domain": "orders",
+	}}
+
+	cat = applyCatalogEvent(t, cat, api.EventTypeSpaceRegistered,
+		api.SpaceRegisteredEvent{Space: space})
+	assert.Empty(t, cat.SpaceSteps(space.ID))
+
+	cat = applyCatalogEvent(t, cat, api.EventTypeStepRegistered,
+		api.StepRegisteredEvent{Step: inside, Spaces: []api.SpaceID{space.ID}})
+	cat = applyCatalogEvent(t, cat, api.EventTypeStepRegistered,
+		api.StepRegisteredEvent{Step: outside})
+	assert.Equal(t, api.Steps{inside.ID: inside}, cat.SpaceSteps(space.ID))
+
+	// Relabelling out of the Space drops the membership
+	cat = applyCatalogEvent(t, cat, api.EventTypeStepUpdated,
+		api.StepUpdatedEvent{Step: inside})
+	assert.Empty(t, cat.SpaceSteps(space.ID))
+
+	// A Space write replaces membership wholesale
+	cat = applyCatalogEvent(t, cat, api.EventTypeSpaceUpdated,
+		api.SpaceUpdatedEvent{
+			Space: space,
+			Steps: api.Steps{outside.ID: outside},
+		})
+	assert.Equal(t, api.Steps{outside.ID: outside}, cat.SpaceSteps(space.ID))
+
+	cat = applyCatalogEvent(t, cat, api.EventTypeStepUnregistered,
+		api.StepUnregisteredEvent{
+			StepID: outside.ID,
+			Spaces: []api.SpaceID{space.ID},
+		})
+	assert.Empty(t, cat.SpaceSteps(space.ID))
+
+	cat = applyCatalogEvent(t, cat, api.EventTypeSpaceUnregistered,
+		api.SpaceUnregisteredEvent{SpaceID: space.ID})
+	assert.NotContains(t, cat.Selection, space.ID)
+}
+
 func applyCatalogEvent(
 	t *testing.T, cat api.CatalogState, typ api.EventType, value any,
 ) api.CatalogState {

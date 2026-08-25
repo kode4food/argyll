@@ -63,7 +63,17 @@ func TestSpacesRejectInvalid(t *testing.T) {
 		assert.ErrorIs(t, err, engine.ErrInvalidSpace)
 		assert.ErrorIs(t, err, api.ErrSpaceIDEmpty)
 
-		err = eng.UpdateSpace(api.Space{ID: "missing", Name: "Missing"})
+		err = eng.RegisterSpace(api.Space{ID: "no-selector", Name: "No Selector"})
+		assert.ErrorIs(t, err, engine.ErrInvalidSpace)
+		assert.ErrorIs(t, err, api.ErrSpaceSelectorEmpty)
+
+		err = eng.UpdateSpace(api.Space{
+			ID:   "missing",
+			Name: "Missing",
+			Selector: api.LabelSelector{MatchLabels: api.Labels{
+				"domain": "payments",
+			}},
+		})
 		assert.ErrorIs(t, err, engine.ErrSpaceNotFound)
 
 		err = eng.UnregisterSpace("missing")
@@ -71,7 +81,7 @@ func TestSpacesRejectInvalid(t *testing.T) {
 	})
 }
 
-func TestSpaceMembershipEvents(t *testing.T) {
+func TestSpaceSelectionEvents(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
 		st := helpers.NewSimpleStep("existing")
 		st.Labels = api.Labels{

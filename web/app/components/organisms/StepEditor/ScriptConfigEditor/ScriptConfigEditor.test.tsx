@@ -2,6 +2,7 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import ScriptConfigEditor from "./ScriptConfigEditor";
 import { SCRIPT_LANGUAGE_JPATH, SCRIPT_LANGUAGE_LUA } from "@/app/api";
 import { t } from "@/app/testUtils/i18n";
+import { IconPredicate } from "@/utils/iconRegistry";
 
 jest.mock("@/app/components/molecules/ScriptEditor", () => {
   return function MockScriptEditor({
@@ -25,6 +26,7 @@ jest.mock("@/app/components/molecules/ScriptEditor", () => {
 
 describe("ScriptConfigEditor", () => {
   const defaultProps = {
+    Icon: IconPredicate,
     label: "Test Script",
     value: "test code",
     onChange: jest.fn(),

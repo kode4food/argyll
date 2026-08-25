@@ -2,7 +2,7 @@ import React, { useMemo } from "react";
 import { Node } from "@xyflow/react";
 import { Step, ExecutionPlan } from "@/app/api";
 import { stepLayout } from "@/constants/layout";
-import { loadNodePositions } from "@/utils/nodePositioning";
+import { loadNodePositions, NodePositionScope } from "@/utils/nodePositioning";
 import {
   buildOutputProducerMap,
   buildStepGraph,
@@ -16,10 +16,11 @@ export const useNodeCalculation = (
   previewPlan?: ExecutionPlan | null,
   previewStepIds?: Set<string> | null,
   onStepClick?: (stepId: string, options?: { additive?: boolean }) => void,
-  diagramContainerRef?: React.RefObject<HTMLDivElement | null>
+  diagramContainerRef?: React.RefObject<HTMLDivElement | null>,
+  scope?: NodePositionScope
 ) => {
   return useMemo(() => {
-    const savedPositions = loadNodePositions();
+    const savedPositions = loadNodePositions(scope);
     const activeStepIDs = previewStepIds || null;
     const producerMap = buildOutputProducerMap(visibleSteps);
     const { dependencies, stepsWithDependencies } = buildStepGraph(
@@ -96,5 +97,6 @@ export const useNodeCalculation = (
     previewStepIds,
     onStepClick,
     diagramContainerRef,
+    scope,
   ]);
 };

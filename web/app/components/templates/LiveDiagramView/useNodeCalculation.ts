@@ -20,7 +20,7 @@ export const useNodeCalculation = (
   return useMemo(() => {
     const savedPositions = flowData?.id
       ? loadNodePositions({ type: "flow", flowId: flowData.id })
-      : loadNodePositions();
+      : {};
     const activeStepIDs = new Set(visibleSteps.map((step) => step.id));
     const producerMap = buildOutputProducerMap(visibleSteps);
     const { dependencies, stepsWithDependencies } = buildStepGraph(

@@ -36,7 +36,7 @@ describe("useStepEditorForm", () => {
 
   it("validates required fields in create mode", async () => {
     const { result } = renderHook(() =>
-      useStepEditorForm(null, onUpdate, onClose)
+      useStepEditorForm({ step: null, onUpdate, onClose })
     );
 
     await act(async () => {
@@ -52,7 +52,7 @@ describe("useStepEditorForm", () => {
     registerStep.mockResolvedValue(createdStep);
 
     const { result } = renderHook(() =>
-      useStepEditorForm(null, onUpdate, onClose)
+      useStepEditorForm({ step: null, onUpdate, onClose })
     );
 
     act(() => {
@@ -74,7 +74,7 @@ describe("useStepEditorForm", () => {
 
   it("requires script content for script type", async () => {
     const { result } = renderHook(() =>
-      useStepEditorForm(null, onUpdate, onClose)
+      useStepEditorForm({ step: null, onUpdate, onClose })
     );
 
     act(() => {
@@ -93,7 +93,7 @@ describe("useStepEditorForm", () => {
 
   it("requires flow goals for flow type", async () => {
     const { result } = renderHook(() =>
-      useStepEditorForm(null, onUpdate, onClose)
+      useStepEditorForm({ step: null, onUpdate, onClose })
     );
 
     act(() => {
@@ -123,7 +123,7 @@ describe("useStepEditorForm", () => {
     registerStep.mockResolvedValue(createdStep);
 
     const { result } = renderHook(() =>
-      useStepEditorForm(null, onUpdate, onClose)
+      useStepEditorForm({ step: null, onUpdate, onClose })
     );
 
     act(() => {
@@ -185,7 +185,7 @@ describe("useStepEditorForm", () => {
 
   it("reports invalid attribute defaults", async () => {
     const { result } = renderHook(() =>
-      useStepEditorForm(null, onUpdate, onClose)
+      useStepEditorForm({ step: null, onUpdate, onClose })
     );
 
     act(() => {
@@ -228,7 +228,7 @@ describe("useStepEditorForm", () => {
     updateStep.mockResolvedValue(updatedStep);
 
     const { result } = renderHook(() =>
-      useStepEditorForm(existingStep, onUpdate, onClose)
+      useStepEditorForm({ step: existingStep, onUpdate, onClose })
     );
 
     act(() => {
@@ -266,7 +266,7 @@ describe("useStepEditorForm", () => {
       },
     });
     const { result } = renderHook(() =>
-      useStepEditorForm(existingStep, onUpdate, onClose)
+      useStepEditorForm({ step: existingStep, onUpdate, onClose })
     );
 
     const serialized = JSON.parse(result.current.getSerializedStepData());
@@ -296,7 +296,7 @@ describe("useStepEditorForm", () => {
       },
     });
     const { result } = renderHook(() =>
-      useStepEditorForm(existingStep, onUpdate, onClose)
+      useStepEditorForm({ step: existingStep, onUpdate, onClose })
     );
 
     act(() => result.current.setHandling("standard"));
@@ -320,7 +320,7 @@ describe("useStepEditorForm", () => {
       },
     });
     const { result } = renderHook(() =>
-      useStepEditorForm(existingStep, onUpdate, onClose)
+      useStepEditorForm({ step: existingStep, onUpdate, onClose })
     );
 
     act(() => result.current.setStepType("flow"));
@@ -332,7 +332,7 @@ describe("useStepEditorForm", () => {
   describe("attribute type side effects", () => {
     it("clears match script for non-input roles", () => {
       const { result } = renderHook(() =>
-        useStepEditorForm(null, onUpdate, onClose)
+        useStepEditorForm({ step: null, onUpdate, onClose })
       );
 
       act(() => {
@@ -357,7 +357,7 @@ describe("useStepEditorForm", () => {
 
     it("clears collect and forEach when changing to output", () => {
       const { result } = renderHook(() =>
-        useStepEditorForm(null, onUpdate, onClose)
+        useStepEditorForm({ step: null, onUpdate, onClose })
       );
 
       act(() => {
@@ -378,7 +378,7 @@ describe("useStepEditorForm", () => {
 
     it("clears collect and forEach when changing to meta", () => {
       const { result } = renderHook(() =>
-        useStepEditorForm(null, onUpdate, onClose)
+        useStepEditorForm({ step: null, onUpdate, onClose })
       );
 
       act(() => {
@@ -401,7 +401,7 @@ describe("useStepEditorForm", () => {
   describe("validation error clearing", () => {
     it("clears errors for non-optional roles", () => {
       const { result } = renderHook(() =>
-        useStepEditorForm(null, onUpdate, onClose)
+        useStepEditorForm({ step: null, onUpdate, onClose })
       );
 
       act(() => {
@@ -434,7 +434,7 @@ describe("useStepEditorForm", () => {
 
     it("validates default value when attrType is optional", () => {
       const { result } = renderHook(() =>
-        useStepEditorForm(null, onUpdate, onClose)
+        useStepEditorForm({ step: null, onUpdate, onClose })
       );
 
       act(() => {
@@ -465,7 +465,7 @@ describe("useStepEditorForm", () => {
 
     it("accepts valid default value for optional attribute", () => {
       const { result } = renderHook(() =>
-        useStepEditorForm(null, onUpdate, onClose)
+        useStepEditorForm({ step: null, onUpdate, onClose })
       );
 
       act(() => {
@@ -494,7 +494,7 @@ describe("useStepEditorForm", () => {
   describe("attribute removal", () => {
     it("removes attribute by id", () => {
       const { result } = renderHook(() =>
-        useStepEditorForm(null, onUpdate, onClose)
+        useStepEditorForm({ step: null, onUpdate, onClose })
       );
 
       act(() => {
@@ -516,7 +516,7 @@ describe("useStepEditorForm", () => {
 
     it("removes correct attribute when multiple exist", () => {
       const { result } = renderHook(() =>
-        useStepEditorForm(null, onUpdate, onClose)
+        useStepEditorForm({ step: null, onUpdate, onClose })
       );
 
       const attrIds: string[] = [];

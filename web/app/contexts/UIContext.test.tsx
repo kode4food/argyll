@@ -10,11 +10,18 @@ jest.mock("../api", () => ({
   },
 }));
 
+let spacesInStore: { id: string; name: string; selector: object }[] = [];
+
+jest.mock("../store/flowStore", () => ({
+  useSpaces: () => spacesInStore,
+}));
+
 const mockApi = api as jest.Mocked<typeof api>;
 
 describe("UIContext", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    spacesInStore = [{ id: "risk", name: "Risk", selector: {} }];
   });
 
   const wrapper = ({ children }: { children: React.ReactNode }) => (
@@ -98,11 +105,12 @@ describe("UIContext", () => {
       await result.current.updatePreviewPlan(["step-1"], { foo: "bar" });
     });
 
-    expect(mockApi.getExecutionPlan).toHaveBeenCalledWith(
-      ["step-1"],
-      { foo: "bar" },
-      expect.any(AbortSignal)
-    );
+    expect(mockApi.getExecutionPlan).toHaveBeenCalledWith({
+      goalSteps: ["step-1"],
+      initialState: { foo: "bar" },
+      spaceId: undefined,
+      signal: expect.any(AbortSignal),
+    });
     expect(result.current.previewPlan).toEqual(mockPlan);
   });
 
@@ -247,8 +255,8 @@ describe("UIContext", () => {
   test("aborts pending request on unmount", async () => {
     let abortSignal: AbortSignal | undefined;
     mockApi.getExecutionPlan.mockImplementation(
-      (_goals, _state, signal?: AbortSignal) => {
-        abortSignal = signal;
+      (request: { signal?: AbortSignal }) => {
+        abortSignal = request.signal;
         return new Promise(() => {}); // Never resolves
       }
     );
@@ -262,6 +270,26 @@ describe("UIContext", () => {
     unmount();
 
     expect(abortSignal?.aborted).toBe(true);
+  });
+
+  test("keeps a selected Space that still exists", () => {
+    const { result } = renderHook(() => useUI(), { wrapper });
+
+    act(() => result.current.setSpaceId("risk"));
+
+    expect(result.current.spaceId).toBe("risk");
+  });
+
+  test("clears the selected Space once it is deleted", async () => {
+    const { result, rerender } = renderHook(() => useUI(), { wrapper });
+
+    act(() => result.current.setSpaceId("risk"));
+    expect(result.current.spaceId).toBe("risk");
+
+    spacesInStore = [];
+    rerender();
+
+    await waitFor(() => expect(result.current.spaceId).toBeNull());
   });
 
   test("diagramContainerRef is provided", () => {

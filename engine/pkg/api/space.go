@@ -12,6 +12,9 @@ type (
 	// Spaces contains Spaces by their ID
 	Spaces map[SpaceID]Space
 
+	// SpaceSelection contains the Step IDs each Space's selector selected
+	SpaceSelection map[SpaceID][]StepID
+
 	// Space defines a dynamic planning scope over registered steps
 	Space struct {
 		Selector    LabelSelector `json:"selector"`
@@ -30,6 +33,7 @@ var (
 	ErrSpaceIDEmpty       = errors.New("space ID empty")
 	ErrSpaceIDInvalid     = errors.New("space ID contains invalid characters")
 	ErrSpaceNameEmpty     = errors.New("space name empty")
+	ErrSpaceSelectorEmpty = errors.New("space selector empty")
 	ErrInvalidMatchLabels = errors.New("invalid match labels")
 )
 
@@ -43,6 +47,9 @@ func (s Space) Validate() error {
 	}
 	if s.Name == "" {
 		return ErrSpaceNameEmpty
+	}
+	if len(s.Selector.MatchLabels) == 0 {
+		return ErrSpaceSelectorEmpty
 	}
 	if len(s.Selector.MatchLabels) > MaxLabelCount {
 		return fmt.Errorf("%w: maximum is %d", ErrTooManyLabels, MaxLabelCount)

@@ -22,6 +22,7 @@ export interface ApplyFlowGoalSelectionChangeParams {
   ) => Promise<void>;
   setPreviewPlan?: (plan: ExecutionPlan | null) => void;
   clearPreviewPlan: () => void;
+  spaceId?: string;
 }
 
 export async function applyFlowGoalSelectionChange({
@@ -35,6 +36,7 @@ export async function applyFlowGoalSelectionChange({
   updatePreviewPlan,
   setPreviewPlan,
   clearPreviewPlan,
+  spaceId,
 }: ApplyFlowGoalSelectionChangeParams): Promise<void> {
   const currentState = parseState(initialState);
   const nonDefaultState = filterDefaultValues(currentState, steps);
@@ -48,7 +50,11 @@ export async function applyFlowGoalSelectionChange({
   }
 
   try {
-    const executionPlan = await api.getExecutionPlan(stepIds, nonDefaultState);
+    const executionPlan = await api.getExecutionPlan({
+      goalSteps: stepIds,
+      initialState: nonDefaultState,
+      spaceId,
+    });
     setPreviewPlan?.(executionPlan);
 
     const stateWithDefaults = addRequiredDefaults(
@@ -76,7 +82,10 @@ export async function applyFlowGoalSelectionChange({
       const previousGoals = stepIds.slice(0, -1);
 
       try {
-        const lastGoalPlan = await api.getExecutionPlan([lastGoal], {});
+        const lastGoalPlan = await api.getExecutionPlan({
+          goalSteps: [lastGoal],
+          spaceId,
+        });
         const lastGoalStepIds = new Set(Object.keys(lastGoalPlan.steps || {}));
 
         const remainingGoals = previousGoals.filter(

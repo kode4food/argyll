@@ -1,5 +1,6 @@
 import {
   saveNodePositions,
+  saveNodePositionsMap,
   loadNodePositions,
   OVERVIEW_STORAGE_KEY,
   getFlowStorageKey,
@@ -186,6 +187,21 @@ describe("nodePositioning", () => {
 
       const stored = localStorage.getItem(getFlowStorageKey("flow-1"));
       expect(stored).toEqual(JSON.stringify(positions));
+    });
+
+    it("seeds from the space a flow was started in", () => {
+      const spacePositions = { "node-1": { x: 10, y: 20 } };
+      localStorage.setItem(
+        OVERVIEW_STORAGE_KEY,
+        JSON.stringify({ "node-1": { x: 999, y: 999 } })
+      );
+      saveNodePositionsMap(spacePositions, { type: "space", spaceId: "risk" });
+
+      snapshotFlowPositions("flow-1", { type: "space", spaceId: "risk" });
+
+      expect(localStorage.getItem(getFlowStorageKey("flow-1"))).toEqual(
+        JSON.stringify(spacePositions)
+      );
     });
   });
 });

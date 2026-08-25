@@ -3,14 +3,21 @@ import StepEditor from "./StepEditor";
 import { t } from "@/app/testUtils/i18n";
 import { ArgyllApi, AttributeRole, AttributeType } from "@/app/api";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
-import type { Step } from "@/app/api";
+import type { Space, Step } from "@/app/api";
 
 jest.requireActual("@/app/api");
 
 let stepsInStore: Step[] = [];
+let spacesInStore: Space[] = [];
+let selectedSpaceId: string | null = null;
+
+jest.mock("@/app/contexts/UIContext", () => ({
+  useUI: () => ({ spaceId: selectedSpaceId }),
+}));
 
 jest.mock("@/app/store/flowStore", () => ({
   useSteps: () => stepsInStore,
+  useSpaces: () => spacesInStore,
 }));
 
 jest.mock("@/app/api", () => ({
@@ -105,6 +112,8 @@ describe("StepEditor", () => {
 
   beforeEach(() => {
     stepsInStore = [];
+    spacesInStore = [];
+    selectedSpaceId = null;
     MockedArgyllApi.mockImplementation(
       () =>
         ({
@@ -326,6 +335,41 @@ describe("StepEditor", () => {
         )
       ).toBeInTheDocument();
     });
+  });
+
+  test("seeds labels from the selected Space", async () => {
+    spacesInStore = [
+      {
+        id: "risk",
+        name: "Risk",
+        selector: { match_labels: { domain: "risk" } },
+      },
+    ];
+    selectedSpaceId = "risk";
+
+    render(
+      <StepEditor step={null} onClose={mockOnClose} onUpdate={mockOnUpdate} />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByDisplayValue("domain")).toBeInTheDocument();
+      expect(screen.getByDisplayValue("risk")).toBeInTheDocument();
+    });
+  });
+
+  test("seeds no labels without a selected Space", async () => {
+    render(
+      <StepEditor step={null} onClose={mockOnClose} onUpdate={mockOnUpdate} />
+    );
+
+    await waitFor(() => {
+      expect(
+        screen.getByText(t("stepEditor.modalCreateTitle"))
+      ).toBeInTheDocument();
+    });
+    expect(
+      screen.queryByPlaceholderText(t("stepEditor.labelKeyPlaceholder"))
+    ).not.toBeInTheDocument();
   });
 
   test("updates step name", async () => {
@@ -842,8 +886,8 @@ describe("StepEditor", () => {
     );
 
     await waitFor(() => {
-      const backdrop = document.querySelector(".backdrop");
-      fireEvent.click(backdrop!);
+      const dialog = document.querySelector("dialog");
+      fireEvent.click(dialog!);
       expect(mockOnClose).toHaveBeenCalled();
     });
   });
@@ -856,13 +900,13 @@ describe("StepEditor", () => {
     );
 
     await waitFor(() => {
-      const content = document.querySelector(".content");
-      fireEvent.click(content!);
+      const body = document.querySelector("dialog > div:nth-child(2)");
+      fireEvent.click(body!);
       expect(mockOnClose).not.toHaveBeenCalled();
     });
   });
 
-  test("closes modal on escape key", async () => {
+  test("closes modal when the dialog closes", async () => {
     const step = createHttpStep();
 
     render(
@@ -870,7 +914,8 @@ describe("StepEditor", () => {
     );
 
     await waitFor(() => {
-      fireEvent.keyDown(document, { key: "Escape" });
+      const dialog = document.querySelector("dialog");
+      fireEvent(dialog!, new Event("close"));
       expect(mockOnClose).toHaveBeenCalled();
     });
   });
@@ -975,7 +1020,7 @@ describe("StepEditor", () => {
     ).toBeGreaterThanOrEqual(1);
   });
 
-  test("renders modal using portal", async () => {
+  test("opens the dialog", async () => {
     const step = createHttpStep();
 
     render(
@@ -983,20 +1028,8 @@ describe("StepEditor", () => {
     );
 
     await waitFor(() => {
-      const backdrop = document.querySelector(".backdrop");
-      expect(backdrop?.parentElement).toBe(document.body);
+      expect(document.querySelector("dialog")).toHaveAttribute("open");
     });
-  });
-
-  test("does not render before mounted", () => {
-    const step = createHttpStep();
-
-    const { container } = render(
-      <StepEditor step={step} onClose={mockOnClose} onUpdate={mockOnUpdate} />
-    );
-
-    // Should start with null before mounting
-    expect(container.firstChild).toBeNull();
   });
 
   test("uses diagram container sizing", async () => {
@@ -1019,8 +1052,8 @@ describe("StepEditor", () => {
     );
 
     await waitFor(() => {
-      const content = document.querySelector(".content") as HTMLElement;
-      expect(content).toBeInTheDocument();
+      const dialog = document.querySelector("dialog") as HTMLElement;
+      expect(dialog).toHaveStyle({ width: "800px", height: "691.2px" });
     });
   });
 

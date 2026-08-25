@@ -108,26 +108,22 @@ describe("ArgyllApi", () => {
     respond(plan);
 
     await expect(
-      api.getExecutionPlan(["step-2"], { input: ["value"] }, controller.signal)
+      api.getExecutionPlan({
+        goalSteps: ["step-2"],
+        initialState: { input: ["value"] },
+        spaceId: "payments",
+        signal: controller.signal,
+      })
     ).resolves.toEqual(plan);
     const init = fetchMock.mock.calls[0][1] as RequestInit;
     expect(init.body).toBe(
-      JSON.stringify({ goals: ["step-2"], init: { input: ["value"] } })
-    );
-    expect(init.signal).toBeInstanceOf(AbortSignal);
-  });
-
-  test("fetches engine state", async () => {
-    const state = { steps: { "step-1": step }, health: {} };
-    respond(state);
-
-    await expect(api.getEngine()).resolves.toEqual(state);
-    expect(fetchMock).toHaveBeenCalledWith(
-      "http://localhost:8080/engine",
-      expect.objectContaining({
-        headers: { "Content-Type": "application/json" },
+      JSON.stringify({
+        goals: ["step-2"],
+        init: { input: ["value"] },
+        space_id: "payments",
       })
     );
+    expect(init.signal).toBeInstanceOf(AbortSignal);
   });
 
   test("throws the API error message", async () => {
@@ -136,6 +132,8 @@ describe("ArgyllApi", () => {
       { ok: false, status: 400, statusText: "Bad Request" }
     );
 
-    await expect(api.getEngine()).rejects.toThrow("Server error");
+    await expect(
+      api.getExecutionPlan({ goalSteps: ["step-1"] })
+    ).rejects.toThrow("Server error");
   });
 });

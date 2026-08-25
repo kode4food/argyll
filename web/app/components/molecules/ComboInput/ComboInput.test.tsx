@@ -105,4 +105,50 @@ describe("ComboInput", () => {
     fireEvent.click(trigger);
     expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
   });
+
+  test("accepts arbitrary text that matches no suggestion", () => {
+    render(
+      <ComboInput
+        value=""
+        suggestions={suggestions}
+        onChange={onChange}
+        ariaLabel="key"
+      />
+    );
+    fireEvent.change(screen.getByLabelText("key"), {
+      target: { value: "not-a-suggestion" },
+    });
+
+    expect(onChange).toHaveBeenCalledWith("not-a-suggestion");
+  });
+
+  test("lets the space key type instead of opening the list", () => {
+    render(
+      <ComboInput
+        value="gold"
+        suggestions={suggestions}
+        onChange={onChange}
+        ariaLabel="key"
+      />
+    );
+    const input = screen.getByLabelText("key");
+
+    // false would mean preventDefault swallowed the character
+    expect(fireEvent.keyDown(input, { key: " ", code: "Space" })).toBe(true);
+    expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
+  });
+
+  test("still opens the list from the arrow keys", () => {
+    render(
+      <ComboInput
+        value=""
+        suggestions={suggestions}
+        onChange={onChange}
+        ariaLabel="key"
+      />
+    );
+    fireEvent.keyDown(screen.getByLabelText("key"), { key: "ArrowDown" });
+
+    expect(screen.getByRole("listbox")).toBeInTheDocument();
+  });
 });

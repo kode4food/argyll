@@ -99,17 +99,6 @@
   color: var(--color-error-light);
 }
 
-.footer {
-  padding: var(--spacing-padding-lg);
-  border-top: 1px solid
-    color-mix(in srgb, var(--color-dark-bg) 70%, var(--color-darken));
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: var(--spacing-md);
-  flex-shrink: 0;
-}
-
 .footerControls {
   display: flex;
   align-items: center;

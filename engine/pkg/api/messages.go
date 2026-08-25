@@ -36,8 +36,9 @@ type (
 
 	// ExecutionPlanRequest contains parameters for creating an execution plan
 	ExecutionPlanRequest struct {
-		Init  InitArgs `json:"init"`
-		Goals []StepID `json:"goals"`
+		Init    InitArgs `json:"init"`
+		SpaceID SpaceID  `json:"space_id,omitempty"`
+		Goals   []StepID `json:"goals"`
 	}
 
 	// FlowStartedResponse is returned when a flow start succeeds

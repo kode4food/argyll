@@ -2,7 +2,10 @@ package api
 
 import (
 	"maps"
+	"slices"
 	"time"
+
+	"github.com/kode4food/argyll/engine/pkg/util"
 )
 
 type (
@@ -26,6 +29,7 @@ type (
 		LastUpdated time.Time      `json:"last_updated"`
 		Steps       Steps          `json:"steps"`
 		Spaces      Spaces         `json:"spaces"`
+		Selection   SpaceSelection `json:"selection"`
 		Attributes  AttributeGraph `json:"attributes"`
 	}
 
@@ -172,6 +176,72 @@ func (c CatalogState) DeleteStep(id StepID) CatalogState {
 	c.Steps = maps.Clone(c.Steps)
 	delete(c.Steps, id)
 	c.Attributes = c.Attributes.RemoveStep(step)
+	return c
+}
+
+// SpaceSteps returns the steps the specified space selects
+func (c CatalogState) SpaceSteps(id SpaceID) Steps {
+	selected := c.Selection[id]
+	res := make(Steps, len(selected))
+	for _, stepID := range selected {
+		if step, ok := c.Steps[stepID]; ok {
+			res[stepID] = step
+		}
+	}
+	return res
+}
+
+// SetSpaceSelection returns a new CatalogState with the space's selected steps
+// replaced
+func (c CatalogState) SetSpaceSelection(
+	id SpaceID, steps []StepID,
+) CatalogState {
+	c.Selection = maps.Clone(c.Selection)
+	if c.Selection == nil {
+		c.Selection = SpaceSelection{}
+	}
+	c.Selection[id] = steps
+	return c
+}
+
+// DeleteSpaceSelection returns a new CatalogState with the space's selected
+// steps removed
+func (c CatalogState) DeleteSpaceSelection(id SpaceID) CatalogState {
+	if _, ok := c.Selection[id]; !ok {
+		return c
+	}
+	c.Selection = maps.Clone(c.Selection)
+	delete(c.Selection, id)
+	return c
+}
+
+// SetStepSpaces returns a new CatalogState where the step is selected by
+// exactly the supplied spaces
+func (c CatalogState) SetStepSpaces(
+	id StepID, spaces []SpaceID,
+) CatalogState {
+	next := util.SetOf(spaces...)
+	selection := SpaceSelection{}
+	for spaceID, steps := range c.Selection {
+		selects := next.Contains(spaceID)
+		if selects == slices.Contains(steps, id) {
+			selection[spaceID] = steps
+			continue
+		}
+		if selects {
+			selection[spaceID] = append(slices.Clone(steps), id)
+			continue
+		}
+		selection[spaceID] = slices.DeleteFunc(slices.Clone(steps),
+			func(stepID StepID) bool { return stepID == id },
+		)
+	}
+	for spaceID := range next {
+		if _, ok := selection[spaceID]; !ok {
+			selection[spaceID] = []StepID{id}
+		}
+	}
+	c.Selection = selection
 	return c
 }
 

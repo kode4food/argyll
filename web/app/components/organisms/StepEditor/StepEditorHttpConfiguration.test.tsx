@@ -23,6 +23,7 @@ describe("StepEditorHttpConfiguration", () => {
     compensateTimeout: 0,
     httpTimeout: 5000,
     handling: "standard" as const,
+    stepType: "sync" as const,
     setEndpoint: jest.fn(),
     setHttpMethod: jest.fn(),
     setHealthCheck: jest.fn(),

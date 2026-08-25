@@ -9,17 +9,27 @@ import {
 import {
   buildStepPayload,
   createStepAttributes,
+  createStepLabels,
   normalizeHttpMethod,
 } from "./stepEditorUtils";
 import { useT } from "@/app/i18n";
 import { useAttributeList } from "./useAttributeList";
+import { useLabelList } from "./useLabelList";
 import { useStepPersistence } from "./useStepPersistence";
 
-export function useStepEditorForm(
-  step: Step | null,
-  onUpdate: (updatedStep: Step) => void,
-  onClose: () => void
-) {
+export interface StepEditorFormOptions {
+  step: Step | null;
+  onUpdate: (updatedStep: Step) => void;
+  onClose: () => void;
+  defaultLabels?: Record<string, string>;
+}
+
+export function useStepEditorForm({
+  step,
+  onUpdate,
+  onClose,
+  defaultLabels,
+}: StepEditorFormOptions) {
   const t = useT();
   const isCreateMode = step === null;
 
@@ -74,6 +84,9 @@ export function useStepEditorForm(
     clearCompensated,
   } = useAttributeList(step, t);
 
+  const { labels, addLabel, updateLabel, removeLabel, resetLabels } =
+    useLabelList(step, defaultLabels);
+
   const changeHandling = useCallback(
     (next: Handling) => {
       setHandling(next);
@@ -99,6 +112,7 @@ export function useStepEditorForm(
       name,
       stepType,
       attributes: stepAttributes,
+      labels: createStepLabels(labels),
       predicate,
       predicateLanguage,
       script,
@@ -116,6 +130,7 @@ export function useStepEditorForm(
     });
   }, [
     attributes,
+    labels,
     compensate,
     compensateMethod,
     compensateTimeout,
@@ -157,8 +172,9 @@ export function useStepEditorForm(
       setHttpTimeout(stepData.http?.invoke?.timeout || 5000);
       setHandling(stepData.handling || "standard");
       resetAttributes(stepData);
+      resetLabels(stepData);
     },
-    [resetAttributes]
+    [resetAttributes, resetLabels]
   );
 
   const {
@@ -276,6 +292,10 @@ export function useStepEditorForm(
     addAttribute,
     updateAttribute,
     removeAttribute,
+    labels,
+    addLabel,
+    updateLabel,
+    removeLabel,
     saving,
     error,
     setError,

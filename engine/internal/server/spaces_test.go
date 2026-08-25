@@ -239,6 +239,58 @@ func TestSpaceDynamicPlanning(t *testing.T) {
 	})
 }
 
+func TestPlanPreviewSpace(t *testing.T) {
+	withTestServerEnv(t, func(env *testServerEnv) {
+		steps := spaceSteps()
+		outside := helpers.NewSimpleStep("outside")
+		outside.Labels = api.Labels{"domain": "orders"}
+		outside.Attributes = api.AttributeSpecs{
+			"data": {Role: api.RoleOutput, Type: api.TypeString},
+		}
+		assert.NoError(t, env.Engine.RegisterStep(steps.provider))
+		assert.NoError(t, env.Engine.RegisterStep(steps.goal))
+		assert.NoError(t, env.Engine.RegisterStep(outside))
+		assert.NoError(t, env.Engine.RegisterSpace(paymentSpace()))
+		router := env.Server.SetupRoutes()
+
+		w := previewSpacePlan(t, router, api.ExecutionPlanRequest{
+			Goals:   []api.StepID{steps.goal.ID},
+			SpaceID: "payments",
+		})
+		assert.Equal(t, http.StatusOK, w.Code)
+		var scoped api.ExecutionPlan
+		assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &scoped))
+		assert.Contains(t, scoped.Steps, steps.provider.ID)
+		assert.NotContains(t, scoped.Steps, outside.ID)
+
+		w = previewSpacePlan(t, router, api.ExecutionPlanRequest{
+			Goals: []api.StepID{steps.goal.ID},
+		})
+		assert.Equal(t, http.StatusOK, w.Code)
+		var global api.ExecutionPlan
+		assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &global))
+		assert.Contains(t, global.Steps, outside.ID)
+
+		w = previewSpacePlan(t, router, api.ExecutionPlanRequest{
+			Goals:   []api.StepID{steps.goal.ID},
+			SpaceID: "missing",
+		})
+		assert.Equal(t, http.StatusNotFound, w.Code)
+	})
+}
+
+func previewSpacePlan(
+	t *testing.T, handler http.Handler, req api.ExecutionPlanRequest,
+) *httptest.ResponseRecorder {
+	t.Helper()
+	return spaceRequest(t, spaceRequestArgs{
+		handler: handler,
+		method:  http.MethodPost,
+		path:    "/engine/plan",
+		body:    req,
+	})
+}
+
 func paymentSpace() api.Space {
 	return api.Space{
 		ID:   "payments",

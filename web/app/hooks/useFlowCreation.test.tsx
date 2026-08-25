@@ -107,7 +107,9 @@ describe("useFlowCreation", () => {
       result.current.handleCreateFlow();
     });
 
-    expect(snapshotFlowPositions).toHaveBeenCalledWith("flow-1");
+    expect(snapshotFlowPositions).toHaveBeenCalledWith("flow-1", {
+      type: "overview",
+    });
     expect(addFlow).toHaveBeenCalled();
     expect(loadFlows).toHaveBeenCalled();
     expect(mockNavigate).toHaveBeenCalledWith("/flow/flow-1");

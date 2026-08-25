@@ -4,12 +4,14 @@ import { parseFlowGoals } from "./stepValidationUtils";
 export type {
   AttributeRoleType,
   Attribute,
+  Label,
   ValidationError,
 } from "./stepEditorTypes";
 export {
   buildAttributesFromStep,
   createStepAttributes,
 } from "./stepAttributeUtils";
+export { buildLabelsFromStep, createStepLabels } from "./stepLabelUtils";
 export {
   getValidationError,
   parseFlowGoals,
@@ -29,6 +31,7 @@ export function buildStepPayload({
   name,
   stepType,
   attributes,
+  labels,
   predicate,
   predicateLanguage,
   script,
@@ -48,6 +51,7 @@ export function buildStepPayload({
   name: string;
   stepType: StepType;
   attributes: Record<string, AttributeSpec>;
+  labels: Record<string, string> | undefined;
   predicate: string;
   predicateLanguage: string;
   script: string;
@@ -68,6 +72,7 @@ export function buildStepPayload({
     name,
     type: stepType,
     attributes,
+    labels,
     predicate: predicate.trim()
       ? {
           language: predicateLanguage,

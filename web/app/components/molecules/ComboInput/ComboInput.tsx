@@ -1,9 +1,9 @@
 import React from "react";
 import useDropdown from "@/app/hooks/useDropdown";
 import dropdownStyles from "@/app/styles/components/dropdown.module.css";
-import formStyles from "./StepEditorForm.module.css";
+import styles from "./ComboInput.module.css";
 
-interface ComboInputProps {
+export interface ComboInputProps {
   ariaLabel?: string;
   className?: string;
   onChange: (value: string) => void;
@@ -30,18 +30,31 @@ const ComboInput: React.FC<ComboInputProps> = ({
     handleKeyDown,
   } = useDropdown(options, value, onChange);
 
+  const handleComboKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === " ") return;
+    handleKeyDown(e);
+  };
+
+  // Fixed against the viewport so a scrolling ancestor cannot clip it
+  const [anchor, setAnchor] = React.useState<DOMRect | null>(null);
+  React.useLayoutEffect(() => {
+    setAnchor(
+      open ? (wrapperRef.current?.getBoundingClientRect() ?? null) : null
+    );
+  }, [open, wrapperRef]);
+
   return (
     <div
       ref={wrapperRef}
-      className={[formStyles.comboWrapper, className].filter(Boolean).join(" ")}
-      onKeyDown={handleKeyDown}
+      className={[styles.wrapper, className].filter(Boolean).join(" ")}
+      onKeyDown={handleComboKeyDown}
     >
       <input
         type="text"
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className={formStyles.comboInput}
+        className={styles.input}
         aria-label={ariaLabel}
         aria-autocomplete="list"
         aria-expanded={open}
@@ -50,14 +63,25 @@ const ComboInput: React.FC<ComboInputProps> = ({
         type="button"
         tabIndex={-1}
         onClick={() => setOpen((o) => !o)}
-        className={`${formStyles.comboTrigger} ${open ? formStyles.comboTriggerOpen : ""}`}
+        disabled={suggestions.length === 0}
+        className={`${styles.trigger} ${open ? styles.triggerOpen : ""}`}
         aria-label="Show suggestions"
       />
-      {open && (
+      {open && suggestions.length > 0 && (
         <div
           className={dropdownStyles.list}
           role="listbox"
           data-ui-overlay="dropdown"
+          style={
+            anchor
+              ? {
+                  position: "fixed",
+                  top: anchor.bottom + 4,
+                  left: anchor.left,
+                  minWidth: anchor.width,
+                }
+              : undefined
+          }
         >
           {suggestions.map((s, index) => (
             <button

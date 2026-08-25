@@ -1,0 +1,55 @@
+.wrapper {
+  position: relative;
+  display: flex;
+  height: 32px;
+  background-color: var(--overlay-dark-30);
+  border: 1px solid var(--color-dark-border);
+  border-radius: var(--radius-md);
+  box-sizing: border-box;
+  transition: var(--transition-fast);
+}
+
+.wrapper:focus-within {
+  border-color: var(--color-info);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-info) 40%, transparent);
+}
+
+.input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  padding: 0 0 0 10px;
+  border: none;
+  background: transparent;
+  color: var(--panel-text);
+  font-size: var(--text-xs);
+  font-family: inherit;
+  box-sizing: border-box;
+}
+
+.trigger {
+  width: 28px;
+  flex-shrink: 0;
+  height: 100%;
+  padding: 0;
+  border: none;
+  border-left: 1px solid var(--color-dark-border);
+  background-color: transparent;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23aaa' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center;
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.trigger:hover,
+.trigger:focus-visible,
+.triggerOpen {
+  background-color: var(--overlay-dark-40);
+  border-left-color: var(--color-info);
+}
+
+.trigger:disabled {
+  opacity: var(--opacity-disabled);
+  cursor: default;
+}

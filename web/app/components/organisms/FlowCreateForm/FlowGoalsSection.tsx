@@ -1,6 +1,6 @@
 import React from "react";
 import { Step } from "@/app/api";
-import { IconAddStep } from "@/utils/iconRegistry";
+import { IconAddStep, IconFlowGoals } from "@/utils/iconRegistry";
 import StepTypeLabel from "@/app/components/atoms/StepTypeLabel";
 import useArrowFocus from "@/app/hooks/useArrowFocus";
 import { useT } from "@/app/i18n";
@@ -44,6 +44,9 @@ const FlowGoalsSection: React.FC<FlowGoalsSectionProps> = ({
     <section className={`${styles.sectionCard} ${styles.stepSection}`}>
       <div className={styles.sectionHeader}>
         <div className={styles.sectionTitle}>
+          <span className={styles.sectionTitleIcon}>
+            <IconFlowGoals aria-hidden="true" />
+          </span>
           {t("stepEditor.flowGoalsLabel")}
         </div>
         <div className={styles.sectionHeaderActions}>

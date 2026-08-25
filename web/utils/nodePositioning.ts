@@ -1,7 +1,9 @@
 import { Node } from "@xyflow/react";
 
 export type NodePositionScope =
-  { type: "overview" } | { type: "flow"; flowId: string };
+  | { type: "overview" }
+  | { type: "flow"; flowId: string }
+  | { type: "space"; spaceId: string };
 
 export type NodePositions = Record<string, { x: number; y: number }>;
 
@@ -11,9 +13,15 @@ export const OVERVIEW_STORAGE_KEY = STORAGE_PREFIX;
 export const getFlowStorageKey = (flowId: string) =>
   `${STORAGE_PREFIX}:flow:${flowId}`;
 
+const getSpaceStorageKey = (spaceId: string) =>
+  `${STORAGE_PREFIX}:space:${spaceId}`;
+
 const resolveStorageKey = (scope?: NodePositionScope): string => {
   if (scope?.type === "flow") {
     return getFlowStorageKey(scope.flowId);
+  }
+  if (scope?.type === "space") {
+    return getSpaceStorageKey(scope.spaceId);
   }
   return OVERVIEW_STORAGE_KEY;
 };
@@ -44,10 +52,13 @@ export const loadNodePositions = (scope?: NodePositionScope): NodePositions => {
   }
 };
 
-export const snapshotFlowPositions = (flowId: string): void => {
+export const snapshotFlowPositions = (
+  flowId: string,
+  origin?: NodePositionScope
+): void => {
   if (!flowId) {
     return;
   }
-  const positions = loadNodePositions();
+  const positions = loadNodePositions(origin);
   saveNodePositionsMap(positions, { type: "flow", flowId });
 };

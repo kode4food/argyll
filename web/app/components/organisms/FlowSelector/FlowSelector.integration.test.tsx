@@ -19,6 +19,7 @@ jest.mock("@/app/store/flowStore", () => {
   const setVisibleFlowIDs = jest.fn();
   return {
     useSelectedFlow: jest.fn(() => null),
+    useSpaces: jest.fn(() => []),
     useFlowStore: jest.fn(() => ({ selectFlow: jest.fn() })),
     useLoadFlows: jest.fn(() => loadFlows),
     useSetVisibleFlowIDs: jest.fn(() => setVisibleFlowIDs),

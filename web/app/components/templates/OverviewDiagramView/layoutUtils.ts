@@ -1,5 +1,5 @@
 import { Step, AttributeRole, ExecutionPlan } from "@/app/api";
-import { loadNodePositions } from "@/utils/nodePositioning";
+import { loadNodePositions, NodePositionScope } from "@/utils/nodePositioning";
 
 export function generateOverviewPlan(
   visibleSteps: Step[]
@@ -36,12 +36,18 @@ export function generateOverviewPlan(
   };
 }
 
-export function hasSavedPositions(steps: Step[]): boolean {
-  const savedPositions = loadNodePositions();
+export function hasSavedPositions(
+  steps: Step[],
+  scope?: NodePositionScope
+): boolean {
+  const savedPositions = loadNodePositions(scope);
   return steps.some((step) => savedPositions[step.id]);
 }
 
-export function shouldApplyAutoLayout(visibleSteps: Step[]): boolean {
+export function shouldApplyAutoLayout(
+  visibleSteps: Step[],
+  scope?: NodePositionScope
+): boolean {
   if (visibleSteps.length === 0) return false;
-  return !hasSavedPositions(visibleSteps);
+  return !hasSavedPositions(visibleSteps, scope);
 }

@@ -46,7 +46,10 @@ describe("useLayoutPlan", () => {
 
     expect(result.current.plan).toBe(plan);
     await waitFor(() => {
-      expect(saveNodePositionsMock).toHaveBeenCalledWith(arrangedNodes);
+      expect(saveNodePositionsMock).toHaveBeenCalledWith(
+        arrangedNodes,
+        undefined
+      );
     });
   });
 });

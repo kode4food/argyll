@@ -39,6 +39,8 @@ jest.mock("@/app/store/flowStore", () => ({
     removeStep: jest.fn(),
     updateStepHealth: jest.fn(),
     setHealthState: jest.fn(),
+    setCatalogState: jest.fn(),
+    setStepSpaces: jest.fn(),
     initializeExecutions: jest.fn(),
     updateExecution: jest.fn(),
     updateWorkItem: jest.fn(),
@@ -100,7 +102,14 @@ describe("WebSocketProvider", () => {
       {
         aggregate_ids: [["catalog"]],
         include_state: true,
-        event_types: ["step_registered", "step_unregistered", "step_updated"],
+        event_types: [
+          "step_registered",
+          "step_unregistered",
+          "step_updated",
+          "space_registered",
+          "space_unregistered",
+          "space_updated",
+        ],
       },
       expect.any(Function)
     );
@@ -225,6 +234,39 @@ describe("WebSocketProvider", () => {
     expect(flowStore.__storeState.updateStep).toHaveBeenCalledWith({
       id: "step-3",
     });
+  });
+
+  test("initializes catalog from subscribed state", () => {
+    const client = makeClient();
+    useWebSocketClientMock.mockReturnValue(client);
+
+    render(
+      <WebSocketProvider>
+        <div>child</div>
+      </WebSocketProvider>
+    );
+
+    const catalogHandler = client.subscribe.mock.calls[0][1];
+    catalogHandler({
+      type: "subscribed",
+      sub_id: "1",
+      items: [
+        {
+          data: {
+            steps: { "step-1": { id: "step-1" } },
+            spaces: { risk: { id: "risk", name: "Risk", selector: {} } },
+            selection: { risk: ["step-1"] },
+          },
+        },
+      ],
+    });
+
+    const flowStore = require("@/app/store/flowStore");
+    expect(flowStore.__storeState.setCatalogState).toHaveBeenCalledWith(
+      { "step-1": { id: "step-1" } },
+      { risk: { id: "risk", name: "Risk", selector: {} } },
+      { risk: ["step-1"] }
+    );
   });
 
   test("initializes health from cluster subscribed state", () => {

@@ -1,6 +1,8 @@
 package events
 
 import (
+	"slices"
+
 	"github.com/kode4food/timebox"
 
 	"github.com/kode4food/argyll/engine/pkg/api"
@@ -19,6 +21,7 @@ func NewCatalogState() api.CatalogState {
 	return api.CatalogState{
 		Steps:      api.Steps{},
 		Spaces:     api.Spaces{},
+		Selection:  api.SpaceSelection{},
 		Attributes: api.AttributeGraph{},
 	}
 }
@@ -49,6 +52,7 @@ func stepRegistered(
 ) api.CatalogState {
 	return st.
 		SetStep(data.Step.ID, data.Step).
+		SetStepSpaces(data.Step.ID, data.Spaces).
 		SetLastUpdated(ev.Timestamp)
 }
 
@@ -57,6 +61,7 @@ func stepUnregistered(
 ) api.CatalogState {
 	return st.
 		DeleteStep(data.StepID).
+		SetStepSpaces(data.StepID, nil).
 		SetLastUpdated(ev.Timestamp)
 }
 
@@ -65,6 +70,7 @@ func stepUpdated(
 ) api.CatalogState {
 	return st.
 		SetStep(data.Step.ID, data.Step).
+		SetStepSpaces(data.Step.ID, data.Spaces).
 		SetLastUpdated(ev.Timestamp)
 }
 
@@ -73,6 +79,7 @@ func spaceRegistered(
 ) api.CatalogState {
 	return st.
 		SetSpace(data.Space.ID, data.Space).
+		SetSpaceSelection(data.Space.ID, stepIDs(data.Steps)).
 		SetLastUpdated(ev.Timestamp)
 }
 
@@ -81,6 +88,7 @@ func spaceUpdated(
 ) api.CatalogState {
 	return st.
 		SetSpace(data.Space.ID, data.Space).
+		SetSpaceSelection(data.Space.ID, stepIDs(data.Steps)).
 		SetLastUpdated(ev.Timestamp)
 }
 
@@ -89,5 +97,15 @@ func spaceUnregistered(
 ) api.CatalogState {
 	return st.
 		DeleteSpace(data.SpaceID).
+		DeleteSpaceSelection(data.SpaceID).
 		SetLastUpdated(ev.Timestamp)
+}
+
+func stepIDs(steps api.Steps) []api.StepID {
+	res := make([]api.StepID, 0, len(steps))
+	for id := range steps {
+		res = append(res, id)
+	}
+	slices.Sort(res)
+	return res
 }

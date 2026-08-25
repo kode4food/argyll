@@ -123,6 +123,41 @@ describe("flowStore", () => {
     });
   });
 
+  describe("Space selection", () => {
+    test("setStepSpaces moves a step between spaces", () => {
+      const store = useFlowStore.getState();
+      store.setCatalogState({}, {}, { risk: ["step-1"], trading: [] });
+
+      useFlowStore.getState().setStepSpaces("step-1", ["trading"]);
+
+      const { spaceSelection } = useFlowStore.getState();
+      expect(spaceSelection.risk.has("step-1")).toBe(false);
+      expect(spaceSelection.trading.has("step-1")).toBe(true);
+    });
+
+    test("setStepSpaces drops a step from every space", () => {
+      const store = useFlowStore.getState();
+      store.setCatalogState({}, {}, { risk: ["step-1"], trading: ["step-1"] });
+
+      useFlowStore.getState().setStepSpaces("step-1", []);
+
+      const { spaceSelection } = useFlowStore.getState();
+      expect(spaceSelection.risk.has("step-1")).toBe(false);
+      expect(spaceSelection.trading.has("step-1")).toBe(false);
+    });
+
+    test("setStepSpaces adds a space it has not seen", () => {
+      const store = useFlowStore.getState();
+      store.setCatalogState({}, {}, {});
+
+      useFlowStore.getState().setStepSpaces("step-1", ["risk"]);
+
+      expect(useFlowStore.getState().spaceSelection.risk.has("step-1")).toBe(
+        true
+      );
+    });
+  });
+
   describe("Step management", () => {
     const mockStep: Step = {
       id: "step-1",
@@ -138,34 +173,29 @@ describe("flowStore", () => {
       },
     };
 
-    test("loadSteps fetches and sorts steps alphabetically", async () => {
-      mockApi.getEngine.mockResolvedValue({
-        steps: {
-          "step-1": { ...mockStep, name: "Zebra Step" },
-          "step-2": { ...mockStep, id: "step-2", name: "Alpha Step" },
-          "step-3": { ...mockStep, id: "step-3", name: "Beta Step" },
-        },
-        health: {
-          "node-1": {
-            last_seen: "2024-01-01T00:00:00Z",
-            health: { "step-1": { status: "healthy" } },
-          },
-          "node-2": {
-            last_seen: "2024-01-01T00:00:00Z",
-            health: {
-              "step-1": { status: "unhealthy", error: "Connection timeout" },
-            },
-          },
-        },
+    test("setCatalogState sorts steps alphabetically", () => {
+      useFlowStore.getState().setCatalogState({
+        "step-1": { ...mockStep, name: "Zebra Step" },
+        "step-2": { ...mockStep, id: "step-2", name: "Alpha Step" },
+        "step-3": { ...mockStep, id: "step-3", name: "Beta Step" },
       });
 
-      await useFlowStore.getState().loadSteps();
       const state = useFlowStore.getState();
-
       expect(state.steps).toHaveLength(3);
       expect(state.steps[0].name).toBe("Alpha Step");
       expect(state.steps[2].name).toBe("Zebra Step");
-      expect(state.stepHealth["step-1"]).toEqual({
+    });
+
+    test("setHealthState merges health across nodes", () => {
+      useFlowStore.getState().setCatalogState({ "step-1": mockStep });
+      useFlowStore.getState().setHealthState({
+        "node-1": { "step-1": { status: "healthy" } },
+        "node-2": {
+          "step-1": { status: "unhealthy", error: "Connection timeout" },
+        },
+      });
+
+      expect(useFlowStore.getState().stepHealth["step-1"]).toEqual({
         status: "unhealthy",
         error: "node node-2: Connection timeout",
         nodes: {
@@ -176,15 +206,6 @@ describe("flowStore", () => {
           },
         },
       });
-    });
-
-    test("loadSteps handles error", async () => {
-      mockApi.getEngine.mockRejectedValue(new Error("Network error"));
-
-      await useFlowStore.getState().loadSteps();
-      const state = useFlowStore.getState();
-
-      expect(state.error).toBe("Network error");
     });
 
     test("addStep creates new step", () => {

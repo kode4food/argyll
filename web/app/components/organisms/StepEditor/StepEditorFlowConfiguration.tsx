@@ -1,7 +1,7 @@
 import React from "react";
 import { ExecutionPlan, Step } from "@/app/api";
 import { useT } from "@/app/i18n";
-import { IconCompensate } from "@/utils/iconRegistry";
+import { IconCompensate, IconFlowGoals } from "@/utils/iconRegistry";
 import IconCheckbox from "@/app/components/molecules/IconCheckbox";
 import { applyFlowGoalSelectionChange } from "@/utils/flowGoalSelectionModel";
 import {
@@ -175,7 +175,10 @@ const StepEditorFlowConfiguration: React.FC<
   return (
     <div className={formStyles.section}>
       <div className={formStyles.sectionHeader}>
-        <label className={formStyles.label}>
+        <label className={formStyles.labelWithIcon}>
+          <span className={formStyles.labelIcon}>
+            <IconFlowGoals aria-hidden="true" />
+          </span>
           {t("stepEditor.flowGoalsLabel")}
         </label>
         <IconCheckbox

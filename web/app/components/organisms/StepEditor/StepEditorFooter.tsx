@@ -22,7 +22,7 @@ const StepEditorFooter: React.FC<StepEditorFooterProps> = ({
 }) => {
   const t = useT();
   return (
-    <div className={styles.footer}>
+    <>
       <div className={styles.footerControls}>
         <EditorModeToggle
           editorMode={editorMode}
@@ -53,7 +53,7 @@ const StepEditorFooter: React.FC<StepEditorFooterProps> = ({
               : t("stepEditor.save")}
         </button>
       </div>
-    </div>
+    </>
   );
 };
 

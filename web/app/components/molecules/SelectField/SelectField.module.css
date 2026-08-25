@@ -1,8 +1,21 @@
-.fieldSelectWrapper {
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.label {
+  font-size: var(--text-xs);
+  font-weight: var(--font-medium);
+  color: var(--panel-text);
+  opacity: var(--opacity-high);
+}
+
+.wrapper {
   position: relative;
 }
 
-.fieldSelectFace {
+.face {
   composes: interactive hoverFill focusFill focusRing from "@/app/styles/components/interaction.module.css";
   --control-hover-bg: var(--color-info-bg);
   --control-hover-border: var(--color-info);
@@ -27,11 +40,24 @@
   text-align: left;
 }
 
-.fieldSelectList {
+.faceOpen {
+  background-color: var(--control-focus-bg);
+  border-color: var(--color-info);
+}
+
+.list {
   min-width: 100%;
 }
 
-.fieldSelectFaceOpen {
-  background-color: var(--control-focus-bg);
-  border-color: var(--color-info);
+.icon {
+  width: 0.875rem;
+  height: 0.875rem;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.icon svg {
+  width: 100%;
+  height: 100%;
 }

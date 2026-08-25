@@ -17,7 +17,11 @@ import {
 } from "@/utils/flowPlanAttributeOptions";
 import { generateFlowId } from "@/utils/flowUtils";
 import { sortStepsByType } from "@/utils/stepUtils";
+import { IconManage, IconSpace } from "@/utils/iconRegistry";
+import SpaceManager from "@/app/components/organisms/SpaceManager";
+import { useSpaces, useSpaceSelection } from "@/app/store/flowStore";
 import FlowGoalsSection from "./FlowGoalsSection";
+import SelectField from "@/app/components/molecules/SelectField";
 import FlowAttributesSection from "./FlowAttributesSection";
 import FlowStartSection from "./FlowStartSection";
 import styles from "./FlowCreateForm.module.css";
@@ -72,9 +76,13 @@ const FlowCreateForm: React.FC<FlowCreateFormProps> = ({ onCreateStep }) => {
     goalSteps,
     focusedPreviewAttribute,
     setFocusedPreviewAttribute,
+    spaceId,
+    setSpaceId,
   } = useUI();
+  const spaces = useSpaces();
   const t = useT();
 
+  const [isManagingSpaces, setManagingSpaces] = React.useState(false);
   const [jsonError, setJsonError] = React.useState<string | null>(null);
   const [editorMode, setEditorMode] = React.useState<"basic" | "json">("basic");
   const [flowInputDraftValues, setFlowInputDraftValues] = React.useState<
@@ -92,7 +100,28 @@ const FlowCreateForm: React.FC<FlowCreateFormProps> = ({ onCreateStep }) => {
     }
   }, [editorMode, setFocusedPreviewAttribute]);
 
-  const sortedSteps = React.useMemo(() => sortStepsByType(steps), [steps]);
+  const spaceSelection = useSpaceSelection();
+  const spaceOptions = React.useMemo(
+    () => [
+      { value: "", label: t("flowCreate.spaceAll"), Icon: IconSpace },
+      ...spaces.map((s) => ({
+        value: s.id,
+        label: s.name,
+        title: s.description,
+        Icon: IconSpace,
+      })),
+    ],
+    [spaces, t]
+  );
+  // The engine plans within the Space, so a goal outside it could never run
+  const scopedSteps = React.useMemo(() => {
+    const selected = spaceId ? spaceSelection[spaceId] : null;
+    return selected ? steps.filter((s) => selected.has(s.id)) : steps;
+  }, [steps, spaceId, spaceSelection]);
+  const sortedSteps = React.useMemo(
+    () => sortStepsByType(scopedSteps),
+    [scopedSteps]
+  );
 
   const {
     scrollRef: sidebarListRef,
@@ -210,6 +239,30 @@ const FlowCreateForm: React.FC<FlowCreateFormProps> = ({ onCreateStep }) => {
       <div className={styles.container}>
         <div className={styles.main}>
           <div className={styles.panelBody}>
+            <div className={styles.spaceRow}>
+              <SelectField
+                className={styles.spaceSelect}
+                ariaLabel={t("flowCreate.spaceLabel")}
+                onChange={(value) => setSpaceId(value || null)}
+                options={spaceOptions}
+                value={spaceId ?? ""}
+              />
+              <button
+                type="button"
+                className={styles.spaceManageButton}
+                onClick={() => setManagingSpaces(true)}
+                title={t("spaceManager.title")}
+                aria-label={t("spaceManager.title")}
+              >
+                <IconManage className={styles.spaceManageIcon} />
+              </button>
+            </div>
+
+            <SpaceManager
+              isOpen={isManagingSpaces}
+              onClose={() => setManagingSpaces(false)}
+            />
+
             <FlowGoalsSection
               goalSteps={goalSteps}
               blockedByStep={blockedByStep}
@@ -222,7 +275,7 @@ const FlowCreateForm: React.FC<FlowCreateFormProps> = ({ onCreateStep }) => {
               showTopFade={showTopFade}
               sidebarListRef={sidebarListRef}
               sortedSteps={sortedSteps}
-              stepsCount={steps.length}
+              stepsCount={scopedSteps.length}
             />
 
             <FlowAttributesSection

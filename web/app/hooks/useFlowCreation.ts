@@ -28,6 +28,7 @@ export const useFlowCreation = () => {
     clearPreviewPlan,
     goalSteps,
     setGoalSteps,
+    spaceId,
   } = useUI();
 
   const [newID, setNewID] = useState("");
@@ -58,6 +59,7 @@ export const useFlowCreation = () => {
         setNewID,
         setInitialState,
         setGoalSteps,
+        spaceId: spaceId ?? undefined,
         updatePreviewPlan,
         setPreviewPlan,
         clearPreviewPlan,
@@ -72,6 +74,7 @@ export const useFlowCreation = () => {
       setPreviewPlan,
       updatePreviewPlan,
       clearPreviewPlan,
+      spaceId,
     ]
   );
 
@@ -110,7 +113,10 @@ export const useFlowCreation = () => {
       parsedState = {};
     }
 
-    snapshotFlowPositions(flowId);
+    snapshotFlowPositions(
+      flowId,
+      spaceId ? { type: "space", spaceId } : { type: "overview" }
+    );
     addFlow({
       id: flowId,
       status: "pending",
@@ -125,6 +131,7 @@ export const useFlowCreation = () => {
         goalSteps,
         initialState: parsedState,
         compensate,
+        spaceId: spaceId ?? undefined,
       });
       await loadFlows();
       resetForm();
@@ -147,6 +154,7 @@ export const useFlowCreation = () => {
     removeFlow,
     initialState,
     compensate,
+    spaceId,
     resetForm,
     t,
   ]);

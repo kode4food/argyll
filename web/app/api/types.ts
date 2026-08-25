@@ -218,9 +218,15 @@ export interface NodeState {
   health: Record<string, StepHealth>;
 }
 
-export interface EngineState {
-  steps: Record<string, Step>;
-  health: Record<string, NodeState>;
+export interface LabelSelector {
+  match_labels?: Record<string, string>;
+}
+
+export interface Space {
+  id: string;
+  name: string;
+  description?: string;
+  selector: LabelSelector;
 }
 
 export interface AttributeValue {

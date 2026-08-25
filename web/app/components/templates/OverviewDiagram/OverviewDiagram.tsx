@@ -11,9 +11,8 @@ import {
   StepEditorProvider,
   useStepEditorContext,
 } from "@/app/contexts/StepEditorContext";
-import { useStepEditorIntegration } from "./useStepEditorIntegration";
 import { useT } from "@/app/i18n";
-import { useFlowStore, useLoadSteps, useSteps } from "@/app/store/flowStore";
+import { useFlowStore, useSteps } from "@/app/store/flowStore";
 import { Step } from "@/app/api";
 
 interface OverviewDiagramContentProps {
@@ -24,7 +23,6 @@ const OverviewDiagramContent: React.FC<OverviewDiagramContentProps> = ({
   openEditor,
 }) => {
   const steps = useSteps();
-  const loadSteps = useLoadSteps();
   const upsertStep = useFlowStore((state) => state.upsertStep);
   const diagramContainerRef = React.useRef<HTMLDivElement>(null);
   const { goalSteps, toggleGoalStep, setGoalSteps, panelRef } = useUI();
@@ -37,17 +35,13 @@ const OverviewDiagramContent: React.FC<OverviewDiagramContentProps> = ({
     [upsertStep]
   );
 
-  const { handleStepCreated } = useStepEditorIntegration(
-    loadSteps,
-    applyStepUpdate
-  );
   const handleCreateStep = React.useCallback(() => {
     openEditor({
       step: null,
       diagramContainerRef,
-      onUpdate: handleStepCreated,
+      onUpdate: applyStepUpdate,
     });
-  }, [handleStepCreated, openEditor]);
+  }, [applyStepUpdate, openEditor]);
 
   if (steps.length === 0) {
     return (

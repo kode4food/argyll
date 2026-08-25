@@ -14,6 +14,10 @@
   composes: sectionTitle from "./FlowCreateFormControls.module.css";
 }
 
+.sectionTitleIcon {
+  composes: sectionTitleIcon from "./FlowCreateFormControls.module.css";
+}
+
 .sectionHeaderActions {
   display: flex;
   align-items: center;

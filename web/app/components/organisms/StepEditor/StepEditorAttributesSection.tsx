@@ -1,7 +1,7 @@
 import React from "react";
 import { Handling, StepType } from "@/app/api";
 import { useT } from "@/app/i18n";
-import { IconAdd } from "@/utils/iconRegistry";
+import { IconAdd, IconAttributes } from "@/utils/iconRegistry";
 import { FlowInputOption } from "@/utils/flowPlanAttributeOptions";
 import styles from "./StepEditor.module.css";
 import formStyles from "./StepEditorForm.module.css";
@@ -53,7 +53,10 @@ const StepEditorAttributesSection: React.FC<
   return (
     <div className={formStyles.section}>
       <div className={formStyles.sectionHeader}>
-        <label className={formStyles.label}>
+        <label className={formStyles.labelWithIcon}>
+          <span className={formStyles.labelIcon}>
+            <IconAttributes aria-hidden="true" />
+          </span>
           {t("stepEditor.attributesLabel")}
         </label>
         <button
