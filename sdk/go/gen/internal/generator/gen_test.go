@@ -467,6 +467,20 @@ func TestAdditionalDiagnostics(t *testing.T) {
 				"func Undo(Out, In) {}",
 			want: "compensator Undo takes zero or one argument struct",
 		},
+		"embedded structs do not collide on a field": {
+			src: "type In struct{ Status string }\n" +
+				"type Out struct{ Status string `argyll:\"state\"` }\n" +
+				"type Args struct{ In; Out }\n" +
+				"//argyll:step\nfunc Run(in Args) {}",
+			want: "ambiguous embedded field: field Status",
+		},
+		"embedded structs do not collide on an attribute": {
+			src: "type In struct{ Status string }\n" +
+				"type Out struct{ Other string `argyll:\"status\"` }\n" +
+				"type Args struct{ In; Out }\n" +
+				"//argyll:step\nfunc Run(in Args) {}",
+			want: "ambiguous embedded field: attribute \"status\"",
+		},
 		"compensator fields are selected": {
 			src: "type In struct { Value string }\n" +
 				"type UndoArgs struct { Value string }\n" +
@@ -729,6 +743,25 @@ func TestCompensate(t *testing.T) {
 	assert.Contains(t, text, "Unwrap(in.Result)\n")
 	assert.Contains(t, text, "Reset()\n")
 	assert.Contains(t, text, "Compensate: gen.Compensate(")
+}
+
+func TestEmbeddedFields(t *testing.T) {
+	src := "type In struct { Value string `argyll:\"compensated:true\"` }\n" +
+		"type Out struct { ID string `argyll:\"compensated:true\"` }\n" +
+		"type UndoArgs struct { In; Out }\n" +
+		"//argyll:step\n//argyll:compensate Undo\n" +
+		"func Run(in In) (Out, error) { return Out{}, nil }\n" +
+		"func Undo(UndoArgs) error { return nil }\n"
+
+	out, err := renderSource(t, src)
+	assert.NoError(t, err)
+	text := string(out)
+	assert.Contains(t, text, `codec.Field("value", codec.Text[string](),`)
+	assert.Contains(t, text, `codec.Field("id", codec.Text[string](),`)
+	assert.Contains(t, text, "return &v.Value")
+	assert.Contains(t, text, "return &v.ID")
+	assert.NotContains(t, text, `codec.Field("in"`)
+	assert.Contains(t, text, "return Undo(in)")
 }
 
 func TestMemoization(t *testing.T) {

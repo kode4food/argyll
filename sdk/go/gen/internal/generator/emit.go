@@ -68,6 +68,7 @@ const (
 var (
 	ErrUnsupportedType = errors.New("unsupported attribute type")
 	ErrBadTag          = errors.New("invalid argyll field tag")
+	ErrAmbiguousField  = errors.New("ambiguous embedded field")
 )
 
 // Render returns the generated source for a package, or nil when the
@@ -408,7 +409,16 @@ func structFields(s *types.Struct) ([]fieldSpec, error) {
 		if !f.Exported() {
 			continue
 		}
-		spec, ok, err := attrOf(f, s.Tag(i))
+		tag := s.Tag(i)
+		if inner, ok := embeddedStruct(f, tag); ok {
+			fields, err := structFields(inner)
+			if err != nil {
+				return nil, err
+			}
+			out = append(out, fields...)
+			continue
+		}
+		spec, ok, err := attrOf(f, tag)
 		if err != nil {
 			return nil, err
 		}
@@ -416,7 +426,41 @@ func structFields(s *types.Struct) ([]fieldSpec, error) {
 			out = append(out, spec)
 		}
 	}
+	if err := checkAmbiguous(out); err != nil {
+		return nil, err
+	}
 	return out, nil
+}
+
+// embeddedStruct reports the struct an untagged embedded field flattens into,
+// leaving a field its tag names to be an attribute of its own
+func embeddedStruct(f *types.Var, tag string) (*types.Struct, bool) {
+	if !f.Embedded() {
+		return nil, false
+	}
+	if strings.TrimSpace(reflect.StructTag(tag).Get(fieldTag)) != "" {
+		return nil, false
+	}
+	st, ok := f.Type().Underlying().(*types.Struct)
+	return st, ok
+}
+
+// checkAmbiguous rejects what flattening can collide: two attributes of the
+// same name, or two Go fields the generated accessor cannot tell apart
+func checkAmbiguous(fields []fieldSpec) error {
+	attrs := make(map[string]bool, len(fields))
+	names := make(map[string]bool, len(fields))
+	for _, f := range fields {
+		if attrs[f.attr] {
+			return fmt.Errorf("%w: attribute %q", ErrAmbiguousField, f.attr)
+		}
+		if names[f.Name()] {
+			return fmt.Errorf("%w: field %s", ErrAmbiguousField, f.Name())
+		}
+		attrs[f.attr] = true
+		names[f.Name()] = true
+	}
+	return nil
 }
 
 func attrOf(f *types.Var, tag string) (fieldSpec, bool, error) {
