@@ -15,9 +15,9 @@ const FileMode = 0o644
 
 var ErrLoadFailed = errors.New("failed to load packages")
 
-// Generate writes a generated file for every loaded package containing
-// Argyll directives, returning the paths it wrote
-func Generate(dir string, patterns ...string) ([]string, error) {
+// Generate writes a generated file for every loaded package containing Argyll
+// directives. Server adds a minimal main function
+func Generate(dir string, server bool, patterns ...string) ([]string, error) {
 	pkgs, err := Load(dir, patterns...)
 	if err != nil {
 		return nil, err
@@ -28,7 +28,7 @@ func Generate(dir string, patterns ...string) ([]string, error) {
 		if !ok {
 			continue
 		}
-		src, err := Render(p)
+		src, err := Render(p, server)
 		if err != nil {
 			return nil, err
 		}

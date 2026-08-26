@@ -108,6 +108,43 @@ func TestGeneratedSurface(t *testing.T) {
 	assert.NotContains(t, text, "\ntype ScoreCustomerIn")
 }
 
+func TestGeneratedServer(t *testing.T) {
+	src := "package main\n\n//argyll:step\nfunc Run() {}\n"
+	out, err := renderFile(t, src, true)
+	assert.NoError(t, err)
+	text := string(out)
+
+	assert.Contains(t, text, "func main()")
+	assert.Contains(t, text, "gen.Serve(context.Background(), steps...)")
+	assert.Contains(t, text, `slog.Info("Argyll step invoked",`)
+	assert.Contains(t, text, `Handler: logged("run", gen.Sync(`)
+	assert.Contains(t, text, `slog.Any("error", err)`)
+	assert.NotContains(t, text, "ArgyllSteps")
+}
+
+func TestGeneratedSurfaceLogging(t *testing.T) {
+	src, err := render(t, "../../../example")
+	assert.NoError(t, err)
+	text := string(src)
+
+	assert.NotContains(t, text, `"log/slog"`)
+	assert.NotContains(t, text, "logged")
+}
+
+func TestGeneratedServerPackage(t *testing.T) {
+	_, err := renderSourceWithServer(
+		t, "//argyll:step\nfunc Run() {}", true,
+	)
+	assert.ErrorIs(t, err, generator.ErrServerPackage)
+}
+
+func TestGeneratedServerMain(t *testing.T) {
+	src := "package main\n\nfunc main() {}\n\n" +
+		"//argyll:step\nfunc Run() {}\n"
+	_, err := renderFile(t, src, true)
+	assert.ErrorIs(t, err, generator.ErrMainDeclared)
+}
+
 func TestContractInference(t *testing.T) {
 	step := steps(t, "../../../example")["calculate-risk"]
 	assert.Equal(t, api.Name("Calculate Risk"), step.Name)
@@ -773,10 +810,10 @@ func TestMemoization(t *testing.T) {
 }
 
 func TestGenerateIsIdempotent(t *testing.T) {
-	_, err := generator.Generate(".", "../../../example")
+	_, err := generator.Generate(".", false, "../../../example")
 	assert.NoError(t, err)
 
-	written, err := generator.Generate(".", "../../../example")
+	written, err := generator.Generate(".", false, "../../../example")
 	assert.NoError(t, err)
 	assert.Empty(t, written)
 }
@@ -787,25 +824,25 @@ func TestGenerateStale(t *testing.T) {
 	assert.NoError(t, os.WriteFile(path, []byte("package nodirectives\n"),
 		generator.FileMode))
 
-	_, err := generator.Generate(".", "./"+dir)
+	_, err := generator.Generate(".", false, "./"+dir)
 	assert.NoError(t, err)
 	assert.NoFileExists(t, path)
 }
 
 func TestGenerateTemporary(t *testing.T) {
 	path := writeSource(t, "//argyll:step\nfunc Run(in struct{}) {}")
-	written, err := generator.Generate(".", "file="+path)
+	written, err := generator.Generate(".", false, "file="+path)
 	assert.NoError(t, err)
 	assert.Len(t, written, 1)
 
-	written, err = generator.Generate(".", "file="+path)
+	written, err = generator.Generate(".", false, "file="+path)
 	assert.NoError(t, err)
 	assert.Empty(t, written)
 }
 
 func TestGenerateError(t *testing.T) {
 	path := writeSource(t, "//argyll:step\nfunc Bad(in int) {}")
-	_, err := generator.Generate(".", "file="+path)
+	_, err := generator.Generate(".", false, "file="+path)
 	assert.Error(t, err)
 }
 
@@ -831,16 +868,32 @@ func render(t *testing.T, pattern string) ([]byte, error) {
 	pkgs, err := generator.Load(".", pattern)
 	assert.NoError(t, err)
 	assert.Len(t, pkgs, 1)
-	return generator.Render(pkgs[0])
+	return generator.Render(pkgs[0], false)
 }
 
 func renderSource(t *testing.T, src string) ([]byte, error) {
+	return renderSourceWithServer(t, src, false)
+}
+
+func renderSourceWithServer(
+	t *testing.T, src string, server bool,
+) ([]byte, error) {
 	t.Helper()
 	path := writeSource(t, src)
 	pkgs, err := generator.Load(".", "file="+path)
 	assert.NoError(t, err)
 	assert.Len(t, pkgs, 1)
-	return generator.Render(pkgs[0])
+	return generator.Render(pkgs[0], server)
+}
+
+func renderFile(t *testing.T, src string, server bool) ([]byte, error) {
+	t.Helper()
+	path := filepath.Join(t.TempDir(), "steps.go")
+	assert.NoError(t, os.WriteFile(path, []byte(src), generator.FileMode))
+	pkgs, err := generator.Load(".", "file="+path)
+	assert.NoError(t, err)
+	assert.Len(t, pkgs, 1)
+	return generator.Render(pkgs[0], server)
 }
 
 func writeSource(t *testing.T, src string) string {

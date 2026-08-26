@@ -3,6 +3,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"os"
 
@@ -10,12 +11,16 @@ import (
 )
 
 func main() {
-	patterns := os.Args[1:]
+	server := flag.Bool("server", false,
+		"generate a main function that registers and serves the steps")
+	flag.Parse()
+
+	patterns := flag.Args()
 	if len(patterns) == 0 {
 		patterns = []string{"."}
 	}
 
-	written, err := generator.Generate(".", patterns...)
+	written, err := generator.Generate(".", *server, patterns...)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "argyll-gen:", err)
 		os.Exit(1)

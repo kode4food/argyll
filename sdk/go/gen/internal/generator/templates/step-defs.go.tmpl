@@ -1,0 +1,14 @@
+{{define "step-defs" -}}
+[]gen.StepDef{
+{{range .Steps -}}
+{
+ID: {{.ID}},
+Spec: {{.Spec}},
+Handler: {{.Handler}},
+{{if .Compensate -}}
+Compensate: {{.Compensate}},
+{{end -}}
+},
+{{end -}}
+}
+{{- end}}

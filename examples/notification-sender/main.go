@@ -1,18 +1,14 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"log/slog"
 	"math/rand"
 	"net/http"
-	"os"
 	"strings"
 	"time"
 
-	"github.com/kode4food/argyll/engine/pkg/log"
 	argyll "github.com/kode4food/argyll/sdk/go"
-	"github.com/kode4food/argyll/sdk/go/gen"
 )
 
 type (
@@ -44,19 +40,7 @@ type (
 	}
 )
 
-//go:generate go run github.com/kode4food/argyll/sdk/go/gen/cmd/argyll-gen .
-
-const version = "dev"
-
-func main() {
-	logger := log.New("notification-sender-example", os.Getenv("ENV"), version)
-	slog.SetDefault(logger)
-
-	if err := gen.Serve(context.Background(), ArgyllSteps()...); err != nil {
-		slog.Error("Failed to setup notification sender", log.Error(err))
-		os.Exit(1)
-	}
-}
+//go:generate go run github.com/kode4food/argyll/sdk/go/gen/cmd/argyll-gen -server .
 
 //argyll:step
 //argyll:label description=send order confirmation notifications
