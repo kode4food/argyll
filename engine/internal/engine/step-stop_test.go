@@ -152,6 +152,58 @@ func TestUndeclaredOutputsIgnored(t *testing.T) {
 	})
 }
 
+func TestUnconsumedOutputsDiscarded(t *testing.T) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		testify.NoError(t, env.Engine.Start())
+
+		producer := helpers.NewStepWithOutputs("producer", "used", "unused")
+		consumer := helpers.NewSimpleStep("consumer")
+		consumer.Attributes = api.AttributeSpecs{
+			"used":   {Role: api.RoleRequired, Type: api.TypeString},
+			"result": {Role: api.RoleOutput, Type: api.TypeString},
+		}
+
+		testify.NoError(t, env.Engine.RegisterStep(producer))
+		testify.NoError(t, env.Engine.RegisterStep(consumer))
+		env.MockClient.SetResponse(producer.ID, api.Args{
+			"used":   "needed",
+			"unused": "discarded",
+		})
+		env.MockClient.SetResponse(consumer.ID, api.Args{"result": "done"})
+
+		pl := &api.ExecutionPlan{
+			Goals: []api.StepID{consumer.ID},
+			Steps: api.Steps{
+				producer.ID: producer,
+				consumer.ID: consumer,
+			},
+			Attributes: api.AttributeGraph{
+				"used": {
+					Providers: []api.StepID{producer.ID},
+					Consumers: []api.StepID{consumer.ID},
+				},
+				"unused": {
+					Providers: []api.StepID{producer.ID},
+				},
+				"result": {
+					Providers: []api.StepID{consumer.ID},
+				},
+			},
+		}
+
+		fl := env.WaitForFlowStatus("wf-unconsumed-outputs", func() {
+			err := env.Engine.StartFlow("wf-unconsumed-outputs", pl)
+			testify.NoError(t, err)
+		})
+
+		testify.Equal(t, api.Args{"used": "needed"},
+			fl.Executions[producer.ID].Outputs)
+		testify.NotContains(t, fl.Attributes, api.Name("unused"))
+		testify.Equal(t, api.Args{"result": "done"},
+			fl.Executions[consumer.ID].Outputs)
+	})
+}
+
 func TestOutputMapping(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		testify.NoError(t, env.Engine.Start())

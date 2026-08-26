@@ -1532,7 +1532,7 @@ components:
             If not specified, the attribute name (outer name) is used.
 
             For inputs: reads from flow state using attribute name, sends to service using this name.
-            For outputs: reads from service response using this name, stores in flow state using attribute name.
+            For outputs: reads from the service response using this name and, when the output is retained for a Goal or downstream consumer, stores it in Flow state using the attribute name.
           example: "user_email"
         script:
           $ref: "#/components/schemas/ScriptConfig"
@@ -2226,7 +2226,9 @@ components:
           additionalProperties: true
         outputs:
           type: object
-          description: Output values produced by the step
+          description: |
+            Output values retained for the Flow. Goal Steps retain all declared
+            outputs; other Steps retain only outputs needed by downstream consumers.
           additionalProperties: true
         unsatisfied:
           type: array

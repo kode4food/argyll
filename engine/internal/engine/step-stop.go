@@ -2,6 +2,7 @@ package engine
 
 import (
 	"fmt"
+	"slices"
 
 	"github.com/kode4food/timebox"
 
@@ -43,6 +44,7 @@ func (tx *flowTx) checkStepCompletion(stepID api.StepID) (bool, error) {
 
 	st := fl.Plan.Steps[stepID]
 	outputs := tx.collectStepOutputs(ex.WorkItems, st)
+	outputs = tx.consumedOutputs(st, outputs, fl)
 	dur := max(tx.Now().Sub(ex.StartedAt).Milliseconds(), int64(0))
 
 	for key, value := range outputs {
@@ -78,6 +80,23 @@ func (tx *flowTx) checkStepCompletion(stepID api.StepID) (bool, error) {
 		})
 	}
 	return true, nil
+}
+
+func (tx *flowTx) consumedOutputs(
+	step *api.Step, outputs api.Args, fl api.FlowState,
+) api.Args {
+	if slices.Contains(fl.Plan.Goals, step.ID) {
+		return outputs
+	}
+
+	res := api.Args{}
+	for name, value := range outputs {
+		attr := step.Attributes[name]
+		if tx.needsOutput(name, attr, fl) {
+			res[name] = value
+		}
+	}
+	return res
 }
 
 func (tx *flowTx) handlePredicateFailure(
