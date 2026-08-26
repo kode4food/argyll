@@ -34,7 +34,8 @@ export function useCatalogSubscription(socketClient: SocketClient) {
       if (event.type === "subscribed") {
         const { setCatalogState } = useFlowStore.getState();
         const payload = (event as WebSocketSubscribed).items[0]?.data as
-          CatalogPayload | undefined;
+          | CatalogPayload
+          | undefined;
         setCatalogState(
           payload?.steps ?? {},
           payload?.spaces ?? {},

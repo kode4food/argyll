@@ -96,7 +96,9 @@ export function useWebSocketHandlers({
     (event: MessageEvent) => {
       try {
         const data = JSON.parse(event.data) as
-          WebSocketEvent | WebSocketSubscribed | { type: "pong" };
+          | WebSocketEvent
+          | WebSocketSubscribed
+          | { type: "pong" };
         if (data.type !== "pong") {
           routeWebSocketMessage(data as WebSocketEvent | WebSocketSubscribed);
         }

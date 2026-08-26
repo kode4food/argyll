@@ -18,7 +18,8 @@ export function useClusterSubscription(socketClient: SocketClient) {
       if (event.type === "subscribed") {
         const { setHealthState } = useFlowStore.getState();
         const payload = (event as WebSocketSubscribed).items[0]?.data as
-          ClusterPayload | undefined;
+          | ClusterPayload
+          | undefined;
         const nodes = payload?.nodes ?? {};
         const healthByNode: Record<string, Record<string, StepHealthInfo>> = {};
         for (const [nodeId, node] of Object.entries(nodes)) {

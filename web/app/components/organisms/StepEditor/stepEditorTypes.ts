@@ -1,7 +1,11 @@
 import { AttributeType, InputCollect } from "@/app/api";
 
 export type AttributeRoleType =
-  "required" | "optional" | "const" | "meta" | "output";
+  | "required"
+  | "optional"
+  | "const"
+  | "meta"
+  | "output";
 
 export interface Label {
   id: string;

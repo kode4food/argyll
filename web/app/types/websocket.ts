@@ -1,5 +1,9 @@
 export type ConnectionStatus =
-  "connecting" | "connected" | "disconnected" | "reconnecting" | "failed";
+  | "connecting"
+  | "connected"
+  | "disconnected"
+  | "reconnecting"
+  | "failed";
 
 export interface WebSocketEvent {
   type: string;

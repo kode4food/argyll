@@ -3,7 +3,10 @@ import { ExecutionResult, StepStatus } from "../api";
 import { useExecutions } from "../store/flowStore";
 
 export type StepProgressStatus =
-  StepStatus | "compensating" | "compensated" | "compensation_failed";
+  | StepStatus
+  | "compensating"
+  | "compensated"
+  | "compensation_failed";
 
 interface WorkItemProgress {
   total: number;
