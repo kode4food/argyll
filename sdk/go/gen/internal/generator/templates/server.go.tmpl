@@ -13,9 +13,10 @@ func main() {
 
 {{range .Declarations -}}
 {{.}}
-
 {{end -}}
+
 steps := {{template "step-defs" .}}
+
 	if err := gen.Serve(context.Background(), steps...); err != nil {
 		slog.Error("Failed to serve Argyll steps", slog.Any("error", err))
 		os.Exit(1)

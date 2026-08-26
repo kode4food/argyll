@@ -258,8 +258,7 @@ export function useFlowSubscription(
       if (event.type === "subscribed") {
         const { setFlowNotFound, setFlowState } = useFlowStore.getState();
         const payload = (event as WebSocketSubscribed).items[0]?.data as
-          | FlowStatePayload
-          | undefined;
+          FlowStatePayload | undefined;
         if (!payload) {
           if (selectedFlow) {
             setFlowNotFound(selectedFlow);

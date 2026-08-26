@@ -7,7 +7,7 @@ package {{.Package}}
 func ArgyllSteps() []gen.StepDef {
 {{range .Declarations -}}
 {{.}}
-
 {{end -}}
+
 return {{template "step-defs" .}}
 }
