@@ -25,18 +25,3 @@
 .sectionTitleIcon {
   composes: iconBox from "@/app/styles/components/icon.module.css";
 }
-
-.input {
-  width: 100%;
-  border: 1px solid var(--panel-border);
-  border-radius: var(--spacing-xs);
-  padding: var(--spacing-xs) var(--spacing-sm);
-  font-size: var(--text-sm);
-  background-color: transparent;
-  color: var(--panel-text);
-}
-
-.input:focus {
-  border-color: var(--color-info);
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-info) 40%, transparent);
-}

@@ -4,14 +4,13 @@ import { parseFlowGoals } from "./stepValidationUtils";
 export type {
   AttributeRoleType,
   Attribute,
-  Label,
   ValidationError,
 } from "./stepEditorTypes";
 export {
   buildAttributesFromStep,
   createStepAttributes,
 } from "./stepAttributeUtils";
-export { buildLabelsFromStep, createStepLabels } from "./stepLabelUtils";
+export { createStepLabels } from "./stepLabelUtils";
 export {
   getValidationError,
   parseFlowGoals,

@@ -56,7 +56,7 @@ const normalizeStepNodes = (
   return normalized;
 };
 
-export const reduceStepHealth = (
+const reduceStepHealth = (
   nodes: Record<string, NodeHealth>,
   nodeIds: string[],
   step?: Step

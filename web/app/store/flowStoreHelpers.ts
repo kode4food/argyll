@@ -19,7 +19,7 @@ export interface FlowStateUpdate {
   error?: string;
 }
 
-export const isRunningFlow = (status: FlowSummary["status"]): boolean => {
+const isRunningFlow = (status: FlowSummary["status"]): boolean => {
   return status === "pending" || status === "active";
 };
 

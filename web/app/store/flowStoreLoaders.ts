@@ -5,7 +5,7 @@ import {
   toFlowSummary,
 } from "./flowStoreHelpers";
 
-export const FLOW_LIST_PAGE_SIZE = 1000;
+const FLOW_LIST_PAGE_SIZE = 1000;
 
 type FlowsSetFn = (update: {
   flows?: FlowSummary[];

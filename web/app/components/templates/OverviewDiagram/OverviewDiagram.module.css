@@ -1,10 +1,5 @@
 /* Overview Diagram */
 
-.iconMd {
-  width: 1rem;
-  height: 1rem;
-}
-
 .containerOverviewMode {
   background-color: var(--color-diagram-bg);
 }

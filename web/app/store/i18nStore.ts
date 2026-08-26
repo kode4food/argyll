@@ -43,13 +43,5 @@ if (isDevHost) {
 }
 
 const useLocale = () => useI18nStore((state) => state.locale);
-const useSetLocale = () => useI18nStore((state) => state.setLocale);
 
-export {
-  defaultLanguage,
-  defaultLocale,
-  supportedLocales,
-  useI18nStore,
-  useLocale,
-  useSetLocale,
-};
+export { defaultLanguage, useI18nStore, useLocale };

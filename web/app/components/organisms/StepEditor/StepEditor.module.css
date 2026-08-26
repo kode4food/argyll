@@ -18,87 +18,6 @@
   composes: iconBox from "@/app/styles/components/icon.module.css";
 }
 
-.backdrop {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 45;
-  background-color: var(--overlay-backdrop-dialog);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: var(--spacing-md);
-  box-sizing: border-box;
-  overflow-y: auto;
-}
-
-.content {
-  position: relative;
-  z-index: 50;
-  --panel-text: var(--color-dark-text);
-  --panel-text-muted: color-mix(
-    in srgb,
-    var(--color-dark-text) 68%,
-    transparent
-  );
-  background-color: var(--color-dark-bg);
-  border-radius: var(--radius-xl);
-  display: flex;
-  flex-direction: column;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
-  max-height: calc(100vh - (var(--spacing-md) * 2));
-}
-
-.header {
-  padding: var(--spacing-lg) var(--spacing-padding-lg) var(--spacing-md)
-    var(--spacing-padding-lg);
-  border-bottom: 1px solid
-    color-mix(in srgb, var(--color-dark-bg) 70%, var(--color-darken));
-  flex-shrink: 0;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.title {
-  margin: 0;
-  font-size: var(--text-xl);
-  font-weight: var(--font-semibold);
-  color: var(--panel-text);
-}
-
-.language {
-  margin: 0;
-  font-size: var(--text-sm);
-  color: var(--panel-text);
-  opacity: var(--opacity-muted);
-}
-
-.body {
-  padding: var(--spacing-padding-lg);
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-}
-
-.editor {
-  flex: 1;
-  min-height: 0;
-  width: 100%;
-}
-
-.error {
-  margin-top: var(--spacing-lg);
-  padding: var(--spacing-md);
-  background-color: var(--color-error-bg-dark);
-  border: 1px solid #ff4444;
-  border-radius: var(--radius-md);
-  color: var(--color-error-light);
-}
-
 .footerControls {
   display: flex;
   align-items: center;
@@ -110,23 +29,6 @@
   margin: 0 var(--spacing-padding-lg);
   margin-bottom: var(--spacing-sm);
   flex-shrink: 0;
-}
-
-.headerCheckboxLabel {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-xs);
-  cursor: pointer;
-  font-size: var(--text-xs);
-  color: var(--panel-text);
-  user-select: none;
-}
-
-.headerCheckbox {
-  width: 16px;
-  height: 16px;
-  cursor: pointer;
-  accent-color: var(--color-info);
 }
 
 .footerButtons {

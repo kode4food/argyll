@@ -40,10 +40,6 @@ export {
   AttributeType,
   AttributeRole,
   META_KEYS,
-  META_KEY_FLOW_ID,
-  META_KEY_STEP_ID,
-  META_KEY_RECEIPT_TOKEN,
-  META_KEY_WEBHOOK_URL,
 } from "./types";
 
 export { ArgyllApi } from "./client";

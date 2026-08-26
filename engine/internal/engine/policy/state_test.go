@@ -35,10 +35,6 @@ func TestWorkStatusPolicy(t *testing.T) {
 	assert.False(t, policy.WorkBlocksFlowDeactivation(api.WorkCompensated))
 	assert.False(t, policy.WorkBlocksFlowDeactivation(api.WorkCompFailed))
 
-	assert.True(t, policy.WorkTerminal(api.WorkSucceeded))
-	assert.True(t, policy.WorkTerminal(api.WorkFailed))
-	assert.False(t, policy.WorkTerminal(api.WorkNotCompleted))
-
 	assert.True(t, policy.WorkSucceeded(api.WorkSucceeded))
 	assert.False(t, policy.WorkSucceeded(api.WorkFailed))
 

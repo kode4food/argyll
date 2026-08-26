@@ -41,5 +41,3 @@ export const t = (
         : "other";
   return interpolate(value[form], vars);
 };
-
-export { enUS, commonMessages };

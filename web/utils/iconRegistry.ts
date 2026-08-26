@@ -69,7 +69,6 @@ export const IconFitView = Maximize;
 export const IconRemove = Trash2;
 export const IconSearch = Search;
 export const IconStartFlow = Play;
-export const IconCreateFlow = Play;
 export const IconNavigateOverview = Activity;
 export const IconThemeDark = Moon;
 export const IconThemeLight = Sun;

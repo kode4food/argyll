@@ -11,7 +11,7 @@ export type AttributeSpecLike = {
   role?: AttributeRole;
 };
 
-export const calculateSectionHeight = (argCount: number): number => {
+const calculateSectionHeight = (argCount: number): number => {
   if (argCount === 0) {
     return 0;
   }
@@ -19,7 +19,7 @@ export const calculateSectionHeight = (argCount: number): number => {
   return stepLayout.SECTION_HEIGHT + argCount * stepLayout.ARG_LINE_HEIGHT;
 };
 
-export const countRoleAttributes = (
+const countRoleAttributes = (
   attributes?: Record<string, AttributeSpecLike>
 ): RoleCounts => {
   const counts: RoleCounts = {

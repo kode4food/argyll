@@ -17,7 +17,7 @@ export const sendSubscribeMessage = (
   ws.send(JSON.stringify({ type: "subscribe", data: subscription }));
 };
 
-export const sendUnsubscribeMessage = (ws: WebSocket, sub_id: string) => {
+const sendUnsubscribeMessage = (ws: WebSocket, sub_id: string) => {
   ws.send(JSON.stringify({ type: "unsubscribe", data: { sub_id } }));
 };
 

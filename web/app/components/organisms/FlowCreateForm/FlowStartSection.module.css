@@ -32,10 +32,6 @@
   cursor: default;
 }
 
-.input {
-  composes: input from "./FlowCreateFormControls.module.css";
-}
-
 .footerRow {
   display: flex;
   align-items: center;

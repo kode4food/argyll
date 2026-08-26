@@ -62,12 +62,6 @@ func WorkBlocksFlowDeactivation(status api.WorkStatus) bool {
 		status == api.WorkCompensating
 }
 
-// WorkTerminal reports whether a work item has a final success or failure
-// outcome
-func WorkTerminal(status api.WorkStatus) bool {
-	return status == api.WorkSucceeded || status == api.WorkFailed
-}
-
 // WorkSucceeded reports whether a work item produced successful outputs
 func WorkSucceeded(status api.WorkStatus) bool {
 	return status == api.WorkSucceeded

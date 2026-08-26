@@ -2,10 +2,7 @@ import { compileLanguage, createMs } from "enhanced-ms";
 
 export type ParseResult = { valid: true; ms: number } | { valid: false };
 
-export const isNumericOnly = (
-  value: string,
-  decimalSeparator: "." | ","
-): boolean => {
+const isNumericOnly = (value: string, decimalSeparator: "." | ","): boolean => {
   const escaped = decimalSeparator === "," ? "," : "\\.";
   const regex = new RegExp(`^\\d+(?:[${escaped}]\\d+)?$`);
   return regex.test(value);

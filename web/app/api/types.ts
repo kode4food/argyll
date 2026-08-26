@@ -66,10 +66,10 @@ export interface ConstConfig {
   value: string;
 }
 
-export const META_KEY_FLOW_ID = "flow_id";
-export const META_KEY_STEP_ID = "step_id";
-export const META_KEY_RECEIPT_TOKEN = "receipt_token";
-export const META_KEY_WEBHOOK_URL = "webhook_url";
+const META_KEY_FLOW_ID = "flow_id";
+const META_KEY_STEP_ID = "step_id";
+const META_KEY_RECEIPT_TOKEN = "receipt_token";
+const META_KEY_WEBHOOK_URL = "webhook_url";
 
 export const META_KEYS = [
   META_KEY_FLOW_ID,
@@ -77,8 +77,6 @@ export const META_KEYS = [
   META_KEY_RECEIPT_TOKEN,
   META_KEY_WEBHOOK_URL,
 ] as const;
-
-export type MetaKey = (typeof META_KEYS)[number];
 
 export interface MetaConfig {
   key: string;

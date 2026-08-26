@@ -54,17 +54,6 @@
   gap: 0.5rem;
 }
 
-.progressCounter {
-  font-size: 0.75rem;
-  color: var(--color-neutral-text);
-  font-weight: 500;
-}
-
-.progressDetails {
-  margin-top: 0.25rem;
-  font-size: 0.875rem;
-}
-
 .workTimer {
   display: grid;
   grid-template-columns: minmax(7rem, 1fr) auto;
