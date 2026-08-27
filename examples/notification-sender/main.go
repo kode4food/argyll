@@ -43,10 +43,8 @@ type (
 //go:generate go run github.com/kode4food/argyll/sdk/go/gen/cmd/argyll-gen -server .
 
 //argyll:step
-//argyll:label description=send order confirmation notifications
-//argyll:label domain=notifications
-//argyll:label capability=send
-//argyll:label example=true
+//argyll:labels description: send order confirmation notifications
+//argyll:labels domain: notifications; capability: send; example: true
 func NotificationSender(args NotificationArgs) error {
 	payment := args.PaymentResult
 	user := args.UserInfo
