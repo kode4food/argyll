@@ -3,6 +3,7 @@ package argyll
 import (
 	"context"
 	"fmt"
+	"net/http"
 
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
@@ -35,7 +36,37 @@ type (
 		StatusCode int
 		Message    string
 	}
+
+	// HTTPErrorFunc formats an HTTPError with a predefined status
+	HTTPErrorFunc func(string, ...any) *HTTPError
 )
+
+var (
+	// BadRequest formats an error for an invalid request
+	BadRequest = MakeHTTPError(http.StatusBadRequest)
+
+	// BadGateway formats an error for a failed upstream service
+	BadGateway = MakeHTTPError(http.StatusBadGateway)
+
+	// NotFound formats an error for a missing resource
+	NotFound = MakeHTTPError(http.StatusNotFound)
+
+	// Conflict formats an error for a conflicting operation
+	Conflict = MakeHTTPError(http.StatusConflict)
+
+	// InternalServerError formats an error for an internal failure
+	InternalServerError = MakeHTTPError(http.StatusInternalServerError)
+
+	// ServiceUnavailable formats an error for an unavailable service
+	ServiceUnavailable = MakeHTTPError(http.StatusServiceUnavailable)
+)
+
+// MakeHTTPError creates an error formatter with a predefined HTTP status
+func MakeHTTPError(status int) HTTPErrorFunc {
+	return func(format string, args ...any) *HTTPError {
+		return NewHTTPError(status, fmt.Sprintf(format, args...))
+	}
+}
 
 // NewHTTPError creates a new HTTPError with the given status code and message
 func NewHTTPError(statusCode int, message string) *HTTPError {

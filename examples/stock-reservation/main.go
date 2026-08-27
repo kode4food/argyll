@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log/slog"
 	"math/rand"
-	"net/http"
 	"slices"
 	"sync"
 	"time"
@@ -80,9 +79,8 @@ func reserveStock(order Order) (reservation StockReservation, err error) {
 	if !ok {
 		slog.Warn("Product not found in stock system",
 			slog.String("product_id", productID))
-		return StockReservation{}, argyll.NewHTTPError(
-			http.StatusNotFound,
-			fmt.Sprintf("product %s not found in stock system", productID),
+		return StockReservation{}, argyll.NotFound(
+			"product %s not found in stock system", productID,
 		)
 	}
 
@@ -91,10 +89,9 @@ func reserveStock(order Order) (reservation StockReservation, err error) {
 			slog.String("product_id", productID),
 			slog.Int("requested", quantity),
 			slog.Int("available", currentStock))
-		return StockReservation{}, argyll.NewHTTPError(
-			http.StatusConflict,
-			fmt.Sprintf("insufficient stock: requested %d, available %d",
-				quantity, currentStock),
+		return StockReservation{}, argyll.Conflict(
+			"insufficient stock: requested %d, available %d",
+			quantity, currentStock,
 		)
 	}
 

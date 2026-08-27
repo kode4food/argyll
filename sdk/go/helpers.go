@@ -206,10 +206,7 @@ func executeStepWithRecovery(
 				log.StepID(ctx.StepID),
 				log.Error(ErrHandlerPanic),
 				slog.String("panic", fmt.Sprintf("%v", r)))
-			httpErr = NewHTTPError(
-				http.StatusInternalServerError,
-				fmt.Sprintf("%s: %v", ErrHandlerPanic, r),
-			)
+			httpErr = InternalServerError("%s: %v", ErrHandlerPanic, r)
 		}
 	}()
 
@@ -219,7 +216,7 @@ func executeStepWithRecovery(
 		if he, ok := errors.AsType[*HTTPError](err); ok {
 			return nil, he
 		}
-		return nil, NewHTTPError(http.StatusInternalServerError, err.Error())
+		return nil, InternalServerError("%s", err)
 	}
 	return outputs, nil
 }
@@ -233,17 +230,14 @@ func executeCompensateWithRecovery(
 				log.StepID(ctx.StepID),
 				log.Error(ErrHandlerPanic),
 				slog.String("panic", fmt.Sprintf("%v", r)))
-			httpErr = NewHTTPError(
-				http.StatusInternalServerError,
-				fmt.Sprintf("%s: %v", ErrHandlerPanic, r),
-			)
+			httpErr = InternalServerError("%s: %v", ErrHandlerPanic, r)
 		}
 	}()
 	if err := handler(ctx, args); err != nil {
 		if he, ok := errors.AsType[*HTTPError](err); ok {
 			return he
 		}
-		return NewHTTPError(http.StatusInternalServerError, err.Error())
+		return InternalServerError("%s", err)
 	}
 	return nil
 }

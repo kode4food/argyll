@@ -78,6 +78,30 @@ func TestSyncError(t *testing.T) {
 	assert.Contains(t, w.Body.String(), errRefused.Error())
 }
 
+func TestSyncSemanticErrors(t *testing.T) {
+	for _, tt := range []struct {
+		err     error
+		want    int
+		message string
+	}{
+		{argyll.NotFound("product %s", "missing"),
+			http.StatusNotFound, "product missing"},
+		{argyll.Conflict("order %d already exists", 42),
+			http.StatusConflict, "order 42 already exists"},
+	} {
+		t.Run(tt.err.Error(), func(t *testing.T) {
+			h := gen.Sync(sumArgsCodec(), sumResultCodec(),
+				func(sumArgs) (sumResult, error) {
+					return sumResult{}, tt.err
+				})
+
+			w := invoke(h, `{"left":1,"right":1}`)
+			assert.Equal(t, tt.want, w.Code)
+			assert.Contains(t, w.Body.String(), tt.message)
+		})
+	}
+}
+
 func TestSyncPanic(t *testing.T) {
 	h := gen.Sync(sumArgsCodec(), sumResultCodec(),
 		func(sumArgs) (sumResult, error) {

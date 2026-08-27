@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log/slog"
 	"math/rand"
-	"net/http"
 	"os"
 	"time"
 
@@ -70,9 +69,7 @@ func handle(ctx *argyll.StepContext, args api.Args) (api.Args, error) {
 	// Extract and validate user info
 	userInfo, ok := args["user_info"].(map[string]any)
 	if !ok {
-		return nil, argyll.NewHTTPError(
-			http.StatusBadRequest, "user_info must be an object",
-		)
+		return nil, argyll.BadRequest("user_info must be an object")
 	}
 
 	userID, _ := userInfo["id"].(string)
@@ -83,9 +80,7 @@ func handle(ctx *argyll.StepContext, args api.Args) (api.Args, error) {
 	// Extract and validate product info
 	productInfo, ok := args["product_info"].(map[string]any)
 	if !ok {
-		return nil, argyll.NewHTTPError(
-			http.StatusBadRequest, "product_info must be an object",
-		)
+		return nil, argyll.BadRequest("product_info must be an object")
 	}
 
 	productID, _ := productInfo["product_id"].(string)
@@ -107,33 +102,29 @@ func handle(ctx *argyll.StepContext, args api.Args) (api.Args, error) {
 		slog.Warn("Product out of stock",
 			slog.String("product_id", productID),
 			slog.String("product_name", productName))
-		return nil, argyll.NewHTTPError(
-			http.StatusConflict,
-			fmt.Sprintf("product %s is out of stock", productName),
+		return nil, argyll.Conflict(
+			"product %s is out of stock", productName,
 		)
 	}
 
 	if quantity < int(minOrderQty) {
-		return nil, argyll.NewHTTPError(
-			http.StatusBadRequest,
-			fmt.Sprintf("quantity %d below minimum order quantity %d",
-				quantity, int(minOrderQty)),
+		return nil, argyll.BadRequest(
+			"quantity %d below minimum order quantity %d",
+			quantity, int(minOrderQty),
 		)
 	}
 
 	if quantity > int(maxOrderQty) {
-		return nil, argyll.NewHTTPError(
-			http.StatusBadRequest,
-			fmt.Sprintf("quantity %d exceeds maximum order quantity %d",
-				quantity, int(maxOrderQty)),
+		return nil, argyll.BadRequest(
+			"quantity %d exceeds maximum order quantity %d",
+			quantity, int(maxOrderQty),
 		)
 	}
 
 	if float64(quantity) > availableStock {
-		return nil, argyll.NewHTTPError(
-			http.StatusConflict,
-			fmt.Sprintf("insufficient stock: requested %d, available %d",
-				quantity, int(availableStock)),
+		return nil, argyll.Conflict(
+			"insufficient stock: requested %d, available %d",
+			quantity, int(availableStock),
 		)
 	}
 
@@ -149,10 +140,9 @@ func handle(ctx *argyll.StepContext, args api.Args) (api.Args, error) {
 			slog.String("user_id", userID),
 			slog.Float64("grand_total", grandTotal),
 			slog.Float64("credit_limit", creditLimit))
-		return nil, argyll.NewHTTPError(
-			http.StatusConflict,
-			fmt.Sprintf("order total $%.2f exceeds credit limit $%.2f",
-				grandTotal, creditLimit),
+		return nil, argyll.Conflict(
+			"order total $%.2f exceeds credit limit $%.2f",
+			grandTotal, creditLimit,
 		)
 	}
 
@@ -170,9 +160,7 @@ func handle(ctx *argyll.StepContext, args api.Args) (api.Args, error) {
 		slog.Warn("Simulating transient failure (will retry)",
 			log.Error(errors.New(selectedErr)),
 			log.StepID(ctx.StepID))
-		return nil, argyll.NewHTTPError(
-			http.StatusServiceUnavailable, selectedErr,
-		)
+		return nil, argyll.ServiceUnavailable("%s", selectedErr)
 	}
 
 	orderID := fmt.Sprintf("ORDER-%d", time.Now().Unix())

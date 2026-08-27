@@ -3,7 +3,6 @@ package example
 
 import (
 	"errors"
-	"net/http"
 
 	argyll "github.com/kode4food/argyll/sdk/go"
 )
@@ -167,5 +166,5 @@ func refundCard(_ refundCardArgs) error {
 //argyll:step
 //argyll:labels domain: risk
 func Reject(args struct{ Reason string }) error {
-	return argyll.NewHTTPError(http.StatusNotFound, args.Reason)
+	return argyll.NotFound("%s", args.Reason)
 }

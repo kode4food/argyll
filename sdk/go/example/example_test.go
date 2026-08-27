@@ -127,9 +127,8 @@ func TestRegistration(t *testing.T) {
 	assert.Equal(t, api.TypeNumber, risk.Attributes["amount"].Type)
 }
 
-func TestHTTPErrorStatus(t *testing.T) {
+func TestSemanticErrorStatus(t *testing.T) {
 	srv := stepServer(t)
-
 	res := invoke(t, srv, "reject", `{"reason":"no such customer"}`)
 	assert.Equal(t, http.StatusNotFound, res.StatusCode)
 	assert.Contains(t, bodyOf(t, res), "no such customer")

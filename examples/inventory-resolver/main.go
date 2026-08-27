@@ -1,10 +1,8 @@
 package main
 
 import (
-	"fmt"
 	"log/slog"
 	"math/rand"
-	"net/http"
 	"os"
 	"time"
 
@@ -130,10 +128,7 @@ func handle(_ *argyll.StepContext, args api.Args) (api.Args, error) {
 	if !ok {
 		slog.Warn("Product not found in inventory",
 			slog.String("product_id", productID))
-		return nil, argyll.NewHTTPError(
-			http.StatusNotFound,
-			fmt.Sprintf("product not found: %s", productID),
-		)
+		return nil, argyll.NotFound("product not found: %s", productID)
 	}
 
 	slog.Info("Product inventory resolved",

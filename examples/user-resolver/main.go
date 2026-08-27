@@ -1,10 +1,8 @@
 package main
 
 import (
-	"fmt"
 	"log/slog"
 	"math/rand"
-	"net/http"
 	"os"
 	"time"
 
@@ -99,9 +97,7 @@ func handle(_ *argyll.StepContext, args api.Args) (api.Args, error) {
 	if !ok {
 		slog.Warn("User not found",
 			slog.String("user_id", userID))
-		return nil, argyll.NewHTTPError(
-			http.StatusNotFound, fmt.Sprintf("user not found: %s", userID),
-		)
+		return nil, argyll.NotFound("user not found: %s", userID)
 	}
 
 	slog.Info("User resolved successfully",

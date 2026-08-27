@@ -199,6 +199,18 @@ func TestStartConflict(t *testing.T) {
 func TestHTTPErrorMessage(t *testing.T) {
 	err := argyll.NewHTTPError(418, "I'm a teapot")
 	assert.Equal(t, "HTTP 418: I'm a teapot", err.Error())
+
+	conflict := argyll.Conflict("order %d already exists", 42)
+	assert.Equal(t, http.StatusConflict, conflict.StatusCode)
+	assert.Equal(t, "order 42 already exists", conflict.Message)
+	assert.Equal(t, http.StatusBadRequest,
+		argyll.BadRequest("invalid").StatusCode)
+	assert.Equal(t, http.StatusBadGateway,
+		argyll.BadGateway("upstream failed").StatusCode)
+	assert.Equal(t, http.StatusInternalServerError,
+		argyll.InternalServerError("failed").StatusCode)
+	assert.Equal(t, http.StatusServiceUnavailable,
+		argyll.ServiceUnavailable("try again").StatusCode)
 }
 
 func TestCompensateSuccess(t *testing.T) {
@@ -303,7 +315,7 @@ func TestCompensateErrors(t *testing.T) {
 	}{
 		{
 			name:   "http-error",
-			err:    argyll.NewHTTPError(http.StatusConflict, "conflict"),
+			err:    argyll.Conflict("conflict"),
 			status: http.StatusConflict,
 		},
 		{
