@@ -19,17 +19,14 @@
 }
 
 .panelPane {
+  composes: overlayStrong from "@/app/styles/modules/GlassChrome.module.css";
   position: absolute;
-  top: 0;
-  left: 0;
-  bottom: 0;
+  top: var(--spacing-xl);
+  left: var(--spacing-xl);
+  bottom: var(--spacing-xl);
   width: clamp(20rem, 26vw, 26rem);
   overflow: hidden;
-  border-right: 1px solid
-    color-mix(in srgb, var(--color-neutral-border) 72%, transparent);
-  background-color: var(--glass-overlay-bg-strong);
-  backdrop-filter: blur(18px) saturate(140%);
-  -webkit-backdrop-filter: blur(18px) saturate(140%);
+  border-radius: var(--radius-xl);
   z-index: 10;
 }
 
@@ -56,8 +53,10 @@
     flex: 0 0 24rem;
     min-width: 0;
     max-width: none;
+    border: none;
     border-top: 1px solid var(--color-neutral-border);
-    border-right: none;
+    border-radius: 0;
+    box-shadow: none;
     background-color: var(--color-surface);
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
