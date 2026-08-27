@@ -20,6 +20,7 @@ interface FlowGoalsSectionProps {
   showTopFade: boolean;
   sidebarListRef: React.RefObject<HTMLDivElement | null>;
   sortedSteps: Step[];
+  spaceScoped: boolean;
   stepsCount: number;
 }
 
@@ -35,6 +36,7 @@ const FlowGoalsSection: React.FC<FlowGoalsSectionProps> = ({
   showTopFade,
   sidebarListRef,
   sortedSteps,
+  spaceScoped,
   stepsCount,
 }) => {
   const t = useT();
@@ -51,9 +53,12 @@ const FlowGoalsSection: React.FC<FlowGoalsSectionProps> = ({
         </div>
         <div className={styles.sectionHeaderActions}>
           <div className={styles.sectionMeta}>
-            {t("overview.stepsRegistered", {
-              count: stepsCount,
-            })}
+            {t(
+              spaceScoped
+                ? "spaceManager.matchingSteps"
+                : "overview.stepsRegistered",
+              { count: stepsCount }
+            )}
           </div>
           {onCreateStep && (
             <button

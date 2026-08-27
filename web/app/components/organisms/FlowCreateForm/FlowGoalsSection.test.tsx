@@ -39,6 +39,7 @@ describe("FlowGoalsSection", () => {
         showTopFade={false}
         sidebarListRef={{ current: null }}
         sortedSteps={steps}
+        spaceScoped={false}
         stepsCount={1}
       />
     );
@@ -68,6 +69,7 @@ describe("FlowGoalsSection", () => {
         showTopFade={false}
         sidebarListRef={{ current: null }}
         sortedSteps={steps}
+        spaceScoped={false}
         stepsCount={1}
       />
     );
@@ -91,6 +93,7 @@ describe("FlowGoalsSection", () => {
         showTopFade={false}
         sidebarListRef={{ current: null }}
         sortedSteps={steps}
+        spaceScoped={false}
         stepsCount={1}
       />
     );
@@ -117,6 +120,7 @@ describe("FlowGoalsSection", () => {
         showTopFade={false}
         sidebarListRef={{ current: null }}
         sortedSteps={steps}
+        spaceScoped={false}
         stepsCount={2}
       />
     );

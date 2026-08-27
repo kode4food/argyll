@@ -117,20 +117,20 @@
   "overview.previewLabel": "Preview",
   "overview.previewGoals": {
     "zero": "No Goals",
-    "one": "1 goal",
-    "other": "{count} goals"
+    "one": "1 Goal",
+    "other": "{count} Goals"
   },
   "overview.previewSteps": {
-    "zero": "No steps in plan",
-    "one": "1 step in plan",
-    "other": "{count} steps in plan"
+    "zero": "No Steps in plan",
+    "one": "1 Step in plan",
+    "other": "{count} Steps in plan"
   },
   "overview.noVisibleDescription": "Register steps to see their dependency relationships in diagram form",
   "overview.noVisibleTitle": "No Steps to Visualize",
   "overview.stepsRegistered": {
-    "zero": "No steps registered",
-    "one": "1 step registered",
-    "other": "{count} steps registered"
+    "zero": "No Steps registered",
+    "one": "1 Step registered",
+    "other": "{count} Steps registered"
   },
   "overviewStep.doubleClickEdit": "Double-click to edit step",
   "overviewStep.httpMethod": "HTTP Method",
@@ -214,6 +214,11 @@
   "spaceManager.selectorStep": "Selector",
   "spaceManager.detailsStep": "Details",
   "spaceManager.descriptionSuggestion": "Steps matching {selector}",
+  "spaceManager.matchingSteps": {
+    "zero": "No Steps in this Space",
+    "one": "1 Step in this Space",
+    "other": "{count} Steps in this Space"
+  },
   "spaceManager.cancel": "Cancel",
   "spaceManager.back": "Back",
   "spaceManager.next": "Next",

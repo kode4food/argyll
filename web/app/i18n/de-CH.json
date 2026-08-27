@@ -213,6 +213,11 @@
   "spaceManager.selectorStep": "Selector",
   "spaceManager.detailsStep": "Details",
   "spaceManager.descriptionSuggestion": "Schritte passend zu {selector}",
+  "spaceManager.matchingSteps": {
+    "zero": "Kein Step in diesem Space",
+    "one": "1 Step in diesem Space",
+    "other": "{count} Steps in diesem Space"
+  },
   "spaceManager.cancel": "Abbrechen",
   "spaceManager.back": "Zurück",
   "spaceManager.next": "Weiter",

@@ -275,6 +275,7 @@ const FlowCreateForm: React.FC<FlowCreateFormProps> = ({ onCreateStep }) => {
               showTopFade={showTopFade}
               sidebarListRef={sidebarListRef}
               sortedSteps={sortedSteps}
+              spaceScoped={!!spaceId}
               stepsCount={scopedSteps.length}
             />
 

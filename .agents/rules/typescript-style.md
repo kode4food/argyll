@@ -651,6 +651,27 @@ useEffect(() => {
 }, []);
 ```
 
+## i18n
+
+### Domain Concepts
+
+Domain concepts (Attribute, Step, Flow, Space, Goal, etc.) stay untranslated
+and capitalized in every locale file, including mid-sentence — not just at
+the start of a sentence or in a title:
+
+```json
+// en-US.json
+"stepEditor.flowGoalsRequired": "Goal Steps are required",
+"spaceManager.saveFailed": "Failed to save Space",
+
+// de-CH.json — Step is an inserted English term, still capitalized
+"overview.stepsRegistered": { "one": "1 Step registriert" }
+```
+
+ICU plural blocks (`zero`/`one`/`other`) must agree with each other and with
+sibling keys using the same concept word. Only the surrounding natural
+language gets translated and lowercased.
+
 ## Formatting (Prettier)
 
 - Double quotes for strings

@@ -120,9 +120,9 @@
     "other": "{count} Goals"
   },
   "overview.previewSteps": {
-    "zero": "Aucun step dans le plan",
-    "one": "1 step dans le plan",
-    "other": "{count} steps dans le plan"
+    "zero": "Aucun Step dans le plan",
+    "one": "1 Step dans le plan",
+    "other": "{count} Steps dans le plan"
   },
   "overview.noVisibleDescription": "Enregistrez des Steps pour voir leurs dépendances dans le diagramme",
   "overview.noVisibleTitle": "Aucun Step à visualiser",
@@ -213,6 +213,11 @@
   "spaceManager.selectorStep": "Selector",
   "spaceManager.detailsStep": "Détails",
   "spaceManager.descriptionSuggestion": "Étapes correspondant à {selector}",
+  "spaceManager.matchingSteps": {
+    "zero": "Aucun Step dans ce Space",
+    "one": "1 Step dans ce Space",
+    "other": "{count} Steps dans ce Space"
+  },
   "spaceManager.cancel": "Annuler",
   "spaceManager.back": "Retour",
   "spaceManager.next": "Suivant",

@@ -262,7 +262,7 @@ const SpaceManager: React.FC<SpaceManagerProps> = ({ isOpen, onClose }) => {
               />
               {editingId && (
                 <div className={styles.matches}>
-                  {t("overview.stepsRegistered", { count: matchCount })}
+                  {t("spaceManager.matchingSteps", { count: matchCount })}
                 </div>
               )}
             </div>
