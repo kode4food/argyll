@@ -292,6 +292,21 @@ describe("UIContext", () => {
     await waitFor(() => expect(result.current.spaceId).toBeNull());
   });
 
+  test("keeps a new selection until its Space arrives", () => {
+    const { result, rerender } = renderHook(() => useUI(), { wrapper });
+
+    act(() => result.current.setSpaceId("trading"));
+    expect(result.current.spaceId).toBe("trading");
+
+    spacesInStore = [
+      ...spacesInStore,
+      { id: "trading", name: "Trading", selector: {} },
+    ];
+    rerender();
+
+    expect(result.current.spaceId).toBe("trading");
+  });
+
   test("diagramContainerRef is provided", () => {
     const { result } = renderHook(() => useUI(), { wrapper });
 

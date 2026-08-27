@@ -6,6 +6,11 @@ import SpaceManager from "./SpaceManager";
 let spacesInStore: Space[] = [];
 let stepsInStore: Step[] = [];
 const loadSteps = jest.fn();
+const setSpaceId = jest.fn();
+
+jest.mock("@/app/contexts/UIContext", () => ({
+  useUI: () => ({ setSpaceId }),
+}));
 
 jest.mock("@/app/store/flowStore", () => ({
   useSpaces: () => spacesInStore,
@@ -54,9 +59,38 @@ describe("SpaceManager", () => {
         labels: { domain: "trading" },
       },
     ];
+    mockApi.registerSpace.mockImplementation(async (space) => space);
+    mockApi.updateSpace.mockImplementation(async (_, space) => space);
   });
 
-  const open = () => render(<SpaceManager isOpen onClose={jest.fn()} />);
+  const open = (onClose = jest.fn()) =>
+    render(<SpaceManager isOpen onClose={onClose} />);
+
+  const startNew = () => {
+    fireEvent.click(
+      screen.getByRole("button", { name: t("spaceManager.new") })
+    );
+  };
+
+  const addSelector = (key: string, value = "") => {
+    fireEvent.click(
+      screen.getByRole("button", { name: t("spaceManager.addSelector") })
+    );
+    const keys = screen.getAllByPlaceholderText(
+      t("stepEditor.labelKeyPlaceholder")
+    );
+    const values = screen.getAllByPlaceholderText(
+      t("stepEditor.labelValuePlaceholder")
+    );
+    fireEvent.change(keys.at(-1)!, { target: { value: key } });
+    if (value) fireEvent.change(values.at(-1)!, { target: { value } });
+  };
+
+  const next = () => {
+    fireEvent.click(
+      screen.getByRole("button", { name: t("spaceManager.next") })
+    );
+  };
 
   test("renders nothing when closed", () => {
     render(<SpaceManager isOpen={false} onClose={jest.fn()} />);
@@ -67,54 +101,68 @@ describe("SpaceManager", () => {
   test("lists existing Spaces", () => {
     open();
 
-    expect(screen.getByText("Risk")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Risk risk" })
+    ).toBeInTheDocument();
     expect(screen.getByText("risk")).toBeInTheDocument();
   });
 
-  test("registers a new Space", async () => {
+  test("registers a new Space through selector and details", async () => {
     open();
+    startNew();
+    addSelector("domain", "trading");
+    next();
 
-    fireEvent.change(
-      screen.getByPlaceholderText(t("spaceManager.idPlaceholder")),
-      { target: { value: "trading" } }
-    );
-    fireEvent.change(
-      screen.getByPlaceholderText(t("spaceManager.namePlaceholder")),
-      { target: { value: "Trading" } }
-    );
-    fireEvent.click(
-      screen.getByRole("button", { name: t("spaceManager.addSelector") })
-    );
-    fireEvent.change(
-      screen.getByPlaceholderText(t("stepEditor.labelKeyPlaceholder")),
-      { target: { value: "domain" } }
-    );
-    fireEvent.change(
-      screen.getByPlaceholderText(t("stepEditor.labelValuePlaceholder")),
-      { target: { value: "trading" } }
-    );
+    expect(
+      screen.getByPlaceholderText(t("spaceManager.idPlaceholder"))
+    ).toHaveValue("domain-trading");
+    expect(
+      screen.getByPlaceholderText(t("spaceManager.namePlaceholder"))
+    ).toHaveValue("trading domain");
+    expect(
+      screen.getByPlaceholderText("Steps matching domain=trading")
+    ).toBeInTheDocument();
+
     fireEvent.click(
       screen.getByRole("button", { name: t("spaceManager.save") })
     );
 
     await waitFor(() => {
       expect(mockApi.registerSpace).toHaveBeenCalledWith({
-        id: "trading",
-        name: "Trading",
+        id: "domain-trading",
+        name: "trading domain",
         selector: { match_labels: { domain: "trading" } },
       });
+      expect(setSpaceId).toHaveBeenCalledWith("domain-trading");
     });
-    expect(loadSteps).not.toHaveBeenCalled();
   });
 
-  test("loads a Space for editing and updates it", async () => {
+  test("generates details from the selector", () => {
+    open();
+    startNew();
+    addSelector("domain", "credit-card");
+    fireEvent.change(
+      screen.getByPlaceholderText(t("stepEditor.labelValuePlaceholder")),
+      { target: { value: "payments" } }
+    );
+    next();
+
+    expect(
+      screen.getByPlaceholderText(t("spaceManager.idPlaceholder"))
+    ).toHaveValue("domain-payments");
+    expect(
+      screen.getByPlaceholderText(t("spaceManager.namePlaceholder"))
+    ).toHaveValue("payments domain");
+  });
+
+  test("loads and updates an existing Space", async () => {
     open();
     fireEvent.click(screen.getByText("Risk"));
+    next();
 
     expect(
       screen.getByPlaceholderText(t("spaceManager.idPlaceholder"))
     ).toBeDisabled();
-
     fireEvent.change(
       screen.getByPlaceholderText(t("spaceManager.namePlaceholder")),
       { target: { value: "Risk Domain" } }
@@ -130,6 +178,7 @@ describe("SpaceManager", () => {
         description: "Risk steps",
         selector: { match_labels: { domain: "risk" } },
       });
+      expect(setSpaceId).toHaveBeenCalledWith("risk");
     });
   });
 
@@ -148,148 +197,90 @@ describe("SpaceManager", () => {
     });
   });
 
-  test("requires an id and a name before saving", () => {
+  test("requires a complete selector before showing details", () => {
     open();
+    startNew();
 
     expect(
-      screen.getByRole("button", { name: t("spaceManager.save") })
+      screen.getByRole("button", { name: t("spaceManager.next") })
+    ).toBeDisabled();
+    addSelector("domain");
+    expect(
+      screen.getByRole("button", { name: t("spaceManager.next") })
     ).toBeDisabled();
   });
 
-  test("requires at least one selector before saving", () => {
+  test("requires an id and name before saving", () => {
     open();
+    startNew();
+    addSelector("domain", "risk");
+    next();
     fireEvent.change(
       screen.getByPlaceholderText(t("spaceManager.idPlaceholder")),
-      { target: { value: "trading" } }
-    );
-    fireEvent.change(
-      screen.getByPlaceholderText(t("spaceManager.namePlaceholder")),
-      { target: { value: "Trading" } }
+      { target: { value: "" } }
     );
 
     expect(
       screen.getByRole("button", { name: t("spaceManager.save") })
     ).toBeDisabled();
-  });
-
-  test("keeps the Space selected after saving it", async () => {
-    open();
-    fireEvent.click(screen.getByText("Risk"));
-    fireEvent.change(
-      screen.getByPlaceholderText(t("spaceManager.namePlaceholder")),
-      { target: { value: "Risk Domain" } }
-    );
-    fireEvent.click(
-      screen.getByRole("button", { name: t("spaceManager.save") })
-    );
-
-    await waitFor(() => expect(mockApi.updateSpace).toHaveBeenCalled());
-    expect(
-      screen.getByPlaceholderText(t("spaceManager.namePlaceholder"))
-    ).toHaveValue("Risk Domain");
-    expect(
-      screen.getByRole("button", { name: t("spaceManager.delete") })
-    ).toBeInTheDocument();
-  });
-
-  test("clears the form after deleting a Space", async () => {
-    open();
-    fireEvent.click(screen.getByText("Risk"));
-    fireEvent.click(
-      screen.getByRole("button", { name: t("spaceManager.delete") })
-    );
-
-    await waitFor(() =>
-      expect(
-        screen.getByPlaceholderText(t("spaceManager.namePlaceholder"))
-      ).toHaveValue("")
-    );
-    expect(mockApi.unregisterSpace).toHaveBeenCalledWith("risk");
   });
 
   test("keeps save disabled for an unmodified Space", () => {
     open();
     fireEvent.click(screen.getByText("Risk"));
+    next();
 
     expect(
       screen.getByRole("button", { name: t("spaceManager.save") })
     ).toBeDisabled();
   });
 
-  test("enables save once the loaded Space changes", () => {
-    open();
-    fireEvent.click(screen.getByText("Risk"));
+  test("cancel abandons an unfinished setup", async () => {
+    const onClose = jest.fn();
+    const view = open(onClose);
+    startNew();
+    addSelector("domain", "risk");
+    next();
     fireEvent.change(
-      screen.getByPlaceholderText(t("spaceManager.namePlaceholder")),
-      { target: { value: "Risk Domain" } }
+      screen.getByPlaceholderText("Steps matching domain=risk"),
+      { target: { value: "Draft description" } }
     );
+    fireEvent.click(
+      screen.getByRole("button", { name: t("spaceManager.cancel") })
+    );
+    expect(onClose).toHaveBeenCalled();
+
+    view.unmount();
+    open();
 
     expect(
-      screen.getByRole("button", { name: t("spaceManager.save") })
-    ).toBeEnabled();
-  });
-
-  test("keeps save disabled while a selector row is incomplete", () => {
-    open();
-    fireEvent.change(
-      screen.getByPlaceholderText(t("spaceManager.idPlaceholder")),
-      { target: { value: "trading" } }
+      screen.getByRole("button", { name: "Risk risk" })
+    ).toBeInTheDocument();
+    await waitFor(() =>
+      expect(
+        screen.getByRole("button", { name: t("spaceManager.new") })
+      ).toHaveFocus()
     );
-    fireEvent.change(
-      screen.getByPlaceholderText(t("spaceManager.namePlaceholder")),
-      { target: { value: "Trading" } }
-    );
-    fireEvent.click(
-      screen.getByRole("button", { name: t("spaceManager.addSelector") })
-    );
-    fireEvent.change(
-      screen.getByPlaceholderText(t("stepEditor.labelKeyPlaceholder")),
-      { target: { value: "domain" } }
-    );
-
     expect(
-      screen.getByRole("button", { name: t("spaceManager.save") })
-    ).toBeDisabled();
+      screen.queryByRole("button", { name: t("spaceManager.back") })
+    ).not.toBeInTheDocument();
   });
 
-  test("suggests label keys from the catalog", () => {
+  test("suggests catalog label values", () => {
     open();
-    fireEvent.click(
-      screen.getByRole("button", { name: t("spaceManager.addSelector") })
-    );
-    fireEvent.click(screen.getAllByLabelText("Show suggestions")[0]);
-
-    expect(screen.getByRole("option", { name: "domain" })).toBeInTheDocument();
-    expect(screen.getByRole("option", { name: "tier" })).toBeInTheDocument();
-  });
-
-  test("suggests values for the chosen key", () => {
-    open();
-    fireEvent.click(
-      screen.getByRole("button", { name: t("spaceManager.addSelector") })
-    );
-    fireEvent.change(
-      screen.getByPlaceholderText(t("stepEditor.labelKeyPlaceholder")),
-      { target: { value: "domain" } }
-    );
+    startNew();
+    addSelector("domain");
     fireEvent.click(screen.getAllByLabelText("Show suggestions")[1]);
 
     expect(screen.getByRole("option", { name: "risk" })).toBeInTheDocument();
     expect(screen.getByRole("option", { name: "trading" })).toBeInTheDocument();
   });
 
-  test("excludes keys already used by another row", () => {
+  test("excludes keys already used by another selector row", () => {
     open();
-    fireEvent.click(
-      screen.getByRole("button", { name: t("spaceManager.addSelector") })
-    );
-    fireEvent.change(
-      screen.getByPlaceholderText(t("stepEditor.labelKeyPlaceholder")),
-      { target: { value: "domain" } }
-    );
-    fireEvent.click(
-      screen.getByRole("button", { name: t("spaceManager.addSelector") })
-    );
+    startNew();
+    addSelector("domain", "risk");
+    addSelector("");
     fireEvent.click(screen.getAllByLabelText("Show suggestions")[2]);
 
     expect(screen.getByRole("option", { name: "tier" })).toBeInTheDocument();

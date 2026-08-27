@@ -1,7 +1,7 @@
 package helpers
 
 import (
-	"github.com/google/uuid"
+	"uuid"
 
 	"github.com/kode4food/argyll/engine/pkg/api"
 )

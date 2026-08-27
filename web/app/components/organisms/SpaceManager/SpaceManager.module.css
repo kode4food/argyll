@@ -1,19 +1,10 @@
-.layout {
-  display: grid;
-  grid-template-columns: 220px minmax(0, 1fr);
-  gap: var(--spacing-lg);
-  flex: 1;
-  min-height: 0;
-}
-
 .list {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-xs);
-  min-height: 0;
+  min-height: 160px;
+  max-height: 420px;
   overflow-y: auto;
-  border-right: 1px solid var(--color-dark-border);
-  padding-right: var(--spacing-md);
 }
 
 .listItem {
@@ -35,12 +26,6 @@
   cursor: pointer;
 }
 
-.listItemActive {
-  background-color: color-mix(in srgb, var(--color-info) 20%, transparent);
-  border-color: var(--color-info);
-  color: var(--color-info-light);
-}
-
 .listItemId {
   font-size: var(--text-xs);
   opacity: var(--opacity-muted);
@@ -50,6 +35,32 @@
   padding: var(--spacing-sm);
   color: var(--panel-text-muted);
   font-size: var(--text-xs);
+}
+
+.editor {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+  min-height: 0;
+}
+
+.stepper {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--spacing-sm);
+  padding: 0;
+  margin: 0;
+  list-style-position: inside;
+}
+
+.step {
+  color: var(--panel-text-muted);
+  font-size: var(--text-xs);
+}
+
+.stepActive,
+.stepComplete {
+  color: var(--color-info-light);
 }
 
 .detail {
@@ -105,11 +116,6 @@
   border-radius: var(--radius-md);
   color: var(--color-error-light);
   font-size: var(--text-xs);
-}
-
-.footerSelection {
-  display: flex;
-  gap: var(--spacing-sm);
 }
 
 .footerActions {

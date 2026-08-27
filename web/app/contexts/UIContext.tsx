@@ -46,6 +46,7 @@ export const UIProvider: React.FC<{ children: React.ReactNode }> = ({
   const diagramContainerRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const previousSpaceIdsRef = useRef(new Set(spaces.map((space) => space.id)));
   // Read by updatePreviewPlan so its identity stays stable across space changes
   const spaceIdRef = useRef<string | null>(null);
 
@@ -125,9 +126,13 @@ export const UIProvider: React.FC<{ children: React.ReactNode }> = ({
     setFocusedPreviewAttributeState(null);
   }, []);
 
-  // A Space can be deleted while it is selected, leaving nothing to scope to
+  // Clear a selected Space when it disappears, but allow a new selection to
+  // arrive before its catalog event.
   useEffect(() => {
-    if (spaceId && !spaces.some((space) => space.id === spaceId)) {
+    const previous = previousSpaceIdsRef.current;
+    const current = new Set(spaces.map((space) => space.id));
+    previousSpaceIdsRef.current = current;
+    if (spaceId && previous.has(spaceId) && !current.has(spaceId)) {
       setSpaceId(null);
     }
   }, [spaces, spaceId, setSpaceId]);

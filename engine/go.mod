@@ -6,7 +6,6 @@ require (
 	github.com/Shopify/go-lua v0.0.0-20250718183320-1e37f32ad7d0
 	github.com/gin-contrib/slog v1.2.1
 	github.com/gin-gonic/gin v1.12.0
-	github.com/google/uuid v1.6.0
 	github.com/gorilla/websocket v1.5.3
 	github.com/kode4food/caravan v0.0.0-20260821122510-0a730966b1a2
 	github.com/kode4food/jpath v0.0.0-20260821124846-7265794f74f9

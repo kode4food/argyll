@@ -8,6 +8,7 @@ import { useT } from "@/app/i18n";
 import { IconAttributeLabel } from "@/utils/iconRegistry";
 import { useSpaces, useSpaceSelection } from "@/app/store/flowStore";
 import { useLabelVocabulary } from "@/app/hooks/useLabelVocabulary";
+import { useUI } from "@/app/contexts/UIContext";
 import styles from "./SpaceManager.module.css";
 
 interface SpaceManagerProps {
@@ -22,66 +23,47 @@ interface SpaceDraft {
   selector: KeyValuePair[];
 }
 
-const toDraft = (space: Space, timestamp: number): SpaceDraft => ({
-  id: space.id,
-  name: space.name,
-  description: space.description ?? "",
-  selector: Object.entries(space.selector?.match_labels ?? {}).map(
-    ([key, value], index) => ({ id: `sel-${index}-${timestamp}`, key, value })
-  ),
-});
-
-const emptyDraft = (): SpaceDraft => ({
-  id: "",
-  name: "",
-  description: "",
-  selector: [],
-});
-
-const toSpace = (draft: SpaceDraft): Space => {
-  const matchLabels: Record<string, string> = {};
-  draft.selector.forEach(({ key, value }) => {
-    const name = key.trim();
-    if (name) matchLabels[name] = value.trim();
-  });
-  return {
-    id: draft.id.trim(),
-    name: draft.name.trim(),
-    ...(draft.description.trim() && { description: draft.description.trim() }),
-    selector: { match_labels: matchLabels },
-  };
-};
-
-const fingerprint = (space: Space) =>
-  JSON.stringify({
-    id: space.id,
-    name: space.name,
-    description: space.description ?? "",
-    selector: Object.entries(space.selector?.match_labels ?? {}).sort(),
-  });
+const EDITOR_STEPS = ["spaceManager.selectorStep", "spaceManager.detailsStep"];
 
 const SpaceManager: React.FC<SpaceManagerProps> = ({ isOpen, onClose }) => {
   const t = useT();
   const spaces = useSpaces();
+  const { setSpaceId } = useUI();
   const { labelKeys, valuesForKey } = useLabelVocabulary();
   const spaceSelection = useSpaceSelection();
-
   const [draft, setDraft] = React.useState<SpaceDraft>(emptyDraft);
   const [editingId, setEditingId] = React.useState<string | null>(null);
+  const [editorStep, setEditorStep] = React.useState(0);
+  const [isEditing, setEditing] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [saving, setSaving] = React.useState(false);
-  const selectorCounter = React.useRef(0);
+  const selectorCounterRef = React.useRef(0);
+  const editing = editingId
+    ? spaces.find((space) => space.id === editingId)
+    : undefined;
+  const isDirty =
+    !editing || fingerprint(toSpace(draft)) !== fingerprint(editing);
 
-  const selectSpace = (space: Space) => {
-    setDraft(toDraft(space, Date.now()));
-    setEditingId(space.id);
+  const openEditor = (space?: Space) => {
+    const id = space?.id ?? null;
+    setDraft(space ? toDraft(space) : emptyDraft());
+    setEditingId(id);
+    setEditorStep(0);
     setError(null);
+    setEditing(true);
   };
 
-  const startNew = () => {
+  const clearEditor = () => {
     setDraft(emptyDraft());
     setEditingId(null);
+    setEditorStep(0);
     setError(null);
+    setEditing(false);
+  };
+
+  const handleClose = () => {
+    clearEditor();
+    onClose();
   };
 
   const updateSelector = (
@@ -102,7 +84,7 @@ const SpaceManager: React.FC<SpaceManagerProps> = ({ isOpen, onClose }) => {
       ...current,
       selector: [
         ...current.selector,
-        { id: `sel-${++selectorCounter.current}`, key: "", value: "" },
+        { id: `sel-${++selectorCounterRef.current}`, key: "", value: "" },
       ],
     }));
   };
@@ -112,6 +94,20 @@ const SpaceManager: React.FC<SpaceManagerProps> = ({ isOpen, onClose }) => {
       ...current,
       selector: current.selector.filter((pair) => pair.id !== id),
     }));
+  };
+
+  const handleNext = () => {
+    if (editingId === null) {
+      setDraft((current) => {
+        const suggested = selectorSuggestions(current.selector);
+        return {
+          ...current,
+          id: current.id || suggested.id,
+          name: current.name || suggested.name,
+        };
+      });
+    }
+    setEditorStep((current) => current + 1);
   };
 
   const run = async (action: () => Promise<unknown>, failure: string) => {
@@ -130,14 +126,16 @@ const SpaceManager: React.FC<SpaceManagerProps> = ({ isOpen, onClose }) => {
 
   const handleSave = async () => {
     const space = toSpace(draft);
-    const saved = await run(
-      () =>
-        editingId
-          ? api.updateSpace(editingId, space)
-          : api.registerSpace(space),
-      "spaceManager.saveFailed"
-    );
-    if (saved) setEditingId(space.id);
+    const saved = await run(async () => {
+      const selected = editingId
+        ? api.updateSpace(editingId, space)
+        : api.registerSpace(space);
+      setSpaceId((await selected).id);
+    }, "spaceManager.saveFailed");
+    if (saved) {
+      clearEditor();
+      onClose();
+    }
   };
 
   const handleDelete = async () => {
@@ -146,64 +144,198 @@ const SpaceManager: React.FC<SpaceManagerProps> = ({ isOpen, onClose }) => {
       () => api.unregisterSpace(editingId),
       "spaceManager.deleteFailed"
     );
-    if (deleted) startNew();
+    if (deleted) clearEditor();
   };
 
-  const matchCount = editingId ? (spaceSelection[editingId]?.size ?? 0) : 0;
-  const isValid =
-    draft.id.trim().length > 0 &&
-    draft.name.trim().length > 0 &&
+  const detailsValid =
+    draft.id.trim().length > 0 && draft.name.trim().length > 0;
+  const selectorValid =
     draft.selector.length > 0 &&
     draft.selector.every(({ key, value }) => key.trim() && value.trim());
-
-  const editing = editingId
-    ? spaces.find((space) => space.id === editingId)
-    : undefined;
-  const isDirty =
-    !editing || fingerprint(toSpace(draft)) !== fingerprint(editing);
-
+  const isValid = detailsValid && selectorValid;
   const canSave = !saving && isValid && isDirty;
+  const matchCount = editingId ? (spaceSelection[editingId]?.size ?? 0) : 0;
+  const selectorDescription = selectorSummary(draft.selector);
+
+  const footer = isEditing ? (
+    <>
+      {editingId && (
+        <button
+          type="button"
+          className={styles.buttonDanger}
+          onClick={() => void handleDelete()}
+          disabled={saving}
+        >
+          {t("spaceManager.delete")}
+        </button>
+      )}
+      <div className={styles.footerActions}>
+        <button type="button" className={styles.button} onClick={handleClose}>
+          {t("spaceManager.cancel")}
+        </button>
+        {editorStep > 0 && (
+          <button
+            type="button"
+            className={styles.button}
+            onClick={() => setEditorStep((current) => current - 1)}
+            disabled={saving}
+          >
+            {t("spaceManager.back")}
+          </button>
+        )}
+        {editorStep < EDITOR_STEPS.length - 1 ? (
+          <button
+            type="button"
+            className={styles.buttonPrimary}
+            onClick={handleNext}
+            disabled={saving || !selectorValid}
+          >
+            {t("spaceManager.next")}
+          </button>
+        ) : (
+          <button
+            type="button"
+            className={styles.buttonPrimary}
+            onClick={() => void handleSave()}
+            disabled={!canSave}
+          >
+            {t("spaceManager.save")}
+          </button>
+        )}
+      </div>
+    </>
+  ) : (
+    <>
+      <button
+        autoFocus
+        type="button"
+        className={styles.buttonPrimary}
+        onClick={() => openEditor()}
+      >
+        {t("spaceManager.new")}
+      </button>
+      <button type="button" className={styles.button} onClick={handleClose}>
+        {t("spaceManager.close")}
+      </button>
+    </>
+  );
 
   return (
     <Modal
       isOpen={isOpen}
-      onClose={onClose}
+      onClose={handleClose}
       title={t("spaceManager.title")}
       width={760}
-      footer={
-        <>
-          <div className={styles.footerSelection}>
-            <button type="button" className={styles.button} onClick={startNew}>
-              {t("spaceManager.new")}
-            </button>
-            {editingId && (
-              <button
-                type="button"
-                className={styles.buttonDanger}
-                onClick={() => void handleDelete()}
-                disabled={saving}
-              >
-                {t("spaceManager.delete")}
-              </button>
-            )}
-          </div>
-          <div className={styles.footerActions}>
-            <button type="button" className={styles.button} onClick={onClose}>
-              {t("spaceManager.close")}
-            </button>
-            <button
-              type="button"
-              className={styles.buttonPrimary}
-              onClick={() => void handleSave()}
-              disabled={!canSave}
-            >
-              {t("spaceManager.save")}
-            </button>
-          </div>
-        </>
-      }
+      footer={footer}
     >
-      <div className={styles.layout}>
+      {isEditing ? (
+        <div className={styles.editor}>
+          <ol className={styles.stepper}>
+            {EDITOR_STEPS.map((label, index) => (
+              <li
+                key={label}
+                className={`${styles.step} ${
+                  index === editorStep ? styles.stepActive : ""
+                } ${index < editorStep ? styles.stepComplete : ""}`}
+                aria-current={index === editorStep ? "step" : undefined}
+              >
+                {t(label)}
+              </li>
+            ))}
+          </ol>
+
+          {editorStep === 0 && (
+            <div className={styles.detail}>
+              <KeyValueTable
+                Icon={IconAttributeLabel}
+                label={t("spaceManager.selectorLabel")}
+                addLabel={t("spaceManager.addSelector")}
+                removeLabel={t("spaceManager.removeSelector")}
+                keyPlaceholder={t("stepEditor.labelKeyPlaceholder")}
+                valuePlaceholder={t("stepEditor.labelValuePlaceholder")}
+                pairs={draft.selector}
+                onAdd={addSelector}
+                onChange={updateSelector}
+                onRemove={removeSelector}
+                keySuggestions={labelKeys}
+                valueSuggestions={valuesForKey}
+              />
+              {editingId && (
+                <div className={styles.matches}>
+                  {t("overview.stepsRegistered", { count: matchCount })}
+                </div>
+              )}
+            </div>
+          )}
+
+          {editorStep === 1 && (
+            <div className={styles.detail}>
+              <div className={styles.field}>
+                <label className={styles.label}>
+                  {t("spaceManager.idLabel")}
+                </label>
+                <input
+                  type="text"
+                  className={styles.input}
+                  value={draft.id}
+                  disabled={editingId !== null}
+                  onChange={(e) =>
+                    setDraft((current) => ({
+                      ...current,
+                      id: e.target.value,
+                    }))
+                  }
+                  placeholder={t("spaceManager.idPlaceholder")}
+                />
+              </div>
+
+              <div className={styles.field}>
+                <label className={styles.label}>
+                  {t("spaceManager.nameLabel")}
+                </label>
+                <input
+                  type="text"
+                  className={styles.input}
+                  value={draft.name}
+                  onChange={(e) =>
+                    setDraft((current) => ({
+                      ...current,
+                      name: e.target.value,
+                    }))
+                  }
+                  placeholder={t("spaceManager.namePlaceholder")}
+                />
+              </div>
+
+              <div className={styles.field}>
+                <label className={styles.label}>
+                  {t("spaceManager.descriptionLabel")}
+                </label>
+                <input
+                  type="text"
+                  className={styles.input}
+                  value={draft.description}
+                  onChange={(e) =>
+                    setDraft((current) => ({
+                      ...current,
+                      description: e.target.value,
+                    }))
+                  }
+                  placeholder={
+                    selectorDescription
+                      ? t("spaceManager.descriptionSuggestion", {
+                          selector: selectorDescription,
+                        })
+                      : t("spaceManager.descriptionPlaceholder")
+                  }
+                />
+              </div>
+            </div>
+          )}
+
+          {error && <div className={styles.error}>{error}</div>}
+        </div>
+      ) : (
         <div className={styles.list}>
           {spaces.length === 0 && (
             <div className={styles.empty}>{t("spaceManager.empty")}</div>
@@ -212,91 +344,82 @@ const SpaceManager: React.FC<SpaceManagerProps> = ({ isOpen, onClose }) => {
             <button
               key={space.id}
               type="button"
-              className={`${styles.listItem} ${
-                editingId === space.id ? styles.listItemActive : ""
-              }`}
-              onClick={() => selectSpace(space)}
+              className={styles.listItem}
+              onClick={() => openEditor(space)}
             >
               <span>{space.name}</span>
               <span className={styles.listItemId}>{space.id}</span>
             </button>
           ))}
         </div>
-
-        <div className={styles.detail}>
-          <div className={styles.field}>
-            <label className={styles.label}>{t("spaceManager.idLabel")}</label>
-            <input
-              type="text"
-              className={styles.input}
-              value={draft.id}
-              disabled={editingId !== null}
-              onChange={(e) =>
-                setDraft((current) => ({ ...current, id: e.target.value }))
-              }
-              placeholder={t("spaceManager.idPlaceholder")}
-            />
-          </div>
-
-          <div className={styles.field}>
-            <label className={styles.label}>
-              {t("spaceManager.nameLabel")}
-            </label>
-            <input
-              type="text"
-              className={styles.input}
-              value={draft.name}
-              onChange={(e) =>
-                setDraft((current) => ({ ...current, name: e.target.value }))
-              }
-              placeholder={t("spaceManager.namePlaceholder")}
-            />
-          </div>
-
-          <div className={styles.field}>
-            <label className={styles.label}>
-              {t("spaceManager.descriptionLabel")}
-            </label>
-            <input
-              type="text"
-              className={styles.input}
-              value={draft.description}
-              onChange={(e) =>
-                setDraft((current) => ({
-                  ...current,
-                  description: e.target.value,
-                }))
-              }
-              placeholder={t("spaceManager.descriptionPlaceholder")}
-            />
-          </div>
-
-          <KeyValueTable
-            Icon={IconAttributeLabel}
-            label={t("spaceManager.selectorLabel")}
-            addLabel={t("spaceManager.addSelector")}
-            removeLabel={t("spaceManager.removeSelector")}
-            keyPlaceholder={t("stepEditor.labelKeyPlaceholder")}
-            valuePlaceholder={t("stepEditor.labelValuePlaceholder")}
-            pairs={draft.selector}
-            onAdd={addSelector}
-            onChange={updateSelector}
-            onRemove={removeSelector}
-            keySuggestions={labelKeys}
-            valueSuggestions={valuesForKey}
-          />
-
-          {editingId && (
-            <div className={styles.matches}>
-              {t("overview.stepsRegistered", { count: matchCount })}
-            </div>
-          )}
-
-          {error && <div className={styles.error}>{error}</div>}
-        </div>
-      </div>
+      )}
     </Modal>
   );
 };
+
+function toDraft(space: Space): SpaceDraft {
+  return {
+    id: space.id,
+    name: space.name,
+    description: space.description ?? "",
+    selector: Object.entries(space.selector?.match_labels ?? {}).map(
+      ([key, value]) => ({ id: key, key, value })
+    ),
+  };
+}
+
+function emptyDraft(): SpaceDraft {
+  return { id: "", name: "", description: "", selector: [] };
+}
+
+function toSpace(draft: SpaceDraft): Space {
+  const matchLabels: Record<string, string> = {};
+  draft.selector.forEach(({ key, value }) => {
+    const name = key.trim();
+    if (name) matchLabels[name] = value.trim();
+  });
+  return {
+    id: draft.id.trim(),
+    name: draft.name.trim(),
+    ...(draft.description.trim() && { description: draft.description.trim() }),
+    selector: { match_labels: matchLabels },
+  };
+}
+
+function fingerprint(space: Space): string {
+  return JSON.stringify({
+    id: space.id,
+    name: space.name,
+    description: space.description ?? "",
+    selector: Object.entries(space.selector?.match_labels ?? {}).sort(),
+  });
+}
+
+function selectorSuggestions(pairs: KeyValuePair[]) {
+  return {
+    id: pairs
+      .flatMap(({ key, value }) => [key.trim(), value.trim()])
+      .join("-")
+      .toLowerCase()
+      .replace(/[^a-z0-9_.+ -]/g, "")
+      .replaceAll(" ", "-")
+      .replace(/^-+|-+$/g, ""),
+    name: pairs
+      .map(
+        ({ key, value }) => `${humanize(value.trim())} ${humanize(key.trim())}`
+      )
+      .join(" / "),
+  };
+}
+
+function humanize(value: string): string {
+  return value.replace(/[-_]+/g, " ");
+}
+
+function selectorSummary(pairs: KeyValuePair[]): string {
+  return pairs
+    .map(({ key, value }) => `${key.trim()}=${value.trim()}`)
+    .join(", ");
+}
 
 export default SpaceManager;
