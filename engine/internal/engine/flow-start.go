@@ -22,7 +22,6 @@ type (
 		Plan       *api.ExecutionPlan
 		Init       api.InitArgs
 		Metadata   api.Metadata
-		SpaceID    api.SpaceID
 		Compensate bool
 	}
 
@@ -68,7 +67,6 @@ func (e *Engine) StartFlow(
 				Init:       opts.Init,
 				Metadata:   opts.Metadata,
 				Labels:     opts.Labels,
-				SpaceID:    opts.SpaceID,
 				Compensate: opts.Compensate,
 			},
 		); err != nil {
@@ -92,7 +90,6 @@ func (e *Engine) StartChildFlow(req *ChildFlowRequest) (api.FlowID, error) {
 		flow.WithInit(req.Init),
 		flow.WithMetadata(req.Metadata),
 		flow.WithParent(req.Parent, req.Token),
-		flow.WithSpace(req.SpaceID),
 		flow.WithCompensate(req.Compensate),
 	)
 	if err != nil {

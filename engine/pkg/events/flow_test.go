@@ -68,9 +68,8 @@ func TestFlowStarted(t *testing.T) {
 	}
 
 	eventData := api.FlowStartedEvent{
-		FlowID:  "test-flow",
-		Plan:    pl,
-		SpaceID: "payments",
+		FlowID: "test-flow",
+		Plan:   pl,
 		Init: api.InitArgs{
 			"input1": {"value1"},
 			"input2": {42},
@@ -93,7 +92,6 @@ func TestFlowStarted(t *testing.T) {
 	assert.Equal(t, api.FlowID("test-flow"), result.ID)
 	assert.Equal(t, api.FlowActive, result.Status)
 	assert.Equal(t, pl, result.Plan)
-	assert.Equal(t, api.SpaceID("payments"), result.SpaceID)
 	assert.Len(t, result.Attributes, 2)
 	assert.Equal(t, "value1", result.Attributes["input1"][0].Value)
 	assert.Equal(t, float64(42), result.Attributes["input2"][0].Value)

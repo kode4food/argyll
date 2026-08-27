@@ -139,7 +139,6 @@ func flowStarted(
 		Plan:        data.Plan,
 		Metadata:    data.Metadata,
 		Labels:      data.Labels,
-		SpaceID:     data.SpaceID,
 		Attributes:  attributes,
 		Executions:  execs,
 		Compensate:  data.Compensate,

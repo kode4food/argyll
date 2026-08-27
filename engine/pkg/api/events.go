@@ -52,7 +52,6 @@ type (
 		Init       InitArgs       `json:"init"`
 		Metadata   Metadata       `json:"metadata,omitempty"`
 		Labels     Labels         `json:"labels,omitempty"`
-		SpaceID    SpaceID        `json:"space_id,omitempty"`
 		FlowID     FlowID         `json:"flow_id"`
 		Compensate bool           `json:"compensate,omitempty"`
 	}

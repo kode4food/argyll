@@ -143,9 +143,6 @@ func (s *Server) startFlow(c *gin.Context) {
 	if len(req.Labels) > 0 {
 		apps = append(apps, flow.WithLabels(req.Labels))
 	}
-	if req.SpaceID != "" {
-		apps = append(apps, flow.WithSpace(req.SpaceID))
-	}
 	err := s.engine.StartFlow(req.ID, pl, apps...)
 	if err == nil {
 		c.JSON(http.StatusCreated, api.FlowStartedResponse{

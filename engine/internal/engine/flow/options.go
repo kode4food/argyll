@@ -11,7 +11,6 @@ type (
 		Init       api.InitArgs
 		Metadata   api.Metadata
 		Labels     api.Labels
-		SpaceID    api.SpaceID
 		Compensate bool
 	}
 
@@ -57,13 +56,6 @@ func WithParent(parent api.FlowStep, tkn api.Token) Applier {
 func WithLabels(labels api.Labels) Applier {
 	return func(opt *Options) {
 		opt.Labels = labels
-	}
-}
-
-// WithSpace records the planning space requested for a flow
-func WithSpace(spaceID api.SpaceID) Applier {
-	return func(opt *Options) {
-		opt.SpaceID = spaceID
 	}
 }
 

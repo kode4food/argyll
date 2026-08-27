@@ -53,7 +53,6 @@ type (
 		Plan          *ExecutionPlan  `json:"plan"`
 		Metadata      Metadata        `json:"metadata,omitempty"`
 		Labels        Labels          `json:"labels,omitempty"`
-		SpaceID       SpaceID         `json:"space_id,omitempty"`
 		Attributes    AttributeValues `json:"attributes"`
 		DeactivatedAt time.Time       `json:"deactivated_at"`
 		Executions    Executions      `json:"executions"`

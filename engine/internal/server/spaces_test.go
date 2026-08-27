@@ -136,7 +136,6 @@ func TestStartFlowSpace(t *testing.T) {
 		global, err := env.Engine.GetFlowState("global-flow")
 		assert.NoError(t, err)
 		assert.Contains(t, global.Plan.Steps, provider.ID)
-		assert.Empty(t, global.SpaceID)
 
 		w = startSpaceFlow(t, router, api.CreateFlowRequest{
 			ID:      "space-flow",
@@ -147,7 +146,6 @@ func TestStartFlowSpace(t *testing.T) {
 		selected, err := env.Engine.GetFlowState("space-flow")
 		assert.NoError(t, err)
 		assert.Contains(t, selected.Plan.Steps, provider.ID)
-		assert.Equal(t, api.SpaceID("payments"), selected.SpaceID)
 	})
 }
 
