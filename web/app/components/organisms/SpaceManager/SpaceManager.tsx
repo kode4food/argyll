@@ -224,7 +224,13 @@ const SpaceManager: React.FC<SpaceManagerProps> = ({ isOpen, onClose }) => {
     <Modal
       isOpen={isOpen}
       onClose={handleClose}
-      title={t("spaceManager.title")}
+      title={t(
+        isEditing
+          ? editingId
+            ? "spaceManager.updateTitle"
+            : "spaceManager.createTitle"
+          : "spaceManager.title"
+      )}
       width={760}
       footer={footer}
     >

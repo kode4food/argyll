@@ -201,6 +201,8 @@
   "stepEditor.removeAttribute": "Supprimer l'Attribute",
   "stepEditor.save": "Enregistrer",
   "spaceManager.title": "Gérer les Spaces",
+  "spaceManager.createTitle": "Créer une Space",
+  "spaceManager.updateTitle": "Modifier la Space",
   "spaceManager.new": "Nouveau Space",
   "spaceManager.empty": "Aucun Space défini",
   "spaceManager.idLabel": "ID du Space",

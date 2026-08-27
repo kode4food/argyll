@@ -47,20 +47,55 @@
 .stepper {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--spacing-sm);
   padding: 0;
   margin: 0;
-  list-style-position: inside;
+  list-style: none;
+  counter-reset: step;
 }
 
 .step {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
   color: var(--panel-text-muted);
   font-size: var(--text-xs);
 }
 
-.stepActive,
+.step::before {
+  content: counter(step);
+  counter-increment: step;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 1px solid var(--panel-text-muted);
+  font-size: 10px;
+  line-height: 1;
+}
+
+.stepActive {
+  color: var(--panel-text);
+  font-weight: 600;
+}
+
+.stepActive::before {
+  border-color: var(--color-info-light);
+  color: var(--color-info-light);
+}
+
 .stepComplete {
   color: var(--color-info-light);
+}
+
+.stepComplete::before {
+  content: "\2713";
+  background: var(--color-info-light);
+  border-color: var(--color-info-light);
+  color: var(--color-surface);
 }
 
 .detail {
