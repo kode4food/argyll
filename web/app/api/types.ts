@@ -216,15 +216,11 @@ export interface NodeState {
   health: Record<string, StepHealth>;
 }
 
-export interface LabelSelector {
-  match_labels?: Record<string, string>;
-}
-
 export interface Space {
   id: string;
   name: string;
   description?: string;
-  selector: LabelSelector;
+  selector: Record<string, string>;
 }
 
 export interface AttributeValue {

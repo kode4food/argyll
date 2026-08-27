@@ -342,7 +342,7 @@ describe("StepEditor", () => {
       {
         id: "risk",
         name: "Risk",
-        selector: { match_labels: { domain: "risk" } },
+        selector: { domain: "risk" },
       },
     ];
     selectedSpaceId = "risk";

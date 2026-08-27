@@ -17,15 +17,10 @@ type (
 
 	// Space defines a dynamic planning scope over registered steps
 	Space struct {
-		Selector    LabelSelector `json:"selector"`
-		ID          SpaceID       `json:"id"`
-		Name        Name          `json:"name"`
-		Description string        `json:"description,omitempty"`
-	}
-
-	// LabelSelector selects steps by labels
-	LabelSelector struct {
-		MatchLabels Labels `json:"match_labels,omitempty"`
+		Selector    Labels  `json:"selector"`
+		ID          SpaceID `json:"id"`
+		Name        Name    `json:"name"`
+		Description string  `json:"description,omitempty"`
 	}
 )
 
@@ -48,13 +43,13 @@ func (s Space) Validate() error {
 	if s.Name == "" {
 		return ErrSpaceNameEmpty
 	}
-	if len(s.Selector.MatchLabels) == 0 {
+	if len(s.Selector) == 0 {
 		return ErrSpaceSelectorEmpty
 	}
-	if len(s.Selector.MatchLabels) > MaxLabelCount {
+	if len(s.Selector) > MaxLabelCount {
 		return fmt.Errorf("%w: maximum is %d", ErrTooManyLabels, MaxLabelCount)
 	}
-	for key, value := range s.Selector.MatchLabels {
+	for key, value := range s.Selector {
 		if key == "" || value == "" {
 			return ErrInvalidMatchLabels
 		}
@@ -66,18 +61,13 @@ func (s Space) Validate() error {
 func (s Space) Equal(other Space) bool {
 	return s.ID == other.ID && s.Name == other.Name &&
 		s.Description == other.Description &&
-		s.Selector.MatchLabels.Equal(other.Selector.MatchLabels)
+		s.Selector.Equal(other.Selector)
 }
 
-// Matches returns true when the step matches the space selector
+// Matches returns true when all selector labels match the step's labels
 func (s Space) Matches(step *Step) bool {
-	return s.Selector.Matches(step.Labels)
-}
-
-// Matches returns true when all selector labels match the supplied labels
-func (s LabelSelector) Matches(labels Labels) bool {
-	for key, value := range s.MatchLabels {
-		if labels[key] != value {
+	for key, value := range s.Selector {
+		if step.Labels[key] != value {
 			return false
 		}
 	}

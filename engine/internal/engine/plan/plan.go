@@ -3,6 +3,7 @@ package plan
 import (
 	"errors"
 	"fmt"
+	"maps"
 	"slices"
 
 	"github.com/kode4food/argyll/engine/internal/engine/policy"
@@ -48,6 +49,7 @@ type (
 		match        policy.Matcher
 		providers    selectProviders
 		init         api.InitArgs
+		selector     api.Labels
 		goals        []api.StepID
 	}
 
@@ -123,14 +125,17 @@ func create(
 		}
 		candidates := args.candidates
 		dependencies := args.dependencies
+		var selector api.Labels
 		if st.Flow != nil && st.Flow.SpaceID != "" {
-			if _, ok := args.catalog.Spaces[st.Flow.SpaceID]; !ok {
+			space, ok := args.catalog.Spaces[st.Flow.SpaceID]
+			if !ok {
 				return nil, fmt.Errorf(
 					"%w: %s", ErrSpaceNotFound, st.Flow.SpaceID,
 				)
 			}
 			candidates = args.catalog.SpaceSteps(st.Flow.SpaceID)
 			dependencies = dependencyGraph(candidates)
+			selector = maps.Clone(space.Selector)
 		}
 		ancestors.Add(sid)
 		childPlan, err := create(planArgs{
@@ -140,6 +145,7 @@ func create(
 			match:        args.match,
 			providers:    args.providers,
 			init:         ChildPlanInit(st),
+			selector:     selector,
 			goals:        childGoals,
 		}, children, ancestors)
 		ancestors.Remove(sid)
@@ -176,6 +182,7 @@ func build(args planArgs) (*api.ExecutionPlan, error) {
 		Required:   pb.getRequiredInputs(),
 		Steps:      pb.steps,
 		Attributes: pb.attributes,
+		Selector:   args.selector,
 		Excluded:   excluded,
 	}, nil
 }

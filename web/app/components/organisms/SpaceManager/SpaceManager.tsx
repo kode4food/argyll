@@ -368,9 +368,11 @@ function toDraft(space: Space): SpaceDraft {
     id: space.id,
     name: space.name,
     description: space.description ?? "",
-    selector: Object.entries(space.selector?.match_labels ?? {}).map(
-      ([key, value]) => ({ id: key, key, value })
-    ),
+    selector: Object.entries(space.selector ?? {}).map(([key, value]) => ({
+      id: key,
+      key,
+      value,
+    })),
   };
 }
 
@@ -379,16 +381,16 @@ function emptyDraft(): SpaceDraft {
 }
 
 function toSpace(draft: SpaceDraft): Space {
-  const matchLabels: Record<string, string> = {};
+  const selector: Record<string, string> = {};
   draft.selector.forEach(({ key, value }) => {
     const name = key.trim();
-    if (name) matchLabels[name] = value.trim();
+    if (name) selector[name] = value.trim();
   });
   return {
     id: draft.id.trim(),
     name: draft.name.trim(),
     ...(draft.description.trim() && { description: draft.description.trim() }),
-    selector: { match_labels: matchLabels },
+    selector,
   };
 }
 
@@ -397,7 +399,7 @@ function fingerprint(space: Space): string {
     id: space.id,
     name: space.name,
     description: space.description ?? "",
-    selector: Object.entries(space.selector?.match_labels ?? {}).sort(),
+    selector: Object.entries(space.selector ?? {}).sort(),
   });
 }
 

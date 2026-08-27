@@ -1750,19 +1750,6 @@ components:
           description: Total number of registered steps
           example: 12
 
-    LabelSelector:
-      type: object
-      required:
-        - match_labels
-      properties:
-        match_labels:
-          type: object
-          description: Step labels to match, combined with AND. At least one
-            entry is required
-          minProperties: 1
-          additionalProperties:
-            type: string
-
     Space:
       type: object
       required:
@@ -1782,7 +1769,14 @@ components:
           type: string
           description: Optional space description
         selector:
-          $ref: "#/components/schemas/LabelSelector"
+          type: object
+          description: Step labels to match, combined with AND. At least one
+            entry is required
+          minProperties: 1
+          additionalProperties:
+            type: string
+          example:
+            domain: payments
 
     SpaceRegisteredResponse:
       type: object
@@ -1873,6 +1867,20 @@ components:
           description: Map of attribute names to their provider/consumer dependencies
           additionalProperties:
             $ref: "#/components/schemas/Dependencies"
+        selector:
+          type: object
+          additionalProperties:
+            type: string
+          description: |
+            The labels that narrowed this plan's candidate steps, copied as they
+            read at plan construction. Combined with the label snapshots in
+            `steps`, they reconstruct exactly which steps were admitted, even if
+            the Space they came from is later changed or removed. Present only
+            on child plans of flow steps that name a Space. Top-level plans omit
+            it: the caller chooses that candidate set, whether from the whole
+            catalog, a Space, or any other source, and owns recording why.
+          example:
+            domain: payments
         excluded:
           allOf:
             - $ref: "#/components/schemas/ExcludedSteps"

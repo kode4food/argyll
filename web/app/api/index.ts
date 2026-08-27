@@ -19,7 +19,6 @@ export type {
   WorkConfig,
   Step,
   Space,
-  LabelSelector,
   ExecutionPlan,
   FlowContext,
   FlowSummary,

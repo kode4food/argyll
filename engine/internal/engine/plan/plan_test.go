@@ -1077,3 +1077,71 @@ func planConsumer(
 		},
 	}
 }
+
+func TestSubFlowSelector(t *testing.T) {
+	t.Run("records the space selector", func(t *testing.T) {
+		selector := api.Labels{"domain": "payments"}
+		goal := planProvider("scoped-goal", "scoped")
+		goal.Labels = api.Labels{"domain": "payments"}
+
+		st := planProvider("sub-flow", "expanded")
+		st.Flow = &api.FlowConfig{
+			Goals:   []api.StepID{goal.ID},
+			SpaceID: "payments",
+		}
+
+		cat := makeCatalogState(api.Steps{goal.ID: goal, st.ID: st})
+		cat.Spaces = api.Spaces{
+			"payments": {ID: "payments", Name: "Payments", Selector: selector},
+		}
+		cat.Selection = api.SpaceSelection{"payments": {goal.ID}}
+
+		pl, err := createSubFlowPlan(cat, st.ID)
+		assert.NoError(t, err)
+
+		// the caller chose the top-level candidate set, so the root plan
+		// claims no Space narrowing of its own
+		assert.Nil(t, pl.Selector)
+
+		child := pl.Children[st.ID]
+		assert.Equal(t, selector, child.Selector)
+		assert.Contains(t, child.Steps, goal.ID)
+
+		// the recorded selector is an independent copy, so later edits to
+		// the Space cannot rewrite what a built plan says it filtered on
+		selector["domain"] = "inventory"
+		assert.Equal(t, "payments", child.Selector["domain"])
+	})
+
+	t.Run("stays empty without a space", func(t *testing.T) {
+		goal := planProvider("plain-goal", "plain")
+		st := planProvider("plain-sub-flow", "expanded")
+		st.Flow = &api.FlowConfig{Goals: []api.StepID{goal.ID}}
+
+		cat := makeCatalogState(api.Steps{goal.ID: goal, st.ID: st})
+
+		pl, err := createSubFlowPlan(cat, st.ID)
+		assert.NoError(t, err)
+		assert.Nil(t, pl.Children[st.ID].Selector)
+	})
+}
+
+func createSubFlowPlan(
+	cat api.CatalogState, sid api.StepID,
+) (*api.ExecutionPlan, error) {
+	return plan.Create(&plan.Request{
+		Match:    testEval,
+		Catalog:  cat,
+		Steps:    cat.Steps,
+		Goals:    []api.StepID{sid},
+		Init:     api.InitArgs{},
+		Children: subFlowChildren,
+	})
+}
+
+func subFlowChildren(st *api.Step) ([]api.StepID, error) {
+	if st.Flow == nil {
+		return nil, nil
+	}
+	return st.Flow.Goals, nil
+}

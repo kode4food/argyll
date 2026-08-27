@@ -179,11 +179,9 @@ func TestSpaceEvents(t *testing.T) {
 func TestSpaceSelectionProjection(t *testing.T) {
 	cat := events.NewCatalogState()
 	space := api.Space{
-		ID:   "payments",
-		Name: "Payments",
-		Selector: api.LabelSelector{
-			MatchLabels: api.Labels{"domain": "payments"},
-		},
+		ID:       "payments",
+		Name:     "Payments",
+		Selector: api.Labels{"domain": "payments"},
 	}
 	inside := &api.Step{ID: "inside", Labels: api.Labels{
 		"domain": "payments",

@@ -20,9 +20,9 @@ func TestSpaceAPI(t *testing.T) {
 			ID:          "payments",
 			Name:        "Payments",
 			Description: "Payment services",
-			Selector: api.LabelSelector{MatchLabels: api.Labels{
+			Selector: api.Labels{
 				"domain": "payments",
-			}},
+			},
 		}
 
 		w := spaceRequest(t, spaceRequestArgs{
@@ -57,9 +57,9 @@ func TestSpaceAPI(t *testing.T) {
 			ID:          "payments",
 			Name:        "Payments",
 			Description: "Updated",
-			Selector: api.LabelSelector{MatchLabels: api.Labels{
+			Selector: api.Labels{
 				"domain": "payments",
-			}},
+			},
 		}
 		w = spaceRequest(t, spaceRequestArgs{
 			handler: router,
@@ -218,10 +218,10 @@ func TestSpaceDynamicPlanning(t *testing.T) {
 		updated := api.Space{
 			ID:   "payments",
 			Name: "Payments",
-			Selector: api.LabelSelector{MatchLabels: api.Labels{
+			Selector: api.Labels{
 				"domain":      "payments",
 				"environment": "stage",
-			}},
+			},
 		}
 		assert.NoError(t, env.Engine.UpdateSpace(updated))
 		w = startSpaceFlow(t, router, api.CreateFlowRequest{
@@ -293,9 +293,9 @@ func paymentSpace() api.Space {
 	return api.Space{
 		ID:   "payments",
 		Name: "Payments",
-		Selector: api.LabelSelector{MatchLabels: api.Labels{
+		Selector: api.Labels{
 			"domain": "payments",
-		}},
+		},
 	}
 }
 

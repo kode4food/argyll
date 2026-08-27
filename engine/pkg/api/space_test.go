@@ -9,8 +9,8 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
-func TestLabelSelector(t *testing.T) {
-	selector := api.LabelSelector{MatchLabels: api.Labels{
+func TestSpaceMatches(t *testing.T) {
+	space := api.Space{Selector: api.Labels{
 		"domain":      "payments",
 		"environment": "production",
 	}}
@@ -45,16 +45,23 @@ func TestLabelSelector(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			assert.Equal(t, test.match, selector.Matches(test.labels))
+			step := &api.Step{Labels: test.labels}
+			assert.Equal(t, test.match, space.Matches(step))
 		})
 	}
-	assert.True(t, (api.LabelSelector{}).Matches(nil))
+	assert.True(t, api.Space{}.Matches(&api.Step{}))
 }
 
-func TestLabelSelectorJSON(t *testing.T) {
-	data, err := json.Marshal(api.LabelSelector{MatchLabels: api.Labels{
-		"domain": "payments",
-	}})
+func TestSpaceJSON(t *testing.T) {
+	data, err := json.Marshal(api.Space{
+		ID:       "payments",
+		Name:     "Payments",
+		Selector: api.Labels{"domain": "payments"},
+	})
 	assert.NoError(t, err)
-	assert.JSONEq(t, `{"match_labels":{"domain":"payments"}}`, string(data))
+	assert.JSONEq(t, `{
+		"id": "payments",
+		"name": "Payments",
+		"selector": {"domain": "payments"}
+	}`, string(data))
 }

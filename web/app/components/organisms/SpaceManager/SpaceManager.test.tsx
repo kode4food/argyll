@@ -40,7 +40,7 @@ describe("SpaceManager", () => {
         id: "risk",
         name: "Risk",
         description: "Risk steps",
-        selector: { match_labels: { domain: "risk" } },
+        selector: { domain: "risk" },
       },
     ];
     stepsInStore = [
@@ -131,7 +131,7 @@ describe("SpaceManager", () => {
       expect(mockApi.registerSpace).toHaveBeenCalledWith({
         id: "domain-trading",
         name: "trading domain",
-        selector: { match_labels: { domain: "trading" } },
+        selector: { domain: "trading" },
       });
       expect(setSpaceId).toHaveBeenCalledWith("domain-trading");
     });
@@ -176,7 +176,7 @@ describe("SpaceManager", () => {
         id: "risk",
         name: "Risk Domain",
         description: "Risk steps",
-        selector: { match_labels: { domain: "risk" } },
+        selector: { domain: "risk" },
       });
       expect(setSpaceId).toHaveBeenCalledWith("risk");
     });

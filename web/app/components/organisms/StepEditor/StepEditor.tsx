@@ -46,7 +46,7 @@ const StepEditor: React.FC<StepEditorProps> = ({
   const { spaceId } = useUI();
   const { labelKeys, valuesForKey } = useLabelVocabulary();
   const defaultLabels = React.useMemo(
-    () => spaces.find((space) => space.id === spaceId)?.selector?.match_labels,
+    () => spaces.find((space) => space.id === spaceId)?.selector,
     [spaces, spaceId]
   );
   const {
