@@ -10,7 +10,7 @@ import {
   formatScriptForTooltip,
 } from "@/utils/stepFooterUtils";
 import {
-  getStepTypeIcon,
+  getStepActionIcon,
   IconCompensate,
   IconEndpoint,
   IconHealthCheck,
@@ -58,7 +58,7 @@ const Footer: React.FC<FooterProps> = ({
   const { displayInfo, tooltipSections } = useMemo(() => {
     let displayInfo: DisplayInfo = null;
 
-    const TypeIcon = getStepTypeIcon(step.type);
+    const TypeIcon = getStepActionIcon(step);
 
     if (step.type === "script" && step.script) {
       const scriptPreview = formatScriptPreview(step.script.script);

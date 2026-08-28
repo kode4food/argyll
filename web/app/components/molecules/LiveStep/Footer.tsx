@@ -6,7 +6,7 @@ import TooltipSection from "@/app/components/atoms/TooltipSection";
 import Tooltip from "@/app/components/atoms/Tooltip";
 import styles from "../StepShared/StepFooter.module.css";
 import { formatScriptPreview } from "@/utils/stepFooterUtils";
-import { getStepTypeIcon } from "@/utils/iconRegistry";
+import { getStepActionIcon } from "@/utils/iconRegistry";
 import StepInfoDisplay, {
   type DisplayInfo,
 } from "../StepShared/StepInfoDisplay";
@@ -93,7 +93,7 @@ const workTimerTiming = (work: WorkState, step: Step) => {
 };
 
 const computeDisplayInfo = (step: Step): DisplayInfo => {
-  const TypeIcon = getStepTypeIcon(step.type);
+  const TypeIcon = getStepActionIcon(step);
 
   if (step.type === "script" && step.script) {
     return {

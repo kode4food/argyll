@@ -52,10 +52,9 @@ import {
   Workflow,
   X,
   XCircle,
-  Zap,
   type LucideIcon,
 } from "lucide-react";
-import { StepType } from "@/app/api";
+import { Step, StepType } from "@/app/api";
 
 export type ArgType = "required" | "optional" | "const" | "meta" | "output";
 
@@ -132,11 +131,11 @@ export const IconAttributeStatusProvided = CheckCircle;
 export const IconAttributeStatusDefaulted = CircleDot;
 export const IconAttributeStatusSkipped = CircleSlash;
 
-export const IconStepTypeService = Globe;
+export const IconStepTypeService = Server;
 export const IconStepTypeScript = FileCode2;
 export const IconStepTypeFlow = Workflow;
 
-export const IconActionModeSync = Zap;
+export const IconActionModeSync = Globe;
 export const IconActionModeAsync = Webhook;
 
 const ARG_ICON_MAP: Record<ArgType, ArgIconConfig> = {
@@ -159,6 +158,17 @@ const STEP_TYPE_ICON_MAP: Record<StepType, LucideIcon> = {
 
 export const getStepTypeIcon = (stepType: StepType): LucideIcon => {
   return STEP_TYPE_ICON_MAP[stepType];
+};
+
+// Service Steps show how their invocation reports its result, since that is
+// what distinguishes one from another at a glance
+export const getStepActionIcon = (step: Step): LucideIcon => {
+  if (step.type !== "service") {
+    return getStepTypeIcon(step.type);
+  }
+  return step.http?.invoke?.mode === "async"
+    ? IconActionModeAsync
+    : IconActionModeSync;
 };
 
 export type { LucideIcon };

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"testing"
+	"time"
 
 	testify "github.com/stretchr/testify/assert"
 
@@ -196,9 +197,14 @@ func TestChildFlowLease(t *testing.T) {
 		}
 		childID := api.FlowID(fmt.Sprintf("%s:%s:%s", id, parent.ID, tkn))
 
-		childFl, err := env.Engine.GetFlowState(childID)
-		testify.NoError(t, err)
-		testify.False(t, childFl.DeactivatedAt.IsZero())
+		childFl := helpers.WaitForFlowState(t, env.Engine,
+			helpers.FlowStateQuery{
+				FlowID:  childID,
+				Timeout: time.Second,
+				Accept: func(fl api.FlowState) bool {
+					return !fl.DeactivatedAt.IsZero()
+				},
+			})
 		testify.False(t, childFl.DeactivatedAt.Before(fl.DeactivatedAt))
 	})
 }
