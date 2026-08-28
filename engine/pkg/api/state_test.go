@@ -51,6 +51,34 @@ func TestSetStep(t *testing.T) {
 	assert.Len(t, original.Steps, 1)
 }
 
+func TestUpdateStep(t *testing.T) {
+	oldStep := &api.Step{
+		ID: "step",
+		Attributes: api.AttributeSpecs{
+			"old": {Role: api.RoleOutput},
+		},
+	}
+	newStep := &api.Step{
+		ID: "step",
+		Attributes: api.AttributeSpecs{
+			"new": {Role: api.RoleOutput},
+		},
+	}
+	original := api.CatalogState{
+		Steps:      api.Steps{},
+		Attributes: api.AttributeGraph{},
+	}.SetStep(oldStep.ID, oldStep)
+
+	result := original.SetStep(newStep.ID, newStep)
+
+	assert.NotContains(t, result.Attributes, api.Name("old"))
+	assert.Equal(t,
+		[]api.StepID{"step"}, result.Attributes["new"].Providers,
+	)
+	assert.Contains(t, original.Attributes, api.Name("old"))
+	assert.NotContains(t, original.Attributes, api.Name("new"))
+}
+
 func TestDeleteStep(t *testing.T) {
 	original := &api.CatalogState{
 		Steps: api.Steps{

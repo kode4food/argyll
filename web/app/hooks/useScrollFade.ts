@@ -10,7 +10,11 @@ export function useScrollFade(active: boolean = true): {
   const [showBottomFade, setShowBottomFade] = useState(false);
 
   useEffect(() => {
-    if (!active) return;
+    if (!active) {
+      setShowTopFade(false);
+      setShowBottomFade(false);
+      return;
+    }
     const el = scrollRef.current;
     if (!el) return;
 

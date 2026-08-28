@@ -5,6 +5,10 @@
     var(--color-dark-text) 68%,
     transparent
   );
+  --panel-surface: var(--color-dark-bg-secondary);
+  --panel-border: var(--color-dark-border);
+  --panel-hover-strong: var(--overlay-dark-40);
+  --control-face-bg: var(--overlay-dark-30);
   background-color: var(--color-dark-bg);
   border: none;
   border-radius: var(--radius-xl);

@@ -69,6 +69,12 @@
     transparent
   );
 
+  --panel-surface: var(--color-surface);
+  --panel-border: var(--color-neutral-border);
+  --panel-hover: color-mix(in srgb, var(--panel-text) 8%, transparent);
+  --panel-hover-strong: color-mix(in srgb, var(--panel-text) 12%, transparent);
+  --control-face-bg: transparent;
+
   /* Status Colors */
   --color-success: #10b981;
   --color-error: #ef4444;

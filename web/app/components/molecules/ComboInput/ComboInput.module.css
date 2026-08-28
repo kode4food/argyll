@@ -2,8 +2,8 @@
   position: relative;
   display: flex;
   height: 32px;
-  background-color: var(--overlay-dark-30);
-  border: 1px solid var(--color-dark-border);
+  background-color: var(--control-face-bg);
+  border: 1px solid var(--panel-border);
   border-radius: var(--radius-md);
   box-sizing: border-box;
   transition: var(--transition-fast);
@@ -28,16 +28,16 @@
 }
 
 .trigger {
+  composes: chevron from "@/app/styles/components/control.module.css";
+  --chevron-inset: 8px;
   width: 28px;
   flex-shrink: 0;
   height: 100%;
   padding: 0;
   border: none;
-  border-left: 1px solid var(--color-dark-border);
+  border-left: 1px solid var(--panel-border);
   background-color: transparent;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23aaa' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: center;
+  color: var(--panel-text);
   cursor: pointer;
   transition: var(--transition-fast);
 }
@@ -45,7 +45,7 @@
 .trigger:hover,
 .trigger:focus-visible,
 .triggerOpen {
-  background-color: var(--overlay-dark-40);
+  background-color: var(--panel-hover-strong);
   border-left-color: var(--color-info);
 }
 

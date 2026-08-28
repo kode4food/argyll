@@ -127,7 +127,9 @@ const StepEditor: React.FC<StepEditorProps> = ({
   );
 
   const { dimensions, mounted } = useModalDimensions(diagramContainerRef);
-  const { scrollRef, showTopFade, showBottomFade } = useScrollFade(mounted);
+  const { scrollRef, showTopFade, showBottomFade } = useScrollFade(
+    mounted && editorMode === "basic"
+  );
 
   React.useEffect(() => {
     setEditorMode("basic");

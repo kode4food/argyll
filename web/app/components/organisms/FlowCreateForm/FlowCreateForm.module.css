@@ -1,19 +1,6 @@
 /* FlowCreateForm CSS Module */
 
 .panel {
-  --panel-border: var(--color-neutral-border);
-  --panel-text: var(--color-neutral-text);
-  --panel-text-muted: color-mix(
-    in srgb,
-    var(--color-neutral-text) 68%,
-    transparent
-  );
-  --panel-hover: color-mix(in srgb, var(--color-neutral-text) 8%, transparent);
-  --panel-hover-strong: color-mix(
-    in srgb,
-    var(--color-neutral-text) 12%,
-    transparent
-  );
   --panel-error-bg: color-mix(in srgb, var(--color-error) 14%, transparent);
   --segment-control-text: var(--color-neutral-text);
   --segment-control-border: var(--panel-border);

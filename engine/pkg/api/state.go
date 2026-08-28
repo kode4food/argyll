@@ -154,10 +154,11 @@ func (c CatalogState) Query(predicate func(*Step) bool) Steps {
 
 // SetStep returns a new CatalogState with the specified step registered
 func (c CatalogState) SetStep(id StepID, step *Step) CatalogState {
+	oldStep, exists := c.Steps[id]
 	c.Steps = maps.Clone(c.Steps)
 	c.Steps[id] = step
 
-	if oldStep, ok := c.Steps[id]; ok {
+	if exists {
 		c.Attributes = c.Attributes.RemoveStep(oldStep)
 	}
 
