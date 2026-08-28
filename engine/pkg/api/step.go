@@ -18,6 +18,9 @@ type (
 	// Handling defines how a step's completed work is retained or reversed
 	Handling string
 
+	// ActionMode defines how an HTTP action reports its result
+	ActionMode string
+
 	// Steps contains a map of Steps by their ID
 	Steps map[StepID]*Step
 
@@ -53,9 +56,10 @@ type (
 
 	// HTTPAction configures a single callable endpoint on a step's service
 	HTTPAction struct {
-		Method   string `json:"method,omitempty"`
-		Endpoint string `json:"endpoint"`
-		Timeout  int64  `json:"timeout,omitempty"`
+		Method   string     `json:"method,omitempty"`
+		Endpoint string     `json:"endpoint"`
+		Timeout  int64      `json:"timeout,omitempty"`
+		Mode     ActionMode `json:"mode,omitempty"`
 	}
 
 	// ScriptConfig configures script-based step execution
@@ -99,10 +103,9 @@ type (
 )
 
 const (
-	StepTypeSync   StepType = "sync"
-	StepTypeAsync  StepType = "async"
-	StepTypeScript StepType = "script"
-	StepTypeFlow   StepType = "flow"
+	StepTypeService StepType = "service"
+	StepTypeScript  StepType = "script"
+	StepTypeFlow    StepType = "flow"
 
 	ScriptLangJPath = "jpath"
 	ScriptLangLua   = "lua"
@@ -114,6 +117,15 @@ const (
 	HandlingStandard    Handling = "standard"
 	HandlingMemoized    Handling = "memoized"
 	HandlingCompensated Handling = "compensated"
+
+	// ActionModeSync returns the result in the invocation response
+	ActionModeSync ActionMode = "sync"
+
+	// ActionModeAsync returns the result through a webhook callback
+	ActionModeAsync ActionMode = "async"
+
+	// DefaultActionMode is used when an HTTP action omits its mode
+	DefaultActionMode = ActionModeSync
 
 	// DefaultHTTPMethod is used when an HTTP action omits its method
 	DefaultHTTPMethod = "POST"
@@ -132,6 +144,7 @@ var (
 	ErrStepNameEmpty         = errors.New("step name empty")
 	ErrStepEndpointEmpty     = errors.New("step endpoint empty")
 	ErrInvalidHTTPMethod     = errors.New("invalid HTTP method")
+	ErrInvalidActionMode     = errors.New("invalid action mode")
 	ErrUnknownURLParam       = errors.New("URL contains unknown parameter")
 	ErrArgNameEmpty          = errors.New("argument name empty")
 	ErrInvalidStepType       = errors.New("invalid step type")
@@ -191,6 +204,11 @@ var (
 		HandlingCompensated,
 	)
 
+	validActionModes = util.SetOf(
+		ActionModeSync,
+		ActionModeAsync,
+	)
+
 	endpointParamPattern = regexp.MustCompile(`\{([^{}]+)\}`)
 )
 
@@ -210,7 +228,7 @@ func (s *Step) Validate() error {
 	}
 
 	switch s.Type {
-	case StepTypeSync, StepTypeAsync:
+	case StepTypeService:
 		if err := s.validateHTTPConfig(); err != nil {
 			return err
 		}
@@ -447,6 +465,10 @@ func (s *Step) validateHTTPConfig() error {
 	if !validHTTPMethods.Contains(method) {
 		return fmt.Errorf("%w: %s", ErrInvalidHTTPMethod, method)
 	}
+	mode := s.HTTP.Invoke.DefaultedMode()
+	if !validActionModes.Contains(mode) {
+		return fmt.Errorf("%w: %s", ErrInvalidActionMode, mode)
+	}
 	if s.HTTP.Compensate == nil {
 		return s.validateEndpointParams()
 	}
@@ -456,6 +478,10 @@ func (s *Step) validateHTTPConfig() error {
 	compMethod := s.HTTP.Compensate.DefaultedMethod()
 	if !validHTTPMethods.Contains(compMethod) {
 		return fmt.Errorf("%w: %s", ErrInvalidHTTPMethod, compMethod)
+	}
+	compMode := s.HTTP.Compensate.DefaultedMode()
+	if !validActionModes.Contains(compMode) {
+		return fmt.Errorf("%w: %s", ErrInvalidActionMode, compMode)
 	}
 	if err := s.validateEndpointParams(); err != nil {
 		return err
@@ -694,6 +720,7 @@ func (a *HTTPAction) Equal(other *HTTPAction) bool {
 	}
 	return a.Endpoint == other.Endpoint &&
 		a.DefaultedMethod() == other.DefaultedMethod() &&
+		a.DefaultedMode() == other.DefaultedMode() &&
 		a.Timeout == other.Timeout
 }
 
@@ -703,6 +730,19 @@ func (a *HTTPAction) DefaultedMethod() string {
 		return DefaultHTTPMethod
 	}
 	return a.Method
+}
+
+// DefaultedMode returns the configured action mode or the default if unset
+func (a *HTTPAction) DefaultedMode() ActionMode {
+	if a == nil || a.Mode == "" {
+		return DefaultActionMode
+	}
+	return a.Mode
+}
+
+// Async returns true if the action reports its result through a callback
+func (a *HTTPAction) Async() bool {
+	return a.DefaultedMode() == ActionModeAsync
 }
 
 // Equal returns true if two script configs are equal

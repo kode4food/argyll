@@ -15,7 +15,9 @@ export type WorkStatus =
   | "compensation_failed";
 
 export type HealthStatus = "healthy" | "unhealthy" | "unconfigured" | "unknown";
-export type StepType = "sync" | "async" | "script" | "flow";
+export type StepType = "service" | "script" | "flow";
+
+export type ActionMode = "sync" | "async";
 export type Handling = "standard" | "memoized" | "compensated";
 export type HTTPMethod = "GET" | "POST" | "PUT" | "DELETE";
 
@@ -101,6 +103,7 @@ export interface HTTPAction {
   endpoint: string;
   method?: HTTPMethod;
   timeout?: number;
+  mode?: ActionMode;
 }
 
 export interface HTTPConfig {

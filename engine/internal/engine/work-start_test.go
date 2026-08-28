@@ -1,6 +1,7 @@
 package engine_test
 
 import (
+	"strings"
 	"testing"
 	"time"
 
@@ -188,7 +189,7 @@ func TestAsyncMetadata(t *testing.T) {
 		}
 
 		st := helpers.NewSimpleStep("async-meta")
-		st.Type = api.StepTypeAsync
+		st.HTTP.Invoke.Mode = api.ActionModeAsync
 
 		assert.NoError(t, env.Engine.RegisterStep(st))
 		env.MockClient.SetResponse(st.ID, api.Args{})
@@ -219,6 +220,7 @@ func TestAsyncMetadata(t *testing.T) {
 		webhook, ok := md[api.MetaWebhookURL].(string)
 		assert.True(t, ok)
 		assert.Contains(t, webhook, "/callbacks/wf-async-meta/async-meta/")
+		assert.True(t, strings.HasSuffix(webhook, "/invoke"))
 	})
 }
 

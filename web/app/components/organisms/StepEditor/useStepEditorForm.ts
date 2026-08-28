@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState } from "react";
 import {
+  ActionMode,
   Handling,
   HTTPMethod,
   SCRIPT_LANGUAGE_LUA,
@@ -35,7 +36,9 @@ export function useStepEditorForm({
 
   const [stepId, setStepId] = useState(step?.id || "");
   const [name, setName] = useState(step?.name || "");
-  const [stepType, setStepTypeState] = useState<StepType>(step?.type || "sync");
+  const [stepType, setStepTypeState] = useState<StepType>(
+    step?.type || "service"
+  );
   const [predicate, setPredicate] = useState(step?.predicate?.script || "");
   const [predicateLanguage, setPredicateLanguage] = useState(
     step?.predicate?.language || SCRIPT_LANGUAGE_LUA
@@ -43,6 +46,9 @@ export function useStepEditorForm({
   const [endpoint, setEndpoint] = useState(step?.http?.invoke?.endpoint || "");
   const [httpMethod, setHttpMethod] = useState<HTTPMethod>(
     normalizeHttpMethod(step?.http?.invoke?.method)
+  );
+  const [httpMode, setHttpMode] = useState<ActionMode>(
+    step?.http?.invoke?.mode ?? "sync"
   );
   const [healthCheck, setHealthCheck] = useState(step?.http?.health || "");
   const [compensate, setCompensate] = useState(
@@ -54,10 +60,11 @@ export function useStepEditorForm({
   const [compensateTimeout, setCompensateTimeout] = useState(
     step?.http?.compensate?.timeout || 0
   );
+  const [compensateMode, setCompensateMode] = useState<ActionMode>(
+    step?.http?.compensate?.mode ?? "sync"
+  );
   const [httpTimeout, setHttpTimeout] = useState(
-    step &&
-      (step.type === "sync" || step.type === "async") &&
-      step.http?.invoke?.timeout
+    step && step.type === "service" && step.http?.invoke?.timeout
       ? step.http.invoke.timeout
       : 5000
   );
@@ -98,7 +105,7 @@ export function useStepEditorForm({
   const changeStepType = useCallback(
     (next: StepType) => {
       setStepTypeState(next);
-      if (next !== "sync" && next !== "async") {
+      if (next !== "service") {
         changeHandling("standard");
       }
     },
@@ -119,10 +126,12 @@ export function useStepEditorForm({
       scriptLanguage,
       endpoint,
       httpMethod,
+      httpMode,
       healthCheck,
       compensate,
       compensateMethod,
       compensateTimeout,
+      compensateMode,
       httpTimeout,
       flowGoals,
       flowCompensate,
@@ -134,11 +143,13 @@ export function useStepEditorForm({
     compensate,
     compensateMethod,
     compensateTimeout,
+    compensateMode,
     endpoint,
     flowCompensate,
     flowGoals,
     healthCheck,
     httpMethod,
+    httpMode,
     httpTimeout,
     handling,
     name,
@@ -154,7 +165,7 @@ export function useStepEditorForm({
     (stepData: Step) => {
       setStepId(stepData.id || "");
       setName(stepData.name || "");
-      setStepTypeState(stepData.type || "sync");
+      setStepTypeState(stepData.type || "service");
       setPredicate(stepData.predicate?.script || "");
       setPredicateLanguage(stepData.predicate?.language || SCRIPT_LANGUAGE_LUA);
       setScript(stepData.script?.script || "");
@@ -163,12 +174,14 @@ export function useStepEditorForm({
       setFlowCompensate(Boolean(stepData.flow?.compensate));
       setEndpoint(stepData.http?.invoke?.endpoint || "");
       setHttpMethod(normalizeHttpMethod(stepData.http?.invoke?.method));
+      setHttpMode(stepData.http?.invoke?.mode ?? "sync");
       setHealthCheck(stepData.http?.health || "");
       setCompensate(stepData.http?.compensate?.endpoint || "");
       setCompensateMethod(
         normalizeHttpMethod(stepData.http?.compensate?.method)
       );
       setCompensateTimeout(stepData.http?.compensate?.timeout || 0);
+      setCompensateMode(stepData.http?.compensate?.mode ?? "sync");
       setHttpTimeout(stepData.http?.invoke?.timeout || 5000);
       setHandling(stepData.handling || "standard");
       resetAttributes(stepData);
@@ -212,6 +225,8 @@ export function useStepEditorForm({
       setEndpoint,
       httpMethod,
       setHttpMethod,
+      httpMode,
+      setHttpMode,
       healthCheck,
       setHealthCheck,
       compensate,
@@ -220,6 +235,8 @@ export function useStepEditorForm({
       setCompensateMethod,
       compensateTimeout,
       setCompensateTimeout,
+      compensateMode,
+      setCompensateMode,
       httpTimeout,
       setHttpTimeout,
       flowGoals,
@@ -240,10 +257,12 @@ export function useStepEditorForm({
       removeAttribute,
       endpoint,
       httpMethod,
+      httpMode,
       healthCheck,
       compensate,
       compensateMethod,
       compensateTimeout,
+      compensateMode,
       httpTimeout,
       flowGoals,
       flowCompensate,
@@ -268,6 +287,8 @@ export function useStepEditorForm({
     setEndpoint,
     httpMethod,
     setHttpMethod,
+    httpMode,
+    setHttpMode,
     healthCheck,
     setHealthCheck,
     compensate,
@@ -276,6 +297,8 @@ export function useStepEditorForm({
     setCompensateMethod,
     compensateTimeout,
     setCompensateTimeout,
+    compensateMode,
+    setCompensateMode,
     httpTimeout,
     setHttpTimeout,
     script,

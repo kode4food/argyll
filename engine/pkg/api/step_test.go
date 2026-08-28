@@ -26,7 +26,7 @@ func TestStepValidation(t *testing.T) {
 			name: "missing_id",
 			step: &api.Step{
 				Name: "Test",
-				Type: api.StepTypeSync,
+				Type: api.StepTypeService,
 				HTTP: &api.HTTPConfig{
 					Invoke: api.HTTPAction{
 						Endpoint: "http://localhost:8080",
@@ -41,7 +41,7 @@ func TestStepValidation(t *testing.T) {
 			step: &api.Step{
 				ID:   "my:step",
 				Name: "Test",
-				Type: api.StepTypeSync,
+				Type: api.StepTypeService,
 				HTTP: &api.HTTPConfig{
 					Invoke: api.HTTPAction{
 						Endpoint: "http://localhost:8080",
@@ -55,7 +55,7 @@ func TestStepValidation(t *testing.T) {
 			name: "missing_name",
 			step: &api.Step{
 				ID:   "test-id",
-				Type: api.StepTypeSync,
+				Type: api.StepTypeService,
 				HTTP: &api.HTTPConfig{
 					Invoke: api.HTTPAction{
 						Endpoint: "http://localhost:8080",
@@ -70,7 +70,7 @@ func TestStepValidation(t *testing.T) {
 			step: &api.Step{
 				ID:   "test-id",
 				Name: "Test",
-				Type: api.StepTypeSync,
+				Type: api.StepTypeService,
 			},
 			expectError:   true,
 			errorContains: "http required",
@@ -80,7 +80,7 @@ func TestStepValidation(t *testing.T) {
 			step: &api.Step{
 				ID:   "test-id",
 				Name: "Test",
-				Type: api.StepTypeSync,
+				Type: api.StepTypeService,
 				HTTP: &api.HTTPConfig{
 					Invoke: api.HTTPAction{Endpoint: ""},
 				},
@@ -93,7 +93,7 @@ func TestStepValidation(t *testing.T) {
 			step: &api.Step{
 				ID:   "test-id",
 				Name: "Test",
-				Type: api.StepTypeSync,
+				Type: api.StepTypeService,
 				HTTP: &api.HTTPConfig{
 					Invoke: api.HTTPAction{
 						Endpoint: "http://localhost:8080",
@@ -111,7 +111,7 @@ func TestStepValidation(t *testing.T) {
 			step: &api.Step{
 				ID:   "test-id",
 				Name: "Test",
-				Type: api.StepTypeSync,
+				Type: api.StepTypeService,
 				HTTP: &api.HTTPConfig{
 					Invoke: api.HTTPAction{
 						Endpoint: "http://localhost:8080",
@@ -130,7 +130,7 @@ func TestStepValidation(t *testing.T) {
 			step: &api.Step{
 				ID:   "test-id",
 				Name: "Test",
-				Type: api.StepTypeSync,
+				Type: api.StepTypeService,
 				HTTP: &api.HTTPConfig{
 					Invoke: api.HTTPAction{
 						Endpoint: "http://localhost:8080",
@@ -148,7 +148,7 @@ func TestStepValidation(t *testing.T) {
 			step: &api.Step{
 				ID:   "test-id",
 				Name: "Test",
-				Type: api.StepTypeSync,
+				Type: api.StepTypeService,
 				HTTP: &api.HTTPConfig{
 					Invoke: api.HTTPAction{
 						Endpoint: "http://localhost:8080",
@@ -366,7 +366,7 @@ func TestHTTPMethodValidation(t *testing.T) {
 			as.StepValid(&api.Step{
 				ID:   "valid-step",
 				Name: api.Name("Valid " + method + " Step"),
-				Type: api.StepTypeSync,
+				Type: api.StepTypeService,
 				HTTP: &api.HTTPConfig{
 					Invoke: api.HTTPAction{
 						Endpoint: "https://example.com/items",
@@ -381,7 +381,7 @@ func TestHTTPMethodValidation(t *testing.T) {
 			as.StepValid(&api.Step{
 				ID:   "placeholder-step",
 				Name: api.Name("Placeholder " + method + " Step"),
-				Type: api.StepTypeSync,
+				Type: api.StepTypeService,
 				HTTP: &api.HTTPConfig{
 					Invoke: api.HTTPAction{
 						Endpoint: "https://example.com/items/{item_id}",
@@ -396,7 +396,7 @@ func TestHTTPMethodValidation(t *testing.T) {
 			as.StepValid(&api.Step{
 				ID:   "mapped-step",
 				Name: api.Name("Mapped " + method + " Step"),
-				Type: api.StepTypeSync,
+				Type: api.StepTypeService,
 				HTTP: &api.HTTPConfig{
 					Invoke: api.HTTPAction{
 						Endpoint: "https://example.com/items/{external_id}",
@@ -417,7 +417,7 @@ func TestHTTPMethodValidation(t *testing.T) {
 			as.StepInvalid(&api.Step{
 				ID:   "unknown-param-step",
 				Name: api.Name("Unknown Param " + method + " Step"),
-				Type: api.StepTypeSync,
+				Type: api.StepTypeService,
 				HTTP: &api.HTTPConfig{
 					Invoke: api.HTTPAction{
 						Endpoint: "https://example.com/items/{extra}",
@@ -432,7 +432,7 @@ func TestHTTPMethodValidation(t *testing.T) {
 			as.StepInvalid(&api.Step{
 				ID:   "optional-param-step",
 				Name: api.Name("Optional Param " + method + " Step"),
-				Type: api.StepTypeSync,
+				Type: api.StepTypeService,
 				HTTP: &api.HTTPConfig{
 					Invoke: api.HTTPAction{
 						Endpoint: "https://example.com/items/{item_id}",
@@ -449,7 +449,7 @@ func TestHTTPMethodValidation(t *testing.T) {
 	as.StepInvalid(&api.Step{
 		ID:   "bad-method-step",
 		Name: "Bad Method Step",
-		Type: api.StepTypeSync,
+		Type: api.StepTypeService,
 		HTTP: &api.HTTPConfig{
 			Invoke: api.HTTPAction{
 				Endpoint: "https://example.com/items/{item_id}",
@@ -469,7 +469,7 @@ func TestStepOutputArgs(t *testing.T) {
 		st := &api.Step{
 			ID:   "multi-output",
 			Name: "Multi-Output Step",
-			Type: api.StepTypeSync,
+			Type: api.StepTypeService,
 			HTTP: &api.HTTPConfig{
 				Invoke: api.HTTPAction{
 					Endpoint: "http://localhost:8080",
@@ -492,7 +492,7 @@ func TestStepOutputArgs(t *testing.T) {
 		st := &api.Step{
 			ID:   "no-output",
 			Name: "Terminal Step",
-			Type: api.StepTypeSync,
+			Type: api.StepTypeService,
 			HTTP: &api.HTTPConfig{
 				Invoke: api.HTTPAction{
 					Endpoint: "http://localhost:8080",
@@ -512,7 +512,7 @@ func TestSortedArgNames(t *testing.T) {
 	st := &api.Step{
 		ID:   "sorted-args",
 		Name: "Sorted Args Step",
-		Type: api.StepTypeSync,
+		Type: api.StepTypeService,
 		HTTP: &api.HTTPConfig{
 			Invoke: api.HTTPAction{
 				Endpoint: "http://localhost:8080",
@@ -546,7 +546,7 @@ func TestMappedArgNames(t *testing.T) {
 	st := &api.Step{
 		ID:   "sorted-mapped-args",
 		Name: "Sorted Mapped Args Step",
-		Type: api.StepTypeSync,
+		Type: api.StepTypeService,
 		HTTP: &api.HTTPConfig{
 			Invoke: api.HTTPAction{
 				Endpoint: "http://localhost:8080",
@@ -584,7 +584,7 @@ func TestMultiArgNames(t *testing.T) {
 	st := &api.Step{
 		ID:   "multi-args",
 		Name: "Multi Args Step",
-		Type: api.StepTypeSync,
+		Type: api.StepTypeService,
 		HTTP: &api.HTTPConfig{
 			Invoke: api.HTTPAction{
 				Endpoint: "http://localhost:8080",
@@ -627,7 +627,7 @@ func TestGetRequiredArgs(t *testing.T) {
 	st := &api.Step{
 		ID:   "required-args",
 		Name: "Required Args Step",
-		Type: api.StepTypeSync,
+		Type: api.StepTypeService,
 		HTTP: &api.HTTPConfig{
 			Invoke: api.HTTPAction{
 				Endpoint: "http://localhost:8080",
@@ -655,7 +655,7 @@ func TestGetOptionalArgs(t *testing.T) {
 	st := &api.Step{
 		ID:   "optional-args",
 		Name: "Optional Args Step",
-		Type: api.StepTypeSync,
+		Type: api.StepTypeService,
 		HTTP: &api.HTTPConfig{
 			Invoke: api.HTTPAction{
 				Endpoint: "http://localhost:8080",
@@ -812,7 +812,7 @@ func TestEqualStep(t *testing.T) {
 	step1 := &api.Step{
 		ID:   "test-step",
 		Name: "Test Step",
-		Type: api.StepTypeSync,
+		Type: api.StepTypeService,
 		Labels: api.Labels{
 			"description": "test step",
 			"team":        "core",
@@ -830,7 +830,7 @@ func TestEqualStep(t *testing.T) {
 	step2 := &api.Step{
 		ID:   "test-step",
 		Name: "Test Step",
-		Type: api.StepTypeSync,
+		Type: api.StepTypeService,
 		Labels: api.Labels{
 			"description": "test step",
 			"team":        "core",
@@ -848,7 +848,7 @@ func TestEqualStep(t *testing.T) {
 	step3 := &api.Step{
 		ID:   "different-step",
 		Name: "Test Step",
-		Type: api.StepTypeSync,
+		Type: api.StepTypeService,
 		HTTP: &api.HTTPConfig{
 			Invoke: api.HTTPAction{
 				Endpoint: "http://localhost:8080",
@@ -869,7 +869,7 @@ func TestEqualFields(t *testing.T) {
 		return &api.Step{
 			ID:         "test",
 			Name:       "Test",
-			Type:       api.StepTypeSync,
+			Type:       api.StepTypeService,
 			Attributes: api.AttributeSpecs{},
 			HTTP: &api.HTTPConfig{
 				Invoke: api.HTTPAction{Endpoint: "http://step"},
@@ -913,7 +913,7 @@ func TestCompensateConfig(t *testing.T) {
 	step := &api.Step{
 		ID:       "test",
 		Name:     "Test",
-		Type:     api.StepTypeSync,
+		Type:     api.StepTypeService,
 		Handling: api.HandlingCompensated,
 		HTTP: &api.HTTPConfig{
 			Invoke: api.HTTPAction{Endpoint: "http://step/{input}"},
@@ -1088,7 +1088,7 @@ func TestValidateWorkConfig(t *testing.T) {
 		st := &api.Step{
 			ID:   "test",
 			Name: "Test",
-			Type: api.StepTypeSync,
+			Type: api.StepTypeService,
 			HTTP: &api.HTTPConfig{
 				Invoke: api.HTTPAction{
 					Endpoint: "http://localhost:8080",
@@ -1105,7 +1105,7 @@ func TestValidateWorkConfig(t *testing.T) {
 		st := &api.Step{
 			ID:   "test",
 			Name: "Test",
-			Type: api.StepTypeSync,
+			Type: api.StepTypeService,
 			HTTP: &api.HTTPConfig{
 				Invoke: api.HTTPAction{
 					Endpoint: "http://localhost:8080",
@@ -1123,7 +1123,7 @@ func TestValidateWorkConfig(t *testing.T) {
 		st := &api.Step{
 			ID:   "test",
 			Name: "Test",
-			Type: api.StepTypeSync,
+			Type: api.StepTypeService,
 			HTTP: &api.HTTPConfig{
 				Invoke: api.HTTPAction{
 					Endpoint: "http://localhost:8080",
@@ -1140,7 +1140,7 @@ func TestValidateWorkConfig(t *testing.T) {
 		st := &api.Step{
 			ID:   "test",
 			Name: "Test",
-			Type: api.StepTypeSync,
+			Type: api.StepTypeService,
 			HTTP: &api.HTTPConfig{
 				Invoke: api.HTTPAction{
 					Endpoint: "http://localhost:8080",
@@ -1158,7 +1158,7 @@ func TestValidateWorkConfig(t *testing.T) {
 		st := &api.Step{
 			ID:   "test",
 			Name: "Test",
-			Type: api.StepTypeSync,
+			Type: api.StepTypeService,
 			HTTP: &api.HTTPConfig{
 				Invoke: api.HTTPAction{
 					Endpoint: "http://localhost:8080",
@@ -1186,7 +1186,7 @@ func TestStepWithDefaults(t *testing.T) {
 	}
 
 	t.Run("nil_work_config", func(t *testing.T) {
-		st := &api.Step{ID: "step", Name: "Step", Type: api.StepTypeSync}
+		st := &api.Step{ID: "step", Name: "Step", Type: api.StepTypeService}
 		res := st.WithWorkDefaults(defaults)
 
 		as.NotNil(res.WorkConfig)
@@ -1200,7 +1200,7 @@ func TestStepWithDefaults(t *testing.T) {
 		st := &api.Step{
 			ID:   "step",
 			Name: "Step",
-			Type: api.StepTypeSync,
+			Type: api.StepTypeService,
 			WorkConfig: &api.WorkConfig{
 				Parallelism: 4,
 			},
@@ -1223,7 +1223,7 @@ func TestStepWithDefaults(t *testing.T) {
 		st := &api.Step{
 			ID:   "step",
 			Name: "Step",
-			Type: api.StepTypeSync,
+			Type: api.StepTypeService,
 			WorkConfig: &api.WorkConfig{
 				MaxRetries:  2,
 				InitBackoff: 250,
@@ -1326,7 +1326,7 @@ func TestStepEqualEdgeCases(t *testing.T) {
 	baseStep := &api.Step{
 		ID:   "test",
 		Name: "Test",
-		Type: api.StepTypeSync,
+		Type: api.StepTypeService,
 		HTTP: &api.HTTPConfig{
 			Invoke: api.HTTPAction{
 				Endpoint: "http://localhost:8080",
@@ -1363,7 +1363,7 @@ func TestStepEqualEdgeCases(t *testing.T) {
 		step1 := &api.Step{
 			ID:   "test",
 			Name: "Test",
-			Type: api.StepTypeSync,
+			Type: api.StepTypeService,
 			HTTP: &api.HTTPConfig{
 				Invoke: api.HTTPAction{
 					Endpoint: "http://localhost:8080",
@@ -1373,7 +1373,7 @@ func TestStepEqualEdgeCases(t *testing.T) {
 		step2 := &api.Step{
 			ID:   "test",
 			Name: "Test",
-			Type: api.StepTypeSync,
+			Type: api.StepTypeService,
 		}
 		as.False(step1.Equal(step2))
 	})
@@ -1382,7 +1382,7 @@ func TestStepEqualEdgeCases(t *testing.T) {
 		step1 := &api.Step{
 			ID:   "test",
 			Name: "Test",
-			Type: api.StepTypeSync,
+			Type: api.StepTypeService,
 			HTTP: &api.HTTPConfig{
 				Invoke: api.HTTPAction{
 					Endpoint: "http://localhost:8080",
@@ -1392,7 +1392,7 @@ func TestStepEqualEdgeCases(t *testing.T) {
 		step2 := &api.Step{
 			ID:   "test",
 			Name: "Test",
-			Type: api.StepTypeSync,
+			Type: api.StepTypeService,
 			HTTP: &api.HTTPConfig{
 				Invoke: api.HTTPAction{
 					Endpoint: "http://localhost:8080",
@@ -1406,7 +1406,7 @@ func TestStepEqualEdgeCases(t *testing.T) {
 		step2 := &api.Step{
 			ID:   "test",
 			Name: "Test",
-			Type: api.StepTypeSync,
+			Type: api.StepTypeService,
 			HTTP: &api.HTTPConfig{
 				Invoke: api.HTTPAction{
 					Endpoint: "http://localhost:8080",
@@ -1420,11 +1420,10 @@ func TestStepEqualEdgeCases(t *testing.T) {
 		step2 := &api.Step{
 			ID:   "test",
 			Name: "Test",
-			Type: api.StepTypeAsync,
-			HTTP: &api.HTTPConfig{
-				Invoke: api.HTTPAction{
-					Endpoint: "http://localhost:8080",
-				},
+			Type: api.StepTypeScript,
+			Script: &api.ScriptConfig{
+				Language: api.ScriptLangLua,
+				Script:   "return {}",
 			},
 		}
 		as.False(baseStep.Equal(step2))
@@ -1434,7 +1433,7 @@ func TestStepEqualEdgeCases(t *testing.T) {
 		step2 := &api.Step{
 			ID:   "test",
 			Name: "Test",
-			Type: api.StepTypeSync,
+			Type: api.StepTypeService,
 			HTTP: &api.HTTPConfig{
 				Invoke: api.HTTPAction{
 					Endpoint: "http://localhost:8080",
@@ -1451,7 +1450,7 @@ func TestStepEqualEdgeCases(t *testing.T) {
 		step1 := &api.Step{
 			ID:   "test",
 			Name: "Test",
-			Type: api.StepTypeSync,
+			Type: api.StepTypeService,
 			HTTP: &api.HTTPConfig{
 				Invoke: api.HTTPAction{
 					Endpoint: "http://localhost:8080",
@@ -1461,7 +1460,7 @@ func TestStepEqualEdgeCases(t *testing.T) {
 		step2 := &api.Step{
 			ID:   "test",
 			Name: "Test",
-			Type: api.StepTypeSync,
+			Type: api.StepTypeService,
 			HTTP: &api.HTTPConfig{
 				Invoke: api.HTTPAction{
 					Endpoint: "http://localhost:8080",
@@ -1475,7 +1474,7 @@ func TestStepEqualEdgeCases(t *testing.T) {
 		step1 := &api.Step{
 			ID:   "test",
 			Name: "Test",
-			Type: api.StepTypeSync,
+			Type: api.StepTypeService,
 			HTTP: &api.HTTPConfig{
 				Invoke: api.HTTPAction{
 					Endpoint: "http://localhost:8080",
@@ -1489,7 +1488,7 @@ func TestStepEqualEdgeCases(t *testing.T) {
 		step2 := &api.Step{
 			ID:   "test",
 			Name: "Test",
-			Type: api.StepTypeSync,
+			Type: api.StepTypeService,
 			HTTP: &api.HTTPConfig{
 				Invoke: api.HTTPAction{
 					Endpoint: "http://localhost:8080",
@@ -1507,7 +1506,7 @@ func TestStepEqualEdgeCases(t *testing.T) {
 		step1 := &api.Step{
 			ID:   "test",
 			Name: "Test",
-			Type: api.StepTypeSync,
+			Type: api.StepTypeService,
 			HTTP: &api.HTTPConfig{
 				Invoke: api.HTTPAction{
 					Endpoint: "http://localhost:8080",
@@ -1517,7 +1516,7 @@ func TestStepEqualEdgeCases(t *testing.T) {
 		step2 := &api.Step{
 			ID:   "test",
 			Name: "Test",
-			Type: api.StepTypeSync,
+			Type: api.StepTypeService,
 			HTTP: &api.HTTPConfig{
 				Invoke: api.HTTPAction{
 					Endpoint: "http://localhost:8080",
@@ -1531,7 +1530,7 @@ func TestStepEqualEdgeCases(t *testing.T) {
 		step1 := &api.Step{
 			ID:   "test",
 			Name: "Test",
-			Type: api.StepTypeSync,
+			Type: api.StepTypeService,
 			HTTP: &api.HTTPConfig{
 				Invoke: api.HTTPAction{
 					Endpoint: "http://localhost:8080",
@@ -1545,7 +1544,7 @@ func TestStepEqualEdgeCases(t *testing.T) {
 		step2 := &api.Step{
 			ID:   "test",
 			Name: "Test",
-			Type: api.StepTypeSync,
+			Type: api.StepTypeService,
 			HTTP: &api.HTTPConfig{
 				Invoke: api.HTTPAction{
 					Endpoint: "http://localhost:8080",
@@ -1566,7 +1565,7 @@ func TestStepHashKey(t *testing.T) {
 	t.Run("deterministic", func(t *testing.T) {
 		s := &api.Step{
 			ID:   "test-step",
-			Type: api.StepTypeSync,
+			Type: api.StepTypeService,
 			HTTP: &api.HTTPConfig{
 				Invoke: api.HTTPAction{Endpoint: "http://test"},
 			},
@@ -1581,7 +1580,7 @@ func TestStepHashKey(t *testing.T) {
 	t.Run("cached", func(t *testing.T) {
 		s := &api.Step{
 			ID:   "test-step",
-			Type: api.StepTypeSync,
+			Type: api.StepTypeService,
 		}
 		h1, err := s.HashKey()
 		as.NoError(err)
@@ -1591,8 +1590,8 @@ func TestStepHashKey(t *testing.T) {
 	})
 
 	t.Run("different_types", func(t *testing.T) {
-		s1 := &api.Step{Type: api.StepTypeSync}
-		s2 := &api.Step{Type: api.StepTypeAsync}
+		s1 := &api.Step{Type: api.StepTypeService}
+		s2 := &api.Step{Type: api.StepTypeScript}
 		h1, err := s1.HashKey()
 		as.NoError(err)
 		h2, err := s2.HashKey()
@@ -1602,13 +1601,13 @@ func TestStepHashKey(t *testing.T) {
 
 	t.Run("different_http_configs", func(t *testing.T) {
 		s1 := &api.Step{
-			Type: api.StepTypeSync,
+			Type: api.StepTypeService,
 			HTTP: &api.HTTPConfig{
 				Invoke: api.HTTPAction{Endpoint: "http://a"},
 			},
 		}
 		s2 := &api.Step{
-			Type: api.StepTypeSync,
+			Type: api.StepTypeService,
 			HTTP: &api.HTTPConfig{
 				Invoke: api.HTTPAction{Endpoint: "http://b"},
 			},
@@ -1623,11 +1622,11 @@ func TestStepHashKey(t *testing.T) {
 	t.Run("ignores_id", func(t *testing.T) {
 		s1 := &api.Step{
 			ID:   "id1",
-			Type: api.StepTypeSync,
+			Type: api.StepTypeService,
 		}
 		s2 := &api.Step{
 			ID:   "id2",
-			Type: api.StepTypeSync,
+			Type: api.StepTypeService,
 		}
 		h1, err := s1.HashKey()
 		as.NoError(err)
@@ -1638,11 +1637,11 @@ func TestStepHashKey(t *testing.T) {
 
 	t.Run("ignores_name", func(t *testing.T) {
 		s1 := &api.Step{
-			Type: api.StepTypeSync,
+			Type: api.StepTypeService,
 			Name: "name1",
 		}
 		s2 := &api.Step{
-			Type: api.StepTypeSync,
+			Type: api.StepTypeService,
 			Name: "name2",
 		}
 		h1, err := s1.HashKey()
@@ -1654,11 +1653,11 @@ func TestStepHashKey(t *testing.T) {
 
 	t.Run("ignores_labels", func(t *testing.T) {
 		s1 := &api.Step{
-			Type:   api.StepTypeSync,
+			Type:   api.StepTypeService,
 			Labels: map[string]string{"env": "dev"},
 		}
 		s2 := &api.Step{
-			Type:   api.StepTypeSync,
+			Type:   api.StepTypeService,
 			Labels: map[string]string{"env": "prod"},
 		}
 		h1, err := s1.HashKey()
@@ -1670,10 +1669,10 @@ func TestStepHashKey(t *testing.T) {
 
 	t.Run("includes_handling", func(t *testing.T) {
 		s1 := &api.Step{
-			Type: api.StepTypeSync,
+			Type: api.StepTypeService,
 		}
 		s2 := &api.Step{
-			Type:     api.StepTypeSync,
+			Type:     api.StepTypeService,
 			Handling: api.HandlingMemoized,
 		}
 		h1, err := s1.HashKey()
@@ -1685,13 +1684,13 @@ func TestStepHashKey(t *testing.T) {
 
 	t.Run("includes_attributes", func(t *testing.T) {
 		s1 := &api.Step{
-			Type: api.StepTypeSync,
+			Type: api.StepTypeService,
 			Attributes: map[api.Name]*api.AttributeSpec{
 				"in": {Role: api.RoleRequired},
 			},
 		}
 		s2 := &api.Step{
-			Type: api.StepTypeSync,
+			Type: api.StepTypeService,
 			Attributes: map[api.Name]*api.AttributeSpec{
 				"out": {Role: api.RoleOutput},
 			},
@@ -1736,7 +1735,7 @@ func TestMappingValidation(t *testing.T) {
 		st := &api.Step{
 			ID:   "test",
 			Name: "Test",
-			Type: api.StepTypeSync,
+			Type: api.StepTypeService,
 			HTTP: &api.HTTPConfig{
 				Invoke: api.HTTPAction{
 					Endpoint: "http://example.com",
@@ -1767,7 +1766,7 @@ func TestMappingValidation(t *testing.T) {
 		st := &api.Step{
 			ID:   "test",
 			Name: "Test",
-			Type: api.StepTypeSync,
+			Type: api.StepTypeService,
 			HTTP: &api.HTTPConfig{
 				Invoke: api.HTTPAction{
 					Endpoint: "http://example.com",
@@ -1798,7 +1797,7 @@ func TestMappingValidation(t *testing.T) {
 		st := &api.Step{
 			ID:       "test",
 			Name:     "Test",
-			Type:     api.StepTypeSync,
+			Type:     api.StepTypeService,
 			Handling: api.HandlingCompensated,
 			HTTP: &api.HTTPConfig{
 				Invoke: api.HTTPAction{
@@ -1833,7 +1832,7 @@ func TestMappingValidation(t *testing.T) {
 		st := &api.Step{
 			ID:       "test",
 			Name:     "Test",
-			Type:     api.StepTypeSync,
+			Type:     api.StepTypeService,
 			Handling: api.HandlingCompensated,
 			HTTP: &api.HTTPConfig{
 				Invoke: api.HTTPAction{

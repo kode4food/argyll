@@ -6,7 +6,7 @@ describe("planUtils", () => {
     const mockStep: Step = {
       id: "step-1",
       name: "Test Step",
-      type: "sync",
+      type: "service",
       attributes: {
         input1: { role: AttributeRole.Required, type: AttributeType.String },
       },

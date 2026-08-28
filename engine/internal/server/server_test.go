@@ -314,9 +314,12 @@ func TestSuccess(t *testing.T) {
 		st := &api.Step{
 			ID:   "async-step",
 			Name: "Async Step",
-			Type: api.StepTypeAsync,
+			Type: api.StepTypeService,
 			HTTP: &api.HTTPConfig{
-				Invoke: api.HTTPAction{Endpoint: "http://test:8080"},
+				Invoke: api.HTTPAction{
+					Endpoint: "http://test:8080",
+					Mode:     api.ActionModeAsync,
+				},
 			},
 			Attributes: api.AttributeSpecs{
 				"result": {Role: api.RoleOutput},
@@ -362,7 +365,7 @@ func TestSuccess(t *testing.T) {
 		// Now call webhook with the real token
 		body, _ := json.Marshal(api.Args{"result": "completed"})
 		req := httptest.NewRequest("POST",
-			"/callbacks/webhook-wf/async-step/"+string(tkn),
+			"/callbacks/webhook-wf/async-step/"+string(tkn)+"/invoke",
 			bytes.NewReader(body))
 		req.Header.Set("Content-Type", api.JSONContentType)
 		w := httptest.NewRecorder()
@@ -378,7 +381,7 @@ func TestHookFlowNotFound(t *testing.T) {
 	withTestServerEnv(t, func(testEnv *testServerEnv) {
 		body, _ := json.Marshal(api.Args{"result": "completed"})
 		req := httptest.NewRequest("POST",
-			"/callbacks/nonexistent-wf/step-id/token",
+			"/callbacks/nonexistent-wf/step-id/token/invoke",
 			bytes.NewReader(body))
 		req.Header.Set("Content-Type", api.JSONContentType)
 		w := httptest.NewRecorder()
@@ -398,9 +401,12 @@ func TestHookStepNotFound(t *testing.T) {
 		st := &api.Step{
 			ID:   "async-step",
 			Name: "Async Step",
-			Type: api.StepTypeAsync,
+			Type: api.StepTypeService,
 			HTTP: &api.HTTPConfig{
-				Invoke: api.HTTPAction{Endpoint: "http://test:8080"},
+				Invoke: api.HTTPAction{
+					Endpoint: "http://test:8080",
+					Mode:     api.ActionModeAsync,
+				},
 			},
 		}
 
@@ -419,7 +425,7 @@ func TestHookStepNotFound(t *testing.T) {
 
 		body, _ := json.Marshal(api.Args{})
 		req := httptest.NewRequest("POST",
-			"/callbacks/webhook-wf/nonexistent-step/token",
+			"/callbacks/webhook-wf/nonexistent-step/token/invoke",
 			bytes.NewReader(body))
 		req.Header.Set("Content-Type", api.JSONContentType)
 		w := httptest.NewRecorder()
@@ -439,9 +445,12 @@ func TestHookInvalidToken(t *testing.T) {
 		st := &api.Step{
 			ID:   "async-step",
 			Name: "Async Step",
-			Type: api.StepTypeAsync,
+			Type: api.StepTypeService,
 			HTTP: &api.HTTPConfig{
-				Invoke: api.HTTPAction{Endpoint: "http://test:8080"},
+				Invoke: api.HTTPAction{
+					Endpoint: "http://test:8080",
+					Mode:     api.ActionModeAsync,
+				},
 			},
 			Attributes: api.AttributeSpecs{
 				"result": {Role: api.RoleOutput},
@@ -472,7 +481,7 @@ func TestHookInvalidToken(t *testing.T) {
 		// Try with wrong token
 		body, _ := json.Marshal(api.Args{})
 		req := httptest.NewRequest("POST",
-			"/callbacks/webhook-wf/async-step/wrong-token",
+			"/callbacks/webhook-wf/async-step/wrong-token/invoke",
 			bytes.NewReader(body))
 		req.Header.Set("Content-Type", api.JSONContentType)
 		w := httptest.NewRecorder()
@@ -492,9 +501,12 @@ func TestHookInvalidJSONRoute(t *testing.T) {
 		st := &api.Step{
 			ID:   "async-step",
 			Name: "Async Step",
-			Type: api.StepTypeAsync,
+			Type: api.StepTypeService,
 			HTTP: &api.HTTPConfig{
-				Invoke: api.HTTPAction{Endpoint: "http://test:8080"},
+				Invoke: api.HTTPAction{
+					Endpoint: "http://test:8080",
+					Mode:     api.ActionModeAsync,
+				},
 			},
 		}
 
@@ -535,7 +547,7 @@ func TestHookInvalidJSONRoute(t *testing.T) {
 
 		// Send invalid JSON with real token
 		req := httptest.NewRequest("POST",
-			"/callbacks/webhook-wf/async-step/"+string(tkn),
+			"/callbacks/webhook-wf/async-step/"+string(tkn)+"/invoke",
 			bytes.NewReader([]byte("invalid json")))
 		req.Header.Set("Content-Type", api.JSONContentType)
 		w := httptest.NewRecorder()
@@ -555,9 +567,12 @@ func TestHookFailurePath(t *testing.T) {
 		st := &api.Step{
 			ID:   "async-step",
 			Name: "Async Step",
-			Type: api.StepTypeAsync,
+			Type: api.StepTypeService,
 			HTTP: &api.HTTPConfig{
-				Invoke: api.HTTPAction{Endpoint: "http://test:8080"},
+				Invoke: api.HTTPAction{
+					Endpoint: "http://test:8080",
+					Mode:     api.ActionModeAsync,
+				},
 			},
 			Attributes: api.AttributeSpecs{
 				"result": {Role: api.RoleOutput},
@@ -598,7 +613,7 @@ func TestHookFailurePath(t *testing.T) {
 			http.StatusUnprocessableEntity, "boom",
 		))
 		req := httptest.NewRequest("POST",
-			"/callbacks/wf-fail-path/async-step/"+string(tkn),
+			"/callbacks/wf-fail-path/async-step/"+string(tkn)+"/invoke",
 			bytes.NewReader(body))
 		req.Header.Set("Content-Type", api.ProblemJSONContentType)
 		w := httptest.NewRecorder()
@@ -863,7 +878,7 @@ func TestEngineHealthUnknownSteps(t *testing.T) {
 		stepA := &api.Step{
 			ID:   "step-a",
 			Name: "Step A",
-			Type: api.StepTypeSync,
+			Type: api.StepTypeService,
 			HTTP: &api.HTTPConfig{
 				Invoke: api.HTTPAction{
 					Endpoint: healthServer.URL + "/execute",
@@ -1109,7 +1124,7 @@ func TestStartFlowMissingRequiredInputs(t *testing.T) {
 		st := &api.Step{
 			ID:   "required-input-step",
 			Name: "Required Input Step",
-			Type: api.StepTypeSync,
+			Type: api.StepTypeService,
 			HTTP: &api.HTTPConfig{
 				Invoke: api.HTTPAction{Endpoint: "http://test:8080"},
 			},
@@ -1247,7 +1262,7 @@ func TestPlanPreview(t *testing.T) {
 		step1 := &api.Step{
 			ID:   "step-a",
 			Name: "Step A",
-			Type: api.StepTypeSync,
+			Type: api.StepTypeService,
 			Attributes: api.AttributeSpecs{
 				"seed":  {Role: api.RoleRequired, Type: api.TypeString},
 				"value": {Role: api.RoleOutput, Type: api.TypeString},
@@ -1260,7 +1275,7 @@ func TestPlanPreview(t *testing.T) {
 		step2 := &api.Step{
 			ID:   "step-b",
 			Name: "Step B",
-			Type: api.StepTypeSync,
+			Type: api.StepTypeService,
 			Attributes: api.AttributeSpecs{
 				"value":  {Role: api.RoleRequired, Type: api.TypeString},
 				"result": {Role: api.RoleOutput, Type: api.TypeString},
@@ -1644,9 +1659,12 @@ func TestHookSuccessRoute(t *testing.T) {
 		st := &api.Step{
 			ID:   "webhook-step",
 			Name: "Webhook Step",
-			Type: api.StepTypeAsync,
+			Type: api.StepTypeService,
 			HTTP: &api.HTTPConfig{
-				Invoke: api.HTTPAction{Endpoint: "http://test:8080"},
+				Invoke: api.HTTPAction{
+					Endpoint: "http://test:8080",
+					Mode:     api.ActionModeAsync,
+				},
 			},
 			Attributes: api.AttributeSpecs{
 				"output": {Role: api.RoleOutput},
@@ -1689,7 +1707,7 @@ func TestHookSuccessRoute(t *testing.T) {
 		body, _ := json.Marshal(api.Args{"output": "value"})
 		req := httptest.NewRequest("POST",
 			"/callbacks/webhook-flow/"+string(st.ID)+"/"+
-				string(tkn),
+				string(tkn)+"/invoke",
 			bytes.NewReader(body))
 		req.Header.Set("Content-Type", api.JSONContentType)
 		w := httptest.NewRecorder()

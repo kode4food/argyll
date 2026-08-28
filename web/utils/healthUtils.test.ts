@@ -24,8 +24,8 @@ describe("healthUtils", () => {
     });
 
     test("ignores stepType parameter", () => {
-      expect(getHealthIconClass("healthy", "sync")).toBe("healthy");
-      expect(getHealthIconClass("unhealthy", "async")).toBe("unhealthy");
+      expect(getHealthIconClass("healthy", "service")).toBe("healthy");
+      expect(getHealthIconClass("unhealthy", "script")).toBe("unhealthy");
     });
   });
 });

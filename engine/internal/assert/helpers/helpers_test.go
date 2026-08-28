@@ -186,7 +186,7 @@ func TestStep(t *testing.T) {
 	assert.NotNil(t, st)
 	assert.NotEmpty(t, st.ID)
 	assert.Equal(t, api.Name("Test Step"), st.Name)
-	assert.Equal(t, api.StepTypeSync, st.Type)
+	assert.Equal(t, api.StepTypeService, st.Type)
 	assert.NotNil(t, st.HTTP)
 	assert.NotEmpty(t, st.HTTP.Invoke.Endpoint)
 
@@ -238,7 +238,7 @@ func TestSimpleStep(t *testing.T) {
 
 	assert.NotNil(t, st)
 	assert.Equal(t, api.StepID("test-id"), st.ID)
-	assert.Equal(t, api.StepTypeSync, st.Type)
+	assert.Equal(t, api.StepTypeService, st.Type)
 	assert.NotNil(t, st.HTTP)
 	assert.Empty(t, st.GetRequiredArgs())
 	assert.Empty(t, st.GetOptionalArgs())
@@ -297,7 +297,7 @@ func TestStepPredicate(t *testing.T) {
 
 	assert.NotNil(t, st)
 	assert.Equal(t, api.StepID("pred-step"), st.ID)
-	assert.Equal(t, api.StepTypeSync, st.Type)
+	assert.Equal(t, api.StepTypeService, st.Type)
 	assert.NotNil(t, st.HTTP)
 	assert.NotNil(t, st.Predicate)
 	assert.Equal(t, api.ScriptLangLua, st.Predicate.Language)

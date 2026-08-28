@@ -12,7 +12,7 @@ describe("StepHeader", () => {
   ): Step => ({
     id: "test-step",
     name,
-    type: "sync",
+    type: "service",
     attributes: {
       ...(hasInputs
         ? {

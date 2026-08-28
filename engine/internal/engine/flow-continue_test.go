@@ -17,7 +17,7 @@ func TestLinearFlowCompletes(t *testing.T) {
 		producer := &api.Step{
 			ID:   "producer",
 			Name: "Producer",
-			Type: api.StepTypeSync,
+			Type: api.StepTypeService,
 			Attributes: api.AttributeSpecs{
 				"value": {Role: api.RoleOutput, Type: api.TypeString},
 			},
@@ -28,7 +28,7 @@ func TestLinearFlowCompletes(t *testing.T) {
 		consumer := &api.Step{
 			ID:   "consumer",
 			Name: "Consumer",
-			Type: api.StepTypeSync,
+			Type: api.StepTypeService,
 			Attributes: api.AttributeSpecs{
 				"value":  {Role: api.RoleRequired, Type: api.TypeString},
 				"result": {Role: api.RoleOutput, Type: api.TypeString},
@@ -80,7 +80,7 @@ func TestPendingUnusedSkip(t *testing.T) {
 		providerA := &api.Step{
 			ID:   "provider-a",
 			Name: "Provider A",
-			Type: api.StepTypeSync,
+			Type: api.StepTypeService,
 			Attributes: api.AttributeSpecs{
 				"opt": {Role: api.RoleOutput, Type: api.TypeString},
 			},
@@ -91,7 +91,7 @@ func TestPendingUnusedSkip(t *testing.T) {
 		providerB := &api.Step{
 			ID:   "provider-b",
 			Name: "Provider B",
-			Type: api.StepTypeSync,
+			Type: api.StepTypeService,
 			Attributes: api.AttributeSpecs{
 				"seed": {Role: api.RoleRequired, Type: api.TypeString},
 				"opt":  {Role: api.RoleOutput, Type: api.TypeString},
@@ -103,7 +103,7 @@ func TestPendingUnusedSkip(t *testing.T) {
 		consumer := &api.Step{
 			ID:   "consumer",
 			Name: "Consumer",
-			Type: api.StepTypeSync,
+			Type: api.StepTypeService,
 			Attributes: api.AttributeSpecs{
 				"opt":    {Role: api.RoleRequired, Type: api.TypeString},
 				"result": {Role: api.RoleOutput, Type: api.TypeString},
@@ -161,7 +161,7 @@ func TestSkipFailedAllProvider(t *testing.T) {
 		providerA := &api.Step{
 			ID:   "provider-a",
 			Name: "Provider A",
-			Type: api.StepTypeSync,
+			Type: api.StepTypeService,
 			Attributes: api.AttributeSpecs{
 				"seed": {Role: api.RoleRequired, Type: api.TypeString},
 				"data": {Role: api.RoleOutput, Type: api.TypeString},
@@ -173,7 +173,7 @@ func TestSkipFailedAllProvider(t *testing.T) {
 		providerB := &api.Step{
 			ID:   "provider-b",
 			Name: "Provider B",
-			Type: api.StepTypeSync,
+			Type: api.StepTypeService,
 			Attributes: api.AttributeSpecs{
 				"data": {Role: api.RoleOutput, Type: api.TypeString},
 			},
@@ -184,7 +184,7 @@ func TestSkipFailedAllProvider(t *testing.T) {
 		consumer := &api.Step{
 			ID:   "consumer",
 			Name: "Consumer",
-			Type: api.StepTypeSync,
+			Type: api.StepTypeService,
 			Attributes: api.AttributeSpecs{
 				"data": {
 					Role:     api.RoleRequired,

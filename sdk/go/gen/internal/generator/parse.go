@@ -207,7 +207,7 @@ func (g *pkgGen) model(config *stepModelConfig) (stepModel, error) {
 		Attributes: config.attributes,
 		Labels:     decl.labels,
 		Predicate:  decl.predicate,
-		Type:       api.StepTypeSync,
+		Type:       api.StepTypeService,
 		ID:         api.StepID(decl.id),
 		Name:       api.Name(TitleCase(fn.Name.Name)),
 		HTTP: &api.HTTPConfig{
@@ -231,7 +231,9 @@ func (g *pkgGen) model(config *stepModelConfig) (stepModel, error) {
 	if len(decl.work) > 0 {
 		spec.WorkConfig = &api.WorkConfig{}
 	}
-	if err := applyOptions(spec.WorkConfig, decl.work, workSetters); err != nil {
+	if err := applyOptions(
+		spec.WorkConfig, decl.work, workSetters,
+	); err != nil {
 		return stepModel{}, g.errorAt(fn, "%w", err)
 	}
 	if err := spec.Validate(); err != nil {

@@ -129,7 +129,7 @@ func (tx *flowTx) startPendingCompensations(
 			Step:     step,
 			Inputs:   ex.Inputs.Apply(work.Inputs),
 			Outputs:  work.Outputs,
-			Metadata: meta,
+			Metadata: tx.compensateMetadata(meta, step, tkn),
 		}
 	}
 
@@ -223,6 +223,9 @@ func (tx *flowTx) performCompensation(
 
 	err = comp(req)
 	if err == nil {
+		if req.Step.HTTP.Compensate.Async() {
+			return
+		}
 		if recErr := tx.Engine.CompleteCompensation(fs, tkn); recErr != nil {
 			slog.Error("Failed to record compensation success",
 				log.FlowID(tx.flowID),
@@ -299,7 +302,7 @@ func (e *Engine) runCompensationTask(fs api.FlowStep, tkn api.Token) error {
 			Step:     st,
 			Inputs:   ex.Inputs.Apply(work.Inputs),
 			Outputs:  work.Outputs,
-			Metadata: fl.Metadata,
+			Metadata: tx.compensateMetadata(fl.Metadata, st, tkn),
 		}
 
 		tx.OnSuccess(func(api.FlowState, []*timebox.Event) {
@@ -498,4 +501,20 @@ func compensateKey(fs api.FlowStep, tkn api.Token) []string {
 	return []string{
 		"comp", string(fs.FlowID), string(fs.StepID), string(tkn),
 	}
+}
+
+func (tx *flowTx) compensateMetadata(
+	meta api.Metadata, st *api.Step, tkn api.Token,
+) api.Metadata {
+	res := meta.Apply(api.Metadata{
+		api.MetaFlowID:       tx.flowID,
+		api.MetaStepID:       st.ID,
+		api.MetaReceiptToken: tkn,
+	})
+	if st.HTTP != nil && st.HTTP.Compensate.Async() {
+		res[api.MetaWebhookURL] = tx.Engine.compensateCallbackURL(
+			tx.flowID, st.ID, tkn,
+		)
+	}
+	return res
 }

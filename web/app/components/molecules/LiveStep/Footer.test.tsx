@@ -36,7 +36,7 @@ const mockUseStepProgress = useStepProgress as jest.MockedFunction<
 
 describe("Footer", () => {
   const createStep = (
-    type: "sync" | "async" | "script" | "flow",
+    type: "service" | "script" | "flow",
     config?: any
   ): Step => ({
     id: "step-1",
@@ -80,7 +80,7 @@ describe("Footer", () => {
   });
 
   test("renders HTTP endpoint for sync step", () => {
-    const step = createStep("sync", {
+    const step = createStep("service", {
       endpoint: "http://localhost:8080/process",
     });
 
@@ -90,9 +90,10 @@ describe("Footer", () => {
     expect(endpoint?.textContent).toBe("POST http://localhost:8080/process");
   });
 
-  test("renders HTTP endpoint for async step with webhook icon", () => {
-    const step = createStep("async", {
+  test("renders HTTP endpoint for async invoke steps", () => {
+    const step = createStep("service", {
       endpoint: "http://localhost:8080/async",
+      mode: "async",
     });
 
     const { container } = render(<Footer step={step} />);
@@ -102,7 +103,7 @@ describe("Footer", () => {
   });
 
   test("renders configured HTTP method for http steps", () => {
-    const step = createStep("sync", {
+    const step = createStep("service", {
       endpoint: "http://localhost:8080/items/{item_id}",
       method: "GET",
     });
@@ -156,7 +157,7 @@ describe("Footer", () => {
   });
 
   test("shows progress icon when flow is active", () => {
-    const step = createStep("sync");
+    const step = createStep("service");
 
     mockUseStepProgress.mockReturnValue({
       status: "active",
@@ -169,7 +170,7 @@ describe("Footer", () => {
   });
 
   test("renders execution status in tooltip", () => {
-    const step = createStep("sync");
+    const step = createStep("service");
     const execution: ExecutionResult = {
       step_id: "step-1",
       flow_id: "wf-1",
@@ -194,7 +195,7 @@ describe("Footer", () => {
     jest.useFakeTimers();
     jest.setSystemTime(new Date("2024-01-01T00:00:02Z"));
 
-    const step = createStep("sync", { timeout: 5000 });
+    const step = createStep("service", { timeout: 5000 });
     const execution: ExecutionResult = {
       step_id: "step-1",
       flow_id: "wf-1",
@@ -230,7 +231,7 @@ describe("Footer", () => {
     jest.useFakeTimers();
     jest.setSystemTime(new Date("2024-01-01T00:00:02Z"));
 
-    const step = createStep("sync");
+    const step = createStep("service");
     const execution: ExecutionResult = {
       step_id: "step-1",
       flow_id: "wf-1",
@@ -265,7 +266,7 @@ describe("Footer", () => {
   });
 
   test("shows error message for failed execution", () => {
-    const step = createStep("sync");
+    const step = createStep("service");
     const execution: ExecutionResult = {
       step_id: "step-1",
       flow_id: "wf-1",
@@ -287,7 +288,7 @@ describe("Footer", () => {
   });
 
   test("shows generic skip reason when skipped execution has no reason", () => {
-    const step = createStep("sync");
+    const step = createStep("service");
     const execution: ExecutionResult = {
       step_id: "step-1",
       flow_id: "wf-1",
@@ -308,7 +309,7 @@ describe("Footer", () => {
   });
 
   test("shows required match reason for required match skip", () => {
-    const step = createStep("sync");
+    const step = createStep("service");
     const execution: ExecutionResult = {
       step_id: "step-1",
       flow_id: "wf-1",
@@ -331,7 +332,7 @@ describe("Footer", () => {
   });
 
   test("shows duration for completed execution", () => {
-    const step = createStep("sync");
+    const step = createStep("service");
     const execution: ExecutionResult = {
       step_id: "step-1",
       flow_id: "wf-1",
@@ -358,7 +359,7 @@ describe("Footer", () => {
     const step: Step = {
       id: "step-1",
       name: "Test",
-      type: "sync",
+      type: "service",
       attributes: {},
     };
 
@@ -368,7 +369,7 @@ describe("Footer", () => {
   });
 
   test("does not show progress icon when flow IDs don't match", () => {
-    const step = createStep("sync");
+    const step = createStep("service");
 
     mockUseStepProgress.mockReturnValue({
       status: "active",

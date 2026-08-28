@@ -35,7 +35,7 @@ func (c *Client) NewStep() Step {
 		client:  c,
 		timeout: 30 * api.Second,
 		step: &api.Step{
-			Type:       api.StepTypeSync,
+			Type:       api.StepTypeService,
 			Labels:     api.Labels{},
 			Attributes: api.AttributeSpecs{},
 		},
@@ -243,21 +243,37 @@ func (s Step) WithTimeout(timeout int64) Step {
 	return s
 }
 
-// WithType sets the step execution type (sync, async, or script)
+// WithType sets the step execution type (service or script)
 func (s Step) WithType(stepType api.StepType) Step {
 	s.step = s.step.Copy()
 	s.step.Type = stepType
 	return s
 }
 
-// WithAsyncExecution configures the step to execute asynchronously
+// WithAsyncExecution configures the step's invoke call to complete via
+// webhook rather than in the HTTP response
 func (s Step) WithAsyncExecution() Step {
-	return s.WithType(api.StepTypeAsync)
+	return s.WithInvokeMode(api.ActionModeAsync)
 }
 
-// WithSyncExecution configures the step to execute synchronously
+// WithSyncExecution configures the step's invoke call to complete in the
+// HTTP response
 func (s Step) WithSyncExecution() Step {
-	return s.WithType(api.StepTypeSync)
+	return s.WithInvokeMode(api.ActionModeSync)
+}
+
+// WithInvokeMode sets how the step's invoke call reports its result
+func (s Step) WithInvokeMode(mode api.ActionMode) Step {
+	return s.withHTTP(func(http *api.HTTPConfig) {
+		http.Invoke.Mode = mode
+	})
+}
+
+// WithCompensateMode sets how the step's compensate call reports its result
+func (s Step) WithCompensateMode(mode api.ActionMode) Step {
+	return s.withCompensate(func(comp *api.HTTPAction) {
+		comp.Mode = mode
+	})
 }
 
 // WithScriptExecution configures the step to execute via a script
@@ -338,7 +354,7 @@ func (s Step) withHTTP(mutate func(*api.HTTPConfig)) Step {
 	s.step.HTTP = util.MutableCopy(s.step.HTTP)
 	mutate(s.step.HTTP)
 	if s.step.Type == "" {
-		s.step.Type = api.StepTypeSync
+		s.step.Type = api.StepTypeService
 	}
 	return s
 }

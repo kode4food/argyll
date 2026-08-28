@@ -5,3 +5,7 @@
 .methodSelect {
   min-width: 92px;
 }
+
+.actionModeIcon {
+  composes: iconBox from "@/app/styles/components/icon.module.css";
+}

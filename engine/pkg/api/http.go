@@ -1,6 +1,7 @@
 package api
 
 import (
+	"fmt"
 	"mime"
 	"net/http"
 )
@@ -14,7 +15,24 @@ type ProblemDetails struct {
 	Status   int    `json:"status,omitempty"`
 }
 
+// CallbackAction names the step action whose outcome a callback reports
+type CallbackAction string
+
 const (
+	// ActionInvoke reports the outcome of a step invocation
+	ActionInvoke CallbackAction = "invoke"
+
+	// ActionCompensate reports the outcome of a step compensation
+	ActionCompensate CallbackAction = "compensate"
+
+	// CallbackRoute is the router pattern serving step callbacks. Its
+	// parameters and CallbackPath describe the same URL
+	CallbackRoute = "/callbacks/:flow_id/:step_id/:token/:action"
+	ParamFlowID   = "flow_id"
+	ParamStepID   = "step_id"
+	ParamToken    = "token"
+	ParamAction   = "action"
+
 	// HeaderFlowID carries the executing flow ID on HTTP step requests
 	HeaderFlowID = "Argyll-Flow-ID"
 
@@ -33,6 +51,13 @@ const (
 	// ProblemJSONContentType is the RFC 9457 JSON problem details media type
 	ProblemJSONContentType = "application/problem+json"
 )
+
+// CallbackPath builds the path an async handler posts its outcome to
+func CallbackPath(
+	flowID FlowID, stepID StepID, tkn Token, action CallbackAction,
+) string {
+	return fmt.Sprintf("/callbacks/%s/%s/%s/%s", flowID, stepID, tkn, action)
+}
 
 // NewProblem creates a problem details response with standard title text
 func NewProblem(status int, detail string) *ProblemDetails {

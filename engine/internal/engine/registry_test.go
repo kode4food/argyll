@@ -16,7 +16,7 @@ func TestRegisterStep(t *testing.T) {
 		st := &api.Step{
 			ID:   "test-step",
 			Name: "Test Step",
-			Type: api.StepTypeSync,
+			Type: api.StepTypeService,
 			Attributes: api.AttributeSpecs{
 				"input":  {Role: api.RoleRequired, Type: api.TypeString},
 				"output": {Role: api.RoleOutput, Type: api.TypeString},
@@ -173,7 +173,7 @@ func TestCatalogTxRegister(t *testing.T) {
 		stepA := &api.Step{
 			ID:   "step-a",
 			Name: "Step A",
-			Type: api.StepTypeSync,
+			Type: api.StepTypeService,
 			Attributes: api.AttributeSpecs{
 				"foo": {Role: api.RoleOutput, Type: api.TypeString},
 			},
@@ -184,7 +184,7 @@ func TestCatalogTxRegister(t *testing.T) {
 		stepB := &api.Step{
 			ID:   "step-b",
 			Name: "Step B",
-			Type: api.StepTypeSync,
+			Type: api.StepTypeService,
 			Attributes: api.AttributeSpecs{
 				"foo": {Role: api.RoleRequired, Type: api.TypeString},
 				"bar": {Role: api.RoleOutput, Type: api.TypeString},
@@ -214,7 +214,7 @@ func TestCatalogTxRollback(t *testing.T) {
 		stepA := &api.Step{
 			ID:   "step-a",
 			Name: "Step A",
-			Type: api.StepTypeSync,
+			Type: api.StepTypeService,
 			Attributes: api.AttributeSpecs{
 				"foo": {Role: api.RoleOutput, Type: api.TypeString},
 			},
@@ -225,7 +225,7 @@ func TestCatalogTxRollback(t *testing.T) {
 		stepB := &api.Step{
 			ID:   "step-b",
 			Name: "Step B",
-			Type: api.StepTypeSync,
+			Type: api.StepTypeService,
 			Attributes: api.AttributeSpecs{
 				"foo": {Role: api.RoleOutput, Type: api.TypeNumber},
 			},

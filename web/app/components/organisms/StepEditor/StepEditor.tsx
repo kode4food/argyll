@@ -87,6 +87,8 @@ const StepEditor: React.FC<StepEditorProps> = ({
     setEndpoint,
     httpMethod,
     setHttpMethod,
+    httpMode,
+    setHttpMode,
     healthCheck,
     setHealthCheck,
     compensate,
@@ -95,6 +97,8 @@ const StepEditor: React.FC<StepEditorProps> = ({
     setCompensateMethod,
     compensateTimeout,
     setCompensateTimeout,
+    compensateMode,
+    setCompensateMode,
     httpTimeout,
     setHttpTimeout,
     flowGoals,
@@ -263,15 +267,19 @@ const StepEditor: React.FC<StepEditorProps> = ({
                 <StepEditorHttpConfiguration
                   endpoint={endpoint}
                   httpMethod={httpMethod}
+                  httpMode={httpMode}
                   healthCheck={healthCheck}
                   compensate={compensate}
                   compensateMethod={compensateMethod}
                   compensateTimeout={compensateTimeout}
+                  compensateMode={compensateMode}
+                  setCompensateMode={setCompensateMode}
                   httpTimeout={httpTimeout}
                   handling={handling}
                   stepType={formStepType}
                   setEndpoint={setEndpoint}
                   setHttpMethod={setHttpMethod}
+                  setHttpMode={setHttpMode}
                   setHealthCheck={setHealthCheck}
                   setCompensate={setCompensate}
                   setCompensateMethod={setCompensateMethod}

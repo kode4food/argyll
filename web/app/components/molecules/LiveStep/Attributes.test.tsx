@@ -56,7 +56,7 @@ describe("Attributes", () => {
     return {
       id: "step-1",
       name: "Test Step",
-      type: "sync",
+      type: "service",
       attributes,
       http: {
         endpoint: "http://test",
@@ -238,7 +238,7 @@ describe("Attributes", () => {
     const step: Step = {
       id: "step-1",
       name: "Test",
-      type: "sync",
+      type: "service",
       attributes: {
         opt1: { role: AttributeRole.Optional, type: AttributeType.String },
       },
@@ -436,7 +436,7 @@ describe("Attributes", () => {
     const step: Step = {
       id: "step-1",
       name: "Test",
-      type: "sync",
+      type: "service",
       attributes: {
         opt1: {
           role: AttributeRole.Optional,
@@ -477,7 +477,7 @@ describe("Attributes", () => {
     const step: Step = {
       id: "step-1",
       name: "Test",
-      type: "sync",
+      type: "service",
       attributes: {
         gate: {
           role: AttributeRole.Required,
@@ -523,7 +523,7 @@ describe("Attributes", () => {
     const step: Step = {
       id: "step-1",
       name: "Test",
-      type: "sync",
+      type: "service",
       attributes: {
         opt1: {
           role: AttributeRole.Optional,
@@ -564,7 +564,7 @@ describe("Attributes", () => {
     const step: Step = {
       id: "step-1",
       name: "Test",
-      type: "sync",
+      type: "service",
       attributes: {
         opt1: {
           role: AttributeRole.Optional,
@@ -624,7 +624,7 @@ describe("Attributes", () => {
     const step: Step = {
       id: "step-1",
       name: "Test",
-      type: "sync",
+      type: "service",
       attributes: {
         result: { role: AttributeRole.Output, type: AttributeType.String },
       },
@@ -682,7 +682,7 @@ describe("Attributes", () => {
     const step: Step = {
       id: "step-1",
       name: "Test",
-      type: "sync",
+      type: "service",
       attributes: {
         opt1: {
           role: AttributeRole.Optional,

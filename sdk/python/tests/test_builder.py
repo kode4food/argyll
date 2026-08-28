@@ -8,6 +8,7 @@ from argyll._validation import validate_step as _validate_step
 from argyll.builder import StepBuilder
 from argyll.errors import StepRegistrationError, StepValidationError
 from argyll.types import (
+    ActionMode,
     AttributeRole,
     AttributeSpec,
     AttributeType,
@@ -34,7 +35,7 @@ def test_step_builder_initialization():
     builder = client.new_step().with_name("Test Step")
     assert builder._name == "Test Step"
     assert builder._id == "test-step"
-    assert builder._type == StepType.SYNC
+    assert builder._type == StepType.SERVICE
 
 
 def test_step_builder_with_id():
@@ -266,7 +267,8 @@ def test_step_builder_with_async_execution():
         .with_endpoint("http://localhost:8081/test")
     )
     step = builder.build()
-    assert step.type == StepType.ASYNC
+    assert step.type == StepType.SERVICE
+    assert step.http.invoke.mode == ActionMode.ASYNC
 
 
 def test_step_builder_with_sync_execution():
@@ -279,7 +281,8 @@ def test_step_builder_with_sync_execution():
         .with_endpoint("http://localhost:8081/test")
     )
     step = builder.build()
-    assert step.type == StepType.SYNC
+    assert step.type == StepType.SERVICE
+    assert step.http.invoke.mode == ActionMode.SYNC
 
 
 def test_step_builder_with_handling():
@@ -499,7 +502,7 @@ def test_step_builder_build():
     step = builder.build()
     assert step.id == "test"
     assert step.name == "Test"
-    assert step.type == StepType.SYNC
+    assert step.type == StepType.SERVICE
 
 
 def test_step_builder_with_script_sets_script_type():
@@ -583,7 +586,7 @@ def _make_step(**overrides):
     data = {
         "id": "step-1",
         "name": "Step",
-        "type": StepType.SYNC,
+        "type": StepType.SERVICE,
         "attributes": {},
         "labels": {},
         "http": HTTPConfig(

@@ -17,7 +17,7 @@ const respond = (data: unknown, init: Partial<Response> = {}) => {
 const step: Step = {
   id: "step-1",
   name: "Test Step",
-  type: "sync",
+  type: "service",
   attributes: {},
   http: { endpoint: "http://localhost:8080/test", timeout: 5000 },
 };

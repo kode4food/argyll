@@ -19,7 +19,7 @@ func TestForEachAggregatesOutputs(t *testing.T) {
 		st := &api.Step{
 			ID:   "foreach-step",
 			Name: "For Each Step",
-			Type: api.StepTypeSync,
+			Type: api.StepTypeService,
 			HTTP: &api.HTTPConfig{
 				Invoke: api.HTTPAction{
 					Endpoint: "http://example.com",
@@ -78,7 +78,7 @@ func TestForEachTypedSlice(t *testing.T) {
 		st := &api.Step{
 			ID:   "foreach-typed",
 			Name: "For Each Typed",
-			Type: api.StepTypeSync,
+			Type: api.StepTypeService,
 			HTTP: &api.HTTPConfig{
 				Invoke: api.HTTPAction{
 					Endpoint: "http://example.com",
@@ -137,7 +137,7 @@ func TestForEachTypedNumbers(t *testing.T) {
 		st := &api.Step{
 			ID:   "foreach-nums",
 			Name: "For Each Numbers",
-			Type: api.StepTypeSync,
+			Type: api.StepTypeService,
 			HTTP: &api.HTTPConfig{
 				Invoke: api.HTTPAction{
 					Endpoint: "http://example.com",
@@ -196,7 +196,7 @@ func TestOutputMappingDescendants(t *testing.T) {
 		st := &api.Step{
 			ID:   "mapped-descendants-step",
 			Name: "Mapped Descendants Step",
-			Type: api.StepTypeSync,
+			Type: api.StepTypeService,
 			HTTP: &api.HTTPConfig{
 				Invoke: api.HTTPAction{
 					Endpoint: "http://example.com",
@@ -258,7 +258,7 @@ func TestTooManyWorkItems(t *testing.T) {
 		st := &api.Step{
 			ID:   "foreach-overload",
 			Name: "ForEach Overload",
-			Type: api.StepTypeSync,
+			Type: api.StepTypeService,
 			HTTP: &api.HTTPConfig{
 				Invoke: api.HTTPAction{Endpoint: "http://example.com"},
 			},

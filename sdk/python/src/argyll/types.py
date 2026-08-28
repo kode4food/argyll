@@ -14,11 +14,17 @@ Labels = Dict[str, str]
 Metadata = Dict[str, Any]
 
 
-class StepType(str, Enum):
-    """Step execution type."""
+class ActionMode(str, Enum):
+    """How an HTTP action reports its result."""
 
     SYNC = "sync"
     ASYNC = "async"
+
+
+class StepType(str, Enum):
+    """Step execution type."""
+
+    SERVICE = "service"
     SCRIPT = "script"
     FLOW = "flow"
 
@@ -221,6 +227,7 @@ class HTTPAction:
     endpoint: str
     method: str = ""
     timeout: int = 0
+    mode: ActionMode = ActionMode.SYNC
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert to API dictionary format."""
@@ -229,12 +236,14 @@ class HTTPAction:
             result["method"] = self.method
         if self.timeout > 0:
             result["timeout"] = self.timeout
+        if self.mode != ActionMode.SYNC:
+            result["mode"] = self.mode.value
         return result
 
 
 @dataclass(frozen=True)
 class HTTPConfig:
-    """HTTP configuration for sync/async steps."""
+    """HTTP configuration for service steps."""
 
     invoke: HTTPAction
     compensate: Optional[HTTPAction] = None

@@ -140,7 +140,7 @@ func TestNewMockStep(t *testing.T) {
 		expected := errors.New("mock validation")
 		deps := env.Dependencies()
 		handlers := step.DefaultHandlers(deps.Scripts, env.MockClient)
-		handlers[api.StepTypeSync] = &step.Handler{
+		handlers[api.StepTypeService] = &step.Handler{
 			Validate: func(*api.Step) error { return expected },
 		}
 		deps.Steps = step.NewRegistry(handlers)

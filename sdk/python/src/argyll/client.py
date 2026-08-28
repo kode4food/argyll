@@ -142,6 +142,7 @@ class Client:
     def _parse_step(self, data: Dict[str, Any]) -> Step:
         """Parse step data from API response."""
         from .types import (
+            ActionMode,
             AttributeRole,
             AttributeSpec,
             AttributeType,
@@ -243,12 +244,14 @@ class Client:
                     endpoint=invoke_data.get("endpoint", ""),
                     method=invoke_data.get("method", ""),
                     timeout=invoke_data.get("timeout", 0),
+                    mode=ActionMode(invoke_data.get("mode", "sync")),
                 ),
                 compensate=(
                     HTTPAction(
                         endpoint=compensate_data.get("endpoint", ""),
                         method=compensate_data.get("method", ""),
                         timeout=compensate_data.get("timeout", 0),
+                        mode=ActionMode(compensate_data.get("mode", "sync")),
                     )
                     if compensate_data
                     else None

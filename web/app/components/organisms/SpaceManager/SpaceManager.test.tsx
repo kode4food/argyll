@@ -47,14 +47,14 @@ describe("SpaceManager", () => {
       {
         id: "score-customer",
         name: "Score Customer",
-        type: "sync",
+        type: "service",
         attributes: {},
         labels: { domain: "risk", tier: "gold" },
       },
       {
         id: "place-order",
         name: "Place Order",
-        type: "sync",
+        type: "service",
         attributes: {},
         labels: { domain: "trading" },
       },

@@ -5,7 +5,7 @@ import { useFlowFormStepFiltering } from "./useFlowFormStepFiltering";
 const buildStep = (id: string, attributes: Step["attributes"]): Step => ({
   id,
   name: id,
-  type: "sync",
+  type: "service",
   attributes,
 });
 

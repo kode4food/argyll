@@ -148,7 +148,9 @@ describe("OverviewDiagramView", () => {
         }}
       >
         <OverviewDiagramView
-          steps={[{ id: "s1", name: "Step 1", type: "sync", attributes: {} }]}
+          steps={[
+            { id: "s1", name: "Step 1", type: "service", attributes: {} },
+          ]}
         />
       </DiagramSelectionProvider>
     );
@@ -182,7 +184,9 @@ describe("OverviewDiagramView", () => {
         }}
       >
         <OverviewDiagramView
-          steps={[{ id: "s1", name: "Step 1", type: "sync", attributes: {} }]}
+          steps={[
+            { id: "s1", name: "Step 1", type: "service", attributes: {} },
+          ]}
         />
       </DiagramSelectionProvider>
     );
@@ -195,11 +199,11 @@ describe("OverviewDiagramView", () => {
       goals: ["s1"],
       steps: {
         s1: {
-          step: { id: "s1", name: "Step 1", type: "sync", attributes: {} },
+          step: { id: "s1", name: "Step 1", type: "service", attributes: {} },
           inputs: {},
         },
         s2: {
-          step: { id: "s2", name: "Step 2", type: "sync", attributes: {} },
+          step: { id: "s2", name: "Step 2", type: "service", attributes: {} },
           inputs: {},
         },
       },
@@ -215,7 +219,9 @@ describe("OverviewDiagramView", () => {
         }}
       >
         <OverviewDiagramView
-          steps={[{ id: "s1", name: "Step 1", type: "sync", attributes: {} }]}
+          steps={[
+            { id: "s1", name: "Step 1", type: "service", attributes: {} },
+          ]}
         />
       </DiagramSelectionProvider>
     );
@@ -242,7 +248,9 @@ describe("OverviewDiagramView", () => {
         }}
       >
         <OverviewDiagramView
-          steps={[{ id: "s1", name: "Step 1", type: "sync", attributes: {} }]}
+          steps={[
+            { id: "s1", name: "Step 1", type: "service", attributes: {} },
+          ]}
         />
       </DiagramSelectionProvider>
     );
@@ -262,7 +270,9 @@ describe("OverviewDiagramView", () => {
         }}
       >
         <OverviewDiagramView
-          steps={[{ id: "s1", name: "Step 1", type: "sync", attributes: {} }]}
+          steps={[
+            { id: "s1", name: "Step 1", type: "service", attributes: {} },
+          ]}
         />
       </DiagramSelectionProvider>
     );

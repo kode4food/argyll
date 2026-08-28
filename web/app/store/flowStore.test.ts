@@ -162,7 +162,7 @@ describe("flowStore", () => {
     const mockStep: Step = {
       id: "step-1",
       name: "Test Step",
-      type: "sync",
+      type: "service",
       attributes: {
         input1: { role: AttributeRole.Required, type: AttributeType.String },
         result: { role: AttributeRole.Output, type: AttributeType.String },
@@ -602,7 +602,7 @@ describe("flowStore", () => {
         "step-1": {
           id: "step-1",
           name: "Test Step",
-          type: "sync",
+          type: "service",
           attributes: {},
           http: { endpoint: "http://localhost:8080/test", timeout: 5000 },
         },
@@ -727,7 +727,7 @@ describe("flowStore", () => {
       const mockStep: Step = {
         id: "step-1",
         name: "Test Step",
-        type: "sync",
+        type: "service",
         attributes: {},
         http: { endpoint: "http://localhost:8080/test", timeout: 5000 },
       };
@@ -931,7 +931,7 @@ describe("flowStore", () => {
       const mockStep: Step = {
         id: "step-1",
         name: "Test",
-        type: "sync",
+        type: "service",
         attributes: {},
 
         http: {

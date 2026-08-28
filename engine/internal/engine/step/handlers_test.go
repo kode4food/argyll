@@ -14,7 +14,7 @@ func TestRegistryValidation(t *testing.T) {
 	reg := newRegistry(&testClient{})
 	// sync handler has no Validate func -- should return nil
 	err := reg.Validate(&api.Step{
-		Type: api.StepTypeSync,
+		Type: api.StepTypeService,
 		HTTP: &api.HTTPConfig{
 			Invoke: api.HTTPAction{Endpoint: "http://example.test"},
 		},
@@ -25,7 +25,7 @@ func TestRegistryValidation(t *testing.T) {
 func TestRegistryHealthNil(t *testing.T) {
 	reg := newRegistry(&testClient{})
 	// sync handler has no Health func -- should return HealthUnknown
-	h, err := reg.Health(&api.Step{Type: api.StepTypeSync})
+	h, err := reg.Health(&api.Step{Type: api.StepTypeService})
 	assert.NoError(t, err)
 	assert.Equal(t, api.HealthUnknown, h.Status)
 }
@@ -39,7 +39,7 @@ func TestRegistryHealthType(t *testing.T) {
 func TestRegistryChildrenNil(t *testing.T) {
 	reg := newRegistry(&testClient{})
 	// sync handler has no Children func -- should return nil
-	ids, err := reg.Children(&api.Step{Type: api.StepTypeSync})
+	ids, err := reg.Children(&api.Step{Type: api.StepTypeService})
 	assert.NoError(t, err)
 	assert.Nil(t, ids)
 }
@@ -85,7 +85,7 @@ func TestHTTPCompensatorInvokes(t *testing.T) {
 	cl := &testClient{}
 	reg := newRegistry(cl)
 	st := &api.Step{
-		Type:     api.StepTypeSync,
+		Type:     api.StepTypeService,
 		Handling: api.HandlingCompensated,
 		HTTP: &api.HTTPConfig{
 			Compensate: &api.HTTPAction{Endpoint: "http://test/undo"},
@@ -107,7 +107,7 @@ func TestHTTPCompensatorInvokes(t *testing.T) {
 func TestCompensatorEndpoint(t *testing.T) {
 	reg := newRegistry(&testClient{})
 	comp, err := reg.Compensator(&api.Step{
-		Type: api.StepTypeSync,
+		Type: api.StepTypeService,
 		HTTP: &api.HTTPConfig{
 			Invoke: api.HTTPAction{Endpoint: "http://test/work"},
 		},
@@ -119,13 +119,13 @@ func TestCompensatorEndpoint(t *testing.T) {
 func TestMetaInputs(t *testing.T) {
 	cl := &testClient{outputs: api.Args{}}
 	reg := newRegistry(cl)
-	handler, err := reg.Lookup(api.StepTypeSync)
+	handler, err := reg.Lookup(api.StepTypeService)
 	assert.NoError(t, err)
 
 	rt, _ := newRuntime("flow-1", "step-1", api.Metadata{}, "")
 	st := &api.Step{
 		ID:   "step-1",
-		Type: api.StepTypeSync,
+		Type: api.StepTypeService,
 		HTTP: &api.HTTPConfig{
 			Invoke: api.HTTPAction{Endpoint: "http://example.test"},
 		},

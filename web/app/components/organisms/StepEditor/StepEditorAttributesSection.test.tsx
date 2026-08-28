@@ -24,7 +24,7 @@ describe("StepEditorAttributesSection", () => {
     flowInputOptions: [],
     flowOutputOptions: [],
     removeAttribute: jest.fn(),
-    stepType: "sync" as const,
+    stepType: "service" as const,
     handling: "standard" as const,
     updateAttribute: jest.fn(),
   };

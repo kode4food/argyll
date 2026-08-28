@@ -22,7 +22,7 @@ const step = (
   id: string,
   name: string,
   attributes: Record<string, AttributeSpec> = {}
-): Step => ({ id, name, type: "sync", attributes });
+): Step => ({ id, name, type: "service", attributes });
 
 describe("stepUtils", () => {
   test("sorts attributes by role then name without replacing specs", () => {
@@ -77,9 +77,9 @@ describe("stepUtils", () => {
   });
 
   test("classifies a step without attributes as standalone", () => {
-    expect(getStepType({ id: "id", name: "Step", type: "sync" } as Step)).toBe(
-      "standalone"
-    );
+    expect(
+      getStepType({ id: "id", name: "Step", type: "service" } as Step)
+    ).toBe("standalone");
   });
 
   test("sorts steps by type and name without mutation", () => {

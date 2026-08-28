@@ -122,8 +122,7 @@ func TestRegistryRegistersBuiltIns(t *testing.T) {
 	reg := newRegistry(&testClient{})
 
 	for _, typ := range []api.StepType{
-		api.StepTypeFlow, api.StepTypeSync, api.StepTypeAsync,
-		api.StepTypeScript,
+		api.StepTypeFlow, api.StepTypeService, api.StepTypeScript,
 	} {
 		_, err := reg.Lookup(typ)
 		assert.NoError(t, err)
@@ -140,7 +139,7 @@ func TestRegistryRejectsUnknownStepType(t *testing.T) {
 func TestHTTPHandlerPropagatesMetadata(t *testing.T) {
 	cl := &testClient{outputs: api.Args{"result": "ok"}}
 	reg := newRegistry(cl)
-	handler, err := reg.Lookup(api.StepTypeSync)
+	handler, err := reg.Lookup(api.StepTypeService)
 	assert.NoError(t, err)
 
 	rt, calls := newRuntime(
@@ -149,7 +148,7 @@ func TestHTTPHandlerPropagatesMetadata(t *testing.T) {
 	)
 	st := &api.Step{
 		ID:   "step-1",
-		Type: api.StepTypeSync,
+		Type: api.StepTypeService,
 		HTTP: &api.HTTPConfig{
 			Invoke: api.HTTPAction{Endpoint: "http://example.test/execute"},
 		},
@@ -171,7 +170,7 @@ func TestHTTPHandlerPropagatesMetadata(t *testing.T) {
 func TestHTTPHandlerAsyncAddsWebhookURL(t *testing.T) {
 	cl := &testClient{}
 	reg := newRegistry(cl)
-	handler, err := reg.Lookup(api.StepTypeAsync)
+	handler, err := reg.Lookup(api.StepTypeService)
 	assert.NoError(t, err)
 
 	rt, calls := newRuntime(
@@ -180,9 +179,12 @@ func TestHTTPHandlerAsyncAddsWebhookURL(t *testing.T) {
 	)
 	st := &api.Step{
 		ID:   "step-1",
-		Type: api.StepTypeAsync,
+		Type: api.StepTypeService,
 		HTTP: &api.HTTPConfig{
-			Invoke: api.HTTPAction{Endpoint: "http://example.test/execute"},
+			Invoke: api.HTTPAction{
+				Endpoint: "http://example.test/execute",
+				Mode:     api.ActionModeAsync,
+			},
 		},
 	}
 

@@ -21,7 +21,7 @@ func TestNewStep(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, api.StepID("test-step"), st.ID)
 	assert.Equal(t, name, st.Name)
-	assert.Equal(t, api.StepTypeSync, st.Type)
+	assert.Equal(t, api.StepTypeService, st.Type)
 	assert.Equal(t, int64(30000), st.HTTP.Invoke.Timeout)
 }
 
@@ -178,7 +178,7 @@ func TestWithEndpoint(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, st.HTTP)
 	assert.Equal(t, endpoint, st.HTTP.Invoke.Endpoint)
-	assert.Equal(t, api.StepTypeSync, st.Type)
+	assert.Equal(t, api.StepTypeService, st.Type)
 }
 
 func TestWithMethod(t *testing.T) {
@@ -190,7 +190,7 @@ func TestWithMethod(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, st.HTTP)
 	assert.Equal(t, "GET", st.HTTP.Invoke.Method)
-	assert.Equal(t, api.StepTypeSync, st.Type)
+	assert.Equal(t, api.StepTypeService, st.Type)
 }
 
 func TestWithMethodInvalid(t *testing.T) {
@@ -257,11 +257,11 @@ func TestWithTimeout(t *testing.T) {
 func TestWithType(t *testing.T) {
 	st, err := testClient().NewStep().WithName("Test").
 		WithEndpoint("http://example.com").
-		WithType(api.StepTypeAsync).
+		WithType(api.StepTypeService).
 		Build()
 
 	assert.NoError(t, err)
-	assert.Equal(t, api.StepTypeAsync, st.Type)
+	assert.Equal(t, api.StepTypeService, st.Type)
 }
 
 func TestWithAsyncExecution(t *testing.T) {
@@ -271,7 +271,8 @@ func TestWithAsyncExecution(t *testing.T) {
 		Build()
 
 	assert.NoError(t, err)
-	assert.Equal(t, api.StepTypeAsync, st.Type)
+	assert.Equal(t, api.StepTypeService, st.Type)
+	assert.Equal(t, api.ActionModeAsync, st.HTTP.Invoke.DefaultedMode())
 }
 
 func TestWithSyncExecution(t *testing.T) {
@@ -281,7 +282,8 @@ func TestWithSyncExecution(t *testing.T) {
 		Build()
 
 	assert.NoError(t, err)
-	assert.Equal(t, api.StepTypeSync, st.Type)
+	assert.Equal(t, api.StepTypeService, st.Type)
+	assert.Equal(t, api.ActionModeSync, st.HTTP.Invoke.DefaultedMode())
 }
 
 func TestWithScriptExecution(t *testing.T) {
@@ -391,7 +393,8 @@ func TestChaining(t *testing.T) {
 		Build()
 
 	assert.NoError(t, err)
-	assert.Equal(t, api.StepTypeAsync, st.Type)
+	assert.Equal(t, api.StepTypeService, st.Type)
+	assert.Equal(t, api.ActionModeAsync, st.HTTP.Invoke.DefaultedMode())
 	requiredArgs := st.GetRequiredArgs()
 	optionalArgs := st.GetOptionalArgs()
 	outputArgs := st.GetOutputArgs()
@@ -528,7 +531,8 @@ func TestStepBuilderChaining(t *testing.T) {
 
 		assert.NoError(t, err)
 		assert.Equal(t, api.StepID("complex"), st.ID)
-		assert.Equal(t, api.StepTypeAsync, st.Type)
+		assert.Equal(t, api.StepTypeService, st.Type)
+		assert.Equal(t, api.ActionModeAsync, st.HTTP.Invoke.DefaultedMode())
 		assert.Equal(t, int64(60000), st.HTTP.Invoke.Timeout)
 		assert.Len(t, st.Attributes, 5)
 		assert.Equal(t, api.RoleRequired, st.Attributes["user_id"].Role)
@@ -544,14 +548,18 @@ func TestStepBuilderChaining(t *testing.T) {
 			WithSyncExecution().
 			Build()
 		assert.NoError(t, err)
-		assert.Equal(t, api.StepTypeSync, syncStep.Type)
+		assert.Equal(t, api.StepTypeService, syncStep.Type)
+		assert.Equal(t,
+			api.ActionModeSync, syncStep.HTTP.Invoke.DefaultedMode())
 
 		asyncStep, err := build.
 			WithEndpoint("http://example.com").
 			WithAsyncExecution().
 			Build()
 		assert.NoError(t, err)
-		assert.Equal(t, api.StepTypeAsync, asyncStep.Type)
+		assert.Equal(t, api.StepTypeService, asyncStep.Type)
+		assert.Equal(t,
+			api.ActionModeAsync, asyncStep.HTTP.Invoke.DefaultedMode())
 
 		scriptStep, err := build.
 			WithScript(api.ScriptConfig{

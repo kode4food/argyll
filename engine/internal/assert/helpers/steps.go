@@ -12,7 +12,7 @@ func NewTestStep() *api.Step {
 	return &api.Step{
 		ID:   api.StepID("test-step-" + uuid.New().String()[:8]),
 		Name: "Test Step",
-		Type: api.StepTypeSync,
+		Type: api.StepTypeService,
 		HTTP: &api.HTTPConfig{
 			Invoke: api.HTTPAction{
 				Endpoint: "http://localhost:8080/transform",
@@ -64,7 +64,7 @@ func NewSimpleStep(id api.StepID) *api.Step {
 	return &api.Step{
 		ID:         id,
 		Name:       "Test Step",
-		Type:       api.StepTypeSync,
+		Type:       api.StepTypeService,
 		Attributes: api.AttributeSpecs{},
 		HTTP: &api.HTTPConfig{
 			Invoke: api.HTTPAction{Endpoint: "http://test:8080"},

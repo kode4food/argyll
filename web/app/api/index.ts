@@ -3,6 +3,7 @@ export type {
   StepStatus,
   HealthStatus,
   StepType,
+  ActionMode,
   Handling,
   HTTPMethod,
   InputCollect,

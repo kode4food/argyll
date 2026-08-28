@@ -20,7 +20,7 @@ jest.mock("@/app/api", () => {
 const buildStep = (overrides: Partial<Step> = {}): Step => ({
   id: "step-1",
   name: "Step 1",
-  type: "sync",
+  type: "service",
   attributes: {},
   http: { invoke: { endpoint: "https://example.com", timeout: 1000 } },
   ...overrides,
@@ -277,6 +277,7 @@ describe("useStepEditorForm", () => {
     expect(serialized.http.compensate).toEqual({
       endpoint: "https://example.com/undo",
       method: "POST",
+      mode: "sync",
     });
   });
 

@@ -767,9 +767,12 @@ func wsPlan(stepID api.StepID) *api.ExecutionPlan {
 	st := &api.Step{
 		ID:   stepID,
 		Name: "ws-step",
-		Type: api.StepTypeAsync,
+		Type: api.StepTypeService,
 		HTTP: &api.HTTPConfig{
-			Invoke: api.HTTPAction{Endpoint: "http://test:8080"},
+			Invoke: api.HTTPAction{
+				Endpoint: "http://test:8080",
+				Mode:     api.ActionModeAsync,
+			},
 		},
 	}
 	return &api.ExecutionPlan{

@@ -512,6 +512,38 @@ func TestCompensateConflict(t *testing.T) {
 	assert.ErrorIs(t, err, api.ErrCompensateArgConflict)
 }
 
+func TestInvokeBody(t *testing.T) {
+	for _, method := range []string{"GET", "DELETE"} {
+		t.Run(method, func(t *testing.T) {
+			var gotBody []byte
+			server := httptest.NewServer(http.HandlerFunc(
+				func(w http.ResponseWriter, r *http.Request) {
+					assert.Equal(t, method, r.Method)
+					assert.Empty(t, r.Header.Get("Content-Type"))
+					gotBody, _ = io.ReadAll(r.Body)
+					w.WriteHeader(http.StatusNoContent)
+				},
+			))
+			defer server.Close()
+
+			cl := client.NewHTTPClient(5 * time.Second)
+			st := &api.Step{
+				ID: "step",
+				HTTP: &api.HTTPConfig{
+					Invoke: api.HTTPAction{
+						Endpoint: server.URL,
+						Method:   method,
+					},
+				},
+			}
+
+			_, err := cl.Invoke(st, api.Args{"value": "x"}, nil)
+			assert.NoError(t, err)
+			assert.Empty(t, gotBody)
+		})
+	}
+}
+
 func TestCompensateBody(t *testing.T) {
 	for _, method := range []string{"GET", "DELETE"} {
 		t.Run(method, func(t *testing.T) {
@@ -519,6 +551,7 @@ func TestCompensateBody(t *testing.T) {
 			server := httptest.NewServer(http.HandlerFunc(
 				func(w http.ResponseWriter, r *http.Request) {
 					assert.Equal(t, method, r.Method)
+					assert.Empty(t, r.Header.Get("Content-Type"))
 					gotBody, _ = io.ReadAll(r.Body)
 					w.WriteHeader(http.StatusNoContent)
 				},

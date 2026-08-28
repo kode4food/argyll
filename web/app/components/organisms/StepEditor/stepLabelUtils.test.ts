@@ -12,7 +12,7 @@ const label = (overrides: Partial<Label> = {}): Label => ({
 const step = (labels?: Record<string, string>): Step => ({
   id: "test-step",
   name: "Test",
-  type: "sync",
+  type: "service",
   attributes: {},
   labels,
 });

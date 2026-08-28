@@ -11,6 +11,7 @@ export interface IconDropdownOption {
 
 interface IconDropdownProps {
   ariaLabel: string;
+  disabled?: boolean;
   faceIcon: React.ReactNode;
   onChange: (value: string) => void;
   options: IconDropdownOption[];
@@ -19,6 +20,7 @@ interface IconDropdownProps {
 
 const IconDropdown: React.FC<IconDropdownProps> = ({
   ariaLabel,
+  disabled,
   faceIcon,
   onChange,
   options,
@@ -44,15 +46,22 @@ const IconDropdown: React.FC<IconDropdownProps> = ({
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className={`${formStyles.iconDropdownFace} ${open ? formStyles.iconDropdownFaceOpen : ""}`}
+        className={[
+          formStyles.iconDropdownFace,
+          open && formStyles.iconDropdownFaceOpen,
+          disabled && formStyles.inlineSelectDisabled,
+        ]
+          .filter(Boolean)
+          .join(" ")}
         aria-label={ariaLabel}
         aria-expanded={open}
         aria-haspopup="listbox"
         title={selected?.label}
+        disabled={disabled}
       >
         {faceIcon}
       </button>
-      {open && (
+      {open && !disabled && (
         <div
           className={dropdownStyles.list}
           role="listbox"

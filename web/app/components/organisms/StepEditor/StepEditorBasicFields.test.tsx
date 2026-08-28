@@ -5,7 +5,7 @@ import StepEditorBasicFields from "./StepEditorBasicFields";
 
 describe("StepEditorBasicFields", () => {
   const renderComponent = (
-    stepType: StepType = "sync",
+    stepType: StepType = "service",
     isCreateMode = true
   ) => {
     const props = {
@@ -36,7 +36,7 @@ describe("StepEditorBasicFields", () => {
   });
 
   test("disables step id in edit mode", () => {
-    renderComponent("sync", false);
+    renderComponent("service", false);
 
     expect(
       screen.getByPlaceholderText(t("stepEditor.stepIdPlaceholder"))
@@ -44,7 +44,7 @@ describe("StepEditorBasicFields", () => {
   });
 
   test("updates text fields and selected type", () => {
-    const props = renderComponent("sync");
+    const props = renderComponent("service");
 
     fireEvent.change(
       screen.getByPlaceholderText(t("stepEditor.stepIdPlaceholder")),
@@ -61,7 +61,7 @@ describe("StepEditorBasicFields", () => {
 
     // open the type dropdown, then select a type
     fireEvent.click(
-      screen.getByRole("button", { name: t("stepEditor.typeSyncLabel") })
+      screen.getByRole("button", { name: t("stepEditor.typeServiceLabel") })
     );
     fireEvent.click(screen.getByTitle(t("stepEditor.typeFlowTitle")));
 
@@ -71,12 +71,12 @@ describe("StepEditorBasicFields", () => {
   });
 
   test("selects the current type", () => {
-    renderComponent("async");
+    renderComponent("service");
 
     fireEvent.click(
-      screen.getByRole("button", { name: t("stepEditor.typeAsyncLabel") })
+      screen.getByRole("button", { name: t("stepEditor.typeServiceLabel") })
     );
-    expect(screen.getByTitle(t("stepEditor.typeAsyncTitle"))).toHaveAttribute(
+    expect(screen.getByTitle(t("stepEditor.typeServiceTitle"))).toHaveAttribute(
       "aria-selected",
       "true"
     );
@@ -117,19 +117,19 @@ describe("StepEditorBasicFields", () => {
   });
 
   test("moves dropdown highlight", () => {
-    renderComponent("async");
+    renderComponent("service");
 
     fireEvent.click(
-      screen.getByRole("button", { name: t("stepEditor.typeAsyncLabel") })
+      screen.getByRole("button", { name: t("stepEditor.typeServiceLabel") })
     );
 
-    const asyncType = screen.getByTitle(t("stepEditor.typeAsyncTitle"));
+    const serviceType = screen.getByTitle(t("stepEditor.typeServiceTitle"));
     const flowType = screen.getByTitle(t("stepEditor.typeFlowTitle"));
-    expect(asyncType.className).toContain("itemHighlighted");
+    expect(serviceType.className).toContain("itemHighlighted");
 
     fireEvent.mouseEnter(flowType);
 
     expect(flowType.className).toContain("itemHighlighted");
-    expect(asyncType.className).not.toContain("itemHighlighted");
+    expect(serviceType.className).not.toContain("itemHighlighted");
   });
 });

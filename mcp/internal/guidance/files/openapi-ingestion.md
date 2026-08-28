@@ -11,8 +11,9 @@ The schema used to validate registrations is in `engine-api.yaml` (embedded alon
 Key structural rules — get these wrong and the engine either rejects the step or silently drops the field:
 
 - Every step **must** have `id`. Steps missing `id` are silently skipped by `diff_proposed_steps` and `apply_proposed_steps` with no error.
-- Valid `type` values: `sync`, `async`, `script`, `flow`.
+- Valid `type` values: `service`, `script`, `flow`.
 - The `http` object nests the call under `invoke`, which uses the key `endpoint` (not `url`).
+- Both `http.invoke` and `http.compensate` accept `mode: sync` or `mode: async`; each defaults to sync independently.
 - If the service exposes a health check endpoint, set `http.health` to that URL. The engine uses it to track step availability, and always polls it with `GET`.
 - If the service can undo the call, add `http.compensate` with its own `endpoint` and optional `method`. Its presence is what makes the step compensatable.
 
@@ -20,15 +21,17 @@ Key structural rules — get these wrong and the engine either rejects the step 
 {
   "id": "my-step",
   "name": "My Step",
-  "type": "sync",
+  "type": "service",
   "http": {
     "invoke": {
       "endpoint": "http://host/path",
-      "method": "POST"
+      "method": "POST",
+      "mode": "sync"
     },
     "compensate": {
       "endpoint": "http://host/path/{id}",
-      "method": "DELETE"
+      "method": "DELETE",
+      "mode": "async"
     },
     "health": "http://host/health"
   },

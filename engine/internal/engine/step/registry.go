@@ -62,10 +62,9 @@ type (
 // DefaultHandlers constructs the built-in step handler set
 func DefaultHandlers(scripts *script.Registry, c client.Client) Handlers {
 	return Handlers{
-		api.StepTypeScript: scriptHandler(scripts),
-		api.StepTypeSync:   httpHandler(c, false),
-		api.StepTypeAsync:  httpHandler(c, true),
-		api.StepTypeFlow:   flowHandler(),
+		api.StepTypeScript:  scriptHandler(scripts),
+		api.StepTypeService: httpHandler(c),
+		api.StepTypeFlow:    flowHandler(),
 	}
 }
 

@@ -13,6 +13,7 @@ from .errors import (
 )
 from .handlers import AsyncContext, StepContext, StepHandler
 from .types import (
+    ActionMode,
     Args,
     AttributeRole,
     AttributeSpec,
@@ -59,6 +60,7 @@ __all__ = [
     "Step",
     "ProblemDetails",
     "StepType",
+    "ActionMode",
     "Handling",
     "AttributeRole",
     "AttributeType",

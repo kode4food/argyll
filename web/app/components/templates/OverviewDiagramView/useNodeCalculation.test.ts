@@ -11,7 +11,7 @@ describe("useNodeCalculation", () => {
   const createStep = (id: string): Step => ({
     id,
     name: `Step ${id}`,
-    type: "sync",
+    type: "service",
     attributes: {
       out: { role: AttributeRole.Output, type: AttributeType.String },
     },

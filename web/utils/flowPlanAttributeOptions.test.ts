@@ -18,7 +18,7 @@ describe("flowPlanAttributeOptions", () => {
         "goal-step": {
           id: "goal-step",
           name: "Goal Step",
-          type: "sync",
+          type: "service",
           attributes: {
             order_id: {
               role: AttributeRole.Required,
@@ -42,7 +42,7 @@ describe("flowPlanAttributeOptions", () => {
         upstream: {
           id: "upstream",
           name: "Upstream",
-          type: "sync",
+          type: "service",
           attributes: {
             quantity: {
               role: AttributeRole.Output,
@@ -79,7 +79,7 @@ describe("flowPlanAttributeOptions", () => {
         "goal-a": {
           id: "goal-a",
           name: "Goal A",
-          type: "sync",
+          type: "service",
           attributes: {
             user_id: {
               role: AttributeRole.Required,
@@ -91,7 +91,7 @@ describe("flowPlanAttributeOptions", () => {
         "goal-b": {
           id: "goal-b",
           name: "Goal B",
-          type: "sync",
+          type: "service",
           attributes: {
             user_id: {
               role: AttributeRole.Optional,
@@ -117,7 +117,7 @@ describe("flowPlanAttributeOptions", () => {
         "goal-a": {
           id: "goal-a",
           name: "Goal A",
-          type: "sync",
+          type: "service",
           attributes: {
             required_with_default: {
               role: AttributeRole.Required,
@@ -167,7 +167,7 @@ describe("flowPlanAttributeOptions", () => {
         "goal-step": {
           id: "goal-step",
           name: "Goal Step",
-          type: "sync",
+          type: "service",
           attributes: {
             order_id: {
               role: AttributeRole.Required,
@@ -187,7 +187,7 @@ describe("flowPlanAttributeOptions", () => {
         upstream: {
           id: "upstream",
           name: "Upstream",
-          type: "sync",
+          type: "service",
           attributes: {
             quantity: {
               role: AttributeRole.Output,
@@ -221,7 +221,7 @@ describe("flowPlanAttributeOptions", () => {
         "goal-step": {
           id: "goal-step",
           name: "Goal Step",
-          type: "sync",
+          type: "service",
           attributes: {
             alpha_number: {
               role: AttributeRole.Optional,
@@ -263,7 +263,7 @@ describe("flowPlanAttributeOptions", () => {
         "price-calculator": {
           id: "price-calculator",
           name: "Price Calculator",
-          type: "sync",
+          type: "service",
           attributes: {
             quantity: {
               role: AttributeRole.Required,
@@ -275,7 +275,7 @@ describe("flowPlanAttributeOptions", () => {
         "order-creator": {
           id: "order-creator",
           name: "Order Creator",
-          type: "sync",
+          type: "service",
           attributes: {
             quantity: {
               role: AttributeRole.Optional,
@@ -307,7 +307,7 @@ describe("flowPlanAttributeOptions", () => {
         "goal-step": {
           id: "goal-step",
           name: "Goal Step",
-          type: "sync",
+          type: "service",
           attributes: {
             alpha: { role: AttributeRole.Optional, type: AttributeType.String },
             shared: {
@@ -320,7 +320,7 @@ describe("flowPlanAttributeOptions", () => {
         validator: {
           id: "validator",
           name: "Validator",
-          type: "sync",
+          type: "service",
           attributes: {
             shared: {
               role: AttributeRole.Required,
@@ -352,7 +352,7 @@ describe("flowPlanAttributeOptions", () => {
         "goal-step": {
           id: "goal-step",
           name: "Goal Step",
-          type: "sync",
+          type: "service",
           attributes: {
             order_id: {
               role: AttributeRole.Required,
@@ -373,7 +373,7 @@ describe("flowPlanAttributeOptions", () => {
       {
         id: "goal-step",
         name: "Goal Step",
-        type: "sync",
+        type: "service",
         attributes: {
           order_id: {
             role: AttributeRole.Required,
@@ -384,7 +384,7 @@ describe("flowPlanAttributeOptions", () => {
       {
         id: "excluded-step",
         name: "Excluded Step",
-        type: "sync",
+        type: "service",
         attributes: {
           age: {
             role: AttributeRole.Required,
@@ -429,7 +429,7 @@ describe("flowPlanAttributeOptions", () => {
         "goal-step": {
           id: "goal-step",
           name: "Goal Step",
-          type: "sync",
+          type: "service",
           attributes: {
             shared: {
               role: AttributeRole.Required,
@@ -450,7 +450,7 @@ describe("flowPlanAttributeOptions", () => {
       {
         id: "goal-step",
         name: "Goal Step",
-        type: "sync",
+        type: "service",
         attributes: {
           shared: {
             role: AttributeRole.Required,
@@ -461,7 +461,7 @@ describe("flowPlanAttributeOptions", () => {
       {
         id: "excluded-step",
         name: "Excluded Step",
-        type: "sync",
+        type: "service",
         attributes: {
           shared: {
             role: AttributeRole.Required,
@@ -490,7 +490,7 @@ describe("flowPlanAttributeOptions", () => {
         "goal-step": {
           id: "goal-step",
           name: "Goal Step",
-          type: "sync",
+          type: "service",
           attributes: {},
           http: { endpoint: "http://localhost:8080/goal", timeout: 5000 },
         },

@@ -52,6 +52,7 @@ import {
   Workflow,
   X,
   XCircle,
+  Zap,
   type LucideIcon,
 } from "lucide-react";
 import { StepType } from "@/app/api";
@@ -131,10 +132,12 @@ export const IconAttributeStatusProvided = CheckCircle;
 export const IconAttributeStatusDefaulted = CircleDot;
 export const IconAttributeStatusSkipped = CircleSlash;
 
-export const IconStepTypeSync = Globe;
-export const IconStepTypeAsync = Webhook;
+export const IconStepTypeService = Globe;
 export const IconStepTypeScript = FileCode2;
 export const IconStepTypeFlow = Workflow;
+
+export const IconActionModeSync = Zap;
+export const IconActionModeAsync = Webhook;
 
 const ARG_ICON_MAP: Record<ArgType, ArgIconConfig> = {
   required: { Icon: IconAttributeRequired, className: "arg-icon input" },
@@ -149,8 +152,7 @@ export const getArgIcon = (argType: ArgType): ArgIconConfig => {
 };
 
 const STEP_TYPE_ICON_MAP: Record<StepType, LucideIcon> = {
-  sync: IconStepTypeSync,
-  async: IconStepTypeAsync,
+  service: IconStepTypeService,
   script: IconStepTypeScript,
   flow: IconStepTypeFlow,
 };

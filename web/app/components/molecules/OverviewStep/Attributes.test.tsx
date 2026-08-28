@@ -7,7 +7,7 @@ describe("Attributes", () => {
     const step: Step = {
       id: "step-1",
       name: "Test Step",
-      type: "sync",
+      type: "service",
       attributes: {
         input1: { role: AttributeRole.Required, type: AttributeType.String },
         output1: { role: AttributeRole.Output, type: AttributeType.String },
@@ -32,7 +32,7 @@ describe("Attributes", () => {
     const step: Step = {
       id: "step-1",
       name: "Test Step",
-      type: "sync",
+      type: "service",
       attributes: {
         quantity: { role: AttributeRole.Required, type: AttributeType.Number },
         total: { role: AttributeRole.Output, type: AttributeType.Number },
@@ -56,7 +56,7 @@ describe("Attributes", () => {
     const step: Step = {
       id: "step-1",
       name: "Test Step",
-      type: "sync",
+      type: "service",
       attributes: {
         quantity: { role: AttributeRole.Required, type: AttributeType.Number },
         total: { role: AttributeRole.Output, type: AttributeType.Number },

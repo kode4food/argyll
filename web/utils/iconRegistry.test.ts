@@ -1,10 +1,9 @@
 import {
   getArgIcon,
   getStepTypeIcon,
-  IconStepTypeAsync,
   IconStepTypeFlow,
   IconStepTypeScript,
-  IconStepTypeSync,
+  IconStepTypeService,
 } from "./iconRegistry";
 
 describe("iconRegistry", () => {
@@ -35,12 +34,8 @@ describe("iconRegistry", () => {
   });
 
   describe("getStepTypeIcon", () => {
-    test("returns Globe for sync steps", () => {
-      expect(getStepTypeIcon("sync")).toBe(IconStepTypeSync);
-    });
-
-    test("returns Webhook for async steps", () => {
-      expect(getStepTypeIcon("async")).toBe(IconStepTypeAsync);
+    test("returns Globe for service steps", () => {
+      expect(getStepTypeIcon("service")).toBe(IconStepTypeService);
     });
 
     test("returns FileCode2 for script steps", () => {

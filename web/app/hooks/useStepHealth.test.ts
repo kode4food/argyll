@@ -23,7 +23,7 @@ describe("useStepHealth", () => {
   const syncStep = (hasHealthCheck: boolean): Step => ({
     id: "step-1",
     name: "Sync Step",
-    type: "sync",
+    type: "service",
     attributes: {},
     http: {
       invoke: { endpoint: "http://test.com", timeout: 5000 },
@@ -34,7 +34,7 @@ describe("useStepHealth", () => {
   const asyncStep = (hasHealthCheck: boolean): Step => ({
     id: "step-1",
     name: "Async Step",
-    type: "async",
+    type: "service",
     attributes: {},
     http: {
       invoke: { endpoint: "http://test.com", timeout: 5000 },

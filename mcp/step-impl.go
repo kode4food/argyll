@@ -8,6 +8,7 @@ import (
 type stepImplResult struct {
 	StepName            string   `json:"step_name"`
 	StepType            string   `json:"step_type"`
+	ActionMode          string   `json:"action_mode,omitempty"`
 	Method              string   `json:"method"`
 	Code                string   `json:"code"`
 	Inputs              []string `json:"inputs"`
@@ -23,14 +24,16 @@ func (s *Server) generateStepImpl(args generateStepImplArgs) (any, error) {
 	inputs, outputs := stepIO(args.Step)
 	stepType := strings.ToLower(stringValue(args.Step["type"]))
 	if stepType == "" {
-		stepType = "sync"
+		stepType = "service"
 	}
+	actionMode := "sync"
 	method := "POST"
 	var scriptLang *string
 	var scriptBody *string
 	isExternal := false
 	if scriptCfg, ok := asMap(args.Step["script"]); ok {
 		stepType = "script"
+		actionMode = ""
 		method = ""
 		lang := strings.ToLower(stringValue(scriptCfg["language"]))
 		body := stringValue(scriptCfg["script"])
@@ -43,6 +46,10 @@ func (s *Server) generateStepImpl(args generateStepImplArgs) (any, error) {
 	if httpCfg, ok := asMap(args.Step["http"]); ok {
 		isExternal = true
 		if invoke, ok := asMap(httpCfg["invoke"]); ok {
+			mode := strings.ToLower(stringValue(invoke["mode"]))
+			if mode != "" {
+				actionMode = mode
+			}
 			if m := strings.ToUpper(stringValue(invoke["method"])); m != "" {
 				method = m
 			}
@@ -53,10 +60,15 @@ func (s *Server) generateStepImpl(args generateStepImplArgs) (any, error) {
 	if name == "" {
 		name = stringValue(args.Step["id"])
 	}
+	var templateMode *string
+	if actionMode != "" {
+		templateMode = &actionMode
+	}
 	code, err := renderStepTemplate(sdkStepTemplateInput{
 		Language:       args.Language,
 		StepName:       name,
 		StepType:       stepType,
+		ActionMode:     templateMode,
 		Method:         method,
 		ScriptLanguage: scriptLang,
 		ScriptBody:     scriptBody,
@@ -68,11 +80,12 @@ func (s *Server) generateStepImpl(args generateStepImplArgs) (any, error) {
 	}
 
 	return toolResult(stepImplResult{
-		StepName: name,
-		StepType: stepType,
-		Method:   method,
-		Inputs:   inputs,
-		Outputs:  outputs,
+		StepName:   name,
+		StepType:   stepType,
+		ActionMode: actionMode,
+		Method:     method,
+		Inputs:     inputs,
+		Outputs:    outputs,
 		ImplementationNotes: stepImplNotes(
 			isExternal, method, inputs, outputs,
 		),

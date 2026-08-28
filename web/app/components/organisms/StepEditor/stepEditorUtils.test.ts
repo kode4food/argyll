@@ -246,7 +246,7 @@ describe("stepEditorUtils", () => {
     isCreateMode: false,
     stepId: "step-1",
     attributes: [],
-    stepType: "sync",
+    stepType: "service",
     script: "",
     endpoint: "https://example.com",
     httpMethod: "POST",

@@ -118,7 +118,7 @@ func TestRegistration(t *testing.T) {
 	byID := registerSteps(t, example.ArgyllSteps()...)
 
 	risk := byID["calculate-risk"]
-	assert.Equal(t, api.StepTypeSync, risk.Type)
+	assert.Equal(t, api.StepTypeService, risk.Type)
 	assert.Equal(t, "http://step-host:9000/calculate-risk",
 		risk.HTTP.Invoke.Endpoint)
 	assert.True(t, risk.Attributes["customer_id"].IsRequired())

@@ -49,7 +49,7 @@ func TestStepValid(t *testing.T) {
 			step: &api.Step{
 				ID:   "test-sync",
 				Name: "Test Sync",
-				Type: api.StepTypeSync,
+				Type: api.StepTypeService,
 				HTTP: &api.HTTPConfig{
 					Invoke: api.HTTPAction{
 						Endpoint: "http://localhost/test",
@@ -63,11 +63,12 @@ func TestStepValid(t *testing.T) {
 			step: &api.Step{
 				ID:   "test-async",
 				Name: "Test Async",
-				Type: api.StepTypeAsync,
+				Type: api.StepTypeService,
 				HTTP: &api.HTTPConfig{
 					Invoke: api.HTTPAction{
 						Endpoint: "http://localhost/test",
 						Timeout:  1000,
+						Mode:     api.ActionModeAsync,
 					},
 				},
 			},
@@ -116,7 +117,7 @@ func TestStepInvalid(t *testing.T) {
 			name: "missing ID",
 			step: &api.Step{
 				Name: "Test",
-				Type: api.StepTypeSync,
+				Type: api.StepTypeService,
 				HTTP: &api.HTTPConfig{
 					Invoke: api.HTTPAction{Endpoint: "http://localhost/test"},
 				},
@@ -127,7 +128,7 @@ func TestStepInvalid(t *testing.T) {
 			name: "missing Name",
 			step: &api.Step{
 				ID:   "test-id",
-				Type: api.StepTypeSync,
+				Type: api.StepTypeService,
 				HTTP: &api.HTTPConfig{
 					Invoke: api.HTTPAction{Endpoint: "http://localhost/test"},
 				},
@@ -139,7 +140,7 @@ func TestStepInvalid(t *testing.T) {
 			step: &api.Step{
 				ID:   "test-id",
 				Name: "Test",
-				Type: api.StepTypeSync,
+				Type: api.StepTypeService,
 			},
 			expectedErrorContain: "http",
 		},
@@ -148,7 +149,7 @@ func TestStepInvalid(t *testing.T) {
 			step: &api.Step{
 				ID:   "test-id",
 				Name: "Test",
-				Type: api.StepTypeSync,
+				Type: api.StepTypeService,
 				HTTP: &api.HTTPConfig{},
 			},
 			expectedErrorContain: "endpoint",

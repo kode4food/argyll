@@ -98,7 +98,7 @@ func TestLuaEvaluatePredicate(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			st := &api.Step{
 				ID:   "test",
-				Type: api.StepTypeSync,
+				Type: api.StepTypeService,
 				Predicate: &api.ScriptConfig{
 					Script:   tt.predicate,
 					Language: api.ScriptLangLua,
@@ -223,7 +223,7 @@ func TestLuaCompileViaRegistry(t *testing.T) {
 
 		pred := &api.Step{
 			ID:   "test",
-			Type: api.StepTypeSync,
+			Type: api.StepTypeService,
 			Predicate: &api.ScriptConfig{
 				Language: api.ScriptLangLua,
 				Script:   "return x > 10",

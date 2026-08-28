@@ -6,7 +6,7 @@ const BASE_ARGS = {
   isCreateMode: false,
   stepId: "step-1",
   attributes: [] as Attribute[],
-  stepType: "sync" as StepType,
+  stepType: "service" as StepType,
   script: "",
   endpoint: "http://example.com",
   httpMethod: "POST" as HTTPMethod,

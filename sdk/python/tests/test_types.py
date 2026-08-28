@@ -1,6 +1,7 @@
 """Tests for type definitions."""
 
 from argyll.types import (
+    ActionMode,
     AttributeRole,
     AttributeSpec,
     AttributeType,
@@ -185,7 +186,7 @@ def test_step_to_dict():
     step = Step(
         id="test-step",
         name="Test Step",
-        type=StepType.SYNC,
+        type=StepType.SERVICE,
         attributes={
             "input": AttributeSpec(
                 role=AttributeRole.REQUIRED, type=AttributeType.STRING
@@ -198,7 +199,7 @@ def test_step_to_dict():
     result = step.to_dict()
     assert result["id"] == "test-step"
     assert result["name"] == "Test Step"
-    assert result["type"] == "sync"
+    assert result["type"] == "service"
     assert "input" in result["attributes"]
     assert result["http"]["invoke"]["endpoint"] == "http://localhost:8081/test"
 
@@ -224,8 +225,7 @@ def test_problem_details_with_title():
 
 
 def test_step_enums():
-    assert StepType.SYNC.value == "sync"
-    assert StepType.ASYNC.value == "async"
+    assert StepType.SERVICE.value == "service"
     assert StepType.SCRIPT.value == "script"
     assert AttributeRole.REQUIRED.value == "required"
     assert AttributeType.STRING.value == "string"
@@ -276,7 +276,7 @@ def test_step_with_all_fields():
     step = Step(
         id="test-step",
         name="Test Step",
-        type=StepType.ASYNC,
+        type=StepType.SERVICE,
         attributes={
             "input": AttributeSpec(
                 role=AttributeRole.REQUIRED, type=AttributeType.STRING
@@ -288,6 +288,7 @@ def test_step_with_all_fields():
                 endpoint="http://localhost:8081/test",
                 method="POST",
                 timeout=5000,
+                mode=ActionMode.ASYNC,
             ),
             health="http://localhost:8081/health",
         ),
@@ -306,10 +307,11 @@ def test_step_with_all_fields():
     )
 
     result = step.to_dict()
-    assert result["type"] == "async"
+    assert result["type"] == "service"
     assert result["labels"]["env"] == "test"
     assert result["http"]["invoke"]["method"] == "POST"
     assert result["http"]["invoke"]["timeout"] == 5000
+    assert result["http"]["invoke"]["mode"] == "async"
     assert result["script"]["script"] == "return 1 + 2"
     assert result["predicate"]["script"] == "return true"
     assert result["work_config"]["max_retries"] == 3

@@ -34,7 +34,7 @@ describe("FlowStats", () => {
     return {
       id,
       name: `Step ${id}`,
-      type: "sync",
+      type: "service",
       attributes,
       http: {
         endpoint: "http://test",

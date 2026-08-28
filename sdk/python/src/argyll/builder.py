@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional
 from ._validation import validate_step
 from .errors import StepRegistrationError, StepValidationError
 from .types import (
+    ActionMode,
     Args,
     AttributeRole,
     AttributeSpec,
@@ -47,7 +48,7 @@ class StepBuilder:
         self._client = client
         self._name = name
         self._id = _to_kebab_case(name) if name else ""
-        self._type: StepType = StepType.SYNC
+        self._type: StepType = StepType.SERVICE
         self._attributes: Dict[str, AttributeSpec] = {}
         self._labels: Labels = {}
         self._http: Optional[HTTPConfig] = None
@@ -165,6 +166,7 @@ class StepBuilder:
                 endpoint=overrides.get("endpoint", invoke.endpoint),
                 method=overrides.get("method", invoke.method),
                 timeout=overrides.get("timeout", invoke.timeout),
+                mode=overrides.get("mode", invoke.mode),
             ),
             compensate=overrides.get(
                 "compensate", base.compensate if base else None
@@ -179,6 +181,7 @@ class StepBuilder:
             endpoint=overrides.get("endpoint", base.endpoint if base else ""),
             method=overrides.get("method", base.method if base else ""),
             timeout=overrides.get("timeout", base.timeout if base else 0),
+            mode=overrides.get("mode", base.mode if base else ActionMode.SYNC),
         )
         return self._copy(
             _http=self._http_with(compensate=action),
@@ -237,13 +240,21 @@ class StepBuilder:
             _type=StepType.FLOW,
         )
 
+    def with_invoke_mode(self, mode: ActionMode) -> "StepBuilder":
+        """Set how the invoke action reports its result."""
+        return self._copy(_http=self._http_with(mode=mode))
+
+    def with_compensate_mode(self, mode: ActionMode) -> "StepBuilder":
+        """Set how the compensate action reports its result."""
+        return self._with_compensate(mode=mode)
+
     def with_async_execution(self) -> "StepBuilder":
-        """Configure async execution."""
-        return self._copy(_type=StepType.ASYNC)
+        """Configure the invoke action to complete via webhook callback."""
+        return self.with_invoke_mode(ActionMode.ASYNC)
 
     def with_sync_execution(self) -> "StepBuilder":
-        """Configure sync execution."""
-        return self._copy(_type=StepType.SYNC)
+        """Configure the invoke action to complete in the HTTP response."""
+        return self.with_invoke_mode(ActionMode.SYNC)
 
     def with_handling(self, handling: Handling) -> "StepBuilder":
         """Set how completed work is retained or reversed."""

@@ -148,7 +148,7 @@ func TestGeneratedServerMain(t *testing.T) {
 func TestContractInference(t *testing.T) {
 	step := steps(t, "../../../example")["calculate-risk"]
 	assert.Equal(t, api.Name("Calculate Risk"), step.Name)
-	assert.Equal(t, api.StepTypeSync, step.Type)
+	assert.Equal(t, api.StepTypeService, step.Type)
 	assert.Equal(t, api.HandlingMemoized, step.Handling)
 
 	attrs := step.Attributes

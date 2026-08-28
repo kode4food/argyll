@@ -8,7 +8,7 @@ describe("FlowGoalsSection", () => {
     {
       id: "step-1",
       name: "Step One",
-      type: "sync",
+      type: "service",
       attributes: {
         input1: { role: AttributeRole.Required, type: AttributeType.String },
       },
@@ -17,7 +17,7 @@ describe("FlowGoalsSection", () => {
     {
       id: "step-2",
       name: "Step Two",
-      type: "sync",
+      type: "service",
       attributes: {},
       http: { endpoint: "http://localhost:8080/test", timeout: 5000 },
     },

@@ -53,8 +53,7 @@ func (e *ExecContext) Metadata() api.Metadata {
 }
 
 func (e *ExecContext) WebhookURL(tkn api.Token) string {
-	return e.engine.config.WebhookBaseURL + "/callbacks/" +
-		string(e.flowID) + "/" + string(e.stepID) + "/" + string(tkn)
+	return e.engine.invokeCallbackURL(e.flowID, e.stepID, tkn)
 }
 
 func (e *ExecContext) CompleteWork(tkn api.Token, outputs api.Args) error {

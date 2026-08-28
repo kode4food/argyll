@@ -64,7 +64,7 @@ func TestStepTemplate(t *testing.T) {
 	text := callToolText(t, c, "sdk_step_template", map[string]any{
 		"language":  "go",
 		"step_name": "Lookup User",
-		"step_type": "sync",
+		"step_type": "service",
 		"external":  true,
 		"method":    "GET",
 		"inputs":    []string{"user_id"},
@@ -102,7 +102,7 @@ func TestStepTemplateRejectsExternalScript(t *testing.T) {
 		"outputs":   []string{},
 	})
 
-	assert.Contains(t, text, "external is only valid for sync or async")
+	assert.Contains(t, text, "external is only valid for service")
 }
 
 func TestStepTemplateFormat(t *testing.T) {
@@ -116,7 +116,7 @@ func TestStepTemplateFormat(t *testing.T) {
 			args: map[string]any{
 				"language":  "go",
 				"step_name": "Greeting",
-				"step_type": "sync",
+				"step_type": "service",
 				"method":    "POST",
 				"inputs":    []string{"name"},
 				"outputs":   []string{"greeting"},
@@ -125,12 +125,13 @@ func TestStepTemplateFormat(t *testing.T) {
 		{
 			name: "go_async",
 			args: map[string]any{
-				"language":  "go",
-				"step_name": "Async Task",
-				"step_type": "async",
-				"method":    "POST",
-				"inputs":    []string{},
-				"outputs":   []string{"status"},
+				"language":    "go",
+				"step_name":   "Async Task",
+				"step_type":   "service",
+				"action_mode": "async",
+				"method":      "POST",
+				"inputs":      []string{},
+				"outputs":     []string{"status"},
 			},
 		},
 		{
@@ -138,7 +139,7 @@ func TestStepTemplateFormat(t *testing.T) {
 			args: map[string]any{
 				"language":  "go",
 				"step_name": "Lookup User",
-				"step_type": "sync",
+				"step_type": "service",
 				"external":  true,
 				"method":    "GET",
 				"inputs":    []string{"user_id"},
@@ -150,7 +151,7 @@ func TestStepTemplateFormat(t *testing.T) {
 			args: map[string]any{
 				"language":  "python",
 				"step_name": "Greeting",
-				"step_type": "sync",
+				"step_type": "service",
 				"method":    "POST",
 				"inputs":    []string{"name"},
 				"outputs":   []string{"greeting"},
@@ -161,7 +162,7 @@ func TestStepTemplateFormat(t *testing.T) {
 			args: map[string]any{
 				"language":  "python",
 				"step_name": "Lookup User",
-				"step_type": "sync",
+				"step_type": "service",
 				"external":  true,
 				"method":    "GET",
 				"inputs":    []string{"user_id"},

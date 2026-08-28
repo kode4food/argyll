@@ -63,7 +63,9 @@ func TestSpacesRejectInvalid(t *testing.T) {
 		assert.ErrorIs(t, err, engine.ErrInvalidSpace)
 		assert.ErrorIs(t, err, api.ErrSpaceIDEmpty)
 
-		err = eng.RegisterSpace(api.Space{ID: "no-selector", Name: "No Selector"})
+		err = eng.RegisterSpace(api.Space{
+			ID: "no-selector", Name: "No Selector",
+		})
 		assert.ErrorIs(t, err, engine.ErrInvalidSpace)
 		assert.ErrorIs(t, err, api.ErrSpaceSelectorEmpty)
 

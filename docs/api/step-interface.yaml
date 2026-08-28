@@ -5,7 +5,7 @@ info:
   description: |
     HTTP steps are JSON endpoints invoked by the Argyll engine. The request body is the step's input arguments. Argyll execution context is sent in HTTP headers. Successful responses return output arguments directly. Failed responses use HTTP status codes and RFC 9457 Problem Details (`application/problem+json`).
 
-    Sync steps complete in the initial HTTP response. Async steps return a quick 2xx response, then complete later by POSTing outputs or problem details to the webhook URL provided in `Argyll-Webhook-URL`.
+    An action with `mode: sync` completes in the initial HTTP response. An action with `mode: async` returns a quick 2xx response, then completes later by POSTing its result to the action-specific webhook URL provided in `Argyll-Webhook-URL`. Invocation and compensation choose their modes independently.
 
 servers:
   - url: "{protocol}://{host}:{port}"
@@ -27,18 +27,21 @@ paths:
         with a flattened JSON object using invocation-mapped field names.
 
         An invocation receives the step's input arguments. The configured
-        method may be `GET`, `POST`, `PUT`, or `DELETE`; `GET` sends no body.
-        Async invocations also receive `Argyll-Webhook-URL` and complete later
-        by POSTing to that URL.
+        method may be `GET`, `POST`, `PUT`, or `DELETE`. `GET` and `DELETE`
+        send no body and carry their data in endpoint placeholders.
+        Invocations of a `mode: async` action also receive `Argyll-Webhook-URL`
+        and complete later by POSTing to that URL.
 
         A compensation call is made after a compensated step fails following
         one or more successful work items. It receives the attributes marked
-        `compensated` so the handler can undo the work.
+        `compensated` so the handler can undo the work. A `mode: async`
+        compensation also receives `Argyll-Webhook-URL`; POST an empty success
+        response or Problem Details to that URL when rollback finishes.
 
         Use `Argyll-Flow-ID`, `Argyll-Step-ID`, and `Argyll-Receipt-Token` as
         the idempotency key for side effects.
 
-        - 2xx: invocation or compensation succeeded.
+        - 2xx: a sync action succeeded, or an async action was accepted.
         - 5xx or transport error: temporary failure; the engine retries using the
           step's `work_config` backoff settings.
         - 4xx: permanent failure.
@@ -134,8 +137,8 @@ components:
       schema:
         type: string
         format: uri
-      description: Async steps POST completion outputs or problem details to this URL.
-      example: http://localhost:8080/callbacks/wf-123/text-processor/tok_abc123xyz
+      description: Async actions POST their outcome to this action-specific URL.
+      example: http://localhost:8080/callbacks/wf-123/text-processor/tok_abc123xyz/invoke
 
   schemas:
     Args:
@@ -191,5 +194,5 @@ x-implementation-notes: |
   Success: return 2xx with a JSON object containing output arguments, or 204 when there are no outputs.
   Permanent failure: return 4xx with `Content-Type: application/problem+json`.
   Retryable failure: return 5xx, timeout, or close the connection; Argyll records the work item as not completed and applies retry policy.
-  Async completion: POST the same success output object or problem details object to `Argyll-Webhook-URL`.
-  Compensation: when handling is `compensated`, the engine sends only attributes marked `compensated` as one flattened object using invocation-mapped names; the same names resolve URL placeholders. Duplicate selected inner names are invalid. Use the receipt token as the idempotency key. Return 2xx on success, 5xx for temporary failures (retried), 4xx for permanent failures.
+  Async invocation completion: POST the success output object or problem details object to `Argyll-Webhook-URL`.
+  Compensation: when handling is `compensated`, the engine sends only attributes marked `compensated` as one flattened object using invocation-mapped names; the same names resolve URL placeholders. Duplicate selected inner names are invalid. Use the receipt token as the idempotency key. A sync compensation returns 2xx on success, 5xx for a retryable failure, or 4xx for a permanent failure. An async compensation first returns 2xx to accept the work, then POSTs an empty success response or problem details to its `Argyll-Webhook-URL`.

@@ -26,14 +26,9 @@ interface StepEditorBasicFieldsProps {
 
 const STEP_TYPE_OPTIONS = [
   {
-    value: "sync" as StepType,
-    labelKey: "stepEditor.typeSyncLabel",
-    titleKey: "stepEditor.typeSyncTitle",
-  },
-  {
-    value: "async" as StepType,
-    labelKey: "stepEditor.typeAsyncLabel",
-    titleKey: "stepEditor.typeAsyncTitle",
+    value: "service" as StepType,
+    labelKey: "stepEditor.typeServiceLabel",
+    titleKey: "stepEditor.typeServiceTitle",
   },
   {
     value: "script" as StepType,
@@ -79,7 +74,7 @@ const StepEditorBasicFields: React.FC<StepEditorBasicFieldsProps> = ({
       value: "memoized",
     },
     {
-      disabled: stepType !== "sync" && stepType !== "async",
+      disabled: stepType !== "service",
       Icon: IconCompensate,
       label: t("stepEditor.handling.compensated"),
       value: "compensated",

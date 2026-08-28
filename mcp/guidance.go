@@ -13,6 +13,7 @@ type (
 		Language       string   `json:"language"`
 		StepName       string   `json:"step_name"`
 		StepType       string   `json:"step_type,omitempty"`
+		ActionMode     *string  `json:"action_mode,omitempty"`
 		External       *bool    `json:"external,omitempty"`
 		Method         string   `json:"method,omitempty"`
 		ScriptLanguage *string  `json:"script_language,omitempty"`
@@ -113,19 +114,28 @@ func renderStepTemplate(
 	}
 	stepType := strings.ToLower(strings.TrimSpace(args.StepType))
 	if stepType == "" {
-		stepType = "sync"
+		stepType = "service"
 	}
 	switch stepType {
-	case "sync", "async", "script":
+	case "service", "script":
 	case "flow":
 		return "", errInvalidParams(
 			"flow steps do not have SDK handler implementations",
 		)
 	default:
 		return "", errInvalidParams(
-			"step_type must identify an SDK-implemented sync, async, or " +
-				"script step",
+			"step_type must identify an SDK-implemented service or script step",
 		)
+	}
+	actionMode := ""
+	if args.ActionMode != nil {
+		actionMode = strings.ToLower(strings.TrimSpace(*args.ActionMode))
+	}
+	if actionMode == "" {
+		actionMode = "sync"
+	}
+	if actionMode != "sync" && actionMode != "async" {
+		return "", errInvalidParams("action_mode must be sync or async")
 	}
 	method := strings.ToUpper(strings.TrimSpace(args.Method))
 	if method == "" {
@@ -139,14 +149,19 @@ func renderStepTemplate(
 	if stepType == "script" {
 		if isExternal {
 			return "", errInvalidParams(
-				"external is only valid for sync or async HTTP steps",
+				"external is only valid for service steps",
+			)
+		}
+		if args.ActionMode != nil {
+			return "", errInvalidParams(
+				"action_mode is only valid for service steps",
 			)
 		}
 		method = ""
 	}
 	if !isExternal && stepType != "script" && method != "POST" {
 		return "", errInvalidParams(
-			"SDK-hosted sync and async templates require method POST",
+			"SDK-hosted service templates require method POST",
 		)
 	}
 	data := stepTemplateData{
@@ -154,7 +169,7 @@ func renderStepTemplate(
 		Method:           method,
 		Inputs:           args.Inputs,
 		Outputs:          args.Outputs,
-		IsAsync:          stepType == "async",
+		IsAsync:          actionMode == "async",
 		IsExternal:       isExternal,
 		IsScript:         stepType == "script",
 		HasNonPostMethod: method != "POST" && isExternal,

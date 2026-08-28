@@ -86,7 +86,7 @@ func (h *HealthChecker) checkAllSteps() {
 		case api.StepTypeScript:
 			h.updateScriptHealth(st, health)
 			h.updateFlowSteps(cat, health)
-		case api.StepTypeSync, api.StepTypeAsync:
+		case api.StepTypeService:
 			if st.HTTP != nil && st.HTTP.Health != "" {
 				httpSteps = append(httpSteps, st)
 			}

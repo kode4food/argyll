@@ -55,7 +55,7 @@ func TestHealthCheckHealthy(t *testing.T) {
 		st := &api.Step{
 			ID:   "healthy-step",
 			Name: "Healthy Step",
-			Type: api.StepTypeSync,
+			Type: api.StepTypeService,
 			HTTP: &api.HTTPConfig{
 				Invoke: api.HTTPAction{
 					Endpoint: healthServer.URL + "/execute",
@@ -89,7 +89,7 @@ func TestHealthCheckNetworkFail(t *testing.T) {
 		st := &api.Step{
 			ID:   "network-failure-step",
 			Name: "Network Failure Step",
-			Type: api.StepTypeSync,
+			Type: api.StepTypeService,
 			HTTP: &api.HTTPConfig{
 				Invoke: api.HTTPAction{
 					Endpoint: "http://127.0.0.1:1/execute",
@@ -174,7 +174,7 @@ func TestHealthCheckFlowHealthy(t *testing.T) {
 		goal := &api.Step{
 			ID:   "goal-step",
 			Name: "Goal Step",
-			Type: api.StepTypeSync,
+			Type: api.StepTypeService,
 			HTTP: &api.HTTPConfig{
 				Invoke: api.HTTPAction{
 					Endpoint: healthServer.URL + "/execute",
@@ -229,7 +229,7 @@ func TestHealthCheckFlowUnhealthy(t *testing.T) {
 		goal := &api.Step{
 			ID:   "bad-goal-step",
 			Name: "Bad Goal Step",
-			Type: api.StepTypeSync,
+			Type: api.StepTypeService,
 			HTTP: &api.HTTPConfig{
 				Invoke: api.HTTPAction{
 					Endpoint: healthServer.URL + "/execute",
@@ -285,7 +285,7 @@ func TestHealthCheckUnhealthy(t *testing.T) {
 		st := &api.Step{
 			ID:   "unhealthy-step",
 			Name: "Unhealthy Step",
-			Type: api.StepTypeSync,
+			Type: api.StepTypeService,
 			HTTP: &api.HTTPConfig{
 				Invoke: api.HTTPAction{
 					Endpoint: healthServer.URL + "/execute",
@@ -327,7 +327,7 @@ func TestCheckMultipleHTTPSteps(t *testing.T) {
 			st := &api.Step{
 				ID:   api.StepID("multi-health-" + sfx),
 				Name: "Multi Health Step",
-				Type: api.StepTypeSync,
+				Type: api.StepTypeService,
 				HTTP: &api.HTTPConfig{
 					Invoke: api.HTTPAction{
 						Endpoint: healthServer.URL + "/execute",

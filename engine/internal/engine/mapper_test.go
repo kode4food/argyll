@@ -112,7 +112,7 @@ func TestScriptUsesMappedName(t *testing.T) {
 		st := &api.Step{
 			ID:   "mapped-input-script",
 			Name: "Mapped Input Script",
-			Type: api.StepTypeSync,
+			Type: api.StepTypeService,
 			HTTP: &api.HTTPConfig{
 				Invoke: api.HTTPAction{Endpoint: "http://example.com"},
 			},
@@ -272,7 +272,7 @@ func mappingStep(name api.Name) *api.Step {
 	return &api.Step{
 		ID:   "mapping-step",
 		Name: "Mapping Step",
-		Type: api.StepTypeSync,
+		Type: api.StepTypeService,
 		HTTP: &api.HTTPConfig{
 			Invoke: api.HTTPAction{
 				Endpoint: "http://example.com",

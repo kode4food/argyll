@@ -55,7 +55,7 @@ func TestStepRegistered(t *testing.T) {
 	st := &api.Step{
 		ID:   "test-step",
 		Name: "Test Step",
-		Type: api.StepTypeSync,
+		Type: api.StepTypeService,
 		HTTP: &api.HTTPConfig{
 			Invoke: api.HTTPAction{Endpoint: "http://localhost:8080"},
 		},
@@ -84,7 +84,7 @@ func TestStepUnregistered(t *testing.T) {
 	st := &api.Step{
 		ID:   "test-step",
 		Name: "Test Step",
-		Type: api.StepTypeSync,
+		Type: api.StepTypeService,
 		HTTP: &api.HTTPConfig{
 			Invoke: api.HTTPAction{Endpoint: "http://localhost:8080"},
 		},
@@ -116,7 +116,7 @@ func TestStepUpdated(t *testing.T) {
 	oldStep := &api.Step{
 		ID:   "test-step",
 		Name: "Old Name",
-		Type: api.StepTypeSync,
+		Type: api.StepTypeService,
 		HTTP: &api.HTTPConfig{
 			Invoke: api.HTTPAction{Endpoint: "http://localhost:8080"},
 		},
@@ -125,7 +125,7 @@ func TestStepUpdated(t *testing.T) {
 	newStep := &api.Step{
 		ID:   "test-step",
 		Name: "New Name",
-		Type: api.StepTypeSync,
+		Type: api.StepTypeService,
 		HTTP: &api.HTTPConfig{
 			Invoke: api.HTTPAction{Endpoint: "http://localhost:9090"},
 		},

@@ -1,4 +1,11 @@
-import { AttributeSpec, Handling, HTTPMethod, Step, StepType } from "@/app/api";
+import {
+  ActionMode,
+  AttributeSpec,
+  Handling,
+  HTTPMethod,
+  Step,
+  StepType,
+} from "@/app/api";
 import { parseFlowGoals } from "./stepValidationUtils";
 
 export type {
@@ -37,10 +44,12 @@ export function buildStepPayload({
   scriptLanguage,
   endpoint,
   httpMethod,
+  httpMode,
   healthCheck,
   compensate,
   compensateMethod,
   compensateTimeout,
+  compensateMode,
   httpTimeout,
   flowGoals,
   flowCompensate,
@@ -57,10 +66,12 @@ export function buildStepPayload({
   scriptLanguage: string;
   endpoint: string;
   httpMethod: HTTPMethod;
+  httpMode: ActionMode;
   healthCheck: string;
   compensate: string;
   compensateMethod: HTTPMethod;
   compensateTimeout: number;
+  compensateMode: ActionMode;
   httpTimeout: number;
   flowGoals: string;
   flowCompensate: boolean;
@@ -102,6 +113,7 @@ export function buildStepPayload({
         endpoint: endpoint.trim(),
         method: httpMethod,
         timeout: httpTimeout,
+        mode: httpMode,
       },
       compensate:
         handling === "compensated" && compensateEndpoint
@@ -110,6 +122,7 @@ export function buildStepPayload({
               method: compensateMethod,
               // omitted means "inherit the invoke timeout"
               ...(compensateTimeout > 0 && { timeout: compensateTimeout }),
+              mode: compensateMode,
             }
           : undefined,
       health: healthCheck.trim() || undefined,

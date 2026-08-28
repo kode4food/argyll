@@ -4,7 +4,7 @@ import responses
 
 from argyll import Client
 from argyll.errors import ClientError, FlowError
-from argyll.types import Handling, StepType
+from argyll.types import ActionMode, Handling, StepType
 
 
 def test_client_initialization():
@@ -47,7 +47,7 @@ def test_list_steps_with_data():
                 {
                     "id": "step-1",
                     "name": "Step 1",
-                    "type": "sync",
+                    "type": "service",
                     "attributes": {
                         "input": {
                             "role": "required",
@@ -66,7 +66,7 @@ def test_list_steps_with_data():
     assert len(steps) == 1
     assert steps[0].id == "step-1"
     assert steps[0].name == "Step 1"
-    assert steps[0].type == StepType.SYNC
+    assert steps[0].type == StepType.SERVICE
 
 
 @responses.activate
@@ -78,7 +78,7 @@ def test_list_steps_with_list_payload():
             {
                 "id": "step-1",
                 "name": "Step 1",
-                "type": "sync",
+                "type": "service",
                 "attributes": {
                     "input": {
                         "role": "required",
@@ -111,7 +111,7 @@ def test_register_step():
     step = Step(
         id="test-step",
         name="Test",
-        type=StepType.SYNC,
+        type=StepType.SERVICE,
         http=HTTPConfig(
             invoke=HTTPAction(endpoint="http://localhost:8081/test")
         ),
@@ -142,7 +142,7 @@ def test_register_step_error(monkeypatch):
     step = Step(
         id="test-step",
         name="Test",
-        type=StepType.SYNC,
+        type=StepType.SERVICE,
         http=HTTPConfig(
             invoke=HTTPAction(endpoint="http://localhost:8081/test")
         ),
@@ -178,7 +178,7 @@ def test_register_step_conflict():
     step = Step(
         id="test-step",
         name="Test",
-        type=StepType.SYNC,
+        type=StepType.SERVICE,
         http=HTTPConfig(
             invoke=HTTPAction(endpoint="http://localhost:8081/test")
         ),
@@ -207,7 +207,7 @@ def test_register_step_update_error(monkeypatch):
     step = Step(
         id="test-step",
         name="Test",
-        type=StepType.SYNC,
+        type=StepType.SERVICE,
         http=HTTPConfig(invoke=HTTPAction(endpoint="http://step")),
     )
 
@@ -248,7 +248,7 @@ def test_register_step_retry(monkeypatch):
     step = Step(
         id="test-step",
         name="Test",
-        type=StepType.SYNC,
+        type=StepType.SERVICE,
         http=HTTPConfig(
             invoke=HTTPAction(endpoint="http://localhost:8081/test")
         ),
@@ -339,7 +339,7 @@ def test_parse_step_with_all_fields():
                 {
                     "id": "complex-step",
                     "name": "Complex Step",
-                    "type": "async",
+                    "type": "service",
                     "attributes": {
                         "input": {
                             "role": "required",
@@ -391,6 +391,7 @@ def test_parse_step_with_all_fields():
                             "endpoint": "http://localhost:8081/complex",
                             "method": "POST",
                             "timeout": 5000,
+                            "mode": "async",
                         },
                         "compensate": {
                             "endpoint": "http://localhost:8081/compensate",
@@ -426,6 +427,7 @@ def test_parse_step_with_all_fields():
     assert step.id == "complex-step"
     assert step.http is not None
     assert step.http.invoke.timeout == 5000
+    assert step.http.invoke.mode == ActionMode.ASYNC
     assert step.http.compensate is not None
     assert step.attributes["input"].required is not None
     assert step.attributes["optional"].optional is not None

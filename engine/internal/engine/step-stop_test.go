@@ -88,7 +88,7 @@ func TestUndeclaredOutputsIgnored(t *testing.T) {
 		producer := &api.Step{
 			ID:   "producer",
 			Name: "Producer",
-			Type: api.StepTypeSync,
+			Type: api.StepTypeService,
 			Attributes: api.AttributeSpecs{
 				"value": {Role: api.RoleOutput, Type: api.TypeString},
 			},
@@ -99,7 +99,7 @@ func TestUndeclaredOutputsIgnored(t *testing.T) {
 		consumer := &api.Step{
 			ID:   "consumer",
 			Name: "Consumer",
-			Type: api.StepTypeSync,
+			Type: api.StepTypeService,
 			Attributes: api.AttributeSpecs{
 				"value":  {Role: api.RoleRequired, Type: api.TypeString},
 				"result": {Role: api.RoleOutput, Type: api.TypeString},

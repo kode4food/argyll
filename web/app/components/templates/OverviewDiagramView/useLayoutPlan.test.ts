@@ -18,7 +18,7 @@ describe("useLayoutPlan", () => {
   const generateOverviewPlanMock = generateOverviewPlan as jest.Mock;
   const saveNodePositionsMock = saveNodePositions as jest.Mock;
   const steps: Step[] = [
-    { id: "step-1", name: "Step 1", type: "sync", attributes: {} },
+    { id: "step-1", name: "Step 1", type: "service", attributes: {} },
   ];
 
   beforeEach(() => {

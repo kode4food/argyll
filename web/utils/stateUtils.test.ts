@@ -189,7 +189,7 @@ describe("stateUtils", () => {
         {
           id: "step1",
           name: "Step 1",
-          type: "sync",
+          type: "service",
           attributes: {
             boolProp: {
               role: AttributeRole.Required,
@@ -224,7 +224,7 @@ describe("stateUtils", () => {
         {
           id: "step1",
           name: "Step 1",
-          type: "sync",
+          type: "service",
           attributes: {
             numberProp: {
               role: AttributeRole.Required,
@@ -251,7 +251,7 @@ describe("stateUtils", () => {
           step1: {
             id: "step1",
             name: "Step 1",
-            type: "sync",
+            type: "service",
             attributes: {
               boolProp: {
                 role: AttributeRole.Required,
@@ -293,7 +293,7 @@ describe("stateUtils", () => {
           step1: {
             id: "step1",
             name: "Step 1",
-            type: "sync",
+            type: "service",
             attributes: {
               boolProp: {
                 role: AttributeRole.Required,

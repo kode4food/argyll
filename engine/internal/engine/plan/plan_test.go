@@ -30,7 +30,7 @@ func TestSimpleResolver(t *testing.T) {
 	resolverStep := &api.Step{
 		ID:   "resolver",
 		Name: "Resolver",
-		Type: api.StepTypeSync,
+		Type: api.StepTypeService,
 		Attributes: api.AttributeSpecs{
 			"data": {Role: api.RoleOutput, Type: api.TypeString},
 		},
@@ -61,7 +61,7 @@ func TestProcessorWithInit(t *testing.T) {
 	processorStep := &api.Step{
 		ID:   "processor",
 		Name: "Processor",
-		Type: api.StepTypeSync,
+		Type: api.StepTypeService,
 		Attributes: api.AttributeSpecs{
 			"input":  {Role: api.RoleRequired, Type: api.TypeString},
 			"output": {Role: api.RoleOutput, Type: api.TypeString},
@@ -89,7 +89,7 @@ func TestInitSatisfiedExcluded(t *testing.T) {
 	providerStep := &api.Step{
 		ID:   "provider",
 		Name: "Provider",
-		Type: api.StepTypeSync,
+		Type: api.StepTypeService,
 		Attributes: api.AttributeSpecs{
 			"seed": {Role: api.RoleRequired, Type: api.TypeString},
 			"data": {Role: api.RoleOutput, Type: api.TypeString},
@@ -105,7 +105,7 @@ func TestInitSatisfiedExcluded(t *testing.T) {
 	consumerStep := &api.Step{
 		ID:   "consumer",
 		Name: "Consumer",
-		Type: api.StepTypeSync,
+		Type: api.StepTypeService,
 		Attributes: api.AttributeSpecs{
 			"data":   {Role: api.RoleRequired, Type: api.TypeString},
 			"result": {Role: api.RoleOutput, Type: api.TypeString},
@@ -167,7 +167,7 @@ func TestBlockedProviderNoDownstream(t *testing.T) {
 	blocked := &api.Step{
 		ID:   "blocked",
 		Name: "Blocked",
-		Type: api.StepTypeSync,
+		Type: api.StepTypeService,
 		Attributes: api.AttributeSpecs{
 			"flag": {
 				Role: api.RoleRequired,
@@ -289,7 +289,7 @@ func TestProcessorNoInit(t *testing.T) {
 	processorStep := &api.Step{
 		ID:   "processor",
 		Name: "Processor",
-		Type: api.StepTypeSync,
+		Type: api.StepTypeService,
 		Attributes: api.AttributeSpecs{
 			"input":  {Role: api.RoleRequired, Type: api.TypeString},
 			"output": {Role: api.RoleOutput, Type: api.TypeString},
@@ -316,7 +316,7 @@ func TestChained(t *testing.T) {
 	resolverStep := &api.Step{
 		ID:   "resolver",
 		Name: "Resolver",
-		Type: api.StepTypeSync,
+		Type: api.StepTypeService,
 		Attributes: api.AttributeSpecs{
 			"data": {Role: api.RoleOutput, Type: api.TypeString},
 		},
@@ -331,7 +331,7 @@ func TestChained(t *testing.T) {
 	processorStep := &api.Step{
 		ID:   "processor",
 		Name: "Processor",
-		Type: api.StepTypeSync,
+		Type: api.StepTypeService,
 		Attributes: api.AttributeSpecs{
 			"data":   {Role: api.RoleRequired, Type: api.TypeString},
 			"result": {Role: api.RoleOutput, Type: api.TypeString},
@@ -347,7 +347,7 @@ func TestChained(t *testing.T) {
 	collectorStep := &api.Step{
 		ID:   "collector",
 		Name: "Collector",
-		Type: api.StepTypeSync,
+		Type: api.StepTypeService,
 		Attributes: api.AttributeSpecs{
 			"result": {Role: api.RoleRequired, Type: api.TypeString},
 		},
@@ -380,7 +380,7 @@ func TestMultipleGoals(t *testing.T) {
 	step1 := &api.Step{
 		ID:   "step1",
 		Name: "Step 1",
-		Type: api.StepTypeSync,
+		Type: api.StepTypeService,
 		Attributes: api.AttributeSpecs{
 			"output1": {Role: api.RoleOutput, Type: api.TypeString},
 		},
@@ -395,7 +395,7 @@ func TestMultipleGoals(t *testing.T) {
 	step2 := &api.Step{
 		ID:   "step2",
 		Name: "Step 2",
-		Type: api.StepTypeSync,
+		Type: api.StepTypeService,
 		Attributes: api.AttributeSpecs{
 			"output2": {Role: api.RoleOutput, Type: api.TypeString},
 		},
@@ -424,7 +424,7 @@ func TestExistingOutputs(t *testing.T) {
 	st := &api.Step{
 		ID:   "step",
 		Name: "Step",
-		Type: api.StepTypeSync,
+		Type: api.StepTypeService,
 		Attributes: api.AttributeSpecs{
 			"data": {Role: api.RoleOutput, Type: api.TypeString},
 		},
@@ -450,7 +450,7 @@ func TestComplexGraph(t *testing.T) {
 	resolver1 := &api.Step{
 		ID:   "resolver1",
 		Name: "Resolver 1",
-		Type: api.StepTypeSync,
+		Type: api.StepTypeService,
 		Attributes: api.AttributeSpecs{
 			"a": {Role: api.RoleOutput, Type: api.TypeString},
 		},
@@ -465,7 +465,7 @@ func TestComplexGraph(t *testing.T) {
 	resolver2 := &api.Step{
 		ID:   "resolver2",
 		Name: "Resolver 2",
-		Type: api.StepTypeSync,
+		Type: api.StepTypeService,
 		Attributes: api.AttributeSpecs{
 			"b": {Role: api.RoleOutput, Type: api.TypeString},
 		},
@@ -480,7 +480,7 @@ func TestComplexGraph(t *testing.T) {
 	processor1 := &api.Step{
 		ID:   "processor1",
 		Name: "Processor 1",
-		Type: api.StepTypeSync,
+		Type: api.StepTypeService,
 		Attributes: api.AttributeSpecs{
 			"a": {Role: api.RoleRequired, Type: api.TypeString},
 			"b": {Role: api.RoleRequired, Type: api.TypeString},
@@ -497,7 +497,7 @@ func TestComplexGraph(t *testing.T) {
 	processor2 := &api.Step{
 		ID:   "processor2",
 		Name: "Processor 2",
-		Type: api.StepTypeSync,
+		Type: api.StepTypeService,
 		Attributes: api.AttributeSpecs{
 			"c": {Role: api.RoleRequired, Type: api.TypeString},
 			"d": {Role: api.RoleOutput, Type: api.TypeString},
@@ -535,7 +535,7 @@ func TestReceipts(t *testing.T) {
 	st := &api.Step{
 		ID:   "step",
 		Name: "Step",
-		Type: api.StepTypeSync,
+		Type: api.StepTypeService,
 		Attributes: api.AttributeSpecs{
 			"data": {Role: api.RoleOutput, Type: api.TypeString},
 		},
@@ -562,7 +562,7 @@ func TestMissingDependency(t *testing.T) {
 	st := &api.Step{
 		ID:   "step",
 		Name: "Step",
-		Type: api.StepTypeSync,
+		Type: api.StepTypeService,
 		Attributes: api.AttributeSpecs{
 			"nonexistent": {Role: api.RoleRequired, Type: api.TypeString},
 			"output":      {Role: api.RoleOutput, Type: api.TypeString},
@@ -589,7 +589,7 @@ func TestOptionalInput(t *testing.T) {
 	resolverStep := &api.Step{
 		ID:   "resolver",
 		Name: "Resolver",
-		Type: api.StepTypeSync,
+		Type: api.StepTypeService,
 		Attributes: api.AttributeSpecs{
 			"optional_data": {Role: api.RoleOutput, Type: api.TypeString},
 		},
@@ -604,7 +604,7 @@ func TestOptionalInput(t *testing.T) {
 	processorStep := &api.Step{
 		ID:   "processor",
 		Name: "Processor",
-		Type: api.StepTypeSync,
+		Type: api.StepTypeService,
 		Attributes: api.AttributeSpecs{
 			"optional_data": {Role: api.RoleOptional, Type: api.TypeString},
 			"result":        {Role: api.RoleOutput, Type: api.TypeString},
@@ -636,7 +636,7 @@ func TestOptionalMissing(t *testing.T) {
 	processorStep := &api.Step{
 		ID:   "processor",
 		Name: "Processor",
-		Type: api.StepTypeSync,
+		Type: api.StepTypeService,
 		Attributes: api.AttributeSpecs{
 			"optional_data": {Role: api.RoleOptional, Type: api.TypeString},
 			"result":        {Role: api.RoleOutput, Type: api.TypeString},
@@ -665,7 +665,7 @@ func TestProvidersWithInit(t *testing.T) {
 	providerWithInput := &api.Step{
 		ID:   "provider-with-input",
 		Name: "Provider With Input",
-		Type: api.StepTypeSync,
+		Type: api.StepTypeService,
 		Attributes: api.AttributeSpecs{
 			"product_id":   {Role: api.RoleRequired, Type: api.TypeString},
 			"product_info": {Role: api.RoleOutput, Type: api.TypeString},
@@ -681,7 +681,7 @@ func TestProvidersWithInit(t *testing.T) {
 	providerWithoutInput := &api.Step{
 		ID:   "provider-without-input",
 		Name: "Provider Without Input",
-		Type: api.StepTypeSync,
+		Type: api.StepTypeService,
 		Attributes: api.AttributeSpecs{
 			"product_info": {Role: api.RoleOutput, Type: api.TypeString},
 		},
@@ -696,7 +696,7 @@ func TestProvidersWithInit(t *testing.T) {
 	consumer := &api.Step{
 		ID:   "consumer",
 		Name: "Consumer",
-		Type: api.StepTypeSync,
+		Type: api.StepTypeService,
 		Attributes: api.AttributeSpecs{
 			"product_info": {Role: api.RoleRequired, Type: api.TypeString},
 			"result":       {Role: api.RoleOutput, Type: api.TypeString},
@@ -757,7 +757,7 @@ func TestPreviewShowsUnsatisfiedPath(t *testing.T) {
 	intake := &api.Step{
 		ID:   "intake",
 		Name: "Intake",
-		Type: api.StepTypeSync,
+		Type: api.StepTypeService,
 		Attributes: api.AttributeSpecs{
 			"seed":  {Role: api.RoleRequired, Type: api.TypeString},
 			"input": {Role: api.RoleOutput, Type: api.TypeString},
@@ -773,7 +773,7 @@ func TestPreviewShowsUnsatisfiedPath(t *testing.T) {
 	processor := &api.Step{
 		ID:   "processor",
 		Name: "Processor",
-		Type: api.StepTypeSync,
+		Type: api.StepTypeService,
 		Attributes: api.AttributeSpecs{
 			"input":  {Role: api.RoleRequired, Type: api.TypeString},
 			"result": {Role: api.RoleOutput, Type: api.TypeString},
@@ -804,7 +804,7 @@ func TestMixedInputs(t *testing.T) {
 	resolver1 := &api.Step{
 		ID:   "resolver1",
 		Name: "Resolver 1",
-		Type: api.StepTypeSync,
+		Type: api.StepTypeService,
 		Attributes: api.AttributeSpecs{
 			"required_data": {Role: api.RoleOutput, Type: api.TypeString},
 		},
@@ -819,7 +819,7 @@ func TestMixedInputs(t *testing.T) {
 	resolver2 := &api.Step{
 		ID:   "resolver2",
 		Name: "Resolver 2",
-		Type: api.StepTypeSync,
+		Type: api.StepTypeService,
 		Attributes: api.AttributeSpecs{
 			"optional_data": {Role: api.RoleOutput, Type: api.TypeString},
 		},
@@ -834,7 +834,7 @@ func TestMixedInputs(t *testing.T) {
 	processorStep := &api.Step{
 		ID:   "processor",
 		Name: "Processor",
-		Type: api.StepTypeSync,
+		Type: api.StepTypeService,
 		Attributes: api.AttributeSpecs{
 			"required_data": {Role: api.RoleRequired, Type: api.TypeString},
 			"optional_data": {Role: api.RoleOptional, Type: api.TypeString},
@@ -870,7 +870,7 @@ func TestRequiredMatchUnknownOnlyRequiresGate(t *testing.T) {
 	sendPostal := &api.Step{
 		ID:   "send-postal",
 		Name: "Send Postal",
-		Type: api.StepTypeSync,
+		Type: api.StepTypeService,
 		Attributes: api.AttributeSpecs{
 			"notification_type": {
 				Role: api.RoleRequired,
@@ -909,7 +909,7 @@ func TestRequiredMatchInitMismatchPrunesNormalInputs(t *testing.T) {
 	customerLookup := &api.Step{
 		ID:   "customer-lookup",
 		Name: "Customer Lookup",
-		Type: api.StepTypeSync,
+		Type: api.StepTypeService,
 		Attributes: api.AttributeSpecs{
 			"customer_id": {Role: api.RoleRequired, Type: api.TypeString},
 			"customer":    {Role: api.RoleOutput, Type: api.TypeObject},
@@ -924,7 +924,7 @@ func TestRequiredMatchInitMismatchPrunesNormalInputs(t *testing.T) {
 	sendPostal := &api.Step{
 		ID:   "send-postal",
 		Name: "Send Postal",
-		Type: api.StepTypeSync,
+		Type: api.StepTypeService,
 		Attributes: api.AttributeSpecs{
 			"notification_type": {
 				Role: api.RoleRequired,
@@ -966,7 +966,7 @@ func TestRequiredMatchInitMismatchKeepsGateProviders(t *testing.T) {
 	sendPostal := &api.Step{
 		ID:   "send-postal",
 		Name: "Send Postal",
-		Type: api.StepTypeSync,
+		Type: api.StepTypeService,
 		Attributes: api.AttributeSpecs{
 			"notification_type": {
 				Role: api.RoleRequired,
@@ -1039,7 +1039,7 @@ func planProvider(id api.StepID, output api.Name) *api.Step {
 	return &api.Step{
 		ID:   id,
 		Name: api.Name(id),
-		Type: api.StepTypeSync,
+		Type: api.StepTypeService,
 		Attributes: api.AttributeSpecs{
 			output: {Role: api.RoleOutput, Type: api.TypeString},
 		},
@@ -1058,7 +1058,7 @@ func planConsumer(
 	return &api.Step{
 		ID:   id,
 		Name: api.Name(id),
-		Type: api.StepTypeSync,
+		Type: api.StepTypeService,
 		Attributes: api.AttributeSpecs{
 			input: {
 				Role: api.RoleRequired,

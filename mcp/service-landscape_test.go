@@ -163,11 +163,12 @@ func TestGenerateStepImplHTTPConfiguredStepPreservesType(t *testing.T) {
 		"step": map[string]any{
 			"id":   "lookup-user",
 			"name": "Lookup User",
-			"type": "async",
+			"type": "service",
 			"http": map[string]any{
 				"invoke": map[string]any{
 					"endpoint": "http://users/{user_id}",
 					"method":   "GET",
+					"mode":     "async",
 				},
 			},
 		},
@@ -176,7 +177,8 @@ func TestGenerateStepImplHTTPConfiguredStepPreservesType(t *testing.T) {
 	var payload map[string]any
 	err := json.Unmarshal([]byte(text), &payload)
 	assert.NoError(t, err)
-	assert.Equal(t, "async", payload["step_type"])
+	assert.Equal(t, "service", payload["step_type"])
+	assert.Equal(t, "async", payload["action_mode"])
 
 	code := payload["code"].(string)
 	assert.Contains(t, code, "WithMethod(\"GET\")")

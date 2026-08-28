@@ -8,6 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"github.com/kode4food/argyll/engine/internal/engine"
+	"github.com/kode4food/argyll/engine/internal/engine/policy"
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/log"
 )
@@ -18,9 +19,9 @@ var (
 )
 
 func (s *Server) handleWebhook(c *gin.Context) {
-	fid := api.FlowID(c.Param("flow_id"))
-	sid := api.StepID(c.Param("step_id"))
-	tkn := api.Token(c.Param("token"))
+	fid := api.FlowID(c.Param(api.ParamFlowID))
+	sid := api.StepID(c.Param(api.ParamStepID))
+	tkn := api.Token(c.Param(api.ParamToken))
 
 	fl, err := s.engine.GetFlowState(fid)
 	if err != nil {
@@ -48,7 +49,8 @@ func (s *Server) handleWebhook(c *gin.Context) {
 	}
 
 	// Check if token matches a work item
-	if _, ok := ex.WorkItems[tkn]; !ok {
+	work, ok := ex.WorkItems[tkn]
+	if !ok {
 		slog.Error("Work item not found",
 			log.FlowID(fid),
 			log.StepID(sid),
@@ -62,15 +64,77 @@ func (s *Server) handleWebhook(c *gin.Context) {
 	}
 
 	fs := api.FlowStep{FlowID: fid, StepID: sid}
-	s.handleWorkWebhook(c, fs, tkn)
+	switch api.CallbackAction(c.Param(api.ParamAction)) {
+	case api.ActionInvoke:
+		s.handleInvokeWebhook(c, fs, tkn)
+	case api.ActionCompensate:
+		s.handleCompensateWebhook(c, fs, tkn, work)
+	default:
+		c.JSON(http.StatusBadRequest, api.ErrorResponse{
+			Error:  "Invalid callback action",
+			Status: http.StatusBadRequest,
+		})
+	}
 }
 
-func (s *Server) handleWorkWebhook(
+func (s *Server) handleCompensateWebhook(
+	c *gin.Context, fs api.FlowStep, tkn api.Token, work api.WorkState,
+) {
+	if !policy.WorkCompActive(work.Status) &&
+		work.Status != api.WorkCompensated &&
+		work.Status != api.WorkCompFailed {
+		c.JSON(http.StatusBadRequest, api.ErrorResponse{
+			Error:  "Work item is not compensating",
+			Status: http.StatusBadRequest,
+		})
+		return
+	}
+
+	var err error
+	if api.IsProblemJSON(c.GetHeader("Content-Type")) {
+		var problem api.ProblemDetails
+		if err = c.ShouldBindJSON(&problem); err != nil {
+			slog.Error("Invalid problem JSON",
+				log.FlowID(fs.FlowID),
+				log.StepID(fs.StepID),
+				log.Token(tkn),
+				log.Error(err))
+			c.JSON(http.StatusBadRequest, api.ErrorResponse{
+				Error:  "Invalid problem JSON",
+				Status: http.StatusBadRequest,
+			})
+			return
+		}
+		slog.Error("Compensation failed",
+			log.FlowID(fs.FlowID),
+			log.StepID(fs.StepID),
+			log.Token(tkn),
+			log.ErrorString(problem.Error()))
+		err = s.engine.FailCompensation(fs, tkn, problem.Error())
+	} else {
+		err = s.engine.CompleteCompensation(fs, tkn)
+	}
+	if err != nil {
+		slog.Error("Failed to record compensation outcome",
+			log.FlowID(fs.FlowID),
+			log.StepID(fs.StepID),
+			log.Token(tkn),
+			log.Error(err))
+		c.JSON(http.StatusInternalServerError, api.ErrorResponse{
+			Error:  "Failed to record compensation outcome",
+			Status: http.StatusInternalServerError,
+		})
+		return
+	}
+	c.Status(http.StatusOK)
+}
+
+func (s *Server) handleInvokeWebhook(
 	c *gin.Context, fs api.FlowStep, tkn api.Token,
 ) {
 	contentType := c.GetHeader("Content-Type")
 	if api.IsProblemJSON(contentType) {
-		s.handleWorkProblemWebhook(c, fs, tkn)
+		s.handleInvokeProblemWebhook(c, fs, tkn)
 		return
 	}
 
@@ -112,7 +176,7 @@ func (s *Server) handleWorkWebhook(
 	c.Status(http.StatusOK)
 }
 
-func (s *Server) handleWorkProblemWebhook(
+func (s *Server) handleInvokeProblemWebhook(
 	c *gin.Context, fs api.FlowStep, tkn api.Token,
 ) {
 	var problem api.ProblemDetails

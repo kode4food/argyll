@@ -113,7 +113,7 @@ func TestCreateStepConflict(t *testing.T) {
 		differentStep := &api.Step{
 			ID:   "conflict-step",
 			Name: "Different Step",
-			Type: api.StepTypeSync,
+			Type: api.StepTypeService,
 			HTTP: &api.HTTPConfig{
 				Invoke: api.HTTPAction{Endpoint: "http://different:8080"},
 			},
@@ -378,7 +378,7 @@ func TestCreateStepValidBody(t *testing.T) {
 		st := &api.Step{
 			ID:   "",
 			Name: "Invalid Step",
-			Type: api.StepTypeSync,
+			Type: api.StepTypeService,
 		}
 
 		body, _ := json.Marshal(st)
@@ -429,7 +429,7 @@ func TestUpdateValidationError(t *testing.T) {
 		invalidStep := &api.Step{
 			ID:   "update-step",
 			Name: "",
-			Type: api.StepTypeSync,
+			Type: api.StepTypeService,
 			HTTP: &api.HTTPConfig{},
 		}
 

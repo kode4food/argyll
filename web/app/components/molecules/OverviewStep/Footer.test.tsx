@@ -32,7 +32,7 @@ jest.mock("@/app/components/atoms/HealthDot", () => ({
 
 describe("Footer", () => {
   const createStep = (
-    type: "sync" | "async" | "script" | "flow",
+    type: "service" | "script" | "flow",
     config?: any
   ): Step => ({
     id: "step-1",
@@ -65,7 +65,7 @@ describe("Footer", () => {
   });
 
   test("renders HTTP endpoint for sync step", () => {
-    const step = createStep("sync", {
+    const step = createStep("service", {
       endpoint: "http://localhost:8080/process",
     });
 
@@ -76,7 +76,7 @@ describe("Footer", () => {
   });
 
   test("renders configured HTTP method for sync step", () => {
-    const step = createStep("sync", {
+    const step = createStep("service", {
       endpoint: "http://localhost:8080/items/{item_id}",
       method: "DELETE",
     });
@@ -92,7 +92,7 @@ describe("Footer", () => {
   });
 
   test("shows health dot and tooltip content", () => {
-    const step = createStep("sync");
+    const step = createStep("service");
 
     render(<Footer step={step} healthStatus="healthy" />);
 
@@ -103,7 +103,7 @@ describe("Footer", () => {
   });
 
   test("shows per-node health in tooltip when provided", () => {
-    const step = createStep("sync");
+    const step = createStep("service");
 
     render(
       <Footer
@@ -123,7 +123,7 @@ describe("Footer", () => {
   });
 
   test("hides per-node health when all nodes are healthy", () => {
-    const step = createStep("sync");
+    const step = createStep("service");
 
     render(
       <Footer

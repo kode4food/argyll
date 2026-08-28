@@ -69,10 +69,10 @@ jest.mock("@/app/components/molecules/DurationInput", () => ({
 const MockedArgyllApi = ArgyllApi as jest.MockedClass<typeof ArgyllApi>;
 
 describe("StepEditor", () => {
-  const createHttpStep = (type: "sync" | "async" = "sync"): Step => ({
+  const createHttpStep = (): Step => ({
     id: "step-1",
     name: "Test HTTP Step",
-    type,
+    type: "service",
     attributes: {
       input1: { role: AttributeRole.Required, type: AttributeType.String },
       input2: { role: AttributeRole.Optional, type: AttributeType.Number },
@@ -144,7 +144,7 @@ describe("StepEditor", () => {
   const createConstStep = (): Step => ({
     id: "step-const",
     name: "Const Step",
-    type: "sync",
+    type: "service",
     attributes: {
       color: {
         role: AttributeRole.Const,
@@ -392,7 +392,7 @@ describe("StepEditor", () => {
       {
         id: "child-step",
         name: "Child Step",
-        type: "sync",
+        type: "service",
         attributes: {},
         http: {
           invoke: { endpoint: "http://localhost:8080/child", timeout: 5000 },
@@ -406,7 +406,7 @@ describe("StepEditor", () => {
         "child-step": {
           id: "child-step",
           name: "Child Step",
-          type: "sync",
+          type: "service",
           attributes: {
             in1: { role: AttributeRole.Required, type: AttributeType.String },
             out1: { role: AttributeRole.Output, type: AttributeType.String },
@@ -463,7 +463,7 @@ describe("StepEditor", () => {
       {
         id: "child-step",
         name: "Child Step",
-        type: "sync",
+        type: "service",
         attributes: {},
         http: {
           invoke: { endpoint: "http://localhost:8080/child", timeout: 5000 },
@@ -477,7 +477,7 @@ describe("StepEditor", () => {
         "child-step": {
           id: "child-step",
           name: "Child Step",
-          type: "sync",
+          type: "service",
           attributes: {
             input1: {
               role: AttributeRole.Required,
@@ -605,7 +605,7 @@ describe("StepEditor", () => {
         "step-1",
         expect.objectContaining({
           name: "Test HTTP Step",
-          type: "sync",
+          type: "service",
           http: expect.objectContaining({
             invoke: expect.objectContaining({
               endpoint: "http://localhost:8080/test",
@@ -1134,14 +1134,16 @@ describe("StepEditor", () => {
   });
 
   test("switches from HTTP to script type", async () => {
-    const step = createHttpStep("sync");
+    const step = createHttpStep();
 
     render(
       <StepEditor step={step} onClose={mockOnClose} onUpdate={mockOnUpdate} />
     );
 
     fireEvent.click(
-      await screen.findByRole("button", { name: t("stepEditor.typeSyncLabel") })
+      await screen.findByRole("button", {
+        name: t("stepEditor.typeServiceLabel"),
+      })
     );
     await waitFor(() => {
       const scriptButton = screen.getByTitle(t("stepEditor.typeScriptTitle"));
@@ -1169,7 +1171,7 @@ describe("StepEditor", () => {
       })
     );
     await waitFor(() => {
-      const syncButton = screen.getByTitle(t("stepEditor.typeSyncTitle"));
+      const syncButton = screen.getByTitle(t("stepEditor.typeServiceTitle"));
       fireEvent.click(syncButton);
     });
 

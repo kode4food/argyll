@@ -277,7 +277,7 @@ func TestPanicErrorUnwraps(t *testing.T) {
 func sumStep() gen.StepDef {
 	return gen.StepDef{
 		ID: "sum",
-		Spec: `{"id":"sum","name":"Sum","type":"sync",` +
+		Spec: `{"id":"sum","name":"Sum","type":"service",` +
 			`"http":{"invoke":{"endpoint":"/sum"},"health":"/health"},` +
 			`"attributes":{` +
 			`"left":{"role":"required","type":"number"},` +

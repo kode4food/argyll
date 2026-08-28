@@ -35,7 +35,7 @@ describe("StepEditorFlowConfiguration", () => {
     {
       id: "alpha",
       name: "Alpha",
-      type: "sync",
+      type: "service",
       attributes: {
         input1: { role: AttributeRole.Required, type: AttributeType.String },
       },
@@ -44,7 +44,7 @@ describe("StepEditorFlowConfiguration", () => {
     {
       id: "beta",
       name: "Beta",
-      type: "sync",
+      type: "service",
       attributes: {},
       http: { endpoint: "http://localhost/b", timeout: 5000 },
     },

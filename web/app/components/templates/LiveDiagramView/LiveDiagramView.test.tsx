@@ -74,7 +74,7 @@ jest.mock("@/app/hooks/useEdgeCalculation", () => ({
 const baseStep: Step = {
   id: "a",
   name: "Step A",
-  type: "sync",
+  type: "service",
   attributes: {},
 };
 

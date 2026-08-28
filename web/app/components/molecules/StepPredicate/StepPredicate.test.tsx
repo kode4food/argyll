@@ -10,7 +10,7 @@ describe("StepPredicate", () => {
   ): Step => ({
     id: "step-1",
     name: "Test Step",
-    type: "sync",
+    type: "service",
     attributes: {},
 
     http: {

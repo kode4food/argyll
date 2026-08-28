@@ -47,7 +47,7 @@ func TestCompletableProvider(t *testing.T) {
 				"provider": {
 					ID:   "provider",
 					Name: "Provider",
-					Type: api.StepTypeSync,
+					Type: api.StepTypeService,
 					Attributes: api.AttributeSpecs{
 						"input": {Role: api.RoleOutput, Type: api.TypeString},
 					},
@@ -73,7 +73,7 @@ func TestFailedProvider(t *testing.T) {
 				"provider": {
 					ID:   "provider",
 					Name: "Provider",
-					Type: api.StepTypeSync,
+					Type: api.StepTypeService,
 					Attributes: api.AttributeSpecs{
 						"input": {Role: api.RoleOutput, Type: api.TypeString},
 					},
@@ -98,7 +98,7 @@ func TestGoalBlocked(t *testing.T) {
 				"goal": {
 					ID:   "goal",
 					Name: "Goal",
-					Type: api.StepTypeSync,
+					Type: api.StepTypeService,
 					Attributes: api.AttributeSpecs{
 						"required": {
 							Role: api.RoleRequired,
@@ -109,7 +109,7 @@ func TestGoalBlocked(t *testing.T) {
 				"provider": {
 					ID:   "provider",
 					Name: "Provider",
-					Type: api.StepTypeSync,
+					Type: api.StepTypeService,
 					Attributes: api.AttributeSpecs{
 						"required": {
 							Role: api.RoleOutput,
@@ -142,7 +142,7 @@ func TestGoalCompleted(t *testing.T) {
 				"goal": {
 					ID:   "goal",
 					Name: "Goal",
-					Type: api.StepTypeSync,
+					Type: api.StepTypeService,
 				},
 			},
 		},

@@ -65,7 +65,7 @@ func TestStartFlowSchedulesWork(t *testing.T) {
 		assert.NoError(t, env.Engine.Start())
 
 		st := helpers.NewSimpleStep("step-start")
-		st.Type = api.StepTypeAsync
+		st.HTTP.Invoke.Mode = api.ActionModeAsync
 		st.HTTP.Invoke.Timeout = 30 * api.Second
 
 		err := env.Engine.RegisterStep(st)
@@ -140,7 +140,7 @@ func TestStartFlowSimple(t *testing.T) {
 		st := &api.Step{
 			ID:   "goal-step",
 			Name: "Goal",
-			Type: api.StepTypeSync,
+			Type: api.StepTypeService,
 			Attributes: api.AttributeSpecs{
 				"result": {Role: api.RoleOutput, Type: api.TypeString},
 			},
@@ -179,12 +179,15 @@ func TestStartChildFlowUsesPlan(t *testing.T) {
 		child := &api.Step{
 			ID:   "child-step",
 			Name: "Child Step",
-			Type: api.StepTypeAsync,
+			Type: api.StepTypeService,
 			Attributes: api.AttributeSpecs{
 				"result": {Role: api.RoleOutput, Type: api.TypeString},
 			},
 			HTTP: &api.HTTPConfig{
-				Invoke: api.HTTPAction{Endpoint: "http://test:8080"},
+				Invoke: api.HTTPAction{
+					Endpoint: "http://test:8080",
+					Mode:     api.ActionModeAsync,
+				},
 			},
 		}
 		assert.NoError(t, env.Engine.RegisterStep(child))
@@ -215,13 +218,16 @@ func TestStartChildFlowUsesPlan(t *testing.T) {
 		updatedChild := &api.Step{
 			ID:   "child-step",
 			Name: "Child Step",
-			Type: api.StepTypeAsync,
+			Type: api.StepTypeService,
 			Attributes: api.AttributeSpecs{
 				"new-input": {Role: api.RoleRequired, Type: api.TypeString},
 				"result":    {Role: api.RoleOutput, Type: api.TypeString},
 			},
 			HTTP: &api.HTTPConfig{
-				Invoke: api.HTTPAction{Endpoint: "http://test:8080"},
+				Invoke: api.HTTPAction{
+					Endpoint: "http://test:8080",
+					Mode:     api.ActionModeAsync,
+				},
 			},
 		}
 		assert.NoError(t, env.Engine.UpdateStep(updatedChild))
@@ -255,12 +261,15 @@ func TestStartChildFlowSetsParentMetadata(t *testing.T) {
 		child := &api.Step{
 			ID:   "child-step",
 			Name: "Child Step",
-			Type: api.StepTypeAsync,
+			Type: api.StepTypeService,
 			Attributes: api.AttributeSpecs{
 				"result": {Role: api.RoleOutput, Type: api.TypeString},
 			},
 			HTTP: &api.HTTPConfig{
-				Invoke: api.HTTPAction{Endpoint: "http://test:8080"},
+				Invoke: api.HTTPAction{
+					Endpoint: "http://test:8080",
+					Mode:     api.ActionModeAsync,
+				},
 			},
 		}
 		assert.NoError(t, env.Engine.RegisterStep(child))
@@ -323,12 +332,15 @@ func TestStartChildFlowDuplicateID(t *testing.T) {
 			child := &api.Step{
 				ID:   "child-step",
 				Name: "Child Step",
-				Type: api.StepTypeAsync,
+				Type: api.StepTypeService,
 				Attributes: api.AttributeSpecs{
 					"result": {Role: api.RoleOutput, Type: api.TypeString},
 				},
 				HTTP: &api.HTTPConfig{
-					Invoke: api.HTTPAction{Endpoint: "http://test:8080"},
+					Invoke: api.HTTPAction{
+						Endpoint: "http://test:8080",
+						Mode:     api.ActionModeAsync,
+					},
 				},
 			}
 			assert.NoError(t, env.Engine.RegisterStep(child))
@@ -386,13 +398,16 @@ func TestStartChildFlowDuplicateID(t *testing.T) {
 			child := &api.Step{
 				ID:   "child-step",
 				Name: "Child Step",
-				Type: api.StepTypeAsync,
+				Type: api.StepTypeService,
 				Attributes: api.AttributeSpecs{
 					"result": {Role: api.RoleOutput, Type: api.TypeString},
 					"input":  {Role: api.RoleRequired, Type: api.TypeString},
 				},
 				HTTP: &api.HTTPConfig{
-					Invoke: api.HTTPAction{Endpoint: "http://test:8080"},
+					Invoke: api.HTTPAction{
+						Endpoint: "http://test:8080",
+						Mode:     api.ActionModeAsync,
+					},
 				},
 			}
 			assert.NoError(t, env.Engine.RegisterStep(child))

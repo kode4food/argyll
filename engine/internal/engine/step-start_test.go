@@ -224,7 +224,7 @@ func TestCollectNone(t *testing.T) {
 		consumer := &api.Step{
 			ID:   "consumer-none",
 			Name: "Consumer",
-			Type: api.StepTypeSync,
+			Type: api.StepTypeService,
 			Attributes: api.AttributeSpecs{
 				"data": {
 					Role: api.RoleOptional,
@@ -284,7 +284,7 @@ func TestCollectNoneNoProvider(t *testing.T) {
 		st := &api.Step{
 			ID:   "consumer-none-no-provider",
 			Name: "Consumer",
-			Type: api.StepTypeSync,
+			Type: api.StepTypeService,
 			Attributes: api.AttributeSpecs{
 				"data": {
 					Role: api.RoleRequired,
@@ -328,7 +328,7 @@ func TestCollectSomeInit(t *testing.T) {
 		st := &api.Step{
 			ID:   "consumer-some-init-no-provider",
 			Name: "Consumer",
-			Type: api.StepTypeSync,
+			Type: api.StepTypeService,
 			Attributes: api.AttributeSpecs{
 				"data": {
 					Role: api.RoleRequired,
@@ -1047,7 +1047,7 @@ func routingSteps() routingStepsRes {
 	route := &api.Step{
 		ID:   "route",
 		Name: "Route",
-		Type: api.StepTypeSync,
+		Type: api.StepTypeService,
 		Attributes: api.AttributeSpecs{
 			"notification_type": {
 				Role: api.RoleOutput,
@@ -1061,7 +1061,7 @@ func routingSteps() routingStepsRes {
 	customer := &api.Step{
 		ID:   "customer-lookup",
 		Name: "Customer Lookup",
-		Type: api.StepTypeSync,
+		Type: api.StepTypeService,
 		Attributes: api.AttributeSpecs{
 			"customer_id": {
 				Role: api.RoleRequired,
@@ -1079,7 +1079,7 @@ func routingSteps() routingStepsRes {
 	email := &api.Step{
 		ID:   "send-email",
 		Name: "Send Email",
-		Type: api.StepTypeSync,
+		Type: api.StepTypeService,
 		Attributes: api.AttributeSpecs{
 			"notification_type": {
 				Role: api.RoleRequired,
@@ -1107,7 +1107,7 @@ func routingSteps() routingStepsRes {
 	postal := &api.Step{
 		ID:   "send-postal",
 		Name: "Send Postal",
-		Type: api.StepTypeSync,
+		Type: api.StepTypeService,
 		Attributes: api.AttributeSpecs{
 			"notification_type": {
 				Role: api.RoleRequired,
@@ -1155,7 +1155,7 @@ func collectPlan(
 	consumer := &api.Step{
 		ID:   api.StepID("consumer-" + sfx),
 		Name: "Consumer",
-		Type: api.StepTypeSync,
+		Type: api.StepTypeService,
 		Attributes: api.AttributeSpecs{
 			"data": {
 				Role:     api.RoleRequired,
@@ -1198,7 +1198,7 @@ func collectProvider(id api.StepID) *api.Step {
 	return &api.Step{
 		ID:   id,
 		Name: "Provider",
-		Type: api.StepTypeSync,
+		Type: api.StepTypeService,
 		Attributes: api.AttributeSpecs{
 			"data": {Role: api.RoleOutput, Type: api.TypeAny},
 		},

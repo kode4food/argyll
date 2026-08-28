@@ -13,8 +13,8 @@ jest.mock("@/utils/nodePositioning", () => ({
 describe("layoutUtils", () => {
   const loadNodePositionsMock = loadNodePositions as jest.Mock;
   const steps: Step[] = [
-    { id: "s1", name: "Step 1", type: "sync", attributes: {} },
-    { id: "s2", name: "Step 2", type: "sync", attributes: {} },
+    { id: "s1", name: "Step 1", type: "service", attributes: {} },
+    { id: "s2", name: "Step 2", type: "service", attributes: {} },
   ];
   const position = { x: 10, y: 20 };
 
@@ -31,13 +31,13 @@ describe("layoutUtils", () => {
       {
         id: "s1",
         name: "Step 1",
-        type: "sync",
+        type: "service",
         attributes: { data: { role: AttributeRole.Output } },
       },
       {
         id: "s2",
         name: "Step 2",
-        type: "sync",
+        type: "service",
         attributes: {
           data: { role: AttributeRole.Required },
           extra: { role: AttributeRole.Optional },

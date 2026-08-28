@@ -66,7 +66,7 @@ describe("LiveDiagram", () => {
       plan: { steps: { step1: {} } },
       started_at: new Date().toISOString(),
     };
-    sessionMock.steps = [{ id: "step1", name: "Step 1", type: "sync" }];
+    sessionMock.steps = [{ id: "step1", name: "Step 1", type: "service" }];
 
     render(<LiveDiagram />);
     expect(screen.getByText("wf-1")).toBeInTheDocument();

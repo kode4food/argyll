@@ -62,7 +62,7 @@ const mockUseStepHealth = useStepHealth as jest.MockedFunction<
 
 describe("Widget", () => {
   const createStep = (
-    type: "sync" | "async" | "script" | "flow",
+    type: "service" | "script" | "flow",
     id: string = "step-1"
   ): Step => ({
     id,
@@ -112,7 +112,7 @@ describe("Widget", () => {
   });
 
   test("renders step components", () => {
-    const step = createStep("sync");
+    const step = createStep("service");
 
     render(<Widget step={step} />);
 
@@ -122,7 +122,7 @@ describe("Widget", () => {
   });
 
   test("applies selected className when selected", () => {
-    const step = createStep("sync");
+    const step = createStep("service");
 
     const { container } = render(<Widget step={step} selected={true} />);
 
@@ -131,7 +131,7 @@ describe("Widget", () => {
   });
 
   test("applies clickable className when onClick provided", () => {
-    const step = createStep("sync");
+    const step = createStep("service");
     const onClick = jest.fn();
 
     const { container } = render(<Widget step={step} onClick={onClick} />);
@@ -141,7 +141,7 @@ describe("Widget", () => {
   });
 
   test("calls onClick when clicked", () => {
-    const step = createStep("sync");
+    const step = createStep("service");
     const onClick = jest.fn();
 
     const { container } = render(<Widget step={step} onClick={onClick} />);
@@ -153,7 +153,7 @@ describe("Widget", () => {
   });
 
   test("applies grayed-out className in preview mode when not in plan", () => {
-    const step = createStep("sync");
+    const step = createStep("service");
 
     const { container } = render(
       <Widget step={step} isPreviewMode={true} isInPreviewPlan={false} />
@@ -164,7 +164,7 @@ describe("Widget", () => {
   });
 
   test("does not apply grayed-out className when in preview plan", () => {
-    const step = createStep("sync");
+    const step = createStep("service");
 
     const { container } = render(
       <Widget step={step} isPreviewMode={true} isInPreviewPlan={true} />
@@ -187,7 +187,7 @@ describe("Widget", () => {
   });
 
   test("opens editor on double-click for HTTP steps", async () => {
-    const step = createStep("sync");
+    const step = createStep("service");
 
     const { container } = render(<Widget step={step} />);
 
@@ -211,7 +211,7 @@ describe("Widget", () => {
   });
 
   test("applies custom className", () => {
-    const step = createStep("sync");
+    const step = createStep("service");
 
     const { container } = render(
       <Widget step={step} className="custom-class" />
@@ -222,7 +222,7 @@ describe("Widget", () => {
   });
 
   test("does not add step-level focus class when attribute is focused", () => {
-    const step = createStep("sync");
+    const step = createStep("service");
 
     const { container } = render(<Widget step={step} />);
 
@@ -234,7 +234,7 @@ describe("Widget", () => {
     mockUseUI.mockReturnValue({
       focusedPreviewAttribute: "quantity",
     });
-    const step = createStep("sync");
+    const step = createStep("service");
 
     render(<Widget step={step} isPreviewMode={true} isInPreviewPlan={false} />);
 
@@ -248,7 +248,7 @@ describe("Widget", () => {
     mockUseUI.mockReturnValue({
       focusedPreviewAttribute: "quantity",
     });
-    const step = createStep("sync");
+    const step = createStep("service");
 
     render(<Widget step={step} isPreviewMode={true} isInPreviewPlan={true} />);
 
@@ -259,7 +259,7 @@ describe("Widget", () => {
   });
 
   test("applies custom style", () => {
-    const step = createStep("sync");
+    const step = createStep("service");
     const style = { backgroundColor: "red" };
 
     const { container } = render(<Widget step={step} style={style} />);
@@ -269,7 +269,7 @@ describe("Widget", () => {
   });
 
   test("applies mode className", () => {
-    const step = createStep("sync");
+    const step = createStep("service");
 
     const { container: listContainer } = render(
       <Widget step={step} mode="list" />
@@ -286,7 +286,7 @@ describe("Widget", () => {
   });
 
   test("renders footer and attributes", () => {
-    const step = createStep("sync");
+    const step = createStep("service");
 
     render(<Widget step={step} />);
 
@@ -304,7 +304,7 @@ describe("Widget", () => {
   });
 
   test("shows edit title for HTTP steps", () => {
-    const step = createStep("sync");
+    const step = createStep("service");
 
     const { container } = render(<Widget step={step} />);
 
@@ -343,7 +343,7 @@ describe("Widget", () => {
   });
 
   test("applies editor updates to the flow store", () => {
-    const step = createStep("sync", "step-123");
+    const step = createStep("service", "step-123");
     useFlowStore.setState({ steps: [step] });
 
     const { container } = render(<Widget step={step} />);

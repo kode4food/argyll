@@ -112,7 +112,7 @@ func TestRecoverActiveWorkStartsRetry(t *testing.T) {
 		assert.NoError(t, env.Engine.Start())
 
 		st := helpers.NewSimpleStep("retry-active")
-		st.Type = api.StepTypeAsync
+		st.HTTP.Invoke.Mode = api.ActionModeAsync
 
 		assert.NoError(t, env.Engine.RegisterStep(st))
 		env.MockClient.SetResponse(st.ID, api.Args{})
@@ -542,7 +542,7 @@ func TestRecoverFlowsFromIndex(t *testing.T) {
 		now := time.Date(2026, 2, 27, 12, 0, 0, 0, time.UTC)
 		id := api.FlowID("aggregate-recovery-flow")
 		st := helpers.NewSimpleStep("aggregate-recovery-step")
-		st.Type = api.StepTypeAsync
+		st.HTTP.Invoke.Mode = api.ActionModeAsync
 		tkn := api.Token("retry-token")
 		pl := &api.ExecutionPlan{
 			Goals: []api.StepID{st.ID},

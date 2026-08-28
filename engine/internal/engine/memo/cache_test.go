@@ -14,7 +14,7 @@ func TestCacheGetPut(t *testing.T) {
 
 	st := &api.Step{
 		ID:   api.StepID("test"),
-		Type: api.StepTypeSync,
+		Type: api.StepTypeService,
 		HTTP: &api.HTTPConfig{
 			Invoke: api.HTTPAction{
 				Endpoint: "http://example.com",
@@ -43,7 +43,7 @@ func TestCacheMiss(t *testing.T) {
 
 	st := &api.Step{
 		ID:   api.StepID("test"),
-		Type: api.StepTypeSync,
+		Type: api.StepTypeService,
 		HTTP: &api.HTTPConfig{
 			Invoke: api.HTTPAction{
 				Endpoint: "http://example.com",
@@ -66,7 +66,7 @@ func TestCacheDifferentInputs(t *testing.T) {
 
 	st := &api.Step{
 		ID:   api.StepID("test"),
-		Type: api.StepTypeSync,
+		Type: api.StepTypeService,
 		HTTP: &api.HTTPConfig{
 			Invoke: api.HTTPAction{
 				Endpoint: "http://example.com",
@@ -102,7 +102,7 @@ func TestCacheInvalidatesOnStepChange(t *testing.T) {
 
 	step1 := &api.Step{
 		ID:   api.StepID("test"),
-		Type: api.StepTypeSync,
+		Type: api.StepTypeService,
 		HTTP: &api.HTTPConfig{
 			Invoke: api.HTTPAction{
 				Endpoint: "http://example.com",
@@ -122,7 +122,7 @@ func TestCacheInvalidatesOnStepChange(t *testing.T) {
 
 	step2 := &api.Step{
 		ID:   api.StepID("test"),
-		Type: api.StepTypeSync,
+		Type: api.StepTypeService,
 		HTTP: &api.HTTPConfig{
 			Invoke: api.HTTPAction{
 				Endpoint: "http://different.com",
@@ -144,7 +144,7 @@ func TestCacheKeepsOnMetadataChange(t *testing.T) {
 	step1 := &api.Step{
 		ID:   api.StepID("test"),
 		Name: "Original Name",
-		Type: api.StepTypeSync,
+		Type: api.StepTypeService,
 		HTTP: &api.HTTPConfig{
 			Invoke: api.HTTPAction{
 				Endpoint: "http://example.com",
@@ -166,7 +166,7 @@ func TestCacheKeepsOnMetadataChange(t *testing.T) {
 	step2 := &api.Step{
 		ID:   api.StepID("test"),
 		Name: "Different Name",
-		Type: api.StepTypeSync,
+		Type: api.StepTypeService,
 		HTTP: &api.HTTPConfig{
 			Invoke: api.HTTPAction{
 				Endpoint: "http://example.com",
@@ -189,7 +189,7 @@ func TestCacheEmptyInputs(t *testing.T) {
 
 	st := &api.Step{
 		ID:   api.StepID("test"),
-		Type: api.StepTypeSync,
+		Type: api.StepTypeService,
 		HTTP: &api.HTTPConfig{
 			Invoke: api.HTTPAction{
 				Endpoint: "http://example.com",
@@ -217,7 +217,7 @@ func TestCacheHashAttributeOrder(t *testing.T) {
 
 	step1 := &api.Step{
 		ID:   api.StepID("test"),
-		Type: api.StepTypeSync,
+		Type: api.StepTypeService,
 		HTTP: &api.HTTPConfig{
 			Invoke: api.HTTPAction{
 				Endpoint: "http://example.com",
@@ -233,7 +233,7 @@ func TestCacheHashAttributeOrder(t *testing.T) {
 
 	step2 := &api.Step{
 		ID:   api.StepID("test"),
-		Type: api.StepTypeSync,
+		Type: api.StepTypeService,
 		HTTP: &api.HTTPConfig{
 			Invoke: api.HTTPAction{
 				Endpoint: "http://example.com",
@@ -302,7 +302,7 @@ func TestCacheHashInputOrder(t *testing.T) {
 
 	st := &api.Step{
 		ID:   api.StepID("test"),
-		Type: api.StepTypeSync,
+		Type: api.StepTypeService,
 		HTTP: &api.HTTPConfig{
 			Invoke: api.HTTPAction{
 				Endpoint: "http://example.com",

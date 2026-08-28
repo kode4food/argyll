@@ -55,7 +55,7 @@ func TestCreatePlanEmbedsChildPlans(t *testing.T) {
 		child := &api.Step{
 			ID:   "child",
 			Name: "Child",
-			Type: api.StepTypeSync,
+			Type: api.StepTypeService,
 			Attributes: api.AttributeSpecs{
 				"result": {Role: api.RoleOutput, Type: api.TypeString},
 			},

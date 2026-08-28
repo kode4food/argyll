@@ -4,6 +4,7 @@ import (
 	"errors"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 
@@ -27,7 +28,7 @@ func TestCompensateHandling(t *testing.T) {
 	st := &api.Step{
 		ID:       "memo-comp-step",
 		Name:     "Memoized Compensating Step",
-		Type:     api.StepTypeSync,
+		Type:     api.StepTypeService,
 		Handling: api.HandlingMemoized,
 		HTTP: &api.HTTPConfig{
 			Invoke: api.HTTPAction{Endpoint: "http://test:8080/work"},
@@ -50,6 +51,12 @@ func TestCompensationSucceeds(t *testing.T) {
 		id := api.FlowID("wf-comp-ok")
 		fs := api.FlowStep{FlowID: id, StepID: st.ID}
 		tkn := api.Token("work-a")
+		invoked := make(chan api.Metadata, 1)
+		env.MockClient.SetCompHandler(st.ID,
+			func(req client.CompensateRequest) error {
+				invoked <- req.Metadata
+				return nil
+			})
 
 		setupCompensatingFlow(setupCompensatingFlowArgs{
 			env:   env,
@@ -74,6 +81,78 @@ func TestCompensationSucceeds(t *testing.T) {
 		work := fl.Executions[st.ID].WorkItems[tkn]
 		assert.Equal(t, api.WorkCompensated, work.Status)
 		assert.False(t, work.CompletedAt.IsZero())
+
+		meta := <-invoked
+		assert.Equal(t, id, meta[api.MetaFlowID])
+		assert.Equal(t, st.ID, meta[api.MetaStepID])
+		assert.Equal(t, tkn, meta[api.MetaReceiptToken])
+		assert.NotContains(t, meta, api.MetaWebhookURL)
+	})
+}
+
+func TestCompensationAsyncAwaitsCallback(t *testing.T) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		assert.NoError(t, env.Engine.Start())
+
+		st := newCompensatingStep("comp-async-step")
+		st.HTTP.Compensate.Mode = api.ActionModeAsync
+		assert.NoError(t, env.Engine.RegisterStep(st))
+
+		id := api.FlowID("wf-comp-async")
+		fs := api.FlowStep{FlowID: id, StepID: st.ID}
+		tkn := api.Token("work-a")
+
+		invoked := make(chan api.Metadata, 1)
+		env.MockClient.SetCompHandler(st.ID,
+			func(req client.CompensateRequest) error {
+				invoked <- req.Metadata
+				return nil
+			})
+
+		setupCompensatingFlow(setupCompensatingFlowArgs{
+			env:   env,
+			id:    id,
+			step:  st,
+			token: tkn,
+		})
+
+		env.WithConsumer(func(consumer *event.Consumer) {
+			w := wait.On(t, consumer)
+			assert.NoError(t, env.Engine.RecoverFlow(id))
+			w.ForAll(wait.CompStarted(fs))
+		})
+
+		var meta api.Metadata
+		select {
+		case meta = <-invoked:
+		case <-time.After(time.Second):
+			t.Fatal("compensation handler was not invoked")
+		}
+		assert.Contains(t, meta, api.MetaWebhookURL)
+		assert.Equal(t, id, meta[api.MetaFlowID])
+		assert.Equal(t, st.ID, meta[api.MetaStepID])
+		assert.Equal(t, tkn, meta[api.MetaReceiptToken])
+		assert.Equal(t,
+			"http://localhost:8080/callbacks/wf-comp-async/"+
+				"comp-async-step/work-a/compensate",
+			meta[api.MetaWebhookURL],
+		)
+
+		fl, err := env.Engine.GetFlowState(id)
+		assert.NoError(t, err)
+		assert.Equal(t,
+			api.WorkCompensating, fl.Executions[st.ID].WorkItems[tkn].Status)
+
+		env.WithConsumer(func(consumer *event.Consumer) {
+			w := wait.On(t, consumer)
+			assert.NoError(t, env.Engine.CompleteCompensation(fs, tkn))
+			w.ForAll(wait.CompSucceeded(fs))
+		})
+
+		fl, err = env.Engine.GetFlowState(id)
+		assert.NoError(t, err)
+		assert.Equal(t,
+			api.WorkCompensated, fl.Executions[st.ID].WorkItems[tkn].Status)
 	})
 }
 
@@ -970,7 +1049,7 @@ func newCompensatingStep(id api.StepID) *api.Step {
 	return &api.Step{
 		ID:       id,
 		Name:     "Compensating Step",
-		Type:     api.StepTypeSync,
+		Type:     api.StepTypeService,
 		Handling: api.HandlingCompensated,
 		HTTP: &api.HTTPConfig{
 			Invoke: api.HTTPAction{Endpoint: "http://test:8080/work"},

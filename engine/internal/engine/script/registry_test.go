@@ -110,7 +110,7 @@ func TestRegistryPredicateTrue(t *testing.T) {
 		st := &api.Step{
 			ID:   "pred-step",
 			Name: "Predicate Step",
-			Type: api.StepTypeSync,
+			Type: api.StepTypeService,
 			HTTP: &api.HTTPConfig{
 				Invoke: api.HTTPAction{Endpoint: "http://test:8080"},
 			},
@@ -143,7 +143,7 @@ func TestRegistryPredicateFalse(t *testing.T) {
 		st := &api.Step{
 			ID:   "pred-step",
 			Name: "Predicate Step",
-			Type: api.StepTypeSync,
+			Type: api.StepTypeService,
 			HTTP: &api.HTTPConfig{
 				Invoke: api.HTTPAction{Endpoint: "http://test:8080"},
 			},
@@ -176,7 +176,7 @@ func TestLuaPredicateTrue(t *testing.T) {
 		st := &api.Step{
 			ID:   "lua-pred-step",
 			Name: "Lua Predicate Step",
-			Type: api.StepTypeSync,
+			Type: api.StepTypeService,
 			HTTP: &api.HTTPConfig{
 				Invoke: api.HTTPAction{Endpoint: "http://test:8080"},
 			},
@@ -209,7 +209,7 @@ func TestLuaPredicateFalse(t *testing.T) {
 		st := &api.Step{
 			ID:   "lua-pred-step",
 			Name: "Lua Predicate Step",
-			Type: api.StepTypeSync,
+			Type: api.StepTypeService,
 			HTTP: &api.HTTPConfig{
 				Invoke: api.HTTPAction{Endpoint: "http://test:8080"},
 			},

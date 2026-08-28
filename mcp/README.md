@@ -24,7 +24,7 @@ This MCP server exposes both the Argyll runtime surface and an OpenAPI-driven de
 - `engine_state` - fetch the current engine state.
 - `list_step_health` - list health for all steps.
 - `get_step_health` - fetch health for a single step.
-- `sdk_step_template` - return a minimal Go or Python SDK step template; set `external: true` with `step_type: "sync"` or `"async"` when an existing HTTP endpoint implements the step.
+- `sdk_step_template` - return a minimal Go or Python SDK step template; use `step_type: "service"`, set `action_mode: "async"` when needed, and set `external: true` when an existing HTTP endpoint implements the step.
 
 ## Resources
 

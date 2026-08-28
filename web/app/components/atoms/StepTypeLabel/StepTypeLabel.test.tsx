@@ -7,7 +7,7 @@ describe("StepTypeLabel", () => {
   const createStep = (hasInputs: boolean, hasOutputs: boolean): Step => ({
     id: "test-step",
     name: "Test Step",
-    type: "sync",
+    type: "service",
     attributes: {
       ...(hasInputs
         ? {
@@ -24,28 +24,28 @@ describe("StepTypeLabel", () => {
     },
   });
 
-  test("renders sync icon inside resolver badge for step with outputs only", () => {
+  test("renders service icon inside resolver badge for step with outputs only", () => {
     const step = createStep(false, true);
     render(<StepTypeLabel step={step} />);
-    expect(screen.getByLabelText("sync")).toBeInTheDocument();
+    expect(screen.getByLabelText("service")).toBeInTheDocument();
   });
 
-  test("renders sync icon inside collector badge for step with inputs only", () => {
+  test("renders service icon inside collector badge for step with inputs only", () => {
     const step = createStep(true, false);
     render(<StepTypeLabel step={step} />);
-    expect(screen.getByLabelText("sync")).toBeInTheDocument();
+    expect(screen.getByLabelText("service")).toBeInTheDocument();
   });
 
-  test("renders sync icon inside processor badge for step with inputs and outputs", () => {
+  test("renders service icon inside processor badge for step with inputs and outputs", () => {
     const step = createStep(true, true);
     render(<StepTypeLabel step={step} />);
-    expect(screen.getByLabelText("sync")).toBeInTheDocument();
+    expect(screen.getByLabelText("service")).toBeInTheDocument();
   });
 
-  test("renders sync icon inside standalone badge for step with no inputs or outputs", () => {
+  test("renders service icon inside standalone badge for step with no inputs or outputs", () => {
     const step = createStep(false, false);
     render(<StepTypeLabel step={step} />);
-    expect(screen.getByLabelText("sync")).toBeInTheDocument();
+    expect(screen.getByLabelText("service")).toBeInTheDocument();
   });
 
   test("renders flow icon for flow steps", () => {

@@ -41,7 +41,7 @@ describe("useNodeCalculation", () => {
   test("uses saved positions when available", () => {
     const savedPosition = { x: savedPositionX, y: savedPositionY };
     const steps: Step[] = [
-      { id: "step-1", name: "Step 1", type: "sync", attributes: {} },
+      { id: "step-1", name: "Step 1", type: "service", attributes: {} },
     ];
 
     loadNodePositionsMock.mockReturnValue({ "step-1": savedPosition });
@@ -60,13 +60,13 @@ describe("useNodeCalculation", () => {
       {
         id: "step-1",
         name: "Step 1",
-        type: "sync",
+        type: "service",
         attributes: { data: { role: AttributeRole.Output } },
       },
       {
         id: "step-2",
         name: "Step 2",
-        type: "sync",
+        type: "service",
         attributes: { data: { role: AttributeRole.Required } },
       },
     ];
@@ -113,13 +113,13 @@ describe("useNodeCalculation", () => {
       {
         id: "step-1",
         name: "Step 1",
-        type: "sync",
+        type: "service",
         attributes: { input: { role: AttributeRole.Required } },
       },
       {
         id: "step-2",
         name: "Step 2",
-        type: "sync",
+        type: "service",
         attributes: {
           outputA: { role: AttributeRole.Output },
           outputB: { role: AttributeRole.Output },

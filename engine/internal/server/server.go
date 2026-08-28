@@ -10,6 +10,7 @@ import (
 
 	"github.com/kode4food/argyll/engine/internal/engine"
 	"github.com/kode4food/argyll/engine/internal/event"
+	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/util"
 )
 
@@ -71,7 +72,7 @@ func (s *Server) SetupRoutes() *gin.Engine {
 	router.GET("/health", s.handleHealth)
 
 	// Callback endpoint
-	router.POST("/callbacks/:flow_id/:step_id/:token", s.handleWebhook)
+	router.POST(api.CallbackRoute, s.handleWebhook)
 
 	// Engine endpoints
 	eng := router.Group("/engine")

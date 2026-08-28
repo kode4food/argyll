@@ -6,7 +6,7 @@ describe("useNodeData", () => {
   const mockStep = {
     id: "step-1",
     name: "Test Step",
-    type: "sync" as const,
+    type: "service" as const,
     attributes: {
       input1: {
         role: AttributeRole.Required,

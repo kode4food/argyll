@@ -19,7 +19,7 @@ export const useStepHealth = (
   const healthInfo = useFlowStore((state) => state.stepHealth[step.id]);
 
   return useMemo(() => {
-    if ((step.type === "sync" || step.type === "async") && !step.http?.health) {
+    if (step.type === "service" && !step.http?.health) {
       return { status: "unconfigured" };
     }
 

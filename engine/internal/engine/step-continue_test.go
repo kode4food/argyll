@@ -20,7 +20,7 @@ func TestDefaultTimeoutBeforeProvider(t *testing.T) {
 		provider := &api.Step{
 			ID:   "provider",
 			Name: "Provider",
-			Type: api.StepTypeSync,
+			Type: api.StepTypeService,
 			Attributes: api.AttributeSpecs{
 				"opt": {Role: api.RoleOutput, Type: api.TypeString},
 			},
@@ -31,7 +31,7 @@ func TestDefaultTimeoutBeforeProvider(t *testing.T) {
 		consumer := &api.Step{
 			ID:   "consumer",
 			Name: "Consumer",
-			Type: api.StepTypeSync,
+			Type: api.StepTypeService,
 			Attributes: api.AttributeSpecs{
 				"seed": {
 					Role: api.RoleRequired,
@@ -117,7 +117,7 @@ func TestTimeoutZeroFallsBackImmediately(t *testing.T) {
 		provider := &api.Step{
 			ID:   "provider",
 			Name: "Provider",
-			Type: api.StepTypeSync,
+			Type: api.StepTypeService,
 			Attributes: api.AttributeSpecs{
 				"opt": {Role: api.RoleOutput, Type: api.TypeString},
 			},
@@ -128,7 +128,7 @@ func TestTimeoutZeroFallsBackImmediately(t *testing.T) {
 		consumer := &api.Step{
 			ID:   "consumer",
 			Name: "Consumer",
-			Type: api.StepTypeSync,
+			Type: api.StepTypeService,
 			Attributes: api.AttributeSpecs{
 				"seed": {
 					Role: api.RoleRequired,
@@ -243,7 +243,7 @@ func TestTimeoutDefaultIsStepLocal(t *testing.T) {
 		provider := &api.Step{
 			ID:   "provider",
 			Name: "Provider",
-			Type: api.StepTypeSync,
+			Type: api.StepTypeService,
 			Attributes: api.AttributeSpecs{
 				"opt": {Role: api.RoleOutput, Type: api.TypeString},
 			},
@@ -254,7 +254,7 @@ func TestTimeoutDefaultIsStepLocal(t *testing.T) {
 		fast := &api.Step{
 			ID:   "fast",
 			Name: "Fast",
-			Type: api.StepTypeSync,
+			Type: api.StepTypeService,
 			Attributes: api.AttributeSpecs{
 				"seed": {
 					Role: api.RoleRequired,
@@ -277,7 +277,7 @@ func TestTimeoutDefaultIsStepLocal(t *testing.T) {
 		strict := &api.Step{
 			ID:   "strict",
 			Name: "Strict",
-			Type: api.StepTypeSync,
+			Type: api.StepTypeService,
 			Attributes: api.AttributeSpecs{
 				"opt":         {Role: api.RoleRequired, Type: api.TypeString},
 				"strict_done": {Role: api.RoleOutput, Type: api.TypeString},
@@ -367,7 +367,7 @@ func TestTimeoutRequiredsGateFallback(t *testing.T) {
 		userProvider := &api.Step{
 			ID:   "user-provider",
 			Name: "User Provider",
-			Type: api.StepTypeSync,
+			Type: api.StepTypeService,
 			Attributes: api.AttributeSpecs{
 				"user_info": {Role: api.RoleOutput, Type: api.TypeString},
 			},
@@ -378,7 +378,7 @@ func TestTimeoutRequiredsGateFallback(t *testing.T) {
 		productProvider := &api.Step{
 			ID:   "product-provider",
 			Name: "Product Provider",
-			Type: api.StepTypeSync,
+			Type: api.StepTypeService,
 			Attributes: api.AttributeSpecs{
 				"product_info": {Role: api.RoleOutput, Type: api.TypeString},
 			},
@@ -389,7 +389,7 @@ func TestTimeoutRequiredsGateFallback(t *testing.T) {
 		orderCreator := &api.Step{
 			ID:   "order-creator",
 			Name: "Order Creator",
-			Type: api.StepTypeSync,
+			Type: api.StepTypeService,
 			Attributes: api.AttributeSpecs{
 				"product_info": {Role: api.RoleRequired, Type: api.TypeString},
 				"user_info": {
@@ -502,7 +502,7 @@ func TestTimeoutWaitsForLaterOptional(t *testing.T) {
 		providerA := &api.Step{
 			ID:   "provider-a",
 			Name: "Provider A",
-			Type: api.StepTypeSync,
+			Type: api.StepTypeService,
 			Attributes: api.AttributeSpecs{
 				"opt_a": {Role: api.RoleOutput, Type: api.TypeString},
 			},
@@ -513,7 +513,7 @@ func TestTimeoutWaitsForLaterOptional(t *testing.T) {
 		providerB := &api.Step{
 			ID:   "provider-b",
 			Name: "Provider B",
-			Type: api.StepTypeSync,
+			Type: api.StepTypeService,
 			Attributes: api.AttributeSpecs{
 				"opt_b": {Role: api.RoleOutput, Type: api.TypeString},
 			},
@@ -524,7 +524,7 @@ func TestTimeoutWaitsForLaterOptional(t *testing.T) {
 		consumer := &api.Step{
 			ID:   "consumer",
 			Name: "Consumer",
-			Type: api.StepTypeSync,
+			Type: api.StepTypeService,
 			Attributes: api.AttributeSpecs{
 				"seed": {Role: api.RoleRequired, Type: api.TypeString},
 				"opt_a": {
@@ -634,7 +634,7 @@ func TestTimeoutStepReadyAnchor(t *testing.T) {
 		gate := &api.Step{
 			ID:   "gate",
 			Name: "Gate",
-			Type: api.StepTypeSync,
+			Type: api.StepTypeService,
 			Attributes: api.AttributeSpecs{
 				"kickoff": {Role: api.RoleOutput, Type: api.TypeString},
 			},
@@ -645,7 +645,7 @@ func TestTimeoutStepReadyAnchor(t *testing.T) {
 		userProvider := &api.Step{
 			ID:   "user-provider",
 			Name: "User Provider",
-			Type: api.StepTypeSync,
+			Type: api.StepTypeService,
 			Attributes: api.AttributeSpecs{
 				"kickoff":   {Role: api.RoleRequired, Type: api.TypeString},
 				"user_info": {Role: api.RoleOutput, Type: api.TypeString},
@@ -657,7 +657,7 @@ func TestTimeoutStepReadyAnchor(t *testing.T) {
 		orderCreator := &api.Step{
 			ID:   "order-creator",
 			Name: "Order Creator",
-			Type: api.StepTypeSync,
+			Type: api.StepTypeService,
 			Attributes: api.AttributeSpecs{
 				"product_info": {Role: api.RoleRequired, Type: api.TypeString},
 				"user_info": {
@@ -753,7 +753,7 @@ func TestTimeoutAfterRequireds(t *testing.T) {
 		reqProvider := &api.Step{
 			ID:   "req-provider",
 			Name: "Req Provider",
-			Type: api.StepTypeSync,
+			Type: api.StepTypeService,
 			Attributes: api.AttributeSpecs{
 				"req": {Role: api.RoleOutput, Type: api.TypeString},
 			},
@@ -764,7 +764,7 @@ func TestTimeoutAfterRequireds(t *testing.T) {
 		optProvider := &api.Step{
 			ID:   "opt-provider",
 			Name: "Opt Provider",
-			Type: api.StepTypeSync,
+			Type: api.StepTypeService,
 			Attributes: api.AttributeSpecs{
 				"opt": {Role: api.RoleOutput, Type: api.TypeString},
 			},
@@ -775,7 +775,7 @@ func TestTimeoutAfterRequireds(t *testing.T) {
 		consumer := &api.Step{
 			ID:   "consumer",
 			Name: "Consumer",
-			Type: api.StepTypeSync,
+			Type: api.StepTypeService,
 			Attributes: api.AttributeSpecs{
 				"req": {Role: api.RoleRequired, Type: api.TypeString},
 				"opt": {
@@ -961,7 +961,7 @@ func collectTimeoutPlan(collect api.InputCollect) collectTimeoutPlanRes {
 	providerA := &api.Step{
 		ID:   "provider-a",
 		Name: "Provider A",
-		Type: api.StepTypeSync,
+		Type: api.StepTypeService,
 		Attributes: api.AttributeSpecs{
 			"opt": {Role: api.RoleOutput, Type: api.TypeAny},
 		},
@@ -972,7 +972,7 @@ func collectTimeoutPlan(collect api.InputCollect) collectTimeoutPlanRes {
 	providerB := &api.Step{
 		ID:   "provider-b",
 		Name: "Provider B",
-		Type: api.StepTypeSync,
+		Type: api.StepTypeService,
 		Attributes: api.AttributeSpecs{
 			"missing": {Role: api.RoleRequired, Type: api.TypeString},
 			"opt":     {Role: api.RoleOutput, Type: api.TypeAny},
@@ -984,7 +984,7 @@ func collectTimeoutPlan(collect api.InputCollect) collectTimeoutPlanRes {
 	consumer := &api.Step{
 		ID:   "consumer",
 		Name: "Consumer",
-		Type: api.StepTypeSync,
+		Type: api.StepTypeService,
 		Attributes: api.AttributeSpecs{
 			"seed": {Role: api.RoleRequired, Type: api.TypeString},
 			"opt": {

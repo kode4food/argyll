@@ -8,7 +8,7 @@ describe("useHandlePositions", () => {
     const step = {
       id: "step-1",
       name: "Test",
-      type: "sync" as const,
+      type: "service" as const,
       attributes: {},
     };
     const ref = React.createRef<HTMLDivElement>();
@@ -25,7 +25,7 @@ describe("useHandlePositions", () => {
     const step = {
       id: "step-1",
       name: "Test",
-      type: "sync" as const,
+      type: "service" as const,
       attributes: {
         req1: {
           role: AttributeRole.Required,
@@ -94,7 +94,7 @@ describe("useHandlePositions", () => {
     const step = {
       id: "step-1",
       name: "Test",
-      type: "sync" as const,
+      type: "service" as const,
       attributes: {
         req1: {
           role: AttributeRole.Required,
@@ -117,7 +117,7 @@ describe("useHandlePositions", () => {
     const step1 = {
       id: "step-1",
       name: "Test",
-      type: "sync" as const,
+      type: "service" as const,
       attributes: {
         req1: {
           role: AttributeRole.Required,
@@ -130,7 +130,7 @@ describe("useHandlePositions", () => {
     const step2 = {
       id: "step-1",
       name: "Test",
-      type: "sync" as const,
+      type: "service" as const,
       attributes: {
         req1: {
           role: AttributeRole.Required,
@@ -161,7 +161,7 @@ describe("useHandlePositions", () => {
     const step = {
       id: "step-1",
       name: "Test",
-      type: "sync" as const,
+      type: "service" as const,
       attributes: {
         username: {
           role: AttributeRole.Required,
@@ -190,7 +190,7 @@ describe("useHandlePositions", () => {
     const step = {
       id: "step-1",
       name: "Test",
-      type: "sync" as const,
+      type: "service" as const,
       attributes: {
         input1: {
           role: AttributeRole.Required,
@@ -233,7 +233,7 @@ describe("useHandlePositions", () => {
     const step = {
       id: "step-1",
       name: "Test",
-      type: "sync" as const,
+      type: "service" as const,
       attributes: {
         req1: {
           role: AttributeRole.Required,
@@ -268,7 +268,7 @@ describe("useHandlePositions", () => {
     const step = {
       id: "step-1",
       name: "Test",
-      type: "sync" as const,
+      type: "service" as const,
       attributes: {
         arg: {
           role: AttributeRole.Required,
@@ -318,7 +318,7 @@ describe("useHandlePositions", () => {
     const step1 = {
       id: "step-1",
       name: "Test",
-      type: "sync" as const,
+      type: "service" as const,
       attributes: {
         req1: {
           role: AttributeRole.Required,
@@ -331,7 +331,7 @@ describe("useHandlePositions", () => {
     const step2 = {
       id: "step-1",
       name: "Test",
-      type: "sync" as const,
+      type: "service" as const,
       attributes: {
         req1: {
           role: AttributeRole.Required,
@@ -369,7 +369,7 @@ describe("useHandlePositions", () => {
     const step = {
       id: "step-1",
       name: "Test",
-      type: "sync" as const,
+      type: "service" as const,
       attributes: {
         req1: {
           role: AttributeRole.Required,

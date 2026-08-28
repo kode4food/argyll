@@ -25,7 +25,7 @@ func TestDiffProposedStepsTool(t *testing.T) {
 						{
 							"id": "same-step",
 							"name": "Same Step",
-							"type": "sync",
+							"type": "service",
 							"attributes": {
 								"customer_id": {
 									"role": "required",
@@ -40,7 +40,7 @@ func TestDiffProposedStepsTool(t *testing.T) {
 						{
 							"id": "update-step",
 							"name": "Update Step",
-							"type": "sync",
+							"type": "service",
 							"attributes": {
 								"customer_id": {
 									"role": "required",
@@ -61,7 +61,7 @@ func TestDiffProposedStepsTool(t *testing.T) {
 			{
 				"id":   "same-step",
 				"name": "Same Step",
-				"type": "sync",
+				"type": "service",
 				"attributes": map[string]any{
 					"customer_id": map[string]any{
 						"role": "required",
@@ -76,7 +76,7 @@ func TestDiffProposedStepsTool(t *testing.T) {
 			{
 				"id":   "update-step",
 				"name": "Update Step",
-				"type": "sync",
+				"type": "service",
 				"attributes": map[string]any{
 					"customer_id": map[string]any{
 						"role": "required",
@@ -91,7 +91,7 @@ func TestDiffProposedStepsTool(t *testing.T) {
 			{
 				"id":   "new-step",
 				"name": "New Step",
-				"type": "sync",
+				"type": "service",
 				"attributes": map[string]any{
 					"customer_id": map[string]any{
 						"role": "required",
@@ -127,13 +127,14 @@ func TestApplyProposedStepsTool(t *testing.T) {
 		Transport: roundTripperFunc(
 			func(r *http.Request) (*http.Response, error) {
 				switch {
-				case r.URL.Path == "/engine/steps" && r.Method == http.MethodGet:
+				case r.URL.Path == "/engine/steps" &&
+					r.Method == http.MethodGet:
 					return jsonResponse(http.StatusOK, []byte(`{
 						"steps": [
 							{
 								"id": "same-step",
 								"name": "Same Step",
-								"type": "sync",
+								"type": "service",
 								"attributes": {
 									"customer_id": {
 										"role": "required",
@@ -148,7 +149,7 @@ func TestApplyProposedStepsTool(t *testing.T) {
 							{
 								"id": "update-step",
 								"name": "Update Step",
-								"type": "sync",
+								"type": "service",
 								"attributes": {
 									"customer_id": {
 										"role": "required",
@@ -202,7 +203,7 @@ func TestApplyProposedStepsTool(t *testing.T) {
 			{
 				"id":   "same-step",
 				"name": "Same Step",
-				"type": "sync",
+				"type": "service",
 				"attributes": map[string]any{
 					"customer_id": map[string]any{
 						"role": "required",
@@ -217,7 +218,7 @@ func TestApplyProposedStepsTool(t *testing.T) {
 			{
 				"id":   "update-step",
 				"name": "Update Step",
-				"type": "sync",
+				"type": "service",
 				"attributes": map[string]any{
 					"customer_id": map[string]any{
 						"role": "required",
@@ -232,7 +233,7 @@ func TestApplyProposedStepsTool(t *testing.T) {
 			{
 				"id":   "new-step",
 				"name": "New Step",
-				"type": "sync",
+				"type": "service",
 				"attributes": map[string]any{
 					"customer_id": map[string]any{
 						"role": "required",
@@ -264,7 +265,8 @@ func TestApplyProposedStepsVerifiesSemanticReadback(t *testing.T) {
 		Transport: roundTripperFunc(
 			func(r *http.Request) (*http.Response, error) {
 				switch {
-				case r.URL.Path == "/engine/steps" && r.Method == http.MethodGet:
+				case r.URL.Path == "/engine/steps" &&
+					r.Method == http.MethodGet:
 					gets++
 					if gets == 1 {
 						return jsonResponse(
@@ -277,7 +279,7 @@ func TestApplyProposedStepsVerifiesSemanticReadback(t *testing.T) {
 							{
 								"id": "send-sms",
 								"name": "Send SMS",
-								"type": "async",
+								"type": "service",
 								"attributes": {
 									"body": {
 										"role": "required",
@@ -309,7 +311,7 @@ func TestApplyProposedStepsVerifiesSemanticReadback(t *testing.T) {
 			{
 				"id":   "send-sms",
 				"name": "Send SMS",
-				"type": "async",
+				"type": "service",
 				"attributes": map[string]any{
 					"body": map[string]any{
 						"role": "required",

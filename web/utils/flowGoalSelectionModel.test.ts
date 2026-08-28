@@ -22,13 +22,13 @@ describe("flowGoalSelectionModel", () => {
     const orderCreator: Step = {
       id: "order-creator",
       name: "Order Creator",
-      type: "sync",
+      type: "service",
       attributes: {},
     };
     const notificationSender: Step = {
       id: "notification-sender",
       name: "Notification Sender",
-      type: "sync",
+      type: "service",
       attributes: {},
     };
 

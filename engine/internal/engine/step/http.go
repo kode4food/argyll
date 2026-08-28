@@ -5,17 +5,18 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
-func httpHandler(c client.Client, async bool) *Handler {
+func httpHandler(c client.Client) *Handler {
 	return &Handler{
-		Execute:    httpExecutor(c, async),
+		Execute:    httpExecutor(c),
 		Compensate: c.InvokeCompensate,
 	}
 }
 
-func httpExecutor(c client.Client, async bool) ExecuteFunc {
+func httpExecutor(c client.Client) ExecuteFunc {
 	return func(
 		rt Runtime, st *api.Step, inputs api.Args, tkn api.Token,
 	) error {
+		async := st.HTTP != nil && st.HTTP.Invoke.Async()
 		meta := httpMetaForToken(rt, tkn)
 		if async {
 			meta[api.MetaWebhookURL] = rt.WebhookURL(tkn)

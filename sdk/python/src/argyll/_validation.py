@@ -28,8 +28,7 @@ def _check_identity(step: Step) -> None:
     if not step.name:
         raise StepValidationError("Step name cannot be empty")
     if step.type not in {
-        StepType.SYNC,
-        StepType.ASYNC,
+        StepType.SERVICE,
         StepType.SCRIPT,
         StepType.FLOW,
     }:
@@ -43,7 +42,7 @@ def _check_identity(step: Step) -> None:
 
 
 def _check_type_config(step: Step) -> None:
-    if step.type in {StepType.SYNC, StepType.ASYNC}:
+    if step.type == StepType.SERVICE:
         if not step.http or not step.http.invoke.endpoint:
             raise StepValidationError("HTTP config with endpoint required")
         for action in (step.http.invoke, step.http.compensate):

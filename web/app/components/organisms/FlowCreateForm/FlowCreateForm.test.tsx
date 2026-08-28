@@ -40,7 +40,7 @@ describe("FlowCreateForm", () => {
   const mockStep: Step = {
     id: "step-1",
     name: "Test Step",
-    type: "sync",
+    type: "service",
     attributes: {
       input1: { role: AttributeRole.Required, type: AttributeType.String },
       output1: { role: AttributeRole.Output, type: AttributeType.String },
@@ -125,8 +125,8 @@ describe("FlowCreateForm", () => {
 
   test("renders steps in sorted list", () => {
     const steps = [
-      { ...mockStep, id: "step-1", name: "Zebra", type: "async" },
-      { ...mockStep, id: "step-2", name: "Alpha", type: "sync" },
+      { ...mockStep, id: "step-1", name: "Zebra", type: "service" },
+      { ...mockStep, id: "step-2", name: "Alpha", type: "service" },
     ];
 
     const { container } = renderWithProvider({ steps });
@@ -399,7 +399,7 @@ describe("FlowCreateForm", () => {
         "goal-step": {
           id: "goal-step",
           name: "Goal Step",
-          type: "sync" as const,
+          type: "service" as const,
           attributes: {
             quantity: {
               role: AttributeRole.Required,
@@ -489,7 +489,7 @@ describe("FlowCreateForm", () => {
         "goal-step": {
           id: "goal-step",
           name: "Goal Step",
-          type: "sync" as const,
+          type: "service" as const,
           attributes: {
             quantity: {
               role: AttributeRole.Required,
@@ -536,7 +536,7 @@ describe("FlowCreateForm", () => {
         "goal-step": {
           id: "goal-step",
           name: "Goal Step",
-          type: "sync" as const,
+          type: "service" as const,
           attributes: {
             quantity: {
               role: AttributeRole.Required,
@@ -594,7 +594,7 @@ describe("FlowCreateForm", () => {
         "goal-step": {
           id: "goal-step",
           name: "Goal Step",
-          type: "sync" as const,
+          type: "service" as const,
           attributes: {
             unit_price: {
               role: AttributeRole.Required,
@@ -638,7 +638,7 @@ describe("FlowCreateForm", () => {
         "goal-step": {
           id: "goal-step",
           name: "Goal Step",
-          type: "sync" as const,
+          type: "service" as const,
           attributes: {
             note: {
               role: AttributeRole.Required,
@@ -678,7 +678,7 @@ describe("FlowCreateForm", () => {
         "goal-step": {
           id: "goal-step",
           name: "Goal Step",
-          type: "sync" as const,
+          type: "service" as const,
           attributes: {
             quantity: {
               role: AttributeRole.Required,
@@ -716,7 +716,7 @@ describe("FlowCreateForm", () => {
         "goal-step": {
           id: "goal-step",
           name: "Goal Step",
-          type: "sync" as const,
+          type: "service" as const,
           attributes: {
             quantity: {
               role: AttributeRole.Required,
@@ -756,7 +756,7 @@ describe("FlowCreateForm", () => {
         "goal-step": {
           id: "goal-step",
           name: "Goal Step",
-          type: "sync" as const,
+          type: "service" as const,
           attributes: {
             quantity: {
               role: AttributeRole.Required,
@@ -810,7 +810,7 @@ describe("FlowCreateForm", () => {
           "goal-step": {
             id: "goal-step",
             name: "Goal Step",
-            type: "sync" as const,
+            type: "service" as const,
             attributes: {
               quantity: {
                 role: AttributeRole.Required,
@@ -958,7 +958,7 @@ describe("FlowCreateForm", () => {
         "goal-step": {
           id: "goal-step",
           name: "Goal Step",
-          type: "sync" as const,
+          type: "service" as const,
           attributes: {
             order_id: {
               role: AttributeRole.Required,
@@ -974,7 +974,7 @@ describe("FlowCreateForm", () => {
         upstream: {
           id: "upstream",
           name: "Upstream",
-          type: "sync" as const,
+          type: "service" as const,
           attributes: {
             quantity: {
               role: AttributeRole.Output,
@@ -1024,7 +1024,7 @@ describe("FlowCreateForm", () => {
         "goal-step": {
           id: "goal-step",
           name: "Goal Step",
-          type: "sync" as const,
+          type: "service" as const,
           attributes: {
             order_id: {
               role: AttributeRole.Required,
@@ -1040,7 +1040,7 @@ describe("FlowCreateForm", () => {
         upstream: {
           id: "upstream",
           name: "Upstream",
-          type: "sync" as const,
+          type: "service" as const,
           attributes: {
             quantity: {
               role: AttributeRole.Output,
@@ -1091,7 +1091,7 @@ describe("FlowCreateForm", () => {
         "goal-step": {
           id: "goal-step",
           name: "Goal Step",
-          type: "sync" as const,
+          type: "service" as const,
           attributes: {
             order_id: {
               role: AttributeRole.Optional,
@@ -1132,7 +1132,7 @@ describe("FlowCreateForm", () => {
         "goal-step": {
           id: "goal-step",
           name: "Goal Step",
-          type: "sync" as const,
+          type: "service" as const,
           attributes: {
             order_id: {
               role: AttributeRole.Optional,
@@ -1178,7 +1178,7 @@ describe("FlowCreateForm", () => {
         "goal-step": {
           id: "goal-step",
           name: "Goal Step",
-          type: "sync" as const,
+          type: "service" as const,
           attributes: {
             quantity: {
               role: AttributeRole.Required,

@@ -10,8 +10,7 @@ const isStepEditable = (step: Step): boolean => {
   switch (step.type) {
     case "script":
       return !!step.script;
-    case "sync":
-    case "async":
+    case "service":
       return !!step.http;
     case "flow":
       return !!step.flow;
