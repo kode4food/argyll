@@ -23,6 +23,7 @@ export interface StepEditorFormOptions {
   onUpdate: (updatedStep: Step) => void;
   onClose: () => void;
   defaultLabels?: Record<string, string>;
+  draft?: Step;
 }
 
 export function useStepEditorForm({
@@ -30,14 +31,16 @@ export function useStepEditorForm({
   onUpdate,
   onClose,
   defaultLabels,
+  draft,
 }: StepEditorFormOptions) {
   const t = useT();
   const isCreateMode = step === null;
+  const seed = step ?? draft ?? null;
 
   const [stepId, setStepId] = useState(step?.id || "");
   const [name, setName] = useState(step?.name || "");
   const [stepType, setStepTypeState] = useState<StepType>(
-    step?.type || "service"
+    seed?.type || "service"
   );
   const [predicate, setPredicate] = useState(step?.predicate?.script || "");
   const [predicateLanguage, setPredicateLanguage] = useState(
@@ -73,11 +76,12 @@ export function useStepEditorForm({
     step?.script?.language || SCRIPT_LANGUAGE_LUA
   );
   const [flowGoals, setFlowGoals] = useState(
-    step?.flow?.goals?.join(", ") || ""
+    seed?.flow?.goals?.join(", ") || ""
   );
   const [flowCompensate, setFlowCompensate] = useState(
-    step?.flow?.compensate || false
+    seed?.flow?.compensate || false
   );
+  const [flowSpaceId, setFlowSpaceId] = useState(seed?.flow?.space_id || "");
   const [handling, setHandling] = useState<Handling>(
     step?.handling || "standard"
   );
@@ -135,6 +139,7 @@ export function useStepEditorForm({
       httpTimeout,
       flowGoals,
       flowCompensate,
+      flowSpaceId,
       handling,
     });
   }, [
@@ -147,6 +152,7 @@ export function useStepEditorForm({
     endpoint,
     flowCompensate,
     flowGoals,
+    flowSpaceId,
     healthCheck,
     httpMethod,
     httpMode,
@@ -172,6 +178,7 @@ export function useStepEditorForm({
       setScriptLanguage(stepData.script?.language || SCRIPT_LANGUAGE_LUA);
       setFlowGoals(stepData.flow?.goals?.join(", ") || "");
       setFlowCompensate(Boolean(stepData.flow?.compensate));
+      setFlowSpaceId(stepData.flow?.space_id || "");
       setEndpoint(stepData.http?.invoke?.endpoint || "");
       setHttpMethod(normalizeHttpMethod(stepData.http?.invoke?.method));
       setHttpMode(stepData.http?.invoke?.mode ?? "sync");
@@ -309,6 +316,8 @@ export function useStepEditorForm({
     setFlowGoals,
     flowCompensate,
     setFlowCompensate,
+    flowSpaceId,
+    setFlowSpaceId,
     handling,
     setHandling: changeHandling,
     attributes,

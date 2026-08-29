@@ -129,6 +129,7 @@
   --spacing-2xl: calc(2rem * var(--spacing-density)); /* 32px base */
   --spacing-3xl: calc(3rem * var(--spacing-density)); /* 48px base */
   --spacing-padding-lg: calc(1.25rem * var(--spacing-density)); /* 20px base */
+  --label-gap: 6px;
 
   /* Component Dimensions */
   --step-widget-width: 16rem; /* 256px */

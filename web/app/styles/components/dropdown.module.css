@@ -15,7 +15,7 @@
   composes: interactive focusRing from "./interaction.module.css";
   width: 100%;
   height: 32px;
-  padding: 0 10px;
+  padding: 0 var(--spacing-md);
   display: flex;
   align-items: center;
   gap: var(--spacing-sm);

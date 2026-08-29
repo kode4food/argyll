@@ -18,6 +18,7 @@ jest.mock("@/app/contexts/UIContext", () => ({
 jest.mock("@/app/store/flowStore", () => ({
   useSteps: () => stepsInStore,
   useSpaces: () => spacesInStore,
+  useSpaceSelection: () => ({}),
 }));
 
 jest.mock("@/app/api", () => ({

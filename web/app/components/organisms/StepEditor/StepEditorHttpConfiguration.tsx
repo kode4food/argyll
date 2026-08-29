@@ -197,7 +197,7 @@ const StepEditorHttpConfiguration: React.FC<
           <span className={formStyles.labelIcon}>
             <StepTypeIcon aria-hidden="true" />
           </span>
-          {t("stepEditor.httpConfigLabel")}
+          {t("stepEditor.serviceConfigLabel")}
         </label>
       </div>
       <div className={localStyles.httpFields}>

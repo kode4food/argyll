@@ -1,3 +1,25 @@
+.flowGoalRow {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-sm);
+}
+
+.flowLabelRow {
+  composes: sectionHeader from "@/app/styles/components/form.module.css";
+}
+
+.flowSpaceLabel {
+  composes: labelWithIcon from "@/app/styles/components/form.module.css";
+}
+
+.flowGoalColumn {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--label-gap);
+  min-width: 0;
+}
+
 .flowGoalList {
   composes: flowGoalList from "./StepEditorControls.module.css";
 }
@@ -16,4 +38,9 @@
 
 .flowGoalChipDisabled {
   composes: flowGoalChipDisabled from "./StepEditorControls.module.css";
+}
+
+.flowSpaceColumn {
+  composes: flowGoalColumn;
+  flex: 0 0 9rem;
 }

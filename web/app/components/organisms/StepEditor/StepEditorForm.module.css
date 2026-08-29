@@ -76,7 +76,7 @@
 .field {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--label-gap);
 }
 
 .flex1 {
@@ -390,7 +390,7 @@
 .fieldNoFlex {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--label-gap);
 }
 
 .mappingExpandButton {

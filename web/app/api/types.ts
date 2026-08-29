@@ -120,6 +120,7 @@ export interface ScriptConfig {
 export interface FlowConfig {
   goals: string[];
   compensate?: boolean;
+  space_id?: string;
 }
 
 export interface WorkConfig {

@@ -1,7 +1,7 @@
 import React from "react";
 import { Step } from "@/app/api";
 import { getStepType } from "@/utils/stepUtils";
-import { getStepTypeIcon } from "@/utils/iconRegistry";
+import { getStepActionIcon } from "@/utils/iconRegistry";
 
 interface StepTypeLabelProps {
   step: Step;
@@ -9,7 +9,7 @@ interface StepTypeLabelProps {
 
 const StepTypeLabel: React.FC<StepTypeLabelProps> = ({ step }) => {
   const stepType = getStepType(step);
-  const TypeIcon = getStepTypeIcon(step.type);
+  const TypeIcon = getStepActionIcon(step);
 
   return (
     <span className={`step-type-label ${stepType}`} aria-label={step.type}>

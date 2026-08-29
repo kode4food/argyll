@@ -35,13 +35,17 @@ const OverviewDiagramContent: React.FC<OverviewDiagramContentProps> = ({
     [upsertStep]
   );
 
-  const handleCreateStep = React.useCallback(() => {
-    openEditor({
-      step: null,
-      diagramContainerRef,
-      onUpdate: applyStepUpdate,
-    });
-  }, [applyStepUpdate, openEditor]);
+  const handleCreateStep = React.useCallback(
+    (draft?: Step) => {
+      openEditor({
+        step: null,
+        diagramContainerRef,
+        onUpdate: applyStepUpdate,
+        draft,
+      });
+    },
+    [applyStepUpdate, openEditor]
+  );
 
   if (steps.length === 0) {
     return (

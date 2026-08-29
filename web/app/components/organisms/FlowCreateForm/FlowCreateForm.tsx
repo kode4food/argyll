@@ -1,6 +1,6 @@
 import React from "react";
 import { useUI } from "@/app/contexts/UIContext";
-import { AttributeType } from "@/app/api";
+import { AttributeType, Step } from "@/app/api";
 import { useFlowCreation } from "@/app/hooks/useFlowCreation";
 import { useScrollFade } from "@/app/hooks/useScrollFade";
 import { useFlowFormStepFiltering } from "./useFlowFormStepFiltering";
@@ -27,7 +27,7 @@ import FlowStartSection from "./FlowStartSection";
 import styles from "./FlowCreateForm.module.css";
 
 interface FlowCreateFormProps {
-  onCreateStep?: () => void;
+  onCreateStep?: (draft?: Step) => void;
 }
 
 const getTypePlaceholder = (type?: AttributeType): string => {
@@ -224,6 +224,27 @@ const FlowCreateForm: React.FC<FlowCreateFormProps> = ({ onCreateStep }) => {
     goalSteps.length === 0 ||
     (editorMode === "json" && jsonError !== null);
 
+  const handleCreateStep = React.useCallback(
+    (fromGoals: boolean) => {
+      onCreateStep?.(
+        fromGoals
+          ? {
+              id: "",
+              name: "",
+              type: "flow",
+              attributes: {},
+              flow: {
+                goals: goalSteps,
+                compensate,
+                ...(spaceId && { space_id: spaceId }),
+              },
+            }
+          : undefined
+      );
+    },
+    [compensate, goalSteps, onCreateStep, spaceId]
+  );
+
   const handleEditorModeChange = React.useCallback(
     (mode: "basic" | "json") => {
       if (editorMode === "basic" && mode === "json") {
@@ -268,7 +289,7 @@ const FlowCreateForm: React.FC<FlowCreateFormProps> = ({ onCreateStep }) => {
               blockedByStep={blockedByStep}
               included={included}
               missingByStep={missingByStep}
-              onCreateStep={onCreateStep}
+              onCreateStep={handleCreateStep}
               onGoalStepsChange={handleStepChange}
               satisfied={satisfied}
               showBottomFade={showBottomFade}

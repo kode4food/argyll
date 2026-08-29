@@ -15,6 +15,7 @@ type EditorOptions = {
   diagramContainerRef?: DiagramRef;
   onUpdate?: (step: Step) => void;
   onClose?: () => void;
+  draft?: Step;
 };
 
 type EditorState = EditorOptions & { open: boolean };
@@ -79,6 +80,7 @@ export const StepEditorProvider = ({
           onClose={closeEditor}
           onUpdate={handleUpdate}
           diagramContainerRef={state.diagramContainerRef}
+          draft={state.draft}
         />
       )}
     </StepEditorContext.Provider>

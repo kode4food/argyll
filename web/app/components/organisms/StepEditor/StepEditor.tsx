@@ -32,6 +32,7 @@ interface StepEditorProps {
   onClose: () => void;
   onUpdate: (updatedStep: Step) => void;
   diagramContainerRef?: React.RefObject<HTMLDivElement | null>;
+  draft?: Step;
 }
 
 const StepEditor: React.FC<StepEditorProps> = ({
@@ -39,6 +40,7 @@ const StepEditor: React.FC<StepEditorProps> = ({
   onClose,
   onUpdate,
   diagramContainerRef,
+  draft,
 }) => {
   const t = useT();
   const steps = useSteps();
@@ -105,7 +107,9 @@ const StepEditor: React.FC<StepEditorProps> = ({
     setFlowGoals,
     flowCompensate,
     setFlowCompensate,
-  } = useStepEditorForm({ step, onUpdate, onClose, defaultLabels });
+    flowSpaceId,
+    setFlowSpaceId,
+  } = useStepEditorForm({ step, onUpdate, onClose, defaultLabels, draft });
 
   const [editorMode, setEditorMode] = React.useState<"basic" | "json">("basic");
   const [jsonDraft, setJsonDraft] = React.useState("");
@@ -221,10 +225,12 @@ const StepEditor: React.FC<StepEditorProps> = ({
                   flowCompensate={flowCompensate}
                   flowGoals={flowGoals}
                   flowInitialState={flowInitialState}
+                  flowSpaceId={flowSpaceId}
                   previewPlan={flowPreviewPlan}
                   setFlowCompensate={setFlowCompensate}
                   setFlowGoals={setFlowGoals}
                   setFlowInitialState={setFlowInitialState}
+                  setFlowSpaceId={setFlowSpaceId}
                   stepId={stepId}
                   steps={steps}
                   updatePreviewPlan={updateFlowPreviewPlan}

@@ -54,6 +54,43 @@ describe("FlowGoalsSection", () => {
     expect(onCreateStep).toHaveBeenCalled();
   });
 
+  test("seeds from goal steps when the create action is shift-clicked", () => {
+    const onCreateStep = jest.fn();
+
+    render(
+      <FlowGoalsSection
+        goalSteps={["step-1"]}
+        blockedByStep={new Map()}
+        included={new Set()}
+        missingByStep={new Map()}
+        onCreateStep={onCreateStep}
+        onGoalStepsChange={jest.fn()}
+        satisfied={new Set()}
+        showBottomFade={false}
+        showTopFade={false}
+        sidebarListRef={{ current: null }}
+        sortedSteps={steps}
+        spaceScoped={false}
+        stepsCount={2}
+      />
+    );
+
+    const button = screen.getByRole("button", { name: t("overview.addStep") });
+
+    fireEvent.click(button);
+    expect(onCreateStep).toHaveBeenLastCalledWith(false);
+
+    fireEvent.keyDown(window, { key: "Shift", shiftKey: true });
+    expect(
+      screen.getByRole("button", {
+        name: t("overview.addFlowStepFromGoals"),
+      })
+    ).toBeInTheDocument();
+
+    fireEvent.click(button, { shiftKey: true });
+    expect(onCreateStep).toHaveBeenLastCalledWith(true);
+  });
+
   test("toggles a goal step when clicked", () => {
     const onGoalStepsChange = jest.fn();
 

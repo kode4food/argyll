@@ -11,8 +11,8 @@
   --control-focus-bg: var(--overlay-dark-40);
   --control-focus-border: var(--color-info);
   flex: 0 0 auto;
-  height: 28px;
-  padding: 0 var(--spacing-sm);
+  height: 32px;
+  padding: 0 var(--spacing-md);
   background-color: var(--overlay-dark-30);
   border: 1px solid var(--color-dark-border);
   border-radius: var(--radius-md);
@@ -22,7 +22,15 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: var(--spacing-xs);
+  gap: var(--spacing-sm);
+}
+
+.flowGoalChip :global(.step-type-icon) {
+  /* same box as the form's label icons */
+  height: 1rem;
+  width: 1rem;
+  flex-shrink: 0;
+  --step-icon-color: color-mix(in srgb, var(--step-kind) 30%, white);
 }
 
 .flowGoalChipSelected {

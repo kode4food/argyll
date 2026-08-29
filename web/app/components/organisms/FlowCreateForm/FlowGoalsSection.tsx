@@ -1,6 +1,10 @@
 import React from "react";
 import { Step } from "@/app/api";
-import { IconAddStep, IconFlowGoals } from "@/utils/iconRegistry";
+import {
+  IconAddStep,
+  IconFlowGoals,
+  IconStepTypeFlow,
+} from "@/utils/iconRegistry";
 import StepTypeLabel from "@/app/components/atoms/StepTypeLabel";
 import useArrowFocus from "@/app/hooks/useArrowFocus";
 import { useT } from "@/app/i18n";
@@ -13,7 +17,7 @@ interface FlowGoalsSectionProps {
   blockedByStep: Map<string, string[]>;
   included: Set<string>;
   missingByStep: Map<string, string[]>;
-  onCreateStep?: () => void;
+  onCreateStep?: (fromGoals: boolean) => void;
   onGoalStepsChange: (nextGoalStepIds: string[]) => void | Promise<void>;
   satisfied: Set<string>;
   showBottomFade: boolean;
@@ -41,6 +45,28 @@ const FlowGoalsSection: React.FC<FlowGoalsSectionProps> = ({
 }) => {
   const t = useT();
   const handleArrowFocus = useArrowFocus();
+  const [shiftHeld, setShiftHeld] = React.useState(false);
+  const seedsFromGoals = shiftHeld && goalSteps.length > 0;
+  const actionLabel = seedsFromGoals
+    ? t("overview.addFlowStepFromGoals")
+    : t("overview.addStep");
+  const actionTitle =
+    seedsFromGoals || goalSteps.length === 0
+      ? actionLabel
+      : t("overview.addStepShiftHint");
+
+  React.useEffect(() => {
+    const track = (e: KeyboardEvent) => setShiftHeld(e.shiftKey);
+    const clear = () => setShiftHeld(false);
+    window.addEventListener("keydown", track);
+    window.addEventListener("keyup", track);
+    window.addEventListener("blur", clear);
+    return () => {
+      window.removeEventListener("keydown", track);
+      window.removeEventListener("keyup", track);
+      window.removeEventListener("blur", clear);
+    };
+  }, []);
 
   return (
     <section className={`${styles.sectionCard} ${styles.stepSection}`}>
@@ -64,11 +90,16 @@ const FlowGoalsSection: React.FC<FlowGoalsSectionProps> = ({
             <button
               type="button"
               className={styles.sectionActionButton}
-              title={t("overview.addStep")}
-              aria-label={t("overview.addStep")}
-              onClick={onCreateStep}
+              title={actionTitle}
+              aria-label={actionLabel}
+              onPointerEnter={(e) => setShiftHeld(e.shiftKey)}
+              onClick={(e) => onCreateStep(e.shiftKey)}
             >
-              <IconAddStep className={styles.sectionActionIcon} />
+              {seedsFromGoals ? (
+                <IconStepTypeFlow className={styles.sectionActionIcon} />
+              ) : (
+                <IconAddStep className={styles.sectionActionIcon} />
+              )}
             </button>
           )}
         </div>

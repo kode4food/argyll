@@ -405,21 +405,29 @@
   color: var(--arg-icon-output);
 }
 
-/* Step Type Icon Colors - Contextual based on parent widget */
-.step-widget.resolver .step-type-icon {
-  color: var(--step-resolver-border);
+/* Step Type Icon Colors - from the parent widget, or the icon's own class */
+.step-widget.resolver .step-type-icon,
+.step-type-icon.resolver {
+  --step-kind: var(--step-resolver-border);
+  color: var(--step-icon-color, var(--step-kind));
 }
 
-.step-widget.processor .step-type-icon {
-  color: var(--step-processor-border);
+.step-widget.processor .step-type-icon,
+.step-type-icon.processor {
+  --step-kind: var(--step-processor-border);
+  color: var(--step-icon-color, var(--step-kind));
 }
 
-.step-widget.collector .step-type-icon {
-  color: var(--step-collector-border);
+.step-widget.collector .step-type-icon,
+.step-type-icon.collector {
+  --step-kind: var(--step-collector-border);
+  color: var(--step-icon-color, var(--step-kind));
 }
 
-.step-widget.standalone .step-type-icon {
-  color: var(--step-standalone-border);
+.step-widget.standalone .step-type-icon,
+.step-type-icon.standalone {
+  --step-kind: var(--step-standalone-border);
+  color: var(--step-icon-color, var(--step-kind));
 }
 
 /* Invisible Handles for ReactFlow */
