@@ -133,15 +133,7 @@ func (e *TestEngineEnv) WaitForStepStarted(
 		fn()
 		w.ForEvent(wait.StepStarted(fs))
 	})
-
-	ex, err := e.getExecutionState(fs.FlowID, fs.StepID)
-	if err != nil {
-		e.T.Fatalf("failed to fetch execution %s: %v", fs.StepID, err)
-	}
-	if !isStepStarted(ex.Status) {
-		e.T.Fatalf("execution %s not started after event", fs.StepID)
-	}
-	return ex
+	return e.waitForStartedStepExec(fs.FlowID, fs.StepID)
 }
 
 // WaitForStepStatus waits for a step to finish and returns the execution
@@ -149,7 +141,13 @@ func (e *TestEngineEnv) WaitForStepStatus(
 	flowID api.FlowID, stepID api.StepID, fn func(),
 ) api.ExecutionState {
 	e.T.Helper()
-	fn()
+	e.WithConsumer(func(consumer *event.Consumer) {
+		w := wait.On(e.T, consumer)
+		fn()
+		w.ForEvent(wait.StepTerminal(
+			api.FlowStep{FlowID: flowID, StepID: stepID},
+		))
+	})
 	return e.waitForTerminalStep(flowID, stepID)
 }
 
@@ -161,6 +159,29 @@ func (e *TestEngineEnv) getExecutionState(
 		return api.ExecutionState{}, err
 	}
 	return fl.Executions[stepID], nil
+}
+
+// waitForStartedStepExec covers the lag between StepStarted being published and
+// the started execution becoming readable
+func (e *TestEngineEnv) waitForStartedStepExec(
+	flowID api.FlowID, stepID api.StepID,
+) api.ExecutionState {
+	e.T.Helper()
+
+	deadline := scheduler.Now().Add(wait.DefaultTimeout)
+	for {
+		ex, err := e.getExecutionState(flowID, stepID)
+		if err == nil && isStepStarted(ex.Status) {
+			return ex
+		}
+		if scheduler.Now().After(deadline) {
+			if err != nil {
+				e.T.Fatalf("failed to fetch execution %s: %v", stepID, err)
+			}
+			e.T.Fatalf("execution %s not started", stepID)
+		}
+		time.Sleep(waitPollInterval)
+	}
 }
 
 func (e *TestEngineEnv) waitForTerminalStep(

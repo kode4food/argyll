@@ -1421,9 +1421,13 @@ func TestStepEqualEdgeCases(t *testing.T) {
 			ID:   "test",
 			Name: "Test",
 			Type: api.StepTypeScript,
-			Script: &api.ScriptConfig{
-				Language: api.ScriptLangLua,
-				Script:   "return {}",
+			HTTP: &api.HTTPConfig{
+				Invoke: api.HTTPAction{
+					Endpoint: "http://localhost:8080",
+				},
+			},
+			Attributes: api.AttributeSpecs{
+				"arg1": {Role: api.RoleRequired, Type: api.TypeString},
 			},
 		}
 		as.False(baseStep.Equal(step2))

@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 
@@ -409,12 +410,24 @@ func TestHookSuccess(t *testing.T) {
 		}
 		path := "/callbacks/webhook-success-flow/" + string(st.ID) + "/" +
 			string(tkn)
+
+		settled := helpers.WaitForFlowState(t, env.Engine,
+			helpers.FlowStateQuery{
+				FlowID:  "webhook-success-flow",
+				Timeout: time.Second,
+				Accept: func(fl api.FlowState) bool {
+					return fl.Executions[st.ID].WorkItems[tkn].Status ==
+						api.WorkActive
+				},
+			})
+		before := settled.Executions[st.ID].WorkItems[tkn].Status
+
 		wrong := httptest.NewRequest("POST", path+"/compensate", nil)
 		w := httptest.NewRecorder()
 		router := env.Server.SetupRoutes()
 		router.ServeHTTP(w, wrong)
 		assert.Equal(t, http.StatusBadRequest, w.Code)
-		before := fl.Executions[st.ID].WorkItems[tkn].Status
+
 		after, err := env.Engine.GetFlowState("webhook-success-flow")
 		assert.NoError(t, err)
 		assert.Equal(t, before,
