@@ -219,24 +219,6 @@ const StepEditor: React.FC<StepEditorProps> = ({
                 stepType={formStepType}
               />
 
-              {formStepType === "flow" && (
-                <StepEditorFlowConfiguration
-                  clearPreviewPlan={clearFlowPreviewPlan}
-                  flowCompensate={flowCompensate}
-                  flowGoals={flowGoals}
-                  flowInitialState={flowInitialState}
-                  flowSpaceId={flowSpaceId}
-                  previewPlan={flowPreviewPlan}
-                  setFlowCompensate={setFlowCompensate}
-                  setFlowGoals={setFlowGoals}
-                  setFlowInitialState={setFlowInitialState}
-                  setFlowSpaceId={setFlowSpaceId}
-                  stepId={stepId}
-                  steps={steps}
-                  updatePreviewPlan={updateFlowPreviewPlan}
-                />
-              )}
-
               <StepEditorAttributesSection
                 addAttribute={addAttribute}
                 attributes={attributes}
@@ -269,7 +251,23 @@ const StepEditor: React.FC<StepEditorProps> = ({
                   onLanguageChange={setScriptLanguage}
                   containerClassName={formStyles.scriptEditorContainer}
                 />
-              ) : formStepType === "flow" ? null : (
+              ) : formStepType === "flow" ? (
+                <StepEditorFlowConfiguration
+                  clearPreviewPlan={clearFlowPreviewPlan}
+                  flowCompensate={flowCompensate}
+                  flowGoals={flowGoals}
+                  flowInitialState={flowInitialState}
+                  flowSpaceId={flowSpaceId}
+                  previewPlan={flowPreviewPlan}
+                  setFlowCompensate={setFlowCompensate}
+                  setFlowGoals={setFlowGoals}
+                  setFlowInitialState={setFlowInitialState}
+                  setFlowSpaceId={setFlowSpaceId}
+                  stepId={stepId}
+                  steps={steps}
+                  updatePreviewPlan={updateFlowPreviewPlan}
+                />
+              ) : (
                 <StepEditorHttpConfiguration
                   endpoint={endpoint}
                   httpMethod={httpMethod}
