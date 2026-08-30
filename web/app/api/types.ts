@@ -224,7 +224,7 @@ export interface Space {
   id: string;
   name: string;
   description?: string;
-  selector: Record<string, string>;
+  selector: Record<string, string[]>;
 }
 
 export interface AttributeValue {

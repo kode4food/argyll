@@ -48,7 +48,8 @@ const StepEditor: React.FC<StepEditorProps> = ({
   const { spaceId } = useUI();
   const { labelKeys, valuesForKey } = useLabelVocabulary();
   const defaultLabels = React.useMemo(
-    () => spaces.find((space) => space.id === spaceId)?.selector,
+    () =>
+      singleValueLabels(spaces.find((space) => space.id === spaceId)?.selector),
     [spaces, spaceId]
   );
   const {
@@ -337,5 +338,16 @@ const StepEditor: React.FC<StepEditorProps> = ({
     </Modal>
   );
 };
+
+function singleValueLabels(
+  selector?: Record<string, string[]>
+): Record<string, string> | undefined {
+  if (!selector) return undefined;
+  const labels: Record<string, string> = {};
+  Object.entries(selector).forEach(([key, values]) => {
+    if (values.length === 1) labels[key] = values[0];
+  });
+  return labels;
+}
 
 export default StepEditor;

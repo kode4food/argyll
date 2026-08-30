@@ -1,12 +1,12 @@
 import React from "react";
-import { api, Space } from "@/app/api";
+import { api, Space, Step } from "@/app/api";
 import Modal from "@/app/components/molecules/Modal";
 import KeyValueTable, {
   type KeyValuePair,
 } from "@/app/components/molecules/KeyValueTable";
 import { useT } from "@/app/i18n";
 import { IconAttributeLabel } from "@/utils/iconRegistry";
-import { useSpaces, useSpaceSelection } from "@/app/store/flowStore";
+import { useSpaces, useSteps } from "@/app/store/flowStore";
 import { useLabelVocabulary } from "@/app/hooks/useLabelVocabulary";
 import { useUI } from "@/app/contexts/UIContext";
 import styles from "./SpaceManager.module.css";
@@ -30,7 +30,7 @@ const SpaceManager: React.FC<SpaceManagerProps> = ({ isOpen, onClose }) => {
   const spaces = useSpaces();
   const { setSpaceId } = useUI();
   const { labelKeys, valuesForKey } = useLabelVocabulary();
-  const spaceSelection = useSpaceSelection();
+  const steps = useSteps();
   const [draft, setDraft] = React.useState<SpaceDraft>(emptyDraft);
   const [editingId, setEditingId] = React.useState<string | null>(null);
   const [editorStep, setEditorStep] = React.useState(0);
@@ -154,8 +154,15 @@ const SpaceManager: React.FC<SpaceManagerProps> = ({ isOpen, onClose }) => {
     draft.selector.every(({ key, value }) => key.trim() && value.trim());
   const isValid = detailsValid && selectorValid;
   const canSave = !saving && isValid && isDirty;
-  const matchCount = editingId ? (spaceSelection[editingId]?.size ?? 0) : 0;
+  const matchCount = matchingSteps(steps, toSpace(draft));
   const selectorDescription = selectorSummary(draft.selector);
+  const selectorValueSuggestions = (key: string, id: string) =>
+    valuesForKey(key).filter(
+      (value) =>
+        !draft.selector.some(
+          (pair) => pair.id !== id && pair.key === key && pair.value === value
+        )
+    );
 
   const footer = isEditing ? (
     <>
@@ -254,6 +261,7 @@ const SpaceManager: React.FC<SpaceManagerProps> = ({ isOpen, onClose }) => {
             <div className={styles.detail}>
               <KeyValueTable
                 Icon={IconAttributeLabel}
+                canRepeatKeys
                 label={t("spaceManager.selectorLabel")}
                 addLabel={t("spaceManager.addSelector")}
                 removeLabel={t("spaceManager.removeSelector")}
@@ -264,9 +272,9 @@ const SpaceManager: React.FC<SpaceManagerProps> = ({ isOpen, onClose }) => {
                 onChange={updateSelector}
                 onRemove={removeSelector}
                 keySuggestions={labelKeys}
-                valueSuggestions={valuesForKey}
+                valueSuggestions={selectorValueSuggestions}
               />
-              {editingId && (
+              {selectorValid && (
                 <div className={styles.matches}>
                   {t("spaceManager.matchingSteps", { count: matchCount })}
                 </div>
@@ -368,11 +376,13 @@ function toDraft(space: Space): SpaceDraft {
     id: space.id,
     name: space.name,
     description: space.description ?? "",
-    selector: Object.entries(space.selector ?? {}).map(([key, value]) => ({
-      id: key,
-      key,
-      value,
-    })),
+    selector: Object.entries(space.selector ?? {}).flatMap(([key, values]) =>
+      values.map((value, index) => ({
+        id: `${key}-${index}`,
+        key,
+        value,
+      }))
+    ),
   };
 }
 
@@ -381,10 +391,13 @@ function emptyDraft(): SpaceDraft {
 }
 
 function toSpace(draft: SpaceDraft): Space {
-  const selector: Record<string, string> = {};
+  const selector: Record<string, string[]> = {};
   draft.selector.forEach(({ key, value }) => {
     const name = key.trim();
-    if (name) selector[name] = value.trim();
+    const match = value.trim();
+    if (name && !selector[name]?.includes(match)) {
+      (selector[name] ??= []).push(match);
+    }
   });
   return {
     id: draft.id.trim(),
@@ -394,12 +407,21 @@ function toSpace(draft: SpaceDraft): Space {
   };
 }
 
+function matchingSteps(steps: Step[], space: Space): number {
+  const selector = Object.entries(space.selector ?? {});
+  return steps.filter((step) =>
+    selector.every(([key, values]) => values.includes(step.labels?.[key] ?? ""))
+  ).length;
+}
+
 function fingerprint(space: Space): string {
   return JSON.stringify({
     id: space.id,
     name: space.name,
     description: space.description ?? "",
-    selector: Object.entries(space.selector ?? {}).sort(),
+    selector: Object.entries(space.selector ?? {})
+      .map(([key, values]) => [key, [...values].sort()])
+      .sort(),
   });
 }
 

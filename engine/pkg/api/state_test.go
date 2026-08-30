@@ -26,7 +26,7 @@ func TestCatalogQuery(t *testing.T) {
 		missing.ID:  missing,
 	}}
 	space := api.Space{
-		Selector: api.Labels{"domain": "payments"},
+		Selector: api.SpaceSelector{"domain": {"payments"}},
 	}
 
 	steps := cat.Query(space.Matches)
@@ -99,8 +99,8 @@ func TestSetSpace(t *testing.T) {
 	space := api.Space{
 		ID:   "payments",
 		Name: "Payments",
-		Selector: api.Labels{
-			"domain": "payments",
+		Selector: api.SpaceSelector{
+			"domain": {"payments"},
 		},
 	}
 	original := api.CatalogState{Spaces: api.Spaces{}}

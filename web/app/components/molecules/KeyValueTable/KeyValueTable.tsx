@@ -11,6 +11,7 @@ export interface KeyValuePair {
 
 export interface KeyValueTableProps {
   addLabel: string;
+  canRepeatKeys?: boolean;
   Icon: LucideIcon;
   keySuggestions: readonly string[];
   keyPlaceholder: string;
@@ -21,11 +22,12 @@ export interface KeyValueTableProps {
   pairs: KeyValuePair[];
   removeLabel: string;
   valuePlaceholder: string;
-  valueSuggestions: (key: string) => readonly string[];
+  valueSuggestions: (key: string, id: string) => readonly string[];
 }
 
 const KeyValueTable: React.FC<KeyValueTableProps> = ({
   addLabel,
+  canRepeatKeys = false,
   Icon,
   keySuggestions,
   keyPlaceholder,
@@ -66,6 +68,7 @@ const KeyValueTable: React.FC<KeyValueTableProps> = ({
             ariaLabel={keyPlaceholder}
             suggestions={keySuggestions.filter(
               (key) =>
+                canRepeatKeys ||
                 !pairs.some(
                   (other) => other.id !== pair.id && other.key === key
                 )
@@ -77,7 +80,7 @@ const KeyValueTable: React.FC<KeyValueTableProps> = ({
             onChange={(value) => onChange(pair.id, "value", value)}
             placeholder={valuePlaceholder}
             ariaLabel={valuePlaceholder}
-            suggestions={valueSuggestions(pair.key)}
+            suggestions={valueSuggestions(pair.key, pair.id)}
           />
           <button
             type="button"

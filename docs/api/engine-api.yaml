@@ -1840,13 +1840,19 @@ components:
           description: Optional space description
         selector:
           type: object
-          description: Step labels to match, combined with AND. At least one
-            entry is required
+          description: Step label keys to match with AND, with each key's
+            values combined with OR. At least one entry is required. Each
+            key's values are stored sorted and deduplicated
           minProperties: 1
           additionalProperties:
-            type: string
+            type: array
+            minItems: 1
+            items:
+              type: string
           example:
-            domain: payments
+            domain:
+              - payments
+              - risk
 
     SpaceRegisteredResponse:
       type: object

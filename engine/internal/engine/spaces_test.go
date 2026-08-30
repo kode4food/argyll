@@ -15,8 +15,8 @@ func TestSpaces(t *testing.T) {
 		space := api.Space{
 			ID:   "payments",
 			Name: "Payments",
-			Selector: api.Labels{
-				"domain": "payments",
+			Selector: api.SpaceSelector{
+				"domain": {"payments"},
 			},
 		}
 		assert.NoError(t, eng.RegisterSpace(space))
@@ -34,9 +34,9 @@ func TestSpaces(t *testing.T) {
 			ID:          "payments",
 			Name:        "Payments",
 			Description: "Production payments",
-			Selector: api.Labels{
-				"domain":      "payments",
-				"environment": "production",
+			Selector: api.SpaceSelector{
+				"domain":      {"payments"},
+				"environment": {"production"},
 			},
 		}
 		_, before, err := eng.GetCatalogStateSeq()
@@ -72,8 +72,8 @@ func TestSpacesRejectInvalid(t *testing.T) {
 		err = eng.UpdateSpace(api.Space{
 			ID:   "missing",
 			Name: "Missing",
-			Selector: api.Labels{
-				"domain": "payments",
+			Selector: api.SpaceSelector{
+				"domain": {"payments"},
 			},
 		})
 		assert.ErrorIs(t, err, engine.ErrSpaceNotFound)
@@ -98,8 +98,8 @@ func TestSpaceSelectionEvents(t *testing.T) {
 		domain := api.Space{
 			ID:   "z-domain",
 			Name: "Domain",
-			Selector: api.Labels{
-				"domain": "payments",
+			Selector: api.SpaceSelector{
+				"domain": {"payments"},
 			},
 		}
 		assert.NoError(t, eng.RegisterSpace(domain))
@@ -113,8 +113,8 @@ func TestSpaceSelectionEvents(t *testing.T) {
 		environment := api.Space{
 			ID:   "a-environment",
 			Name: "Environment",
-			Selector: api.Labels{
-				"environment": "production",
+			Selector: api.SpaceSelector{
+				"environment": {"production"},
 			},
 		}
 		assert.NoError(t, eng.RegisterSpace(environment))
@@ -155,8 +155,8 @@ func TestSpaceSelectionEvents(t *testing.T) {
 		domain = api.Space{
 			ID:   domain.ID,
 			Name: domain.Name,
-			Selector: api.Labels{
-				"environment": "production",
+			Selector: api.SpaceSelector{
+				"environment": {"production"},
 			},
 		}
 		assert.NoError(t, eng.UpdateSpace(domain))
@@ -191,8 +191,8 @@ func TestSpaceSubFlowReferences(t *testing.T) {
 		space := api.Space{
 			ID:   "payments",
 			Name: "Payments",
-			Selector: api.Labels{
-				"domain": "payments",
+			Selector: api.SpaceSelector{
+				"domain": {"payments"},
 			},
 		}
 		assert.NoError(t, eng.RegisterSpace(space))
@@ -204,7 +204,7 @@ func TestSpaceSubFlowReferences(t *testing.T) {
 		assert.ErrorIs(t, err, engine.ErrSpaceGoalExcluded)
 
 		changedSpace := space
-		changedSpace.Selector = api.Labels{"domain": "inventory"}
+		changedSpace.Selector = api.SpaceSelector{"domain": {"inventory"}}
 		err = eng.UpdateSpace(changedSpace)
 		assert.ErrorIs(t, err, engine.ErrSpaceGoalExcluded)
 

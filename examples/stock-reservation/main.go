@@ -137,8 +137,8 @@ func releaseStock(reservation StockReservation) error {
 	inv.mu.Lock()
 	defer inv.mu.Unlock()
 
-	// Releasing an unknown reservation is a no-op, so a repeated
-	// compensation cannot return the same stock twice
+	// Releasing an unknown reservation is a no-op, so a repeated compensation
+	// cannot return the same stock twice
 	held := inv.reservations[productID]
 	idx := slices.IndexFunc(held, func(r StockReservation) bool {
 		return r.ReservationID == reservationID

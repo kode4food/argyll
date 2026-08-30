@@ -1099,7 +1099,7 @@ func TestSubFlowSpace(t *testing.T) {
 			"payments": {
 				ID:       "payments",
 				Name:     "Payments",
-				Selector: api.Labels{"domain": "payments"},
+				Selector: api.SpaceSelector{"domain": {"payments"}},
 			},
 		}
 		cat.Selection = api.SpaceSelection{"payments": {goal.ID}}

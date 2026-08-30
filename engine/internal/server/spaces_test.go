@@ -20,8 +20,8 @@ func TestSpaceAPI(t *testing.T) {
 			ID:          "payments",
 			Name:        "Payments",
 			Description: "Payment services",
-			Selector: api.Labels{
-				"domain": "payments",
+			Selector: api.SpaceSelector{
+				"domain": {"payments"},
 			},
 		}
 
@@ -57,8 +57,8 @@ func TestSpaceAPI(t *testing.T) {
 			ID:          "payments",
 			Name:        "Payments",
 			Description: "Updated",
-			Selector: api.Labels{
-				"domain": "payments",
+			Selector: api.SpaceSelector{
+				"domain": {"payments"},
 			},
 		}
 		w = spaceRequest(t, spaceRequestArgs{
@@ -218,9 +218,9 @@ func TestSpaceDynamicPlanning(t *testing.T) {
 		updated := api.Space{
 			ID:   "payments",
 			Name: "Payments",
-			Selector: api.Labels{
-				"domain":      "payments",
-				"environment": "stage",
+			Selector: api.SpaceSelector{
+				"domain":      {"payments"},
+				"environment": {"stage"},
 			},
 		}
 		assert.NoError(t, env.Engine.UpdateSpace(updated))
@@ -293,8 +293,8 @@ func paymentSpace() api.Space {
 	return api.Space{
 		ID:   "payments",
 		Name: "Payments",
-		Selector: api.Labels{
-			"domain": "payments",
+		Selector: api.SpaceSelector{
+			"domain": {"payments"},
 		},
 	}
 }

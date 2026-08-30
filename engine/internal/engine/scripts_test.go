@@ -125,8 +125,8 @@ func TestCreatePlanRestrictsChildFlowToSpace(t *testing.T) {
 		space := api.Space{
 			ID:   "payments",
 			Name: "Payments",
-			Selector: api.Labels{
-				"domain": "payments",
+			Selector: api.SpaceSelector{
+				"domain": {"payments"},
 			},
 		}
 		assert.NoError(t, eng.RegisterSpace(space))

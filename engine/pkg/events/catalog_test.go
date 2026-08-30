@@ -181,7 +181,7 @@ func TestSpaceSelectionProjection(t *testing.T) {
 	space := api.Space{
 		ID:       "payments",
 		Name:     "Payments",
-		Selector: api.Labels{"domain": "payments"},
+		Selector: api.SpaceSelector{"domain": {"payments"}},
 	}
 	inside := &api.Step{ID: "inside", Labels: api.Labels{
 		"domain": "payments",

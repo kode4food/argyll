@@ -12,21 +12,6 @@ import (
 )
 
 type (
-	// StepType defines the execution mode for a step (sync, async, or script)
-	StepType string
-
-	// Handling defines how a step's completed work is retained or reversed
-	Handling string
-
-	// ActionMode defines how an HTTP action reports its result
-	ActionMode string
-
-	// Steps contains a map of Steps by their ID
-	Steps map[StepID]*Step
-
-	// Labels contains optional step metadata used for discovery and grouping
-	Labels map[string]string
-
 	// Step defines a flow step with its configuration, attributes, and
 	// execution details
 	Step struct {
@@ -84,6 +69,21 @@ type (
 		MaxBackoff  int64  `json:"max_backoff,omitempty"`
 		Parallelism int    `json:"parallelism,omitempty"`
 	}
+
+	// StepType defines the execution mode for a step (sync, async, or script)
+	StepType string
+
+	// Handling defines how a step's completed work is retained or reversed
+	Handling string
+
+	// ActionMode defines how an HTTP action reports its result
+	ActionMode string
+
+	// Steps contains a map of Steps by their ID
+	Steps map[StepID]*Step
+
+	// Labels contains optional step metadata used for discovery and grouping
+	Labels map[string]string
 
 	attrPair struct {
 		V *AttributeSpec `json:"v"`

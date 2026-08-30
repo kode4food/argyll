@@ -343,7 +343,7 @@ describe("StepEditor", () => {
       {
         id: "risk",
         name: "Risk",
-        selector: { domain: "risk" },
+        selector: { domain: ["risk"] },
       },
     ];
     selectedSpaceId = "risk";
@@ -356,6 +356,28 @@ describe("StepEditor", () => {
       expect(screen.getByDisplayValue("domain")).toBeInTheDocument();
       expect(screen.getByDisplayValue("risk")).toBeInTheDocument();
     });
+  });
+
+  test("does not seed labels with alternative Space values", async () => {
+    spacesInStore = [
+      {
+        id: "risk",
+        name: "Risk",
+        selector: { domain: ["risk", "trading"], tier: ["gold"] },
+      },
+    ];
+    selectedSpaceId = "risk";
+
+    render(
+      <StepEditor step={null} onClose={mockOnClose} onUpdate={mockOnUpdate} />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByDisplayValue("tier")).toBeInTheDocument();
+      expect(screen.getByDisplayValue("gold")).toBeInTheDocument();
+    });
+    expect(screen.queryByDisplayValue("domain")).not.toBeInTheDocument();
+    expect(screen.queryByDisplayValue("risk")).not.toBeInTheDocument();
   });
 
   test("seeds no labels without a selected Space", async () => {

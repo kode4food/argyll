@@ -3,9 +3,19 @@ package api
 import (
 	"errors"
 	"fmt"
+	"maps"
+	"slices"
 )
 
 type (
+	// Space defines a dynamic planning scope over registered steps
+	Space struct {
+		Selector    SpaceSelector `json:"selector"`
+		ID          SpaceID       `json:"id"`
+		Name        Name          `json:"name"`
+		Description string        `json:"description,omitempty"`
+	}
+
 	// SpaceID uniquely identifies a planning space
 	SpaceID string
 
@@ -15,13 +25,8 @@ type (
 	// SpaceSelection contains the Step IDs each Space's selector selected
 	SpaceSelection map[SpaceID][]StepID
 
-	// Space defines a dynamic planning scope over registered steps
-	Space struct {
-		Selector    Labels  `json:"selector"`
-		ID          SpaceID `json:"id"`
-		Name        Name    `json:"name"`
-		Description string  `json:"description,omitempty"`
-	}
+	// SpaceSelector matches label keys with AND and their values with OR
+	SpaceSelector map[string][]string
 )
 
 var (
@@ -49,27 +54,47 @@ func (s Space) Validate() error {
 	if len(s.Selector) > MaxLabelCount {
 		return fmt.Errorf("%w: maximum is %d", ErrTooManyLabels, MaxLabelCount)
 	}
-	for key, value := range s.Selector {
-		if key == "" || value == "" {
+	for key, values := range s.Selector {
+		if key == "" || len(values) == 0 || slices.Contains(values, "") {
 			return ErrInvalidMatchLabels
 		}
 	}
 	return nil
 }
 
+// Normalize returns the Space with its selector values sorted and deduped
+func (s Space) Normalize() Space {
+	selector := make(SpaceSelector, len(s.Selector))
+	for key, values := range s.Selector {
+		selector[key] = slices.Compact(sorted(values))
+	}
+	s.Selector = selector
+	return s
+}
+
 // Equal returns true if two space definitions are equal
 func (s Space) Equal(other Space) bool {
 	return s.ID == other.ID && s.Name == other.Name &&
 		s.Description == other.Description &&
-		s.Selector.Equal(other.Selector)
+		selectorsEqual(s.Selector, other.Selector)
 }
 
-// Matches returns true when all selector labels match the step's labels
+// Matches returns true when every selector key matches one of its values
 func (s Space) Matches(step *Step) bool {
-	for key, value := range s.Selector {
-		if step.Labels[key] != value {
+	for key, values := range s.Selector {
+		if !slices.Contains(values, step.Labels[key]) {
 			return false
 		}
 	}
 	return true
+}
+
+func selectorsEqual(left, right SpaceSelector) bool {
+	return maps.EqualFunc(left, right, func(l, r []string) bool {
+		return slices.Equal(sorted(l), sorted(r))
+	})
+}
+
+func sorted(values []string) []string {
+	return slices.Sorted(slices.Values(values))
 }

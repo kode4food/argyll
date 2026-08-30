@@ -40,7 +40,7 @@ describe("SpaceManager", () => {
         id: "risk",
         name: "Risk",
         description: "Risk steps",
-        selector: { domain: "risk" },
+        selector: { domain: ["risk"] },
       },
     ];
     stepsInStore = [
@@ -131,7 +131,7 @@ describe("SpaceManager", () => {
       expect(mockApi.registerSpace).toHaveBeenCalledWith({
         id: "domain-trading",
         name: "trading domain",
-        selector: { domain: "trading" },
+        selector: { domain: ["trading"] },
       });
       expect(setSpaceId).toHaveBeenCalledWith("domain-trading");
     });
@@ -176,9 +176,29 @@ describe("SpaceManager", () => {
         id: "risk",
         name: "Risk Domain",
         description: "Risk steps",
-        selector: { domain: "risk" },
+        selector: { domain: ["risk"] },
       });
       expect(setSpaceId).toHaveBeenCalledWith("risk");
+    });
+  });
+
+  test("combines repeated selector keys as alternatives", async () => {
+    open();
+    fireEvent.click(screen.getByText("Risk"));
+    addSelector("domain", "trading");
+    addSelector("domain", "risk");
+    next();
+    fireEvent.click(
+      screen.getByRole("button", { name: t("spaceManager.save") })
+    );
+
+    await waitFor(() => {
+      expect(mockApi.updateSpace).toHaveBeenCalledWith("risk", {
+        id: "risk",
+        name: "Risk",
+        description: "Risk steps",
+        selector: { domain: ["risk", "trading"] },
+      });
     });
   });
 
@@ -276,7 +296,20 @@ describe("SpaceManager", () => {
     expect(screen.getByRole("option", { name: "trading" })).toBeInTheDocument();
   });
 
-  test("excludes keys already used by another selector row", () => {
+  test("excludes values already used for the same selector key", () => {
+    open();
+    startNew();
+    addSelector("domain", "risk");
+    addSelector("domain");
+    fireEvent.click(screen.getAllByLabelText("Show suggestions")[3]);
+
+    expect(screen.getByRole("option", { name: "trading" })).toBeInTheDocument();
+    expect(
+      screen.queryByRole("option", { name: "risk" })
+    ).not.toBeInTheDocument();
+  });
+
+  test("allows keys already used by another selector row", () => {
     open();
     startNew();
     addSelector("domain", "risk");
@@ -284,8 +317,6 @@ describe("SpaceManager", () => {
     fireEvent.click(screen.getAllByLabelText("Show suggestions")[2]);
 
     expect(screen.getByRole("option", { name: "tier" })).toBeInTheDocument();
-    expect(
-      screen.queryByRole("option", { name: "domain" })
-    ).not.toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "domain" })).toBeInTheDocument();
   });
 });

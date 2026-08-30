@@ -22,6 +22,7 @@ func (e *Engine) RegisterSpace(space api.Space) error {
 	if err := space.Validate(); err != nil {
 		return errors.Join(ErrInvalidSpace, err)
 	}
+	space = space.Normalize()
 	return e.CatalogTx(func(tx *CatalogTx) error {
 		st := tx.ag.Value()
 		old, ok := st.Spaces[space.ID]
@@ -58,6 +59,7 @@ func (e *Engine) UpdateSpace(space api.Space) error {
 	if err := space.Validate(); err != nil {
 		return errors.Join(ErrInvalidSpace, err)
 	}
+	space = space.Normalize()
 	return e.CatalogTx(func(tx *CatalogTx) error {
 		st := tx.ag.Value()
 		old, ok := st.Spaces[space.ID]
