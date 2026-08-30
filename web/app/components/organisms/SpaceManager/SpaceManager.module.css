@@ -26,6 +26,13 @@
   cursor: pointer;
 }
 
+.listItem > span {
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .listItemId {
   font-size: var(--text-xs);
   opacity: var(--opacity-muted);

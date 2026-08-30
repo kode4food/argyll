@@ -81,7 +81,11 @@ describe("flowGoalSelectionModel", () => {
 
     expect(setGoalSteps).toHaveBeenCalledWith(["notification-sender"]);
     expect(setPreviewPlan).toHaveBeenCalledWith(combinedPlan);
-    expect(updatePreviewPlan).toHaveBeenCalledWith(["notification-sender"], {});
+    expect(updatePreviewPlan).toHaveBeenCalledWith(
+      ["notification-sender"],
+      {},
+      undefined
+    );
     expect(clearPreviewPlan).not.toHaveBeenCalled();
     expect(setNewID).toHaveBeenCalledWith("notification-sender-0001");
   });

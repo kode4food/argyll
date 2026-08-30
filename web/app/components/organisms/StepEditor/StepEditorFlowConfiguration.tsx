@@ -66,7 +66,8 @@ interface StepEditorFlowConfigurationProps {
   steps: Step[];
   updatePreviewPlan: (
     goalSteps: string[],
-    initialState: Record<string, any>
+    initialState: Record<string, any>,
+    spaceId?: string
   ) => Promise<void>;
 }
 
@@ -134,6 +135,7 @@ const StepEditorFlowConfiguration: React.FC<
       setGoalSteps: (ids) => setFlowGoals(ids.join(", ")),
       updatePreviewPlan,
       clearPreviewPlan,
+      spaceId: flowSpaceId || undefined,
     });
   }, [
     clearPreviewPlan,
@@ -142,6 +144,7 @@ const StepEditorFlowConfiguration: React.FC<
     setFlowGoals,
     setFlowInitialState,
     sortedSteps,
+    flowSpaceId,
     updatePreviewPlan,
   ]);
 
@@ -159,6 +162,7 @@ const StepEditorFlowConfiguration: React.FC<
       setGoalSteps: (ids) => setFlowGoals(ids.join(", ")),
       updatePreviewPlan,
       clearPreviewPlan,
+      spaceId: flowSpaceId || undefined,
     });
   }, [
     clearPreviewPlan,
@@ -168,6 +172,7 @@ const StepEditorFlowConfiguration: React.FC<
     setFlowInitialState,
     sortedSteps,
     stepId,
+    flowSpaceId,
     updatePreviewPlan,
   ]);
 
@@ -189,6 +194,7 @@ const StepEditorFlowConfiguration: React.FC<
         setGoalSteps: (ids) => setFlowGoals(ids.join(", ")),
         updatePreviewPlan,
         clearPreviewPlan,
+        spaceId: flowSpaceId || undefined,
       });
     },
     [
@@ -198,6 +204,7 @@ const StepEditorFlowConfiguration: React.FC<
       setFlowGoals,
       setFlowInitialState,
       sortedSteps,
+      flowSpaceId,
       updatePreviewPlan,
     ]
   );
@@ -210,10 +217,9 @@ const StepEditorFlowConfiguration: React.FC<
       const nextGoals = selected
         ? goalList.filter((id) => selected.has(id))
         : goalList;
-      if (nextGoals.length === goalList.length) {
-        return;
-      }
 
+      setFlowGoals(nextGoals.join(", "));
+      clearPreviewPlan();
       void applyFlowGoalSelectionChange({
         stepIds: nextGoals,
         initialState: flowInitialState,
@@ -222,6 +228,7 @@ const StepEditorFlowConfiguration: React.FC<
         setGoalSteps: (ids) => setFlowGoals(ids.join(", ")),
         updatePreviewPlan,
         clearPreviewPlan,
+        spaceId: value || undefined,
       });
     },
     [

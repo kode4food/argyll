@@ -26,6 +26,12 @@ textarea:focus-visible {
   outline: none;
 }
 
+button,
+input,
+select {
+  white-space: nowrap;
+}
+
 input::placeholder,
 textarea::placeholder {
   color: var(--panel-text-placeholder);

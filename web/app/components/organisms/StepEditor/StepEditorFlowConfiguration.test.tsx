@@ -5,6 +5,13 @@ import StepEditorFlowConfiguration from "./StepEditorFlowConfiguration";
 
 const mockApplyFlowGoalSelectionChange = jest.fn();
 const mockUseFlowFormStepFiltering = jest.fn();
+let mockSpaces: { id: string; name: string; selector: object }[] = [];
+let mockSpaceSelection: Record<string, Set<string>> = {};
+
+jest.mock("@/app/store/flowStore", () => ({
+  useSpaces: () => mockSpaces,
+  useSpaceSelection: () => mockSpaceSelection,
+}));
 
 jest.mock("@/utils/flowGoalSelectionModel", () => ({
   applyFlowGoalSelectionChange: (...args: any[]) =>
@@ -59,6 +66,8 @@ describe("StepEditorFlowConfiguration", () => {
     setFlowCompensate: jest.fn(),
     setFlowGoals: jest.fn(),
     setFlowInitialState: jest.fn(),
+    flowSpaceId: "",
+    setFlowSpaceId: jest.fn(),
     stepId: "current-step",
     steps,
     updatePreviewPlan: jest.fn().mockResolvedValue(undefined),
@@ -66,6 +75,8 @@ describe("StepEditorFlowConfiguration", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    mockSpaces = [];
+    mockSpaceSelection = {};
     mockApplyFlowGoalSelectionChange.mockResolvedValue(undefined);
     mockUseFlowFormStepFiltering.mockReturnValue({
       included: new Set(),
@@ -128,5 +139,34 @@ describe("StepEditorFlowConfiguration", () => {
         })
         .getAttribute("title")
     ).toBe(t("flowCreate.tooltipAlreadyIncluded"));
+  });
+
+  test("prunes goals immediately when Space changes", async () => {
+    mockSpaces = [{ id: "alpha-space", name: "Alpha Space", selector: {} }];
+    mockSpaceSelection = { "alpha-space": new Set(["alpha"]) };
+
+    render(
+      <StepEditorFlowConfiguration {...baseProps} flowGoals="alpha, beta" />
+    );
+
+    await waitFor(() => {
+      expect(mockApplyFlowGoalSelectionChange).toHaveBeenCalled();
+    });
+    jest.clearAllMocks();
+
+    fireEvent.click(
+      screen.getByRole("button", { name: t("flowCreate.spaceLabel") })
+    );
+    fireEvent.click(screen.getByRole("option", { name: "Alpha Space" }));
+
+    expect(baseProps.setFlowSpaceId).toHaveBeenCalledWith("alpha-space");
+    expect(baseProps.setFlowGoals).toHaveBeenCalledWith("alpha");
+    expect(baseProps.clearPreviewPlan).toHaveBeenCalled();
+    expect(mockApplyFlowGoalSelectionChange).toHaveBeenCalledWith(
+      expect.objectContaining({
+        stepIds: ["alpha"],
+        spaceId: "alpha-space",
+      })
+    );
   });
 });

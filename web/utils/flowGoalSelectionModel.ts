@@ -18,7 +18,8 @@ export interface ApplyFlowGoalSelectionChangeParams {
   setGoalSteps: (stepIds: string[]) => void;
   updatePreviewPlan: (
     goalSteps: string[],
-    initialState: Record<string, any>
+    initialState: Record<string, any>,
+    spaceId?: string
   ) => Promise<void>;
   setPreviewPlan?: (plan: ExecutionPlan | null) => void;
   clearPreviewPlan: () => void;
@@ -96,14 +97,14 @@ export async function applyFlowGoalSelectionChange({
 
         if (finalGoals.length !== stepIds.length) {
           setGoalSteps(finalGoals);
-          await updatePreviewPlan(finalGoals, nonDefaultState);
+          await updatePreviewPlan(finalGoals, nonDefaultState, spaceId);
           return;
         }
       } catch {}
     }
 
     setGoalSteps(stepIds);
-    await updatePreviewPlan(stepIds, nonDefaultState);
+    await updatePreviewPlan(stepIds, nonDefaultState, spaceId);
   } catch {
     setPreviewPlan?.(null);
     clearPreviewPlan();

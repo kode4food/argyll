@@ -118,8 +118,16 @@ const StepEditor: React.FC<StepEditorProps> = ({
   const [flowInitialState, setFlowInitialState] = React.useState("{}");
 
   const updateFlowPreviewPlan = React.useCallback(
-    async (goalSteps: string[], initialState: Record<string, any>) => {
-      const plan = await api.getExecutionPlan({ goalSteps, initialState });
+    async (
+      goalSteps: string[],
+      initialState: Record<string, any>,
+      previewSpaceId?: string
+    ) => {
+      const plan = await api.getExecutionPlan({
+        goalSteps,
+        initialState,
+        spaceId: previewSpaceId,
+      });
       setFlowPreviewPlan(plan);
     },
     []
