@@ -536,6 +536,44 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /engine/spaces/preview:
+    post:
+      summary: Preview a Space selector
+      description: Evaluate an unsaved QBE or script selector against the
+        current Step catalog without persisting it. Only the selector is
+        read, so a Space still being drafted can be previewed without an
+        `id` or `name`
+      operationId: previewSpace
+      tags:
+        - Spaces
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Space"
+      responses:
+        "200":
+          description: Step IDs selected by the selector
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+        "400":
+          description: Invalid selector
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Failed to evaluate the selector
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /engine/spaces/{space_id}/steps:
     parameters:
       - name: space_id
@@ -1680,11 +1718,13 @@ components:
     ScriptConfig:
       type: object
       description: |
-        Configuration for script-based steps, predicates, and attribute mappings.
+        Configuration for script-based steps, predicates, attribute mappings,
+        and Space selectors.
 
         For step execution (`type: script`), `lua` is supported.
         For predicates and attribute mappings, all registered languages are valid
         (`lua`, `jpath` in the default engine).
+        Space selectors use the same languages and evaluate only Step labels.
       required:
         - language
         - script
@@ -1825,7 +1865,9 @@ components:
       required:
         - id
         - name
-        - selector
+      anyOf:
+        - required: [selector]
+        - required: [qbe]
       properties:
         id:
           type: string
@@ -1839,10 +1881,17 @@ components:
           type: string
           description: Optional space description
         selector:
+          allOf:
+            - $ref: "#/components/schemas/ScriptConfig"
+          description: Authoritative selector, a predicate over the Step
+            labels object in any registered scripting language. Lua receives
+            the labels as `value`; JPath receives them as its document
+        qbe:
           type: object
-          description: Step label keys to match with AND, with each key's
-            values combined with OR. At least one entry is required. Each
-            key's values are stored sorted and deduplicated
+          description: Optional query-by-example source. Keys are combined
+            with AND and each key's values with OR. When present, the engine
+            stores it sorted and deduplicated and replaces `selector` with
+            generated Lua
           minProperties: 1
           additionalProperties:
             type: array

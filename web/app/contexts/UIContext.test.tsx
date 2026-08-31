@@ -21,7 +21,13 @@ const mockApi = api as jest.Mocked<typeof api>;
 describe("UIContext", () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    spacesInStore = [{ id: "risk", name: "Risk", selector: {} }];
+    spacesInStore = [
+      {
+        id: "risk",
+        name: "Risk",
+        selector: { language: "lua", script: "return true" },
+      },
+    ];
   });
 
   const wrapper = ({ children }: { children: React.ReactNode }) => (
@@ -300,7 +306,11 @@ describe("UIContext", () => {
 
     spacesInStore = [
       ...spacesInStore,
-      { id: "trading", name: "Trading", selector: {} },
+      {
+        id: "trading",
+        name: "Trading",
+        selector: { language: "lua", script: "return true" },
+      },
     ];
     rerender();
 

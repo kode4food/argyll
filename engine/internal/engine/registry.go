@@ -80,7 +80,8 @@ func (tx *CatalogTx) Register(step *api.Step) error {
 		}
 		return fmt.Errorf("%w: %s", ErrStepExists, step.ID)
 	}
-	if err := validateStepUpsert(st, step, tx.e.steps.Children); err != nil {
+	err = tx.e.validateStepUpsert(st, step, tx.e.steps.Children)
+	if err != nil {
 		return err
 	}
 	return tx.e.raiseStepRegisteredEvent(step, tx.ag)
@@ -99,7 +100,8 @@ func (tx *CatalogTx) Update(step *api.Step) error {
 	if old.Equal(step) {
 		return nil
 	}
-	if err := validateStepUpsert(st, step, tx.e.steps.Children); err != nil {
+	err = tx.e.validateStepUpsert(st, step, tx.e.steps.Children)
+	if err != nil {
 		return err
 	}
 	return tx.e.raiseStepUpdatedEvent(step, tx.ag)
@@ -112,7 +114,11 @@ func (tx *CatalogTx) Remove(stepID api.StepID) error {
 	}
 	var spaces []api.SpaceID
 	if step, ok := st.Steps[stepID]; ok {
-		spaces = matchingSpaceIDs(st, step)
+		var err error
+		spaces, err = tx.e.matchingSpaceIDs(st, step)
+		if err != nil {
+			return err
+		}
 	}
 	return events.Raise(tx.ag, api.EventTypeStepUnregistered,
 		api.StepUnregisteredEvent{StepID: stepID, Spaces: spaces},
@@ -134,10 +140,14 @@ func (e *Engine) validateStep(st *api.Step) error {
 func (e *Engine) raiseStepRegisteredEvent(
 	step *api.Step, ag *CatalogAggregator,
 ) error {
+	spaces, err := e.matchingSpaceIDs(ag.Value(), step)
+	if err != nil {
+		return err
+	}
 	if err := events.Raise(ag, api.EventTypeStepRegistered,
 		api.StepRegisteredEvent{
 			Step:   step,
-			Spaces: matchingSpaceIDs(ag.Value(), step),
+			Spaces: spaces,
 		},
 	); err != nil {
 		return err
@@ -151,10 +161,14 @@ func (e *Engine) raiseStepRegisteredEvent(
 func (e *Engine) raiseStepUpdatedEvent(
 	step *api.Step, ag *CatalogAggregator,
 ) error {
+	spaces, err := e.matchingSpaceIDs(ag.Value(), step)
+	if err != nil {
+		return err
+	}
 	if err := events.Raise(ag, api.EventTypeStepUpdated,
 		api.StepUpdatedEvent{
 			Step:   step,
-			Spaces: matchingSpaceIDs(ag.Value(), step),
+			Spaces: spaces,
 		},
 	); err != nil {
 		return err
@@ -188,13 +202,13 @@ func (tx *CatalogTx) prepareStep(step *api.Step) (*api.Step, error) {
 	return step, nil
 }
 
-func validateStepUpsert(
+func (e *Engine) validateStepUpsert(
 	st api.CatalogState, newStep *api.Step,
 	children func(*api.Step) ([]api.StepID, error),
 ) error {
 	if err := call.Perform(
 		call.WithArgs(validateAttributeTypes, st, newStep),
-		call.WithArgs(validateSpaceSubFlows, st, newStep),
+		call.WithArgs(e.validateSpaceSubFlows, st, newStep),
 		func() error { return detectStepCycles(st, newStep, children) },
 	); err != nil {
 		return errors.Join(ErrInvalidStep, err)

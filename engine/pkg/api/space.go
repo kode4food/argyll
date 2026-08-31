@@ -10,7 +10,8 @@ import (
 type (
 	// Space defines a dynamic planning scope over registered steps
 	Space struct {
-		Selector    SpaceSelector `json:"selector"`
+		Selector    *ScriptConfig `json:"selector"`
+		QBE         SpaceQuery    `json:"qbe,omitempty"`
 		ID          SpaceID       `json:"id"`
 		Name        Name          `json:"name"`
 		Description string        `json:"description,omitempty"`
@@ -25,8 +26,8 @@ type (
 	// SpaceSelection contains the Step IDs each Space's selector selected
 	SpaceSelection map[SpaceID][]StepID
 
-	// SpaceSelector matches label keys with AND and their values with OR
-	SpaceSelector map[string][]string
+	// SpaceQuery matches label keys with AND and their values with OR
+	SpaceQuery map[string][]string
 )
 
 var (
@@ -34,7 +35,7 @@ var (
 	ErrSpaceIDInvalid     = errors.New("space ID contains invalid characters")
 	ErrSpaceNameEmpty     = errors.New("space name empty")
 	ErrSpaceSelectorEmpty = errors.New("space selector empty")
-	ErrInvalidMatchLabels = errors.New("invalid match labels")
+	ErrInvalidSpaceQuery  = errors.New("invalid space query")
 )
 
 // Validate checks if the space definition is valid
@@ -48,53 +49,47 @@ func (s Space) Validate() error {
 	if s.Name == "" {
 		return ErrSpaceNameEmpty
 	}
-	if len(s.Selector) == 0 {
+	return s.ValidateSelector()
+}
+
+// ValidateSelector checks if the space selector and its QBE source are valid.
+// The selector is a label predicate, so its language is left to the script
+// registry to accept or reject
+func (s Space) ValidateSelector() error {
+	if s.Selector == nil {
 		return ErrSpaceSelectorEmpty
 	}
-	if len(s.Selector) > MaxLabelCount {
+	if s.Selector.Script == "" {
+		return ErrScriptEmpty
+	}
+	if len(s.QBE) > MaxLabelCount {
 		return fmt.Errorf("%w: maximum is %d", ErrTooManyLabels, MaxLabelCount)
 	}
-	for key, values := range s.Selector {
+	for key, values := range s.QBE {
 		if key == "" || len(values) == 0 || slices.Contains(values, "") {
-			return ErrInvalidMatchLabels
+			return ErrInvalidSpaceQuery
 		}
 	}
 	return nil
 }
 
-// Normalize returns the Space with its selector values sorted and deduped
+// Normalize returns the Space with its QBE values sorted and deduped
 func (s Space) Normalize() Space {
-	selector := make(SpaceSelector, len(s.Selector))
-	for key, values := range s.Selector {
-		selector[key] = slices.Compact(sorted(values))
+	if len(s.QBE) == 0 {
+		return s
 	}
-	s.Selector = selector
+	qbe := make(SpaceQuery, len(s.QBE))
+	for key, values := range s.QBE {
+		qbe[key] = slices.Compact(slices.Sorted(slices.Values(values)))
+	}
+	s.QBE = qbe
 	return s
 }
 
-// Equal returns true if two space definitions are equal
+// Equal returns true if two normalized space definitions are equal
 func (s Space) Equal(other Space) bool {
 	return s.ID == other.ID && s.Name == other.Name &&
 		s.Description == other.Description &&
-		selectorsEqual(s.Selector, other.Selector)
-}
-
-// Matches returns true when every selector key matches one of its values
-func (s Space) Matches(step *Step) bool {
-	for key, values := range s.Selector {
-		if !slices.Contains(values, step.Labels[key]) {
-			return false
-		}
-	}
-	return true
-}
-
-func selectorsEqual(left, right SpaceSelector) bool {
-	return maps.EqualFunc(left, right, func(l, r []string) bool {
-		return slices.Equal(sorted(l), sorted(r))
-	})
-}
-
-func sorted(values []string) []string {
-	return slices.Sorted(slices.Values(values))
+		s.Selector.Equal(other.Selector) &&
+		maps.EqualFunc(s.QBE, other.QBE, slices.Equal)
 }

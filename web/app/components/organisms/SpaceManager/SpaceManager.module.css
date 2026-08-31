@@ -53,7 +53,7 @@
 
 .stepper {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   padding: 0;
   margin: 0;
   list-style: none;
@@ -64,7 +64,7 @@
   position: relative;
   display: flex;
   align-items: center;
-  gap: var(--spacing-xs);
+  gap: var(--spacing-sm);
   color: var(--panel-text-muted);
   font-size: var(--text-xs);
 }
@@ -149,6 +149,7 @@
 .matches {
   color: var(--panel-text-muted);
   font-size: var(--text-xs);
+  min-height: 1lh;
 }
 
 .error {
@@ -180,6 +181,25 @@
   font-family: inherit;
   font-size: var(--text-xs);
   cursor: pointer;
+}
+
+.advanced {
+  composes: interactive focusRing from "@/app/styles/components/interaction.module.css";
+  align-self: flex-end;
+  padding: 0;
+  background: none;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--color-info);
+  font-family: inherit;
+  font-size: var(--text-xs);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.advanced:disabled {
+  opacity: var(--opacity-disabled);
+  cursor: not-allowed;
 }
 
 .button:disabled {

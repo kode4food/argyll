@@ -9,110 +9,85 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
-func TestSpaceMatches(t *testing.T) {
-	space := api.Space{Selector: api.SpaceSelector{
-		"domain":      {"payments", "risk"},
-		"environment": {"production"},
-	}}
-
-	tests := []struct {
-		name   string
-		labels api.Labels
-		match  bool
-	}{
-		{
-			name: "matches first value and all keys",
-			labels: api.Labels{
-				"domain":      "payments",
-				"environment": "production",
-				"team":        "core",
-			},
-			match: true,
-		},
-		{
-			name: "matches alternative value and all keys",
-			labels: api.Labels{
-				"domain":      "risk",
-				"environment": "production",
-			},
-			match: true,
-		},
-		{
-			name: "rejects different value",
-			labels: api.Labels{
-				"domain":      "payments",
-				"environment": "staging",
-			},
-		},
-		{
-			name:   "rejects missing label",
-			labels: api.Labels{"domain": "payments"},
-		},
-		{name: "rejects nil labels"},
-	}
-
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			step := &api.Step{Labels: test.labels}
-			assert.Equal(t, test.match, space.Matches(step))
-		})
-	}
-	assert.True(t, api.Space{}.Matches(&api.Step{}))
-}
-
 func TestSpaceJSON(t *testing.T) {
-	data, err := json.Marshal(api.Space{
-		ID:       "payments",
-		Name:     "Payments",
-		Selector: api.SpaceSelector{"domain": {"payments", "risk"}},
-	})
+	space := api.Space{
+		ID:   "payments",
+		Name: "Payments",
+		QBE:  api.SpaceQuery{"domain": {"payments", "risk"}},
+		Selector: &api.ScriptConfig{
+			Language: api.ScriptLangJPath,
+			Script:   `$.domain == "payments"`,
+		},
+	}.Normalize()
+	data, err := json.Marshal(space)
 	assert.NoError(t, err)
 	assert.JSONEq(t, `{
 		"id": "payments",
 		"name": "Payments",
-		"selector": {"domain": ["payments", "risk"]}
+		"qbe": {"domain": ["payments", "risk"]},
+		"selector": {
+			"language": "jpath",
+			"script": "$.domain == \"payments\""
+		}
 	}`, string(data))
 }
 
 func TestSpaceValidate(t *testing.T) {
 	space := api.Space{
-		ID:       "payments",
-		Name:     "Payments",
-		Selector: api.SpaceSelector{"domain": {}},
-	}
-	assert.ErrorIs(t, space.Validate(), api.ErrInvalidMatchLabels)
+		ID: "payments", Name: "Payments",
+		QBE: api.SpaceQuery{"domain": {}},
+		Selector: &api.ScriptConfig{
+			Language: api.ScriptLangJPath,
+			Script:   `$.domain == "payments"`,
+		},
+	}.Normalize()
+	assert.ErrorIs(t, space.Validate(), api.ErrInvalidSpaceQuery)
 
-	space.Selector = api.SpaceSelector{"domain": {""}}
-	assert.ErrorIs(t, space.Validate(), api.ErrInvalidMatchLabels)
+	space.QBE = api.SpaceQuery{"domain": {""}}
+	assert.ErrorIs(t, space.Validate(), api.ErrInvalidSpaceQuery)
+
+	space.QBE = nil
+	assert.NoError(t, space.Validate())
+
+	space.Selector = nil
+	assert.ErrorIs(t, space.Validate(), api.ErrSpaceSelectorEmpty)
 }
 
 func TestSpaceEqual(t *testing.T) {
 	space := api.Space{
-		ID:       "payments",
-		Name:     "Payments",
-		Selector: api.SpaceSelector{"domain": {"payments", "risk"}},
-	}
+		ID: "payments", Name: "Payments",
+		QBE: api.SpaceQuery{"domain": {"payments", "risk"}},
+	}.Normalize()
 	other := space
-	other.Selector = api.SpaceSelector{"domain": {"risk", "payments"}}
-	assert.True(t, space.Equal(other))
+	other.QBE = api.SpaceQuery{"domain": {"risk", "payments"}}
+	assert.False(t, space.Equal(other))
+	assert.True(t, space.Equal(other.Normalize()))
 
-	other.Selector = api.SpaceSelector{"domain": {"inventory"}}
+	other = api.Space{
+		ID: "payments", Name: "Payments",
+		QBE: api.SpaceQuery{"domain": {"inventory"}},
+	}.Normalize()
 	assert.False(t, space.Equal(other))
 }
 
 func TestSpaceNormalize(t *testing.T) {
 	space := api.Space{
-		ID:   "payments",
-		Name: "Payments",
-		Selector: api.SpaceSelector{
+		ID: "payments", Name: "Payments",
+		Selector: &api.ScriptConfig{
+			Language: api.ScriptLangJPath,
+			Script:   `$.domain == "payments"`,
+		},
+		QBE: api.SpaceQuery{
 			"domain": {"risk", "payments", "risk"},
+			"tier":   {"gold"},
 		},
 	}
 	normalized := space.Normalize()
-	assert.Equal(t, api.SpaceSelector{
+	assert.Equal(t, api.SpaceQuery{
 		"domain": {"payments", "risk"},
-	}, normalized.Selector)
-	assert.Equal(t, []string{"risk", "payments", "risk"},
-		space.Selector["domain"],
-	)
+		"tier":   {"gold"},
+	}, normalized.QBE)
+	assert.Equal(t, space.Selector, normalized.Selector)
+	assert.Equal(t,
+		[]string{"risk", "payments", "risk"}, space.QBE["domain"])
 }

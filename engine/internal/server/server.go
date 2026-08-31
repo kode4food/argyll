@@ -89,6 +89,7 @@ func (s *Server) SetupRoutes() *gin.Engine {
 		// Space endpoints
 		eng.GET("/spaces", s.listSpaces)
 		eng.POST("/spaces", s.createSpace)
+		eng.POST("/spaces/preview", s.previewSpace)
 		eng.GET("/spaces/:space_id", s.getSpace)
 		eng.GET("/spaces/:space_id/steps", s.listSpaceSteps)
 		eng.PUT("/spaces/:space_id", s.updateSpace)

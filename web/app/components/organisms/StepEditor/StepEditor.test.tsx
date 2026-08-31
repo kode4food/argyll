@@ -343,7 +343,8 @@ describe("StepEditor", () => {
       {
         id: "risk",
         name: "Risk",
-        selector: { domain: ["risk"] },
+        selector: { language: "lua", script: "return true" },
+        qbe: { domain: ["risk"] },
       },
     ];
     selectedSpaceId = "risk";
@@ -363,7 +364,8 @@ describe("StepEditor", () => {
       {
         id: "risk",
         name: "Risk",
-        selector: { domain: ["risk", "trading"], tier: ["gold"] },
+        selector: { language: "lua", script: "return true" },
+        qbe: { domain: ["risk", "trading"], tier: ["gold"] },
       },
     ];
     selectedSpaceId = "risk";

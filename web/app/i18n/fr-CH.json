@@ -214,8 +214,10 @@
   "spaceManager.selectorLabel": "Selector",
   "spaceManager.addSelector": "Ajouter un label de selector",
   "spaceManager.removeSelector": "Supprimer le label de selector",
+  "spaceManager.editScript": "Modifier le script",
   "spaceManager.selectorStep": "Selector",
   "spaceManager.detailsStep": "Détails",
+  "spaceManager.reviewStep": "Aperçu",
   "spaceManager.descriptionSuggestion": "Étapes correspondant à {selector}",
   "spaceManager.matchingSteps": {
     "zero": "Aucun Step dans ce Space",
@@ -229,6 +231,7 @@
   "spaceManager.delete": "Supprimer",
   "spaceManager.close": "Fermer",
   "spaceManager.saveFailed": "Échec de l'enregistrement du Space",
+  "spaceManager.previewFailed": "Échec de l'aperçu du Space",
   "spaceManager.deleteFailed": "Échec de la suppression du Space",
   "stepEditor.saveFailed": "Échec de l'enregistrement",
   "stepEditor.saving": "Enregistrement...",

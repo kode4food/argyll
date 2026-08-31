@@ -13,6 +13,7 @@ import (
 
 var (
 	ErrListSpaces      = errors.New("failed to list spaces")
+	ErrPreviewSpace    = errors.New("failed to preview space")
 	ErrRegisterSpace   = errors.New("failed to register space")
 	ErrUnregisterSpace = errors.New("failed to unregister space")
 )
@@ -31,6 +32,7 @@ func (s *Server) createSpace(c *gin.Context) {
 		return
 	}
 	space.ID = api.SanitizeID(space.ID)
+	space = space.Normalize()
 	err := s.engine.RegisterSpace(space)
 	if err == nil {
 		c.JSON(http.StatusCreated, api.SpaceRegisteredResponse{
@@ -57,6 +59,22 @@ func (s *Server) createSpace(c *gin.Context) {
 		Error:  fmt.Sprintf("%s: %v", ErrRegisterSpace, err),
 		Status: http.StatusInternalServerError,
 	})
+}
+
+func (s *Server) previewSpace(c *gin.Context) {
+	space, ok := bindSpace(c)
+	if !ok {
+		return
+	}
+	ids, err := s.engine.PreviewSpace(space)
+	if errors.Is(err, engine.ErrInvalidSpace) {
+		c.JSON(http.StatusBadRequest, api.ErrorResponse{
+			Error:  err.Error(),
+			Status: http.StatusBadRequest,
+		})
+		return
+	}
+	writeValue(c, ErrPreviewSpace, ids, err)
 }
 
 func (s *Server) getSpace(c *gin.Context) {
@@ -109,6 +127,7 @@ func (s *Server) updateSpace(c *gin.Context) {
 		return
 	}
 	space.ID = api.SanitizeID(space.ID)
+	space = space.Normalize()
 	id := api.SanitizeID(api.SpaceID(c.Param("space_id")))
 	if space.ID != id {
 		c.JSON(http.StatusBadRequest, api.ErrorResponse{

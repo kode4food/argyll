@@ -23,14 +23,14 @@ type (
 
 	// SpaceRegisteredEvent is emitted when a space is registered
 	SpaceRegisteredEvent struct {
-		Space Space `json:"space"`
-		Steps Steps `json:"steps,omitempty"`
+		Space   Space    `json:"space"`
+		StepIDs []StepID `json:"step_ids,omitempty"`
 	}
 
 	// SpaceUpdatedEvent is emitted when a space is updated
 	SpaceUpdatedEvent struct {
-		Space Space `json:"space"`
-		Steps Steps `json:"steps,omitempty"`
+		Space   Space    `json:"space"`
+		StepIDs []StepID `json:"step_ids,omitempty"`
 	}
 
 	// SpaceUnregisteredEvent is emitted when a space is removed

@@ -142,7 +142,13 @@ describe("StepEditorFlowConfiguration", () => {
   });
 
   test("prunes goals immediately when Space changes", async () => {
-    mockSpaces = [{ id: "alpha-space", name: "Alpha Space", selector: {} }];
+    mockSpaces = [
+      {
+        id: "alpha-space",
+        name: "Alpha Space",
+        selector: { language: "lua", script: "return true" },
+      },
+    ];
     mockSpaceSelection = { "alpha-space": new Set(["alpha"]) };
 
     render(

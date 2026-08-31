@@ -214,8 +214,10 @@
   "spaceManager.selectorLabel": "Selector",
   "spaceManager.addSelector": "Aggiungi label del selector",
   "spaceManager.removeSelector": "Rimuovi label del selector",
+  "spaceManager.editScript": "Modifica script",
   "spaceManager.selectorStep": "Selector",
   "spaceManager.detailsStep": "Dettagli",
+  "spaceManager.reviewStep": "Revisione",
   "spaceManager.descriptionSuggestion": "Passaggi corrispondenti a {selector}",
   "spaceManager.matchingSteps": {
     "zero": "Nessuno Step in questo Space",
@@ -229,6 +231,7 @@
   "spaceManager.delete": "Elimina",
   "spaceManager.close": "Chiudi",
   "spaceManager.saveFailed": "Salvataggio dello Space non riuscito",
+  "spaceManager.previewFailed": "Anteprima dello Space non riuscita",
   "spaceManager.deleteFailed": "Eliminazione dello Space non riuscita",
   "stepEditor.saveFailed": "Salvataggio non riuscito",
   "stepEditor.saving": "Salvataggio...",

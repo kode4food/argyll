@@ -1,8 +1,6 @@
 package events
 
 import (
-	"slices"
-
 	"github.com/kode4food/timebox"
 
 	"github.com/kode4food/argyll/engine/pkg/api"
@@ -79,7 +77,7 @@ func spaceRegistered(
 ) api.CatalogState {
 	return st.
 		SetSpace(data.Space.ID, data.Space).
-		SetSpaceSelection(data.Space.ID, stepIDs(data.Steps)).
+		SetSpaceSelection(data.Space.ID, data.StepIDs).
 		SetLastUpdated(ev.Timestamp)
 }
 
@@ -88,7 +86,7 @@ func spaceUpdated(
 ) api.CatalogState {
 	return st.
 		SetSpace(data.Space.ID, data.Space).
-		SetSpaceSelection(data.Space.ID, stepIDs(data.Steps)).
+		SetSpaceSelection(data.Space.ID, data.StepIDs).
 		SetLastUpdated(ev.Timestamp)
 }
 
@@ -99,13 +97,4 @@ func spaceUnregistered(
 		DeleteSpace(data.SpaceID).
 		DeleteSpaceSelection(data.SpaceID).
 		SetLastUpdated(ev.Timestamp)
-}
-
-func stepIDs(steps api.Steps) []api.StepID {
-	res := make([]api.StepID, 0, len(steps))
-	for id := range steps {
-		res = append(res, id)
-	}
-	slices.Sort(res)
-	return res
 }

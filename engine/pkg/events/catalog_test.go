@@ -179,9 +179,9 @@ func TestSpaceEvents(t *testing.T) {
 func TestSpaceSelectionProjection(t *testing.T) {
 	cat := events.NewCatalogState()
 	space := api.Space{
-		ID:       "payments",
-		Name:     "Payments",
-		Selector: api.SpaceSelector{"domain": {"payments"}},
+		ID:   "payments",
+		Name: "Payments",
+		QBE:  api.SpaceQuery{"domain": {"payments"}},
 	}
 	inside := &api.Step{ID: "inside", Labels: api.Labels{
 		"domain": "payments",
@@ -208,8 +208,8 @@ func TestSpaceSelectionProjection(t *testing.T) {
 	// A Space write replaces membership wholesale
 	cat = applyCatalogEvent(t, cat, api.EventTypeSpaceUpdated,
 		api.SpaceUpdatedEvent{
-			Space: space,
-			Steps: api.Steps{outside.ID: outside},
+			Space:   space,
+			StepIDs: []api.StepID{outside.ID},
 		})
 	assert.Equal(t, api.Steps{outside.ID: outside}, cat.SpaceSteps(space.ID))
 

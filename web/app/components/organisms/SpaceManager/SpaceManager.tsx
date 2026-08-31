@@ -1,13 +1,16 @@
 import React from "react";
-import { api, Space, Step } from "@/app/api";
+import { api, SCRIPT_LANGUAGE_LUA, ScriptConfig, Space } from "@/app/api";
 import Modal from "@/app/components/molecules/Modal";
 import KeyValueTable, {
   type KeyValuePair,
 } from "@/app/components/molecules/KeyValueTable";
+import ScriptConfigEditor from "@/app/components/organisms/StepEditor/ScriptConfigEditor";
+import { predicateLanguageOptions } from "@/app/components/organisms/StepEditor/stepEditorConstants";
 import { useT } from "@/app/i18n";
-import { IconAttributeLabel } from "@/utils/iconRegistry";
-import { useSpaces, useSteps } from "@/app/store/flowStore";
+import { IconAttributeLabel, IconPredicate } from "@/utils/iconRegistry";
+import { useSpaces } from "@/app/store/flowStore";
 import { useLabelVocabulary } from "@/app/hooks/useLabelVocabulary";
+import { useThrottledValue } from "@/app/contexts/useThrottledValue";
 import { useUI } from "@/app/contexts/UIContext";
 import styles from "./SpaceManager.module.css";
 
@@ -20,35 +23,47 @@ interface SpaceDraft {
   id: string;
   name: string;
   description: string;
-  selector: KeyValuePair[];
+  qbe: KeyValuePair[];
+  selector: ScriptConfig;
+  scriptMode: boolean;
 }
 
-const EDITOR_STEPS = ["spaceManager.selectorStep", "spaceManager.detailsStep"];
+const EDITOR_STEPS = [
+  "spaceManager.selectorStep",
+  "spaceManager.detailsStep",
+  "spaceManager.reviewStep",
+];
+const REVIEW_STEP = EDITOR_STEPS.length - 1;
+const PREVIEW_THROTTLE_MS = 500;
 
 const SpaceManager: React.FC<SpaceManagerProps> = ({ isOpen, onClose }) => {
   const t = useT();
   const spaces = useSpaces();
   const { setSpaceId } = useUI();
   const { labelKeys, valuesForKey } = useLabelVocabulary();
-  const steps = useSteps();
   const [draft, setDraft] = React.useState<SpaceDraft>(emptyDraft);
   const [editingId, setEditingId] = React.useState<string | null>(null);
   const [editorStep, setEditorStep] = React.useState(0);
   const [isEditing, setEditing] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [saving, setSaving] = React.useState(false);
+  const [previewStepIDs, setPreviewStepIDs] = React.useState<string[] | null>(
+    null
+  );
   const selectorCounterRef = React.useRef(0);
   const editing = editingId
     ? spaces.find((space) => space.id === editingId)
     : undefined;
-  const isDirty =
-    !editing || fingerprint(toSpace(draft)) !== fingerprint(editing);
+  const space = toSpace(draft);
+  const isDirty = !editing || fingerprint(space) !== fingerprint(editing);
 
-  const openEditor = (space?: Space) => {
-    const id = space?.id ?? null;
-    setDraft(space ? toDraft(space) : emptyDraft());
+  const openEditor = (existing?: Space) => {
+    const id = existing?.id ?? null;
+    const nextDraft = existing ? toDraft(existing) : emptyDraft();
+    setDraft(nextDraft);
     setEditingId(id);
-    setEditorStep(0);
+    setEditorStep(nextDraft.scriptMode ? REVIEW_STEP : 0);
+    setPreviewStepIDs(null);
     setError(null);
     setEditing(true);
   };
@@ -57,6 +72,7 @@ const SpaceManager: React.FC<SpaceManagerProps> = ({ isOpen, onClose }) => {
     setDraft(emptyDraft());
     setEditingId(null);
     setEditorStep(0);
+    setPreviewStepIDs(null);
     setError(null);
     setEditing(false);
   };
@@ -73,7 +89,7 @@ const SpaceManager: React.FC<SpaceManagerProps> = ({ isOpen, onClose }) => {
   ) => {
     setDraft((current) => ({
       ...current,
-      selector: current.selector.map((pair) =>
+      qbe: current.qbe.map((pair) =>
         pair.id === id ? { ...pair, [field]: value } : pair
       ),
     }));
@@ -82,8 +98,8 @@ const SpaceManager: React.FC<SpaceManagerProps> = ({ isOpen, onClose }) => {
   const addSelector = () => {
     setDraft((current) => ({
       ...current,
-      selector: [
-        ...current.selector,
+      qbe: [
+        ...current.qbe,
         { id: `sel-${++selectorCounterRef.current}`, key: "", value: "" },
       ],
     }));
@@ -92,14 +108,24 @@ const SpaceManager: React.FC<SpaceManagerProps> = ({ isOpen, onClose }) => {
   const removeSelector = (id: string) => {
     setDraft((current) => ({
       ...current,
-      selector: current.selector.filter((pair) => pair.id !== id),
+      qbe: current.qbe.filter((pair) => pair.id !== id),
     }));
   };
 
+  const editScript = () => {
+    setDraft((current) => ({
+      ...current,
+      qbe: [],
+      selector: toSpace(current).selector,
+      scriptMode: true,
+    }));
+    setEditorStep(REVIEW_STEP);
+  };
+
   const handleNext = () => {
-    if (editingId === null) {
+    if (editorStep === 0 && editingId === null) {
       setDraft((current) => {
-        const suggested = selectorSuggestions(current.selector);
+        const suggested = selectorSuggestions(current.qbe);
         return {
           ...current,
           id: current.id || suggested.id,
@@ -125,7 +151,6 @@ const SpaceManager: React.FC<SpaceManagerProps> = ({ isOpen, onClose }) => {
   };
 
   const handleSave = async () => {
-    const space = toSpace(draft);
     const saved = await run(async () => {
       const selected = editingId
         ? api.updateSpace(editingId, space)
@@ -147,22 +172,42 @@ const SpaceManager: React.FC<SpaceManagerProps> = ({ isOpen, onClose }) => {
     if (deleted) clearEditor();
   };
 
-  const detailsValid =
-    draft.id.trim().length > 0 && draft.name.trim().length > 0;
-  const selectorValid =
-    draft.selector.length > 0 &&
-    draft.selector.every(({ key, value }) => key.trim() && value.trim());
-  const isValid = detailsValid && selectorValid;
-  const canSave = !saving && isValid && isDirty;
-  const matchCount = matchingSteps(steps, toSpace(draft));
-  const selectorDescription = selectorSummary(draft.selector);
+  const hasValidDetails = isDetailsValid(draft);
+  const hasValidQBE = isQBEValid(draft);
+  const canSave = !saving && isDraftValid(draft) && isDirty;
+  // Script mode skips the QBE builder, so Details is its first step
+  const firstStep = draft.scriptMode ? 1 : 0;
+  const selectorDescription = selectorSummary(draft.qbe);
   const selectorValueSuggestions = (key: string, id: string) =>
     valuesForKey(key).filter(
       (value) =>
-        !draft.selector.some(
+        !draft.qbe.some(
           (pair) => pair.id !== id && pair.key === key && pair.value === value
         )
     );
+
+  const previewDraft = useThrottledValue(draft, PREVIEW_THROTTLE_MS);
+
+  React.useEffect(() => {
+    if (!isEditing || !isSelectorValid(previewDraft)) {
+      setPreviewStepIDs(null);
+      return;
+    }
+    let active = true;
+    setError(null);
+    void api
+      .previewSpace(toSpace(previewDraft))
+      .then((ids) => active && setPreviewStepIDs(ids))
+      .catch((err) => {
+        if (active) {
+          setPreviewStepIDs(null);
+          setError(err?.message || t("spaceManager.previewFailed"));
+        }
+      });
+    return () => {
+      active = false;
+    };
+  }, [previewDraft, isEditing, t]);
 
   const footer = isEditing ? (
     <>
@@ -180,7 +225,7 @@ const SpaceManager: React.FC<SpaceManagerProps> = ({ isOpen, onClose }) => {
         <button type="button" className={styles.button} onClick={handleClose}>
           {t("spaceManager.cancel")}
         </button>
-        {editorStep > 0 && (
+        {editorStep > firstStep && (
           <button
             type="button"
             className={styles.button}
@@ -190,12 +235,14 @@ const SpaceManager: React.FC<SpaceManagerProps> = ({ isOpen, onClose }) => {
             {t("spaceManager.back")}
           </button>
         )}
-        {editorStep < EDITOR_STEPS.length - 1 ? (
+        {editorStep < REVIEW_STEP ? (
           <button
             type="button"
             className={styles.buttonPrimary}
             onClick={handleNext}
-            disabled={saving || !selectorValid}
+            disabled={
+              saving || (editorStep === 0 ? !hasValidQBE : !hasValidDetails)
+            }
           >
             {t("spaceManager.next")}
           </button>
@@ -267,17 +314,58 @@ const SpaceManager: React.FC<SpaceManagerProps> = ({ isOpen, onClose }) => {
                 removeLabel={t("spaceManager.removeSelector")}
                 keyPlaceholder={t("stepEditor.labelKeyPlaceholder")}
                 valuePlaceholder={t("stepEditor.labelValuePlaceholder")}
-                pairs={draft.selector}
+                pairs={draft.qbe}
                 onAdd={addSelector}
                 onChange={updateSelector}
                 onRemove={removeSelector}
                 keySuggestions={labelKeys}
                 valueSuggestions={selectorValueSuggestions}
               />
-              {selectorValid && (
-                <div className={styles.matches}>
-                  {t("spaceManager.matchingSteps", { count: matchCount })}
-                </div>
+              <button
+                type="button"
+                className={styles.advanced}
+                onClick={editScript}
+                disabled={draft.qbe.length > 0 && !hasValidQBE}
+              >
+                {t("spaceManager.editScript")}
+              </button>
+            </div>
+          )}
+
+          {editorStep === REVIEW_STEP && (
+            <div className={styles.detail}>
+              <ScriptConfigEditor
+                Icon={IconPredicate}
+                label={t("spaceManager.selectorLabel")}
+                value={
+                  draft.scriptMode
+                    ? draft.selector.script
+                    : space.selector.script
+                }
+                onChange={(script) =>
+                  setDraft((current) => ({
+                    ...current,
+                    selector: { ...current.selector, script },
+                  }))
+                }
+                language={space.selector.language}
+                onLanguageChange={(language) =>
+                  setDraft((current) => ({
+                    ...current,
+                    selector: { ...current.selector, language },
+                  }))
+                }
+                languageOptions={predicateLanguageOptions}
+                readOnly={!draft.scriptMode}
+              />
+              {!draft.scriptMode && (
+                <button
+                  type="button"
+                  className={styles.advanced}
+                  onClick={editScript}
+                >
+                  {t("spaceManager.editScript")}
+                </button>
               )}
             </div>
           )}
@@ -347,6 +435,13 @@ const SpaceManager: React.FC<SpaceManagerProps> = ({ isOpen, onClose }) => {
             </div>
           )}
 
+          <div className={styles.matches}>
+            {previewStepIDs &&
+              t("spaceManager.matchingSteps", {
+                count: previewStepIDs.length,
+              })}
+          </div>
+
           {error && <div className={styles.error}>{error}</div>}
         </div>
       ) : (
@@ -376,42 +471,76 @@ function toDraft(space: Space): SpaceDraft {
     id: space.id,
     name: space.name,
     description: space.description ?? "",
-    selector: Object.entries(space.selector ?? {}).flatMap(([key, values]) =>
+    qbe: Object.entries(space.qbe ?? {}).flatMap(([key, values]) =>
       values.map((value, index) => ({
         id: `${key}-${index}`,
         key,
         value,
       }))
     ),
+    selector: { ...space.selector },
+    scriptMode: !space.qbe || Object.keys(space.qbe).length === 0,
   };
 }
 
 function emptyDraft(): SpaceDraft {
-  return { id: "", name: "", description: "", selector: [] };
+  return {
+    id: "",
+    name: "",
+    description: "",
+    qbe: [],
+    selector: { language: SCRIPT_LANGUAGE_LUA, script: "" },
+    scriptMode: false,
+  };
 }
 
 function toSpace(draft: SpaceDraft): Space {
-  const selector: Record<string, string[]> = {};
-  draft.selector.forEach(({ key, value }) => {
-    const name = key.trim();
-    const match = value.trim();
-    if (name && !selector[name]?.includes(match)) {
-      (selector[name] ??= []).push(match);
-    }
-  });
+  const qbe = toQBE(draft.qbe);
   return {
     id: draft.id.trim(),
     name: draft.name.trim(),
     ...(draft.description.trim() && { description: draft.description.trim() }),
-    selector,
+    selector: draft.scriptMode
+      ? { ...draft.selector, script: draft.selector.script.trim() }
+      : { language: SCRIPT_LANGUAGE_LUA, script: qbeLua(qbe) },
+    ...(!draft.scriptMode && { qbe }),
   };
 }
 
-function matchingSteps(steps: Step[], space: Space): number {
-  const selector = Object.entries(space.selector ?? {});
-  return steps.filter((step) =>
-    selector.every(([key, values]) => values.includes(step.labels?.[key] ?? ""))
-  ).length;
+function isDetailsValid(draft: SpaceDraft): boolean {
+  return draft.id.trim().length > 0 && draft.name.trim().length > 0;
+}
+
+function isQBEValid(draft: SpaceDraft): boolean {
+  return (
+    draft.qbe.length > 0 &&
+    draft.qbe.every(({ key, value }) => key.trim() && value.trim())
+  );
+}
+
+function isSelectorValid(draft: SpaceDraft): boolean {
+  return draft.scriptMode
+    ? draft.selector.script.trim().length > 0
+    : isQBEValid(draft);
+}
+
+function isDraftValid(draft: SpaceDraft): boolean {
+  return isDetailsValid(draft) && isSelectorValid(draft);
+}
+
+// Canonical form: values sorted and deduped, the same shape the engine
+// stores, so the generated script and the dirty check both stay stable
+function toQBE(pairs: KeyValuePair[]): Record<string, string[]> {
+  const qbe: Record<string, string[]> = {};
+  pairs.forEach(({ key, value }) => {
+    const name = key.trim();
+    const match = value.trim();
+    if (name && !qbe[name]?.includes(match)) {
+      (qbe[name] ??= []).push(match);
+    }
+  });
+  Object.values(qbe).forEach((values) => values.sort());
+  return qbe;
 }
 
 function fingerprint(space: Space): string {
@@ -419,9 +548,8 @@ function fingerprint(space: Space): string {
     id: space.id,
     name: space.name,
     description: space.description ?? "",
-    selector: Object.entries(space.selector ?? {})
-      .map(([key, values]) => [key, [...values].sort()])
-      .sort(),
+    selector: space.selector,
+    qbe: Object.entries(space.qbe ?? {}).sort(),
   });
 }
 
@@ -450,6 +578,34 @@ function selectorSummary(pairs: KeyValuePair[]): string {
   return pairs
     .map(({ key, value }) => `${key.trim()}=${value.trim()}`)
     .join(", ");
+}
+
+// Preview of the selector the engine generates from the QBE; the engine
+// regenerates it on save and that copy is authoritative
+function qbeLua(qbe: Record<string, string[]>): string {
+  const clauses = Object.keys(qbe)
+    .sort()
+    .map((key) => {
+      const matches = qbe[key].map(
+        (value) => `value[${luaString(key)}] == ${luaString(value)}`
+      );
+      return matches.length > 1 ? `(${matches.join(" or ")})` : matches[0];
+    });
+  return `return ${clauses.join(" and\n    ")}`;
+}
+
+// Raw bytes except \ and ", control characters as \ddd. JSON.stringify
+// would emit \u escapes, which Lua 5.2 rejects
+function luaString(value: string): string {
+  const escaped = [...value].map(luaChar).join("");
+  return `"${escaped}"`;
+}
+
+function luaChar(char: string): string {
+  if (char === "\\" || char === '"') return `\\${char}`;
+  const code = char.charCodeAt(0);
+  if (code >= 0x20 && code !== 0x7f) return char;
+  return `\\${code.toString().padStart(3, "0")}`;
 }
 
 export default SpaceManager;

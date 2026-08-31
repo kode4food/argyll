@@ -1097,9 +1097,9 @@ func TestSubFlowSpace(t *testing.T) {
 		})
 		cat.Spaces = api.Spaces{
 			"payments": {
-				ID:       "payments",
-				Name:     "Payments",
-				Selector: api.SpaceSelector{"domain": {"payments"}},
+				ID:   "payments",
+				Name: "Payments",
+				QBE:  api.SpaceQuery{"domain": {"payments"}},
 			},
 		}
 		cat.Selection = api.SpaceSelection{"payments": {goal.ID}}

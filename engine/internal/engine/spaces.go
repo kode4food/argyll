@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"slices"
 
+	"github.com/kode4food/argyll/engine/internal/engine/script"
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/events"
 )
@@ -19,18 +20,22 @@ var (
 
 // RegisterSpace persists a new planning space
 func (e *Engine) RegisterSpace(space api.Space) error {
-	if err := space.Validate(); err != nil {
-		return errors.Join(ErrInvalidSpace, err)
+	space, err := e.prepareSpace(space)
+	if err != nil {
+		return err
 	}
-	space = space.Normalize()
 	return e.CatalogTx(func(tx *CatalogTx) error {
 		st := tx.ag.Value()
 		old, ok := st.Spaces[space.ID]
 		if !ok {
+			ids, err := e.selectSpaceSteps(st.Steps, space)
+			if err != nil {
+				return err
+			}
 			return events.Raise(tx.ag, api.EventTypeSpaceRegistered,
 				api.SpaceRegisteredEvent{
-					Space: space,
-					Steps: st.Query(space.Matches),
+					Space:   space,
+					StepIDs: ids,
 				},
 			)
 		}
@@ -39,6 +44,20 @@ func (e *Engine) RegisterSpace(space api.Space) error {
 		}
 		return fmt.Errorf("%w: %s", ErrSpaceExists, space.ID)
 	})
+}
+
+// PreviewSpace returns the registered Step IDs selected by an unsaved Space.
+// Only its selector matters, so an incomplete Space can be previewed
+func (e *Engine) PreviewSpace(space api.Space) ([]api.StepID, error) {
+	space, err := e.prepareSelector(space)
+	if err != nil {
+		return nil, err
+	}
+	cat, err := e.GetCatalogState()
+	if err != nil {
+		return nil, err
+	}
+	return e.selectSpaceSteps(cat.Steps, space)
 }
 
 // ListSpaces returns all planning spaces
@@ -56,10 +75,10 @@ func (e *Engine) ListSpaces() ([]api.Space, error) {
 
 // UpdateSpace persists changes to an existing planning space
 func (e *Engine) UpdateSpace(space api.Space) error {
-	if err := space.Validate(); err != nil {
-		return errors.Join(ErrInvalidSpace, err)
+	space, err := e.prepareSpace(space)
+	if err != nil {
+		return err
 	}
-	space = space.Normalize()
 	return e.CatalogTx(func(tx *CatalogTx) error {
 		st := tx.ag.Value()
 		old, ok := st.Spaces[space.ID]
@@ -69,13 +88,17 @@ func (e *Engine) UpdateSpace(space api.Space) error {
 		if old.Equal(space) {
 			return nil
 		}
-		if err := validateSpaceGoals(st, space); err != nil {
+		if err := e.validateSpaceGoals(st, space); err != nil {
+			return err
+		}
+		ids, err := e.selectSpaceSteps(st.Steps, space)
+		if err != nil {
 			return err
 		}
 		return events.Raise(tx.ag, api.EventTypeSpaceUpdated,
 			api.SpaceUpdatedEvent{
-				Space: space,
-				Steps: st.Query(space.Matches),
+				Space:   space,
+				StepIDs: ids,
 			},
 		)
 	})
@@ -97,18 +120,26 @@ func (e *Engine) UnregisterSpace(spaceID api.SpaceID) error {
 	})
 }
 
-func matchingSpaceIDs(cat api.CatalogState, step *api.Step) []api.SpaceID {
+func (e *Engine) matchingSpaceIDs(
+	cat api.CatalogState, step *api.Step,
+) ([]api.SpaceID, error) {
 	var res []api.SpaceID
 	for id, space := range cat.Spaces {
-		if space.Matches(step) {
+		matches, err := e.spaceMatches(space, step)
+		if err != nil {
+			return nil, errors.Join(ErrInvalidSpace, err)
+		}
+		if matches {
 			res = append(res, id)
 		}
 	}
 	slices.Sort(res)
-	return res
+	return res, nil
 }
 
-func validateSpaceSubFlows(cat api.CatalogState, newStep *api.Step) error {
+func (e *Engine) validateSpaceSubFlows(
+	cat api.CatalogState, newStep *api.Step,
+) error {
 	steps := stepsIncluding(cat, newStep)
 	for _, st := range steps {
 		if st.Flow == nil || st.Flow.SpaceID == "" {
@@ -118,26 +149,28 @@ func validateSpaceSubFlows(cat api.CatalogState, newStep *api.Step) error {
 		if !ok {
 			return fmt.Errorf("%w: %s", ErrSpaceNotFound, st.Flow.SpaceID)
 		}
-		if err := validateSubFlowGoals(steps, st, space); err != nil {
+		if err := e.validateSubFlowGoals(steps, st, space); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func validateSpaceGoals(cat api.CatalogState, space api.Space) error {
+func (e *Engine) validateSpaceGoals(
+	cat api.CatalogState, space api.Space,
+) error {
 	for _, st := range cat.Steps {
 		if st.Flow == nil || st.Flow.SpaceID != space.ID {
 			continue
 		}
-		if err := validateSubFlowGoals(cat.Steps, st, space); err != nil {
+		if err := e.validateSubFlowGoals(cat.Steps, st, space); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func validateSubFlowGoals(
+func (e *Engine) validateSubFlowGoals(
 	steps api.Steps, st *api.Step, space api.Space,
 ) error {
 	for _, goalID := range st.Flow.Goals {
@@ -145,11 +178,71 @@ func validateSubFlowGoals(
 		if !ok {
 			return fmt.Errorf("%w: %s", ErrStepNotFound, goalID)
 		}
-		if !space.Matches(goal) {
+		matches, err := e.spaceMatches(space, goal)
+		if err != nil {
+			return err
+		}
+		if !matches {
 			return fmt.Errorf("%w: %s", ErrSpaceGoalExcluded, goalID)
 		}
 	}
 	return nil
+}
+
+// prepareSpace prepares the selector and validates the Space identity
+func (e *Engine) prepareSpace(space api.Space) (api.Space, error) {
+	space, err := e.prepareSelector(space)
+	if err != nil {
+		return api.Space{}, err
+	}
+	if err := space.Validate(); err != nil {
+		return api.Space{}, errors.Join(ErrInvalidSpace, err)
+	}
+	return space, nil
+}
+
+// prepareSelector normalizes the Space, generating its selector from the QBE
+// when one is provided, and verifies that the selector compiles
+func (e *Engine) prepareSelector(space api.Space) (api.Space, error) {
+	space = space.Normalize()
+	if len(space.QBE) > 0 {
+		space.Selector = script.QBESelector(space.QBE)
+	}
+	if err := space.ValidateSelector(); err != nil {
+		return api.Space{}, errors.Join(ErrInvalidSpace, err)
+	}
+	_, err := e.scripts.Compile(script.MatchStep, space.Selector)
+	if err != nil {
+		return api.Space{}, errors.Join(ErrInvalidSpace, err)
+	}
+	return space, nil
+}
+
+func (e *Engine) selectSpaceSteps(
+	steps api.Steps, space api.Space,
+) ([]api.StepID, error) {
+	res := []api.StepID{}
+	for id, step := range steps {
+		matches, err := e.spaceMatches(space, step)
+		if err != nil {
+			return nil, err
+		}
+		if matches {
+			res = append(res, id)
+		}
+	}
+	slices.Sort(res)
+	return res, nil
+}
+
+// spaceMatches evaluates the Space selector against the Step's labels, which
+// are the only value the script is given
+func (e *Engine) spaceMatches(space api.Space, step *api.Step) (bool, error) {
+	labels := make(map[string]any, len(step.Labels))
+	for key, value := range step.Labels {
+		labels[key] = value
+	}
+	return e.Matcher(space.Selector, labels)
 }
 
 func spaceSubFlow(

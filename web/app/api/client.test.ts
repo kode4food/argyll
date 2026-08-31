@@ -1,5 +1,5 @@
 import { ArgyllApi } from "./client";
-import { AttributeRole, AttributeType, Step } from "./types";
+import { AttributeRole, AttributeType, Space, Step } from "./types";
 
 const fetchMock = jest.fn() as jest.MockedFunction<typeof fetch>;
 global.fetch = fetchMock;
@@ -20,6 +20,12 @@ const step: Step = {
   type: "service",
   attributes: {},
   http: { endpoint: "http://localhost:8080/test", timeout: 5000 },
+};
+
+const space: Space = {
+  id: "risk",
+  name: "Risk",
+  selector: { language: "lua", script: 'return value["domain"] == "risk"' },
 };
 
 describe("ArgyllApi", () => {
@@ -70,6 +76,16 @@ describe("ArgyllApi", () => {
           compensate: true,
         }),
       })
+    );
+  });
+
+  test("previews a Space", async () => {
+    respond(["step-1"]);
+
+    await expect(api.previewSpace(space)).resolves.toEqual(["step-1"]);
+    expect(fetchMock).toHaveBeenCalledWith(
+      "http://localhost:8080/engine/spaces/preview",
+      expect.objectContaining({ method: "POST", body: JSON.stringify(space) })
     );
   });
 

@@ -141,17 +141,6 @@ const (
 	HealthUnknown   HealthStatus = "unknown"
 )
 
-// Query returns the registered steps accepted by the predicate
-func (c CatalogState) Query(predicate func(*Step) bool) Steps {
-	res := Steps{}
-	for id, st := range c.Steps {
-		if predicate(st) {
-			res[id] = st
-		}
-	}
-	return res
-}
-
 // SetStep returns a new CatalogState with the specified step registered
 func (c CatalogState) SetStep(id StepID, step *Step) CatalogState {
 	oldStep, exists := c.Steps[id]

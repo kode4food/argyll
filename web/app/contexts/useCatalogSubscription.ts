@@ -73,7 +73,7 @@ export function useCatalogSubscription(socketClient: SocketClient) {
         case "space_updated": {
           const space = wsEvent.data?.space;
           if (space) {
-            setSpace(space, Object.keys(wsEvent.data?.steps ?? {}));
+            setSpace(space, wsEvent.data?.step_ids ?? []);
           }
           break;
         }

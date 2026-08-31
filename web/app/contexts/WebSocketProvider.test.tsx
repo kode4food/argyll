@@ -41,6 +41,8 @@ jest.mock("@/app/store/flowStore", () => ({
     setHealthState: jest.fn(),
     setCatalogState: jest.fn(),
     setStepSpaces: jest.fn(),
+    setSpace: jest.fn(),
+    removeSpace: jest.fn(),
     initializeExecutions: jest.fn(),
     updateExecution: jest.fn(),
     updateWorkItem: jest.fn(),
@@ -225,8 +227,19 @@ describe("WebSocketProvider", () => {
       type: "step_updated",
       data: { step: { id: "step-3" } },
     });
+    catalogHandler({
+      type: "space_registered",
+      data: {
+        space: { id: "risk", name: "Risk" },
+        step_ids: ["step-1"],
+      },
+    });
 
     const flowStore = require("@/app/store/flowStore");
+    expect(flowStore.__storeState.setSpace).toHaveBeenCalledWith(
+      { id: "risk", name: "Risk" },
+      ["step-1"]
+    );
     expect(flowStore.__storeState.addStep).toHaveBeenCalledWith({
       id: "step-1",
     });
@@ -254,7 +267,13 @@ describe("WebSocketProvider", () => {
         {
           data: {
             steps: { "step-1": { id: "step-1" } },
-            spaces: { risk: { id: "risk", name: "Risk", selector: {} } },
+            spaces: {
+              risk: {
+                id: "risk",
+                name: "Risk",
+                selector: { language: "lua", script: "return true" },
+              },
+            },
             selection: { risk: ["step-1"] },
           },
         },
@@ -264,7 +283,13 @@ describe("WebSocketProvider", () => {
     const flowStore = require("@/app/store/flowStore");
     expect(flowStore.__storeState.setCatalogState).toHaveBeenCalledWith(
       { "step-1": { id: "step-1" } },
-      { risk: { id: "risk", name: "Risk", selector: {} } },
+      {
+        risk: {
+          id: "risk",
+          name: "Risk",
+          selector: { language: "lua", script: "return true" },
+        },
+      },
       { risk: ["step-1"] }
     );
   });
