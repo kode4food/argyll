@@ -376,10 +376,10 @@ func TestDiagnostics(t *testing.T) {
 			pattern: "./testdata/badwrap",
 			wants:   []string{"Add", "declares 2 outputs but returns 1"},
 		},
-		"label syntax": {
-			pattern: "./testdata/badlabel",
+		"tag syntax": {
+			pattern: "./testdata/badsteptags",
 			wants: []string{
-				`//argyll:labels takes key:value options, got "domain"`,
+				"//argyll:tags has an empty tag",
 			},
 		},
 		"attribute type": {
@@ -851,16 +851,48 @@ func TestLoadError(t *testing.T) {
 	assert.ErrorIs(t, err, generator.ErrLoadFailed)
 }
 
-func TestLabels(t *testing.T) {
+func TestTags(t *testing.T) {
 	byID := steps(t, "../../../example")
 
-	assert.Equal(t, api.Labels{
-		"description": "score a customer for risk",
-		"domain":      "risk",
-	}, byID["calculate-risk"].Labels)
+	assert.Equal(t, api.Tags{"domain:risk", "scoring"},
+		byID["calculate-risk"].Tags)
 
-	// a step without labels directives declares none
-	assert.Empty(t, byID["greet"].Labels)
+	// a step without tags directives declares none
+	assert.Empty(t, byID["greet"].Tags)
+}
+
+func TestDescription(t *testing.T) {
+	byID := steps(t, "../../../example")
+
+	assert.Equal(t, "score a customer for risk",
+		byID["calculate-risk"].Description)
+	assert.Empty(t, byID["greet"].Description)
+}
+
+func TestDescriptionRepeats(t *testing.T) {
+	src := "//argyll:step\n" +
+		"//argyll:description one\n" +
+		"//argyll:description two\n" +
+		"func Run() {}"
+	_, err := renderSource(t, src)
+	assert.ErrorContains(t, err, "//argyll:description repeats")
+}
+
+func TestDescriptionEmpty(t *testing.T) {
+	src := "//argyll:step\n//argyll:description\nfunc Run() {}"
+	_, err := renderSource(t, src)
+	assert.ErrorContains(t, err, "//argyll:description needs a description")
+}
+
+func TestTagsRepeatedAndSorted(t *testing.T) {
+	src := "//argyll:step\n" +
+		"//argyll:tags domain:risk; example\n" +
+		"//argyll:tags domain:payments; example\n" +
+		"func Run() {}"
+	out, err := renderSource(t, src)
+	assert.NoError(t, err)
+	assert.Contains(t, string(out),
+		`\"tags\":[\"domain:payments\",\"domain:risk\",\"example\"]`)
 }
 
 func render(t *testing.T, pattern string) ([]byte, error) {

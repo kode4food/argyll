@@ -101,7 +101,7 @@ func TestFlowWithInitialState(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-func TestFlowWithLabels(t *testing.T) {
+func TestFlowWithTags(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
 			var req api.CreateFlowRequest
@@ -109,10 +109,7 @@ func TestFlowWithLabels(t *testing.T) {
 			assert.NoError(t, err)
 
 			assert.Equal(t, api.FlowID("wf-1"), req.ID)
-			assert.Equal(t, api.Labels{
-				"team": "core",
-				"env":  "dev",
-			}, req.Labels)
+			assert.Equal(t, api.Tags{"env:dev", "team:core"}, req.Tags)
 
 			w.WriteHeader(http.StatusOK)
 		},
@@ -122,19 +119,18 @@ func TestFlowWithLabels(t *testing.T) {
 	client := argyll.NewClient(server.URL, 5*time.Second)
 	err := client.NewFlow("wf-1").
 		WithGoals("goal-step").
-		WithLabel("team", "core").
-		WithLabels(api.Labels{"env": "dev"}).
+		WithTags("team:core").
+		WithTags("env:dev").
 		Start(context.Background())
 
 	assert.NoError(t, err)
 }
 
-func TestFlowWithEmptyLabels(t *testing.T) {
+func TestFlowWithEmptyTags(t *testing.T) {
 	wf := argyll.NewClient("http://localhost:8080", 30*time.Second).
 		NewFlow("wf-1")
 
-	assert.Equal(t, wf, wf.WithLabels(nil))
-	assert.Equal(t, wf, wf.WithLabels(api.Labels{}))
+	assert.Equal(t, wf, wf.WithTags())
 }
 
 func TestFlowStartStatusCreated(t *testing.T) {
@@ -280,16 +276,16 @@ func TestImmutabilityInitState(t *testing.T) {
 	assert.NoError(t, err2)
 }
 
-func TestImmutabilityLabels(t *testing.T) {
-	labels1 := api.Labels{"team": "core"}
-	labels2 := api.Labels{"team": "platform"}
+func TestImmutabilityTags(t *testing.T) {
+	tags1 := api.Tags{"team:core"}
+	tags2 := api.Tags{"team:platform"}
 
 	server1 := httptest.NewServer(http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
 			var req api.CreateFlowRequest
 			err := json.NewDecoder(r.Body).Decode(&req)
 			assert.NoError(t, err)
-			assert.Equal(t, labels1, req.Labels)
+			assert.Equal(t, tags1, req.Tags)
 			w.WriteHeader(http.StatusOK)
 		},
 	))
@@ -300,7 +296,7 @@ func TestImmutabilityLabels(t *testing.T) {
 			var req api.CreateFlowRequest
 			err := json.NewDecoder(r.Body).Decode(&req)
 			assert.NoError(t, err)
-			assert.Equal(t, labels2, req.Labels)
+			assert.Equal(t, tags2, req.Tags)
 			w.WriteHeader(http.StatusOK)
 		},
 	))
@@ -309,14 +305,14 @@ func TestImmutabilityLabels(t *testing.T) {
 	client1 := argyll.NewClient(server1.URL, 5*time.Second)
 	err1 := client1.NewFlow("test-wf").
 		WithGoals("goal").
-		WithLabels(labels1).
+		WithTags(tags1...).
 		Start(context.Background())
 	assert.NoError(t, err1)
 
 	client2 := argyll.NewClient(server2.URL, 5*time.Second)
 	err2 := client2.NewFlow("test-wf").
 		WithGoals("goal").
-		WithLabels(labels2).
+		WithTags(tags2...).
 		Start(context.Background())
 	assert.NoError(t, err2)
 }

@@ -96,12 +96,12 @@ func main() {
 	client := argyll.NewClient(engineURL, 30*time.Second)
 
 	err := client.NewStep().WithName("Inventory Resolver").
-		WithLabels(api.Labels{
-			"description": "resolve product inventory details by product_id",
-			"domain":      "inventory",
-			"capability":  "lookup",
-			"example":     "true",
-		}).
+		WithDescription(
+			"resolve product inventory details by product_id",
+		).
+		WithTags(
+			"domain:inventory", "capability:lookup", "example",
+		).
 		Optional("product_id", api.TypeString, `"prod-laptop"`).
 		Output("product_info", api.TypeObject).
 		Start(handle)

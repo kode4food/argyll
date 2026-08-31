@@ -15,17 +15,18 @@ type (
 	// Step defines a flow step with its configuration, attributes, and
 	// execution details
 	Step struct {
-		Script     *ScriptConfig  `json:"script,omitempty"`
-		Labels     Labels         `json:"labels,omitempty"`
-		Attributes AttributeSpecs `json:"attributes"`
-		Predicate  *ScriptConfig  `json:"predicate,omitempty"`
-		WorkConfig *WorkConfig    `json:"work_config,omitempty"`
-		HTTP       *HTTPConfig    `json:"http,omitempty"`
-		Flow       *FlowConfig    `json:"flow,omitempty"`
-		Type       StepType       `json:"type"`
-		ID         StepID         `json:"id"`
-		Name       Name           `json:"name"`
-		Handling   Handling       `json:"handling,omitempty"`
+		Script      *ScriptConfig  `json:"script,omitempty"`
+		Tags        Tags           `json:"tags,omitempty"`
+		Attributes  AttributeSpecs `json:"attributes"`
+		Predicate   *ScriptConfig  `json:"predicate,omitempty"`
+		WorkConfig  *WorkConfig    `json:"work_config,omitempty"`
+		HTTP        *HTTPConfig    `json:"http,omitempty"`
+		Flow        *FlowConfig    `json:"flow,omitempty"`
+		Type        StepType       `json:"type"`
+		ID          StepID         `json:"id"`
+		Name        Name           `json:"name"`
+		Description string         `json:"description,omitempty"`
+		Handling    Handling       `json:"handling,omitempty"`
 
 		hashErr  error
 		hashVal  string
@@ -82,8 +83,9 @@ type (
 	// Steps contains a map of Steps by their ID
 	Steps map[StepID]*Step
 
-	// Labels contains optional step metadata used for discovery and grouping
-	Labels map[string]string
+	// Tags contains optional step metadata used for discovery and grouping,
+	// held as a set of opaque strings
+	Tags []string
 
 	attrPair struct {
 		V *AttributeSpec `json:"v"`
@@ -142,6 +144,7 @@ var (
 	ErrStepIDEmpty           = errors.New("step ID empty")
 	ErrStepIDInvalid         = errors.New("step ID contains invalid characters")
 	ErrStepNameEmpty         = errors.New("step name empty")
+	ErrTagEmpty              = errors.New("tag empty")
 	ErrStepEndpointEmpty     = errors.New("step endpoint empty")
 	ErrInvalidHTTPMethod     = errors.New("invalid HTTP method")
 	ErrInvalidActionMode     = errors.New("invalid action mode")
@@ -223,6 +226,12 @@ func (s *Step) Validate() error {
 	if s.Name == "" {
 		return ErrStepNameEmpty
 	}
+	if len(s.Tags) > MaxTagCount {
+		return fmt.Errorf("%w: maximum is %d", ErrTooManyTags, MaxTagCount)
+	}
+	if slices.Contains(s.Tags, "") {
+		return ErrTagEmpty
+	}
 	if err := s.validateHandling(); err != nil {
 		return err
 	}
@@ -254,17 +263,18 @@ func (s *Step) Validate() error {
 // Copy returns a shallow copy of the step without copying internal cache state
 func (s *Step) Copy() *Step {
 	return &Step{
-		Predicate:  s.Predicate,
-		HTTP:       s.HTTP,
-		Flow:       s.Flow,
-		Script:     s.Script,
-		WorkConfig: s.WorkConfig,
-		Labels:     s.Labels,
-		ID:         s.ID,
-		Name:       s.Name,
-		Type:       s.Type,
-		Handling:   s.Handling,
-		Attributes: s.Attributes,
+		Predicate:   s.Predicate,
+		HTTP:        s.HTTP,
+		Flow:        s.Flow,
+		Script:      s.Script,
+		WorkConfig:  s.WorkConfig,
+		Tags:        s.Tags,
+		ID:          s.ID,
+		Name:        s.Name,
+		Description: s.Description,
+		Type:        s.Type,
+		Handling:    s.Handling,
+		Attributes:  s.Attributes,
 	}
 }
 
@@ -393,14 +403,17 @@ func (s *Step) Equal(other *Step) bool {
 	if !s.WorkConfig.Equal(other.WorkConfig) {
 		return false
 	}
-	if !s.Labels.Equal(other.Labels) {
+	if !s.Tags.Equal(other.Tags) {
+		return false
+	}
+	if s.Description != other.Description {
 		return false
 	}
 	return true
 }
 
 // HashKey computes a deterministic SHA256 hash key of the functional parts of
-// the step definition. Excludes ID, Name, and Labels (non-functional metadata)
+// the step definition. Excludes ID, Name, and Tags (non-functional metadata)
 func (s *Step) HashKey() (string, error) {
 	s.hashOnce.Do(func() {
 		s.hashVal, s.hashErr = s.computeHashKey()
@@ -782,23 +795,18 @@ func (c *WorkConfig) Equal(other *WorkConfig) bool {
 		c.BackoffType == other.BackoffType
 }
 
-// Apply will merge the keys/values of the other label set into this one
-func (l Labels) Apply(other Labels) Labels {
-	return applyMap(l, other)
+// Equal returns true if two normalized tag sets are equal
+func (t Tags) Equal(other Tags) bool {
+	return slices.Equal(t, other)
 }
 
-// Equal returns true if two label sets are equal
-func (l Labels) Equal(other Labels) bool {
-	if len(l) != len(other) {
-		return false
+// Normalize returns the tags sorted and deduped, so that equality and digests
+// do not depend on declaration order
+func (t Tags) Normalize() Tags {
+	if len(t) == 0 {
+		return t
 	}
-	for key, val := range l {
-		otherVal, ok := other[key]
-		if !ok || otherVal != val {
-			return false
-		}
-	}
-	return true
+	return slices.Compact(slices.Sorted(slices.Values(t)))
 }
 
 func endpointParams(endpoint string) util.Set[string] {

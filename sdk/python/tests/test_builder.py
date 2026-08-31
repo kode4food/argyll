@@ -137,29 +137,80 @@ def test_step_builder_with_for_each_missing_attribute():
         pass
 
 
-def test_step_builder_with_label():
+def test_step_builder_with_description():
     client = Client()
     builder = (
         client.new_step()
         .with_name("Test")
-        .with_label("env", "prod")
+        .with_description("does a thing")
         .with_endpoint("http://localhost:8081/test")
     )
     step = builder.build()
-    assert step.labels["env"] == "prod"
+    assert step.description == "does a thing"
+    assert step.to_dict()["description"] == "does a thing"
 
 
-def test_step_builder_with_labels():
+def test_step_builder_without_description():
     client = Client()
     builder = (
         client.new_step()
         .with_name("Test")
-        .with_labels({"env": "prod", "team": "platform"})
         .with_endpoint("http://localhost:8081/test")
     )
     step = builder.build()
-    assert step.labels["env"] == "prod"
-    assert step.labels["team"] == "platform"
+    assert step.description == ""
+    assert "description" not in step.to_dict()
+
+
+def test_step_builder_with_tags():
+    client = Client()
+    builder = (
+        client.new_step()
+        .with_name("Test")
+        .with_tags("env:prod")
+        .with_endpoint("http://localhost:8081/test")
+    )
+    step = builder.build()
+    assert step.tags == ["env:prod"]
+
+
+def test_step_builder_with_tags_accumulates_and_sorts():
+    client = Client()
+    builder = (
+        client.new_step()
+        .with_name("Test")
+        .with_tags("domain:risk", "example")
+        .with_tags("domain:payments")
+        .with_endpoint("http://localhost:8081/test")
+    )
+    step = builder.build()
+    assert step.tags == ["domain:payments", "domain:risk", "example"]
+
+
+def test_step_builder_with_tags_dedupes():
+    client = Client()
+    builder = (
+        client.new_step()
+        .with_name("Test")
+        .with_tags("domain:risk", "domain:risk")
+        .with_endpoint("http://localhost:8081/test")
+    )
+    step = builder.build()
+    assert step.tags == ["domain:risk"]
+
+
+def test_step_builder_with_tags_does_not_alias():
+    client = Client()
+    tags = ["team:platform"]
+    builder = (
+        client.new_step()
+        .with_name("Test")
+        .with_tags(*tags)
+        .with_endpoint("http://localhost:8081/test")
+    )
+    step = builder.build()
+    tags.append("team:core")
+    assert step.tags == ["team:platform"]
 
 
 def test_step_builder_with_endpoint():
@@ -379,7 +430,7 @@ def test_step_builder_chaining():
         .with_id("custom-id")
         .required("input", AttributeType.STRING)
         .output("output", AttributeType.STRING)
-        .with_label("env", "test")
+        .with_tags("env:test")
         .with_method("PUT")
         .with_endpoint("http://localhost:8081/test")
     )
@@ -387,7 +438,7 @@ def test_step_builder_chaining():
     assert step.id == "custom-id"
     assert "input" in step.attributes
     assert "output" in step.attributes
-    assert step.labels["env"] == "test"
+    assert step.tags == ["env:test"]
     assert step.http.invoke.method == "PUT"
     assert step.http.invoke.endpoint == "http://localhost:8081/test"
 
@@ -588,7 +639,7 @@ def _make_step(**overrides):
         "name": "Step",
         "type": StepType.SERVICE,
         "attributes": {},
-        "labels": {},
+        "tags": [],
         "http": HTTPConfig(
             invoke=HTTPAction(endpoint="http://localhost:8081/test")
         ),

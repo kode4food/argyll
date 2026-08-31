@@ -13,7 +13,7 @@ if __name__ == "__main__":
             language=ScriptLanguage.LUA,
             script="return {result = value * 2}",
         )) \
-        .with_label("category", "math") \
+        .with_tags("category:math") \
         .register()
 
     print("Script step 'Double' registered successfully")

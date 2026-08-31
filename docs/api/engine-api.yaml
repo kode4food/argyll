@@ -740,7 +740,7 @@ paths:
       description: |
         Create and start a new flow execution with goal-driven planning.
 
-        If `space_id` is omitted, planning uses the complete global step catalog. If supplied, the current Space selector is resolved against registered Step labels before planning.
+        If `space_id` is omitted, planning uses the complete global step catalog. If supplied, the current Space selector is resolved against registered Step tags before planning.
 
         The engine will:
         1. Create an execution plan containing only necessary steps
@@ -1386,6 +1386,10 @@ components:
           type: string
           description: Human-readable name
           example: "Text Processor"
+        description:
+          type: string
+          description: Optional prose describing what the step does
+          example: "resolve product inventory details by product_id"
         type:
           type: string
           enum: ["service", "script", "flow"]
@@ -1433,11 +1437,17 @@ components:
                   script:
                     language: "jpath"
                     script: "$.response.data"
-        labels:
-          type: object
-          description: Optional labels for categorization and discovery
-          additionalProperties:
+        tags:
+          type: array
+          description: Optional tags for categorization and discovery, held as
+            a set of opaque strings. A `prefix:value` shape is a convention
+            callers may adopt, and the engine compares whole strings
+          items:
             type: string
+          example:
+            - domain:payments
+            - domain:risk
+            - example
         predicate:
           allOf:
             - $ref: "#/components/schemas/ScriptConfig"
@@ -1723,7 +1733,8 @@ components:
         For step execution (`type: script`), `lua` is supported.
         For predicates and attribute mappings, all registered languages are valid
         (`lua`, `jpath` in the default engine).
-        Space selectors use the same languages and evaluate only Step labels.
+        Space selectors use the same languages and evaluate only Step tags.
+        A selector generated from `qbe` is emitted as `jpath`.
       required:
         - language
         - script
@@ -1882,25 +1893,25 @@ components:
         selector:
           allOf:
             - $ref: "#/components/schemas/ScriptConfig"
-          description: Authoritative selector, a predicate over the Step
-            labels object in any registered scripting language. Lua receives
-            the labels as `value`; JPath receives them as its document
+          description: Authoritative selector, a predicate over the Step tags
+            in any registered scripting language. The document holds the tags
+            as a set under a `tags` key, so membership is a lookup and further
+            queryable surfaces have room to join it. Lua receives the document
+            as `value`, making a test read `value["tags"]["domain:risk"]`;
+            JPath receives it directly, making the same test read
+            `$["tags"]["domain:risk"]`
         qbe:
-          type: object
-          description: Optional query-by-example source. Keys are combined
-            with AND and each key's values with OR. When present, the engine
-            stores it sorted and deduplicated and replaces `selector` with
-            generated Lua
-          minProperties: 1
-          additionalProperties:
-            type: array
-            minItems: 1
-            items:
-              type: string
+          type: array
+          description: Optional query-by-example source. A Step matches when it
+            carries every listed tag. When present, the engine stores it sorted
+            and deduplicated and replaces `selector` with generated JPath.
+            Alternatives are expressed by editing the selector directly
+          minItems: 1
+          items:
+            type: string
           example:
-            domain:
-              - payments
-              - risk
+            - domain:payments
+            - tier:gold
 
     SpacePreviewResponse:
       type: object

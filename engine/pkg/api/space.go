@@ -3,7 +3,6 @@ package api
 import (
 	"errors"
 	"fmt"
-	"maps"
 	"slices"
 )
 
@@ -26,8 +25,8 @@ type (
 	// SpaceSelection contains the Step IDs each Space's selector selected
 	SpaceSelection map[SpaceID][]StepID
 
-	// SpaceQuery matches label keys with AND and their values with OR
-	SpaceQuery map[string][]string
+	// SpaceQuery matches steps carrying every one of its tags
+	SpaceQuery []string
 )
 
 var (
@@ -53,7 +52,7 @@ func (s Space) Validate() error {
 }
 
 // ValidateSelector checks if the space selector and its QBE source are valid.
-// The selector is a label predicate, so its language is left to the script
+// The selector is a tag predicate, so its language is left to the script
 // registry to accept or reject
 func (s Space) ValidateSelector() error {
 	if s.Selector == nil {
@@ -62,27 +61,21 @@ func (s Space) ValidateSelector() error {
 	if s.Selector.Script == "" {
 		return ErrScriptEmpty
 	}
-	if len(s.QBE) > MaxLabelCount {
-		return fmt.Errorf("%w: maximum is %d", ErrTooManyLabels, MaxLabelCount)
+	if len(s.QBE) > MaxTagCount {
+		return fmt.Errorf("%w: maximum is %d", ErrTooManyTags, MaxTagCount)
 	}
-	for key, values := range s.QBE {
-		if key == "" || len(values) == 0 || slices.Contains(values, "") {
-			return ErrInvalidSpaceQuery
-		}
+	if slices.Contains(s.QBE, "") {
+		return ErrInvalidSpaceQuery
 	}
 	return nil
 }
 
-// Normalize returns the Space with its QBE values sorted and deduped
+// Normalize returns the Space with its QBE tags sorted and deduped
 func (s Space) Normalize() Space {
 	if len(s.QBE) == 0 {
 		return s
 	}
-	qbe := make(SpaceQuery, len(s.QBE))
-	for key, values := range s.QBE {
-		qbe[key] = slices.Compact(slices.Sorted(slices.Values(values)))
-	}
-	s.QBE = qbe
+	s.QBE = slices.Compact(slices.Sorted(slices.Values(s.QBE)))
 	return s
 }
 
@@ -91,5 +84,5 @@ func (s Space) Equal(other Space) bool {
 	return s.ID == other.ID && s.Name == other.Name &&
 		s.Description == other.Description &&
 		s.Selector.Equal(other.Selector) &&
-		maps.EqualFunc(s.QBE, other.QBE, slices.Equal)
+		slices.Equal(s.QBE, other.QBE)
 }

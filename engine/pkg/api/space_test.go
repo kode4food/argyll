@@ -13,10 +13,10 @@ func TestSpaceJSON(t *testing.T) {
 	sp := api.Space{
 		ID:   "payments",
 		Name: "Payments",
-		QBE:  api.SpaceQuery{"domain": {"payments", "risk"}},
+		QBE:  api.SpaceQuery{"domain:payments", "domain:risk"},
 		Selector: &api.ScriptConfig{
 			Language: api.ScriptLangJPath,
-			Script:   `$.domain == "payments"`,
+			Script:   `$["domain:payments"]`,
 		},
 	}.Normalize()
 	data, err := json.Marshal(sp)
@@ -24,10 +24,10 @@ func TestSpaceJSON(t *testing.T) {
 	assert.JSONEq(t, `{
 		"id": "payments",
 		"name": "Payments",
-		"qbe": {"domain": ["payments", "risk"]},
+		"qbe": ["domain:payments", "domain:risk"],
 		"selector": {
 			"language": "jpath",
-			"script": "$.domain == \"payments\""
+			"script": "$[\"domain:payments\"]"
 		}
 	}`, string(data))
 }
@@ -35,15 +35,18 @@ func TestSpaceJSON(t *testing.T) {
 func TestSpaceValidate(t *testing.T) {
 	sp := api.Space{
 		ID: "payments", Name: "Payments",
-		QBE: api.SpaceQuery{"domain": {}},
+		QBE: api.SpaceQuery{"domain:payments"},
 		Selector: &api.ScriptConfig{
 			Language: api.ScriptLangJPath,
-			Script:   `$.domain == "payments"`,
+			Script:   `$["domain:payments"]`,
 		},
 	}.Normalize()
+	assert.NoError(t, sp.Validate())
+
+	sp.QBE = api.SpaceQuery{""}
 	assert.ErrorIs(t, sp.Validate(), api.ErrInvalidSpaceQuery)
 
-	sp.QBE = api.SpaceQuery{"domain": {""}}
+	sp.QBE = api.SpaceQuery{"domain:payments", ""}
 	assert.ErrorIs(t, sp.Validate(), api.ErrInvalidSpaceQuery)
 
 	sp.QBE = nil
@@ -56,16 +59,16 @@ func TestSpaceValidate(t *testing.T) {
 func TestSpaceEqual(t *testing.T) {
 	sp := api.Space{
 		ID: "payments", Name: "Payments",
-		QBE: api.SpaceQuery{"domain": {"payments", "risk"}},
+		QBE: api.SpaceQuery{"domain:payments", "domain:risk"},
 	}.Normalize()
 	other := sp
-	other.QBE = api.SpaceQuery{"domain": {"risk", "payments"}}
+	other.QBE = api.SpaceQuery{"domain:risk", "domain:payments"}
 	assert.False(t, sp.Equal(other))
 	assert.True(t, sp.Equal(other.Normalize()))
 
 	other = api.Space{
 		ID: "payments", Name: "Payments",
-		QBE: api.SpaceQuery{"domain": {"inventory"}},
+		QBE: api.SpaceQuery{"domain:inventory"},
 	}.Normalize()
 	assert.False(t, sp.Equal(other))
 }
@@ -75,19 +78,15 @@ func TestSpaceNormalize(t *testing.T) {
 		ID: "payments", Name: "Payments",
 		Selector: &api.ScriptConfig{
 			Language: api.ScriptLangJPath,
-			Script:   `$.domain == "payments"`,
+			Script:   `$["domain:payments"]`,
 		},
 		QBE: api.SpaceQuery{
-			"domain": {"risk", "payments", "risk"},
-			"tier":   {"gold"},
+			"domain:risk", "domain:payments", "domain:risk", "tier:gold",
 		},
 	}
 	normalized := sp.Normalize()
 	assert.Equal(t, api.SpaceQuery{
-		"domain": {"payments", "risk"},
-		"tier":   {"gold"},
+		"domain:payments", "domain:risk", "tier:gold",
 	}, normalized.QBE)
 	assert.Equal(t, sp.Selector, normalized.Selector)
-	assert.Equal(t,
-		[]string{"risk", "payments", "risk"}, sp.QBE["domain"])
 }

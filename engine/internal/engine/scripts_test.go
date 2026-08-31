@@ -116,7 +116,7 @@ func TestCreatePlanRestrictsChildFlowToSpace(t *testing.T) {
 		assert.NoError(t, eng.RegisterStep(provider))
 
 		goal := helpers.NewSimpleStep("goal")
-		goal.Labels = api.Labels{"domain": "payments"}
+		goal.Tags = api.Tags{"domain:payments"}
 		goal.Attributes = api.AttributeSpecs{
 			"input": {Role: api.RoleRequired, Type: api.TypeString},
 		}
@@ -125,9 +125,7 @@ func TestCreatePlanRestrictsChildFlowToSpace(t *testing.T) {
 		sp := api.Space{
 			ID:   "payments",
 			Name: "Payments",
-			QBE: api.SpaceQuery{
-				"domain": {"payments"},
-			},
+			QBE:  api.SpaceQuery{"domain:payments"},
 		}
 		assert.NoError(t, eng.RegisterSpace(sp))
 

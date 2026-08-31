@@ -5,6 +5,7 @@ import (
 	"errors"
 	"maps"
 	"regexp"
+	"slices"
 	"strings"
 
 	"github.com/kode4food/argyll/engine/pkg/api"
@@ -36,7 +37,7 @@ func (c *Client) NewStep() Step {
 		timeout: 30 * api.Second,
 		step: &api.Step{
 			Type:       api.StepTypeService,
-			Labels:     api.Labels{},
+			Tags:       api.Tags{},
 			Attributes: api.AttributeSpecs{},
 		},
 	}
@@ -128,13 +129,20 @@ func (s Step) WithForEach(names ...api.Name) Step {
 	return s
 }
 
-// WithLabels merges the provided labels into the step's labels
-func (s Step) WithLabels(labels api.Labels) Step {
-	if len(labels) == 0 {
+// WithDescription sets prose describing what the step does
+func (s Step) WithDescription(description string) Step {
+	s.step = s.step.Copy()
+	s.step.Description = description
+	return s
+}
+
+// WithTags merges the provided tags into the step's tag set
+func (s Step) WithTags(tags ...string) Step {
+	if len(tags) == 0 {
 		return s
 	}
 	s.step = s.step.Copy()
-	s.step.Labels = s.step.Labels.Apply(labels)
+	s.step.Tags = append(slices.Clone(s.step.Tags), tags...).Normalize()
 	return s
 }
 

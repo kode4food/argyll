@@ -74,17 +74,26 @@ func TestCreateFlowRequestValidate(t *testing.T) {
 		assert.ErrorIs(t, req.Validate(), api.ErrTooManyInit)
 	})
 
-	t.Run("too many labels", func(t *testing.T) {
-		labels := api.Labels{}
-		for i := range api.MaxLabelCount + 1 {
-			labels[fmt.Sprintf("label-%d", i)] = "value"
+	t.Run("too many tags", func(t *testing.T) {
+		tags := make(api.Tags, api.MaxTagCount+1)
+		for i := range tags {
+			tags[i] = fmt.Sprintf("tag-%d", i)
 		}
 		req := &api.CreateFlowRequest{
-			ID:     "my-flow",
-			Goals:  []api.StepID{"step-1"},
-			Labels: labels,
+			ID:    "my-flow",
+			Goals: []api.StepID{"step-1"},
+			Tags:  tags,
 		}
-		assert.ErrorIs(t, req.Validate(), api.ErrTooManyLabels)
+		assert.ErrorIs(t, req.Validate(), api.ErrTooManyTags)
+	})
+
+	t.Run("empty tag", func(t *testing.T) {
+		req := &api.CreateFlowRequest{
+			ID:    "my-flow",
+			Goals: []api.StepID{"step-1"},
+			Tags:  api.Tags{""},
+		}
+		assert.ErrorIs(t, req.Validate(), api.ErrTagEmpty)
 	})
 }
 

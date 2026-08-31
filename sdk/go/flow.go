@@ -2,6 +2,7 @@ package argyll
 
 import (
 	"context"
+	"slices"
 
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
@@ -12,7 +13,7 @@ type Flow struct {
 	id     api.FlowID
 	goals  []api.StepID
 	init   api.InitArgs
-	labels api.Labels
+	tags   api.Tags
 }
 
 // NewFlow creates a new flow builder with the specified ID
@@ -46,26 +47,21 @@ func (f Flow) WithInitialState(init api.InitArgs) Flow {
 	return f
 }
 
-// WithLabel sets a single label for the flow
-func (f Flow) WithLabel(key, value string) Flow {
-	return f.WithLabels(api.Labels{key: value})
-}
-
-// WithLabels merges the provided labels into the flow's labels
-func (f Flow) WithLabels(labels api.Labels) Flow {
-	if len(labels) == 0 {
+// WithTags merges the provided tags into the flow's tag set
+func (f Flow) WithTags(tags ...string) Flow {
+	if len(tags) == 0 {
 		return f
 	}
-	f.labels = f.labels.Apply(labels)
+	f.tags = append(slices.Clone(f.tags), tags...).Normalize()
 	return f
 }
 
 // Start creates and starts the flow
 func (f Flow) Start(ctx context.Context) error {
 	return f.client.startFlow(ctx, &api.CreateFlowRequest{
-		ID:     f.id,
-		Goals:  f.goals,
-		Init:   f.init,
-		Labels: f.labels,
+		ID:    f.id,
+		Goals: f.goals,
+		Init:  f.init,
+		Tags:  f.tags,
 	})
 }

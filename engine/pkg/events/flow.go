@@ -48,9 +48,13 @@ func FlowIndexer(evs []*timebox.Event) []*timebox.Index {
 
 	handleStarted := func(data api.FlowStartedEvent) {
 		status := FlowStatusActive
+		tags := make(map[string]bool, len(data.Tags))
+		for _, tag := range data.Tags {
+			tags[tag] = true
+		}
 		res = append(res, &timebox.Index{
 			Status: &status,
-			Labels: data.Labels,
+			Tags:   tags,
 		})
 	}
 
@@ -138,7 +142,7 @@ func flowStarted(
 		Status:      api.FlowActive,
 		Plan:        data.Plan,
 		Metadata:    data.Metadata,
-		Labels:      data.Labels,
+		Tags:        data.Tags,
 		Attributes:  attributes,
 		Executions:  execs,
 		Compensate:  data.Compensate,

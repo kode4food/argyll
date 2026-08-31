@@ -196,6 +196,7 @@ func (e *Engine) resetStepHealth(st *api.Step) {
 
 func (tx *CatalogTx) prepareStep(st *api.Step) (*api.Step, error) {
 	st = st.WithWorkDefaults(&tx.e.config.Work)
+	st.Tags = st.Tags.Normalize()
 	if err := tx.e.validateStep(st); err != nil {
 		return nil, err
 	}

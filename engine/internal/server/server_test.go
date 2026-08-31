@@ -1818,9 +1818,9 @@ func TestQueryFlowsInvalidIDPrefix(t *testing.T) {
 	})
 }
 
-func TestQueryFlowsInvalidLabelEmptyKey(t *testing.T) {
+func TestQueryFlowsInvalidEmptyTag(t *testing.T) {
 	withTestServerEnv(t, func(testEnv *testServerEnv) {
-		reqBody := map[string]any{"labels": map[string]string{"": "value"}}
+		reqBody := map[string]any{"tags": []string{""}}
 		body, _ := json.Marshal(reqBody)
 		req := httptest.NewRequest(
 			"POST", "/engine/flows/query", bytes.NewReader(body),
@@ -1832,7 +1832,7 @@ func TestQueryFlowsInvalidLabelEmptyKey(t *testing.T) {
 		router.ServeHTTP(w, req)
 
 		assert.Equal(t, http.StatusBadRequest, w.Code)
-		assert.Contains(t, w.Body.String(), "Invalid labels")
+		assert.Contains(t, w.Body.String(), "Invalid tags")
 	})
 }
 
@@ -1917,20 +1917,20 @@ func TestStartFlowTooManyInitKeys(t *testing.T) {
 	})
 }
 
-func TestStartFlowTooManyLabels(t *testing.T) {
+func TestStartFlowTooManyTags(t *testing.T) {
 	withTestServerEnv(t, func(testEnv *testServerEnv) {
 		st := helpers.NewSimpleStep("test-step-labels")
 		err := testEnv.Engine.RegisterStep(st)
 		assert.NoError(t, err)
 
-		labels := api.Labels{}
-		for i := range api.MaxLabelCount + 1 {
-			labels[fmt.Sprintf("label-%d", i)] = "value"
+		tags := make(api.Tags, api.MaxTagCount+1)
+		for i := range tags {
+			tags[i] = fmt.Sprintf("tag-%d", i)
 		}
 		reqBody := api.CreateFlowRequest{
-			ID:     "too-many-labels",
-			Goals:  []api.StepID{"test-step-labels"},
-			Labels: labels,
+			ID:    "too-many-tags",
+			Goals: []api.StepID{"test-step-labels"},
+			Tags:  tags,
 		}
 		body, _ := json.Marshal(reqBody)
 		req := httptest.NewRequest(
@@ -1943,7 +1943,7 @@ func TestStartFlowTooManyLabels(t *testing.T) {
 		router.ServeHTTP(w, req)
 
 		assert.Equal(t, http.StatusBadRequest, w.Code)
-		assert.Contains(t, w.Body.String(), "too many labels")
+		assert.Contains(t, w.Body.String(), "too many tags")
 	})
 }
 

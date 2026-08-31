@@ -51,7 +51,7 @@ type (
 		Plan       *ExecutionPlan `json:"plan"`
 		Init       InitArgs       `json:"init"`
 		Metadata   Metadata       `json:"metadata,omitempty"`
-		Labels     Labels         `json:"labels,omitempty"`
+		Tags       Tags           `json:"tags,omitempty"`
 		FlowID     FlowID         `json:"flow_id"`
 		Compensate bool           `json:"compensate,omitempty"`
 	}

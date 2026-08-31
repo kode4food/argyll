@@ -134,9 +134,10 @@ export interface WorkConfig {
 export interface Step {
   id: string;
   name: string;
+  description?: string;
   type: StepType;
   attributes: Record<string, AttributeSpec>;
-  labels?: Record<string, string>;
+  tags?: string[];
   predicate?: ScriptConfig;
   work_config?: WorkConfig;
   handling?: Handling;
@@ -225,7 +226,7 @@ export interface Space {
   name: string;
   description?: string;
   selector?: ScriptConfig;
-  qbe?: Record<string, string[]>;
+  qbe?: string[];
 }
 
 export interface SpacePreviewResponse {

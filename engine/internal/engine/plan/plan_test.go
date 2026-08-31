@@ -1081,7 +1081,7 @@ func planConsumer(
 func TestSubFlowSpace(t *testing.T) {
 	t.Run("narrows child candidates", func(t *testing.T) {
 		goal := planProvider("scoped-goal", "scoped")
-		goal.Labels = api.Labels{"domain": "payments"}
+		goal.Tags = api.Tags{"domain:payments"}
 		outside := planProvider("outside-goal", "outside")
 
 		st := planProvider("sub-flow", "expanded")
@@ -1099,7 +1099,7 @@ func TestSubFlowSpace(t *testing.T) {
 			"payments": {
 				ID:   "payments",
 				Name: "Payments",
-				QBE:  api.SpaceQuery{"domain": {"payments"}},
+				QBE:  api.SpaceQuery{"domain:payments"},
 			},
 		}
 		cat.Selection = api.SpaceSelection{"payments": {goal.ID}}

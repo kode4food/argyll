@@ -58,13 +58,13 @@ func TestListFlowsIgnoresBadStatusEntry(t *testing.T) {
 func TestQueryFlowsFiltersAndPaging(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		assert.NoError(t, env.SeedFlow(
-			"flow-active", api.FlowActive, api.Labels{"tier": "active"},
+			"flow-active", api.FlowActive, api.Tags{"tier:active"},
 		))
 		assert.NoError(t, env.SeedFlow(
-			"flow-complete", api.FlowCompleted, api.Labels{"tier": "done"},
+			"flow-complete", api.FlowCompleted, api.Tags{"tier:done"},
 		))
 		assert.NoError(t, env.SeedFlow(
-			"flow-failed", api.FlowFailed, api.Labels{"tier": "fail"},
+			"flow-failed", api.FlowFailed, api.Tags{"tier:fail"},
 		))
 
 		resp, err := env.Engine.QueryFlows(&api.QueryFlowsRequest{
@@ -86,14 +86,14 @@ func TestQueryFlowsFiltersAndPaging(t *testing.T) {
 		assert.Equal(t, api.FlowID("flow-complete"), resp.Flows[0].ID)
 
 		resp, err = env.Engine.QueryFlows(&api.QueryFlowsRequest{
-			Labels: api.Labels{"tier": "done"},
+			Tags: api.Tags{"tier:done"},
 		})
 		assert.NoError(t, err)
 		assert.Len(t, resp.Flows, 1)
 		assert.Equal(t, api.FlowID("flow-complete"), resp.Flows[0].ID)
 
 		resp, err = env.Engine.QueryFlows(&api.QueryFlowsRequest{
-			Labels: api.Labels{"tier": "missing"},
+			Tags: api.Tags{"tier:missing"},
 		})
 		assert.NoError(t, err)
 		assert.Empty(t, resp.Flows)
@@ -116,27 +116,24 @@ func TestQueryFlowsFiltersAndPaging(t *testing.T) {
 	})
 }
 
-func TestLabelIndex(t *testing.T) {
+func TestTagIndex(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		labels := api.Labels{
-			"tier": "gold",
-			"env":  "prod",
-		}
+		tags := api.Tags{"tier:gold", "env:prod"}
 		assert.NoError(t, env.SeedFlow(
-			"flow-labeled", api.FlowCompleted, labels,
+			"flow-tagged", api.FlowCompleted, tags,
 		))
 
-		ids, err := env.ListFlowsByLabel("tier", "gold")
+		ids, err := env.ListFlowsByTag("tier:gold")
 		assert.NoError(t, err)
-		assert.Contains(t, ids, events.FlowKey("flow-labeled"))
+		assert.Contains(t, ids, events.FlowKey("flow-tagged"))
 
-		ids, err = env.ListFlowsByLabel("env", "prod")
+		ids, err = env.ListFlowsByTag("env:prod")
 		assert.NoError(t, err)
-		assert.Contains(t, ids, events.FlowKey("flow-labeled"))
+		assert.Contains(t, ids, events.FlowKey("flow-tagged"))
 
-		ids, err = env.ListFlowsByLabel("tier", "silver")
+		ids, err = env.ListFlowsByTag("tier:silver")
 		assert.NoError(t, err)
-		assert.NotContains(t, ids, events.FlowKey("flow-labeled"))
+		assert.NotContains(t, ids, events.FlowKey("flow-tagged"))
 	})
 }
 
@@ -269,7 +266,7 @@ func TestQueryFlowsStaleLabels(t *testing.T) {
 
 		resp, err := env.Engine.QueryFlows(&api.QueryFlowsRequest{
 			Statuses: []api.FlowStatus{api.FlowCompleted},
-			Labels:   api.Labels{"tier": "done"},
+			Tags:     api.Tags{"tier:done"},
 		})
 		assert.NoError(t, err)
 		assert.Empty(t, resp.Flows)
@@ -283,7 +280,7 @@ func TestQueryFlowsNoLabels(t *testing.T) {
 		))
 
 		resp, err := env.Engine.QueryFlows(&api.QueryFlowsRequest{
-			Labels: api.Labels{"tier": "done"},
+			Tags: api.Tags{"tier:done"},
 		})
 		assert.NoError(t, err)
 		assert.Empty(t, resp.Flows)
@@ -294,18 +291,15 @@ func TestLabelIntersection(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		assert.NoError(t, env.SeedFlow(
 			"flow-intersection-a", api.FlowCompleted,
-			api.Labels{"tier": "gold", "env": "prod"},
+			api.Tags{"tier:gold", "env:prod"},
 		))
 		assert.NoError(t, env.SeedFlow(
 			"flow-intersection-b", api.FlowCompleted,
-			api.Labels{"tier": "silver", "env": "stage"},
+			api.Tags{"tier:silver", "env:stage"},
 		))
 
 		resp, err := env.Engine.QueryFlows(&api.QueryFlowsRequest{
-			Labels: api.Labels{
-				"tier": "gold",
-				"env":  "stage",
-			},
+			Tags: api.Tags{"tier:gold", "env:stage"},
 		})
 		assert.NoError(t, err)
 		assert.Empty(t, resp.Flows)
@@ -314,21 +308,20 @@ func TestLabelIntersection(t *testing.T) {
 
 func TestBadIndexedFlowEntry(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		addLabelEntry(t, addLabelEntryArgs{
+		addTagEntry(t, addTagEntryArgs{
 			env:    env,
-			label:  "tier",
-			value:  "gold",
+			tag:    "tier:gold",
 			prefix: "bad",
 			id:     "flow-id",
 		})
 
 		_, err := env.Engine.QueryFlows(&api.QueryFlowsRequest{
-			Labels: api.Labels{"tier": "gold"},
+			Tags: api.Tags{"tier:gold"},
 		})
 		assert.Error(t, err)
 		assert.True(t,
 			errors.Is(err, engine.ErrInvalidFlowStatusEntry) ||
-				errors.Is(err, engine.ErrInvalidFlowLabelEntry),
+				errors.Is(err, engine.ErrInvalidFlowTagEntry),
 		)
 	})
 }
@@ -574,23 +567,21 @@ func addStatusEntry(t *testing.T, args addStatusEntryArgs) {
 	assert.NoError(t, err)
 }
 
-type addLabelEntryArgs struct {
+type addTagEntryArgs struct {
 	env    *helpers.TestEngineEnv
-	label  string
-	value  string
+	tag    string
 	prefix string
 	id     string
 }
 
-func addLabelEntry(t *testing.T, args addLabelEntryArgs) {
+func addTagEntry(t *testing.T, args addTagEntryArgs) {
 	t.Helper()
 
 	aggID := timebox.NewAggregateID(
 		timebox.ID(args.prefix), timebox.ID(args.id),
 	)
 	raw, err := marshalIndexedFlowEvent(
-		events.FlowStatusActive,
-		api.Labels{args.label: args.value},
+		events.FlowStatusActive, api.Tags{args.tag},
 	)
 	assert.NoError(t, err)
 	err = args.env.AppendEvents(aggID, 0, &timebox.Event{
@@ -602,11 +593,13 @@ func addLabelEntry(t *testing.T, args addLabelEntryArgs) {
 	assert.NoError(t, err)
 }
 
-func marshalIndexedFlowEvent(status string, labels api.Labels) ([]byte, error) {
+func marshalIndexedFlowEvent(
+	status string, tags api.Tags,
+) ([]byte, error) {
 	if status == events.FlowStatusActive {
 		return json.Marshal(api.FlowStartedEvent{
 			FlowID: "fixture",
-			Labels: labels,
+			Tags:   tags,
 		})
 	}
 	return json.Marshal(api.FlowDeactivatedEvent{

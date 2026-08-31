@@ -10,7 +10,7 @@ Args = Dict[str, Any]
 InitArgs = Dict[str, List[Any]]
 StepID = str
 FlowID = str
-Labels = Dict[str, str]
+Tags = List[str]
 Metadata = Dict[str, Any]
 
 
@@ -319,8 +319,9 @@ class Step:
     id: StepID
     name: str
     type: StepType
+    description: str = ""
     attributes: Dict[str, AttributeSpec] = field(default_factory=dict)
-    labels: Labels = field(default_factory=dict)
+    tags: Tags = field(default_factory=list)
     http: Optional[HTTPConfig] = None
     script: Optional[ScriptConfig] = None
     predicate: Optional[ScriptConfig] = None
@@ -336,13 +337,16 @@ class Step:
             "type": self.type.value,
         }
 
+        if self.description:
+            result["description"] = self.description
+
         if self.attributes:
             result["attributes"] = {
                 k: v.to_dict() for k, v in self.attributes.items()
             }
 
-        if self.labels:
-            result["labels"] = self.labels
+        if self.tags:
+            result["tags"] = self.tags
 
         if self.http:
             result["http"] = self.http.to_dict()

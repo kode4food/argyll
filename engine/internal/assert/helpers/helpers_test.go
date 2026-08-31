@@ -392,14 +392,14 @@ func TestSeedFlow(t *testing.T) {
 	} {
 		t.Run(string(status), func(t *testing.T) {
 			helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-				labels := api.Labels{"tier": "test"}
-				err := env.SeedFlow("seeded-flow", status, labels)
+				tags := api.Tags{"tier:test"}
+				err := env.SeedFlow("seeded-flow", status, tags)
 				assert.NoError(t, err)
 
 				fl, err := env.Engine.GetFlowState("seeded-flow")
 				assert.NoError(t, err)
 				assert.Equal(t, status, fl.Status)
-				assert.Equal(t, labels, fl.Labels)
+				assert.Equal(t, tags, fl.Tags)
 			})
 		})
 	}

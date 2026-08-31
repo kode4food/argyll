@@ -65,7 +65,8 @@ var ErrAmountNegative = errors.New("amount must not be negative")
 
 //argyll:step
 //argyll:memoize
-//argyll:labels description: score a customer for risk; domain: risk
+//argyll:description score a customer for risk
+//argyll:tags domain:risk; scoring
 func CalculateRisk(args RiskArgs) (RiskResult, error) {
 	if args.Amount < 0 {
 		return RiskResult{}, ErrAmountNegative
@@ -164,7 +165,7 @@ func refundCard(_ refundCardArgs) error {
 }
 
 //argyll:step
-//argyll:labels domain: risk
+//argyll:tags domain:risk
 func Reject(args struct{ Reason string }) error {
 	return argyll.NotFound("%s", args.Reason)
 }

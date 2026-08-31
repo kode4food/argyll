@@ -3,6 +3,7 @@ package api
 import (
 	"errors"
 	"fmt"
+	"slices"
 	"time"
 )
 
@@ -13,14 +14,14 @@ var (
 	ErrGoalsRequired = errors.New("at least one goal step is required")
 	ErrTooManyGoals  = errors.New("too many goals")
 	ErrTooManyInit   = errors.New("too many init keys")
-	ErrTooManyLabels = errors.New("too many labels")
+	ErrTooManyTags   = errors.New("too many tags")
 )
 
 const (
-	MaxFlowIDLen  = 256
-	MaxGoalCount  = 64
-	MaxInitKeys   = 128
-	MaxLabelCount = 32
+	MaxFlowIDLen = 256
+	MaxGoalCount = 64
+	MaxInitKeys  = 128
+	MaxTagCount  = 32
 )
 
 type (
@@ -29,7 +30,7 @@ type (
 		Init       InitArgs `json:"init"`
 		ID         FlowID   `json:"id"`
 		SpaceID    SpaceID  `json:"space_id,omitempty"`
-		Labels     Labels   `json:"labels,omitempty"`
+		Tags       Tags     `json:"tags,omitempty"`
 		Goals      []StepID `json:"goals"`
 		Compensate bool     `json:"compensate,omitempty"`
 	}
@@ -49,7 +50,7 @@ type (
 
 	// QueryFlowsRequest contains filter criteria and pagination options
 	QueryFlowsRequest struct {
-		Labels   Labels       `json:"labels,omitempty"`
+		Tags     Tags         `json:"tags,omitempty"`
 		IDPrefix string       `json:"id_prefix,omitempty"`
 		Cursor   string       `json:"cursor,omitempty"`
 		Sort     FlowSort     `json:"sort,omitempty"`
@@ -71,7 +72,7 @@ type (
 		ID        FlowID     `json:"id"`
 		Status    FlowStatus `json:"status"`
 		Timestamp time.Time  `json:"timestamp"`
-		Labels    Labels     `json:"labels,omitempty"`
+		Tags      Tags       `json:"tags,omitempty"`
 		Error     string     `json:"error,omitempty"`
 	}
 
@@ -158,8 +159,11 @@ func (r *CreateFlowRequest) Validate() error {
 	if len(r.Init) > MaxInitKeys {
 		return fmt.Errorf("%w: maximum is %d", ErrTooManyInit, MaxInitKeys)
 	}
-	if len(r.Labels) > MaxLabelCount {
-		return fmt.Errorf("%w: maximum is %d", ErrTooManyLabels, MaxLabelCount)
+	if len(r.Tags) > MaxTagCount {
+		return fmt.Errorf("%w: maximum is %d", ErrTooManyTags, MaxTagCount)
+	}
+	if slices.Contains(r.Tags, "") {
+		return ErrTagEmpty
 	}
 	return nil
 }

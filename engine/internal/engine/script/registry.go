@@ -45,7 +45,12 @@ type (
 	}
 )
 
-const matchValue = api.Name("value")
+const (
+	// MatchTags names the key holding a step's tags in a selector document
+	MatchTags = "tags"
+
+	matchValue = api.Name("value")
+)
 
 // MatchStep returns the minimal synthetic step used as the compilation context
 // for a required match predicate, exposing only the candidate value

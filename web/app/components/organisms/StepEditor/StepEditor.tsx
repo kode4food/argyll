@@ -10,7 +10,7 @@ import { useModalDimensions } from "./useModalDimensions";
 import { useT } from "@/app/i18n";
 import { useSpaces, useSteps } from "@/app/store/flowStore";
 import { useUI } from "@/app/contexts/UIContext";
-import { useLabelVocabulary } from "@/app/hooks/useLabelVocabulary";
+import { useTagVocabulary } from "@/app/hooks/useTagVocabulary";
 import { api } from "@/app/api";
 import { getFlowPlanAttributeOptions } from "@/utils/flowPlanAttributeOptions";
 import {
@@ -20,7 +20,7 @@ import {
 } from "@/utils/iconRegistry";
 import StepEditorBasicFields from "./StepEditorBasicFields";
 import StepEditorAttributesSection from "./StepEditorAttributesSection";
-import KeyValueTable from "@/app/components/molecules/KeyValueTable";
+import TagInput from "@/app/components/molecules/TagInput";
 import StepEditorFlowConfiguration from "./StepEditorFlowConfiguration";
 import StepEditorHttpConfiguration from "./StepEditorHttpConfiguration";
 import StepEditorFooter from "./StepEditorFooter";
@@ -46,9 +46,9 @@ const StepEditor: React.FC<StepEditorProps> = ({
   const steps = useSteps();
   const spaces = useSpaces();
   const { spaceId } = useUI();
-  const { labelKeys, valuesForKey } = useLabelVocabulary();
-  const defaultLabels = React.useMemo(
-    () => singleValueLabels(spaces.find((space) => space.id === spaceId)?.qbe),
+  const tagVocabulary = useTagVocabulary();
+  const defaultTags = React.useMemo(
+    () => spaces.find((space) => space.id === spaceId)?.qbe,
     [spaces, spaceId]
   );
   const {
@@ -73,18 +73,18 @@ const StepEditor: React.FC<StepEditorProps> = ({
     isCreateMode,
     stepId,
     name,
+    description,
     stepType: formStepType,
     setStepId,
     setName,
+    setDescription,
     setStepType,
     attributes,
     addAttribute,
     updateAttribute,
     removeAttribute,
-    labels,
-    addLabel,
-    updateLabel,
-    removeLabel,
+    tags,
+    setTags,
     endpoint,
     setEndpoint,
     httpMethod,
@@ -109,7 +109,7 @@ const StepEditor: React.FC<StepEditorProps> = ({
     setFlowCompensate,
     flowSpaceId,
     setFlowSpaceId,
-  } = useStepEditorForm({ step, onUpdate, onClose, defaultLabels, draft });
+  } = useStepEditorForm({ step, onUpdate, onClose, defaultTags, draft });
 
   const [editorMode, setEditorMode] = React.useState<"basic" | "json">("basic");
   const [jsonDraft, setJsonDraft] = React.useState("");
@@ -216,9 +216,11 @@ const StepEditor: React.FC<StepEditorProps> = ({
           {editorMode === "basic" ? (
             <>
               <StepEditorBasicFields
+                description={description}
                 handling={handling}
                 isCreateMode={isCreateMode}
                 name={name}
+                setDescription={setDescription}
                 setHandling={setHandling}
                 setName={setName}
                 setStepId={setStepId}
@@ -300,19 +302,14 @@ const StepEditor: React.FC<StepEditorProps> = ({
                 />
               )}
 
-              <KeyValueTable
+              <TagInput
                 Icon={IconAttributeLabel}
-                label={t("stepEditor.labelsLabel")}
-                addLabel={t("stepEditor.addLabel")}
-                removeLabel={t("stepEditor.removeLabel")}
-                keyPlaceholder={t("stepEditor.labelKeyPlaceholder")}
-                valuePlaceholder={t("stepEditor.labelValuePlaceholder")}
-                pairs={labels}
-                onAdd={addLabel}
-                onChange={updateLabel}
-                onRemove={removeLabel}
-                keySuggestions={labelKeys}
-                valueSuggestions={valuesForKey}
+                label={t("stepEditor.tagsLabel")}
+                removeLabel={t("stepEditor.removeTag")}
+                placeholder={t("stepEditor.tagPlaceholder")}
+                tags={tags}
+                onChange={setTags}
+                suggestions={tagVocabulary}
               />
             </>
           ) : (
@@ -337,16 +334,5 @@ const StepEditor: React.FC<StepEditorProps> = ({
     </Modal>
   );
 };
-
-function singleValueLabels(
-  selector?: Record<string, string[]>
-): Record<string, string> | undefined {
-  if (!selector) return undefined;
-  const labels: Record<string, string> = {};
-  Object.entries(selector).forEach(([key, values]) => {
-    if (values.length === 1) labels[key] = values[0];
-  });
-  return labels;
-}
 
 export default StepEditor;

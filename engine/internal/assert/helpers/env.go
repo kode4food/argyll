@@ -285,14 +285,14 @@ func (e *TestEngineEnv) RaiseFlowEvents(
 
 // SeedFlow stores a minimal valid flow history for state/query fixtures
 func (e *TestEngineEnv) SeedFlow(
-	fid api.FlowID, status api.FlowStatus, labels api.Labels,
+	fid api.FlowID, status api.FlowStatus, tags api.Tags,
 ) error {
 	evs := []FlowEvent{{
 		Type: api.EventTypeFlowStarted,
 		Data: api.FlowStartedEvent{
 			FlowID: fid,
 			Plan:   &api.ExecutionPlan{Steps: api.Steps{}},
-			Labels: labels,
+			Tags:   tags,
 		},
 	}}
 	switch status {
@@ -325,12 +325,11 @@ func (e *TestEngineEnv) AppendEvents(
 	return e.flowStore.AppendEvents(id, atSeq, evs)
 }
 
-// ListFlowsByLabel returns the flow aggregate IDs currently indexed for the
-// given label/value pair
-func (e *TestEngineEnv) ListFlowsByLabel(
-	label, value string,
+// ListFlowsByTag returns the flow aggregate IDs currently indexed for the tag
+func (e *TestEngineEnv) ListFlowsByTag(
+	tag string,
 ) ([]timebox.AggregateID, error) {
-	return e.flowStore.ListAggregatesByLabel(label, value)
+	return e.flowStore.ListAggregatesByTag(tag)
 }
 
 func (e *TestEngineEnv) trackUnsubscribe(fn func()) {

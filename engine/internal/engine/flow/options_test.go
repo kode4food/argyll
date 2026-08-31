@@ -13,7 +13,7 @@ import (
 func TestDefaultOptions(t *testing.T) {
 	init := api.InitArgs{"a": {"b"}}
 	meta := api.Metadata{"k": "v"}
-	labels := api.Labels{"tier": "test"}
+	tags := api.Tags{"tier:test"}
 	parent := api.FlowStep{
 		FlowID: "parent-flow",
 		StepID: "parent-step",
@@ -24,7 +24,7 @@ func TestDefaultOptions(t *testing.T) {
 		flow.WithInit(init),
 		flow.WithMetadata(meta),
 		flow.WithParent(parent, tkn),
-		flow.WithLabels(labels),
+		flow.WithTags(tags),
 	)
 
 	assert.Equal(t, init, opts.Init)
@@ -32,7 +32,7 @@ func TestDefaultOptions(t *testing.T) {
 	assert.Equal(t, parent.FlowID, opts.Metadata[api.MetaParentFlowID])
 	assert.Equal(t, parent.StepID, opts.Metadata[api.MetaParentStepID])
 	assert.Equal(t, tkn, opts.Metadata[api.MetaParentWorkItemToken])
-	assert.Equal(t, labels, opts.Labels)
+	assert.Equal(t, tags, opts.Tags)
 }
 
 func TestApply(t *testing.T) {
@@ -47,7 +47,7 @@ func TestApply(t *testing.T) {
 		flow.WithInit(init),
 		flow.WithMetadata(api.Metadata{"m": "n"}),
 		flow.WithParent(parent, tkn),
-		flow.WithLabels(api.Labels{"l": "z"}),
+		flow.WithTags(api.Tags{"l:z"}),
 	)
 
 	assert.Equal(t, init, opts.Init)
@@ -55,5 +55,5 @@ func TestApply(t *testing.T) {
 	assert.Equal(t, parent.FlowID, opts.Metadata[api.MetaParentFlowID])
 	assert.Equal(t, parent.StepID, opts.Metadata[api.MetaParentStepID])
 	assert.Equal(t, tkn, opts.Metadata[api.MetaParentWorkItemToken])
-	assert.Equal(t, api.Labels{"l": "z"}, opts.Labels)
+	assert.Equal(t, api.Tags{"l:z"}, opts.Tags)
 }

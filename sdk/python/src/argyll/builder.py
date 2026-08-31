@@ -20,7 +20,6 @@ from .types import (
     HTTPAction,
     HTTPConfig,
     InitArgs,
-    Labels,
     MetaConfig,
     OptionalConfig,
     RequiredConfig,
@@ -28,6 +27,7 @@ from .types import (
     Step,
     StepID,
     StepType,
+    Tags,
 )
 
 if TYPE_CHECKING:
@@ -50,7 +50,8 @@ class StepBuilder:
         self._id = _to_kebab_case(name) if name else ""
         self._type: StepType = StepType.SERVICE
         self._attributes: Dict[str, AttributeSpec] = {}
-        self._labels: Labels = {}
+        self._description = ""
+        self._tags: Tags = []
         self._http: Optional[HTTPConfig] = None
         self._script: Optional[ScriptConfig] = None
         self._predicate: Optional[ScriptConfig] = None
@@ -145,17 +146,13 @@ class StepBuilder:
                 )
         return self._copy(_attributes=new_attrs)
 
-    def with_label(self, key: str, value: str) -> "StepBuilder":
-        """Add single label."""
-        new_labels = dict(self._labels)
-        new_labels[key] = value
-        return self._copy(_labels=new_labels)
+    def with_description(self, description: str) -> "StepBuilder":
+        """Set prose describing what the step does."""
+        return self._copy(_description=description)
 
-    def with_labels(self, labels: Labels) -> "StepBuilder":
-        """Merge labels."""
-        new_labels = dict(self._labels)
-        new_labels.update(labels)
-        return self._copy(_labels=new_labels)
+    def with_tags(self, *tags: str) -> "StepBuilder":
+        """Merge tags into the step's tag set, sorted and deduped."""
+        return self._copy(_tags=sorted({*self._tags, *tags}))
 
     def _http_with(self, **overrides: Any) -> "HTTPConfig":
         """Return a copy of the current HTTPConfig with the given overrides."""
@@ -283,8 +280,9 @@ class StepBuilder:
             id=self._id,
             name=self._name,
             type=self._type,
+            description=self._description,
             attributes=self._attributes,
-            labels=self._labels,
+            tags=self._tags,
             http=self._http,
             script=self._script,
             predicate=self._predicate,

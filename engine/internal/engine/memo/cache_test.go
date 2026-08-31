@@ -151,7 +151,7 @@ func TestCacheKeepsOnMetadataChange(t *testing.T) {
 				Timeout:  30000,
 			},
 		},
-		Labels: api.Labels{"env": "test"},
+		Tags: api.Tags{"env:test"},
 		Attributes: api.AttributeSpecs{
 			"input": &api.AttributeSpec{Role: api.RoleRequired},
 		},
@@ -173,7 +173,7 @@ func TestCacheKeepsOnMetadataChange(t *testing.T) {
 				Timeout:  30000,
 			},
 		},
-		Labels: api.Labels{"env": "prod"},
+		Tags: api.Tags{"env:prod"},
 		Attributes: api.AttributeSpecs{
 			"input": &api.AttributeSpec{Role: api.RoleRequired},
 		},

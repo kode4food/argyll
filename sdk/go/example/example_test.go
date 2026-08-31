@@ -134,13 +134,11 @@ func TestSemanticErrorStatus(t *testing.T) {
 	assert.Contains(t, bodyOf(t, res), "no such customer")
 }
 
-func TestRegisteredLabels(t *testing.T) {
+func TestRegisteredTags(t *testing.T) {
 	byID := registerSteps(t, example.ArgyllSteps()...)
 
-	assert.Equal(t, api.Labels{
-		"description": "score a customer for risk",
-		"domain":      "risk",
-	}, byID["calculate-risk"].Labels)
+	assert.Equal(t, api.Tags{"domain:risk", "scoring"},
+		byID["calculate-risk"].Tags)
 }
 
 func TestRegisteredAttributeOptions(t *testing.T) {

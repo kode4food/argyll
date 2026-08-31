@@ -62,7 +62,7 @@ describe("SpaceManager", () => {
           language: "lua",
           script: 'return value["domain"] == "risk"',
         },
-        qbe: { domain: ["risk"] },
+        qbe: ["domain:risk"],
       },
       {
         id: "gold",
@@ -79,14 +79,14 @@ describe("SpaceManager", () => {
         name: "Score Customer",
         type: "service",
         attributes: {},
-        labels: { domain: "risk", tier: "gold" },
+        tags: ["domain:risk", "tier:gold"],
       },
       {
         id: "place-order",
         name: "Place Order",
         type: "service",
         attributes: {},
-        labels: { domain: "trading" },
+        tags: ["domain:trading", "domain:risk"],
       },
     ];
     mockApi.registerSpace.mockImplementation(async (space) => space);
@@ -106,18 +106,14 @@ describe("SpaceManager", () => {
     );
   };
 
-  const addSelector = (key: string, value = "") => {
-    fireEvent.click(
-      screen.getByRole("button", { name: t("spaceManager.addSelector") })
-    );
-    const keys = screen.getAllByPlaceholderText(
-      t("stepEditor.labelKeyPlaceholder")
-    );
-    const values = screen.getAllByPlaceholderText(
-      t("stepEditor.labelValuePlaceholder")
-    );
-    fireEvent.change(keys.at(-1)!, { target: { value: key } });
-    if (value) fireEvent.change(values.at(-1)!, { target: { value } });
+  const typeSelector = (tag: string) => {
+    const input = screen.getByLabelText(t("stepEditor.tagPlaceholder"));
+    fireEvent.change(input, { target: { value: tag } });
+    return input;
+  };
+
+  const addSelector = (tag: string) => {
+    fireEvent.keyDown(typeSelector(tag), { key: "Enter" });
   };
 
   const next = () => {
@@ -162,21 +158,38 @@ describe("SpaceManager", () => {
     expect(screen.getByText("risk")).toBeInTheDocument();
   });
 
-  test("registers a new Space through selector and details", async () => {
+  test("prefills the id and name from the selector tags", () => {
     open();
     startNew();
-    addSelector("domain", "trading");
+    addSelector("domain:trading");
+    addSelector("tier_gold");
     next();
 
     expect(
       screen.getByPlaceholderText(t("spaceManager.idPlaceholder"))
-    ).toHaveValue("domain-trading");
+    ).toHaveValue("domain-trading-tier-gold");
     expect(
       screen.getByPlaceholderText(t("spaceManager.namePlaceholder"))
-    ).toHaveValue("trading domain");
+    ).toHaveValue("Domain Trading / Tier Gold");
+  });
+
+  test("registers a new Space through selector and details", async () => {
+    open();
+    startNew();
+    addSelector("domain:trading");
+    next();
+
     expect(
-      screen.getByPlaceholderText("Steps matching domain=trading")
+      screen.getByPlaceholderText("Steps matching domain:trading")
     ).toBeInTheDocument();
+    fireEvent.change(
+      screen.getByPlaceholderText(t("spaceManager.idPlaceholder")),
+      { target: { value: "domain-trading" } }
+    );
+    fireEvent.change(
+      screen.getByPlaceholderText(t("spaceManager.namePlaceholder")),
+      { target: { value: "trading" } }
+    );
     await nextWhenEnabled();
 
     expect(screen.getByTestId("selector-editor")).toHaveValue(
@@ -186,8 +199,8 @@ describe("SpaceManager", () => {
     await waitFor(() =>
       expect(mockApi.previewSpace).toHaveBeenCalledWith({
         id: "domain-trading",
-        name: "trading domain",
-        qbe: { domain: ["trading"] },
+        name: "trading",
+        qbe: ["domain:trading"],
       })
     );
     expect(screen.getByText("1 Step in this Space")).toBeInTheDocument();
@@ -199,8 +212,8 @@ describe("SpaceManager", () => {
     await waitFor(() => {
       expect(mockApi.registerSpace).toHaveBeenCalledWith({
         id: "domain-trading",
-        name: "trading domain",
-        qbe: { domain: ["trading"] },
+        name: "trading",
+        qbe: ["domain:trading"],
       });
       expect(setSpaceId).toHaveBeenCalledWith("domain-trading");
     });
@@ -209,13 +222,13 @@ describe("SpaceManager", () => {
   test("counts matching Steps while the selector is drafted", async () => {
     open();
     startNew();
-    addSelector("domain", "trading");
+    addSelector("domain:trading");
 
     await waitFor(() =>
       expect(mockApi.previewSpace).toHaveBeenLastCalledWith({
         id: "",
         name: "",
-        qbe: { domain: ["trading"] },
+        qbe: ["domain:trading"],
       })
     );
     expect(screen.getByText("1 Step in this Space")).toBeInTheDocument();
@@ -224,12 +237,12 @@ describe("SpaceManager", () => {
   test("sends control characters as QBE without generating Lua", async () => {
     open();
     startNew();
-    addSelector("domain", "bell");
+    addSelector("domain:bell");
 
     await waitFor(() =>
       expect(mockApi.previewSpace).toHaveBeenLastCalledWith(
         expect.objectContaining({
-          qbe: { domain: ["bell\u0007"] },
+          qbe: ["domain:bell\u0007"],
         })
       )
     );
@@ -239,47 +252,29 @@ describe("SpaceManager", () => {
     mockApi.previewSpace.mockRejectedValue(new Error("engine unreachable"));
     open();
     startNew();
-    addSelector("domain", "trading");
+    addSelector("domain:trading");
 
     await waitFor(() =>
       expect(screen.getByText("engine unreachable")).toBeInTheDocument()
     );
   });
 
-  test("removes a selector row", async () => {
+  test("removes a selector tag", async () => {
     open();
     startNew();
-    addSelector("domain", "trading");
-    addSelector("tier", "gold");
+    addSelector("domain:trading");
+    addSelector("tier:gold");
     fireEvent.click(
       screen.getByRole("button", {
-        name: `${t("spaceManager.removeSelector")} tier`,
+        name: `${t("spaceManager.removeSelector")} tier:gold`,
       })
     );
 
     await waitFor(() =>
       expect(mockApi.previewSpace).toHaveBeenLastCalledWith(
-        expect.objectContaining({ qbe: { domain: ["trading"] } })
+        expect.objectContaining({ qbe: ["domain:trading"] })
       )
     );
-  });
-
-  test("generates details from the selector", () => {
-    open();
-    startNew();
-    addSelector("domain", "credit-card");
-    fireEvent.change(
-      screen.getByPlaceholderText(t("stepEditor.labelValuePlaceholder")),
-      { target: { value: "payments" } }
-    );
-    next();
-
-    expect(
-      screen.getByPlaceholderText(t("spaceManager.idPlaceholder"))
-    ).toHaveValue("domain-payments");
-    expect(
-      screen.getByPlaceholderText(t("spaceManager.namePlaceholder"))
-    ).toHaveValue("payments domain");
   });
 
   test("loads and updates an existing Space", async () => {
@@ -304,17 +299,17 @@ describe("SpaceManager", () => {
         id: "risk",
         name: "Risk Domain",
         description: "Risk steps",
-        qbe: { domain: ["risk"] },
+        qbe: ["domain:risk"],
       });
       expect(setSpaceId).toHaveBeenCalledWith("risk");
     });
   });
 
-  test("combines repeated selector keys as alternatives", async () => {
+  test("combines added tags into one sorted query", async () => {
     open();
     fireEvent.click(screen.getByText("Risk"));
-    addSelector("domain", "trading");
-    addSelector("domain", "risk");
+    addSelector("domain:trading");
+    addSelector("domain:risk");
     next();
     await nextWhenEnabled();
     fireEvent.click(
@@ -326,7 +321,7 @@ describe("SpaceManager", () => {
         id: "risk",
         name: "Risk",
         description: "Risk steps",
-        qbe: { domain: ["risk", "trading"] },
+        qbe: ["domain:risk", "domain:trading"],
       });
     });
   });
@@ -334,7 +329,7 @@ describe("SpaceManager", () => {
   test("ejects QBE into an editable Lua selector", async () => {
     open();
     fireEvent.click(screen.getByText("Risk"));
-    addSelector("domain", "trading");
+    addSelector("domain:trading");
     next();
     await nextWhenEnabled();
 
@@ -506,14 +501,30 @@ describe("SpaceManager", () => {
     });
   });
 
-  test("requires a complete selector before showing details", () => {
+  test("requires a selector before showing details", () => {
     open();
     startNew();
 
     expect(
       screen.getByRole("button", { name: t("spaceManager.next") })
     ).toBeDisabled();
-    addSelector("domain");
+  });
+
+  test("accepts a single tag as a selector", () => {
+    open();
+    startNew();
+
+    addSelector("example");
+    expect(
+      screen.getByRole("button", { name: t("spaceManager.next") })
+    ).toBeEnabled();
+  });
+
+  test("ignores a blank tag", () => {
+    open();
+    startNew();
+
+    addSelector("   ");
     expect(
       screen.getByRole("button", { name: t("spaceManager.next") })
     ).toBeDisabled();
@@ -522,7 +533,7 @@ describe("SpaceManager", () => {
   test("requires an id and name before saving", () => {
     open();
     startNew();
-    addSelector("domain", "risk");
+    addSelector("domain:risk");
     next();
     fireEvent.change(
       screen.getByPlaceholderText(t("spaceManager.idPlaceholder")),
@@ -552,10 +563,10 @@ describe("SpaceManager", () => {
     const onClose = jest.fn();
     const view = open(onClose);
     startNew();
-    addSelector("domain", "risk");
+    addSelector("domain:risk");
     next();
     fireEvent.change(
-      screen.getByPlaceholderText("Steps matching domain=risk"),
+      screen.getByPlaceholderText("Steps matching domain:risk"),
       { target: { value: "Draft description" } }
     );
     fireEvent.click(
@@ -579,37 +590,33 @@ describe("SpaceManager", () => {
     ).not.toBeInTheDocument();
   });
 
-  test("suggests catalog label values", () => {
+  test("suggests tags from the catalog", () => {
     open();
     startNew();
-    addSelector("domain");
-    fireEvent.click(screen.getAllByLabelText("Show suggestions")[1]);
+    typeSelector(":");
 
-    expect(screen.getByRole("option", { name: "risk" })).toBeInTheDocument();
-    expect(screen.getByRole("option", { name: "trading" })).toBeInTheDocument();
-  });
-
-  test("excludes values already used for the same selector key", () => {
-    open();
-    startNew();
-    addSelector("domain", "risk");
-    addSelector("domain");
-    fireEvent.click(screen.getAllByLabelText("Show suggestions")[3]);
-
-    expect(screen.getByRole("option", { name: "trading" })).toBeInTheDocument();
     expect(
-      screen.queryByRole("option", { name: "risk" })
-    ).not.toBeInTheDocument();
+      screen.getByRole("option", { name: "domain:risk" })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("option", { name: "domain:trading" })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("option", { name: "tier:gold" })
+    ).toBeInTheDocument();
   });
 
-  test("allows keys already used by another selector row", () => {
+  test("excludes tags already added", () => {
     open();
     startNew();
-    addSelector("domain", "risk");
-    addSelector("");
-    fireEvent.click(screen.getAllByLabelText("Show suggestions")[2]);
+    addSelector("domain:risk");
+    typeSelector(":");
 
-    expect(screen.getByRole("option", { name: "tier" })).toBeInTheDocument();
-    expect(screen.getByRole("option", { name: "domain" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("option", { name: "domain:trading" })
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("option", { name: "domain:risk" })
+    ).not.toBeInTheDocument();
   });
 });

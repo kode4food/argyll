@@ -17,7 +17,6 @@ export {
   buildAttributesFromStep,
   createStepAttributes,
 } from "./stepAttributeUtils";
-export { createStepLabels } from "./stepLabelUtils";
 export {
   getValidationError,
   parseFlowGoals,
@@ -35,9 +34,10 @@ export function normalizeHttpMethod(method?: string): HTTPMethod {
 export function buildStepPayload({
   stepId,
   name,
+  description,
   stepType,
   attributes,
-  labels,
+  tags,
   predicate,
   predicateLanguage,
   script,
@@ -58,9 +58,10 @@ export function buildStepPayload({
 }: {
   stepId: string;
   name: string;
+  description: string;
   stepType: StepType;
   attributes: Record<string, AttributeSpec>;
-  labels: Record<string, string> | undefined;
+  tags: string[] | undefined;
   predicate: string;
   predicateLanguage: string;
   script: string;
@@ -82,9 +83,10 @@ export function buildStepPayload({
   const stepData: Step = {
     id: stepId.trim(),
     name,
+    description: description.trim() || undefined,
     type: stepType,
     attributes,
-    labels,
+    tags,
     predicate: predicate.trim()
       ? {
           language: predicateLanguage,

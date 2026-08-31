@@ -338,13 +338,13 @@ describe("StepEditor", () => {
     });
   });
 
-  test("seeds labels from the selected Space", async () => {
+  test("seeds tags from the selected Space", async () => {
     spacesInStore = [
       {
         id: "risk",
         name: "Risk",
         selector: { language: "lua", script: "return true" },
-        qbe: { domain: ["risk"] },
+        qbe: ["domain:risk", "tier:gold"],
       },
     ];
     selectedSpaceId = "risk";
@@ -354,35 +354,12 @@ describe("StepEditor", () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByDisplayValue("domain")).toBeInTheDocument();
-      expect(screen.getByDisplayValue("risk")).toBeInTheDocument();
+      expect(screen.getByText("domain:risk")).toBeInTheDocument();
     });
+    expect(screen.getByText("tier:gold")).toBeInTheDocument();
   });
 
-  test("does not seed labels with alternative Space values", async () => {
-    spacesInStore = [
-      {
-        id: "risk",
-        name: "Risk",
-        selector: { language: "lua", script: "return true" },
-        qbe: { domain: ["risk", "trading"], tier: ["gold"] },
-      },
-    ];
-    selectedSpaceId = "risk";
-
-    render(
-      <StepEditor step={null} onClose={mockOnClose} onUpdate={mockOnUpdate} />
-    );
-
-    await waitFor(() => {
-      expect(screen.getByDisplayValue("tier")).toBeInTheDocument();
-      expect(screen.getByDisplayValue("gold")).toBeInTheDocument();
-    });
-    expect(screen.queryByDisplayValue("domain")).not.toBeInTheDocument();
-    expect(screen.queryByDisplayValue("risk")).not.toBeInTheDocument();
-  });
-
-  test("seeds no labels without a selected Space", async () => {
+  test("seeds no tags without a selected Space", async () => {
     render(
       <StepEditor step={null} onClose={mockOnClose} onUpdate={mockOnUpdate} />
     );
@@ -393,8 +370,97 @@ describe("StepEditor", () => {
       ).toBeInTheDocument();
     });
     expect(
-      screen.queryByPlaceholderText(t("stepEditor.labelKeyPlaceholder"))
+      screen.queryByRole("button", {
+        name: `${t("stepEditor.removeTag")} domain:risk`,
+      })
     ).not.toBeInTheDocument();
+  });
+
+  test("shows every tag a step carries", async () => {
+    const step: Step = {
+      id: "multi",
+      name: "Multi",
+      type: "service",
+      attributes: {},
+      tags: ["domain:risk", "domain:payments", "example"],
+    };
+    render(
+      <StepEditor step={step} onClose={mockOnClose} onUpdate={mockOnUpdate} />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("domain:risk")).toBeInTheDocument();
+    });
+    expect(screen.getByText("domain:payments")).toBeInTheDocument();
+    expect(screen.getByText("example")).toBeInTheDocument();
+  });
+
+  test("commits a tag on Enter and drops it with the chip button", async () => {
+    render(
+      <StepEditor step={null} onClose={mockOnClose} onUpdate={mockOnUpdate} />
+    );
+
+    const input = await screen.findByLabelText(t("stepEditor.tagPlaceholder"));
+    fireEvent.change(input, { target: { value: "domain:risk" } });
+    fireEvent.keyDown(input, { key: "Enter" });
+    expect(screen.getByText("domain:risk")).toBeInTheDocument();
+    expect(input).toHaveValue("");
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: `${t("stepEditor.removeTag")} domain:risk`,
+      })
+    );
+    expect(screen.queryByText("domain:risk")).not.toBeInTheDocument();
+  });
+
+  test("commits a tag on comma and drops the last with Backspace", async () => {
+    render(
+      <StepEditor step={null} onClose={mockOnClose} onUpdate={mockOnUpdate} />
+    );
+
+    const input = await screen.findByLabelText(t("stepEditor.tagPlaceholder"));
+    fireEvent.change(input, { target: { value: "domain:risk" } });
+    fireEvent.keyDown(input, { key: "," });
+    fireEvent.change(input, { target: { value: "tier:gold" } });
+    fireEvent.keyDown(input, { key: "," });
+    expect(screen.getByText("domain:risk")).toBeInTheDocument();
+    expect(screen.getByText("tier:gold")).toBeInTheDocument();
+
+    fireEvent.keyDown(input, { key: "Backspace" });
+    expect(screen.queryByText("tier:gold")).not.toBeInTheDocument();
+    expect(screen.getByText("domain:risk")).toBeInTheDocument();
+  });
+
+  test("commits a suggestion once arrowed onto", async () => {
+    stepsInStore = [{ ...createHttpStep(), tags: ["domain:risk"] }];
+
+    render(
+      <StepEditor step={null} onClose={mockOnClose} onUpdate={mockOnUpdate} />
+    );
+
+    const input = await screen.findByLabelText(t("stepEditor.tagPlaceholder"));
+    fireEvent.change(input, { target: { value: "domain" } });
+    fireEvent.keyDown(input, { key: "Enter" });
+    expect(screen.getByText("domain")).toBeInTheDocument();
+
+    fireEvent.change(input, { target: { value: "domain:" } });
+    fireEvent.keyDown(input, { key: "ArrowDown" });
+    fireEvent.keyDown(input, { key: "Enter" });
+    expect(screen.getByText("domain:risk")).toBeInTheDocument();
+  });
+
+  test("ignores a duplicate tag", async () => {
+    const step = { ...createHttpStep(), tags: ["domain:risk"] };
+    render(
+      <StepEditor step={step} onClose={mockOnClose} onUpdate={mockOnUpdate} />
+    );
+
+    const input = await screen.findByLabelText(t("stepEditor.tagPlaceholder"));
+    fireEvent.change(input, { target: { value: "domain:risk" } });
+    fireEvent.keyDown(input, { key: "Enter" });
+
+    expect(screen.getAllByText("domain:risk")).toHaveLength(1);
   });
 
   test("updates step name", async () => {
@@ -409,6 +475,22 @@ describe("StepEditor", () => {
       fireEvent.change(nameInput, { target: { value: "New Name" } });
       expect(screen.getByDisplayValue("New Name")).toBeInTheDocument();
     });
+  });
+
+  test("shows and edits the step description", async () => {
+    const step = { ...createHttpStep(), description: "does a thing" };
+
+    render(
+      <StepEditor step={step} onClose={mockOnClose} onUpdate={mockOnUpdate} />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByDisplayValue("does a thing")).toBeInTheDocument();
+    });
+    fireEvent.change(screen.getByDisplayValue("does a thing"), {
+      target: { value: "does another thing" },
+    });
+    expect(screen.getByDisplayValue("does another thing")).toBeInTheDocument();
   });
 
   test("renders flow mapping dropdown options", async () => {

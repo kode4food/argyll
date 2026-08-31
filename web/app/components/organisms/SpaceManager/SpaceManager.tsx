@@ -7,15 +7,13 @@ import {
   SpacePreviewResponse,
 } from "@/app/api";
 import Modal from "@/app/components/molecules/Modal";
-import KeyValueTable, {
-  type KeyValuePair,
-} from "@/app/components/molecules/KeyValueTable";
+import TagInput from "@/app/components/molecules/TagInput";
 import ScriptConfigEditor from "@/app/components/organisms/StepEditor/ScriptConfigEditor";
 import { predicateLanguageOptions } from "@/app/components/organisms/StepEditor/stepEditorConstants";
 import { useT } from "@/app/i18n";
 import { IconAttributeLabel, IconPredicate } from "@/utils/iconRegistry";
 import { useSpaces } from "@/app/store/flowStore";
-import { useLabelVocabulary } from "@/app/hooks/useLabelVocabulary";
+import { useTagVocabulary } from "@/app/hooks/useTagVocabulary";
 import { useThrottledValue } from "@/app/contexts/useThrottledValue";
 import { useUI } from "@/app/contexts/UIContext";
 import styles from "./SpaceManager.module.css";
@@ -29,7 +27,7 @@ interface SpaceDraft {
   id: string;
   name: string;
   description: string;
-  qbe: KeyValuePair[];
+  qbe: string[];
   selector: ScriptConfig;
   scriptMode: boolean;
 }
@@ -46,7 +44,7 @@ const SpaceManager: React.FC<SpaceManagerProps> = ({ isOpen, onClose }) => {
   const t = useT();
   const spaces = useSpaces();
   const { setSpaceId } = useUI();
-  const { labelKeys, valuesForKey } = useLabelVocabulary();
+  const tagVocabulary = useTagVocabulary();
   const [draft, setDraft] = React.useState<SpaceDraft>(emptyDraft);
   const [editingId, setEditingId] = React.useState<string | null>(null);
   const [editorStep, setEditorStep] = React.useState(0);
@@ -56,7 +54,6 @@ const SpaceManager: React.FC<SpaceManagerProps> = ({ isOpen, onClose }) => {
   const [preview, setPreview] = React.useState<SpacePreviewResponse | null>(
     null
   );
-  const selectorCounterRef = React.useRef(0);
   const editing = editingId
     ? spaces.find((space) => space.id === editingId)
     : undefined;
@@ -92,34 +89,8 @@ const SpaceManager: React.FC<SpaceManagerProps> = ({ isOpen, onClose }) => {
     onClose();
   };
 
-  const updateSelector = (
-    id: string,
-    field: "key" | "value",
-    value: string
-  ) => {
-    setDraft((current) => ({
-      ...current,
-      qbe: current.qbe.map((pair) =>
-        pair.id === id ? { ...pair, [field]: value } : pair
-      ),
-    }));
-  };
-
-  const addSelector = () => {
-    setDraft((current) => ({
-      ...current,
-      qbe: [
-        ...current.qbe,
-        { id: `sel-${++selectorCounterRef.current}`, key: "", value: "" },
-      ],
-    }));
-  };
-
-  const removeSelector = (id: string) => {
-    setDraft((current) => ({
-      ...current,
-      qbe: current.qbe.filter((pair) => pair.id !== id),
-    }));
+  const setSelectorTags = (qbe: string[]) => {
+    setDraft((current) => ({ ...current, qbe }));
   };
 
   const editScript = () => {
@@ -136,14 +107,11 @@ const SpaceManager: React.FC<SpaceManagerProps> = ({ isOpen, onClose }) => {
 
   const handleNext = () => {
     if (editorStep === 0 && editingId === null) {
-      setDraft((current) => {
-        const suggested = selectorSuggestions(current.qbe);
-        return {
-          ...current,
-          id: current.id || suggested.id,
-          name: current.name || suggested.name,
-        };
-      });
+      setDraft((current) => ({
+        ...current,
+        id: current.id || suggestedId(current.qbe),
+        name: current.name || suggestedName(current.qbe),
+      }));
     }
     setEditorStep((current) => current + 1);
   };
@@ -189,14 +157,7 @@ const SpaceManager: React.FC<SpaceManagerProps> = ({ isOpen, onClose }) => {
   const canSave = !saving && isDraftValid(draft) && isDirty;
   // Script mode skips the QBE builder, so Details is its first step
   const firstStep = draft.scriptMode ? 1 : 0;
-  const selectorDescription = selectorSummary(draft.qbe);
-  const selectorValueSuggestions = (key: string, id: string) =>
-    valuesForKey(key).filter(
-      (value) =>
-        !draft.qbe.some(
-          (pair) => pair.id !== id && pair.key === key && pair.value === value
-        )
-    );
+  const selectorDescription = draft.qbe.join(", ");
 
   const previewDraft = useThrottledValue(draft, PREVIEW_THROTTLE_MS);
 
@@ -321,20 +282,14 @@ const SpaceManager: React.FC<SpaceManagerProps> = ({ isOpen, onClose }) => {
 
           {editorStep === 0 && (
             <div className={styles.detail}>
-              <KeyValueTable
+              <TagInput
                 Icon={IconAttributeLabel}
-                canRepeatKeys
                 label={t("spaceManager.selectorLabel")}
-                addLabel={t("spaceManager.addSelector")}
                 removeLabel={t("spaceManager.removeSelector")}
-                keyPlaceholder={t("stepEditor.labelKeyPlaceholder")}
-                valuePlaceholder={t("stepEditor.labelValuePlaceholder")}
-                pairs={draft.qbe}
-                onAdd={addSelector}
-                onChange={updateSelector}
-                onRemove={removeSelector}
-                keySuggestions={labelKeys}
-                valueSuggestions={selectorValueSuggestions}
+                placeholder={t("stepEditor.tagPlaceholder")}
+                tags={draft.qbe}
+                onChange={setSelectorTags}
+                suggestions={tagVocabulary}
               />
               <button
                 type="button"
@@ -484,17 +439,11 @@ function toDraft(space: Space): SpaceDraft {
     id: space.id,
     name: space.name,
     description: space.description ?? "",
-    qbe: Object.entries(space.qbe ?? {}).flatMap(([key, values]) =>
-      values.map((value, index) => ({
-        id: `${key}-${index}`,
-        key,
-        value,
-      }))
-    ),
+    qbe: [...(space.qbe ?? [])],
     selector: space.selector
       ? { ...space.selector }
       : { language: SCRIPT_LANGUAGE_LUA, script: "" },
-    scriptMode: !space.qbe || Object.keys(space.qbe).length === 0,
+    scriptMode: !space.qbe || space.qbe.length === 0,
   };
 }
 
@@ -523,15 +472,34 @@ function toSpace(draft: SpaceDraft): Space {
   };
 }
 
+// Tags are opaque, so the suggestions treat every run of non-alphanumerics as
+// a separator rather than reading any structure into them
+function suggestedId(tags: string[]): string {
+  return toQBE(tags)
+    .join("-")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+function suggestedName(tags: string[]): string {
+  return toQBE(tags)
+    .map((tag) =>
+      tag
+        .split(/[^a-zA-Z0-9]+/)
+        .filter(Boolean)
+        .map((word) => word[0].toUpperCase() + word.slice(1))
+        .join(" ")
+    )
+    .join(" / ");
+}
+
 function isDetailsValid(draft: SpaceDraft): boolean {
   return draft.id.trim().length > 0 && draft.name.trim().length > 0;
 }
 
 function isQBEValid(draft: SpaceDraft): boolean {
-  return (
-    draft.qbe.length > 0 &&
-    draft.qbe.every(({ key, value }) => key.trim() && value.trim())
-  );
+  return draft.qbe.length > 0 && draft.qbe.every((tag) => tag.trim());
 }
 
 function isSelectorValid(draft: SpaceDraft): boolean {
@@ -544,19 +512,10 @@ function isDraftValid(draft: SpaceDraft): boolean {
   return isDetailsValid(draft) && isSelectorValid(draft);
 }
 
-// Canonical form: values sorted and deduped, the same shape the engine
-// stores, so the generated script and the dirty check both stay stable
-function toQBE(pairs: KeyValuePair[]): Record<string, string[]> {
-  const qbe: Record<string, string[]> = {};
-  pairs.forEach(({ key, value }) => {
-    const name = key.trim();
-    const match = value.trim();
-    if (name && !qbe[name]?.includes(match)) {
-      (qbe[name] ??= []).push(match);
-    }
-  });
-  Object.values(qbe).forEach((values) => values.sort());
-  return qbe;
+// Canonical form: sorted and deduped, the same shape the engine stores, so
+// the generated script and the dirty check both stay stable
+function toQBE(tags: string[]): string[] {
+  return [...new Set(tags.map((tag) => tag.trim()).filter(Boolean))].sort();
 }
 
 function fingerprint(space: Space): string {
@@ -585,35 +544,8 @@ function isCurrentPreview(
   );
 }
 
-function qbeFingerprint(qbe?: Record<string, string[]>): string {
-  return JSON.stringify(Object.entries(qbe ?? {}).sort());
-}
-
-function selectorSuggestions(pairs: KeyValuePair[]) {
-  return {
-    id: pairs
-      .flatMap(({ key, value }) => [key.trim(), value.trim()])
-      .join("-")
-      .toLowerCase()
-      .replace(/[^a-z0-9_.+ -]/g, "")
-      .replaceAll(" ", "-")
-      .replace(/^-+|-+$/g, ""),
-    name: pairs
-      .map(
-        ({ key, value }) => `${humanize(value.trim())} ${humanize(key.trim())}`
-      )
-      .join(" / "),
-  };
-}
-
-function humanize(value: string): string {
-  return value.replace(/[-_]+/g, " ");
-}
-
-function selectorSummary(pairs: KeyValuePair[]): string {
-  return pairs
-    .map(({ key, value }) => `${key.trim()}=${value.trim()}`)
-    .join(", ");
+function qbeFingerprint(qbe?: string[]): string {
+  return JSON.stringify([...(qbe ?? [])].sort());
 }
 
 export default SpaceManager;

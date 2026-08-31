@@ -82,11 +82,10 @@ func TestWithID(t *testing.T) {
 	assert.Equal(t, api.Name("Test Step"), st.Name)
 }
 
-func TestStepWithEmptyLabels(t *testing.T) {
+func TestStepWithEmptyTags(t *testing.T) {
 	st := testClient().NewStep().WithName("Test")
 
-	assert.Equal(t, st, st.WithLabels(nil))
-	assert.Equal(t, st, st.WithLabels(api.Labels{}))
+	assert.Equal(t, st, st.WithTags())
 }
 
 func TestNameKeepsID(t *testing.T) {
@@ -596,30 +595,50 @@ func TestStepBuilderWithForEach(t *testing.T) {
 	})
 }
 
-func TestStepBuilderWithLabels(t *testing.T) {
-	t.Run("with labels", func(t *testing.T) {
-		st, err := testClient().NewStep().WithName("Labeled Step").
+func TestStepBuilderWithDescription(t *testing.T) {
+	st, err := testClient().NewStep().WithName("Described Step").
+		WithEndpoint("http://example.com").
+		WithDescription("does a thing").
+		Build()
+
+	assert.NoError(t, err)
+	assert.Equal(t, "does a thing", st.Description)
+}
+
+func TestStepBuilderWithTags(t *testing.T) {
+	t.Run("with tags", func(t *testing.T) {
+		st, err := testClient().NewStep().WithName("Tagged Step").
 			WithEndpoint("http://example.com").
-			WithLabels(api.Labels{"team": "core", "env": "dev"}).
+			WithTags("team:core", "env:dev").
 			Build()
 
 		assert.NoError(t, err)
-		assert.Equal(t, api.Labels{"team": "core", "env": "dev"}, st.Labels)
+		assert.Equal(t, api.Tags{"env:dev", "team:core"}, st.Tags)
 	})
 
-	t.Run("clones labels", func(t *testing.T) {
-		labels := api.Labels{"team": "core"}
-		st, err := testClient().NewStep().WithName("Labeled Step").
+	t.Run("accumulates and dedupes across calls", func(t *testing.T) {
+		st, err := testClient().NewStep().WithName("Tagged Step").
 			WithEndpoint("http://example.com").
-			WithLabels(api.Labels{"env": "dev"}).
-			WithLabels(labels).
+			WithTags("domain:risk", "example").
+			WithTags("domain:payments", "example").
 			Build()
 
 		assert.NoError(t, err)
-		assert.Equal(t, api.Labels{"env": "dev", "team": "core"}, st.Labels)
+		assert.Equal(t, api.Tags{
+			"domain:payments", "domain:risk", "example",
+		}, st.Tags)
+	})
 
-		labels["team"] = "other"
-		assert.Equal(t, api.Labels{"env": "dev", "team": "core"}, st.Labels)
+	t.Run("does not alias the caller's slice", func(t *testing.T) {
+		tags := []string{"team:core"}
+		st, err := testClient().NewStep().WithName("Tagged Step").
+			WithEndpoint("http://example.com").
+			WithTags(tags...).
+			Build()
+
+		assert.NoError(t, err)
+		tags[0] = "mutated"
+		assert.Equal(t, api.Tags{"team:core"}, st.Tags)
 	})
 }
 

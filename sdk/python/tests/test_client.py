@@ -385,7 +385,7 @@ def test_parse_step_with_all_fields():
                             "output": {"mapping": {"name": "result"}},
                         },
                     },
-                    "labels": {"env": "prod"},
+                    "tags": ["env:prod"],
                     "http": {
                         "invoke": {
                             "endpoint": "http://localhost:8081/complex",

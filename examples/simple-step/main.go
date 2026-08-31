@@ -31,13 +31,10 @@ func main() {
 
 	err := client.NewStep().WithName("Text Formatter").
 		WithID("text-formatter").
-		WithLabels(api.Labels{
-			"description": "format text with a label",
-			"domain":      "text",
-			"capability":  "transform",
-			"language":    "lua",
-			"example":     "true",
-		}).
+		WithDescription("format text with a label").
+		WithTags(
+			"domain:text", "capability:transform", "language:lua", "example",
+		).
 		Required("text", api.TypeString).
 		Required("name", api.TypeString).
 		Output("formatted_text", api.TypeString).
@@ -65,13 +62,10 @@ return {
 
 	err = client.NewStep().WithName("Price Calculator").
 		WithID("price-calculator").
-		WithLabels(api.Labels{
-			"description": "calculate pricing totals",
-			"domain":      "pricing",
-			"capability":  "calculate",
-			"language":    "lua",
-			"example":     "true",
-		}).
+		WithDescription("calculate pricing totals").
+		WithTags(
+			"domain:pricing", "capability:calculate", "language:lua", "example",
+		).
 		Required("quantity", api.TypeNumber).
 		Required("unit_price", api.TypeNumber).
 		Output("subtotal", api.TypeNumber).
@@ -115,13 +109,10 @@ return {
 
 	err = client.NewStep().WithName("Eligibility Checker").
 		WithID("eligibility-checker").
-		WithLabels(api.Labels{
-			"description": "evaluate eligibility based on risk inputs",
-			"domain":      "risk",
-			"capability":  "decision",
-			"language":    "lua",
-			"example":     "true",
-		}).
+		WithDescription("evaluate eligibility based on risk inputs").
+		WithTags(
+			"domain:risk", "capability:decision", "language:lua", "example",
+		).
 		Required("age", api.TypeNumber).
 		Required("income", api.TypeNumber).
 		Required("credit_score", api.TypeNumber).

@@ -40,9 +40,9 @@ type (
 )
 
 var (
-	ErrInvalidFlowCursor     = errors.New("invalid flow cursor")
-	ErrQueryFlows            = errors.New("failed to query flows")
-	ErrInvalidFlowLabelEntry = errors.New("invalid flow label entry")
+	ErrInvalidFlowCursor   = errors.New("invalid flow cursor")
+	ErrQueryFlows          = errors.New("failed to query flows")
+	ErrInvalidFlowTagEntry = errors.New("invalid flow tag entry")
 )
 
 var (
@@ -156,7 +156,7 @@ func (e *Engine) buildFlowQueryItems(
 		return nil, err
 	}
 
-	labelIDs, err := e.collectLabelFlowIDs(req.Labels)
+	tagIDs, err := e.collectTagFlowIDs(req.Tags)
 	if err != nil {
 		return nil, err
 	}
@@ -167,7 +167,7 @@ func (e *Engine) buildFlowQueryItems(
 			!strings.HasPrefix(string(entry.id), req.IDPrefix) {
 			continue
 		}
-		if labelIDs != nil && !labelIDs.Contains(entry.id) {
+		if tagIDs != nil && !tagIDs.Contains(entry.id) {
 			continue
 		}
 		items = append(items, flowItemFromEntry(entry))
@@ -175,18 +175,18 @@ func (e *Engine) buildFlowQueryItems(
 	return items, nil
 }
 
-func (e *Engine) collectLabelFlowIDs(
-	labels api.Labels,
+func (e *Engine) collectTagFlowIDs(
+	tags api.Tags,
 ) (util.Set[api.FlowID], error) {
-	if len(labels) == 0 {
+	if len(tags) == 0 {
 		return nil, nil
 	}
 
 	store := e.flowExec.GetStore()
 	var res util.Set[api.FlowID]
 
-	for key, value := range labels {
-		ids, err := store.ListAggregatesByLabel(key, value)
+	for _, tag := range tags {
+		ids, err := store.ListAggregatesByTag(tag)
 		if err != nil {
 			return nil, err
 		}
@@ -197,7 +197,7 @@ func (e *Engine) collectLabelFlowIDs(
 			if !ok {
 				return nil, errors.Join(
 					ErrQueryFlows,
-					fmt.Errorf("%w: %s", ErrInvalidFlowLabelEntry,
+					fmt.Errorf("%w: %s", ErrInvalidFlowTagEntry,
 						id.String()),
 				)
 			}

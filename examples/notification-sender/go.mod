@@ -9,6 +9,7 @@ require (
 	github.com/kode4food/caravan v0.0.0-20260821122510-0a730966b1a2 // indirect
 	github.com/kode4food/jpath v0.0.0-20260821124846-7265794f74f9 // indirect
 	github.com/kode4food/lru v0.0.0-20260821124822-50bd9a308b71 // indirect
+	github.com/kode4food/timebox v0.0.0-20260831165837-e3945223be77 // indirect
 	go.opentelemetry.io/otel v1.46.0 // indirect
 	golang.org/x/exp/typeparams v0.0.0-20260824195058-e88cd73687aa // indirect
 	golang.org/x/telemetry v0.0.0-20260824150023-1f5465a7b7fb // indirect

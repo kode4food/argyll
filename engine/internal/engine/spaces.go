@@ -234,11 +234,12 @@ func (e *Engine) selectSpaceSteps(
 }
 
 func (e *Engine) spaceMatches(sp api.Space, st *api.Step) (bool, error) {
-	labels := make(map[string]any, len(st.Labels))
-	for key, value := range st.Labels {
-		labels[key] = value
+	// A set, since neither script language has a built-in contains
+	tags := make(map[string]any, len(st.Tags))
+	for _, tag := range st.Tags {
+		tags[tag] = true
 	}
-	return e.Matcher(sp.Selector, labels)
+	return e.Matcher(sp.Selector, map[string]any{script.MatchTags: tags})
 }
 
 func spaceSubFlow(

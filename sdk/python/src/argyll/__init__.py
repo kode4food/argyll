@@ -27,7 +27,6 @@ from .types import (
     HTTPConfig,
     InitArgs,
     InputCollect,
-    Labels,
     MappingConfig,
     MetaConfig,
     Metadata,
@@ -40,6 +39,7 @@ from .types import (
     Step,
     StepID,
     StepType,
+    Tags,
     WorkConfig,
 )
 
@@ -84,7 +84,7 @@ __all__ = [
     "InitArgs",
     "StepID",
     "FlowID",
-    "Labels",
+    "Tags",
     "Metadata",
     # Errors
     "ArgyllError",

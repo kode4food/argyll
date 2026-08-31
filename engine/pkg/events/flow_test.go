@@ -105,10 +105,7 @@ func TestFlowStartIndex(t *testing.T) {
 		Plan: &api.ExecutionPlan{
 			Steps: api.Steps{},
 		},
-		Labels: api.Labels{
-			"tier": "gold",
-			"env":  "prod",
-		},
+		Tags: api.Tags{"tier:gold", "env:prod"},
 	}
 	data, err := json.Marshal(eventData)
 	assert.NoError(t, err)
@@ -124,7 +121,9 @@ func TestFlowStartIndex(t *testing.T) {
 	if assert.Len(t, indexes, 1) {
 		assert.NotNil(t, indexes[0].Status)
 		assert.Equal(t, events.FlowStatusActive, *indexes[0].Status)
-		assert.EqualValues(t, eventData.Labels, indexes[0].Labels)
+		assert.Equal(t, map[string]bool{
+			"tier:gold": true, "env:prod": true,
+		}, indexes[0].Tags)
 	}
 }
 
@@ -144,7 +143,7 @@ func TestFlowDeactivatedIndex(t *testing.T) {
 	if assert.Len(t, indexes, 1) {
 		assert.NotNil(t, indexes[0].Status)
 		assert.Equal(t, string(api.FlowCompleted), *indexes[0].Status)
-		assert.Nil(t, indexes[0].Labels)
+		assert.Nil(t, indexes[0].Tags)
 	}
 }
 

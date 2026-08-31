@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"slices"
 
 	"github.com/gin-gonic/gin"
 
@@ -64,14 +65,12 @@ func (s *Server) queryFlows(c *gin.Context) {
 		return
 	}
 
-	for key, value := range req.Labels {
-		if key == "" || value == "" {
-			c.JSON(http.StatusBadRequest, api.ErrorResponse{
-				Error:  "Invalid labels",
-				Status: http.StatusBadRequest,
-			})
-			return
-		}
+	if slices.Contains(req.Tags, "") {
+		c.JSON(http.StatusBadRequest, api.ErrorResponse{
+			Error:  "Invalid tags",
+			Status: http.StatusBadRequest,
+		})
+		return
 	}
 
 	if !validFlowStatuses(req.Statuses) {
@@ -140,8 +139,8 @@ func (s *Server) startFlow(c *gin.Context) {
 	if req.Init != nil {
 		apps = append(apps, flow.WithInit(req.Init))
 	}
-	if len(req.Labels) > 0 {
-		apps = append(apps, flow.WithLabels(req.Labels))
+	if len(req.Tags) > 0 {
+		apps = append(apps, flow.WithTags(req.Tags))
 	}
 	err := s.engine.StartFlow(req.ID, pl, apps...)
 	if err == nil {

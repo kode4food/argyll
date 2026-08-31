@@ -20,9 +20,7 @@ func TestSpaceAPI(t *testing.T) {
 			ID:          "payments",
 			Name:        "Payments",
 			Description: "Payment services",
-			QBE: api.SpaceQuery{
-				"domain": {"payments"},
-			},
+			QBE:         api.SpaceQuery{"domain:payments"},
 		}
 
 		w := spaceRequest(t, spaceRequestArgs{
@@ -43,8 +41,8 @@ func TestSpaceAPI(t *testing.T) {
 		assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &got))
 		assert.Equal(t, sp.QBE, got.QBE)
 		assert.Equal(t, &api.ScriptConfig{
-			Language: api.ScriptLangLua,
-			Script:   `return value["domain"] == "payments"`,
+			Language: api.ScriptLangJPath,
+			Script:   `$["tags"]["domain:payments"]`,
 		}, got.Selector)
 
 		w = spaceRequest(t, spaceRequestArgs{
@@ -61,9 +59,7 @@ func TestSpaceAPI(t *testing.T) {
 			ID:          "payments",
 			Name:        "Payments",
 			Description: "Updated",
-			QBE: api.SpaceQuery{
-				"domain": {"payments"},
-			},
+			QBE:         api.SpaceQuery{"domain:payments"},
 		}
 		w = spaceRequest(t, spaceRequestArgs{
 			handler: router,
@@ -92,9 +88,9 @@ func TestSpaceAPI(t *testing.T) {
 func TestSpaceStepsAPI(t *testing.T) {
 	withTestServerEnv(t, func(env *testServerEnv) {
 		matching := helpers.NewSimpleStep("matching")
-		matching.Labels = api.Labels{"domain": "payments"}
+		matching.Tags = api.Tags{"domain:payments"}
 		excluded := helpers.NewSimpleStep("excluded")
-		excluded.Labels = api.Labels{"domain": "orders"}
+		excluded.Tags = api.Tags{"domain:orders"}
 		assert.NoError(t, env.Engine.RegisterStep(matching))
 		assert.NoError(t, env.Engine.RegisterStep(excluded))
 		assert.NoError(t, env.Engine.RegisterSpace(paymentSpace()))
@@ -125,9 +121,9 @@ func TestSpaceStepsAPI(t *testing.T) {
 func TestSpacePreviewAPI(t *testing.T) {
 	withTestServerEnv(t, func(env *testServerEnv) {
 		matching := helpers.NewSimpleStep("matching")
-		matching.Labels = api.Labels{"domain": "payments"}
+		matching.Tags = api.Tags{"domain:payments"}
 		excluded := helpers.NewSimpleStep("excluded")
-		excluded.Labels = api.Labels{"domain": "orders"}
+		excluded.Tags = api.Tags{"domain:orders"}
 		assert.NoError(t, env.Engine.RegisterStep(matching))
 		assert.NoError(t, env.Engine.RegisterStep(excluded))
 
@@ -143,7 +139,7 @@ func TestSpacePreviewAPI(t *testing.T) {
 
 		w := preview(api.Space{Selector: &api.ScriptConfig{
 			Language: api.ScriptLangJPath,
-			Script:   `$.domain == "payments"`,
+			Script:   `$["tags"]["domain:payments"]`,
 		}})
 		assert.Equal(t, http.StatusOK, w.Code)
 		var got api.SpacePreviewResponse
@@ -152,19 +148,19 @@ func TestSpacePreviewAPI(t *testing.T) {
 		assert.Equal(t, api.ScriptLangJPath, got.Space.Selector.Language)
 
 		w = preview(api.Space{
-			QBE: api.SpaceQuery{"domain": {"payments"}},
+			QBE: api.SpaceQuery{"domain:payments"},
 		})
 		assert.Equal(t, http.StatusOK, w.Code)
 		assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &got))
 		assert.Equal(t, []api.StepID{matching.ID}, got.StepIDs)
 		assert.Equal(t, &api.ScriptConfig{
-			Language: api.ScriptLangLua,
-			Script:   `return value["domain"] == "payments"`,
+			Language: api.ScriptLangJPath,
+			Script:   `$["tags"]["domain:payments"]`,
 		}, got.Space.Selector)
 
 		w = preview(api.Space{Selector: &api.ScriptConfig{
 			Language: api.ScriptLangLua,
-			Script:   `return value["domain"] == "nothing"`,
+			Script:   `return value["tags"]["nothing"]`,
 		}})
 		assert.Equal(t, http.StatusOK, w.Code)
 		assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &got))
@@ -214,7 +210,7 @@ func TestStartFlowSpaceExcluded(t *testing.T) {
 		steps := spaceSteps()
 		provider := steps.provider
 		goal := steps.goal
-		provider.Labels["domain"] = "orders"
+		provider.Tags = api.Tags{"domain:orders"}
 		assert.NoError(t, env.Engine.RegisterStep(provider))
 		assert.NoError(t, env.Engine.RegisterStep(goal))
 		assert.NoError(t, env.Engine.RegisterSpace(paymentSpace()))
@@ -250,8 +246,8 @@ func TestSpaceDynamicPlanning(t *testing.T) {
 		steps := spaceSteps()
 		provider := steps.provider
 		goal := steps.goal
-		goal.Labels["environment"] = "stage"
-		provider.Labels["environment"] = "production"
+		goal.Tags = append(goal.Tags, "environment:stage")
+		provider.Tags = append(provider.Tags, "environment:production")
 		assert.NoError(t, env.Engine.RegisterStep(goal))
 		sp := paymentSpace()
 		assert.NoError(t, env.Engine.RegisterSpace(sp))
@@ -278,10 +274,7 @@ func TestSpaceDynamicPlanning(t *testing.T) {
 		updated := api.Space{
 			ID:   "payments",
 			Name: "Payments",
-			QBE: api.SpaceQuery{
-				"domain":      {"payments"},
-				"environment": {"stage"},
-			},
+			QBE:  api.SpaceQuery{"domain:payments", "environment:stage"},
 		}
 		assert.NoError(t, env.Engine.UpdateSpace(updated))
 		w = startSpaceFlow(t, router, api.CreateFlowRequest{
@@ -301,7 +294,7 @@ func TestPlanPreviewSpace(t *testing.T) {
 	withTestServerEnv(t, func(env *testServerEnv) {
 		steps := spaceSteps()
 		outside := helpers.NewSimpleStep("outside")
-		outside.Labels = api.Labels{"domain": "orders"}
+		outside.Tags = api.Tags{"domain:orders"}
 		outside.Attributes = api.AttributeSpecs{
 			"data": {Role: api.RoleOutput, Type: api.TypeString},
 		}
@@ -353,9 +346,7 @@ func paymentSpace() api.Space {
 	return api.Space{
 		ID:   "payments",
 		Name: "Payments",
-		QBE: api.SpaceQuery{
-			"domain": {"payments"},
-		},
+		QBE:  api.SpaceQuery{"domain:payments"},
 	}
 }
 
@@ -366,12 +357,12 @@ type spaceStepsRes struct {
 
 func spaceSteps() spaceStepsRes {
 	provider := helpers.NewSimpleStep("provider")
-	provider.Labels = api.Labels{"domain": "payments"}
+	provider.Tags = api.Tags{"domain:payments"}
 	provider.Attributes = api.AttributeSpecs{
 		"data": {Role: api.RoleOutput, Type: api.TypeString},
 	}
 	goal := helpers.NewSimpleStep("goal")
-	goal.Labels = api.Labels{"domain": "payments"}
+	goal.Tags = api.Tags{"domain:payments"}
 	goal.Attributes = api.AttributeSpecs{
 		"data":   {Role: api.RoleRequired, Type: api.TypeString},
 		"result": {Role: api.RoleOutput, Type: api.TypeString},

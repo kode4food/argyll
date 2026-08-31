@@ -52,7 +52,7 @@ type (
 		LastUpdated   time.Time       `json:"last_updated"`
 		Plan          *ExecutionPlan  `json:"plan"`
 		Metadata      Metadata        `json:"metadata,omitempty"`
-		Labels        Labels          `json:"labels,omitempty"`
+		Tags          Tags            `json:"tags,omitempty"`
 		Attributes    AttributeValues `json:"attributes"`
 		DeactivatedAt time.Time       `json:"deactivated_at"`
 		Executions    Executions      `json:"executions"`

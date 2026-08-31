@@ -10,19 +10,17 @@ import {
 import {
   buildStepPayload,
   createStepAttributes,
-  createStepLabels,
   normalizeHttpMethod,
 } from "./stepEditorUtils";
 import { useT } from "@/app/i18n";
 import { useAttributeList } from "./useAttributeList";
-import { useLabelList } from "./useLabelList";
 import { useStepPersistence } from "./useStepPersistence";
 
 export interface StepEditorFormOptions {
   step: Step | null;
   onUpdate: (updatedStep: Step) => void;
   onClose: () => void;
-  defaultLabels?: Record<string, string>;
+  defaultTags?: string[];
   draft?: Step;
 }
 
@@ -30,7 +28,7 @@ export function useStepEditorForm({
   step,
   onUpdate,
   onClose,
-  defaultLabels,
+  defaultTags,
   draft,
 }: StepEditorFormOptions) {
   const t = useT();
@@ -39,6 +37,7 @@ export function useStepEditorForm({
 
   const [stepId, setStepId] = useState(step?.id || "");
   const [name, setName] = useState(step?.name || "");
+  const [description, setDescription] = useState(step?.description || "");
   const [stepType, setStepTypeState] = useState<StepType>(
     seed?.type || "service"
   );
@@ -95,8 +94,9 @@ export function useStepEditorForm({
     clearCompensated,
   } = useAttributeList(step, t);
 
-  const { labels, addLabel, updateLabel, removeLabel, resetLabels } =
-    useLabelList(step, defaultLabels);
+  const [tags, setTags] = useState<string[]>(
+    () => step?.tags ?? defaultTags ?? []
+  );
 
   const changeHandling = useCallback(
     (next: Handling) => {
@@ -121,9 +121,10 @@ export function useStepEditorForm({
     return buildStepPayload({
       stepId,
       name,
+      description,
       stepType,
       attributes: stepAttributes,
-      labels: createStepLabels(labels),
+      tags: tags.length > 0 ? tags : undefined,
       predicate,
       predicateLanguage,
       script,
@@ -144,7 +145,7 @@ export function useStepEditorForm({
     });
   }, [
     attributes,
-    labels,
+    tags,
     compensate,
     compensateMethod,
     compensateTimeout,
@@ -159,6 +160,7 @@ export function useStepEditorForm({
     httpTimeout,
     handling,
     name,
+    description,
     predicate,
     predicateLanguage,
     script,
@@ -171,6 +173,7 @@ export function useStepEditorForm({
     (stepData: Step) => {
       setStepId(stepData.id || "");
       setName(stepData.name || "");
+      setDescription(stepData.description || "");
       setStepTypeState(stepData.type || "service");
       setPredicate(stepData.predicate?.script || "");
       setPredicateLanguage(stepData.predicate?.language || SCRIPT_LANGUAGE_LUA);
@@ -192,9 +195,9 @@ export function useStepEditorForm({
       setHttpTimeout(stepData.http?.invoke?.timeout || 5000);
       setHandling(stepData.handling || "standard");
       resetAttributes(stepData);
-      resetLabels(stepData);
+      setTags(stepData?.tags ?? []);
     },
-    [resetAttributes, resetLabels]
+    [resetAttributes]
   );
 
   const {
@@ -284,6 +287,8 @@ export function useStepEditorForm({
     setStepId,
     name,
     setName,
+    description,
+    setDescription,
     stepType,
     setStepType: changeStepType,
     predicate,
@@ -324,10 +329,8 @@ export function useStepEditorForm({
     addAttribute,
     updateAttribute,
     removeAttribute,
-    labels,
-    addLabel,
-    updateLabel,
-    removeLabel,
+    tags,
+    setTags,
     saving,
     error,
     setError,

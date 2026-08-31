@@ -17,5 +17,5 @@ if __name__ == "__main__":
     client.new_step().with_name("Greeting") \
         .required("name", AttributeType.STRING) \
         .output("greeting", AttributeType.STRING) \
-        .with_label("category", "demo") \
+        .with_tags("category:demo") \
         .start(handle_greeting)

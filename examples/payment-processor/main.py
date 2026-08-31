@@ -34,7 +34,8 @@ def handle_payment(ctx: StepContext, args: dict) -> dict:
     # Extract webhook URL from metadata
     webhook_url = ctx.metadata.get("webhook_url")
     if not webhook_url:
-        print(f"ERROR: No webhook_url in metadata. Keys: {list(ctx.metadata.keys())}")
+        keys = list(ctx.metadata.keys())
+        print(f"ERROR: No webhook_url in metadata. Keys: {keys}")
         print(f"Metadata: {ctx.metadata}")
         raise HTTPError(400, "Argyll-Webhook-URL header not found")
 
@@ -93,13 +94,13 @@ def handle_payment(ctx: StepContext, args: dict) -> dict:
 
 if __name__ == "__main__":
     client.new_step().with_name("Payment Processor") \
-        .with_labels({
-            "description": "process payment asynchronously",
-            "domain": "payments",
-            "capability": "process",
-            "execution": "async",
-            "example": "true",
-        }) \
+        .with_description("process payment asynchronously") \
+        .with_tags(
+            "domain:payments",
+            "capability:process",
+            "execution:async",
+            "example",
+        ) \
         .required("order", AttributeType.OBJECT) \
         .output("payment_result", AttributeType.OBJECT) \
         .with_async_execution() \

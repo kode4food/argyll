@@ -10,7 +10,7 @@ type (
 	Options struct {
 		Init       api.InitArgs
 		Metadata   api.Metadata
-		Labels     api.Labels
+		Tags       api.Tags
 		Compensate bool
 	}
 
@@ -23,7 +23,7 @@ var Defaults = call.Defaults(func() *Options {
 	return &Options{
 		Init:     api.InitArgs{},
 		Metadata: api.Metadata{},
-		Labels:   api.Labels{},
+		Tags:     api.Tags{},
 	}
 })
 
@@ -52,10 +52,10 @@ func WithParent(parent api.FlowStep, tkn api.Token) Applier {
 	}
 }
 
-// WithLabels sets the flow labels
-func WithLabels(labels api.Labels) Applier {
+// WithTags sets the flow tags
+func WithTags(tags api.Tags) Applier {
 	return func(opt *Options) {
-		opt.Labels = labels
+		opt.Tags = tags
 	}
 }
 

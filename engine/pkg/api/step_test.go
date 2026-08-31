@@ -1,6 +1,7 @@
 package api_test
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/kode4food/argyll/engine/internal/assert"
@@ -319,6 +320,23 @@ func TestStepValidation(t *testing.T) {
 			expectError:   true,
 			errorContains: "invalid script language",
 		},
+		{
+			name:          "empty_tag",
+			step:          taggedStep(""),
+			expectError:   true,
+			errorContains: "tag empty",
+		},
+		{
+			name:          "too_many_tags",
+			step:          taggedStep(manyTags(api.MaxTagCount + 1)...),
+			expectError:   true,
+			errorContains: "too many tags",
+		},
+		{
+			name:        "tags_at_limit",
+			step:        taggedStep(manyTags(api.MaxTagCount)...),
+			expectError: false,
+		},
 	}
 
 	for _, tt := range tests {
@@ -330,6 +348,20 @@ func TestStepValidation(t *testing.T) {
 			as.StepValid(tt.step)
 		})
 	}
+}
+
+func taggedStep(tags ...string) *api.Step {
+	st := helpers.NewTestStep()
+	st.Tags = tags
+	return st
+}
+
+func manyTags(n int) api.Tags {
+	res := make(api.Tags, n)
+	for i := range res {
+		res[i] = fmt.Sprintf("tag-%d", i)
+	}
+	return res
 }
 
 func TestStepHelperMethods(t *testing.T) {
@@ -813,10 +845,7 @@ func TestEqualStep(t *testing.T) {
 		ID:   "test-step",
 		Name: "Test Step",
 		Type: api.StepTypeService,
-		Labels: api.Labels{
-			"description": "test step",
-			"team":        "core",
-		},
+		Tags: api.Tags{"team:core"},
 		HTTP: &api.HTTPConfig{
 			Invoke: api.HTTPAction{
 				Endpoint: "http://localhost:8080",
@@ -831,10 +860,7 @@ func TestEqualStep(t *testing.T) {
 		ID:   "test-step",
 		Name: "Test Step",
 		Type: api.StepTypeService,
-		Labels: api.Labels{
-			"description": "test step",
-			"team":        "core",
-		},
+		Tags: api.Tags{"team:core"},
 		HTTP: &api.HTTPConfig{
 			Invoke: api.HTTPAction{
 				Endpoint: "http://localhost:8080",
@@ -894,7 +920,7 @@ func TestEqualFields(t *testing.T) {
 			}
 		}},
 		{name: "labels", change: func(st *api.Step) {
-			st.Labels = api.Labels{"team": "core"}
+			st.Tags = api.Tags{"team:core"}
 		}},
 	}
 
@@ -1044,41 +1070,26 @@ func TestStepInvalidAttributes(t *testing.T) {
 	as.ErrorIs(st.Validate(), api.ErrInvalidAttributeRole)
 }
 
-func TestLabelsEqualMismatch(t *testing.T) {
+func TestTagsEqualMismatch(t *testing.T) {
 	as := assert.New(t)
-	as.False(api.Labels{"a": "1"}.Equal(api.Labels{}))
-	as.False(api.Labels{"a": "1"}.Equal(api.Labels{"a": "2"}))
+	as.False(api.Tags{"a"}.Equal(api.Tags{}))
+	as.False(api.Tags{"a"}.Equal(api.Tags{"b"}))
+	as.False(api.Tags{"a"}.Equal(api.Tags{"a", "b"}))
+	as.True(api.Tags{"a", "b"}.Equal(api.Tags{"a", "b"}))
+	as.True(api.Tags(nil).Equal(api.Tags{}))
 }
 
-func TestLabelsApply(t *testing.T) {
+func TestTagsNormalize(t *testing.T) {
 	as := assert.New(t)
 
-	t.Run("empty_other", func(t *testing.T) {
-		base := api.Labels{"team": "core"}
-		applied := base.Apply(nil)
-
-		as.Equal(api.Labels{"team": "core"}, applied)
-	})
-
-	t.Run("nil_base", func(t *testing.T) {
-		applied := api.Labels(nil).Apply(api.Labels{"team": "core"})
-
-		as.Equal(api.Labels{"team": "core"}, applied)
-	})
-
-	t.Run("merge_override", func(t *testing.T) {
-		base := api.Labels{"team": "core", "env": "dev"}
-		applied := base.Apply(api.Labels{"team": "other"})
-
-		as.Equal(api.Labels{"team": "other", "env": "dev"}, applied)
-	})
-
-	t.Run("base_unchanged", func(t *testing.T) {
-		base := api.Labels{"team": "core"}
-		_ = base.Apply(api.Labels{"env": "dev"})
-
-		as.Equal(api.Labels{"team": "core"}, base)
-	})
+	as.Equal(
+		api.Tags{"domain:payments", "domain:risk"},
+		api.Tags{
+			"domain:risk", "domain:payments", "domain:risk",
+		}.Normalize(),
+	)
+	as.Nil(api.Tags(nil).Normalize())
+	as.Empty(api.Tags{}.Normalize())
 }
 
 func TestValidateWorkConfig(t *testing.T) {
@@ -1268,9 +1279,7 @@ func TestStepCopy(t *testing.T) {
 				MaxRetries:  3,
 				Parallelism: 2,
 			},
-			Labels: api.Labels{
-				"team": "core",
-			},
+			Tags: api.Tags{"team:core"},
 			Attributes: api.AttributeSpecs{
 				"input": {
 					Role: api.RoleRequired,
@@ -1301,7 +1310,7 @@ func TestStepCopy(t *testing.T) {
 		cpy.Script.Script = "(* 2 3)"
 		cpy.Predicate.Script = "return false"
 		cpy.WorkConfig.MaxRetries = 9
-		cpy.Labels["team"] = "platform"
+		cpy.Tags[0] = "team:platform"
 		cpy.Attributes["input"].Type = api.TypeNumber
 		cpy.Attributes["input"].Required.Mapping.Name = "changed"
 		cpy.Attributes["input"].Required.Mapping.Script.Script = "$.changed"
@@ -1311,7 +1320,7 @@ func TestStepCopy(t *testing.T) {
 		as.Equal("(* 2 3)", st.Script.Script)
 		as.Equal("return false", st.Predicate.Script)
 		as.Equal(9, st.WorkConfig.MaxRetries)
-		as.Equal("platform", st.Labels["team"])
+		as.Equal(api.Tags{"team:platform"}, st.Tags)
 		as.Equal(api.TypeNumber, st.Attributes["input"].Type)
 		as.Equal("changed", st.Attributes["input"].Required.Mapping.Name)
 		as.Equal(
@@ -1657,12 +1666,12 @@ func TestStepHashKey(t *testing.T) {
 
 	t.Run("ignores_labels", func(t *testing.T) {
 		s1 := &api.Step{
-			Type:   api.StepTypeService,
-			Labels: map[string]string{"env": "dev"},
+			Type: api.StepTypeService,
+			Tags: api.Tags{"env:dev"},
 		}
 		s2 := &api.Step{
-			Type:   api.StepTypeService,
-			Labels: map[string]string{"env": "prod"},
+			Type: api.StepTypeService,
+			Tags: api.Tags{"env:prod"},
 		}
 		h1, err := s1.HashKey()
 		as.NoError(err)

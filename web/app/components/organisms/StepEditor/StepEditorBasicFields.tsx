@@ -13,9 +13,11 @@ import {
 import formStyles from "./StepEditorForm.module.css";
 
 interface StepEditorBasicFieldsProps {
+  description: string;
   handling: Handling;
   isCreateMode: boolean;
   name: string;
+  setDescription: (value: string) => void;
   setHandling: (value: Handling) => void;
   setName: (value: string) => void;
   setStepId: (value: string) => void;
@@ -43,9 +45,11 @@ const STEP_TYPE_OPTIONS = [
 ];
 
 const StepEditorBasicFields: React.FC<StepEditorBasicFieldsProps> = ({
+  description,
   handling,
   isCreateMode,
   name,
+  setDescription,
   setHandling,
   setName,
   setStepId,
@@ -82,47 +86,63 @@ const StepEditorBasicFields: React.FC<StepEditorBasicFieldsProps> = ({
   ];
 
   return (
-    <div className={formStyles.row}>
-      <div className={`${formStyles.field} ${formStyles.flex1}`}>
-        <label className={formStyles.label}>
-          {t("stepEditor.stepIdLabel")}
-        </label>
-        <input
-          type="text"
-          value={stepId}
-          onChange={(e) => setStepId(e.target.value)}
-          className={formStyles.formControl}
-          disabled={!isCreateMode}
-          placeholder={t("stepEditor.stepIdPlaceholder")}
+    <>
+      <div className={formStyles.row}>
+        <div className={`${formStyles.field} ${formStyles.flex1}`}>
+          <label className={formStyles.label}>
+            {t("stepEditor.stepIdLabel")}
+          </label>
+          <input
+            type="text"
+            value={stepId}
+            onChange={(e) => setStepId(e.target.value)}
+            className={formStyles.formControl}
+            disabled={!isCreateMode}
+            placeholder={t("stepEditor.stepIdPlaceholder")}
+          />
+        </div>
+        <div className={`${formStyles.field} ${formStyles.flex2}`}>
+          <label className={formStyles.label}>
+            {t("stepEditor.stepNameLabel")}
+          </label>
+          <input
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            className={formStyles.formControl}
+            placeholder={t("stepEditor.stepNamePlaceholder")}
+          />
+        </div>
+        <SelectField
+          className={formStyles.flex1}
+          label={t("stepEditor.typeLabel")}
+          onChange={(value) => setStepType(value as StepType)}
+          options={typeOptions}
+          value={stepType}
+        />
+        <SelectField
+          className={formStyles.flex1}
+          label={t("stepEditor.handlingLabel")}
+          onChange={(value) => setHandling(value as Handling)}
+          options={handlingOptions}
+          value={handling}
         />
       </div>
-      <div className={`${formStyles.field} ${formStyles.flex2}`}>
-        <label className={formStyles.label}>
-          {t("stepEditor.stepNameLabel")}
-        </label>
-        <input
-          type="text"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          className={formStyles.formControl}
-          placeholder={t("stepEditor.stepNamePlaceholder")}
-        />
+      <div className={formStyles.row}>
+        <div className={`${formStyles.field} ${formStyles.flex1}`}>
+          <label className={formStyles.label}>
+            {t("stepEditor.descriptionLabel")}
+          </label>
+          <input
+            type="text"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            className={formStyles.formControl}
+            placeholder={t("stepEditor.descriptionPlaceholder")}
+          />
+        </div>
       </div>
-      <SelectField
-        className={formStyles.flex1}
-        label={t("stepEditor.typeLabel")}
-        onChange={(value) => setStepType(value as StepType)}
-        options={typeOptions}
-        value={stepType}
-      />
-      <SelectField
-        className={formStyles.flex1}
-        label={t("stepEditor.handlingLabel")}
-        onChange={(value) => setHandling(value as Handling)}
-        options={handlingOptions}
-        value={handling}
-      />
-    </div>
+    </>
   );
 };
 

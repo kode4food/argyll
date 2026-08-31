@@ -66,12 +66,8 @@ func main() {
 	client := argyll.NewClient(engineURL, 30*time.Second)
 
 	err := client.NewStep().WithName("User Resolver").
-		WithLabels(api.Labels{
-			"description": "resolve user profile by user_id",
-			"domain":      "users",
-			"capability":  "lookup",
-			"example":     "true",
-		}).
+		WithDescription("resolve user profile by user_id").
+		WithTags("domain:users", "capability:lookup", "example").
 		Optional("user_id", api.TypeString, `"user-123"`).
 		Output("user_info", api.TypeObject).
 		Start(handle)

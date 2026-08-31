@@ -43,12 +43,8 @@ func main() {
 	client := argyll.NewClient(engineURL, 30*time.Second)
 
 	err := client.NewStep().WithName("Order Creator").
-		WithLabels(api.Labels{
-			"description": "create order records and validate business rules",
-			"domain":      "orders",
-			"capability":  "create",
-			"example":     "true",
-		}).
+		WithDescription("create order records and validate business rules").
+		WithTags("domain:orders", "capability:create", "example").
 		Required("user_info", api.TypeObject).
 		Required("product_info", api.TypeObject).
 		Optional("quantity", api.TypeNumber, "1").

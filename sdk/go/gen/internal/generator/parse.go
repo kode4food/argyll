@@ -67,8 +67,9 @@ type (
 
 	// stepDecl is what a step's directives declare
 	stepDecl struct {
-		labels      api.Labels
+		tags        api.Tags
 		predicate   *api.ScriptConfig
+		description string
 		id          string
 		attrs       string
 		handling    api.Handling
@@ -88,7 +89,8 @@ const (
 	httpDirective      = "http"
 	workDirective      = "work"
 	predicateDirective = "predicate"
-	labelsDirective    = "labels"
+	tagsDirective      = "tags"
+	descDirective      = "description"
 	memoDirective      = "memoize"
 	compDirective      = "compensate"
 
@@ -170,7 +172,7 @@ func (g *pkgGen) declOf(
 	if err != nil {
 		return stepDecl{}, g.errorAt(fn, "%w", err)
 	}
-	declared, err := optionsIn(fn, labelsDirective)
+	tags, err := tagsIn(fn)
 	if err != nil {
 		return stepDecl{}, g.errorAt(fn, "%w", err)
 	}
@@ -178,21 +180,19 @@ func (g *pkgGen) declOf(
 	if err != nil {
 		return stepDecl{}, g.errorAt(fn, "%w", err)
 	}
-	var labels api.Labels
-	for _, o := range declared {
-		if labels == nil {
-			labels = api.Labels{}
-		}
-		labels[o.Key] = o.Value
+	description, err := descriptionIn(fn)
+	if err != nil {
+		return stepDecl{}, g.errorAt(fn, "%w", err)
 	}
 	res := stepDecl{
-		labels:    labels,
-		predicate: predicate,
-		id:        id,
-		attrs:     decl.Attrs,
-		options:   options,
-		http:      http,
-		work:      work,
+		tags:        tags,
+		predicate:   predicate,
+		description: description,
+		id:          id,
+		attrs:       decl.Attrs,
+		options:     options,
+		http:        http,
+		work:        work,
 	}
 	if err := handlingIn(fn, &res); err != nil {
 		return stepDecl{}, g.errorAt(fn, "%w", err)
@@ -204,12 +204,13 @@ func (g *pkgGen) model(config *stepModelConfig) (stepModel, error) {
 	fn := config.function
 	decl := config.declaration
 	spec := &api.Step{
-		Attributes: config.attributes,
-		Labels:     decl.labels,
-		Predicate:  decl.predicate,
-		Type:       api.StepTypeService,
-		ID:         api.StepID(decl.id),
-		Name:       api.Name(TitleCase(fn.Name.Name)),
+		Attributes:  config.attributes,
+		Tags:        decl.tags,
+		Predicate:   decl.predicate,
+		Description: decl.description,
+		Type:        api.StepTypeService,
+		ID:          api.StepID(decl.id),
+		Name:        api.Name(TitleCase(fn.Name.Name)),
 		HTTP: &api.HTTPConfig{
 			Invoke: api.HTTPAction{Endpoint: "/" + decl.id},
 			Health: healthPath,
@@ -246,8 +247,8 @@ func (g *pkgGen) model(config *stepModelConfig) (stepModel, error) {
 	}, nil
 }
 
-// http, work and labels are repeatable option-only directives, so a long set
-// can spread across lines
+// http, work and tags are repeatable option-only directives, so a long set can
+// spread across lines
 func optionsIn(fn *ast.FuncDecl, directive string) (Options, error) {
 	var res Options
 	for _, c := range fn.Doc.List {
@@ -922,6 +923,52 @@ func compAdapter(cfg compAdapterConfig) string {
 		"gen.Compensate(\n%s,\nfunc(in %s) error {\n%s\n})",
 		cfg.codec, cfg.typ, body,
 	)
+}
+
+// a tag is an opaque string, so the directive takes plain semicolon separated
+// values rather than the key:value options the others parse
+func tagsIn(fn *ast.FuncDecl) (api.Tags, error) {
+	var res api.Tags
+	for _, c := range fn.Doc.List {
+		ref, ok := parseDirective(c.Text)
+		if !ok || ref.kind != tagsDirective {
+			continue
+		}
+		if strings.TrimSpace(ref.args) == "" {
+			return nil, fmt.Errorf("%w: %s takes tags, got %q",
+				ErrBadDirective, directivePrefix+tagsDirective, ref.args)
+		}
+		for seg := range strings.SplitSeq(ref.args, optionSeparator) {
+			tag := strings.TrimSpace(seg)
+			if tag == "" {
+				return nil, fmt.Errorf("%w: %s has an empty tag",
+					ErrBadOption, directivePrefix+tagsDirective)
+			}
+			res = append(res, tag)
+		}
+	}
+	return res.Normalize(), nil
+}
+
+// a description is free prose, so the directive takes its whole argument
+func descriptionIn(fn *ast.FuncDecl) (string, error) {
+	var res string
+	for _, c := range fn.Doc.List {
+		ref, ok := parseDirective(c.Text)
+		if !ok || ref.kind != descDirective {
+			continue
+		}
+		if res != "" {
+			return "", fmt.Errorf("%w: %s repeats",
+				ErrBadDirective, directivePrefix+descDirective)
+		}
+		res = strings.TrimSpace(ref.args)
+		if res == "" {
+			return "", fmt.Errorf("%w: %s needs a description",
+				ErrBadDirective, directivePrefix+descDirective)
+		}
+	}
+	return res, nil
 }
 
 func parsePredicate(fn *ast.FuncDecl) (*api.ScriptConfig, error) {

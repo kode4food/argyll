@@ -1,0 +1,100 @@
+.section {
+  composes: section from "@/app/styles/components/form.module.css";
+}
+
+.sectionHeader {
+  composes: sectionHeader from "@/app/styles/components/form.module.css";
+}
+
+.label {
+  composes: labelWithIcon from "@/app/styles/components/form.module.css";
+}
+
+.labelIcon {
+  composes: labelIcon from "@/app/styles/components/form.module.css";
+}
+
+.field {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem;
+  min-height: 32px;
+  padding: 3px 4px;
+  background-color: var(--control-face-bg);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-md);
+  box-sizing: border-box;
+  cursor: text;
+  transition: var(--transition-fast);
+}
+
+.field:focus-within {
+  border-color: var(--color-info);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-info) 40%, transparent);
+}
+
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.125rem;
+  max-width: 100%;
+  padding: 0 0.125rem 0 0.375rem;
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--color-info) 18%, transparent);
+  color: var(--panel-text);
+  font-size: var(--text-xs);
+  line-height: 20px;
+}
+
+.tagText {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.removeButton {
+  display: flex;
+  align-items: center;
+  padding: 0;
+  border: none;
+  background: none;
+  color: inherit;
+  opacity: 0.6;
+  cursor: pointer;
+}
+
+.removeButton:hover {
+  opacity: 1;
+}
+
+.input {
+  flex: 1 1 60px;
+  min-width: 60px;
+  height: 20px;
+  padding: 0 0 0 4px;
+  border: none;
+  background: transparent;
+  color: var(--panel-text);
+  font-size: var(--text-xs);
+  font-family: inherit;
+  box-sizing: border-box;
+}
+
+.input:focus {
+  outline: none;
+}
+
+.iconSm {
+  width: 0.75rem;
+  height: 0.75rem;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.iconSm svg {
+  width: 100%;
+  height: 100%;
+}

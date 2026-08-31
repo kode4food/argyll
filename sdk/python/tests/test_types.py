@@ -282,7 +282,7 @@ def test_step_with_all_fields():
                 role=AttributeRole.REQUIRED, type=AttributeType.STRING
             )
         },
-        labels={"env": "test"},
+        tags=["env:test"],
         http=HTTPConfig(
             invoke=HTTPAction(
                 endpoint="http://localhost:8081/test",
@@ -308,7 +308,7 @@ def test_step_with_all_fields():
 
     result = step.to_dict()
     assert result["type"] == "service"
-    assert result["labels"]["env"] == "test"
+    assert result["tags"] == ["env:test"]
     assert result["http"]["invoke"]["method"] == "POST"
     assert result["http"]["invoke"]["timeout"] == 5000
     assert result["http"]["invoke"]["mode"] == "async"
