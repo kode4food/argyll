@@ -71,7 +71,7 @@ func TestDeleteStep(t *testing.T) {
 }
 
 func TestSetSpace(t *testing.T) {
-	space := api.Space{
+	sp := api.Space{
 		ID:   "payments",
 		Name: "Payments",
 		QBE: api.SpaceQuery{
@@ -80,14 +80,14 @@ func TestSetSpace(t *testing.T) {
 	}
 	original := api.CatalogState{Spaces: api.Spaces{}}
 
-	result := original.SetSpace(space.ID, space)
+	result := original.SetSpace(sp.ID, sp)
 
 	assert.Empty(t, original.Spaces)
-	assert.Equal(t, space, result.Spaces[space.ID])
+	assert.Equal(t, sp, result.Spaces[sp.ID])
 
-	deleted := result.DeleteSpace(space.ID)
-	assert.Contains(t, result.Spaces, space.ID)
-	assert.NotContains(t, deleted.Spaces, space.ID)
+	deleted := result.DeleteSpace(sp.ID)
+	assert.Contains(t, result.Spaces, sp.ID)
+	assert.NotContains(t, deleted.Spaces, sp.ID)
 }
 
 func TestSetHealth(t *testing.T) {

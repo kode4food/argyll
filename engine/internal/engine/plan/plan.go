@@ -79,13 +79,13 @@ func Preview(req *Request) (*api.ExecutionPlan, error) {
 }
 
 // ChildPlanInit derives init args for a child plan from a parent step
-func ChildPlanInit(step *api.Step) api.InitArgs {
+func ChildPlanInit(st *api.Step) api.InitArgs {
 	res := api.InitArgs{}
-	for name, attr := range step.Attributes {
+	for name, attr := range st.Attributes {
 		if !policy.StepInputGuaranteed(attr) {
 			continue
 		}
-		mapped, _ := step.MappedName(name)
+		mapped, _ := st.MappedName(name)
 		res[mapped] = []any{true}
 	}
 	return res
@@ -246,15 +246,15 @@ func (b *builder) collectSteps(goals []api.StepID) error {
 	return nil
 }
 
-func (b *builder) collectStep(stepID api.StepID) error {
-	if b.visited.Contains(stepID) {
+func (b *builder) collectStep(sid api.StepID) error {
+	if b.visited.Contains(sid) {
 		return nil
 	}
-	b.visited.Add(stepID)
+	b.visited.Add(sid)
 
-	st := b.candidates[stepID]
+	st := b.candidates[sid]
 	if blocked := b.blockedInputs(st); len(blocked) > 0 {
-		b.blocked[stepID] = blocked
+		b.blocked[sid] = blocked
 		return nil
 	}
 
@@ -288,15 +288,15 @@ func (b *builder) collectStep(stepID api.StepID) error {
 	}
 
 	if b.shouldInclude(st) {
-		b.included.Add(stepID)
+		b.included.Add(sid)
 	}
 
 	return nil
 }
 
-func (b *builder) stepGateStatus(step *api.Step) policy.MatchStatus {
+func (b *builder) stepGateStatus(st *api.Step) policy.MatchStatus {
 	status, err := policy.RequiredMatchStepStatus(policy.RequiredMatchStep{
-		Step: step,
+		Step: st,
 		Values: func(name api.Name) []*api.AttributeValue {
 			return initAttributeValues(b.init[name])
 		},
@@ -329,9 +329,9 @@ func (b *builder) initSatisfiesInput(
 	})
 }
 
-func (b *builder) blockedInputs(step *api.Step) []api.Name {
+func (b *builder) blockedInputs(st *api.Step) []api.Name {
 	var blocked []api.Name
-	for name, attr := range step.Attributes {
+	for name, attr := range st.Attributes {
 		if policy.InitBlocksRuntime(attr, b.initHasValues(name)) {
 			blocked = append(blocked, name)
 		}
@@ -394,15 +394,15 @@ func (b *builder) findProviders(name api.Name) []api.StepID {
 	return nil
 }
 
-func (b *builder) shouldInclude(step *api.Step) bool {
-	if b.needed.Contains(step.ID) {
+func (b *builder) shouldInclude(st *api.Step) bool {
+	if b.needed.Contains(st.ID) {
 		return true
 	}
-	return !b.outputsAvailable(step)
+	return !b.outputsAvailable(st)
 }
 
-func (b *builder) outputsAvailable(step *api.Step) bool {
-	return policy.StepOutputsSatisfied(step, b.satisfied.Contains)
+func (b *builder) outputsAvailable(st *api.Step) bool {
+	return policy.StepOutputsSatisfied(st, b.satisfied.Contains)
 }
 
 func (b *builder) buildPlan() {
@@ -438,9 +438,9 @@ func (b *builder) inputSatisfied(name api.Name) bool {
 	return false
 }
 
-func (b *builder) missingRequired(step *api.Step) []api.Name {
+func (b *builder) missingRequired(st *api.Step) []api.Name {
 	var missing []api.Name
-	for name, attr := range step.Attributes {
+	for name, attr := range st.Attributes {
 		if attr.IsRequired() && !b.available.Contains(name) {
 			missing = append(missing, name)
 		}
@@ -518,9 +518,9 @@ func initAttributeValues(values []any) []*api.AttributeValue {
 	return res
 }
 
-func buildRequired(step *api.Step) util.Set[api.Name] {
+func buildRequired(st *api.Step) util.Set[api.Name] {
 	required := util.Set[api.Name]{}
-	for name, attr := range step.Attributes {
+	for name, attr := range st.Attributes {
 		if attr.IsRequired() {
 			required.Add(name)
 		}
@@ -528,9 +528,9 @@ func buildRequired(step *api.Step) util.Set[api.Name] {
 	return required
 }
 
-func stepOutputNames(step *api.Step) []api.Name {
+func stepOutputNames(st *api.Step) []api.Name {
 	var outputs []api.Name
-	for name, attr := range step.Attributes {
+	for name, attr := range st.Attributes {
 		if attr.IsOutput() {
 			outputs = append(outputs, name)
 		}

@@ -19,20 +19,16 @@ type (
 	// Environment defines the interface for script environments
 	Environment interface {
 		// Validate checks if a script is syntactically valid
-		Validate(step *api.Step, script string) error
+		Validate(st *api.Step, script string) error
 
 		// Compile compiles a script and returns the compiled form
-		Compile(step *api.Step, cfg *api.ScriptConfig) (Compiled, error)
+		Compile(*api.Step, *api.ScriptConfig) (Compiled, error)
 
 		// ExecuteScript executes a compiled script with the given inputs
-		ExecuteScript(
-			c Compiled, step *api.Step, inputs api.Args,
-		) (api.Args, error)
+		ExecuteScript(Compiled, *api.Step, api.Args) (api.Args, error)
 
 		// EvaluatePredicate evaluates a compiled predicate with given inputs
-		EvaluatePredicate(
-			c Compiled, step *api.Step, inputs api.Args,
-		) (bool, error)
+		EvaluatePredicate(Compiled, *api.Step, api.Args) (bool, error)
 
 		// EvaluateMatch evaluates a compiled matcher with a single input
 		EvaluateMatch(c Compiled, input any) (bool, error)
@@ -41,7 +37,7 @@ type (
 	// Compiled represents a compiled script for any supported language
 	Compiled any
 
-	compileFunc[T any] func(step *api.Step, cfg *api.ScriptConfig) (T, error)
+	compileFunc[T any] func(st *api.Step, cfg *api.ScriptConfig) (T, error)
 
 	compiler[T any] struct {
 		cache *lru.Cache[T]
@@ -84,13 +80,13 @@ func (r *Registry) Get(language string) (Environment, error) {
 
 // ValidateStep checks that a step's predicate and attribute match scripts
 // compile successfully against the registry
-func (r *Registry) ValidateStep(step *api.Step) error {
-	if step.Predicate != nil {
-		if _, err := r.Compile(step, step.Predicate); err != nil {
+func (r *Registry) ValidateStep(st *api.Step) error {
+	if st.Predicate != nil {
+		if _, err := r.Compile(st, st.Predicate); err != nil {
 			return err
 		}
 	}
-	for name, attr := range step.Attributes {
+	for name, attr := range st.Attributes {
 		if attr.Required == nil || attr.Required.Match == nil {
 			continue
 		}
@@ -104,7 +100,7 @@ func (r *Registry) ValidateStep(step *api.Step) error {
 
 // Compile compiles a script config
 func (r *Registry) Compile(
-	step *api.Step, cfg *api.ScriptConfig,
+	st *api.Step, cfg *api.ScriptConfig,
 ) (Compiled, error) {
 	if cfg == nil {
 		return nil, nil
@@ -113,7 +109,7 @@ func (r *Registry) Compile(
 	if err != nil {
 		return nil, err
 	}
-	return env.Compile(step, cfg)
+	return env.Compile(st, cfg)
 }
 
 func newCompiler[T any](size int, build compileFunc[T]) *compiler[T] {
@@ -123,29 +119,29 @@ func newCompiler[T any](size int, build compileFunc[T]) *compiler[T] {
 	}
 }
 
-func (c *compiler[T]) Validate(step *api.Step, script string) error {
-	_, err := c.Compile(step, &api.ScriptConfig{Script: script})
+func (c *compiler[T]) Validate(st *api.Step, script string) error {
+	_, err := c.Compile(st, &api.ScriptConfig{Script: script})
 	return err
 }
 
 func (c *compiler[T]) Compile(
-	step *api.Step, cfg *api.ScriptConfig,
+	st *api.Step, cfg *api.ScriptConfig,
 ) (Compiled, error) {
 	if cfg == nil || cfg.Script == "" {
 		return nil, nil
 	}
 
-	return c.cache.Get(hashScript(step, cfg.Script), func() (T, error) {
-		return c.build(step, cfg)
+	return c.cache.Get(hashScript(st, cfg.Script), func() (T, error) {
+		return c.build(st, cfg)
 	})
 }
 
-func hashScript(step *api.Step, script string) string {
+func hashScript(st *api.Step, script string) string {
 	h := sha256.New()
 	_, _ = h.Write([]byte(script))
 
-	if step != nil {
-		for _, arg := range step.SortedArgNames() {
+	if st != nil {
+		for _, arg := range st.SortedArgNames() {
 			_, _ = h.Write([]byte{0})
 			_, _ = h.Write([]byte(arg))
 		}

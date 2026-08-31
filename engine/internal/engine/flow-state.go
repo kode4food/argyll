@@ -17,14 +17,14 @@ var (
 )
 
 // GetFlowState retrieves the current state of a flow by its ID
-func (e *Engine) GetFlowState(flowID api.FlowID) (api.FlowState, error) {
-	state, _, err := e.GetFlowStateSeq(flowID)
+func (e *Engine) GetFlowState(fid api.FlowID) (api.FlowState, error) {
+	state, _, err := e.GetFlowStateSeq(fid)
 	return state, err
 }
 
 // GetFlowStatus retrieves the current indexed status of a flow by its ID
-func (e *Engine) GetFlowStatus(flowID api.FlowID) (api.FlowStatus, error) {
-	key := events.FlowKey(flowID)
+func (e *Engine) GetFlowStatus(fid api.FlowID) (api.FlowStatus, error) {
+	key := events.FlowKey(fid)
 	status, err := e.flowExec.GetStore().GetAggregateStatus(key)
 	if err != nil {
 		return "", err
@@ -42,17 +42,17 @@ func (e *Engine) GetFlowStatus(flowID api.FlowID) (api.FlowStatus, error) {
 }
 
 // GetFlowEvents retrieves all events for a flow aggregate
-func (e *Engine) GetFlowEvents(flowID api.FlowID) ([]*timebox.Event, error) {
-	return e.flowExec.GetStore().GetEvents(events.FlowKey(flowID), 0)
+func (e *Engine) GetFlowEvents(fid api.FlowID) ([]*timebox.Event, error) {
+	return e.flowExec.GetStore().GetEvents(events.FlowKey(fid), 0)
 }
 
 // GetFlowStateSeq retrieves the current state and next sequence for a flow
 func (e *Engine) GetFlowStateSeq(
-	flowID api.FlowID,
+	fid api.FlowID,
 ) (api.FlowState, int64, error) {
 	var nextSeq int64
-	st, err := e.execFlow(events.FlowKey(flowID),
-		func(st api.FlowState, ag *FlowAggregator) error {
+	st, err := e.execFlow(events.FlowKey(fid),
+		func(fl api.FlowState, ag *FlowAggregator) error {
 			nextSeq = ag.NextSequence()
 			return nil
 		},
@@ -71,9 +71,9 @@ func (e *Engine) GetFlowStateSeq(
 // GetAttribute retrieves a specific attribute value from the flow state,
 // returning the value, whether it exists, and any error
 func (e *Engine) GetAttribute(
-	flowID api.FlowID, attr api.Name,
+	fid api.FlowID, attr api.Name,
 ) (any, bool, error) {
-	fl, err := e.GetFlowState(flowID)
+	fl, err := e.GetFlowState(fid)
 	if err != nil {
 		return nil, false, err
 	}
@@ -88,17 +88,17 @@ func (e *Engine) GetAttribute(
 
 // IsFlowFailed determines if a flow has failed by checking whether any of its
 // goal steps cannot be completed
-func (e *Engine) IsFlowFailed(flow api.FlowState) bool {
+func (e *Engine) IsFlowFailed(fl api.FlowState) bool {
 	viableGoal := false
-	for _, goalID := range flow.Plan.Goals {
-		ex := flow.Executions[goalID]
+	for _, goalID := range fl.Plan.Goals {
+		ex := fl.Executions[goalID]
 		if policy.StepFailed(ex.Status) {
 			return true
 		}
 		if policy.StepPrunedByRequiredMatch(ex.Status, ex.Error) {
 			continue
 		}
-		if !e.canStepComplete(goalID, flow) {
+		if !e.canStepComplete(goalID, fl) {
 			return true
 		}
 		viableGoal = true
@@ -108,8 +108,8 @@ func (e *Engine) IsFlowFailed(flow api.FlowState) bool {
 
 // HasInputProvider checks if a required attribute has at least one step that
 // can provide it in the flow execution plan
-func (e *Engine) HasInputProvider(name api.Name, flow api.FlowState) bool {
-	deps, ok := flow.Plan.Attributes[name]
+func (e *Engine) HasInputProvider(name api.Name, fl api.FlowState) bool {
+	deps, ok := fl.Plan.Attributes[name]
 	if !ok {
 		return false
 	}
@@ -119,42 +119,42 @@ func (e *Engine) HasInputProvider(name api.Name, flow api.FlowState) bool {
 	}
 
 	for _, providerID := range deps.Providers {
-		if e.canStepComplete(providerID, flow) {
+		if e.canStepComplete(providerID, fl) {
 			return true
 		}
 	}
 	return false
 }
 
-func (e *Engine) areOutputsNeeded(stepID api.StepID, flow api.FlowState) bool {
-	plan := flow.Plan
-	if slices.Contains(plan.Goals, stepID) {
+func (e *Engine) areOutputsNeeded(sid api.StepID, fl api.FlowState) bool {
+	pl := fl.Plan
+	if slices.Contains(pl.Goals, sid) {
 		return true
 	}
-	return e.needsOutputs(plan.Steps[stepID], flow)
+	return e.needsOutputs(pl.Steps[sid], fl)
 }
 
-func (e *Engine) canStepComplete(stepID api.StepID, flow api.FlowState) bool {
-	ex := flow.Executions[stepID]
+func (e *Engine) canStepComplete(sid api.StepID, fl api.FlowState) bool {
+	ex := fl.Executions[sid]
 	if policy.StepTerminal(ex.Status) {
 		return policy.StepSucceeded(ex.Status)
 	}
 
-	step := flow.Plan.Steps[stepID]
-	willSkip, _ := e.matchGateWillSkip(step, flow)
+	st := fl.Plan.Steps[sid]
+	willSkip, _ := e.matchGateWillSkip(st, fl)
 	if willSkip {
 		return true
 	}
-	if hasPendingMatchGate(step, flow) {
+	if hasPendingMatchGate(st, fl) {
 		return true
 	}
 
-	for name, attr := range step.Attributes {
+	for name, attr := range st.Attributes {
 		if attr.IsRequired() {
-			if _, ok := flow.FirstAttribute(name); ok {
+			if _, ok := fl.FirstAttribute(name); ok {
 				continue
 			}
-			if !e.HasInputProvider(name, flow) {
+			if !e.HasInputProvider(name, fl) {
 				return false
 			}
 		}
@@ -164,9 +164,9 @@ func (e *Engine) canStepComplete(stepID api.StepID, flow api.FlowState) bool {
 }
 
 func (e *Engine) matchGateWillSkip(
-	step *api.Step, flow api.FlowState,
+	st *api.Step, fl api.FlowState,
 ) (bool, error) {
-	unsatisfied, err := e.matchGateUnsatisfiedInputs(step, flow)
+	unsatisfied, err := e.matchGateUnsatisfiedInputs(st, fl)
 	if err != nil {
 		return false, err
 	}
@@ -174,20 +174,20 @@ func (e *Engine) matchGateWillSkip(
 }
 
 func (e *Engine) matchGateUnsatisfiedInputs(
-	step *api.Step, flow api.FlowState,
+	st *api.Step, fl api.FlowState,
 ) ([]api.Name, error) {
 	var unsatisfied []api.Name
-	for name, attr := range step.Attributes {
+	for name, attr := range st.Attributes {
 		if !policy.RequiredInputHasMatch(attr) {
 			continue
 		}
-		providers, _ := providerSummaryFor(flow, name)
+		providers, _ := providerSummaryFor(fl, name)
 		if !providers.Terminal {
 			continue
 		}
 		status, err := policy.RequiredMatchStatus(policy.RequiredMatchSpec{
 			Attr:     attr,
-			Values:   flow.AttributeValues(name),
+			Values:   fl.AttributeValues(name),
 			Provider: providers,
 			Match:    e.Matcher,
 		})
@@ -202,9 +202,9 @@ func (e *Engine) matchGateUnsatisfiedInputs(
 	return unsatisfied, nil
 }
 
-func (e *Engine) needsOutputs(step *api.Step, flow api.FlowState) bool {
-	for name, attr := range step.Attributes {
-		if e.needsOutput(name, attr, flow) {
+func (e *Engine) needsOutputs(st *api.Step, fl api.FlowState) bool {
+	for name, attr := range st.Attributes {
+		if e.needsOutput(name, attr, fl) {
 			return true
 		}
 	}
@@ -212,33 +212,33 @@ func (e *Engine) needsOutputs(step *api.Step, flow api.FlowState) bool {
 }
 
 func (e *Engine) needsOutput(
-	name api.Name, attr *api.AttributeSpec, flow api.FlowState,
+	name api.Name, attr *api.AttributeSpec, fl api.FlowState,
 ) bool {
 	if !attr.IsOutput() {
 		return false
 	}
 
-	deps, ok := flow.Plan.Attributes[name]
+	deps, ok := fl.Plan.Attributes[name]
 	if !ok || len(deps.Consumers) == 0 {
 		return false
 	}
 
 	for _, sid := range deps.Consumers {
-		ex, ok := flow.Executions[sid]
+		ex, ok := fl.Executions[sid]
 		if !ok || !policy.StepPending(ex.Status) {
 			continue
 		}
-		consumer := flow.Plan.Steps[sid]
+		consumer := fl.Plan.Steps[sid]
 		input := consumer.Attributes[name]
 		if input == nil {
 			continue
 		}
-		if willSkip, _ := e.matchGateWillSkip(consumer, flow); willSkip {
+		if willSkip, _ := e.matchGateWillSkip(consumer, fl); willSkip {
 			continue
 		}
-		hasValue := e.inputHasValue(name, input, flow)
+		hasValue := e.inputHasValue(name, input, fl)
 		if policy.ProviderOutputNeeded(
-			input.Collect(), hasValue, canCollectAll(name, flow),
+			input.Collect(), hasValue, canCollectAll(name, fl),
 		) {
 			return true
 		}
@@ -247,9 +247,9 @@ func (e *Engine) needsOutput(
 }
 
 func (e *Engine) inputHasValue(
-	name api.Name, attr *api.AttributeSpec, flow api.FlowState,
+	name api.Name, attr *api.AttributeSpec, fl api.FlowState,
 ) bool {
-	values := flow.AttributeValues(name)
+	values := fl.AttributeValues(name)
 	if !policy.RequiredInputHasMatch(attr) {
 		return len(values) > 0
 	}
@@ -257,22 +257,22 @@ func (e *Engine) inputHasValue(
 	return len(matched) > 0
 }
 
-func isFlowComplete(flow api.FlowState) bool {
-	for sid := range flow.Plan.Steps {
-		ex := flow.Executions[sid]
+func isFlowComplete(fl api.FlowState) bool {
+	for sid := range fl.Plan.Steps {
+		ex := fl.Executions[sid]
 		if !policy.StepComplete(ex.Status) {
 			return false
 		}
 	}
-	return !allGoalsPruned(flow)
+	return !allGoalsPruned(fl)
 }
 
-func hasPendingMatchGate(step *api.Step, flow api.FlowState) bool {
-	for name, attr := range step.Attributes {
+func hasPendingMatchGate(st *api.Step, fl api.FlowState) bool {
+	for name, attr := range st.Attributes {
 		if !policy.RequiredInputHasMatch(attr) {
 			continue
 		}
-		providers, _ := providerSummaryFor(flow, name)
+		providers, _ := providerSummaryFor(fl, name)
 		if !providers.Terminal {
 			return true
 		}
@@ -280,12 +280,12 @@ func hasPendingMatchGate(step *api.Step, flow api.FlowState) bool {
 	return false
 }
 
-func allGoalsPruned(flow api.FlowState) bool {
-	if len(flow.Plan.Goals) == 0 {
+func allGoalsPruned(fl api.FlowState) bool {
+	if len(fl.Plan.Goals) == 0 {
 		return false
 	}
-	for _, sid := range flow.Plan.Goals {
-		ex := flow.Executions[sid]
+	for _, sid := range fl.Plan.Goals {
+		ex := fl.Executions[sid]
 		if !policy.StepPrunedByRequiredMatch(ex.Status, ex.Error) {
 			return false
 		}
@@ -293,25 +293,25 @@ func allGoalsPruned(flow api.FlowState) bool {
 	return true
 }
 
-func canCollectAll(name api.Name, flow api.FlowState) bool {
-	deps, ok := flow.Plan.Attributes[name]
+func canCollectAll(name api.Name, fl api.FlowState) bool {
+	deps, ok := fl.Plan.Attributes[name]
 	if !ok {
 		return false
 	}
 	for _, sid := range deps.Providers {
-		ex, ok := flow.Executions[sid]
+		ex, ok := fl.Executions[sid]
 		if !ok || !policy.StepTerminal(ex.Status) {
 			continue
 		}
-		if !policy.StepSucceeded(ex.Status) || !hasValueFrom(flow, name, sid) {
+		if !policy.StepSucceeded(ex.Status) || !hasValueFrom(fl, name, sid) {
 			return false
 		}
 	}
 	return true
 }
 
-func hasActiveWork(flow api.FlowState) bool {
-	for _, ex := range flow.Executions {
+func hasActiveWork(fl api.FlowState) bool {
+	for _, ex := range fl.Executions {
 		for _, work := range ex.WorkItems {
 			if policy.WorkBlocksFlowDeactivation(work.Status) {
 				return true
@@ -321,7 +321,7 @@ func hasActiveWork(flow api.FlowState) bool {
 	return false
 }
 
-func isOutputAttribute(step *api.Step, name api.Name) bool {
-	attr, ok := step.Attributes[name]
+func isOutputAttribute(st *api.Step, name api.Name) bool {
+	attr, ok := st.Attributes[name]
 	return ok && attr.IsOutput()
 }

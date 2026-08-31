@@ -1,5 +1,11 @@
 import React from "react";
-import { api, SCRIPT_LANGUAGE_LUA, ScriptConfig, Space } from "@/app/api";
+import {
+  api,
+  SCRIPT_LANGUAGE_LUA,
+  ScriptConfig,
+  Space,
+  SpacePreviewResponse,
+} from "@/app/api";
 import Modal from "@/app/components/molecules/Modal";
 import KeyValueTable, {
   type KeyValuePair,
@@ -47,7 +53,7 @@ const SpaceManager: React.FC<SpaceManagerProps> = ({ isOpen, onClose }) => {
   const [isEditing, setEditing] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [saving, setSaving] = React.useState(false);
-  const [previewStepIDs, setPreviewStepIDs] = React.useState<string[] | null>(
+  const [preview, setPreview] = React.useState<SpacePreviewResponse | null>(
     null
   );
   const selectorCounterRef = React.useRef(0);
@@ -55,6 +61,10 @@ const SpaceManager: React.FC<SpaceManagerProps> = ({ isOpen, onClose }) => {
     ? spaces.find((space) => space.id === editingId)
     : undefined;
   const space = toSpace(draft);
+  const currentPreview = isCurrentPreview(preview, draft) ? preview : null;
+  const reviewSelector = draft.scriptMode
+    ? draft.selector
+    : currentPreview?.space.selector;
   const isDirty = !editing || fingerprint(space) !== fingerprint(editing);
 
   const openEditor = (existing?: Space) => {
@@ -63,7 +73,7 @@ const SpaceManager: React.FC<SpaceManagerProps> = ({ isOpen, onClose }) => {
     setDraft(nextDraft);
     setEditingId(id);
     setEditorStep(nextDraft.scriptMode ? REVIEW_STEP : 0);
-    setPreviewStepIDs(null);
+    setPreview(null);
     setError(null);
     setEditing(true);
   };
@@ -72,7 +82,7 @@ const SpaceManager: React.FC<SpaceManagerProps> = ({ isOpen, onClose }) => {
     setDraft(emptyDraft());
     setEditingId(null);
     setEditorStep(0);
-    setPreviewStepIDs(null);
+    setPreview(null);
     setError(null);
     setEditing(false);
   };
@@ -113,10 +123,12 @@ const SpaceManager: React.FC<SpaceManagerProps> = ({ isOpen, onClose }) => {
   };
 
   const editScript = () => {
+    const selector = currentPreview?.space.selector;
+    if (draft.qbe.length > 0 && !selector) return;
     setDraft((current) => ({
       ...current,
       qbe: [],
-      selector: toSpace(current).selector,
+      selector: selector ?? current.selector,
       scriptMode: true,
     }));
     setEditorStep(REVIEW_STEP);
@@ -190,17 +202,17 @@ const SpaceManager: React.FC<SpaceManagerProps> = ({ isOpen, onClose }) => {
 
   React.useEffect(() => {
     if (!isEditing || !isSelectorValid(previewDraft)) {
-      setPreviewStepIDs(null);
+      setPreview(null);
       return;
     }
     let active = true;
     setError(null);
     void api
       .previewSpace(toSpace(previewDraft))
-      .then((ids) => active && setPreviewStepIDs(ids))
+      .then((result) => active && setPreview(result))
       .catch((err) => {
         if (active) {
-          setPreviewStepIDs(null);
+          setPreview(null);
           setError(err?.message || t("spaceManager.previewFailed"));
         }
       });
@@ -241,7 +253,10 @@ const SpaceManager: React.FC<SpaceManagerProps> = ({ isOpen, onClose }) => {
             className={styles.buttonPrimary}
             onClick={handleNext}
             disabled={
-              saving || (editorStep === 0 ? !hasValidQBE : !hasValidDetails)
+              saving ||
+              (editorStep === 0
+                ? !hasValidQBE
+                : !hasValidDetails || (!draft.scriptMode && !currentPreview))
             }
           >
             {t("spaceManager.next")}
@@ -325,7 +340,9 @@ const SpaceManager: React.FC<SpaceManagerProps> = ({ isOpen, onClose }) => {
                 type="button"
                 className={styles.advanced}
                 onClick={editScript}
-                disabled={draft.qbe.length > 0 && !hasValidQBE}
+                disabled={
+                  draft.qbe.length > 0 && (!hasValidQBE || !currentPreview)
+                }
               >
                 {t("spaceManager.editScript")}
               </button>
@@ -337,18 +354,14 @@ const SpaceManager: React.FC<SpaceManagerProps> = ({ isOpen, onClose }) => {
               <ScriptConfigEditor
                 Icon={IconPredicate}
                 label={t("spaceManager.selectorLabel")}
-                value={
-                  draft.scriptMode
-                    ? draft.selector.script
-                    : space.selector.script
-                }
+                value={reviewSelector?.script ?? ""}
                 onChange={(script) =>
                   setDraft((current) => ({
                     ...current,
                     selector: { ...current.selector, script },
                   }))
                 }
-                language={space.selector.language}
+                language={reviewSelector?.language ?? SCRIPT_LANGUAGE_LUA}
                 onLanguageChange={(language) =>
                   setDraft((current) => ({
                     ...current,
@@ -436,9 +449,9 @@ const SpaceManager: React.FC<SpaceManagerProps> = ({ isOpen, onClose }) => {
           )}
 
           <div className={styles.matches}>
-            {previewStepIDs &&
+            {currentPreview &&
               t("spaceManager.matchingSteps", {
-                count: previewStepIDs.length,
+                count: currentPreview.step_ids.length,
               })}
           </div>
 
@@ -478,7 +491,9 @@ function toDraft(space: Space): SpaceDraft {
         value,
       }))
     ),
-    selector: { ...space.selector },
+    selector: space.selector
+      ? { ...space.selector }
+      : { language: SCRIPT_LANGUAGE_LUA, script: "" },
     scriptMode: !space.qbe || Object.keys(space.qbe).length === 0,
   };
 }
@@ -500,10 +515,11 @@ function toSpace(draft: SpaceDraft): Space {
     id: draft.id.trim(),
     name: draft.name.trim(),
     ...(draft.description.trim() && { description: draft.description.trim() }),
-    selector: draft.scriptMode
-      ? { ...draft.selector, script: draft.selector.script.trim() }
-      : { language: SCRIPT_LANGUAGE_LUA, script: qbeLua(qbe) },
-    ...(!draft.scriptMode && { qbe }),
+    ...(draft.scriptMode
+      ? {
+          selector: { ...draft.selector, script: draft.selector.script.trim() },
+        }
+      : { qbe }),
   };
 }
 
@@ -548,9 +564,29 @@ function fingerprint(space: Space): string {
     id: space.id,
     name: space.name,
     description: space.description ?? "",
-    selector: space.selector,
-    qbe: Object.entries(space.qbe ?? {}).sort(),
+    selector: space.qbe ? undefined : space.selector,
+    qbe: qbeFingerprint(space.qbe),
   });
+}
+
+function isCurrentPreview(
+  preview: SpacePreviewResponse | null,
+  draft: SpaceDraft
+): boolean {
+  if (!preview) return false;
+  if (!draft.scriptMode) {
+    return (
+      qbeFingerprint(preview.space.qbe) === qbeFingerprint(toQBE(draft.qbe))
+    );
+  }
+  return (
+    preview.space.selector.language === draft.selector.language &&
+    preview.space.selector.script === draft.selector.script.trim()
+  );
+}
+
+function qbeFingerprint(qbe?: Record<string, string[]>): string {
+  return JSON.stringify(Object.entries(qbe ?? {}).sort());
 }
 
 function selectorSuggestions(pairs: KeyValuePair[]) {
@@ -578,34 +614,6 @@ function selectorSummary(pairs: KeyValuePair[]): string {
   return pairs
     .map(({ key, value }) => `${key.trim()}=${value.trim()}`)
     .join(", ");
-}
-
-// Preview of the selector the engine generates from the QBE; the engine
-// regenerates it on save and that copy is authoritative
-function qbeLua(qbe: Record<string, string[]>): string {
-  const clauses = Object.keys(qbe)
-    .sort()
-    .map((key) => {
-      const matches = qbe[key].map(
-        (value) => `value[${luaString(key)}] == ${luaString(value)}`
-      );
-      return matches.length > 1 ? `(${matches.join(" or ")})` : matches[0];
-    });
-  return `return ${clauses.join(" and\n    ")}`;
-}
-
-// Raw bytes except \ and ", control characters as \ddd. JSON.stringify
-// would emit \u escapes, which Lua 5.2 rejects
-function luaString(value: string): string {
-  const escaped = [...value].map(luaChar).join("");
-  return `"${escaped}"`;
-}
-
-function luaChar(char: string): string {
-  if (char === "\\" || char === '"') return `\\${char}`;
-  const code = char.charCodeAt(0);
-  if (code >= 0x20 && code !== 0x7f) return char;
-  return `\\${code.toString().padStart(3, "0")}`;
 }
 
 export default SpaceManager;

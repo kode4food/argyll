@@ -45,6 +45,10 @@ jest.mock("@/app/api", () => ({
 import { api } from "@/app/api";
 
 const mockApi = api as jest.Mocked<typeof api>;
+const GENERATED_SELECTOR = {
+  language: "lua" as const,
+  script: "return engine_generated",
+};
 
 describe("SpaceManager", () => {
   beforeEach(() => {
@@ -86,7 +90,10 @@ describe("SpaceManager", () => {
       },
     ];
     mockApi.registerSpace.mockImplementation(async (space) => space);
-    mockApi.previewSpace.mockResolvedValue(["score-customer"]);
+    mockApi.previewSpace.mockImplementation(async (space) => ({
+      space: { ...space, selector: space.selector ?? GENERATED_SELECTOR },
+      step_ids: ["score-customer"],
+    }));
     mockApi.updateSpace.mockImplementation(async (_, space) => space);
   });
 
@@ -117,6 +124,15 @@ describe("SpaceManager", () => {
     fireEvent.click(
       screen.getByRole("button", { name: t("spaceManager.next") })
     );
+  };
+
+  const nextWhenEnabled = async () => {
+    await waitFor(() =>
+      expect(
+        screen.getByRole("button", { name: t("spaceManager.next") })
+      ).not.toBeDisabled()
+    );
+    next();
   };
 
   const editScript = () => {
@@ -161,20 +177,16 @@ describe("SpaceManager", () => {
     expect(
       screen.getByPlaceholderText("Steps matching domain=trading")
     ).toBeInTheDocument();
-    next();
+    await nextWhenEnabled();
 
     expect(screen.getByTestId("selector-editor")).toHaveValue(
-      'return value["domain"] == "trading"'
+      GENERATED_SELECTOR.script
     );
     expect(screen.getByTestId("selector-editor")).toHaveAttribute("readonly");
     await waitFor(() =>
       expect(mockApi.previewSpace).toHaveBeenCalledWith({
         id: "domain-trading",
         name: "trading domain",
-        selector: {
-          language: "lua",
-          script: 'return value["domain"] == "trading"',
-        },
         qbe: { domain: ["trading"] },
       })
     );
@@ -188,10 +200,6 @@ describe("SpaceManager", () => {
       expect(mockApi.registerSpace).toHaveBeenCalledWith({
         id: "domain-trading",
         name: "trading domain",
-        selector: {
-          language: "lua",
-          script: 'return value["domain"] == "trading"',
-        },
         qbe: { domain: ["trading"] },
       });
       expect(setSpaceId).toHaveBeenCalledWith("domain-trading");
@@ -207,17 +215,13 @@ describe("SpaceManager", () => {
       expect(mockApi.previewSpace).toHaveBeenLastCalledWith({
         id: "",
         name: "",
-        selector: {
-          language: "lua",
-          script: 'return value["domain"] == "trading"',
-        },
         qbe: { domain: ["trading"] },
       })
     );
     expect(screen.getByText("1 Step in this Space")).toBeInTheDocument();
   });
 
-  test("escapes control characters in generated Lua", async () => {
+  test("sends control characters as QBE without generating Lua", async () => {
     open();
     startNew();
     addSelector("domain", "bell");
@@ -225,10 +229,7 @@ describe("SpaceManager", () => {
     await waitFor(() =>
       expect(mockApi.previewSpace).toHaveBeenLastCalledWith(
         expect.objectContaining({
-          selector: {
-            language: "lua",
-            script: 'return value["domain"] == "bell\\007"',
-          },
+          qbe: { domain: ["bell\u0007"] },
         })
       )
     );
@@ -293,7 +294,7 @@ describe("SpaceManager", () => {
       screen.getByPlaceholderText(t("spaceManager.namePlaceholder")),
       { target: { value: "Risk Domain" } }
     );
-    next();
+    await nextWhenEnabled();
     fireEvent.click(
       screen.getByRole("button", { name: t("spaceManager.save") })
     );
@@ -303,10 +304,6 @@ describe("SpaceManager", () => {
         id: "risk",
         name: "Risk Domain",
         description: "Risk steps",
-        selector: {
-          language: "lua",
-          script: 'return value["domain"] == "risk"',
-        },
         qbe: { domain: ["risk"] },
       });
       expect(setSpaceId).toHaveBeenCalledWith("risk");
@@ -319,7 +316,7 @@ describe("SpaceManager", () => {
     addSelector("domain", "trading");
     addSelector("domain", "risk");
     next();
-    next();
+    await nextWhenEnabled();
     fireEvent.click(
       screen.getByRole("button", { name: t("spaceManager.save") })
     );
@@ -329,11 +326,6 @@ describe("SpaceManager", () => {
         id: "risk",
         name: "Risk",
         description: "Risk steps",
-        selector: {
-          language: "lua",
-          script:
-            'return (value["domain"] == "risk" or value["domain"] == "trading")',
-        },
         qbe: { domain: ["risk", "trading"] },
       });
     });
@@ -344,13 +336,13 @@ describe("SpaceManager", () => {
     fireEvent.click(screen.getByText("Risk"));
     addSelector("domain", "trading");
     next();
-    next();
+    await nextWhenEnabled();
 
     expect(screen.getByTestId("selector-editor")).toHaveAttribute("readonly");
     editScript();
 
     expect(screen.getByTestId("selector-editor")).toHaveValue(
-      'return (value["domain"] == "risk" or value["domain"] == "trading")'
+      GENERATED_SELECTOR.script
     );
     expect(screen.getByTestId("selector-editor")).not.toHaveAttribute(
       "readonly"
@@ -387,6 +379,11 @@ describe("SpaceManager", () => {
   test("previews the script once typing settles", async () => {
     open();
     fireEvent.click(screen.getByText("Risk"));
+    await waitFor(() =>
+      expect(
+        screen.getByRole("button", { name: t("spaceManager.editScript") })
+      ).not.toBeDisabled()
+    );
     editScript();
     await waitFor(() => expect(mockApi.previewSpace).toHaveBeenCalledTimes(1));
 
@@ -410,6 +407,11 @@ describe("SpaceManager", () => {
   test("leaves the edited script as typed", async () => {
     open();
     fireEvent.click(screen.getByText("Risk"));
+    await waitFor(() =>
+      expect(
+        screen.getByRole("button", { name: t("spaceManager.editScript") })
+      ).not.toBeDisabled()
+    );
     editScript();
 
     const typed = '  return value["tier"] == "gold"\n\n';
@@ -425,7 +427,10 @@ describe("SpaceManager", () => {
   });
 
   test("reports a selector that matches nothing", async () => {
-    mockApi.previewSpace.mockResolvedValue([]);
+    mockApi.previewSpace.mockImplementation(async (space) => ({
+      space: { ...space, selector: space.selector ?? GENERATED_SELECTOR },
+      step_ids: [],
+    }));
     open();
     fireEvent.click(screen.getByText("Gold"));
 
@@ -533,7 +538,7 @@ describe("SpaceManager", () => {
     open();
     fireEvent.click(screen.getByText("Risk"));
     next();
-    next();
+    await nextWhenEnabled();
 
     expect(
       screen.getByRole("button", { name: t("spaceManager.save") })

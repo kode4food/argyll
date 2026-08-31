@@ -71,20 +71,20 @@ func (e *TestEngineEnv) WaitAfterAll(count int, fn func([]*wait.Wait)) {
 }
 
 func (e *TestEngineEnv) WaitForFlowStatus(
-	flowID api.FlowID, fn func(),
+	fid api.FlowID, fn func(),
 ) api.FlowState {
 	e.T.Helper()
 	e.WithConsumer(func(consumer *event.Consumer) {
 		w := wait.On(e.T, consumer)
 		fn()
-		w.ForEvent(wait.FlowTerminal(flowID))
+		w.ForEvent(wait.FlowTerminal(fid))
 	})
-	return e.WaitForTerminalFlow(flowID)
+	return e.WaitForTerminalFlow(fid)
 }
 
-func (e *TestEngineEnv) WaitForTerminalFlow(flowID api.FlowID) api.FlowState {
+func (e *TestEngineEnv) WaitForTerminalFlow(fid api.FlowID) api.FlowState {
 	e.T.Helper()
-	return WaitForTerminalFlowState(e.T, e.Engine, flowID)
+	return WaitForTerminalFlowState(e.T, e.Engine, fid)
 }
 
 // WaitForTerminalFlows waits for all flows to reach terminal states
@@ -138,68 +138,68 @@ func (e *TestEngineEnv) WaitForStepStarted(
 
 // WaitForStepStatus waits for a step to finish and returns the execution
 func (e *TestEngineEnv) WaitForStepStatus(
-	flowID api.FlowID, stepID api.StepID, fn func(),
+	fid api.FlowID, sid api.StepID, fn func(),
 ) api.ExecutionState {
 	e.T.Helper()
 	e.WithConsumer(func(consumer *event.Consumer) {
 		w := wait.On(e.T, consumer)
 		fn()
 		w.ForEvent(wait.StepTerminal(
-			api.FlowStep{FlowID: flowID, StepID: stepID},
+			api.FlowStep{FlowID: fid, StepID: sid},
 		))
 	})
-	return e.waitForTerminalStep(flowID, stepID)
+	return e.waitForTerminalStep(fid, sid)
 }
 
 func (e *TestEngineEnv) getExecutionState(
-	flowID api.FlowID, stepID api.StepID,
+	fid api.FlowID, sid api.StepID,
 ) (api.ExecutionState, error) {
-	fl, err := e.Engine.GetFlowState(flowID)
+	fl, err := e.Engine.GetFlowState(fid)
 	if err != nil {
 		return api.ExecutionState{}, err
 	}
-	return fl.Executions[stepID], nil
+	return fl.Executions[sid], nil
 }
 
 // waitForStartedStepExec covers the lag between StepStarted being published and
 // the started execution becoming readable
 func (e *TestEngineEnv) waitForStartedStepExec(
-	flowID api.FlowID, stepID api.StepID,
+	fid api.FlowID, sid api.StepID,
 ) api.ExecutionState {
 	e.T.Helper()
 
 	deadline := scheduler.Now().Add(wait.DefaultTimeout)
 	for {
-		ex, err := e.getExecutionState(flowID, stepID)
+		ex, err := e.getExecutionState(fid, sid)
 		if err == nil && isStepStarted(ex.Status) {
 			return ex
 		}
 		if scheduler.Now().After(deadline) {
 			if err != nil {
-				e.T.Fatalf("failed to fetch execution %s: %v", stepID, err)
+				e.T.Fatalf("failed to fetch execution %s: %v", sid, err)
 			}
-			e.T.Fatalf("execution %s not started", stepID)
+			e.T.Fatalf("execution %s not started", sid)
 		}
 		time.Sleep(waitPollInterval)
 	}
 }
 
 func (e *TestEngineEnv) waitForTerminalStep(
-	flowID api.FlowID, stepID api.StepID,
+	fid api.FlowID, sid api.StepID,
 ) api.ExecutionState {
 	e.T.Helper()
 
 	deadline := scheduler.Now().Add(wait.DefaultTimeout)
 	for {
-		ex, err := e.getExecutionState(flowID, stepID)
+		ex, err := e.getExecutionState(fid, sid)
 		if err == nil && isStepTerminal(ex.Status) {
 			return ex
 		}
 		if scheduler.Now().After(deadline) {
 			if err != nil {
-				e.T.Fatalf("failed to fetch execution %s: %v", stepID, err)
+				e.T.Fatalf("failed to fetch execution %s: %v", sid, err)
 			}
-			e.T.Fatalf("execution %s not terminal after event", stepID)
+			e.T.Fatalf("execution %s not terminal after event", sid)
 		}
 		time.Sleep(waitPollInterval)
 	}
@@ -207,11 +207,11 @@ func (e *TestEngineEnv) waitForTerminalStep(
 
 // WaitForTerminalFlowState waits for a flow to reach a terminal state
 func WaitForTerminalFlowState(
-	t *testing.T, eng *engine.Engine, flowID api.FlowID,
+	t *testing.T, eng *engine.Engine, fid api.FlowID,
 ) api.FlowState {
 	t.Helper()
 	return WaitForFlowState(t, eng, FlowStateQuery{
-		FlowID:  flowID,
+		FlowID:  fid,
 		Timeout: wait.DefaultTimeout,
 		Accept:  isFlowTerminal,
 	})
@@ -219,11 +219,11 @@ func WaitForTerminalFlowState(
 
 // WaitForFlowExists waits for a flow state to become readable
 func WaitForFlowExists(
-	t *testing.T, eng *engine.Engine, flowID api.FlowID,
+	t *testing.T, eng *engine.Engine, fid api.FlowID,
 ) api.FlowState {
 	t.Helper()
 	return WaitForFlowState(t, eng, FlowStateQuery{
-		FlowID:  flowID,
+		FlowID:  fid,
 		Timeout: wait.DefaultTimeout,
 	})
 }
@@ -250,8 +250,8 @@ func WaitForFlowState(
 	}
 }
 
-func isFlowTerminal(state api.FlowState) bool {
-	return state.Status == api.FlowCompleted || state.Status == api.FlowFailed
+func isFlowTerminal(fl api.FlowState) bool {
+	return fl.Status == api.FlowCompleted || fl.Status == api.FlowFailed
 }
 
 func isStepStarted(status api.StepStatus) bool {

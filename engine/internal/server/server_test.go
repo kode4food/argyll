@@ -659,10 +659,10 @@ func TestGetFlow(t *testing.T) {
 
 		assert.Equal(t, http.StatusOK, w.Code)
 
-		var wf api.FlowState
-		err = json.Unmarshal(w.Body.Bytes(), &wf)
+		var fl api.FlowState
+		err = json.Unmarshal(w.Body.Bytes(), &fl)
 		assert.NoError(t, err)
-		assert.Equal(t, api.FlowID("test-wf-id"), wf.ID)
+		assert.Equal(t, api.FlowID("test-wf-id"), fl.ID)
 	})
 }
 

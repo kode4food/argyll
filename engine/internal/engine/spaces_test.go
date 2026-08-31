@@ -12,20 +12,20 @@ import (
 
 func TestSpaces(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
-		space := api.Space{
+		sp := api.Space{
 			ID:   "payments",
 			Name: "Payments",
 			QBE: api.SpaceQuery{
 				"domain": {"payments"},
 			},
 		}
-		assert.NoError(t, eng.RegisterSpace(space))
-		assert.NoError(t, eng.RegisterSpace(space))
+		assert.NoError(t, eng.RegisterSpace(sp))
+		assert.NoError(t, eng.RegisterSpace(sp))
 
 		cat, err := eng.GetCatalogState()
 		assert.NoError(t, err)
-		stored := cat.Spaces[space.ID]
-		assert.Equal(t, space.QBE, stored.QBE)
+		stored := cat.Spaces[sp.ID]
+		assert.Equal(t, sp.QBE, stored.QBE)
 		assert.Equal(t, &api.ScriptConfig{
 			Language: api.ScriptLangLua,
 			Script:   `return value["domain"] == "payments"`,
@@ -53,14 +53,14 @@ func TestSpaces(t *testing.T) {
 
 		cat, err = eng.GetCatalogState()
 		assert.NoError(t, err)
-		assert.Equal(t, updated.QBE, cat.Spaces[space.ID].QBE)
+		assert.Equal(t, updated.QBE, cat.Spaces[sp.ID].QBE)
 		assert.Equal(t, updated.Description,
-			cat.Spaces[space.ID].Description)
+			cat.Spaces[sp.ID].Description)
 
-		assert.NoError(t, eng.UnregisterSpace(space.ID))
+		assert.NoError(t, eng.UnregisterSpace(sp.ID))
 		cat, err = eng.GetCatalogState()
 		assert.NoError(t, err)
-		assert.NotContains(t, cat.Spaces, space.ID)
+		assert.NotContains(t, cat.Spaces, sp.ID)
 	})
 }
 
@@ -109,20 +109,25 @@ func TestPreviewSpace(t *testing.T) {
 		assert.NoError(t, eng.RegisterStep(trading))
 
 		// A Space being drafted has no ID or Name yet
-		ids, err := eng.PreviewSpace(api.Space{
-			QBE: api.SpaceQuery{"domain": {"risk"}},
+		preview, err := eng.PreviewSpace(api.Space{
+			QBE: api.SpaceQuery{"domain": {"risk", "risk"}},
 		})
 		assert.NoError(t, err)
-		assert.Equal(t, []api.StepID{risk.ID}, ids)
+		assert.Equal(t, []api.StepID{risk.ID}, preview.StepIDs)
+		assert.Equal(t, api.SpaceQuery{"domain": {"risk"}}, preview.Space.QBE)
+		assert.Equal(t, &api.ScriptConfig{
+			Language: api.ScriptLangLua,
+			Script:   `return value["domain"] == "risk"`,
+		}, preview.Space.Selector)
 
-		ids, err = eng.PreviewSpace(api.Space{
+		preview, err = eng.PreviewSpace(api.Space{
 			Selector: &api.ScriptConfig{
 				Language: api.ScriptLangLua,
 				Script:   `return value["domain"] == "unknown"`,
 			},
 		})
 		assert.NoError(t, err)
-		assert.Empty(t, ids)
+		assert.Empty(t, preview.StepIDs)
 
 		_, err = eng.PreviewSpace(api.Space{})
 		assert.ErrorIs(t, err, engine.ErrInvalidSpace)
@@ -280,14 +285,14 @@ func TestSpaceSubFlowReferences(t *testing.T) {
 		err := eng.RegisterStep(subFlow)
 		assert.ErrorIs(t, err, engine.ErrSpaceNotFound)
 
-		space := api.Space{
+		sp := api.Space{
 			ID:   "payments",
 			Name: "Payments",
 			QBE: api.SpaceQuery{
 				"domain": {"payments"},
 			},
 		}
-		assert.NoError(t, eng.RegisterSpace(space))
+		assert.NoError(t, eng.RegisterSpace(sp))
 		assert.NoError(t, eng.RegisterStep(subFlow))
 
 		changedGoal := goal.Copy()
@@ -295,14 +300,14 @@ func TestSpaceSubFlowReferences(t *testing.T) {
 		err = eng.UpdateStep(changedGoal)
 		assert.ErrorIs(t, err, engine.ErrSpaceGoalExcluded)
 
-		changedSpace := space
+		changedSpace := sp
 		changedSpace.QBE = api.SpaceQuery{"domain": {"inventory"}}
 		err = eng.UpdateSpace(changedSpace)
 		assert.ErrorIs(t, err, engine.ErrSpaceGoalExcluded)
 
 		err = eng.UnregisterStep(goal.ID)
 		assert.ErrorIs(t, err, engine.ErrSubFlowGoalInUse)
-		err = eng.UnregisterSpace(space.ID)
+		err = eng.UnregisterSpace(sp.ID)
 		assert.ErrorIs(t, err, engine.ErrSpaceInUse)
 
 		updated := subFlow.Copy()
@@ -311,6 +316,6 @@ func TestSpaceSubFlowReferences(t *testing.T) {
 		updated.Flow = &flow
 		assert.NoError(t, eng.UpdateStep(updated))
 		assert.NoError(t, eng.UnregisterStep(goal.ID))
-		assert.NoError(t, eng.UnregisterSpace(space.ID))
+		assert.NoError(t, eng.UnregisterSpace(sp.ID))
 	})
 }

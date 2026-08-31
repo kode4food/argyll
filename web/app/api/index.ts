@@ -20,6 +20,7 @@ export type {
   WorkConfig,
   Step,
   Space,
+  SpacePreviewResponse,
   ExecutionPlan,
   FlowContext,
   FlowSummary,

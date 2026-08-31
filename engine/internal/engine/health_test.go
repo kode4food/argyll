@@ -126,9 +126,9 @@ func TestFlowHealthUnknownGoalError(t *testing.T) {
 			),
 		)
 
-		health := resolveHealth(t, eng)
-		assert.Equal(t, api.HealthUnknown, health[st.ID].Status)
-		assert.Contains(t, health[st.ID].Error, "goal-unknown")
+		h := resolveHealth(t, eng)
+		assert.Equal(t, api.HealthUnknown, h[st.ID].Status)
+		assert.Contains(t, h[st.ID].Error, "goal-unknown")
 	})
 }
 
@@ -158,9 +158,9 @@ func TestGetHealthFlowWorstGoal(t *testing.T) {
 			eng.UpdateStepHealth(goalB.ID, api.HealthUnhealthy, "goal down"),
 		)
 
-		health := resolveHealth(t, eng)
-		assert.Equal(t, api.HealthUnhealthy, health[st.ID].Status)
-		assert.Contains(t, health[st.ID].Error, "goal-health-b")
+		h := resolveHealth(t, eng)
+		assert.Equal(t, api.HealthUnhealthy, h[st.ID].Status)
+		assert.Contains(t, h[st.ID].Error, "goal-health-b")
 	})
 }
 
@@ -198,16 +198,16 @@ func TestFlowHealthIncludesPreviewSteps(t *testing.T) {
 			),
 		)
 
-		health := resolveHealth(t, eng)
-		assert.Equal(t, api.HealthUnhealthy, health[st.ID].Status)
-		assert.Contains(t, health[st.ID].Error, "provider")
+		h := resolveHealth(t, eng)
+		assert.Equal(t, api.HealthUnhealthy, h[st.ID].Status)
+		assert.Contains(t, h[st.ID].Error, "provider")
 	})
 }
 
 func TestGetStepHealthNotFound(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
-		health := resolveHealth(t, eng)
-		_, ok := health["missing-step"]
+		h := resolveHealth(t, eng)
+		_, ok := h["missing-step"]
 		assert.False(t, ok)
 	})
 }
@@ -226,13 +226,13 @@ func TestMergeNodeHealth(t *testing.T) {
 			}},
 		},
 	}
-	health := engine.MergeNodeHealth(cluster)
+	h := engine.MergeNodeHealth(cluster)
 
-	if assert.Contains(t, health, api.StepID("step-a")) {
-		assert.Equal(t, api.HealthUnhealthy, health["step-a"].Status)
+	if assert.Contains(t, h, api.StepID("step-a")) {
+		assert.Equal(t, api.HealthUnhealthy, h["step-a"].Status)
 		assert.Equal(t,
 			"node node-a: connection refused",
-			health["step-a"].Error,
+			h["step-a"].Error,
 		)
 	}
 }
@@ -257,11 +257,11 @@ func TestScriptHealthDefaults(t *testing.T) {
 		cat, err := eng.GetCatalogState()
 		assert.NoError(t, err)
 
-		health := eng.ResolveHealth(
+		h := eng.ResolveHealth(
 			helpers.Matcher(), cat, map[api.StepID]api.HealthState{},
 		)
-		if assert.Contains(t, health, st.ID) {
-			assert.Equal(t, api.HealthHealthy, health[st.ID].Status)
+		if assert.Contains(t, h, st.ID) {
+			assert.Equal(t, api.HealthHealthy, h[st.ID].Status)
 		}
 	})
 }
@@ -302,11 +302,11 @@ func TestScriptHealthOnRegister(t *testing.T) {
 
 func TestResolveHealthNilCat(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
-		health := eng.ResolveHealth(
+		h := eng.ResolveHealth(
 			helpers.Matcher(), api.CatalogState{},
 			map[api.StepID]api.HealthState{},
 		)
-		assert.Empty(t, health)
+		assert.Empty(t, h)
 	})
 }
 
@@ -329,12 +329,12 @@ func TestResolveHealthPreviewFail(t *testing.T) {
 			Attributes: api.AttributeGraph{},
 		}
 
-		health := eng.ResolveHealth(
+		h := eng.ResolveHealth(
 			helpers.Matcher(), cat, map[api.StepID]api.HealthState{},
 		)
-		if assert.Contains(t, health, api.StepID("flow-step")) {
-			assert.Equal(t, api.HealthUnknown, health["flow-step"].Status)
-			assert.Contains(t, health["flow-step"].Error, "preview failed")
+		if assert.Contains(t, h, api.StepID("flow-step")) {
+			assert.Equal(t, api.HealthUnknown, h["flow-step"].Status)
+			assert.Contains(t, h["flow-step"].Error, "preview failed")
 		}
 	})
 }
@@ -348,12 +348,12 @@ func TestResolveHealthSimpleUnknown(t *testing.T) {
 			Attributes: api.AttributeGraph{},
 		}
 
-		health := eng.ResolveHealth(
+		h := eng.ResolveHealth(
 			helpers.Matcher(), cat, map[api.StepID]api.HealthState{},
 		)
-		if assert.Contains(t, health, api.StepID("step-a")) {
-			assert.Equal(t, api.HealthUnknown, health["step-a"].Status)
-			assert.Empty(t, health["step-a"].Error)
+		if assert.Contains(t, h, api.StepID("step-a")) {
+			assert.Equal(t, api.HealthUnknown, h["step-a"].Status)
+			assert.Empty(t, h["step-a"].Error)
 		}
 	})
 }
@@ -384,10 +384,10 @@ func TestResolveHealthScriptError(t *testing.T) {
 			},
 		}
 
-		health := eng.ResolveHealth(helpers.Matcher(), cat, base)
-		if assert.Contains(t, health, api.StepID("script-step")) {
-			assert.Equal(t, api.HealthUnknown, health["script-step"].Status)
-			assert.Equal(t, "compile failed", health["script-step"].Error)
+		h := eng.ResolveHealth(helpers.Matcher(), cat, base)
+		if assert.Contains(t, h, api.StepID("script-step")) {
+			assert.Equal(t, api.HealthUnknown, h["script-step"].Status)
+			assert.Equal(t, "compile failed", h["script-step"].Error)
 		}
 	})
 }
@@ -417,10 +417,10 @@ func TestResolveHealthFlowUnknown(t *testing.T) {
 			goal.ID: {Status: api.HealthUnknown},
 		}
 
-		health := eng.ResolveHealth(helpers.Matcher(), cat, base)
-		if assert.Contains(t, health, st.ID) {
-			assert.Equal(t, api.HealthHealthy, health[st.ID].Status)
-			assert.Empty(t, health[st.ID].Error)
+		h := eng.ResolveHealth(helpers.Matcher(), cat, base)
+		if assert.Contains(t, h, st.ID) {
+			assert.Equal(t, api.HealthHealthy, h[st.ID].Status)
+			assert.Empty(t, h[st.ID].Error)
 		}
 	})
 }
@@ -440,10 +440,10 @@ func TestMergeNodeHealthUnknown(t *testing.T) {
 		},
 	}
 
-	health := engine.MergeNodeHealth(cluster)
-	if assert.Contains(t, health, api.StepID("step-a")) {
-		assert.Equal(t, api.HealthUnknown, health["step-a"].Status)
-		assert.Equal(t, "node node-b: late report", health["step-a"].Error)
+	h := engine.MergeNodeHealth(cluster)
+	if assert.Contains(t, h, api.StepID("step-a")) {
+		assert.Equal(t, api.HealthUnknown, h["step-a"].Status)
+		assert.Equal(t, "node node-b: late report", h["step-a"].Error)
 	}
 }
 

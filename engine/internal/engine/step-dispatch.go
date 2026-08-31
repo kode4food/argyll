@@ -85,8 +85,8 @@ func (e *Engine) handleCommitted(ev *timebox.Event) {
 	}
 }
 
-func (e *Engine) recoverWorkDispatch(flow api.FlowState) {
-	steps := e.findWorkDispatchSteps(flow)
+func (e *Engine) recoverWorkDispatch(fl api.FlowState) {
+	steps := e.findWorkDispatchSteps(fl)
 	if steps.IsEmpty() {
 		return
 	}
@@ -94,27 +94,25 @@ func (e *Engine) recoverWorkDispatch(flow api.FlowState) {
 	now := e.Now()
 	for sid := range steps {
 		e.scheduleWorkDispatch(api.FlowStep{
-			FlowID: flow.ID,
+			FlowID: fl.ID,
 			StepID: sid,
 		}, now)
 	}
 }
 
-func (e *Engine) findWorkDispatchSteps(
-	state api.FlowState,
-) util.Set[api.StepID] {
+func (e *Engine) findWorkDispatchSteps(fl api.FlowState) util.Set[api.StepID] {
 	steps := util.Set[api.StepID]{}
 	now := e.Now()
 
-	for sid, ex := range state.Executions {
+	for sid, ex := range fl.Executions {
 		if !policy.StepActive(ex.Status) {
 			continue
 		}
-		step, ok := state.Plan.Steps[sid]
+		st, ok := fl.Plan.Steps[sid]
 		if !ok {
 			continue
 		}
-		if hasReadyPendingWork(step, ex, now) {
+		if hasReadyPendingWork(st, ex, now) {
 			steps.Add(sid)
 		}
 	}
@@ -147,19 +145,19 @@ func (e *Engine) dispatchWork(fs api.FlowStep) error {
 			return nil
 		}
 
-		step := fl.Plan.Steps[fs.StepID]
+		st := fl.Plan.Steps[fs.StepID]
 		inputs := ex.Inputs
 		meta := fl.Metadata
 
-		if hasReadyPendingWork(step, ex, tx.Now()) &&
-			!tx.canDispatchLocally(step.ID) {
+		if hasReadyPendingWork(st, ex, tx.Now()) &&
+			!tx.canDispatchLocally(st.ID) {
 			tx.OnSuccess(func(api.FlowState, []*timebox.Event) {
 				tx.scheduleWorkDispatch(fs, tx.Now().Add(localDispatchBackoff))
 			})
 			return nil
 		}
 
-		started, err := tx.startPendingWork(step)
+		started, err := tx.startPendingWork(st)
 		if err != nil {
 			return err
 		}
@@ -167,8 +165,8 @@ func (e *Engine) dispatchWork(fs api.FlowStep) error {
 			return nil
 		}
 
-		tx.OnSuccess(func(flow api.FlowState, _ []*timebox.Event) {
-			tx.executeStartedWork(step, inputs, meta, started)
+		tx.OnSuccess(func(fl api.FlowState, _ []*timebox.Event) {
+			tx.executeStartedWork(st, inputs, meta, started)
 		})
 		return nil
 	})
@@ -189,12 +187,12 @@ func (e *Engine) runDispatchRecovery(fs api.FlowStep) error {
 
 	now := e.Now()
 	ex := fl.Executions[fs.StepID]
-	step, ok := fl.Plan.Steps[fs.StepID]
+	st, ok := fl.Plan.Steps[fs.StepID]
 	if !ok {
 		return nil
 	}
 
-	comp, err := e.steps.Compensator(step)
+	comp, err := e.steps.Compensator(st)
 	if err != nil {
 		return err
 	}
@@ -214,19 +212,19 @@ func (e *Engine) runDispatchRecovery(fs api.FlowStep) error {
 	return nil
 }
 
-func (tx *flowTx) raiseDispatchDeferred(stepID api.StepID) error {
+func (tx *flowTx) raiseDispatchDeferred(sid api.StepID) error {
 	return events.Raise(tx.FlowAggregator, api.EventTypeDispatchDeferred,
 		api.DispatchDeferredEvent{
 			FlowID: tx.flowID,
-			StepID: stepID,
+			StepID: sid,
 		},
 	)
 }
 
 func hasReadyPendingWork(
-	step *api.Step, ex api.ExecutionState, when time.Time,
+	st *api.Step, ex api.ExecutionState, when time.Time,
 ) bool {
-	limit := policy.StepParallelism(step)
+	limit := policy.StepParallelism(st)
 	if policy.CountActiveWorkItems(ex.WorkItems) >= limit {
 		return false
 	}

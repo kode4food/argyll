@@ -320,7 +320,7 @@ func (s Step) Build() (*api.Step, error) {
 
 // Register builds and registers the step with the engine
 func (s Step) Register(ctx context.Context) error {
-	step, err := s.Build()
+	st, err := s.Build()
 	if err != nil {
 		return err
 	}
@@ -329,7 +329,7 @@ func (s Step) Register(ctx context.Context) error {
 		return ErrDetachedStep
 	}
 
-	return s.client.RegisterStep(ctx, step)
+	return s.client.RegisterStep(ctx, st)
 }
 
 // Start builds and registers the step, creates an HTTP server, and starts

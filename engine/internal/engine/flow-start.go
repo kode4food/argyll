@@ -39,7 +39,7 @@ var (
 
 // StartFlow begins a new flow execution with the given plan and options
 func (e *Engine) StartFlow(
-	flowID api.FlowID, pl *api.ExecutionPlan, apps ...flow.Applier,
+	fid api.FlowID, pl *api.ExecutionPlan, apps ...flow.Applier,
 ) error {
 	opts := flow.Defaults(apps...)
 	if err := call.Perform(
@@ -49,9 +49,9 @@ func (e *Engine) StartFlow(
 		return err
 	}
 
-	return e.flowTx(flowID, func(tx *flowTx) error {
+	return e.flowTx(fid, func(tx *flowTx) error {
 		if tx.Value().ID != "" {
-			match, err := e.matchesStartedFlow(flowID, pl, opts.Init)
+			match, err := e.matchesStartedFlow(fid, pl, opts.Init)
 			if err != nil {
 				return err
 			}
@@ -62,7 +62,7 @@ func (e *Engine) StartFlow(
 		}
 		if err := events.Raise(tx.FlowAggregator, api.EventTypeFlowStarted,
 			api.FlowStartedEvent{
-				FlowID:     flowID,
+				FlowID:     fid,
 				Plan:       pl,
 				Init:       opts.Init,
 				Metadata:   opts.Metadata,
@@ -77,8 +77,8 @@ func (e *Engine) StartFlow(
 				return err
 			}
 		}
-		tx.OnSuccess(func(flow api.FlowState, _ []*timebox.Event) {
-			tx.scheduleTimeouts(flow, tx.Now())
+		tx.OnSuccess(func(fl api.FlowState, _ []*timebox.Event) {
+			tx.scheduleTimeouts(fl, tx.Now())
 		})
 		return nil
 	})
@@ -100,9 +100,9 @@ func (e *Engine) StartChildFlow(req *ChildFlowRequest) (api.FlowID, error) {
 }
 
 func (e *Engine) matchesStartedFlow(
-	flowID api.FlowID, pl *api.ExecutionPlan, init api.InitArgs,
+	fid api.FlowID, pl *api.ExecutionPlan, init api.InitArgs,
 ) (bool, error) {
-	evs, err := e.GetFlowEvents(flowID)
+	evs, err := e.GetFlowEvents(fid)
 	if err != nil {
 		return false, err
 	}
@@ -114,7 +114,7 @@ func (e *Engine) matchesStartedFlow(
 		if err != nil {
 			return false, err
 		}
-		return data.FlowID == flowID &&
+		return data.FlowID == fid &&
 			slices.Equal(data.Plan.Goals, pl.Goals) &&
 			initArgsEqual(data.Init, init), nil
 	}
@@ -127,13 +127,13 @@ func (e *Engine) execFlow(
 	return e.flowExec.Exec(flowID, cmd)
 }
 
-func (e *Engine) flowTx(flowID api.FlowID, fn func(*flowTx) error) error {
-	_, err := e.execFlow(events.FlowKey(flowID),
+func (e *Engine) flowTx(fid api.FlowID, fn func(*flowTx) error) error {
+	_, err := e.execFlow(events.FlowKey(fid),
 		func(_ api.FlowState, ag *FlowAggregator) error {
 			tx := &flowTx{
 				Engine:         e,
 				FlowAggregator: ag,
-				flowID:         flowID,
+				flowID:         fid,
 			}
 			return fn(tx)
 		},

@@ -34,16 +34,16 @@ type (
 // prepareStep validates and prepares a step to execute within a transaction,
 // raising the StepStarted event via aggregator and scheduling work execution
 // after commit
-func (tx *flowTx) prepareStep(stepID api.StepID) error {
+func (tx *flowTx) prepareStep(sid api.StepID) error {
 	fl := tx.Value()
 
-	ex := fl.Executions[stepID]
+	ex := fl.Executions[sid]
 	if !policy.StepPending(ex.Status) {
 		return fmt.Errorf("%w: %s (status=%s)", ErrStepAlreadyPending,
-			stepID, ex.Status)
+			sid, ex.Status)
 	}
 
-	st := fl.Plan.Steps[stepID]
+	st := fl.Plan.Steps[sid]
 	unsatisfied, err := tx.matchGateUnsatisfiedInputs(st, fl)
 	if err != nil {
 		return err
@@ -54,7 +54,7 @@ func (tx *flowTx) prepareStep(stepID api.StepID) error {
 			return err
 		}
 		return tx.performSkip(
-			stepID, policy.RequiredMatchSkipReason, inputs, unsatisfied,
+			sid, policy.RequiredMatchSkipReason, inputs, unsatisfied,
 		)
 	}
 
@@ -65,10 +65,10 @@ func (tx *flowTx) prepareStep(stepID api.StepID) error {
 
 	shouldExecute, err := tx.evaluateStepPredicate(st, inputs)
 	if err != nil {
-		return tx.handlePredicateFailure(stepID, inputs, err)
+		return tx.handlePredicateFailure(sid, inputs, err)
 	}
 	if !shouldExecute {
-		return tx.performSkip(stepID, "predicate returned false", inputs, nil)
+		return tx.performSkip(sid, "predicate returned false", inputs, nil)
 	}
 
 	workItemsList, err := computeWorkItems(st, inputs)
@@ -84,7 +84,7 @@ func (tx *flowTx) prepareStep(stepID api.StepID) error {
 	if err := events.Raise(tx.FlowAggregator, api.EventTypeStepStarted,
 		api.StepStartedEvent{
 			FlowID:    tx.flowID,
-			StepID:    stepID,
+			StepID:    sid,
 			Inputs:    inputs,
 			WorkItems: workItemsMap,
 		},
@@ -96,12 +96,12 @@ func (tx *flowTx) prepareStep(stepID api.StepID) error {
 }
 
 func (tx *flowTx) performSkip(
-	stepID api.StepID, reason string, inputs api.Args, unsatisfied []api.Name,
+	sid api.StepID, reason string, inputs api.Args, unsatisfied []api.Name,
 ) error {
 	if err := events.Raise(tx.FlowAggregator, api.EventTypeStepSkipped,
 		api.StepSkippedEvent{
 			FlowID:      tx.flowID,
-			StepID:      stepID,
+			StepID:      sid,
 			Reason:      reason,
 			Inputs:      inputs,
 			Unsatisfied: unsatisfied,
@@ -117,24 +117,24 @@ func (tx *flowTx) performSkip(
 	)
 }
 
-func (tx *flowTx) canStartStep(stepID api.StepID, flow api.FlowState) bool {
-	ready, _ := tx.newStepEval(stepID, flow, tx.Now()).canStart()
+func (tx *flowTx) canStartStep(sid api.StepID, fl api.FlowState) bool {
+	ready, _ := tx.newStepEval(sid, fl, tx.Now()).canStart()
 	return ready
 }
 
 func (tx *flowTx) canStartStepAt(
-	stepID api.StepID, flow api.FlowState, when time.Time,
+	sid api.StepID, fl api.FlowState, when time.Time,
 ) (bool, time.Time) {
-	return tx.newStepEval(stepID, flow, when).canStart()
+	return tx.newStepEval(sid, fl, when).canStart()
 }
 
-func (tx *flowTx) findInitialSteps(flow api.FlowState) []api.StepID {
-	res := make([]api.StepID, 0, len(flow.Executions))
-	for sid, ex := range flow.Executions {
+func (tx *flowTx) findInitialSteps(fl api.FlowState) []api.StepID {
+	res := make([]api.StepID, 0, len(fl.Executions))
+	for sid, ex := range fl.Executions {
 		if !policy.StepPending(ex.Status) {
 			continue
 		}
-		if tx.canStartStep(sid, flow) {
+		if tx.canStartStep(sid, fl) {
 			res = append(res, sid)
 		}
 	}
@@ -142,35 +142,35 @@ func (tx *flowTx) findInitialSteps(flow api.FlowState) []api.StepID {
 }
 
 func (e *Engine) newStepEval(
-	stepID api.StepID, flow api.FlowState, when time.Time,
+	sid api.StepID, fl api.FlowState, when time.Time,
 ) *stepEval {
 	return &stepEval{
 		e:      e,
-		flow:   flow,
-		stepID: stepID,
-		step:   flow.Plan.Steps[stepID],
+		flow:   fl,
+		stepID: sid,
+		step:   fl.Plan.Steps[sid],
 		when:   when,
 	}
 }
 
 func (e *Engine) evaluateStepPredicate(
-	step *api.Step, inputs api.Args,
+	st *api.Step, inputs api.Args,
 ) (bool, error) {
-	if step.Predicate == nil {
+	if st.Predicate == nil {
 		return true, nil
 	}
 
-	comp, err := e.scripts.Compile(step, step.Predicate)
+	comp, err := e.scripts.Compile(st, st.Predicate)
 	if err != nil {
 		return false, errors.Join(ErrPredicateCompileFailed, err)
 	}
 
-	env, err := e.scripts.Get(step.Predicate.Language)
+	env, err := e.scripts.Get(st.Predicate.Language)
 	if err != nil {
 		return false, errors.Join(ErrScriptEnvFailed, err)
 	}
 
-	shouldExecute, err := env.EvaluatePredicate(comp, step, inputs)
+	shouldExecute, err := env.EvaluatePredicate(comp, st, inputs)
 	if err != nil {
 		return false, errors.Join(ErrPredicateEvalFailed, err)
 	}
@@ -179,17 +179,17 @@ func (e *Engine) evaluateStepPredicate(
 }
 
 func (tx *flowTx) collectStepInputs(
-	step *api.Step, flow api.FlowState,
+	st *api.Step, fl api.FlowState,
 ) (api.Args, error) {
 	inputs := api.Args{}
 	now := tx.Now()
-	ev := tx.newStepEval(step.ID, flow, now)
+	ev := tx.newStepEval(st.ID, fl, now)
 	anchor, err := ev.requiredReadyAt()
 	if err != nil {
 		return nil, err
 	}
 
-	for name, attr := range step.Attributes {
+	for name, attr := range st.Attributes {
 		if attr.IsConst() {
 			inputs[name] = parseDefaultValue(attr.ConstValue())
 			continue
@@ -211,7 +211,7 @@ func (tx *flowTx) collectStepInputs(
 					value := parseDefaultValue(attr.OptionalDefault())
 					tx.setStepInput(setStepInputArgs{
 						inputs: inputs,
-						step:   step,
+						step:   st,
 						name:   name,
 						attr:   attr,
 						value:  value,
@@ -234,7 +234,7 @@ func (tx *flowTx) collectStepInputs(
 				value := parseDefaultValue(attr.OptionalDefault())
 				tx.setStepInput(setStepInputArgs{
 					inputs: inputs,
-					step:   step,
+					step:   st,
 					name:   name,
 					attr:   attr,
 					value:  value,
@@ -246,7 +246,7 @@ func (tx *flowTx) collectStepInputs(
 
 		tx.setStepInput(setStepInputArgs{
 			inputs: inputs,
-			step:   step,
+			step:   st,
 			name:   name,
 			attr:   attr,
 			value:  val,
@@ -265,9 +265,7 @@ type setStepInputArgs struct {
 }
 
 func (tx *flowTx) setStepInput(args setStepInputArgs) {
-	val := tx.mapper.MapInput(
-		args.step, args.name, args.attr, args.value,
-	)
+	val := tx.mapper.MapInput(args.step, args.name, args.attr, args.value)
 	mapped, _ := args.step.MappedName(args.name)
 	args.inputs[mapped] = val
 }
@@ -443,9 +441,7 @@ func (s *stepEval) inputValues(
 	name api.Name, attr *api.AttributeSpec, cutoff time.Time,
 ) ([]*api.AttributeValue, error) {
 	values := valuesUntil(s.flow.AttributeValues(name), cutoff)
-	matched, _, err := policy.MatchCandidateValues(
-		attr, values, s.e.Matcher,
-	)
+	matched, _, err := policy.MatchCandidateValues(attr, values, s.e.Matcher)
 	return matched, err
 }
 
@@ -465,14 +461,14 @@ func optionalAt(anchor time.Time, deadlineMS int64) time.Time {
 }
 
 func providerSummaryFor(
-	flow api.FlowState, name api.Name,
+	fl api.FlowState, name api.Name,
 ) (policy.ProviderSummary, time.Time) {
-	deps, ok := flow.Plan.Attributes[name]
+	deps, ok := fl.Plan.Attributes[name]
 	if !ok || len(deps.Providers) == 0 {
 		return policy.ProviderSummary{
 			Terminal:     true,
 			AllSucceeded: true,
-		}, flow.CreatedAt
+		}, fl.CreatedAt
 	}
 
 	res := policy.ProviderSummary{
@@ -481,7 +477,7 @@ func providerSummaryFor(
 	}
 	var completedAt time.Time
 	for _, sid := range deps.Providers {
-		ex, ok := flow.Executions[sid]
+		ex, ok := fl.Executions[sid]
 		if !ok {
 			res.Terminal = false
 			res.AllSucceeded = false
@@ -490,7 +486,7 @@ func providerSummaryFor(
 		if !policy.StepTerminal(ex.Status) {
 			res.Terminal = false
 		}
-		if !policy.StepSucceeded(ex.Status) || !hasValueFrom(flow, name, sid) {
+		if !policy.StepSucceeded(ex.Status) || !hasValueFrom(fl, name, sid) {
 			res.AllSucceeded = false
 		}
 		if ex.CompletedAt.IsZero() {
@@ -503,8 +499,8 @@ func providerSummaryFor(
 	return res, completedAt
 }
 
-func hasValueFrom(flow api.FlowState, name api.Name, sid api.StepID) bool {
-	for _, v := range flow.AttributeValues(name) {
+func hasValueFrom(fl api.FlowState, name api.Name, sid api.StepID) bool {
+	for _, v := range fl.AttributeValues(name) {
 		if v.Step == sid {
 			return true
 		}

@@ -16,7 +16,7 @@ import (
 func TestSpaceAPI(t *testing.T) {
 	withTestServerEnv(t, func(env *testServerEnv) {
 		router := env.Server.SetupRoutes()
-		space := api.Space{
+		sp := api.Space{
 			ID:          "payments",
 			Name:        "Payments",
 			Description: "Payment services",
@@ -29,7 +29,7 @@ func TestSpaceAPI(t *testing.T) {
 			handler: router,
 			method:  http.MethodPost,
 			path:    "/engine/spaces",
-			body:    space,
+			body:    sp,
 		})
 		assert.Equal(t, http.StatusCreated, w.Code)
 
@@ -41,7 +41,7 @@ func TestSpaceAPI(t *testing.T) {
 		assert.Equal(t, http.StatusOK, w.Code)
 		var got api.Space
 		assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &got))
-		assert.Equal(t, space.QBE, got.QBE)
+		assert.Equal(t, sp.QBE, got.QBE)
 		assert.Equal(t, &api.ScriptConfig{
 			Language: api.ScriptLangLua,
 			Script:   `return value["domain"] == "payments"`,
@@ -132,12 +132,12 @@ func TestSpacePreviewAPI(t *testing.T) {
 		assert.NoError(t, env.Engine.RegisterStep(excluded))
 
 		// A Space being drafted has no ID or Name yet
-		preview := func(space api.Space) *httptest.ResponseRecorder {
+		preview := func(sp api.Space) *httptest.ResponseRecorder {
 			return spaceRequest(t, spaceRequestArgs{
 				handler: env.Server.SetupRoutes(),
 				method:  http.MethodPost,
 				path:    "/engine/spaces/preview",
-				body:    space,
+				body:    sp,
 			})
 		}
 
@@ -146,23 +146,29 @@ func TestSpacePreviewAPI(t *testing.T) {
 			Script:   `$.domain == "payments"`,
 		}})
 		assert.Equal(t, http.StatusOK, w.Code)
-		var got []api.StepID
+		var got api.SpacePreviewResponse
 		assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &got))
-		assert.Equal(t, []api.StepID{matching.ID}, got)
+		assert.Equal(t, []api.StepID{matching.ID}, got.StepIDs)
+		assert.Equal(t, api.ScriptLangJPath, got.Space.Selector.Language)
 
 		w = preview(api.Space{
 			QBE: api.SpaceQuery{"domain": {"payments"}},
 		})
 		assert.Equal(t, http.StatusOK, w.Code)
 		assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &got))
-		assert.Equal(t, []api.StepID{matching.ID}, got)
+		assert.Equal(t, []api.StepID{matching.ID}, got.StepIDs)
+		assert.Equal(t, &api.ScriptConfig{
+			Language: api.ScriptLangLua,
+			Script:   `return value["domain"] == "payments"`,
+		}, got.Space.Selector)
 
 		w = preview(api.Space{Selector: &api.ScriptConfig{
 			Language: api.ScriptLangLua,
 			Script:   `return value["domain"] == "nothing"`,
 		}})
 		assert.Equal(t, http.StatusOK, w.Code)
-		assert.Equal(t, "[]", w.Body.String())
+		assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &got))
+		assert.Empty(t, got.StepIDs)
 
 		w = preview(api.Space{Selector: &api.ScriptConfig{
 			Language: api.ScriptLangLua,
@@ -247,14 +253,14 @@ func TestSpaceDynamicPlanning(t *testing.T) {
 		goal.Labels["environment"] = "stage"
 		provider.Labels["environment"] = "production"
 		assert.NoError(t, env.Engine.RegisterStep(goal))
-		space := paymentSpace()
-		assert.NoError(t, env.Engine.RegisterSpace(space))
+		sp := paymentSpace()
+		assert.NoError(t, env.Engine.RegisterSpace(sp))
 		router := env.Server.SetupRoutes()
 
 		w := startSpaceFlow(t, router, api.CreateFlowRequest{
 			ID:      "before-step",
 			Goals:   []api.StepID{goal.ID},
-			SpaceID: space.ID,
+			SpaceID: sp.ID,
 		})
 		assert.Equal(t, http.StatusBadRequest, w.Code)
 
@@ -262,7 +268,7 @@ func TestSpaceDynamicPlanning(t *testing.T) {
 		w = startSpaceFlow(t, router, api.CreateFlowRequest{
 			ID:      "after-step",
 			Goals:   []api.StepID{goal.ID},
-			SpaceID: space.ID,
+			SpaceID: sp.ID,
 		})
 		assert.Equal(t, http.StatusCreated, w.Code)
 		started, err := env.Engine.GetFlowState("after-step")
@@ -281,7 +287,7 @@ func TestSpaceDynamicPlanning(t *testing.T) {
 		w = startSpaceFlow(t, router, api.CreateFlowRequest{
 			ID:      "after-update",
 			Goals:   []api.StepID{goal.ID},
-			SpaceID: space.ID,
+			SpaceID: sp.ID,
 		})
 		assert.Equal(t, http.StatusBadRequest, w.Code)
 

@@ -23,8 +23,8 @@ func NewCache(maxSize int) *Cache {
 }
 
 // Get retrieves cached outputs for a step and inputs
-func (c *Cache) Get(step *api.Step, inputs api.Args) (api.Args, bool) {
-	key, err := buildCacheKey(step, inputs)
+func (c *Cache) Get(st *api.Step, inputs api.Args) (api.Args, bool) {
+	key, err := buildCacheKey(st, inputs)
 	if err != nil {
 		return nil, false
 	}
@@ -41,8 +41,8 @@ func (c *Cache) Get(step *api.Step, inputs api.Args) (api.Args, bool) {
 }
 
 // Put stores cached outputs for a step and inputs
-func (c *Cache) Put(step *api.Step, inputs api.Args, outputs api.Args) error {
-	key, err := buildCacheKey(step, inputs)
+func (c *Cache) Put(st *api.Step, inputs api.Args, outputs api.Args) error {
+	key, err := buildCacheKey(st, inputs)
 	if err != nil {
 		return err
 	}
@@ -53,8 +53,8 @@ func (c *Cache) Put(step *api.Step, inputs api.Args, outputs api.Args) error {
 	return err
 }
 
-func buildCacheKey(step *api.Step, inputs api.Args) (string, error) {
-	stepKey, err := step.HashKey()
+func buildCacheKey(st *api.Step, inputs api.Args) (string, error) {
+	stepKey, err := st.HashKey()
 	if err != nil {
 		return "", err
 	}

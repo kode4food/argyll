@@ -446,14 +446,14 @@ func assertEventuallyEqual(
 }
 
 func assertFlowEventuallyCompleted(
-	t *testing.T, eng *engine.Engine, flowID api.FlowID,
+	t *testing.T, eng *engine.Engine, fid api.FlowID,
 ) {
 	t.Helper()
 	helpers.WaitForFlowState(t, eng, helpers.FlowStateQuery{
-		FlowID:  flowID,
+		FlowID:  fid,
 		Timeout: schedulerWaitTimeout,
-		Accept: func(st api.FlowState) bool {
-			return st.Status == api.FlowCompleted
+		Accept: func(fl api.FlowState) bool {
+			return fl.Status == api.FlowCompleted
 		},
 	})
 }

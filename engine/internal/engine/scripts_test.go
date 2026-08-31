@@ -122,14 +122,14 @@ func TestCreatePlanRestrictsChildFlowToSpace(t *testing.T) {
 		}
 		assert.NoError(t, eng.RegisterStep(goal))
 
-		space := api.Space{
+		sp := api.Space{
 			ID:   "payments",
 			Name: "Payments",
 			QBE: api.SpaceQuery{
 				"domain": {"payments"},
 			},
 		}
-		assert.NoError(t, eng.RegisterSpace(space))
+		assert.NoError(t, eng.RegisterSpace(sp))
 
 		parent := &api.Step{
 			ID:         "parent",
@@ -138,7 +138,7 @@ func TestCreatePlanRestrictsChildFlowToSpace(t *testing.T) {
 			Attributes: api.AttributeSpecs{},
 			Flow: &api.FlowConfig{
 				Goals:   []api.StepID{goal.ID},
-				SpaceID: space.ID,
+				SpaceID: sp.ID,
 			},
 		}
 		assert.NoError(t, eng.RegisterStep(parent))

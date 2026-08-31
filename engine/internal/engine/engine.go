@@ -125,23 +125,23 @@ func (e *Engine) GetEventHub() *event.Hub {
 }
 
 func (e *Engine) invokeCallbackURL(
-	flowID api.FlowID, stepID api.StepID, tkn api.Token,
+	fid api.FlowID, sid api.StepID, tkn api.Token,
 ) string {
-	return e.callbackURL(flowID, stepID, tkn, api.ActionInvoke)
+	return e.callbackURL(fid, sid, tkn, api.ActionInvoke)
 }
 
 func (e *Engine) compensateCallbackURL(
-	flowID api.FlowID, stepID api.StepID, tkn api.Token,
+	fid api.FlowID, sid api.StepID, tkn api.Token,
 ) string {
-	return e.callbackURL(flowID, stepID, tkn, api.ActionCompensate)
+	return e.callbackURL(fid, sid, tkn, api.ActionCompensate)
 }
 
 func (e *Engine) callbackURL(
-	flowID api.FlowID, stepID api.StepID, tkn api.Token,
+	fid api.FlowID, sid api.StepID, tkn api.Token,
 	action api.CallbackAction,
 ) string {
 	return e.config.WebhookBaseURL +
-		api.CallbackPath(flowID, stepID, tkn, action)
+		api.CallbackPath(fid, sid, tkn, action)
 }
 
 func normalizeDependencies(deps *Dependencies) error {

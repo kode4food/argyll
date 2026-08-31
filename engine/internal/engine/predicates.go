@@ -11,8 +11,8 @@ var (
 )
 
 // StepHealth evaluates handler-provided health for a step
-func (e *Engine) StepHealth(step *api.Step) (api.HealthState, error) {
-	return e.steps.Health(step)
+func (e *Engine) StepHealth(st *api.Step) (api.HealthState, error) {
+	return e.steps.Health(st)
 }
 
 // Children returns the child step IDs a step expands into
@@ -22,11 +22,11 @@ func (e *Engine) Children(st *api.Step) ([]api.StepID, error) {
 
 // GetCompiledPredicate retrieves the compiled predicate for a flow step
 func (e *Engine) GetCompiledPredicate(fs api.FlowStep) (any, error) {
-	step, err := e.getStepFromPlan(fs)
+	st, err := e.getStepFromPlan(fs)
 	if err != nil {
 		return nil, err
 	}
-	return e.scripts.Compile(step, step.Predicate)
+	return e.scripts.Compile(st, st.Predicate)
 }
 
 func (e *Engine) getStepFromPlan(fs api.FlowStep) (*api.Step, error) {
@@ -35,8 +35,8 @@ func (e *Engine) getStepFromPlan(fs api.FlowStep) (*api.Step, error) {
 		return nil, err
 	}
 
-	if step, ok := fl.Plan.Steps[fs.StepID]; ok {
-		return step, nil
+	if st, ok := fl.Plan.Steps[fs.StepID]; ok {
+		return st, nil
 	}
 	return nil, ErrStepNotInPlan
 }

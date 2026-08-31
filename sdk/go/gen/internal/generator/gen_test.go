@@ -146,12 +146,12 @@ func TestGeneratedServerMain(t *testing.T) {
 }
 
 func TestContractInference(t *testing.T) {
-	step := steps(t, "../../../example")["calculate-risk"]
-	assert.Equal(t, api.Name("Calculate Risk"), step.Name)
-	assert.Equal(t, api.StepTypeService, step.Type)
-	assert.Equal(t, api.HandlingMemoized, step.Handling)
+	st := steps(t, "../../../example")["calculate-risk"]
+	assert.Equal(t, api.Name("Calculate Risk"), st.Name)
+	assert.Equal(t, api.StepTypeService, st.Type)
+	assert.Equal(t, api.HandlingMemoized, st.Handling)
 
-	attrs := step.Attributes
+	attrs := st.Attributes
 	assert.Equal(t, api.TypeString, attrs["customer_id"].Type)
 	assert.Equal(t, api.TypeNumber, attrs["amount"].Type)
 	assert.Equal(t, api.TypeArray, attrs["tags"].Type)
@@ -171,8 +171,8 @@ func TestWrapContract(t *testing.T) {
 	assert.NoError(t, err)
 	text := string(src)
 
-	step := steps(t, "../../../example")["score-customer"]
-	assert.Equal(t, api.TypeString, step.Attributes["customer-id"].Type)
+	st := steps(t, "../../../example")["score-customer"]
+	assert.Equal(t, api.TypeString, st.Attributes["customer-id"].Type)
 	assert.Contains(t, text,
 		"r0, r1, err := ScoreCustomer(in.CustomerId, in.Amount)")
 	assert.Contains(t, text,
@@ -289,15 +289,15 @@ func TestAttributeProps(t *testing.T) {
 
 func TestStepConfig(t *testing.T) {
 	byID := steps(t, "../../../example")
-	step := byID["charge-card-v2"]
+	st := byID["charge-card-v2"]
 
-	assert.Equal(t, api.Name("Charge Card (v2)"), step.Name)
-	assert.Equal(t, int64(2500), step.HTTP.Invoke.Timeout)
-	assert.Equal(t, api.ScriptLangLua, step.Predicate.Language)
+	assert.Equal(t, api.Name("Charge Card (v2)"), st.Name)
+	assert.Equal(t, int64(2500), st.HTTP.Invoke.Timeout)
+	assert.Equal(t, api.ScriptLangLua, st.Predicate.Language)
 
 	// the endpoints are paths until the step server knows its own host
-	assert.Equal(t, "/charge-card-v2", step.HTTP.Invoke.Endpoint)
-	assert.Equal(t, "/health", step.HTTP.Health)
+	assert.Equal(t, "/charge-card-v2", st.HTTP.Invoke.Endpoint)
+	assert.Equal(t, "/health", st.HTTP.Health)
 
 	// the conventional ID and name are gone entirely
 	assert.NotContains(t, byID, api.StepID("charge-card"))
@@ -916,10 +916,10 @@ func steps(t *testing.T, pattern string) map[api.StepID]*api.Step {
 		spec, err := strconv.Unquote(m[1])
 		assert.NoError(t, err)
 
-		var step api.Step
-		assert.NoError(t, json.Unmarshal([]byte(spec), &step))
-		assert.NoError(t, step.Validate())
-		res[step.ID] = &step
+		var st api.Step
+		assert.NoError(t, json.Unmarshal([]byte(spec), &st))
+		assert.NoError(t, st.Validate())
+		res[st.ID] = &st
 	}
 	return res
 }

@@ -456,15 +456,15 @@ func TestRecoveryPreservesState(t *testing.T) {
 }
 
 func waitForFlowStatusWithTimeoutAfter(
-	env *helpers.TestEngineEnv, flowID api.FlowID, timeout time.Duration,
+	env *helpers.TestEngineEnv, fid api.FlowID, timeout time.Duration,
 	fn func(),
 ) api.FlowState {
 	env.T.Helper()
 
 	states := waitForFlowsStatusWithTimeoutAfter(
-		env, []api.FlowID{flowID}, timeout, fn,
+		env, []api.FlowID{fid}, timeout, fn,
 	)
-	return states[flowID]
+	return states[fid]
 }
 
 func waitForFlowsStatusWithTimeoutAfter(

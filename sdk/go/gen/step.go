@@ -19,9 +19,9 @@ type StepDef struct {
 
 // Step decodes the step specification
 func (s StepDef) Step() (*api.Step, error) {
-	var step api.Step
-	if err := json.Unmarshal([]byte(s.Spec), &step); err != nil {
+	var st api.Step
+	if err := json.Unmarshal([]byte(s.Spec), &st); err != nil {
 		return nil, fmt.Errorf("%w: %s", err, s.ID)
 	}
-	return &step, nil
+	return &st, nil
 }

@@ -554,13 +554,12 @@ paths:
               $ref: "#/components/schemas/Space"
       responses:
         "200":
-          description: Step IDs selected by the selector
+          description: The normalized Space, including its authoritative
+            selector, and the selected Step IDs
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  type: string
+                $ref: "#/components/schemas/SpacePreviewResponse"
         "400":
           description: Invalid selector
           content:
@@ -1902,6 +1901,23 @@ components:
             domain:
               - payments
               - risk
+
+    SpacePreviewResponse:
+      type: object
+      required:
+        - space
+        - step_ids
+      properties:
+        space:
+          allOf:
+            - $ref: "#/components/schemas/Space"
+            - type: object
+              required:
+                - selector
+        step_ids:
+          type: array
+          items:
+            type: string
 
     SpaceRegisteredResponse:
       type: object

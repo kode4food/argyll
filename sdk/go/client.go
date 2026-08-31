@@ -132,11 +132,11 @@ func (c *FlowClient) FlowID() api.FlowID {
 
 // RegisterStep registers a step, updating an existing registration on conflict
 // and retrying transient failures
-func (c *Client) RegisterStep(ctx context.Context, step *api.Step) error {
+func (c *Client) RegisterStep(ctx context.Context, st *api.Step) error {
 	for attempt := 1; attempt <= MaxRegistrationAttempts; attempt++ {
-		err := c.createStep(ctx, step)
+		err := c.createStep(ctx, st)
 		if isRegisterConflict(err) {
-			err = c.updateStep(ctx, step)
+			err = c.updateStep(ctx, st)
 		}
 		if err == nil {
 			return nil
@@ -154,14 +154,14 @@ func (c *Client) RegisterStep(ctx context.Context, step *api.Step) error {
 		MaxRegistrationAttempts)
 }
 
-func (c *Client) updateStep(ctx context.Context, step *api.Step) error {
-	if err := step.Validate(); err != nil {
+func (c *Client) updateStep(ctx context.Context, st *api.Step) error {
+	if err := st.Validate(); err != nil {
 		return err
 	}
 	return c.doHTTPRequest(ctx, httpRequest{
 		Method:    "PUT",
-		URL:       c.url("%s/%s", routeSteps, step.ID),
-		Body:      step,
+		URL:       c.url("%s/%s", routeSteps, st.ID),
+		Body:      st,
 		ErrorType: ErrUpdateStep,
 		Accepted:  []int{http.StatusOK},
 	})
@@ -172,14 +172,14 @@ func (c *Client) url(format string, args ...any) string {
 	return c.baseURL + path
 }
 
-func (c *Client) createStep(ctx context.Context, step *api.Step) error {
-	if err := step.Validate(); err != nil {
+func (c *Client) createStep(ctx context.Context, st *api.Step) error {
+	if err := st.Validate(); err != nil {
 		return err
 	}
 	return c.doHTTPRequest(ctx, httpRequest{
 		Method:    "POST",
 		URL:       c.url(routeSteps),
-		Body:      step,
+		Body:      st,
 		ErrorType: ErrRegisterStep,
 		Accepted:  []int{http.StatusOK, http.StatusCreated},
 	})

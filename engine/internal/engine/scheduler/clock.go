@@ -12,7 +12,7 @@ type (
 	// Timer represents a resettable scheduler timer
 	Timer interface {
 		Channel() <-chan time.Time
-		Reset(delay time.Duration) bool
+		Reset(time.Duration) bool
 		Stop() bool
 	}
 

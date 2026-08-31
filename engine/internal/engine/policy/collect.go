@@ -102,9 +102,9 @@ func RequiresAllProviders(collect api.InputCollect) bool {
 // RequiredInputsAvailable reports whether every required input on a step is
 // available. The caller supplies availability facts from its planning layer
 func RequiredInputsAvailable(
-	step *api.Step, available func(api.Name) bool,
+	st *api.Step, available func(api.Name) bool,
 ) bool {
-	for name, attr := range step.Attributes {
+	for name, attr := range st.Attributes {
 		if attr.IsRequired() && !available(name) {
 			return false
 		}
@@ -114,9 +114,9 @@ func RequiredInputsAvailable(
 
 // StepOutputsSatisfied reports whether a step's declared outputs are already
 // satisfied. A step with no declared outputs is not satisfied by output state
-func StepOutputsSatisfied(step *api.Step, satisfied func(api.Name) bool) bool {
+func StepOutputsSatisfied(st *api.Step, satisfied func(api.Name) bool) bool {
 	hasOutputs := false
-	for name, attr := range step.Attributes {
+	for name, attr := range st.Attributes {
 		if !attr.IsOutput() {
 			continue
 		}

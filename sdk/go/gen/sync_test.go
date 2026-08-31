@@ -232,11 +232,11 @@ func TestServeFailure(t *testing.T) {
 }
 
 func TestMux(t *testing.T) {
-	step := sumStep()
-	step.Compensate = gen.Compensate(
+	st := sumStep()
+	st.Compensate = gen.Compensate(
 		codec.Struct[struct{}](), func(struct{}) error { return nil },
 	)
-	srv := httptest.NewServer(gen.Mux(step))
+	srv := httptest.NewServer(gen.Mux(st))
 	defer srv.Close()
 
 	res, err := http.Get(srv.URL + "/health")

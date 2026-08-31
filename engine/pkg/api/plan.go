@@ -68,10 +68,10 @@ func (p *ExecutionPlan) ValidateInputs(args InitArgs) error {
 }
 
 // AddStep adds a step's contributions to the graph
-func (g AttributeGraph) AddStep(step *Step) AttributeGraph {
+func (g AttributeGraph) AddStep(st *Step) AttributeGraph {
 	res := maps.Clone(g)
 
-	for name, attr := range step.Attributes {
+	for name, attr := range st.Attributes {
 		edges, ok := res[name]
 		if !ok {
 			edges = &AttributeEdges{
@@ -81,11 +81,11 @@ func (g AttributeGraph) AddStep(step *Step) AttributeGraph {
 		}
 
 		if attr.IsOutput() {
-			edges = edges.addProvider(step.ID)
+			edges = edges.addProvider(st.ID)
 		}
 
 		if attr.IsInput() {
-			edges = edges.addConsumer(step.ID)
+			edges = edges.addConsumer(st.ID)
 		}
 
 		res[name] = edges
@@ -95,10 +95,10 @@ func (g AttributeGraph) AddStep(step *Step) AttributeGraph {
 }
 
 // RemoveStep removes a step's contributions from the graph
-func (g AttributeGraph) RemoveStep(step *Step) AttributeGraph {
+func (g AttributeGraph) RemoveStep(st *Step) AttributeGraph {
 	res := maps.Clone(g)
 
-	for name, attr := range step.Attributes {
+	for name, attr := range st.Attributes {
 		if _, ok := g[name]; !ok {
 			continue
 		}
@@ -106,11 +106,11 @@ func (g AttributeGraph) RemoveStep(step *Step) AttributeGraph {
 		edges := res[name]
 
 		if attr.IsOutput() {
-			edges = edges.removeProvider(step.ID)
+			edges = edges.removeProvider(st.ID)
 		}
 
 		if attr.IsInput() {
-			edges = edges.removeConsumer(step.ID)
+			edges = edges.removeConsumer(st.ID)
 		}
 
 		if edges.isEmpty() {

@@ -34,25 +34,25 @@ var (
 )
 
 // UnregisterStep removes a step from the engine registry
-func (e *Engine) UnregisterStep(stepID api.StepID) error {
+func (e *Engine) UnregisterStep(sid api.StepID) error {
 	return e.CatalogTx(func(tx *CatalogTx) error {
-		return tx.Remove(stepID)
+		return tx.Remove(sid)
 	})
 }
 
 // RegisterStep registers a new step with the engine after validating its
 // configuration and checking for conflicts
-func (e *Engine) RegisterStep(step *api.Step) error {
+func (e *Engine) RegisterStep(st *api.Step) error {
 	return e.CatalogTx(func(tx *CatalogTx) error {
-		return tx.Register(step)
+		return tx.Register(st)
 	})
 }
 
 // UpdateStep updates an existing step registration with new configuration
 // after validation
-func (e *Engine) UpdateStep(step *api.Step) error {
+func (e *Engine) UpdateStep(st *api.Step) error {
 	return e.CatalogTx(func(tx *CatalogTx) error {
-		return tx.Update(step)
+		return tx.Update(st)
 	})
 }
 
@@ -68,60 +68,60 @@ func (e *Engine) CatalogTx(fn func(*CatalogTx) error) error {
 	return err
 }
 
-func (tx *CatalogTx) Register(step *api.Step) error {
-	step, err := tx.prepareStep(step)
+func (tx *CatalogTx) Register(newStep *api.Step) error {
+	newStep, err := tx.prepareStep(newStep)
 	if err != nil {
 		return err
 	}
-	st := tx.ag.Value()
-	if old, ok := st.Steps[step.ID]; ok {
-		if old.Equal(step) {
+	cat := tx.ag.Value()
+	if old, ok := cat.Steps[newStep.ID]; ok {
+		if old.Equal(newStep) {
 			return nil
 		}
-		return fmt.Errorf("%w: %s", ErrStepExists, step.ID)
+		return fmt.Errorf("%w: %s", ErrStepExists, newStep.ID)
 	}
-	err = tx.e.validateStepUpsert(st, step, tx.e.steps.Children)
+	err = tx.e.validateStepUpsert(cat, newStep, tx.e.steps.Children)
 	if err != nil {
 		return err
 	}
-	return tx.e.raiseStepRegisteredEvent(step, tx.ag)
+	return tx.e.raiseStepRegisteredEvent(newStep, tx.ag)
 }
 
-func (tx *CatalogTx) Update(step *api.Step) error {
-	step, err := tx.prepareStep(step)
+func (tx *CatalogTx) Update(newStep *api.Step) error {
+	newStep, err := tx.prepareStep(newStep)
 	if err != nil {
 		return err
 	}
-	st := tx.ag.Value()
-	old, ok := st.Steps[step.ID]
+	cat := tx.ag.Value()
+	old, ok := cat.Steps[newStep.ID]
 	if !ok {
-		return fmt.Errorf("%w: %s", ErrStepNotFound, step.ID)
+		return fmt.Errorf("%w: %s", ErrStepNotFound, newStep.ID)
 	}
-	if old.Equal(step) {
+	if old.Equal(newStep) {
 		return nil
 	}
-	err = tx.e.validateStepUpsert(st, step, tx.e.steps.Children)
+	err = tx.e.validateStepUpsert(cat, newStep, tx.e.steps.Children)
 	if err != nil {
 		return err
 	}
-	return tx.e.raiseStepUpdatedEvent(step, tx.ag)
+	return tx.e.raiseStepUpdatedEvent(newStep, tx.ag)
 }
 
-func (tx *CatalogTx) Remove(stepID api.StepID) error {
-	st := tx.ag.Value()
-	if ref, ok := spaceSubFlowGoal(st, stepID); ok {
+func (tx *CatalogTx) Remove(sid api.StepID) error {
+	cat := tx.ag.Value()
+	if ref, ok := spaceSubFlowGoal(cat, sid); ok {
 		return fmt.Errorf("%w: %s", ErrSubFlowGoalInUse, ref)
 	}
 	var spaces []api.SpaceID
-	if step, ok := st.Steps[stepID]; ok {
+	if oldStep, ok := cat.Steps[sid]; ok {
 		var err error
-		spaces, err = tx.e.matchingSpaceIDs(st, step)
+		spaces, err = tx.e.matchingSpaceIDs(cat, oldStep)
 		if err != nil {
 			return err
 		}
 	}
 	return events.Raise(tx.ag, api.EventTypeStepUnregistered,
-		api.StepUnregisteredEvent{StepID: stepID, Spaces: spaces},
+		api.StepUnregisteredEvent{StepID: sid, Spaces: spaces},
 	)
 }
 
@@ -138,94 +138,94 @@ func (e *Engine) validateStep(st *api.Step) error {
 }
 
 func (e *Engine) raiseStepRegisteredEvent(
-	step *api.Step, ag *CatalogAggregator,
+	st *api.Step, ag *CatalogAggregator,
 ) error {
-	spaces, err := e.matchingSpaceIDs(ag.Value(), step)
+	spaces, err := e.matchingSpaceIDs(ag.Value(), st)
 	if err != nil {
 		return err
 	}
 	if err := events.Raise(ag, api.EventTypeStepRegistered,
 		api.StepRegisteredEvent{
-			Step:   step,
+			Step:   st,
 			Spaces: spaces,
 		},
 	); err != nil {
 		return err
 	}
 	ag.OnSuccess(func(api.CatalogState, []*timebox.Event) {
-		e.resetStepHealth(step)
+		e.resetStepHealth(st)
 	})
 	return nil
 }
 
 func (e *Engine) raiseStepUpdatedEvent(
-	step *api.Step, ag *CatalogAggregator,
+	st *api.Step, ag *CatalogAggregator,
 ) error {
-	spaces, err := e.matchingSpaceIDs(ag.Value(), step)
+	spaces, err := e.matchingSpaceIDs(ag.Value(), st)
 	if err != nil {
 		return err
 	}
 	if err := events.Raise(ag, api.EventTypeStepUpdated,
 		api.StepUpdatedEvent{
-			Step:   step,
+			Step:   st,
 			Spaces: spaces,
 		},
 	); err != nil {
 		return err
 	}
 	ag.OnSuccess(func(api.CatalogState, []*timebox.Event) {
-		e.resetStepHealth(step)
+		e.resetStepHealth(st)
 	})
 	return nil
 }
 
-func (e *Engine) resetStepHealth(step *api.Step) {
-	h, err := e.steps.Health(step)
+func (e *Engine) resetStepHealth(st *api.Step) {
+	h, err := e.steps.Health(st)
 	if err != nil {
 		slog.Error("Failed to evaluate step health",
-			log.StepID(step.ID),
+			log.StepID(st.ID),
 			log.Error(err))
 		return
 	}
-	if err := e.UpdateStepHealth(step.ID, h.Status, h.Error); err != nil {
+	if err := e.UpdateStepHealth(st.ID, h.Status, h.Error); err != nil {
 		slog.Error("Failed to update step health",
-			log.StepID(step.ID),
+			log.StepID(st.ID),
 			log.Error(err))
 	}
 }
 
-func (tx *CatalogTx) prepareStep(step *api.Step) (*api.Step, error) {
-	step = step.WithWorkDefaults(&tx.e.config.Work)
-	if err := tx.e.validateStep(step); err != nil {
+func (tx *CatalogTx) prepareStep(st *api.Step) (*api.Step, error) {
+	st = st.WithWorkDefaults(&tx.e.config.Work)
+	if err := tx.e.validateStep(st); err != nil {
 		return nil, err
 	}
-	return step, nil
+	return st, nil
 }
 
 func (e *Engine) validateStepUpsert(
-	st api.CatalogState, newStep *api.Step,
+	cat api.CatalogState, newStep *api.Step,
 	children func(*api.Step) ([]api.StepID, error),
 ) error {
 	if err := call.Perform(
-		call.WithArgs(validateAttributeTypes, st, newStep),
-		call.WithArgs(e.validateSpaceSubFlows, st, newStep),
-		func() error { return detectStepCycles(st, newStep, children) },
+		call.WithArgs(validateAttributeTypes, cat, newStep),
+		call.WithArgs(e.validateSpaceSubFlows, cat, newStep),
+		func() error { return detectStepCycles(cat, newStep, children) },
 	); err != nil {
 		return errors.Join(ErrInvalidStep, err)
 	}
 	return nil
 }
 
-func validateAttributeTypes(st api.CatalogState, newStep *api.Step) error {
-	attributeTypes := collectAttributeTypes(st, newStep.ID)
+func validateAttributeTypes(cat api.CatalogState, newStep *api.Step) error {
+	attributeTypes := collectAttributeTypes(cat, newStep.ID)
 	return checkAttributeConflicts(newStep.Attributes, attributeTypes)
 }
 
 func collectAttributeTypes(
-	st api.CatalogState, excludeID api.StepID,
+	cat api.CatalogState, excludeID api.StepID,
 ) api.AttributeTypes {
 	attributeTypes := make(api.AttributeTypes)
-	for sid, st := range st.Steps {
+	for sid, st := range cat.Steps {
 		if sid == excludeID {
 			continue
 		}
@@ -250,19 +250,19 @@ func checkAttributeConflicts(
 }
 
 func detectStepCycles(
-	st api.CatalogState, newStep *api.Step,
+	cat api.CatalogState, newStep *api.Step,
 	children func(*api.Step) ([]api.StepID, error),
 ) error {
-	if err := detectAttributeCycles(st, newStep); err != nil {
+	if err := detectAttributeCycles(cat, newStep); err != nil {
 		return err
 	}
-	return detectFlowCycles(st, newStep, children)
+	return detectFlowCycles(cat, newStep, children)
 }
 
-func detectAttributeCycles(st api.CatalogState, newStep *api.Step) error {
-	steps := stepsIncluding(st, newStep)
-	deps := st.Attributes
-	if existing, ok := st.Steps[newStep.ID]; ok {
+func detectAttributeCycles(cat api.CatalogState, newStep *api.Step) error {
+	steps := stepsIncluding(cat, newStep)
+	deps := cat.Attributes
+	if existing, ok := cat.Steps[newStep.ID]; ok {
 		deps = deps.RemoveStep(existing)
 	}
 	deps = deps.AddStep(newStep)
@@ -270,10 +270,10 @@ func detectAttributeCycles(st api.CatalogState, newStep *api.Step) error {
 }
 
 func detectFlowCycles(
-	st api.CatalogState, newStep *api.Step,
+	cat api.CatalogState, newStep *api.Step,
 	children func(*api.Step) ([]api.StepID, error),
 ) error {
-	steps := stepsIncluding(st, newStep)
+	steps := stepsIncluding(cat, newStep)
 	for sid := range steps {
 		if err := checkFlowCycleFromStep(
 			sid, steps, children, stepSet{},
@@ -347,8 +347,8 @@ func checkFlowCycleFromStep(
 	return nil
 }
 
-func stepsIncluding(st api.CatalogState, newStep *api.Step) api.Steps {
-	steps := maps.Clone(st.Steps)
+func stepsIncluding(cat api.CatalogState, newStep *api.Step) api.Steps {
+	steps := maps.Clone(cat.Steps)
 	steps[newStep.ID] = newStep
 	return steps
 }

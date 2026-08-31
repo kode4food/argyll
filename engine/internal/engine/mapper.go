@@ -28,13 +28,13 @@ func NewMapper(engine *Engine) *Mapper {
 
 // Compile compiles a mapping script for the provided step context
 func (m *Mapper) Compile(
-	step *api.Step, cfg *api.ScriptConfig,
+	st *api.Step, cfg *api.ScriptConfig,
 ) (script.Compiled, error) {
 	if cfg == nil || cfg.Script == "" {
 		return nil, nil
 	}
 
-	compiled, err := m.engine.scripts.Compile(step, cfg)
+	compiled, err := m.engine.scripts.Compile(st, cfg)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %s", ErrInvalidMapping, cfg.Script)
 	}
@@ -43,13 +43,13 @@ func (m *Mapper) Compile(
 
 // MapValue applies a mapping script and normalizes result presence
 func (m *Mapper) MapValue(
-	step *api.Step, name api.Name, cfg *api.ScriptConfig, value any,
+	st *api.Step, name api.Name, cfg *api.ScriptConfig, value any,
 ) (any, bool) {
 	if cfg == nil || cfg.Script == "" {
 		return value, true
 	}
 
-	compiled, err := m.Compile(step, cfg)
+	compiled, err := m.Compile(st, cfg)
 	if err != nil {
 		return nil, false
 	}
@@ -59,7 +59,7 @@ func (m *Mapper) MapValue(
 		return nil, false
 	}
 
-	result, err := env.ExecuteScript(compiled, step, api.Args{name: value})
+	result, err := env.ExecuteScript(compiled, st, api.Args{name: value})
 	if err != nil {
 		return nil, false
 	}
@@ -68,15 +68,15 @@ func (m *Mapper) MapValue(
 
 // MapInput maps a step input value and falls back to original value
 func (m *Mapper) MapInput(
-	step *api.Step, name api.Name, attr *api.AttributeSpec, value any,
+	st *api.Step, name api.Name, attr *api.AttributeSpec, value any,
 ) any {
 	mapping := attr.Mapping()
 	if mapping == nil || mapping.Script == nil {
 		return value
 	}
 
-	mapped, _ := step.MappedName(name)
-	if argName, ok := m.MapValue(step, mapped, mapping.Script, value); ok {
+	mapped, _ := st.MappedName(name)
+	if argName, ok := m.MapValue(st, mapped, mapping.Script, value); ok {
 		return argName
 	}
 
@@ -84,20 +84,20 @@ func (m *Mapper) MapInput(
 		slog.String("attribute", string(name)),
 		slog.String("language", mapping.Script.Language),
 	}
-	args = append(args, log.StepID(step.ID))
+	args = append(args, log.StepID(st.ID))
 	slog.Warn("Input mapping failed; using original value", args...)
 	return value
 }
 
 // MapOutputs maps raw step outputs to declared output attributes
-func (m *Mapper) MapOutputs(step *api.Step, outputs api.Args) api.Args {
+func (m *Mapper) MapOutputs(st *api.Step, outputs api.Args) api.Args {
 	res := api.Args{}
-	for name, attr := range step.Attributes {
+	for name, attr := range st.Attributes {
 		if !attr.IsOutput() {
 			continue
 		}
 
-		value, ok := m.mapOutput(step, name, attr, outputs)
+		value, ok := m.mapOutput(st, name, attr, outputs)
 		if ok {
 			res[name] = value
 		}
@@ -105,14 +105,14 @@ func (m *Mapper) MapOutputs(step *api.Step, outputs api.Args) api.Args {
 	return res
 }
 
-func (m *Mapper) validateStep(step *api.Step) error {
-	for name, attr := range step.Attributes {
+func (m *Mapper) validateStep(st *api.Step) error {
+	for name, attr := range st.Attributes {
 		mapping := attr.Mapping()
 		if mapping == nil || mapping.Script == nil {
 			continue
 		}
 
-		if _, err := m.Compile(step, mapping.Script); err != nil {
+		if _, err := m.Compile(st, mapping.Script); err != nil {
 			return fmt.Errorf("%w for attribute %q: %v",
 				api.ErrInvalidMappingConfig, name, err,
 			)
@@ -122,16 +122,16 @@ func (m *Mapper) validateStep(step *api.Step) error {
 }
 
 func (m *Mapper) mapOutput(
-	step *api.Step, name api.Name, attr *api.AttributeSpec, outputs api.Args,
+	st *api.Step, name api.Name, attr *api.AttributeSpec, outputs api.Args,
 ) (any, bool) {
 	if mapping := attr.Mapping(); mapping != nil && mapping.Script != nil {
-		return m.MapValue(step, name, mapping.Script, outputs)
+		return m.MapValue(st, name, mapping.Script, outputs)
 	}
-	return outputByName(step, name, outputs)
+	return outputByName(st, name, outputs)
 }
 
-func outputByName(step *api.Step, name api.Name, outputs api.Args) (any, bool) {
-	mapped, _ := step.MappedName(name)
+func outputByName(st *api.Step, name api.Name, outputs api.Args) (any, bool) {
+	mapped, _ := st.MappedName(name)
 	value, ok := outputs[mapped]
 	return value, ok
 }

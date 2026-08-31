@@ -93,8 +93,8 @@ func (s *Server) generateStepImpl(args generateStepImplArgs) (any, error) {
 	}, nil)
 }
 
-func stepIO(step map[string]any) ([]string, []string) {
-	attrs, ok := asMap(step["attributes"])
+func stepIO(st map[string]any) ([]string, []string) {
+	attrs, ok := asMap(st["attributes"])
 	if !ok {
 		return nil, nil
 	}

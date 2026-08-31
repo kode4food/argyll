@@ -4,6 +4,7 @@ import {
   QueryFlowsResponse,
   QueryFlowsRequest,
   Space,
+  SpacePreviewResponse,
   Step,
 } from "./types";
 
@@ -95,7 +96,7 @@ export class ArgyllApi {
     return response.space;
   }
 
-  async previewSpace(space: Space): Promise<string[]> {
+  async previewSpace(space: Space): Promise<SpacePreviewResponse> {
     return this.request("/engine/spaces/preview", {
       method: "POST",
       body: JSON.stringify(space),

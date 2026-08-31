@@ -14,12 +14,12 @@ import (
 
 // checkStepCompletion checks if a specific step can complete (all work items
 // done) and raises appropriate completion or failure events
-func (tx *flowTx) checkStepCompletion(stepID api.StepID) (bool, error) {
+func (tx *flowTx) checkStepCompletion(sid api.StepID) (bool, error) {
 	fl := tx.Value()
-	ex, ok := fl.Executions[stepID]
+	ex, ok := fl.Executions[sid]
 	if !ok || !policy.StepActive(ex.Status) {
 		return false, fmt.Errorf("%w: expected %s to be active, got %s",
-			ErrInvariantViolated, stepID, ex.Status)
+			ErrInvariantViolated, sid, ex.Status)
 	}
 
 	completion := policy.StepWorkCompletion(ex.WorkItems)
@@ -31,18 +31,18 @@ func (tx *flowTx) checkStepCompletion(stepID api.StepID) (bool, error) {
 		if err := events.Raise(tx.FlowAggregator, api.EventTypeStepFailed,
 			api.StepFailedEvent{
 				FlowID: tx.flowID,
-				StepID: stepID,
+				StepID: sid,
 				Error:  completion.FailureError,
 				Inputs: ex.Inputs,
 			},
 		); err != nil {
 			return true, err
 		}
-		step := fl.Plan.Steps[stepID]
-		return true, tx.startPendingCompensations(step, ex)
+		st := fl.Plan.Steps[sid]
+		return true, tx.startPendingCompensations(st, ex)
 	}
 
-	st := fl.Plan.Steps[stepID]
+	st := fl.Plan.Steps[sid]
 	outputs := tx.collectStepOutputs(ex.WorkItems, st)
 	outputs = tx.consumedOutputs(st, outputs, fl)
 	dur := max(tx.Now().Sub(ex.StartedAt).Milliseconds(), int64(0))
@@ -54,7 +54,7 @@ func (tx *flowTx) checkStepCompletion(stepID api.StepID) (bool, error) {
 		if err := events.Raise(tx.FlowAggregator, api.EventTypeAttributeSet,
 			api.AttributeSetEvent{
 				FlowID: tx.flowID,
-				StepID: stepID,
+				StepID: sid,
 				Key:    key,
 				Value:  value,
 			},
@@ -67,7 +67,7 @@ func (tx *flowTx) checkStepCompletion(stepID api.StepID) (bool, error) {
 	if err := events.Raise(tx.FlowAggregator, api.EventTypeStepCompleted,
 		api.StepCompletedEvent{
 			FlowID:   tx.flowID,
-			StepID:   stepID,
+			StepID:   sid,
 			Outputs:  outputs,
 			Duration: dur,
 		},
@@ -75,23 +75,23 @@ func (tx *flowTx) checkStepCompletion(stepID api.StepID) (bool, error) {
 		return true, err
 	}
 	if tx.Value().Status == api.FlowActive {
-		tx.OnSuccess(func(flow api.FlowState, _ []*timebox.Event) {
-			tx.scheduleConsumerTimeouts(flow, stepID, tx.Now())
+		tx.OnSuccess(func(fl api.FlowState, _ []*timebox.Event) {
+			tx.scheduleConsumerTimeouts(fl, sid, tx.Now())
 		})
 	}
 	return true, nil
 }
 
 func (tx *flowTx) consumedOutputs(
-	step *api.Step, outputs api.Args, fl api.FlowState,
+	st *api.Step, outputs api.Args, fl api.FlowState,
 ) api.Args {
-	if slices.Contains(fl.Plan.Goals, step.ID) {
+	if slices.Contains(fl.Plan.Goals, st.ID) {
 		return outputs
 	}
 
 	res := api.Args{}
 	for name, value := range outputs {
-		attr := step.Attributes[name]
+		attr := st.Attributes[name]
 		if tx.needsOutput(name, attr, fl) {
 			res[name] = value
 		}
@@ -100,12 +100,12 @@ func (tx *flowTx) consumedOutputs(
 }
 
 func (tx *flowTx) handlePredicateFailure(
-	stepID api.StepID, inputs api.Args, err error,
+	sid api.StepID, inputs api.Args, err error,
 ) error {
 	if raiseErr := events.Raise(tx.FlowAggregator, api.EventTypeStepFailed,
 		api.StepFailedEvent{
 			FlowID: tx.flowID,
-			StepID: stepID,
+			StepID: sid,
 			Error:  err.Error(),
 			Inputs: inputs,
 		},
@@ -121,20 +121,20 @@ func (tx *flowTx) handlePredicateFailure(
 
 // handleStepFailure handles common failure logic for work failure paths,
 // checking step completion and propagating failures
-func (tx *flowTx) handleStepFailure(stepID api.StepID) error {
+func (tx *flowTx) handleStepFailure(sid api.StepID) error {
 	if policy.FlowTerminal(tx.Value().Status) {
-		return tx.handleTerminalWork(stepID)
+		return tx.handleTerminalWork(sid)
 	}
-	if !policy.StepActive(tx.Value().Executions[stepID].Status) {
+	if !policy.StepActive(tx.Value().Executions[sid].Status) {
 		return nil
 	}
 
-	completed, err := tx.checkStepCompletion(stepID)
+	completed, err := tx.checkStepCompletion(sid)
 	if err != nil || !completed {
 		if err != nil {
 			return err
 		}
-		return tx.continueStepWork(stepID, false)
+		return tx.continueStepWork(sid, false)
 	}
 
 	return call.Perform(
@@ -146,8 +146,8 @@ func (tx *flowTx) handleStepFailure(stepID api.StepID) error {
 
 // handleTerminalWork handles work completion when the flow is already
 // terminal: checks step completion then deactivates if no work remains
-func (tx *flowTx) handleTerminalWork(stepID api.StepID) error {
-	if _, err := tx.checkStepCompletion(stepID); err != nil {
+func (tx *flowTx) handleTerminalWork(sid api.StepID) error {
+	if _, err := tx.checkStepCompletion(sid); err != nil {
 		return err
 	}
 	return tx.maybeDeactivate()

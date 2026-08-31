@@ -99,6 +99,12 @@ type (
 		Message string `json:"message"`
 	}
 
+	// SpacePreviewResponse contains a normalized Space and selected Step IDs
+	SpacePreviewResponse struct {
+		Space   Space    `json:"space"`
+		StepIDs []StepID `json:"step_ids"`
+	}
+
 	// SpacesListResponse contains a list of spaces
 	SpacesListResponse struct {
 		Spaces []Space `json:"spaces"`

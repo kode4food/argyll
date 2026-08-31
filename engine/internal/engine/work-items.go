@@ -16,7 +16,7 @@ var (
 )
 
 func (e *Engine) collectStepOutputs(
-	items api.WorkItems, step *api.Step,
+	items api.WorkItems, st *api.Step,
 ) api.Args {
 	completed := make([]api.WorkState, 0, len(items))
 	for _, work := range items {
@@ -29,15 +29,15 @@ func (e *Engine) collectStepOutputs(
 	case 0:
 		return nil
 	case 1:
-		return e.mapper.MapOutputs(step, completed[0].Outputs)
+		return e.mapper.MapOutputs(st, completed[0].Outputs)
 	default:
-		aggregated := collectWorkOutputs(completed, step)
-		return e.mapper.MapOutputs(step, aggregated)
+		aggregated := collectWorkOutputs(completed, st)
+		return e.mapper.MapOutputs(st, aggregated)
 	}
 }
 
-func computeWorkItems(step *api.Step, inputs api.Args) ([]api.Args, error) {
-	argNames := step.MultiArgNames()
+func computeWorkItems(st *api.Step, inputs api.Args) ([]api.Args, error) {
+	argNames := st.MultiArgNames()
 	multiArgs := getMultiArgs(argNames, inputs)
 	if len(multiArgs) == 0 {
 		return []api.Args{{}}, nil
@@ -126,11 +126,11 @@ func extractMultiArgs(multiArgs MultiArgs) ([]api.Name, [][]any) {
 	return names, arrays
 }
 
-func collectWorkOutputs(completed []api.WorkState, step *api.Step) api.Args {
+func collectWorkOutputs(completed []api.WorkState, st *api.Step) api.Args {
 	aggregated := map[api.Name][]map[string]any{}
 	var multiArgNames []api.Name
-	if step != nil {
-		multiArgNames = step.MultiArgNames()
+	if st != nil {
+		multiArgNames = st.MultiArgNames()
 	}
 
 	for _, item := range completed {

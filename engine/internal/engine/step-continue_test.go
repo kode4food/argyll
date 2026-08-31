@@ -933,14 +933,14 @@ func TestOptionalSomeTimeout(t *testing.T) {
 }
 
 func waitForWorkStarted(
-	env *helpers.TestEngineEnv, flowID api.FlowID, steps []api.StepID,
+	env *helpers.TestEngineEnv, fid api.FlowID, steps []api.StepID,
 	fn func(),
 ) {
 	filters := make([]wait.EventFilter, len(steps))
-	for idx, stepID := range steps {
+	for idx, sid := range steps {
 		filters[idx] = wait.WorkStarted(api.FlowStep{
-			FlowID: flowID,
-			StepID: stepID,
+			FlowID: fid,
+			StepID: sid,
 		})
 	}
 	env.WithConsumer(func(consumer *event.Consumer) {

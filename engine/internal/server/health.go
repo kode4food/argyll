@@ -108,20 +108,20 @@ func (h *HealthChecker) checkAllSteps() {
 }
 
 func (h *HealthChecker) updateScriptHealth(
-	step *api.Step, health map[api.StepID]api.HealthState,
+	st *api.Step, health map[api.StepID]api.HealthState,
 ) {
-	hs, err := h.engine.StepHealth(step)
+	hs, err := h.engine.StepHealth(st)
 	if err != nil {
 		slog.Error("Failed to resolve initial step health",
-			log.StepID(step.ID), log.Error(err))
+			log.StepID(st.ID), log.Error(err))
 		return
 	}
-	health[step.ID] = hs
+	health[st.ID] = hs
 	if err := h.engine.UpdateStepHealth(
-		step.ID, hs.Status, hs.Error,
+		st.ID, hs.Status, hs.Error,
 	); err != nil {
 		slog.Error("Failed to update script health",
-			log.StepID(step.ID), log.Error(err))
+			log.StepID(st.ID), log.Error(err))
 	}
 }
 
@@ -148,26 +148,26 @@ func (h *HealthChecker) updateFlowSteps(
 }
 
 func (h *HealthChecker) updateStepHealth(
-	step *api.Step, health map[api.StepID]api.HealthState,
+	st *api.Step, health map[api.StepID]api.HealthState,
 ) {
 	status := api.HealthHealthy
 	errorMsg := ""
 
-	resp, err := h.client.Get(step.HTTP.Health)
+	resp, err := h.client.Get(st.HTTP.Health)
 	if err != nil {
 		status = api.HealthUnhealthy
 		errorMsg = err.Error()
 		slog.Error("Health check failed",
-			log.StepID(step.ID),
+			log.StepID(st.ID),
 			log.Error(err))
-		health[step.ID] = api.HealthState{
+		health[st.ID] = api.HealthState{
 			Status: status,
 			Error:  errorMsg,
 		}
-		err := h.engine.UpdateStepHealth(step.ID, status, errorMsg)
+		err := h.engine.UpdateStepHealth(st.ID, status, errorMsg)
 		if err != nil {
 			slog.Error("Failed to update step health",
-				log.StepID(step.ID),
+				log.StepID(st.ID),
 				log.Error(err))
 		}
 		return
@@ -178,17 +178,17 @@ func (h *HealthChecker) updateStepHealth(
 		status = api.HealthUnhealthy
 		errorMsg = "HTTP " + resp.Status
 		slog.Error("Health check failed",
-			log.StepID(step.ID),
+			log.StepID(st.ID),
 			log.Status(resp.Status))
 	}
 
-	health[step.ID] = api.HealthState{
+	health[st.ID] = api.HealthState{
 		Status: status,
 		Error:  errorMsg,
 	}
-	if err := h.engine.UpdateStepHealth(step.ID, status, errorMsg); err != nil {
+	if err := h.engine.UpdateStepHealth(st.ID, status, errorMsg); err != nil {
 		slog.Error("Failed to update step health",
-			log.StepID(step.ID),
+			log.StepID(st.ID),
 			log.Error(err))
 	}
 }

@@ -37,8 +37,8 @@ var (
 )
 
 var stepSetters = map[string]setter[api.Step]{
-	nameProp: func(s *api.Step, v string) error {
-		s.Name = api.Name(v)
+	nameProp: func(st *api.Step, v string) error {
+		st.Name = api.Name(v)
 		return nil
 	},
 }

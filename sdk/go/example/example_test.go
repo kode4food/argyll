@@ -146,10 +146,10 @@ func TestRegisteredLabels(t *testing.T) {
 func TestRegisteredAttributeOptions(t *testing.T) {
 	byID := registerSteps(t, example.ArgyllSteps()...)
 
-	step := byID["charge-card-v2"]
-	assert.Equal(t, api.Name("Charge Card (v2)"), step.Name)
+	st := byID["charge-card-v2"]
+	assert.Equal(t, api.Name("Charge Card (v2)"), st.Name)
 
-	attrs := step.Attributes
+	attrs := st.Attributes
 	assert.Equal(t, api.TypeArray, attrs["order_id"].Type)
 	assert.True(t, attrs["order_id"].Required.ForEach)
 	assert.True(t, attrs["note"].IsOptional())
@@ -196,9 +196,9 @@ func registerSteps(
 	registered := make(chan *api.Step, len(steps))
 	engine := httptest.NewServer(http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
-			var step api.Step
-			assert.NoError(t, json.NewDecoder(r.Body).Decode(&step))
-			registered <- &step
+			var st api.Step
+			assert.NoError(t, json.NewDecoder(r.Body).Decode(&st))
+			registered <- &st
 			w.WriteHeader(http.StatusCreated)
 		}))
 	defer engine.Close()
@@ -210,9 +210,9 @@ func registerSteps(
 	close(registered)
 
 	byID := map[api.StepID]*api.Step{}
-	for step := range registered {
-		assert.NoError(t, step.Validate())
-		byID[step.ID] = step
+	for st := range registered {
+		assert.NoError(t, st.Validate())
+		byID[st.ID] = st
 	}
 	return byID
 }

@@ -52,8 +52,8 @@ func NewLuaEnv() *LuaEnv {
 		statePool: make(chan *lua.State, luaStatePoolSize),
 	}
 	luaEnv.compiler = newCompiler(luaCacheSize,
-		func(step *api.Step, cfg *api.ScriptConfig) (*CompiledLua, error) {
-			argNames := step.SortedArgNames()
+		func(st *api.Step, cfg *api.ScriptConfig) (*CompiledLua, error) {
+			argNames := st.SortedArgNames()
 			src := luaEnv.wrapSource(cfg.Script, argNames)
 			return luaEnv.compile(src, argNames)
 		},

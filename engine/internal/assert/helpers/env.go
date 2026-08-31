@@ -267,10 +267,10 @@ func (e *TestEngineEnv) Dependencies() engine.Dependencies {
 
 // RaiseFlowEvents appends flow events via the executor
 func (e *TestEngineEnv) RaiseFlowEvents(
-	flowID api.FlowID, evs ...FlowEvent,
+	fid api.FlowID, evs ...FlowEvent,
 ) error {
 	_, err := e.flowExec.Exec(
-		events.FlowKey(flowID),
+		events.FlowKey(fid),
 		func(_ api.FlowState, ag *timebox.Aggregator[api.FlowState]) error {
 			for _, ev := range evs {
 				if err := raiseFlowEvent(ag, ev); err != nil {
@@ -285,37 +285,37 @@ func (e *TestEngineEnv) RaiseFlowEvents(
 
 // SeedFlow stores a minimal valid flow history for state/query fixtures
 func (e *TestEngineEnv) SeedFlow(
-	flowID api.FlowID, status api.FlowStatus, labels api.Labels,
+	fid api.FlowID, status api.FlowStatus, labels api.Labels,
 ) error {
 	evs := []FlowEvent{{
 		Type: api.EventTypeFlowStarted,
 		Data: api.FlowStartedEvent{
-			FlowID: flowID,
+			FlowID: fid,
 			Plan:   &api.ExecutionPlan{Steps: api.Steps{}},
 			Labels: labels,
 		},
 	}}
 	switch status {
 	case api.FlowActive:
-		return e.RaiseFlowEvents(flowID, evs...)
+		return e.RaiseFlowEvents(fid, evs...)
 	case api.FlowCompleted:
 		evs = append(evs, FlowEvent{
 			Type: api.EventTypeFlowCompleted,
-			Data: api.FlowCompletedEvent{FlowID: flowID},
+			Data: api.FlowCompletedEvent{FlowID: fid},
 		})
 	case api.FlowFailed:
 		evs = append(evs, FlowEvent{
 			Type: api.EventTypeFlowFailed,
-			Data: api.FlowFailedEvent{FlowID: flowID},
+			Data: api.FlowFailedEvent{FlowID: fid},
 		})
 	default:
 		return ErrInvalidSeedFlowStatus
 	}
 	evs = append(evs, FlowEvent{
 		Type: api.EventTypeFlowDeactivated,
-		Data: api.FlowDeactivatedEvent{FlowID: flowID, Status: status},
+		Data: api.FlowDeactivatedEvent{FlowID: fid, Status: status},
 	})
-	return e.RaiseFlowEvents(flowID, evs...)
+	return e.RaiseFlowEvents(fid, evs...)
 }
 
 // AppendEvents appends raw events to the shared test store

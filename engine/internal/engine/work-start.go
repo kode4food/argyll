@@ -80,14 +80,14 @@ func (e *ExecContext) UpdateHealth(s api.HealthStatus, msg string) error {
 }
 
 func (tx *flowTx) executeStartedWork(
-	step *api.Step, inputs api.Args, meta api.Metadata, items api.WorkItems,
+	st *api.Step, inputs api.Args, meta api.Metadata, items api.WorkItems,
 ) {
 	execCtx := &ExecContext{
 		engine: tx.Engine,
 		flowID: tx.flowID,
-		stepID: step.ID,
-		step:   step,
-		child:  tx.Value().Plan.Children[step.ID],
+		stepID: st.ID,
+		step:   st,
+		child:  tx.Value().Plan.Children[st.ID],
 		inputs: inputs,
 		meta:   meta,
 	}
@@ -146,15 +146,15 @@ func (e *ExecContext) performWork(inputs api.Args, tkn api.Token) error {
 	return handler.Execute(e, e.step, inputs, tkn)
 }
 
-func (tx *flowTx) startPendingWork(step *api.Step) (api.WorkItems, error) {
-	sid := step.ID
+func (tx *flowTx) startPendingWork(st *api.Step) (api.WorkItems, error) {
+	sid := st.ID
 	ex := tx.Value().Executions[sid]
 	if !policy.StepActive(ex.Status) {
 		return nil, fmt.Errorf("%w: expected %s to be active, got %s",
 			ErrInvariantViolated, sid, ex.Status)
 	}
 
-	limit := policy.StepParallelism(step)
+	limit := policy.StepParallelism(st)
 	active := policy.CountActiveWorkItems(ex.WorkItems)
 	remaining := limit - active
 	if remaining <= 0 {
@@ -163,13 +163,13 @@ func (tx *flowTx) startPendingWork(step *api.Step) (api.WorkItems, error) {
 
 	now := tx.Now()
 	started := api.WorkItems{}
-	canDispatch := tx.canDispatchLocally(step.ID)
+	canDispatch := tx.canDispatchLocally(st.ID)
 	for tkn, work := range ex.WorkItems {
 		if remaining == 0 {
 			break
 		}
 		shouldStart, err := tx.shouldStartPendingWorkItem(
-			step, ex.Inputs, work, now,
+			st, ex.Inputs, work, now,
 		)
 		if err != nil {
 			return nil, err
@@ -179,8 +179,8 @@ func (tx *flowTx) startPendingWork(step *api.Step) (api.WorkItems, error) {
 		}
 
 		inputs := ex.Inputs.Apply(work.Inputs)
-		if step.DefaultedHandling() == api.HandlingMemoized {
-			if cached, ok := tx.memoCache.Get(step, inputs); ok {
+		if st.DefaultedHandling() == api.HandlingMemoized {
+			if cached, ok := tx.memoCache.Get(st, inputs); ok {
 				err := tx.handleMemoCacheHit(sid, tkn, cached)
 				if err != nil {
 					return nil, err
@@ -205,9 +205,9 @@ func (tx *flowTx) startPendingWork(step *api.Step) (api.WorkItems, error) {
 }
 
 func (tx *flowTx) startRetryWorkItem(
-	step *api.Step, tkn api.Token,
+	st *api.Step, tkn api.Token,
 ) (api.WorkItems, time.Time, error) {
-	sid := step.ID
+	sid := st.ID
 	ex := tx.Value().Executions[sid]
 	if !policy.StepActive(ex.Status) {
 		return nil, time.Time{}, nil
@@ -228,7 +228,7 @@ func (tx *flowTx) startRetryWorkItem(
 		var err error
 		if shouldStart, err = tx.shouldStartRetryPending(
 			shouldStartRetryPendingArgs{
-				step:  step,
+				step:  st,
 				base:  ex.Inputs,
 				work:  work,
 				items: ex.WorkItems,
@@ -257,9 +257,9 @@ func (tx *flowTx) startRetryWorkItem(
 }
 
 func (tx *flowTx) shouldStartPendingWorkItem(
-	step *api.Step, base api.Args, work api.WorkState, when time.Time,
+	st *api.Step, base api.Args, work api.WorkState, when time.Time,
 ) (bool, error) {
-	sid := step.ID
+	sid := st.ID
 	if !policy.WorkPending(work.Status) {
 		return false, nil
 	}
@@ -267,7 +267,7 @@ func (tx *flowTx) shouldStartPendingWorkItem(
 		return false, nil
 	}
 	inputs := base.Apply(work.Inputs)
-	shouldStart, err := tx.evaluateStepPredicate(step, inputs)
+	shouldStart, err := tx.evaluateStepPredicate(st, inputs)
 	if err != nil {
 		return false, tx.handlePredicateFailure(sid, base, err)
 	}
@@ -304,12 +304,12 @@ func (tx *flowTx) shouldStartRetryPending(
 }
 
 func (tx *flowTx) raiseWorkStarted(
-	stepID api.StepID, tkn api.Token, inputs api.Args,
+	sid api.StepID, tkn api.Token, inputs api.Args,
 ) error {
 	return events.Raise(tx.FlowAggregator, api.EventTypeWorkStarted,
 		api.WorkStartedEvent{
 			FlowID: tx.flowID,
-			StepID: stepID,
+			StepID: sid,
 			Token:  tkn,
 			Inputs: inputs,
 		},

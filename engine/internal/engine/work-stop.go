@@ -31,9 +31,7 @@ func (e *Engine) CompleteWork(
 }
 
 // FailWork marks a work item as failed with the specified error message
-func (e *Engine) FailWork(
-	fs api.FlowStep, tkn api.Token, errMsg string,
-) error {
+func (e *Engine) FailWork(fs api.FlowStep, tkn api.Token, errMsg string) error {
 	return e.flowTx(fs.FlowID, func(tx *flowTx) error {
 		return tx.failWork(fs.StepID, tkn, errMsg)
 	})
@@ -62,19 +60,19 @@ func (tx *flowTx) clearRetryTask(fs api.FlowStep, tkn api.Token) {
 }
 
 func (tx *flowTx) completeWork(
-	stepID api.StepID, tkn api.Token, outputs api.Args,
+	sid api.StepID, tkn api.Token, outputs api.Args,
 ) error {
-	err := tx.checkWorkTransition(stepID, tkn, api.WorkSucceeded)
+	err := tx.checkWorkTransition(sid, tkn, api.WorkSucceeded)
 	if err != nil {
 		return err
 	}
 
-	tx.memoizeWorkOutput(stepID, tkn, outputs)
+	tx.memoizeWorkOutput(sid, tkn, outputs)
 
 	if err := events.Raise(tx.FlowAggregator, api.EventTypeWorkSucceeded,
 		api.WorkSucceededEvent{
 			FlowID:  tx.flowID,
-			StepID:  stepID,
+			StepID:  sid,
 			Token:   tkn,
 			Outputs: outputs,
 		},
@@ -82,56 +80,56 @@ func (tx *flowTx) completeWork(
 		return err
 	}
 
-	tx.OnSuccess(func(flow api.FlowState, _ []*timebox.Event) {
-		if hasRetryTask(flow, stepID, tkn) {
+	tx.OnSuccess(func(fl api.FlowState, _ []*timebox.Event) {
+		if hasRetryTask(fl, sid, tkn) {
 			tx.clearRetryTask(api.FlowStep{
 				FlowID: tx.flowID,
-				StepID: stepID,
+				StepID: sid,
 			}, tkn)
 		}
 	})
 
-	return tx.handleWorkSucceeded(stepID)
+	return tx.handleWorkSucceeded(sid)
 }
 
 func (tx *flowTx) memoizeWorkOutput(
-	stepID api.StepID, tkn api.Token, outputs api.Args,
+	sid api.StepID, tkn api.Token, outputs api.Args,
 ) {
 	fl := tx.Value()
-	st := fl.Plan.Steps[stepID]
+	st := fl.Plan.Steps[sid]
 	if st.DefaultedHandling() != api.HandlingMemoized {
 		return
 	}
 
-	ex := fl.Executions[stepID]
+	ex := fl.Executions[sid]
 	work := ex.WorkItems[tkn]
 	inputs := ex.Inputs.Apply(work.Inputs)
 	if err := tx.memoCache.Put(st, inputs, outputs); err != nil {
 		slog.Warn("memo cache put failed",
-			log.FlowID(tx.flowID), log.StepID(stepID),
+			log.FlowID(tx.flowID), log.StepID(sid),
 			log.Error(err))
 	}
 }
 
 func (tx *flowTx) failWork(
-	stepID api.StepID, tkn api.Token, errMsg string,
+	sid api.StepID, tkn api.Token, errMsg string,
 ) error {
-	if err := tx.checkWorkTransition(stepID, tkn, api.WorkFailed); err != nil {
+	if err := tx.checkWorkTransition(sid, tkn, api.WorkFailed); err != nil {
 		return err
 	}
-	if err := tx.raiseWorkFailed(stepID, tkn, errMsg); err != nil {
+	if err := tx.raiseWorkFailed(sid, tkn, errMsg); err != nil {
 		return err
 	}
-	return tx.handleWorkFailed(stepID)
+	return tx.handleWorkFailed(sid)
 }
 
 func (tx *flowTx) checkWorkTransition(
-	stepID api.StepID, tkn api.Token, toStatus api.WorkStatus,
+	sid api.StepID, tkn api.Token, toStatus api.WorkStatus,
 ) error {
 	fl := tx.Value()
-	ex, ok := fl.Executions[stepID]
+	ex, ok := fl.Executions[sid]
 	if !ok {
-		return fmt.Errorf("%w: %s", ErrStepNotInPlan, stepID)
+		return fmt.Errorf("%w: %s", ErrStepNotInPlan, sid)
 	}
 
 	work, ok := ex.WorkItems[tkn]
@@ -147,20 +145,20 @@ func (tx *flowTx) checkWorkTransition(
 	return nil
 }
 
-func (tx *flowTx) handleWorkSucceeded(stepID api.StepID) error {
+func (tx *flowTx) handleWorkSucceeded(sid api.StepID) error {
 	if policy.FlowTerminal(tx.Value().Status) {
-		return tx.handleTerminalWork(stepID)
+		return tx.handleTerminalWork(sid)
 	}
-	if !policy.StepActive(tx.Value().Executions[stepID].Status) {
+	if !policy.StepActive(tx.Value().Executions[sid].Status) {
 		return nil
 	}
 
-	completed, err := tx.checkStepCompletion(stepID)
+	completed, err := tx.checkStepCompletion(sid)
 	if err != nil {
 		return err
 	}
 	if !completed {
-		return tx.handleWorkContinuation(stepID)
+		return tx.handleWorkContinuation(sid)
 	}
 
 	return call.Perform(
@@ -170,56 +168,56 @@ func (tx *flowTx) handleWorkSucceeded(stepID api.StepID) error {
 	)
 }
 
-func (tx *flowTx) handleWorkFailed(stepID api.StepID) error {
-	return tx.handleStepFailure(stepID)
+func (tx *flowTx) handleWorkFailed(sid api.StepID) error {
+	return tx.handleStepFailure(sid)
 }
 
 func (tx *flowTx) handleWorkNotCompleted(
-	stepID api.StepID, tkn api.Token,
+	sid api.StepID, tkn api.Token,
 ) error {
 	if policy.FlowTerminal(tx.Value().Status) {
 		return tx.maybeDeactivate()
 	}
-	if !policy.StepActive(tx.Value().Executions[stepID].Status) {
+	if !policy.StepActive(tx.Value().Executions[sid].Status) {
 		return nil
 	}
 	return call.Perform(
-		call.WithArgs(tx.scheduleRetry, stepID, tkn),
-		call.WithArgs(tx.continueStepWork, stepID, true),
-		call.WithArg(tx.handleStepFailure, stepID),
+		call.WithArgs(tx.scheduleRetry, sid, tkn),
+		call.WithArgs(tx.continueStepWork, sid, true),
+		call.WithArg(tx.handleStepFailure, sid),
 	)
 }
 
 // handleMemoCacheHit processes a memo cache hit by emitting WorkSucceeded
 func (tx *flowTx) handleMemoCacheHit(
-	stepID api.StepID, tkn api.Token, outputs api.Args,
+	sid api.StepID, tkn api.Token, outputs api.Args,
 ) error {
 	if err := events.Raise(tx.FlowAggregator, api.EventTypeWorkSucceeded,
 		api.WorkSucceededEvent{
 			FlowID:  tx.flowID,
-			StepID:  stepID,
+			StepID:  sid,
 			Token:   tkn,
 			Outputs: outputs,
 		},
 	); err != nil {
 		return err
 	}
-	tx.OnSuccess(func(flow api.FlowState, _ []*timebox.Event) {
-		if hasRetryTask(flow, stepID, tkn) {
-			fs := api.FlowStep{FlowID: tx.flowID, StepID: stepID}
+	tx.OnSuccess(func(fl api.FlowState, _ []*timebox.Event) {
+		if hasRetryTask(fl, sid, tkn) {
+			fs := api.FlowStep{FlowID: tx.flowID, StepID: sid}
 			tx.clearRetryTask(fs, tkn)
 		}
 	})
-	return tx.handleWorkSucceeded(stepID)
+	return tx.handleWorkSucceeded(sid)
 }
 
 func (tx *flowTx) raiseWorkFailed(
-	stepID api.StepID, tkn api.Token, errMsg string,
+	sid api.StepID, tkn api.Token, errMsg string,
 ) error {
 	return events.Raise(tx.FlowAggregator, api.EventTypeWorkFailed,
 		api.WorkFailedEvent{
 			FlowID: tx.flowID,
-			StepID: stepID,
+			StepID: sid,
 			Token:  tkn,
 			Error:  errMsg,
 		},
@@ -227,12 +225,12 @@ func (tx *flowTx) raiseWorkFailed(
 }
 
 func (tx *flowTx) raiseRetryScheduled(
-	stepID api.StepID, tkn api.Token, work api.WorkState, nextRetryAt time.Time,
+	sid api.StepID, tkn api.Token, work api.WorkState, nextRetryAt time.Time,
 ) error {
 	return events.Raise(tx.FlowAggregator, api.EventTypeWorkRetryScheduled,
 		api.WorkRetryScheduledEvent{
 			FlowID:      tx.flowID,
-			StepID:      stepID,
+			StepID:      sid,
 			Token:       tkn,
 			RetryCount:  work.RetryCount + 1,
 			NextRetryAt: nextRetryAt,
@@ -242,20 +240,20 @@ func (tx *flowTx) raiseRetryScheduled(
 }
 
 func (tx *flowTx) raiseWorkNotCompleted(
-	stepID api.StepID, tkn api.Token, errMsg string,
+	sid api.StepID, tkn api.Token, errMsg string,
 ) error {
 	return events.Raise(tx.FlowAggregator, api.EventTypeWorkNotCompleted,
 		api.WorkNotCompletedEvent{
 			FlowID: tx.flowID,
-			StepID: stepID,
+			StepID: sid,
 			Token:  tkn,
 			Error:  errMsg,
 		},
 	)
 }
 
-func hasRetryTask(flow api.FlowState, stepID api.StepID, tkn api.Token) bool {
-	ex, ok := flow.Executions[stepID]
+func hasRetryTask(fl api.FlowState, sid api.StepID, tkn api.Token) bool {
+	ex, ok := fl.Executions[sid]
 	if !ok {
 		return false
 	}

@@ -13,11 +13,11 @@ type WorkCompletion struct {
 
 // StepParallelism returns the effective dispatch parallelism for a step. A
 // missing, zero, or negative setting means one work item at a time
-func StepParallelism(step *api.Step) int {
-	if step.WorkConfig == nil || step.WorkConfig.Parallelism <= 0 {
+func StepParallelism(st *api.Step) int {
+	if st.WorkConfig == nil || st.WorkConfig.Parallelism <= 0 {
 		return 1
 	}
-	return step.WorkConfig.Parallelism
+	return st.WorkConfig.Parallelism
 }
 
 // CountActiveWorkItems counts currently executing work items for dispatch

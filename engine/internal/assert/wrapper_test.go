@@ -18,12 +18,12 @@ type mockGetter struct {
 }
 
 func (g *mockGetter) GetAttribute(
-	flowID api.FlowID, attr api.Name,
+	fid api.FlowID, attr api.Name,
 ) (any, bool, error) {
 	if g.err != nil {
 		return nil, false, g.err
 	}
-	if flowAttrs, ok := g.attrs[flowID]; ok {
+	if flowAttrs, ok := g.attrs[fid]; ok {
 		if val, ok := flowAttrs[attr]; ok {
 			return val, true, nil
 		}

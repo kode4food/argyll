@@ -130,7 +130,7 @@ func (e *Engine) listIndexedEntries(
 
 	res := make([]flowStatusEntry, 0, len(entries))
 	for _, entry := range entries {
-		flowID, ok := events.ParseFlowID(entry.ID)
+		fid, ok := events.ParseFlowID(entry.ID)
 		if !ok {
 			return nil, errors.Join(
 				ErrQueryFlows,
@@ -139,7 +139,7 @@ func (e *Engine) listIndexedEntries(
 			)
 		}
 		res = append(res, flowStatusEntry{
-			id:        flowID,
+			id:        fid,
 			status:    flowStatus,
 			timestamp: entry.Timestamp.UnixNano(),
 		})
@@ -193,7 +193,7 @@ func (e *Engine) collectLabelFlowIDs(
 
 		curr := util.Set[api.FlowID]{}
 		for _, id := range ids {
-			flowID, ok := events.ParseFlowID(id)
+			fid, ok := events.ParseFlowID(id)
 			if !ok {
 				return nil, errors.Join(
 					ErrQueryFlows,
@@ -201,10 +201,10 @@ func (e *Engine) collectLabelFlowIDs(
 						id.String()),
 				)
 			}
-			if isChildFlowID(flowID) {
+			if isChildFlowID(fid) {
 				continue
 			}
-			curr.Add(flowID)
+			curr.Add(fid)
 		}
 
 		if res == nil {

@@ -83,19 +83,19 @@ func WriteProblem(w http.ResponseWriter, status int, detail string) {
 	_ = json.NewEncoder(w).Encode(api.NewProblem(status, detail))
 }
 
-func setupStepServer(client *Client, step Step, handle StepHandler) error {
+func setupStepServer(client *Client, st Step, handle StepHandler) error {
 	addr := LocalStepAddr()
-	id := step.step.ID
+	id := st.step.ID
 	endpoint := fmt.Sprintf("%s/%s", addr.BaseURL, id)
-	step = step.WithEndpoint(endpoint).
+	st = st.WithEndpoint(endpoint).
 		WithHealthCheck(addr.BaseURL + "/health")
 
-	comp := step.step.HTTP.Compensate
-	if step.compensate != nil && (comp == nil || comp.Endpoint == "") {
-		step = step.WithCompensate(endpoint + "/compensate")
+	comp := st.step.HTTP.Compensate
+	if st.compensate != nil && (comp == nil || comp.Endpoint == "") {
+		st = st.WithCompensate(endpoint + "/compensate")
 	}
 
-	stepReq, err := step.Build()
+	stepReq, err := st.Build()
 	if err != nil {
 		return err
 	}
@@ -109,13 +109,13 @@ func setupStepServer(client *Client, step Step, handle StepHandler) error {
 	handler := makeStepHandler(client, id, handle)
 	mux.HandleFunc("/"+string(id), handler)
 
-	if step.compensate != nil {
-		compHandler := makeCompensateHandler(client, id, step.compensate)
+	if st.compensate != nil {
+		compHandler := makeCompensateHandler(client, id, st.compensate)
 		mux.HandleFunc("/"+string(id)+"/compensate", compHandler)
 	}
 
 	slog.Info("Step server starting",
-		slog.String("step_name", string(step.step.Name)),
+		slog.String("step_name", string(st.step.Name)),
 		log.StepID(id),
 		slog.String("port", addr.Port),
 		slog.String("endpoint", endpoint))

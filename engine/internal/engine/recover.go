@@ -41,8 +41,8 @@ func (e *Engine) RecoverFlows() error {
 
 // RecoverFlow resumes execution of a specific flow by scheduling optional
 // timeout callbacks and any pending work retries
-func (e *Engine) RecoverFlow(flowID api.FlowID) error {
-	fl, err := e.GetFlowState(flowID)
+func (e *Engine) RecoverFlow(fid api.FlowID) error {
+	fl, err := e.GetFlowState(fid)
 	if err != nil {
 		return errors.Join(ErrGetFlowState, err)
 	}
@@ -54,7 +54,7 @@ func (e *Engine) RecoverFlow(flowID api.FlowID) error {
 
 	if policy.FlowTerminal(fl.Status) {
 		// The parent's release may have been missed while this engine was down
-		return e.flowTx(flowID, func(tx *flowTx) error {
+		return e.flowTx(fid, func(tx *flowTx) error {
 			return tx.maybeDeactivate()
 		})
 	}
@@ -63,18 +63,18 @@ func (e *Engine) RecoverFlow(flowID api.FlowID) error {
 	return nil
 }
 
-func (e *Engine) recoverWork(flow api.FlowState) {
-	e.recoverTimeouts(flow)
-	e.recoverWorkDispatch(flow)
-	e.recoverRetries(flow)
+func (e *Engine) recoverWork(fl api.FlowState) {
+	e.recoverTimeouts(fl)
+	e.recoverWorkDispatch(fl)
+	e.recoverRetries(fl)
 }
 
 // FindRetrySteps identifies all steps in a flow that have work items that
 // might need recovery
-func (*Engine) FindRetrySteps(state api.FlowState) util.Set[api.StepID] {
+func (*Engine) FindRetrySteps(fl api.FlowState) util.Set[api.StepID] {
 	steps := util.Set[api.StepID]{}
 
-	for sid, ex := range state.Executions {
+	for sid, ex := range fl.Executions {
 		for _, work := range ex.WorkItems {
 			if !policy.Recoverable(ex, work) {
 				continue
@@ -87,23 +87,23 @@ func (*Engine) FindRetrySteps(state api.FlowState) util.Set[api.StepID] {
 	return steps
 }
 
-func (e *Engine) recoverTimeouts(flow api.FlowState) {
-	e.scheduleTimeouts(flow, e.Now())
+func (e *Engine) recoverTimeouts(fl api.FlowState) {
+	e.scheduleTimeouts(fl, e.Now())
 }
 
-func (e *Engine) recoverRetries(flow api.FlowState) {
-	steps := e.FindRetrySteps(flow)
+func (e *Engine) recoverRetries(fl api.FlowState) {
+	steps := e.FindRetrySteps(fl)
 	if steps.IsEmpty() {
 		return
 	}
 
 	now := e.Now()
 	for sid := range steps {
-		ex := flow.Executions[sid]
+		ex := fl.Executions[sid]
 		for tkn, work := range ex.WorkItems {
 			if retryAt, ok := policy.RecoverableDeadline(ex, work, now); ok {
 				e.scheduleRetryTask(api.FlowStep{
-					FlowID: flow.ID,
+					FlowID: fl.ID,
 					StepID: sid,
 				}, tkn, retryAt)
 			}
@@ -121,7 +121,7 @@ func (e *Engine) listIndexedFlows(status string) ([]api.FlowID, error) {
 	seen := util.Set[api.FlowID]{}
 	res := make([]api.FlowID, 0, len(entries))
 	for _, entry := range entries {
-		flowID, ok := events.ParseFlowID(entry.ID)
+		fid, ok := events.ParseFlowID(entry.ID)
 		if !ok {
 			return nil, errors.Join(
 				ErrListActiveFlows,
@@ -129,11 +129,11 @@ func (e *Engine) listIndexedFlows(status string) ([]api.FlowID, error) {
 					entry.ID.String()),
 			)
 		}
-		if seen.Contains(flowID) {
+		if seen.Contains(fid) {
 			continue
 		}
-		seen.Add(flowID)
-		res = append(res, flowID)
+		seen.Add(fid)
+		res = append(res, fid)
 	}
 	return res, nil
 }

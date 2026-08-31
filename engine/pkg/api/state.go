@@ -142,16 +142,16 @@ const (
 )
 
 // SetStep returns a new CatalogState with the specified step registered
-func (c CatalogState) SetStep(id StepID, step *Step) CatalogState {
+func (c CatalogState) SetStep(id StepID, st *Step) CatalogState {
 	oldStep, exists := c.Steps[id]
 	c.Steps = maps.Clone(c.Steps)
-	c.Steps[id] = step
+	c.Steps[id] = st
 
 	if exists {
 		c.Attributes = c.Attributes.RemoveStep(oldStep)
 	}
 
-	c.Attributes = c.Attributes.AddStep(step)
+	c.Attributes = c.Attributes.AddStep(st)
 	return c
 }
 
@@ -172,9 +172,9 @@ func (c CatalogState) DeleteStep(id StepID) CatalogState {
 func (c CatalogState) SpaceSteps(id SpaceID) Steps {
 	selected := c.Selection[id]
 	res := make(Steps, len(selected))
-	for _, stepID := range selected {
-		if step, ok := c.Steps[stepID]; ok {
-			res[stepID] = step
+	for _, sid := range selected {
+		if step, ok := c.Steps[sid]; ok {
+			res[sid] = step
 		}
 	}
 	return res
@@ -206,9 +206,7 @@ func (c CatalogState) DeleteSpaceSelection(id SpaceID) CatalogState {
 
 // SetStepSpaces returns a new CatalogState where the step is selected by
 // exactly the supplied spaces
-func (c CatalogState) SetStepSpaces(
-	id StepID, spaces []SpaceID,
-) CatalogState {
+func (c CatalogState) SetStepSpaces(id StepID, spaces []SpaceID) CatalogState {
 	next := util.SetOf(spaces...)
 	selection := SpaceSelection{}
 	for spaceID, steps := range c.Selection {

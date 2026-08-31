@@ -120,9 +120,9 @@ func (s *Server) verifyAppliedSteps(
 	proposed []map[string]any,
 ) (semanticVerification, error) {
 	var semantic []map[string]any
-	for _, step := range proposed {
-		if len(semanticConfigs(step)) != 0 {
-			semantic = append(semantic, step)
+	for _, st := range proposed {
+		if len(semanticConfigs(st)) != 0 {
+			semantic = append(semantic, st)
 		}
 	}
 	if len(semantic) == 0 {

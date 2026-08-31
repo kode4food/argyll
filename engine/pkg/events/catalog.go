@@ -46,54 +46,54 @@ func makeCatalogAppliers() timebox.Appliers[api.CatalogState] {
 }
 
 func stepRegistered(
-	st api.CatalogState, ev *timebox.Event, data api.StepRegisteredEvent,
+	cat api.CatalogState, ev *timebox.Event, data api.StepRegisteredEvent,
 ) api.CatalogState {
-	return st.
+	return cat.
 		SetStep(data.Step.ID, data.Step).
 		SetStepSpaces(data.Step.ID, data.Spaces).
 		SetLastUpdated(ev.Timestamp)
 }
 
 func stepUnregistered(
-	st api.CatalogState, ev *timebox.Event, data api.StepUnregisteredEvent,
+	cat api.CatalogState, ev *timebox.Event, data api.StepUnregisteredEvent,
 ) api.CatalogState {
-	return st.
+	return cat.
 		DeleteStep(data.StepID).
 		SetStepSpaces(data.StepID, nil).
 		SetLastUpdated(ev.Timestamp)
 }
 
 func stepUpdated(
-	st api.CatalogState, ev *timebox.Event, data api.StepUpdatedEvent,
+	cat api.CatalogState, ev *timebox.Event, data api.StepUpdatedEvent,
 ) api.CatalogState {
-	return st.
+	return cat.
 		SetStep(data.Step.ID, data.Step).
 		SetStepSpaces(data.Step.ID, data.Spaces).
 		SetLastUpdated(ev.Timestamp)
 }
 
 func spaceRegistered(
-	st api.CatalogState, ev *timebox.Event, data api.SpaceRegisteredEvent,
+	cat api.CatalogState, ev *timebox.Event, data api.SpaceRegisteredEvent,
 ) api.CatalogState {
-	return st.
+	return cat.
 		SetSpace(data.Space.ID, data.Space).
 		SetSpaceSelection(data.Space.ID, data.StepIDs).
 		SetLastUpdated(ev.Timestamp)
 }
 
 func spaceUpdated(
-	st api.CatalogState, ev *timebox.Event, data api.SpaceUpdatedEvent,
+	cat api.CatalogState, ev *timebox.Event, data api.SpaceUpdatedEvent,
 ) api.CatalogState {
-	return st.
+	return cat.
 		SetSpace(data.Space.ID, data.Space).
 		SetSpaceSelection(data.Space.ID, data.StepIDs).
 		SetLastUpdated(ev.Timestamp)
 }
 
 func spaceUnregistered(
-	st api.CatalogState, ev *timebox.Event, data api.SpaceUnregisteredEvent,
+	cat api.CatalogState, ev *timebox.Event, data api.SpaceUnregisteredEvent,
 ) api.CatalogState {
-	return st.
+	return cat.
 		DeleteSpace(data.SpaceID).
 		DeleteSpaceSelection(data.SpaceID).
 		SetLastUpdated(ev.Timestamp)

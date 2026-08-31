@@ -166,7 +166,7 @@ func TestStepPrunedByRequiredMatch(t *testing.T) {
 
 func TestRequiredMatchStepStatus(t *testing.T) {
 	cfg := &api.ScriptConfig{Language: api.ScriptLangJPath, Script: "$.kind"}
-	step := &api.Step{
+	st := &api.Step{
 		Attributes: api.AttributeSpecs{
 			"kind":   requiredMatch(cfg, api.InputCollectFirst),
 			"region": requiredMatch(cfg, api.InputCollectFirst),
@@ -185,7 +185,7 @@ func TestRequiredMatchStepStatus(t *testing.T) {
 	}
 
 	status, err := policy.RequiredMatchStepStatus(policy.RequiredMatchStep{
-		Step:      step,
+		Step:      st,
 		Values:    valuesFor,
 		Providers: providers,
 		Match: func(_ *api.ScriptConfig, value any) (bool, error) {
@@ -196,7 +196,7 @@ func TestRequiredMatchStepStatus(t *testing.T) {
 	assert.Equal(t, policy.MatchMatched, status)
 
 	status, err = policy.RequiredMatchStepStatus(policy.RequiredMatchStep{
-		Step:      step,
+		Step:      st,
 		Values:    valuesFor,
 		Providers: providers,
 		Match: func(_ *api.ScriptConfig, value any) (bool, error) {
@@ -207,7 +207,7 @@ func TestRequiredMatchStepStatus(t *testing.T) {
 	assert.Equal(t, policy.MatchUnmatched, status)
 
 	status, err = policy.RequiredMatchStepStatus(policy.RequiredMatchStep{
-		Step: step,
+		Step: st,
 		Values: func(name api.Name) []*api.AttributeValue {
 			if name == "region" {
 				return nil

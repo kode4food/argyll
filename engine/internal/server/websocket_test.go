@@ -681,10 +681,10 @@ func TestSocketCallbackFlow(t *testing.T) {
 		item := subscribedItem(t, stateMsg)
 		assert.Equal(t, []string{events.FlowPrefix, "wf-123"}, item.AggregateID)
 
-		var flow api.FlowState
-		err = json.Unmarshal(item.Data, &flow)
+		var fl api.FlowState
+		err = json.Unmarshal(item.Data, &fl)
 		assert.NoError(t, err)
-		assert.Equal(t, api.FlowID("wf-123"), flow.ID)
+		assert.Equal(t, api.FlowID("wf-123"), fl.ID)
 	})
 }
 
@@ -745,27 +745,27 @@ func testWebSocket(t *testing.T, getState server.StateFunc) *testWebSocketEnv {
 	}
 }
 
-func wsFlowStarted(flowID api.FlowID, stepID api.StepID) api.FlowStartedEvent {
+func wsFlowStarted(fid api.FlowID, sid api.StepID) api.FlowStartedEvent {
 	return api.FlowStartedEvent{
-		FlowID:   flowID,
-		Plan:     wsPlan(stepID),
+		FlowID:   fid,
+		Plan:     wsPlan(sid),
 		Init:     api.InitArgs{},
 		Metadata: api.Metadata{},
 	}
 }
 
-func wsStepStarted(flowID api.FlowID, stepID api.StepID) api.StepStartedEvent {
+func wsStepStarted(fid api.FlowID, sid api.StepID) api.StepStartedEvent {
 	return api.StepStartedEvent{
-		FlowID:    flowID,
-		StepID:    stepID,
+		FlowID:    fid,
+		StepID:    sid,
 		Inputs:    api.Args{},
 		WorkItems: map[api.Token]api.Args{},
 	}
 }
 
-func wsPlan(stepID api.StepID) *api.ExecutionPlan {
+func wsPlan(sid api.StepID) *api.ExecutionPlan {
 	st := &api.Step{
-		ID:   stepID,
+		ID:   sid,
 		Name: "ws-step",
 		Type: api.StepTypeService,
 		HTTP: &api.HTTPConfig{
@@ -776,8 +776,8 @@ func wsPlan(stepID api.StepID) *api.ExecutionPlan {
 		},
 	}
 	return &api.ExecutionPlan{
-		Goals: []api.StepID{stepID},
-		Steps: api.Steps{stepID: st},
+		Goals: []api.StepID{sid},
+		Steps: api.Steps{sid: st},
 	}
 }
 

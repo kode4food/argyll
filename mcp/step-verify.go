@@ -25,12 +25,12 @@ func verifyAppliedSemantics(
 	proposed []map[string]any, actual map[string]map[string]any,
 ) semanticVerification {
 	var issues []semanticIssue
-	for _, step := range proposed {
-		id := stringValue(step["id"])
+	for _, st := range proposed {
+		id := stringValue(st["id"])
 		if id == "" {
 			continue
 		}
-		configs := semanticConfigs(step)
+		configs := semanticConfigs(st)
 		if len(configs) == 0 {
 			continue
 		}
@@ -63,8 +63,8 @@ func verifyAppliedSemantics(
 	return semanticVerification{Status: "passed"}
 }
 
-func semanticConfigs(step map[string]any) []semanticConfig {
-	attrs, ok := asMap(step["attributes"])
+func semanticConfigs(st map[string]any) []semanticConfig {
+	attrs, ok := asMap(st["attributes"])
 	if !ok {
 		return nil
 	}

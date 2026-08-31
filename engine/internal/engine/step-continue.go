@@ -11,31 +11,31 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/util"
 )
 
-func (e *Engine) scheduleTimeouts(flow api.FlowState, when time.Time) {
-	if !flowHasTimeouts(flow) {
+func (e *Engine) scheduleTimeouts(fl api.FlowState, when time.Time) {
+	if !flowHasTimeouts(fl) {
 		return
 	}
-	e.CancelPrefixedTasks(timeoutFlowPrefix(flow.ID))
-	if policy.FlowTerminal(flow.Status) {
+	e.CancelPrefixedTasks(timeoutFlowPrefix(fl.ID))
+	if policy.FlowTerminal(fl.Status) {
 		return
 	}
 
-	for sid := range flow.Executions {
-		e.scheduleStepTimeouts(flow, sid, when, false)
+	for sid := range fl.Executions {
+		e.scheduleStepTimeouts(fl, sid, when, false)
 	}
 }
 
 func (e *Engine) scheduleConsumerTimeouts(
-	flow api.FlowState, producerID api.StepID, when time.Time,
+	fl api.FlowState, producerID api.StepID, when time.Time,
 ) {
-	if policy.FlowTerminal(flow.Status) {
-		if flowHasTimeouts(flow) {
-			e.CancelPrefixedTasks(timeoutFlowPrefix(flow.ID))
+	if policy.FlowTerminal(fl.Status) {
+		if flowHasTimeouts(fl) {
+			e.CancelPrefixedTasks(timeoutFlowPrefix(fl.ID))
 		}
 		return
 	}
 
-	producer, ok := flow.Plan.Steps[producerID]
+	producer, ok := fl.Plan.Steps[producerID]
 	if !ok {
 		return
 	}
@@ -45,7 +45,7 @@ func (e *Engine) scheduleConsumerTimeouts(
 		if !attr.IsOutput() {
 			continue
 		}
-		deps, ok := flow.Plan.Attributes[name]
+		deps, ok := fl.Plan.Attributes[name]
 		if !ok {
 			continue
 		}
@@ -54,33 +54,33 @@ func (e *Engine) scheduleConsumerTimeouts(
 				continue
 			}
 			seen.Add(sid)
-			e.scheduleStepTimeouts(flow, sid, when, true)
+			e.scheduleStepTimeouts(fl, sid, when, true)
 		}
 	}
 }
 
 func (e *Engine) scheduleStepTimeouts(
-	flow api.FlowState, stepID api.StepID, when time.Time, clearExisting bool,
+	fl api.FlowState, sid api.StepID, when time.Time, clearExisting bool,
 ) {
-	step, ok := flow.Plan.Steps[stepID]
-	if !ok || !stepHasTimeouts(step) {
+	st, ok := fl.Plan.Steps[sid]
+	if !ok || !stepHasTimeouts(st) {
 		return
 	}
 
-	fs := api.FlowStep{FlowID: flow.ID, StepID: stepID}
+	fs := api.FlowStep{FlowID: fl.ID, StepID: sid}
 	if clearExisting {
 		e.CancelPrefixedTasks(timeoutStepPrefix(fs))
 	}
 
-	if policy.FlowTerminal(flow.Status) {
+	if policy.FlowTerminal(fl.Status) {
 		return
 	}
-	ex, ok := flow.Executions[stepID]
+	ex, ok := fl.Executions[sid]
 	if !ok || !policy.StepPending(ex.Status) {
 		return
 	}
 
-	s := e.newStepEval(stepID, flow, when)
+	s := e.newStepEval(sid, fl, when)
 	anchor, err := s.requiredReadyAt()
 	if err != nil {
 		return
@@ -144,8 +144,8 @@ func (e *Engine) runTimeoutTaskAt(
 	})
 }
 
-func flowHasTimeouts(flow api.FlowState) bool {
-	for _, st := range flow.Plan.Steps {
+func flowHasTimeouts(fl api.FlowState) bool {
+	for _, st := range fl.Plan.Steps {
 		if stepHasTimeouts(st) {
 			return true
 		}
@@ -153,8 +153,8 @@ func flowHasTimeouts(flow api.FlowState) bool {
 	return false
 }
 
-func stepHasTimeouts(step *api.Step) bool {
-	for _, attr := range step.Attributes {
+func stepHasTimeouts(st *api.Step) bool {
+	for _, attr := range st.Attributes {
 		if attr.IsOptional() && attr.OptionalDeadline() > 0 {
 			return true
 		}
@@ -167,8 +167,8 @@ func timeoutKey(fs api.FlowStep, name api.Name) []string {
 		string(name)}
 }
 
-func timeoutFlowPrefix(flowID api.FlowID) []string {
-	return []string{"timeout", string(flowID)}
+func timeoutFlowPrefix(fid api.FlowID) []string {
+	return []string{"timeout", string(fid)}
 }
 
 func timeoutStepPrefix(fs api.FlowStep) []string {

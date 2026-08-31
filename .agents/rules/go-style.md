@@ -63,7 +63,6 @@ for id := range pl.Steps {
     }
 }
 
-part, err := eng.GetPartitionState()
 cat, err := eng.GetCatalogState()
 flow, err := eng.GetFlowState(flowID)
 work := exec.WorkItems[token]
@@ -77,7 +76,6 @@ for plannedStepID := range executionPlan.Steps {
     }
 }
 
-partState, err := eng.GetPartitionState()
 catState, err := eng.GetCatalogState()
 flowState, err := eng.GetFlowState(flowID)
 workItem := exec.WorkItems[token]
@@ -104,6 +102,8 @@ type FlowState struct {
 
 **Idiomatic short names**:
 
+These short forms apply to **variables only**: local variables, function parameters, and range/closure bindings. They never apply to struct fields, which are semantic identifiers read by every caller and must keep their full descriptive names (`step`, `flow`, `space`, `plan`, `catalog`), whether the struct is exported, unexported, an `Args`/`Res` bundle, or an anonymous table-test struct. The same goes for type names, function names, method names, and map keys. Renaming a field is never part of applying this rule.
+
 | Name                   | Usage                                       |
 | ---------------------- | ------------------------------------------- |
 | `i`, `j`, `k`          | Loop indices                                |
@@ -121,7 +121,7 @@ type FlowState struct {
 | `opts`                 | Options struct                              |
 | `pl`                   | Execution plan                              |
 | `sid`, `fid`, `nid`    | Step, flow, and node IDs                    |
-| `cat`, `part`          | Catalog or partition state in local scope   |
+| `cat`                  | Catalog state in local scope                |
 | `flow`, `step`, `work` | Current flow/step/work value in local scope |
 | `h`                    | `api.HealthState` or other health value in tight scope |
 
@@ -129,6 +129,7 @@ Prefer the established short forms already used in this codebase when the type i
 
 | Name   | Usage                                          |
 | ------ | ---------------------------------------------- |
+| `sp`   | `api.Space` and space-like locals              |
 | `st`   | `*api.Step` and step-like locals               |
 | `fl`   | `api.FlowState` and flow-like locals           |
 | `ex`   | `api.ExecutionState` and execution-like locals |
@@ -138,12 +139,12 @@ Prefer the established short forms already used in this codebase when the type i
 | `nid`  | `api.NodeID`                                   |
 | `h`    | `api.HealthState`                              |
 | `cat`  | `api.CatalogState`                             |
-| `part` | partition state                                |
 
 Examples:
 
 ```go
 st := helpers.NewSimpleStep("test-step")
+sp := api.Space{ID: "payments", Name: "Payments"}
 pl := &api.ExecutionPlan{Goals: []api.StepID{st.ID}, Steps: api.Steps{st.ID: st}}
 fl := env.WaitForFlowStatus("wf-test", func() {
     err := env.Engine.StartFlow("wf-test", pl)
@@ -562,10 +563,10 @@ flow, err := eng.GetFlowState(fid)
 
 // Good — independent sources, one per line
 cat := st.Catalog
-part := st.Partition
+cluster := st.Cluster
 
 // Bad — independent sources crammed into one statement
-cat, part := st.Catalog, st.Partition
+cat, cluster := st.Catalog, st.Cluster
 ```
 
 This applies to plain assignment (`=`) as well as `:=`.

@@ -27,16 +27,16 @@ func (s *Server) listSpaces(c *gin.Context) {
 }
 
 func (s *Server) createSpace(c *gin.Context) {
-	space, ok := bindSpace(c)
+	sp, ok := bindSpace(c)
 	if !ok {
 		return
 	}
-	space.ID = api.SanitizeID(space.ID)
-	space = space.Normalize()
-	err := s.engine.RegisterSpace(space)
+	sp.ID = api.SanitizeID(sp.ID)
+	sp = sp.Normalize()
+	err := s.engine.RegisterSpace(sp)
 	if err == nil {
 		c.JSON(http.StatusCreated, api.SpaceRegisteredResponse{
-			Space:   space,
+			Space:   sp,
 			Message: "Space registered",
 		})
 		return
@@ -62,11 +62,11 @@ func (s *Server) createSpace(c *gin.Context) {
 }
 
 func (s *Server) previewSpace(c *gin.Context) {
-	space, ok := bindSpace(c)
+	sp, ok := bindSpace(c)
 	if !ok {
 		return
 	}
-	ids, err := s.engine.PreviewSpace(space)
+	preview, err := s.engine.PreviewSpace(sp)
 	if errors.Is(err, engine.ErrInvalidSpace) {
 		c.JSON(http.StatusBadRequest, api.ErrorResponse{
 			Error:  err.Error(),
@@ -74,7 +74,7 @@ func (s *Server) previewSpace(c *gin.Context) {
 		})
 		return
 	}
-	writeValue(c, ErrPreviewSpace, ids, err)
+	writeValue(c, ErrPreviewSpace, preview, err)
 }
 
 func (s *Server) getSpace(c *gin.Context) {
@@ -87,8 +87,8 @@ func (s *Server) getSpace(c *gin.Context) {
 		return
 	}
 	id := api.SpaceID(c.Param("space_id"))
-	if space, ok := cat.Spaces[id]; ok {
-		c.JSON(http.StatusOK, space)
+	if sp, ok := cat.Spaces[id]; ok {
+		c.JSON(http.StatusOK, sp)
 		return
 	}
 	c.JSON(http.StatusNotFound, api.ErrorResponse{
@@ -122,24 +122,24 @@ func (s *Server) listSpaceSteps(c *gin.Context) {
 }
 
 func (s *Server) updateSpace(c *gin.Context) {
-	space, ok := bindSpace(c)
+	sp, ok := bindSpace(c)
 	if !ok {
 		return
 	}
-	space.ID = api.SanitizeID(space.ID)
-	space = space.Normalize()
+	sp.ID = api.SanitizeID(sp.ID)
+	sp = sp.Normalize()
 	id := api.SanitizeID(api.SpaceID(c.Param("space_id")))
-	if space.ID != id {
+	if sp.ID != id {
 		c.JSON(http.StatusBadRequest, api.ErrorResponse{
 			Error:  "Space ID in URL does not match space ID in body",
 			Status: http.StatusBadRequest,
 		})
 		return
 	}
-	err := s.engine.UpdateSpace(space)
+	err := s.engine.UpdateSpace(sp)
 	if err == nil {
 		c.JSON(http.StatusOK, api.SpaceRegisteredResponse{
-			Space:   space,
+			Space:   sp,
 			Message: "Space updated",
 		})
 		return
@@ -204,13 +204,13 @@ func bindSpace(c *gin.Context) (api.Space, bool) {
 	c.Request.Body = http.MaxBytesReader(
 		c.Writer, c.Request.Body, MaxStepBodyBytes,
 	)
-	var space api.Space
-	if err := c.ShouldBindJSON(&space); err != nil {
+	var sp api.Space
+	if err := c.ShouldBindJSON(&sp); err != nil {
 		c.JSON(http.StatusBadRequest, api.ErrorResponse{
 			Error:  fmt.Sprintf("%s: %v", ErrInvalidJSON, err),
 			Status: http.StatusBadRequest,
 		})
 		return api.Space{}, false
 	}
-	return space, true
+	return sp, true
 }

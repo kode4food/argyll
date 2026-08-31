@@ -266,10 +266,10 @@ func DispatchDeferred(steps ...api.FlowStep) EventFilter {
 }
 
 // WorkRetryScheduledDistinct matches one retry scheduled event per work token
-func WorkRetryScheduledDistinct(step api.FlowStep) EventFilter {
+func WorkRetryScheduledDistinct(fs api.FlowStep) EventFilter {
 	return And(
 		Type(api.EventTypeWorkRetryScheduled),
-		FlowStepDistinctTokens(step),
+		FlowStepDistinctTokens(fs),
 	)
 }
 
@@ -294,8 +294,8 @@ func FlowIDs(ids ...api.FlowID) EventFilter {
 }
 
 // FlowStep matches events for the provided flow step
-func FlowStep(step api.FlowStep) EventFilter {
-	return FlowSteps(step)
+func FlowStep(fs api.FlowStep) EventFilter {
+	return FlowSteps(fs)
 }
 
 // FlowSteps matches events for the provided flow steps
@@ -327,11 +327,11 @@ func FlowStepAny(steps ...api.FlowStep) EventFilter {
 }
 
 // FlowStepDistinctTokens matches each work token for the flow step once
-func FlowStepDistinctTokens(step api.FlowStep) EventFilter {
+func FlowStepDistinctTokens(fs api.FlowStep) EventFilter {
 	seen := util.Set[api.Token]{}
 	return PredicateFilter(func(data workEvent) bool {
 		key := api.FlowStep{FlowID: data.FlowID, StepID: data.StepID}
-		if key != step || seen.Contains(data.Token) {
+		if key != fs || seen.Contains(data.Token) {
 			return false
 		}
 		seen.Add(data.Token)
@@ -340,11 +340,11 @@ func FlowStepDistinctTokens(step api.FlowStep) EventFilter {
 }
 
 // StepHealthChanged matches step health change events for a step/status
-func StepHealthChanged(stepID api.StepID, st api.HealthStatus) EventFilter {
+func StepHealthChanged(sid api.StepID, st api.HealthStatus) EventFilter {
 	return And(
 		Type(api.EventTypeStepHealthChanged),
 		PredicateFilter(func(data api.StepHealthChangedEvent) bool {
-			return data.StepID == stepID && data.Status == st
+			return data.StepID == sid && data.Status == st
 		}),
 	)
 }

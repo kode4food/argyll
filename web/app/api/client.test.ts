@@ -80,9 +80,10 @@ describe("ArgyllApi", () => {
   });
 
   test("previews a Space", async () => {
-    respond(["step-1"]);
+    const preview = { space, step_ids: ["step-1"] };
+    respond(preview);
 
-    await expect(api.previewSpace(space)).resolves.toEqual(["step-1"]);
+    await expect(api.previewSpace(space)).resolves.toEqual(preview);
     expect(fetchMock).toHaveBeenCalledWith(
       "http://localhost:8080/engine/spaces/preview",
       expect.objectContaining({ method: "POST", body: JSON.stringify(space) })

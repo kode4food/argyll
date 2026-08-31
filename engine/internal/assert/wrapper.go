@@ -13,7 +13,7 @@ import (
 
 type (
 	Getter interface {
-		GetAttribute(flowID api.FlowID, attr api.Name) (any, bool, error)
+		GetAttribute(api.FlowID, api.Name) (any, bool, error)
 	}
 
 	// FlowRef groups a Getter and FlowID for assertion helpers
@@ -44,31 +44,31 @@ func New(t *testing.T) *Wrapper {
 }
 
 // StepValid asserts that a step is valid
-func (w *Wrapper) StepValid(t *api.Step) {
+func (w *Wrapper) StepValid(st *api.Step) {
 	w.Helper()
-	w.NoError(t.Validate())
-	w.NotEmpty(t.ID)
-	w.NotEmpty(t.Name)
+	w.NoError(st.Validate())
+	w.NotEmpty(st.ID)
+	w.NotEmpty(st.Name)
 
-	switch t.Type {
+	switch st.Type {
 	case api.StepTypeService:
-		w.NotNil(t.HTTP, "HTTP steps should have HTTPConfig")
-		if t.HTTP != nil {
-			w.NotEmpty(t.HTTP.Invoke.Endpoint)
+		w.NotNil(st.HTTP, "HTTP steps should have HTTPConfig")
+		if st.HTTP != nil {
+			w.NotEmpty(st.HTTP.Invoke.Endpoint)
 		}
 	case api.StepTypeScript:
-		w.NotNil(t.Script, "Script steps should have ScriptConfig")
-		if t.Script != nil {
-			w.NotEmpty(t.Script.Language)
-			w.NotEmpty(t.Script.Script)
+		w.NotNil(st.Script, "Script steps should have ScriptConfig")
+		if st.Script != nil {
+			w.NotEmpty(st.Script.Language)
+			w.NotEmpty(st.Script.Script)
 		}
 	}
 }
 
 // StepInvalid asserts that a step is invalid
-func (w *Wrapper) StepInvalid(t *api.Step, expectedErrorContains string) {
+func (w *Wrapper) StepInvalid(st *api.Step, expectedErrorContains string) {
 	w.Helper()
-	err := t.Validate()
+	err := st.Validate()
 	w.Error(err)
 	if err != nil && expectedErrorContains != "" {
 		w.Contains(err.Error(), expectedErrorContains)
@@ -76,9 +76,9 @@ func (w *Wrapper) StepInvalid(t *api.Step, expectedErrorContains string) {
 }
 
 // FlowStatus asserts the status of a flow
-func (w *Wrapper) FlowStatus(flow api.FlowState, expected api.FlowStatus) {
+func (w *Wrapper) FlowStatus(fl api.FlowState, expected api.FlowStatus) {
 	w.Helper()
-	w.Equal(expected, flow.Status)
+	w.Equal(expected, fl.Status)
 }
 
 // FlowHasState asserts that a flow has specific state keys

@@ -26,12 +26,12 @@ type healthResolver struct {
 // UpdateStepHealth updates the health status of a registered step, used
 // primarily for tracking HTTP service availability and script errors
 func (e *Engine) UpdateStepHealth(
-	stepID api.StepID, health api.HealthStatus, errMsg string,
+	sid api.StepID, health api.HealthStatus, errMsg string,
 ) error {
 	nid := e.LocalNodeID()
 	cmd := func(st api.ClusterState, ag *ClusterAggregator) error {
 		node := st.Nodes[nid]
-		if h, ok := node.Health[stepID]; ok {
+		if h, ok := node.Health[sid]; ok {
 			if h.Status == health && h.Error == errMsg {
 				return nil
 			}
@@ -40,7 +40,7 @@ func (e *Engine) UpdateStepHealth(
 		return events.Raise(ag, api.EventTypeStepHealthChanged,
 			api.StepHealthChangedEvent{
 				NodeID: nid,
-				StepID: stepID,
+				StepID: sid,
 				Status: health,
 				Error:  errMsg,
 			},
@@ -52,7 +52,7 @@ func (e *Engine) UpdateStepHealth(
 		return err
 	}
 
-	e.setLocalHealth(stepID, api.HealthState{
+	e.setLocalHealth(sid, api.HealthState{
 		Status: health,
 		Error:  errMsg,
 	})
@@ -105,17 +105,15 @@ func MergeNodeHealth(cluster api.ClusterState) map[api.StepID]api.HealthState {
 
 		for _, rawStepID := range steps {
 			sid := api.StepID(rawStepID)
-			res[sid] = mergeHealthState(
-				nid, res[sid], node.Health[sid],
-			)
+			res[sid] = mergeHealthState(nid, res[sid], node.Health[sid])
 		}
 	}
 
 	return res
 }
 
-func (e *Engine) canDispatchLocally(stepID api.StepID) bool {
-	h, ok := e.getLocalHealth(stepID)
+func (e *Engine) canDispatchLocally(sid api.StepID) bool {
+	h, ok := e.getLocalHealth(sid)
 	if !ok {
 		return true
 	}
@@ -131,58 +129,58 @@ func (e *Engine) loadLocalHealth() error {
 	st = e.withConfiguredNodes(st)
 
 	node := st.Nodes[e.LocalNodeID()]
-	health := map[api.StepID]api.HealthState{}
-	maps.Copy(health, node.Health)
+	h := map[api.StepID]api.HealthState{}
+	maps.Copy(h, node.Health)
 
 	e.healthMu.Lock()
-	e.health = health
+	e.health = h
 	e.healthMu.Unlock()
 	return nil
 }
 
-func (e *Engine) getLocalHealth(stepID api.StepID) (api.HealthState, bool) {
+func (e *Engine) getLocalHealth(sid api.StepID) (api.HealthState, bool) {
 	e.healthMu.RLock()
 	defer e.healthMu.RUnlock()
 
-	h, ok := e.health[stepID]
+	h, ok := e.health[sid]
 	return h, ok
 }
 
-func (e *Engine) setLocalHealth(stepID api.StepID, h api.HealthState) {
+func (e *Engine) setLocalHealth(sid api.StepID, h api.HealthState) {
 	e.healthMu.Lock()
 	defer e.healthMu.Unlock()
 
-	e.health[stepID] = h
+	e.health[sid] = h
 }
 
-func (r *healthResolver) resolve(stepID api.StepID) api.HealthState {
-	if h, ok := r.cache[stepID]; ok {
+func (r *healthResolver) resolve(sid api.StepID) api.HealthState {
+	if h, ok := r.cache[sid]; ok {
 		return h
 	}
 
-	if base, ok := r.base[stepID]; ok {
+	if base, ok := r.base[sid]; ok {
 		if base.Status != api.HealthUnknown {
-			r.cache[stepID] = base
+			r.cache[sid] = base
 			return base
 		}
 	}
 
-	step, ok := r.steps[stepID]
+	step, ok := r.steps[sid]
 	if !ok {
 		h := api.HealthState{
 			Status: api.HealthUnknown,
-			Error:  fmt.Sprintf("step not found: %s", stepID),
+			Error:  fmt.Sprintf("step not found: %s", sid),
 		}
-		r.cache[stepID] = h
+		r.cache[sid] = h
 		return h
 	}
 
-	if r.visiting[stepID] {
+	if r.visiting[sid] {
 		h := api.HealthState{
 			Status: api.HealthUnknown,
-			Error:  fmt.Sprintf("flow health cycle at step %s", stepID),
+			Error:  fmt.Sprintf("flow health cycle at step %s", sid),
 		}
-		r.cache[stepID] = h
+		r.cache[sid] = h
 		return h
 	}
 
@@ -192,61 +190,61 @@ func (r *healthResolver) resolve(stepID api.StepID) api.HealthState {
 			Status: api.HealthUnknown,
 			Error:  err.Error(),
 		}
-		r.cache[stepID] = h
+		r.cache[sid] = h
 		return h
 	}
 	if len(children) == 0 {
-		h := r.resolveStepHealth(step, stepID)
-		r.cache[stepID] = h
+		h := r.resolveStepHealth(step, sid)
+		r.cache[sid] = h
 		return h
 	}
 
-	r.visiting[stepID] = true
-	defer delete(r.visiting, stepID)
+	r.visiting[sid] = true
+	defer delete(r.visiting, sid)
 
-	pl, err := r.previewFlowPlan(stepID, children)
+	pl, err := r.previewFlowPlan(sid, children)
 	if err != nil {
 		h := api.HealthState{
 			Status: api.HealthUnknown,
-			Error:  fmt.Sprintf("flow preview failed for %s: %v", stepID, err),
+			Error:  fmt.Sprintf("flow preview failed for %s: %v", sid, err),
 		}
-		r.cache[stepID] = h
+		r.cache[sid] = h
 		return h
 	}
 
 	var unknown api.HealthState
 	for id := range pl.Steps {
-		health := r.resolve(id)
-		if health.Status == api.HealthUnhealthy {
-			h := flowStepHealth(id, health)
-			r.cache[stepID] = h
+		h := r.resolve(id)
+		if h.Status == api.HealthUnhealthy {
+			h := flowStepHealth(id, h)
+			r.cache[sid] = h
 			return h
 		}
-		if health.Status == api.HealthUnknown && health.Error != "" &&
+		if h.Status == api.HealthUnknown && h.Error != "" &&
 			unknown == (api.HealthState{}) {
-			unknown = flowStepHealth(id, health)
+			unknown = flowStepHealth(id, h)
 		}
 	}
 
 	if unknown != (api.HealthState{}) {
-		r.cache[stepID] = unknown
+		r.cache[sid] = unknown
 		return unknown
 	}
 
 	healthy := api.HealthState{Status: api.HealthHealthy}
-	r.cache[stepID] = healthy
+	r.cache[sid] = healthy
 	return healthy
 }
 
 func (r *healthResolver) resolveStepHealth(
-	step *api.Step, stepID api.StepID,
+	st *api.Step, sid api.StepID,
 ) api.HealthState {
-	if h, ok := r.base[stepID]; ok {
+	if h, ok := r.base[sid]; ok {
 		if h.Status != api.HealthUnknown || h.Error != "" {
 			return h
 		}
 	}
-	h, err := r.eng.steps.Health(step)
+	h, err := r.eng.steps.Health(st)
 	if err != nil {
 		return api.HealthState{
 			Status: api.HealthUnknown,
@@ -257,17 +255,17 @@ func (r *healthResolver) resolveStepHealth(
 }
 
 func (r *healthResolver) previewFlowPlan(
-	stepID api.StepID, children []api.StepID,
+	sid api.StepID, children []api.StepID,
 ) (*api.ExecutionPlan, error) {
-	if pl, ok := r.plans[stepID]; ok {
+	if pl, ok := r.plans[sid]; ok {
 		return pl, nil
 	}
-	if err, ok := r.planErrs[stepID]; ok {
+	if err, ok := r.planErrs[sid]; ok {
 		return nil, err
 	}
 
 	steps := r.cat.Steps
-	st := r.steps[stepID]
+	st := r.steps[sid]
 	if st.Flow != nil && st.Flow.SpaceID != "" {
 		if _, ok := r.cat.Spaces[st.Flow.SpaceID]; !ok {
 			return nil, fmt.Errorf("%w: %s", plan.ErrSpaceNotFound,
@@ -283,39 +281,37 @@ func (r *healthResolver) previewFlowPlan(
 		Init:    api.InitArgs{},
 	})
 	if err != nil {
-		r.planErrs[stepID] = err
+		r.planErrs[sid] = err
 		return nil, err
 	}
 
-	r.plans[stepID] = pl
+	r.plans[sid] = pl
 	return pl, nil
 }
 
-func flowStepHealth(
-	stepID api.StepID, health api.HealthState,
-) api.HealthState {
-	switch health.Status {
+func flowStepHealth(sid api.StepID, h api.HealthState) api.HealthState {
+	switch h.Status {
 	case api.HealthUnhealthy:
-		if health.Error == "" {
+		if h.Error == "" {
 			return api.HealthState{
 				Status: api.HealthUnhealthy,
-				Error:  fmt.Sprintf("step %s unhealthy", stepID),
+				Error:  fmt.Sprintf("step %s unhealthy", sid),
 			}
 		}
 		return api.HealthState{
 			Status: api.HealthUnhealthy,
-			Error:  fmt.Sprintf("step %s: %s", stepID, health.Error),
+			Error:  fmt.Sprintf("step %s: %s", sid, h.Error),
 		}
 	case api.HealthUnknown:
-		if health.Error == "" {
+		if h.Error == "" {
 			return api.HealthState{
 				Status: api.HealthUnknown,
-				Error:  fmt.Sprintf("step %s health unknown", stepID),
+				Error:  fmt.Sprintf("step %s health unknown", sid),
 			}
 		}
 		return api.HealthState{
 			Status: api.HealthUnknown,
-			Error:  fmt.Sprintf("step %s: %s", stepID, health.Error),
+			Error:  fmt.Sprintf("step %s: %s", sid, h.Error),
 		}
 	default:
 		return api.HealthState{Status: api.HealthHealthy}
@@ -323,11 +319,11 @@ func flowStepHealth(
 }
 
 func mergeHealthState(
-	nodeID api.NodeID, curr, next api.HealthState,
+	nid api.NodeID, curr, next api.HealthState,
 ) api.HealthState {
 	norm := api.HealthState{
 		Status: next.Status,
-		Error:  annotateHealthError(string(nodeID), next.Error),
+		Error:  annotateHealthError(string(nid), next.Error),
 	}
 	if curr == (api.HealthState{}) {
 		return norm

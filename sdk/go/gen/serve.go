@@ -63,14 +63,14 @@ func Mux(steps ...StepDef) *http.ServeMux {
 func registerStep(
 	ctx context.Context, client *argyll.Client, base string, s StepDef,
 ) error {
-	step, err := s.Step()
+	st, err := s.Step()
 	if err != nil {
 		return err
 	}
-	step.HTTP.Invoke.Endpoint = base + step.HTTP.Invoke.Endpoint
-	step.HTTP.Health = base + step.HTTP.Health
-	if step.HTTP.Compensate != nil {
-		step.HTTP.Compensate.Endpoint = base + step.HTTP.Compensate.Endpoint
+	st.HTTP.Invoke.Endpoint = base + st.HTTP.Invoke.Endpoint
+	st.HTTP.Health = base + st.HTTP.Health
+	if st.HTTP.Compensate != nil {
+		st.HTTP.Compensate.Endpoint = base + st.HTTP.Compensate.Endpoint
 	}
-	return client.RegisterStep(ctx, step)
+	return client.RegisterStep(ctx, st)
 }

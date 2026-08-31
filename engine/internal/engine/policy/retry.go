@@ -58,7 +58,7 @@ func RetryStartDecision(
 // pending or failed work are recovered at NextRetryAt when one exists, with
 // active-step pending work also recoverable immediately
 func RecoverableDeadline(
-	exec api.ExecutionState, work api.WorkState, when time.Time,
+	ex api.ExecutionState, work api.WorkState, when time.Time,
 ) (time.Time, bool) {
 	switch work.Status {
 	case api.WorkActive, api.WorkNotCompleted:
@@ -67,7 +67,7 @@ func RecoverableDeadline(
 		if !work.NextRetryAt.IsZero() {
 			return work.NextRetryAt, true
 		}
-		if exec.Status == api.StepActive {
+		if ex.Status == api.StepActive {
 			return when, true
 		}
 		return time.Time{}, false
@@ -82,7 +82,7 @@ func RecoverableDeadline(
 }
 
 // Recoverable reports whether startup recovery should consider this work item
-func Recoverable(exec api.ExecutionState, work api.WorkState) bool {
-	_, ok := RecoverableDeadline(exec, work, time.Time{})
+func Recoverable(ex api.ExecutionState, work api.WorkState) bool {
+	_, ok := RecoverableDeadline(ex, work, time.Time{})
 	return ok
 }

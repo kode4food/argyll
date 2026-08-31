@@ -224,8 +224,13 @@ export interface Space {
   id: string;
   name: string;
   description?: string;
-  selector: ScriptConfig;
+  selector?: ScriptConfig;
   qbe?: Record<string, string[]>;
+}
+
+export interface SpacePreviewResponse {
+  space: Space & { selector: ScriptConfig };
+  step_ids: string[];
 }
 
 export interface AttributeValue {

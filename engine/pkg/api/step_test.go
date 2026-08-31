@@ -881,20 +881,20 @@ func TestEqualFields(t *testing.T) {
 		change func(*api.Step)
 		name   string
 	}{
-		{name: "handling", change: func(s *api.Step) {
-			s.Handling = api.HandlingMemoized
+		{name: "handling", change: func(st *api.Step) {
+			st.Handling = api.HandlingMemoized
 		}},
-		{name: "flow", change: func(s *api.Step) {
-			s.Flow = &api.FlowConfig{Goals: []api.StepID{"goal"}}
+		{name: "flow", change: func(st *api.Step) {
+			st.Flow = &api.FlowConfig{Goals: []api.StepID{"goal"}}
 		}},
-		{name: "script", change: func(s *api.Step) {
-			s.Script = &api.ScriptConfig{
+		{name: "script", change: func(st *api.Step) {
+			st.Script = &api.ScriptConfig{
 				Language: api.ScriptLangLua,
 				Script:   "x",
 			}
 		}},
-		{name: "labels", change: func(s *api.Step) {
-			s.Labels = api.Labels{"team": "core"}
+		{name: "labels", change: func(st *api.Step) {
+			st.Labels = api.Labels{"team": "core"}
 		}},
 	}
 
@@ -910,7 +910,7 @@ func TestEqualFields(t *testing.T) {
 
 func TestCompensateConfig(t *testing.T) {
 	as := assert.New(t)
-	step := &api.Step{
+	st := &api.Step{
 		ID:       "test",
 		Name:     "Test",
 		Type:     api.StepTypeService,
@@ -942,38 +942,38 @@ func TestCompensateConfig(t *testing.T) {
 			},
 		},
 	}
-	as.NoError(step.Validate())
+	as.NoError(st.Validate())
 
-	step.HTTP.Compensate.Endpoint = ""
-	as.ErrorIs(step.Validate(), api.ErrCompensateRequired)
-	step.HTTP.Compensate.Endpoint = "http://step/{input}/{result}"
+	st.HTTP.Compensate.Endpoint = ""
+	as.ErrorIs(st.Validate(), api.ErrCompensateRequired)
+	st.HTTP.Compensate.Endpoint = "http://step/{input}/{result}"
 
-	step.HTTP.Compensate.Method = "PATCH"
-	as.ErrorIs(step.Validate(), api.ErrInvalidHTTPMethod)
-	step.HTTP.Compensate.Method = ""
+	st.HTTP.Compensate.Method = "PATCH"
+	as.ErrorIs(st.Validate(), api.ErrInvalidHTTPMethod)
+	st.HTTP.Compensate.Method = ""
 
-	step.HTTP.Invoke.Endpoint = "http://step/{missing}"
-	as.ErrorIs(step.Validate(), api.ErrUnknownURLParam)
-	step.HTTP.Invoke.Endpoint = "http://step/{input}"
+	st.HTTP.Invoke.Endpoint = "http://step/{missing}"
+	as.ErrorIs(st.Validate(), api.ErrUnknownURLParam)
+	st.HTTP.Invoke.Endpoint = "http://step/{input}"
 
-	step.HTTP.Compensate.Endpoint = "http://step/{missing}"
-	as.ErrorIs(step.Validate(), api.ErrUnknownURLParam)
-	step.HTTP.Compensate.Endpoint = "http://step/{input}/{result}"
-	step.Attributes["result"].Output = &api.OutputConfig{
+	st.HTTP.Compensate.Endpoint = "http://step/{missing}"
+	as.ErrorIs(st.Validate(), api.ErrUnknownURLParam)
+	st.HTTP.Compensate.Endpoint = "http://step/{input}/{result}"
+	st.Attributes["result"].Output = &api.OutputConfig{
 		Mapping: &api.MappingConfig{Name: "input"},
 	}
-	as.ErrorIs(step.Validate(), api.ErrCompensateArgConflict)
-	step.Attributes["result"].Output = nil
+	as.ErrorIs(st.Validate(), api.ErrCompensateArgConflict)
+	st.Attributes["result"].Output = nil
 
-	step.WorkConfig = &api.WorkConfig{Parallelism: -1}
-	as.ErrorIs(step.Validate(), api.ErrInvalidParallelism)
-	step.WorkConfig = nil
+	st.WorkConfig = &api.WorkConfig{Parallelism: -1}
+	as.ErrorIs(st.Validate(), api.ErrInvalidParallelism)
+	st.WorkConfig = nil
 
-	step.HTTP.Invoke.Timeout = 100
-	step.HTTP.Compensate.Timeout = 200
-	as.Equal(int64(200), step.HTTP.CompensateTimeout())
+	st.HTTP.Invoke.Timeout = 100
+	st.HTTP.Compensate.Timeout = 200
+	as.Equal(int64(200), st.HTTP.CompensateTimeout())
 
-	_, err := step.HashKey()
+	_, err := st.HashKey()
 	as.NoError(err)
 }
 
@@ -985,30 +985,30 @@ func TestHandling(t *testing.T) {
 	}{
 		{
 			name: "invalid",
-			change: func(step *api.Step) {
-				step.Handling = "invalid"
+			change: func(st *api.Step) {
+				st.Handling = "invalid"
 			},
 			want: api.ErrInvalidHandling,
 		},
 		{
 			name: "compensated_without_endpoint",
-			change: func(step *api.Step) {
-				step.Handling = api.HandlingCompensated
+			change: func(st *api.Step) {
+				st.Handling = api.HandlingCompensated
 			},
 			want: api.ErrCompensateRequired,
 		},
 		{
 			name: "compensated_with_empty_endpoint",
-			change: func(step *api.Step) {
-				step.Handling = api.HandlingCompensated
-				step.HTTP.Compensate = &api.HTTPAction{}
+			change: func(st *api.Step) {
+				st.Handling = api.HandlingCompensated
+				st.HTTP.Compensate = &api.HTTPAction{}
 			},
 			want: api.ErrCompensateRequired,
 		},
 		{
 			name: "standard_with_endpoint",
-			change: func(step *api.Step) {
-				step.HTTP.Compensate = &api.HTTPAction{
+			change: func(st *api.Step) {
+				st.HTTP.Compensate = &api.HTTPAction{
 					Endpoint: "http://example.com/undo",
 				}
 			},
@@ -1016,8 +1016,8 @@ func TestHandling(t *testing.T) {
 		},
 		{
 			name: "standard_with_compensated_attribute",
-			change: func(step *api.Step) {
-				step.Attributes["input"].Compensated = true
+			change: func(st *api.Step) {
+				st.Attributes["input"].Compensated = true
 			},
 			want: api.ErrAttributeCompensated,
 		},
@@ -1026,22 +1026,22 @@ func TestHandling(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			as := assert.New(t)
-			step := helpers.NewTestStep()
-			test.change(step)
-			as.ErrorIs(step.Validate(), test.want)
+			st := helpers.NewTestStep()
+			test.change(st)
+			as.ErrorIs(st.Validate(), test.want)
 		})
 	}
 }
 
 func TestStepInvalidAttributes(t *testing.T) {
 	as := assert.New(t)
-	step := helpers.NewTestStep()
-	step.Attributes["nil"] = nil
-	as.ErrorIs(step.Validate(), api.ErrAttributeNil)
+	st := helpers.NewTestStep()
+	st.Attributes["nil"] = nil
+	as.ErrorIs(st.Validate(), api.ErrAttributeNil)
 
-	step = helpers.NewTestStep()
-	step.Attributes["bad"] = &api.AttributeSpec{Role: "bad"}
-	as.ErrorIs(step.Validate(), api.ErrInvalidAttributeRole)
+	st = helpers.NewTestStep()
+	st.Attributes["bad"] = &api.AttributeSpec{Role: "bad"}
+	as.ErrorIs(st.Validate(), api.ErrInvalidAttributeRole)
 }
 
 func TestLabelsEqualMismatch(t *testing.T) {

@@ -32,8 +32,8 @@ func (s *Server) createStep(c *gin.Context) {
 	c.Request.Body = http.MaxBytesReader(
 		c.Writer, c.Request.Body, MaxStepBodyBytes,
 	)
-	var step api.Step
-	if err := c.ShouldBindJSON(&step); err != nil {
+	var st api.Step
+	if err := c.ShouldBindJSON(&st); err != nil {
 		c.JSON(http.StatusBadRequest, api.ErrorResponse{
 			Error:  fmt.Sprintf("%s: %v", ErrInvalidJSON, err),
 			Status: http.StatusBadRequest,
@@ -41,13 +41,13 @@ func (s *Server) createStep(c *gin.Context) {
 		return
 	}
 
-	step.ID = api.SanitizeID(step.ID)
+	st.ID = api.SanitizeID(st.ID)
 
-	err := s.engine.RegisterStep(&step)
+	err := s.engine.RegisterStep(&st)
 	if err == nil {
 		c.JSON(http.StatusCreated, api.StepRegisteredResponse{
 			Message: "Step registered",
-			Step:    &step,
+			Step:    &st,
 		})
 		return
 	}
@@ -84,8 +84,8 @@ func (s *Server) getStep(c *gin.Context) {
 		return
 	}
 
-	if step, ok := cat.Steps[sid]; ok {
-		c.JSON(http.StatusOK, step)
+	if st, ok := cat.Steps[sid]; ok {
+		c.JSON(http.StatusOK, st)
 		return
 	}
 
@@ -101,8 +101,8 @@ func (s *Server) updateStep(c *gin.Context) {
 	c.Request.Body = http.MaxBytesReader(
 		c.Writer, c.Request.Body, MaxStepBodyBytes,
 	)
-	var step api.Step
-	if err := c.ShouldBindJSON(&step); err != nil {
+	var st api.Step
+	if err := c.ShouldBindJSON(&st); err != nil {
 		c.JSON(http.StatusBadRequest, api.ErrorResponse{
 			Error:  fmt.Sprintf("%s: %v", ErrInvalidJSON, err),
 			Status: http.StatusBadRequest,
@@ -110,10 +110,10 @@ func (s *Server) updateStep(c *gin.Context) {
 		return
 	}
 
-	step.ID = api.SanitizeID(step.ID)
+	st.ID = api.SanitizeID(st.ID)
 	sid = api.SanitizeID(sid)
 
-	if step.ID != sid {
+	if st.ID != sid {
 		c.JSON(http.StatusBadRequest, api.ErrorResponse{
 			Error:  "Step ID in URL does not match step ID in body",
 			Status: http.StatusBadRequest,
@@ -121,11 +121,11 @@ func (s *Server) updateStep(c *gin.Context) {
 		return
 	}
 
-	err := s.engine.UpdateStep(&step)
+	err := s.engine.UpdateStep(&st)
 	if err == nil {
 		c.JSON(http.StatusOK, api.StepRegisteredResponse{
 			Message: "Step updated",
-			Step:    &step,
+			Step:    &st,
 		})
 		return
 	}

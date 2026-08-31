@@ -63,11 +63,11 @@ func newRegistry(c client.Client) *step.Registry {
 }
 
 func newRuntime(
-	flowID api.FlowID, stepID api.StepID, meta api.Metadata, webhookURL string,
+	fid api.FlowID, sid api.StepID, meta api.Metadata, webhookURL string,
 ) (*testRuntime, *testRuntime) {
 	rt := &testRuntime{
-		flowID:     flowID,
-		stepID:     stepID,
+		flowID:     fid,
+		stepID:     sid,
 		meta:       meta,
 		webhookURL: webhookURL,
 	}

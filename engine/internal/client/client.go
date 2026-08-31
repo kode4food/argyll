@@ -66,32 +66,32 @@ func NewHTTPClient(timeout time.Duration) *HTTPClient {
 // Invoke sends an HTTP POST request to the step's endpoint with the provided
 // arguments and metadata, returning the step's output arguments or an error
 func (c *HTTPClient) Invoke(
-	step *api.Step, args api.Args, meta api.Metadata,
+	st *api.Step, args api.Args, meta api.Metadata,
 ) (api.Args, error) {
-	if step.HTTP == nil {
-		return nil, fmt.Errorf("%w: %s", ErrNoHTTPConfig, step.ID)
+	if st.HTTP == nil {
+		return nil, fmt.Errorf("%w: %s", ErrNoHTTPConfig, st.ID)
 	}
 
 	respBody, err := c.sendAction(sendActionArgs{
-		step:    step,
-		action:  &step.HTTP.Invoke,
+		step:    st,
+		action:  &st.HTTP.Invoke,
 		name:    "invoke",
 		args:    args,
 		meta:    meta,
-		timeout: step.HTTP.Invoke.Timeout,
+		timeout: st.HTTP.Invoke.Timeout,
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	return parseResponse(step, respBody)
+	return parseResponse(st, respBody)
 }
 
 // InvokeCompensate sends selected work attributes to the compensate endpoint
 func (c *HTTPClient) InvokeCompensate(req CompensateRequest) error {
-	step := req.Step
-	if step.HTTP == nil || step.HTTP.Compensate == nil {
-		return fmt.Errorf("%w: %s", ErrNoHTTPConfig, step.ID)
+	st := req.Step
+	if st.HTTP == nil || st.HTTP.Compensate == nil {
+		return fmt.Errorf("%w: %s", ErrNoHTTPConfig, st.ID)
 	}
 
 	args, err := buildCompensationArgs(req)
@@ -100,18 +100,18 @@ func (c *HTTPClient) InvokeCompensate(req CompensateRequest) error {
 	}
 
 	_, err = c.sendAction(sendActionArgs{
-		step:    step,
-		action:  step.HTTP.Compensate,
+		step:    st,
+		action:  st.HTTP.Compensate,
 		name:    "compensate",
 		args:    args,
 		meta:    req.Metadata,
-		timeout: step.HTTP.CompensateTimeout(),
+		timeout: st.HTTP.CompensateTimeout(),
 	})
 	return err
 }
 
 func (c *HTTPClient) sendRequest(
-	step *api.Step, timeout time.Duration, httpReq *http.Request,
+	st *api.Step, timeout time.Duration, httpReq *http.Request,
 ) ([]byte, error) {
 	ctx, cancel := context.WithTimeout(httpReq.Context(), timeout)
 	defer cancel()
@@ -124,7 +124,7 @@ func (c *HTTPClient) sendRequest(
 
 	if err != nil {
 		slog.Error("HTTP request failed",
-			log.StepID(step.ID),
+			log.StepID(st.ID),
 			slog.Int("duration_ms", int(dur.Milliseconds())),
 			log.Error(err))
 		return nil, errors.Join(api.ErrWorkNotCompleted, err)
@@ -134,7 +134,7 @@ func (c *HTTPClient) sendRequest(
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
 		slog.Error("Failed to read response body",
-			log.StepID(step.ID),
+			log.StepID(st.ID),
 			log.Error(err))
 		return nil, err
 	}
@@ -259,7 +259,7 @@ func endpointValue(value any) string {
 	return fmt.Sprint(value)
 }
 
-func parseResponse(step *api.Step, respBody []byte) (api.Args, error) {
+func parseResponse(st *api.Step, respBody []byte) (api.Args, error) {
 	if len(bytes.TrimSpace(respBody)) == 0 {
 		return nil, nil
 	}
@@ -267,7 +267,7 @@ func parseResponse(step *api.Step, respBody []byte) (api.Args, error) {
 	var outputs api.Args
 	if err := json.Unmarshal(respBody, &outputs); err != nil {
 		slog.Error("Failed to unmarshal response",
-			log.StepID(step.ID),
+			log.StepID(st.ID),
 			log.Error(err))
 		return nil, fmt.Errorf("%w: %w", ErrInvalidOutputJSON, err)
 	}

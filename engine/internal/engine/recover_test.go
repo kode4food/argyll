@@ -88,9 +88,7 @@ func TestRecoverActiveFlows(t *testing.T) {
 			Steps: api.Steps{st.ID: st},
 		}
 
-		env.WaitForCount(2, wait.FlowStarted(
-			flowID1, flowID2,
-		), func() {
+		env.WaitForCount(2, wait.FlowStarted(flowID1, flowID2), func() {
 			err := env.Engine.StartFlow(flowID1, pl)
 			assert.NoError(t, err)
 
@@ -446,9 +444,7 @@ func TestMultipleFlows(t *testing.T) {
 		var err error
 		flowID1 := api.FlowID("flow-1")
 		flowID2 := api.FlowID("flow-2")
-		env.WaitForCount(2, wait.FlowStarted(
-			flowID1, flowID2,
-		), func() {
+		env.WaitForCount(2, wait.FlowStarted(flowID1, flowID2), func() {
 			err = env.Engine.StartFlow(flowID1, pl)
 			assert.NoError(t, err)
 
@@ -499,9 +495,7 @@ func TestRecoverFlowsWithFailure(t *testing.T) {
 		var err error
 		flowID1 := api.FlowID("good-flow")
 		flowID2 := api.FlowID("bad-flow")
-		env.WaitForCount(2, wait.FlowStarted(
-			flowID1, flowID2,
-		), func() {
+		env.WaitForCount(2, wait.FlowStarted(flowID1, flowID2), func() {
 			err = env.Engine.StartFlow(flowID1, pl)
 			assert.NoError(t, err)
 
@@ -833,19 +827,17 @@ func TestRecoverFlowsSkipsDeactivated(t *testing.T) {
 		activeToken := api.Token("active-token")
 		deactivatedToken := api.Token("deactivated-token")
 
-		raiseFlow := func(
-			flowID api.FlowID, step *api.Step, tkn api.Token,
-		) {
+		raiseFlow := func(fid api.FlowID, st *api.Step, tkn api.Token) {
 			pl := &api.ExecutionPlan{
-				Goals: []api.StepID{step.ID},
-				Steps: api.Steps{step.ID: step},
+				Goals: []api.StepID{st.ID},
+				Steps: api.Steps{st.ID: st},
 			}
 			err := env.RaiseFlowEvents(
-				flowID,
+				fid,
 				helpers.FlowEvent{
 					Type: api.EventTypeFlowStarted,
 					Data: api.FlowStartedEvent{
-						FlowID: flowID,
+						FlowID: fid,
 						Plan:   pl,
 						Init:   api.InitArgs{},
 					},
@@ -853,8 +845,8 @@ func TestRecoverFlowsSkipsDeactivated(t *testing.T) {
 				helpers.FlowEvent{
 					Type: api.EventTypeStepStarted,
 					Data: api.StepStartedEvent{
-						FlowID: flowID,
-						StepID: step.ID,
+						FlowID: fid,
+						StepID: st.ID,
 						Inputs: api.Args{},
 						WorkItems: map[api.Token]api.Args{
 							tkn: {},
@@ -864,8 +856,8 @@ func TestRecoverFlowsSkipsDeactivated(t *testing.T) {
 				helpers.FlowEvent{
 					Type: api.EventTypeWorkRetryScheduled,
 					Data: api.WorkRetryScheduledEvent{
-						FlowID:      flowID,
-						StepID:      step.ID,
+						FlowID:      fid,
+						StepID:      st.ID,
 						Token:       tkn,
 						RetryCount:  1,
 						NextRetryAt: now.Add(-500 * time.Millisecond),
