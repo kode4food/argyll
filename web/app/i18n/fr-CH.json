@@ -161,7 +161,7 @@
   "stepEditor.collectSelect": "Mode collect",
   "stepEditor.metaKeyPlaceholder": "metadata key",
   "stepEditor.duplicateAttributeName": "Nom d'Attribute en double: {name}",
-  "stepEditor.tagPlaceholder": "tag",
+  "stepEditor.tagPlaceholder": "Tags",
   "stepEditor.tagsLabel": "Tags",
   "stepEditor.removeTag": "Supprimer le Tag",
   "stepEditor.duplicateMappingName": "Nom source de mapping en double: {name}",

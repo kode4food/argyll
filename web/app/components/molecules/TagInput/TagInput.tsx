@@ -1,11 +1,11 @@
 import React from "react";
-import useClickOutside from "@/app/hooks/useClickOutside";
-import { createPortal } from "react-dom";
-import { IconClose, type LucideIcon } from "@/utils/iconRegistry";
-import dropdownStyles from "@/app/styles/components/dropdown.module.css";
+import Tagify from "@yaireo/tagify";
+import "@yaireo/tagify/dist/tagify.css";
+import { type LucideIcon } from "@/utils/iconRegistry";
 import styles from "./TagInput.module.css";
 
 const MAX_SUGGESTIONS = 8;
+const MIN_SUGGESTION_CHARACTERS = 1;
 
 export interface TagInputProps {
   Icon: LucideIcon;
@@ -14,60 +14,27 @@ export interface TagInputProps {
   onChange: (tags: string[]) => void;
   placeholder: string;
   removeLabel: string;
+  shouldShowFieldIcon?: boolean;
   suggestions: readonly string[];
   tags: string[];
 }
 
-interface KeyContext {
-  available: string[];
-  commit: (value: string) => void;
-  draft: string;
-  event: React.KeyboardEvent;
-  highlightedIndex: number;
-  isOpen: boolean;
-  onChange: (tags: string[]) => void;
-  setHighlightedIndex: React.Dispatch<React.SetStateAction<number>>;
-  setOpen: (open: boolean) => void;
-  tags: string[];
-}
+const valuesOf = (tagify: Tagify) => tagify.value.map((tag) => tag.value);
 
-const moveHighlight = (ctx: KeyContext, step: number) => {
-  ctx.event.preventDefault();
-  ctx.setHighlightedIndex((current) => {
-    const next = current + step;
-    if (next < 0) return ctx.available.length - 1;
-    return next >= ctx.available.length ? 0 : next;
-  });
-};
+// The same close icon the rest of the app uses, since Tagify's own "×" glyph
+// rides high in its em box and cannot be centred by alignment
+const REMOVE_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+  stroke-width="2" stroke-linecap="round" aria-hidden="true">
+  <path d="M18 6 6 18M6 6l12 12" /></svg>`;
 
-const commitHighlighted = (ctx: KeyContext) => {
-  ctx.event.preventDefault();
-  ctx.commit(ctx.available[ctx.highlightedIndex] ?? ctx.draft);
-};
-
-const openOrMoveDown = (ctx: KeyContext) => {
-  if (!ctx.isOpen && ctx.available.length > 0) {
-    ctx.event.preventDefault();
-    ctx.setOpen(true);
-    ctx.setHighlightedIndex(0);
-    return;
-  }
-  moveHighlight(ctx, 1);
-};
-
-const dropLastTag = (ctx: KeyContext) => {
-  if (ctx.draft === "" && ctx.tags.length > 0) {
-    ctx.onChange(ctx.tags.slice(0, -1));
-  }
-};
-
-const KEY_HANDLERS: Record<string, (ctx: KeyContext) => void> = {
-  ",": commitHighlighted,
-  ArrowDown: openOrMoveDown,
-  ArrowUp: (ctx) => moveHighlight(ctx, -1),
-  Backspace: dropLastTag,
-  Enter: commitHighlighted,
-  Escape: (ctx) => ctx.setOpen(false),
+const tagTemplate = (removeLabel: string) => (tagData: Tagify.TagData) => {
+  const value = tagData.value;
+  return `<tag title="${value}" contenteditable="false" tabindex="-1"
+      class="tagify__tag">
+      <x role="button" class="tagify__tag__removeBtn"
+        aria-label="${removeLabel} ${value}">${REMOVE_ICON}</x>
+      <div><span class="tagify__tag-text">${value}</span></div>
+    </tag>`;
 };
 
 const TagInput: React.FC<TagInputProps> = ({
@@ -76,68 +43,56 @@ const TagInput: React.FC<TagInputProps> = ({
   onChange,
   placeholder,
   removeLabel,
+  shouldShowFieldIcon,
   suggestions,
   tags,
 }) => {
-  const [draft, setDraft] = React.useState("");
-  const [isOpen, setOpen] = React.useState(false);
-  // Stays -1 until the user arrows onto a suggestion, so typing and pressing
-  // Enter always commits what was typed
-  const [highlightedIndex, setHighlightedIndex] = React.useState(-1);
-  const wrapperRef = React.useRef<HTMLDivElement>(null);
   const inputRef = React.useRef<HTMLInputElement>(null);
-  const available = suggestions
-    .filter((tag) => !tags.includes(tag) && tag.includes(draft.trim()))
-    .slice(0, MAX_SUGGESTIONS);
+  const tagifyRef = React.useRef<Tagify>(null);
+  // Read at event time, so a new handler never tears the instance down
+  const onChangeRef = React.useRef(onChange);
+  onChangeRef.current = onChange;
 
-  useClickOutside(wrapperRef, () => setOpen(false), isOpen);
-
-  const commit = (value: string) => {
-    const tag = value.trim();
-    if (tag && !tags.includes(tag)) onChange([...tags, tag]);
-    setDraft("");
-    setHighlightedIndex(-1);
-    setOpen(false);
-  };
-
-  // The field lives inside scrolling panels, so the list is portalled out and
-  // aligned under the input rather than clipped by them. A dialog renders
-  // in the top layer, so the list has to be portalled into it to stay on top
-  const [listStyle, setListStyle] = React.useState<React.CSSProperties>();
-  const listHost = wrapperRef.current?.closest("dialog") ?? document.body;
-
-  React.useLayoutEffect(() => {
-    if (!isOpen) return;
-    const position = () => {
-      const field = wrapperRef.current?.getBoundingClientRect();
-      const input = inputRef.current?.getBoundingClientRect();
-      if (field && input) {
-        setListStyle({ top: field.bottom + 4, left: input.left });
-      }
-    };
-    position();
-    window.addEventListener("resize", position);
-    window.addEventListener("scroll", position, true);
-    return () => {
-      window.removeEventListener("resize", position);
-      window.removeEventListener("scroll", position, true);
-    };
-  }, [isOpen]);
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    KEY_HANDLERS[e.key]?.({
-      available,
-      commit,
-      draft,
-      event: e,
-      highlightedIndex,
-      isOpen,
-      onChange,
-      setHighlightedIndex,
-      setOpen,
-      tags,
+  React.useEffect(() => {
+    const input = inputRef.current!;
+    const tagify = new Tagify(input, {
+      editTags: false,
+      // A repeat of a tag already there is dropped outright, rather than
+      // added and then taken back a second later
+      skipInvalid: true,
+      dropdown: {
+        // A dialog renders in the top layer, so a body-level dropdown would
+        // come up behind it
+        appendTarget: input.closest("dialog") ?? document.body,
+        closeOnSelect: true,
+        // Suggestions wait for the first character: while the draft is empty
+        // an open dropdown would swallow the arrows that walk the caret
+        // between the tags
+        enabled: MIN_SUGGESTION_CHARACTERS,
+        maxItems: MAX_SUGGESTIONS,
+        // Opens under what is being typed, not under the field's left edge
+        position: "text",
+      },
+      placeholder,
+      templates: { tag: tagTemplate(removeLabel) },
     });
-  };
+    tagify.on("change", () => onChangeRef.current(valuesOf(tagify)));
+    tagifyRef.current = tagify;
+    return () => tagify.destroy();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  React.useEffect(() => {
+    const tagify = tagifyRef.current;
+    // Tagify loads the initial tags itself, off the input's own value, and
+    // reloading them here would block the change event its own edits raise
+    if (!tagify || valuesOf(tagify).join(",") === tags.join(",")) return;
+    tagify.loadOriginalValues(tags);
+  }, [tags]);
+
+  React.useEffect(() => {
+    if (tagifyRef.current) tagifyRef.current.whitelist = [...suggestions];
+  }, [suggestions]);
 
   return (
     // Unlabelled inputs are rows inside someone else's section, so they skip
@@ -154,77 +109,21 @@ const TagInput: React.FC<TagInputProps> = ({
         </div>
       )}
       <div
-        ref={wrapperRef}
-        className={styles.field}
-        onClick={() => inputRef.current?.focus()}
+        className={[styles.field, !label && styles.fieldInline]
+          .filter(Boolean)
+          .join(" ")}
       >
-        {tags.map((tag) => (
-          <span key={tag} className={styles.tag}>
-            <span className={styles.tagText}>{tag}</span>
-            <button
-              type="button"
-              tabIndex={-1}
-              onClick={() => onChange(tags.filter((t) => t !== tag))}
-              className={styles.removeButton}
-              aria-label={`${removeLabel} ${tag}`}
-            >
-              <IconClose className={styles.iconSm} />
-            </button>
+        {!label && shouldShowFieldIcon && (
+          <span className={styles.fieldIcon}>
+            <Icon aria-hidden="true" />
           </span>
-        ))}
+        )}
         <input
           ref={inputRef}
-          type="text"
-          className={styles.input}
-          value={draft}
-          onChange={(e) => {
-            setDraft(e.target.value);
-            setHighlightedIndex(-1);
-            setOpen(true);
-          }}
-          onKeyDown={handleKeyDown}
-          onBlur={() => commit(draft)}
-          placeholder={tags.length === 0 ? placeholder : ""}
           aria-label={placeholder}
-          aria-autocomplete="list"
-          aria-expanded={isOpen}
+          defaultValue={tags.join(",")}
         />
       </div>
-      {isOpen &&
-        available.length > 0 &&
-        createPortal(
-          <div
-            className={dropdownStyles.list}
-            style={{ position: "fixed", ...listStyle }}
-            role="listbox"
-            data-ui-overlay="dropdown"
-          >
-            {available.map((suggestion, index) => (
-              <button
-                key={suggestion}
-                type="button"
-                role="option"
-                aria-selected={index === highlightedIndex}
-                className={[
-                  dropdownStyles.item,
-                  index === highlightedIndex && dropdownStyles.itemHighlighted,
-                ]
-                  .filter(Boolean)
-                  .join(" ")}
-                onMouseEnter={() => setHighlightedIndex(index)}
-                // Committing on mousedown, since the click-outside handler
-                // unmounts the portalled list before a click can land
-                onMouseDown={(e) => {
-                  e.preventDefault();
-                  commit(suggestion);
-                }}
-              >
-                {suggestion}
-              </button>
-            ))}
-          </div>,
-          listHost
-        )}
     </div>
   );
 };

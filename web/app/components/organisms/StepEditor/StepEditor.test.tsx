@@ -1,6 +1,7 @@
 import React from "react";
 import StepEditor from "./StepEditor";
 import { t } from "@/app/testUtils/i18n";
+import { addTag } from "@/app/testUtils/tags";
 import { ArgyllApi, AttributeRole, AttributeType } from "@/app/api";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import type { Space, Step } from "@/app/api";
@@ -395,59 +396,23 @@ describe("StepEditor", () => {
     expect(screen.getByText("example")).toBeInTheDocument();
   });
 
-  test("commits a tag on Enter and drops it with the chip button", async () => {
+  test("adds a tag and drops it with the chip button", async () => {
     render(
       <StepEditor step={null} onClose={mockOnClose} onUpdate={mockOnUpdate} />
     );
 
     const input = await screen.findByLabelText(t("stepEditor.tagPlaceholder"));
-    fireEvent.change(input, { target: { value: "domain:risk" } });
-    fireEvent.keyDown(input, { key: "Enter" });
+    await addTag(input, "domain:risk");
     expect(screen.getByText("domain:risk")).toBeInTheDocument();
-    expect(input).toHaveValue("");
 
     fireEvent.click(
       screen.getByRole("button", {
         name: `${t("stepEditor.removeTag")} domain:risk`,
       })
     );
-    expect(screen.queryByText("domain:risk")).not.toBeInTheDocument();
-  });
-
-  test("commits a tag on comma and drops the last with Backspace", async () => {
-    render(
-      <StepEditor step={null} onClose={mockOnClose} onUpdate={mockOnUpdate} />
+    await waitFor(() =>
+      expect(screen.queryByText("domain:risk")).not.toBeInTheDocument()
     );
-
-    const input = await screen.findByLabelText(t("stepEditor.tagPlaceholder"));
-    fireEvent.change(input, { target: { value: "domain:risk" } });
-    fireEvent.keyDown(input, { key: "," });
-    fireEvent.change(input, { target: { value: "tier:gold" } });
-    fireEvent.keyDown(input, { key: "," });
-    expect(screen.getByText("domain:risk")).toBeInTheDocument();
-    expect(screen.getByText("tier:gold")).toBeInTheDocument();
-
-    fireEvent.keyDown(input, { key: "Backspace" });
-    expect(screen.queryByText("tier:gold")).not.toBeInTheDocument();
-    expect(screen.getByText("domain:risk")).toBeInTheDocument();
-  });
-
-  test("commits a suggestion once arrowed onto", async () => {
-    stepsInStore = [{ ...createHttpStep(), tags: ["domain:risk"] }];
-
-    render(
-      <StepEditor step={null} onClose={mockOnClose} onUpdate={mockOnUpdate} />
-    );
-
-    const input = await screen.findByLabelText(t("stepEditor.tagPlaceholder"));
-    fireEvent.change(input, { target: { value: "domain" } });
-    fireEvent.keyDown(input, { key: "Enter" });
-    expect(screen.getByText("domain")).toBeInTheDocument();
-
-    fireEvent.change(input, { target: { value: "domain:" } });
-    fireEvent.keyDown(input, { key: "ArrowDown" });
-    fireEvent.keyDown(input, { key: "Enter" });
-    expect(screen.getByText("domain:risk")).toBeInTheDocument();
   });
 
   test("ignores a duplicate tag", async () => {
@@ -457,8 +422,7 @@ describe("StepEditor", () => {
     );
 
     const input = await screen.findByLabelText(t("stepEditor.tagPlaceholder"));
-    fireEvent.change(input, { target: { value: "domain:risk" } });
-    fireEvent.keyDown(input, { key: "Enter" });
+    await addTag(input, "domain:risk");
 
     expect(screen.getAllByText("domain:risk")).toHaveLength(1);
   });

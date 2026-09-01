@@ -13,14 +13,9 @@ import { useUI } from "@/app/contexts/UIContext";
 import { useTagVocabulary } from "@/app/hooks/useTagVocabulary";
 import { api } from "@/app/api";
 import { getFlowPlanAttributeOptions } from "@/utils/flowPlanAttributeOptions";
-import {
-  IconAttributeLabel,
-  IconPredicate,
-  IconStepTypeScript,
-} from "@/utils/iconRegistry";
+import { IconPredicate, IconStepTypeScript } from "@/utils/iconRegistry";
 import StepEditorBasicFields from "./StepEditorBasicFields";
 import StepEditorAttributesSection from "./StepEditorAttributesSection";
-import TagInput from "@/app/components/molecules/TagInput";
 import StepEditorFlowConfiguration from "./StepEditorFlowConfiguration";
 import StepEditorHttpConfiguration from "./StepEditorHttpConfiguration";
 import StepEditorFooter from "./StepEditorFooter";
@@ -226,8 +221,11 @@ const StepEditor: React.FC<StepEditorProps> = ({
                 setName={setName}
                 setStepId={setStepId}
                 setStepType={setStepType}
+                setTags={setTags}
                 stepId={stepId}
                 stepType={formStepType}
+                tags={tags}
+                tagVocabulary={tagVocabulary}
               />
 
               <StepEditorAttributesSection
@@ -302,16 +300,6 @@ const StepEditor: React.FC<StepEditorProps> = ({
                   setHttpTimeout={setHttpTimeout}
                 />
               )}
-
-              <TagInput
-                Icon={IconAttributeLabel}
-                label={t("stepEditor.tagsLabel")}
-                removeLabel={t("stepEditor.removeTag")}
-                placeholder={t("stepEditor.tagPlaceholder")}
-                tags={tags}
-                onChange={setTags}
-                suggestions={tagVocabulary}
-              />
             </>
           ) : (
             <div className={formStyles.jsonSection}>

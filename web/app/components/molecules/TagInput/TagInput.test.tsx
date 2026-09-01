@@ -1,5 +1,11 @@
-import React from "react";
-import { fireEvent, render, screen } from "@testing-library/react";
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
+import { TAGIFY_SETTLE_DELAY_MS } from "@/app/testUtils/tags";
 import { IconAttributeLabel } from "@/utils/iconRegistry";
 import TagInput from "./TagInput";
 
@@ -20,105 +26,43 @@ describe("TagInput", () => {
       />
     );
 
+  // Tagify blocks change events for a moment after loading its own value
+  const settle = () =>
+    act(() => new Promise((done) => setTimeout(done, TAGIFY_SETTLE_DELAY_MS)));
+
+  const tagTexts = (container: HTMLElement) =>
+    Array.from(container.querySelectorAll("tag")).map((tag) =>
+      tag.textContent?.trim()
+    );
+
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
-  test("opens the list from ArrowDown and highlights the first item", () => {
-    renderInput();
-    const input = screen.getByLabelText("add tag");
-    expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
+  test("renders the tags it was given", () => {
+    const { container } = renderInput(["alpha", "beta"]);
 
-    fireEvent.keyDown(input, { key: "ArrowDown" });
-
-    expect(screen.getByRole("listbox")).toBeInTheDocument();
-    expect(screen.getByRole("option", { name: "alpha" })).toHaveAttribute(
-      "aria-selected",
-      "true"
-    );
+    expect(tagTexts(container)).toEqual(["alpha", "beta"]);
   });
 
-  test("closes the list on Escape", () => {
-    renderInput();
-    const input = screen.getByLabelText("add tag");
-    fireEvent.keyDown(input, { key: "ArrowDown" });
-    expect(screen.getByRole("listbox")).toBeInTheDocument();
-
-    fireEvent.keyDown(input, { key: "Escape" });
-
-    expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
-  });
-
-  test("wraps the highlight past both ends of the list", () => {
-    renderInput();
-    const input = screen.getByLabelText("add tag");
-    fireEvent.keyDown(input, { key: "ArrowDown" });
-
-    fireEvent.keyDown(input, { key: "ArrowUp" });
-    expect(screen.getByRole("option", { name: "gamma" })).toHaveAttribute(
-      "aria-selected",
-      "true"
-    );
-
-    fireEvent.keyDown(input, { key: "ArrowDown" });
-    expect(screen.getByRole("option", { name: "alpha" })).toHaveAttribute(
-      "aria-selected",
-      "true"
-    );
-  });
-
-  test("commits the highlighted suggestion on Enter", () => {
-    renderInput();
-    const input = screen.getByLabelText("add tag");
-    fireEvent.keyDown(input, { key: "ArrowDown" });
-    fireEvent.keyDown(input, { key: "Enter" });
-
-    expect(onChange).toHaveBeenCalledWith(["alpha"]);
-    expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
-  });
-
-  test("hover moves the highlight and mousedown commits", () => {
-    renderInput();
-    const input = screen.getByLabelText("add tag");
-    fireEvent.keyDown(input, { key: "ArrowDown" });
-
-    const beta = screen.getByRole("option", { name: "beta" });
-    fireEvent.mouseEnter(beta);
-    expect(beta).toHaveAttribute("aria-selected", "true");
-
-    fireEvent.mouseDown(beta);
-    expect(onChange).toHaveBeenCalledWith(["beta"]);
-  });
-
-  test("commits typed text on comma", () => {
+  test("labels each remove button with its own tag", () => {
     renderInput(["alpha"]);
-    const input = screen.getByLabelText("add tag");
-    fireEvent.change(input, { target: { value: " custom " } });
-    fireEvent.keyDown(input, { key: "," });
 
-    expect(onChange).toHaveBeenCalledWith(["alpha", "custom"]);
+    expect(screen.getByLabelText("Remove alpha")).toBeInTheDocument();
   });
 
-  test("Backspace on an empty draft drops the last tag", () => {
+  test("reports the remaining tags when one is removed", async () => {
     renderInput(["alpha", "beta"]);
-    fireEvent.keyDown(screen.getByLabelText("add tag"), { key: "Backspace" });
+    // Tagify holds back change events until its own load has settled
+    await settle();
 
-    expect(onChange).toHaveBeenCalledWith(["alpha"]);
+    fireEvent.click(screen.getByLabelText("Remove alpha"));
+
+    await waitFor(() => expect(onChange).toHaveBeenCalledWith(["beta"]));
   });
 
-  test("removes a tag from its remove button", () => {
-    renderInput(["alpha", "beta"]);
-    fireEvent.click(screen.getByRole("button", { name: "Remove alpha" }));
-
-    expect(onChange).toHaveBeenCalledWith(["beta"]);
-  });
-
-  test("drops the placeholder once tags are present", () => {
-    const { rerender } = renderInput();
-    expect(screen.getByLabelText("add tag")).toHaveAttribute(
-      "placeholder",
-      "add tag"
-    );
+  test("takes tags added from outside", () => {
+    const { container, rerender } = renderInput(["alpha"]);
 
     rerender(
       <TagInput
@@ -128,19 +72,10 @@ describe("TagInput", () => {
         placeholder="add tag"
         removeLabel="Remove"
         suggestions={suggestions}
-        tags={["alpha"]}
+        tags={["alpha", "gamma"]}
       />
     );
 
-    expect(screen.getByLabelText("add tag")).toHaveAttribute("placeholder", "");
-  });
-
-  test("ignores a duplicate tag", () => {
-    renderInput(["alpha"]);
-    const input = screen.getByLabelText("add tag");
-    fireEvent.change(input, { target: { value: "alpha" } });
-    fireEvent.keyDown(input, { key: "Enter" });
-
-    expect(onChange).not.toHaveBeenCalled();
+    expect(tagTexts(container)).toEqual(["alpha", "gamma"]);
   });
 });

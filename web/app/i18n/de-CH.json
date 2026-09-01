@@ -161,7 +161,7 @@
   "stepEditor.collectSelect": "Collect-Modus",
   "stepEditor.metaKeyPlaceholder": "metadata key",
   "stepEditor.duplicateAttributeName": "Doppelter Attribute-Name: {name}",
-  "stepEditor.tagPlaceholder": "Tag",
+  "stepEditor.tagPlaceholder": "Tags",
   "stepEditor.tagsLabel": "Tags",
   "stepEditor.removeTag": "Tag entfernen",
   "stepEditor.duplicateMappingName": "Doppelter Mapping-Quellname: {name}",

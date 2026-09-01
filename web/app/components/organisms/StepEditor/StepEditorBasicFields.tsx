@@ -4,8 +4,10 @@ import { useT } from "@/app/i18n";
 import SelectField, {
   type SelectFieldOption,
 } from "@/app/components/molecules/SelectField";
+import TagInput from "@/app/components/molecules/TagInput";
 import {
   getStepTypeIcon,
+  IconAttributeLabel,
   IconCompensate,
   IconMemoized,
   IconStandard,
@@ -22,8 +24,11 @@ interface StepEditorBasicFieldsProps {
   setName: (value: string) => void;
   setStepId: (value: string) => void;
   setStepType: (value: StepType) => void;
+  setTags: (value: string[]) => void;
   stepId: string;
   stepType: StepType;
+  tags: string[];
+  tagVocabulary: readonly string[];
 }
 
 const STEP_TYPE_OPTIONS = [
@@ -54,8 +59,11 @@ const StepEditorBasicFields: React.FC<StepEditorBasicFieldsProps> = ({
   setName,
   setStepId,
   setStepType,
+  setTags,
   stepId,
   stepType,
+  tags,
+  tagVocabulary,
 }) => {
   const t = useT();
   const typeOptions = STEP_TYPE_OPTIONS.map(
@@ -129,7 +137,7 @@ const StepEditorBasicFields: React.FC<StepEditorBasicFieldsProps> = ({
         />
       </div>
       <div className={formStyles.row}>
-        <div className={`${formStyles.field} ${formStyles.flex1}`}>
+        <div className={`${formStyles.field} ${formStyles.flex3}`}>
           <label className={formStyles.label}>
             {t("stepEditor.descriptionLabel")}
           </label>
@@ -139,6 +147,20 @@ const StepEditorBasicFields: React.FC<StepEditorBasicFieldsProps> = ({
             onChange={(e) => setDescription(e.target.value)}
             className={formStyles.formControl}
             placeholder={t("stepEditor.descriptionPlaceholder")}
+          />
+        </div>
+        <div className={`${formStyles.field} ${formStyles.flex2}`}>
+          <label className={formStyles.label}>
+            {t("stepEditor.tagsLabel")}
+          </label>
+          <TagInput
+            Icon={IconAttributeLabel}
+            removeLabel={t("stepEditor.removeTag")}
+            shouldShowFieldIcon
+            placeholder={t("stepEditor.tagPlaceholder")}
+            tags={tags}
+            onChange={setTags}
+            suggestions={tagVocabulary}
           />
         </div>
       </div>

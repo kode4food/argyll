@@ -16,8 +16,11 @@ describe("StepEditorBasicFields", () => {
       setName: jest.fn(),
       setStepId: jest.fn(),
       setStepType: jest.fn(),
+      setTags: jest.fn(),
       stepId: "step-1",
       stepType,
+      tags: [],
+      tagVocabulary: [],
     };
 
     render(<StepEditorBasicFields {...props} />);

@@ -15,18 +15,22 @@
 }
 
 .field {
-  position: relative;
+  /* The line box the tags and the caret share inside the control */
+  --tag-line: 1.25rem;
+  --tag-caret-width: 1px;
+  --tag-control-height: 32px;
+  --tag-draft-min-width: 40px;
+  --tag-remove-size: 0.75rem;
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
-  gap: 0.25rem;
-  min-height: 32px;
-  padding: 3px 4px;
+  /* Same lead-in as a select field, so the icons line up down the row */
+  gap: var(--spacing-xs);
+  min-height: var(--tag-control-height);
+  padding: 0 var(--spacing-md);
   background-color: var(--control-face-bg);
   border: 1px solid var(--panel-border);
   border-radius: var(--radius-md);
   box-sizing: border-box;
-  cursor: text;
   transition: var(--transition-fast);
 }
 
@@ -35,66 +39,199 @@
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-info) 40%, transparent);
 }
 
-.tag {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.125rem;
-  max-width: 100%;
-  padding: 0 0.125rem 0 0.375rem;
-  border-radius: var(--radius-sm);
-  background: color-mix(in srgb, var(--color-info) 18%, transparent);
+/* Inline in a row of fixed-height controls, so the tags scroll sideways
+   rather than wrapping and growing the row */
+.fieldInline {
+  height: var(--tag-control-height);
+}
+
+.fieldIcon {
+  composes: iconBox from "@/app/styles/components/icon.module.css";
+  flex-shrink: 0;
   color: var(--panel-text);
-  font-size: var(--text-xs);
-  line-height: 20px;
 }
 
-.tagText {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.removeButton {
-  display: flex;
+/* Tagify draws its own control; the border and background belong to the
+   field around it, so it only keeps the tags and the caret */
+.field :global(.tagify) {
+  --tag-bg: color-mix(in srgb, var(--color-info) 18%, transparent);
+  --tag-hover: color-mix(in srgb, var(--color-info) 28%, transparent);
+  --tag-text-color: var(--panel-text);
+  /* Hovering the remove button tints the chip its own hover colour rather
+     than Tagify's warning red */
+  --tag-remove-bg: var(--tag-hover);
+  --tag-remove-btn-color: var(--panel-text);
+  --tag-remove-btn-bg--hover: transparent;
+  --tag-border-radius: var(--radius-sm);
+  --tag-pad: var(--spacing-2xs) var(--spacing-sm);
+  --tag-inset-shadow-size: 1.1em;
+  --tags-border-color: transparent;
+  --tags-focus-border-color: transparent;
+  --placeholder-color: var(--panel-text-placeholder);
+  flex: 1;
+  min-width: 0;
   align-items: center;
+  line-height: var(--tag-line);
   padding: 0;
-  border: none;
-  background: none;
-  color: inherit;
-  opacity: 0.6;
-  cursor: pointer;
-}
-
-.removeButton:hover {
-  opacity: 1;
-}
-
-.input {
-  flex: 1 1 60px;
-  min-width: 60px;
-  height: 20px;
-  padding: 0 0 0 4px;
-  border: none;
+  border: 0;
   background: transparent;
-  color: var(--panel-text);
   font-size: var(--text-xs);
-  font-family: inherit;
-  box-sizing: border-box;
+  color: var(--panel-text);
 }
 
-.input:focus {
-  outline: none;
+/* Tags appear and leave outright, no growing or fading */
+.field :global(.tagify) *,
+.field :global(.tagify) *::before,
+.field :global(.tagify) *::after {
+  transition: none;
+  animation: none;
 }
 
-.iconSm {
-  width: 0.75rem;
-  height: 0.75rem;
-  display: flex;
-  align-items: center;
+.fieldInline :global(.tagify) {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.fieldInline :global(.tagify)::-webkit-scrollbar {
+  display: none;
+}
+
+.fieldInline :global(.tagify__tag) {
   flex-shrink: 0;
 }
 
-.iconSm svg {
+/* Tagify lays its rows out on a zero line-height baseline, which parks the
+   caret at the top of a fixed-height field */
+.field :global(.tagify__input) {
+  margin: 0;
+  padding: 0 var(--spacing-2xs);
+  min-height: var(--tag-line);
+  line-height: var(--tag-line);
+}
+
+.field :global(.tagify__input:not(:first-child)) {
+  margin-left: calc((var(--spacing-sm) / -2) - var(--spacing-2xs));
+  transform: translateX(calc(var(--tag-caret-width) / 2));
+}
+
+.field :global(.tagify__input:not(:last-child)) {
+  margin-right: calc((var(--spacing-sm) / 2) - var(--spacing-2xs));
+}
+
+.field :global(.tagify__input:last-child) {
+  min-width: var(--tag-draft-min-width);
+}
+
+/* Tagify flashes its placeholder whenever the draft is empty; it belongs to
+   an empty field, not to the gap after the tags already added */
+.field :global(.tagify:not(.tagify--empty) .tagify__input::before) {
+  content: none;
+}
+
+.field :global(.tagify__tag) {
+  margin: 0 var(--spacing-sm) 0 0;
+}
+
+/* Tagify grows the chip's painted box on hover, which both resizes the chip
+   and spills past the scroll container's edge. It keeps one size, and hover
+   changes only the colour */
+.field :global(.tagify__tag > div::before),
+.field :global(.tagify__tag:hover:not([readonly]) > div::before) {
+  --tag-bg-inset: 0;
+}
+
+/* The button sits outside the text's padded box, so it carries the chip's
+   own horizontal padding on its right */
+.field :global(.tagify__tag__removeBtn) {
+  width: var(--tag-remove-size);
+  height: var(--tag-remove-size);
+  margin: 0 var(--spacing-sm) 0 var(--spacing-2xs);
+  opacity: var(--opacity-high);
+}
+
+.field :global(.tagify__tag__removeBtn::after) {
+  content: none;
+}
+
+.field :global(.tagify__tag__removeBtn svg) {
   width: 100%;
   height: 100%;
+}
+
+.field :global(.tagify__tag__removeBtn):hover {
+  opacity: 1;
+}
+
+/* Tagify dims the tag's text while its remove button is hovered */
+.field :global(.tagify__tag__removeBtn:hover + div > span) {
+  opacity: 1;
+}
+
+/* Tagify appends its suggestions outside the component, so these reach it by
+   its own global class names. The look follows
+   app/styles/components/dropdown.module.css */
+:global(.tagify__dropdown) {
+  --tag-dropdown-min-width: 160px;
+  --tag-dropdown-item-height: 32px;
+  --tag-active-bg: color-mix(in srgb, var(--color-info) 20%, transparent);
+  border-top: 0;
+  transform: none;
+  margin-top: var(--spacing-xs);
+}
+
+/* Appended into a dialog, Tagify's viewport coordinates only land correctly
+   on a fixed box; the dialog's own offset would shift an absolute one */
+:global(dialog .tagify__dropdown) {
+  position: fixed;
+  margin-top: 0;
+}
+
+/* Opened at the caret, Tagify shrinks the type and rings the box in blue */
+:global(.tagify__dropdown[position="text"]) {
+  box-shadow: none;
+  font-size: var(--text-xs);
+  min-width: var(--tag-dropdown-min-width);
+}
+
+:global(.tagify__dropdown[placement="top"]) {
+  margin-top: 0;
+  margin-bottom: var(--spacing-xs);
+}
+
+:global(.tagify__dropdown),
+:global(.tagify__dropdown) * {
+  transition: none;
+  animation: none;
+}
+
+:global(.tagify__dropdown__wrapper) {
+  background-color: var(--panel-surface);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  overflow-y: auto;
+}
+
+:global(.tagify__dropdown__item) {
+  height: var(--tag-dropdown-item-height);
+  display: flex;
+  align-items: center;
+  margin: 0;
+  padding: 0 var(--spacing-md);
+  border-radius: 0;
+  color: var(--panel-text);
+  font-size: var(--text-xs);
+  white-space: nowrap;
+}
+
+:global(.tagify__dropdown__item--active),
+:global(.tagify__dropdown__item):hover {
+  background: var(--panel-hover-strong);
+  color: var(--panel-text);
+}
+
+:global(.tagify__dropdown__item):active {
+  filter: none;
+  background: var(--tag-active-bg);
 }

@@ -161,7 +161,7 @@
   "stepEditor.collectSelect": "Modalità collect",
   "stepEditor.metaKeyPlaceholder": "metadata key",
   "stepEditor.duplicateAttributeName": "Nome Attribute duplicato: {name}",
-  "stepEditor.tagPlaceholder": "tag",
+  "stepEditor.tagPlaceholder": "Tags",
   "stepEditor.tagsLabel": "Tags",
   "stepEditor.removeTag": "Rimuovi Tag",
   "stepEditor.duplicateMappingName": "Nome sorgente mapping duplicato: {name}",
