@@ -32,7 +32,7 @@ func TestSpaceSubFlowReferences(t *testing.T) {
 		sp := api.Space{
 			ID:   "payments",
 			Name: "Payments",
-			QBE:  api.SpaceQuery{"domain:payments"},
+			QBE:  api.SpaceQuery{{"domain:payments"}},
 		}
 		assert.NoError(t, eng.RegisterSpace(sp))
 		assert.NoError(t, eng.RegisterStep(subFlow))
@@ -43,7 +43,7 @@ func TestSpaceSubFlowReferences(t *testing.T) {
 		assert.ErrorIs(t, err, engine.ErrSpaceGoalExcluded)
 
 		changedSpace := sp
-		changedSpace.QBE = api.SpaceQuery{"domain:inventory"}
+		changedSpace.QBE = api.SpaceQuery{{"domain:inventory"}}
 		err = eng.UpdateSpace(changedSpace)
 		assert.ErrorIs(t, err, engine.ErrSpaceGoalExcluded)
 

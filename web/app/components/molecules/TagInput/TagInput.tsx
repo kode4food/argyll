@@ -9,7 +9,8 @@ const MAX_SUGGESTIONS = 8;
 
 export interface TagInputProps {
   Icon: LucideIcon;
-  label: string;
+  // Omitted when the caller heads a group of inputs with a label of its own
+  label?: string;
   onChange: (tags: string[]) => void;
   placeholder: string;
   removeLabel: string;
@@ -139,15 +140,19 @@ const TagInput: React.FC<TagInputProps> = ({
   };
 
   return (
-    <div className={styles.section}>
-      <div className={styles.sectionHeader}>
-        <label className={styles.label}>
-          <span className={styles.labelIcon}>
-            <Icon aria-hidden="true" />
-          </span>
-          {label}
-        </label>
-      </div>
+    // Unlabelled inputs are rows inside someone else's section, so they skip
+    // the section chrome rather than nesting a second bordered box in it
+    <div className={label ? styles.section : undefined}>
+      {label && (
+        <div className={styles.sectionHeader}>
+          <label className={styles.label}>
+            <span className={styles.labelIcon}>
+              <Icon aria-hidden="true" />
+            </span>
+            {label}
+          </label>
+        </div>
+      )}
       <div
         ref={wrapperRef}
         className={styles.field}

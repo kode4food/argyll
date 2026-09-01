@@ -74,7 +74,7 @@ func TestSetSpace(t *testing.T) {
 	sp := api.Space{
 		ID:   "payments",
 		Name: "Payments",
-		QBE:  api.SpaceQuery{"domain:payments"},
+		QBE:  api.SpaceQuery{{"domain:payments"}},
 	}
 	original := api.CatalogState{Spaces: api.Spaces{}}
 

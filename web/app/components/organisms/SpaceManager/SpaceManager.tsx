@@ -53,12 +53,13 @@ const SpaceManager: React.FC<SpaceManagerProps> = ({ isOpen, onClose }) => {
 
           {editorStep === 0 && (
             <SpaceManagerSelectorStep
-              tags={draft.qbe}
+              terms={draft.qbe}
               suggestions={tagVocabulary}
-              onTagsChange={(qbe) => editor.patchDraft({ qbe })}
+              onTermsChange={(qbe) => editor.patchDraft({ qbe })}
               onEditScript={editor.handleEditScript}
+              isAddDisabled={!editor.hasValidQBE}
               isEditScriptDisabled={
-                draft.qbe.length > 0 && (!editor.hasValidQBE || !currentPreview)
+                editor.hasQBE && (!editor.hasValidQBE || !currentPreview)
               }
             />
           )}

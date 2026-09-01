@@ -20,7 +20,7 @@ func TestSpaceAPI(t *testing.T) {
 			ID:          "payments",
 			Name:        "Payments",
 			Description: "Payment services",
-			QBE:         api.SpaceQuery{"domain:payments"},
+			QBE:         api.SpaceQuery{{"domain:payments"}},
 		}
 
 		w := spaceRequest(t, spaceRequestArgs{
@@ -59,7 +59,7 @@ func TestSpaceAPI(t *testing.T) {
 			ID:          "payments",
 			Name:        "Payments",
 			Description: "Updated",
-			QBE:         api.SpaceQuery{"domain:payments"},
+			QBE:         api.SpaceQuery{{"domain:payments"}},
 		}
 		w = spaceRequest(t, spaceRequestArgs{
 			handler: router,
@@ -148,7 +148,7 @@ func TestSpacePreviewAPI(t *testing.T) {
 		assert.Equal(t, api.ScriptLangJPath, got.Space.Selector.Language)
 
 		w = preview(api.Space{
-			QBE: api.SpaceQuery{"domain:payments"},
+			QBE: api.SpaceQuery{{"domain:payments"}},
 		})
 		assert.Equal(t, http.StatusOK, w.Code)
 		assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &got))
@@ -274,7 +274,7 @@ func TestSpaceDynamicPlanning(t *testing.T) {
 		updated := api.Space{
 			ID:   "payments",
 			Name: "Payments",
-			QBE:  api.SpaceQuery{"domain:payments", "environment:stage"},
+			QBE:  api.SpaceQuery{{"domain:payments", "environment:stage"}},
 		}
 		assert.NoError(t, env.Engine.UpdateSpace(updated))
 		w = startSpaceFlow(t, router, api.CreateFlowRequest{
@@ -346,7 +346,7 @@ func paymentSpace() api.Space {
 	return api.Space{
 		ID:   "payments",
 		Name: "Payments",
-		QBE:  api.SpaceQuery{"domain:payments"},
+		QBE:  api.SpaceQuery{{"domain:payments"}},
 	}
 }
 

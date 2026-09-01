@@ -226,7 +226,7 @@ export interface Space {
   name: string;
   description?: string;
   selector?: ScriptConfig;
-  qbe?: string[];
+  qbe?: string[][];
 }
 
 export interface SpacePreviewResponse {

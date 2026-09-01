@@ -11,7 +11,7 @@ import (
 
 func TestQBESelector(t *testing.T) {
 	cfg := script.QBESelector(api.SpaceQuery{
-		"domain:payments", "tier:gold",
+		{"domain:payments", "tier:gold"},
 	})
 	assert.Equal(t, &api.ScriptConfig{
 		Language: api.ScriptLangJPath,
@@ -21,7 +21,7 @@ func TestQBESelector(t *testing.T) {
 }
 
 func TestQBESelectorSingleTag(t *testing.T) {
-	cfg := script.QBESelector(api.SpaceQuery{"example"})
+	cfg := script.QBESelector(api.SpaceQuery{{"example"}})
 	assert.Equal(t, &api.ScriptConfig{
 		Language: api.ScriptLangJPath,
 		Script:   "$[\"tags\"][\"example\"]",
@@ -29,9 +29,22 @@ func TestQBESelectorSingleTag(t *testing.T) {
 }
 
 func TestQBESelectorSortsTags(t *testing.T) {
-	cfg := script.QBESelector(api.SpaceQuery{"b", "a"})
+	cfg := script.QBESelector(api.SpaceQuery{{"b", "a"}})
 	assert.Equal(t,
 		"$[\"tags\"][\"a\"] &&\n    $[\"tags\"][\"b\"]", cfg.Script)
+}
+
+func TestQBESelectorGroupsAlternatives(t *testing.T) {
+	cfg := script.QBESelector(api.SpaceQuery{
+		{"domain:risk", "language:lua"},
+		{"domain:payments"},
+	})
+	assert.Equal(t, &api.ScriptConfig{
+		Language: api.ScriptLangJPath,
+		Script: "($[\"tags\"][\"domain:risk\"] &&\n    " +
+			"$[\"tags\"][\"language:lua\"]) ||\n" +
+			"($[\"tags\"][\"domain:payments\"])",
+	}, cfg)
 }
 
 func TestQBESelectorMatches(t *testing.T) {
@@ -52,28 +65,45 @@ func TestQBESelectorMatches(t *testing.T) {
 	}
 
 	t.Run("a step carrying the tag", func(t *testing.T) {
-		qbe := api.SpaceQuery{"domain:risk"}
+		qbe := api.SpaceQuery{{"domain:risk"}}
 		assert.True(t, matches(qbe, api.Tags{"domain:risk"}))
 		assert.False(t, matches(qbe, api.Tags{"domain:orders"}))
 	})
 
 	t.Run("extra tags on the step do not matter", func(t *testing.T) {
-		qbe := api.SpaceQuery{"domain:risk"}
+		qbe := api.SpaceQuery{{"domain:risk"}}
 		assert.True(t, matches(qbe, api.Tags{
 			"domain:risk", "domain:payments", "example",
 		}))
 	})
 
-	t.Run("every queried tag is required", func(t *testing.T) {
-		qbe := api.SpaceQuery{"domain:risk", "tier:gold"}
+	t.Run("every tag in a term is required", func(t *testing.T) {
+		qbe := api.SpaceQuery{{"domain:risk", "tier:gold"}}
 		assert.True(t, matches(qbe, api.Tags{
 			"domain:risk", "tier:gold",
 		}))
 		assert.False(t, matches(qbe, api.Tags{"domain:risk"}))
 	})
 
+	t.Run("any one term is enough", func(t *testing.T) {
+		qbe := api.SpaceQuery{
+			{"domain:risk", "language:lua"},
+			{"domain:payments", "language:lua"},
+		}
+		assert.True(t, matches(qbe, api.Tags{
+			"domain:risk", "language:lua",
+		}))
+		assert.True(t, matches(qbe, api.Tags{
+			"domain:payments", "language:lua",
+		}))
+		assert.False(t, matches(qbe, api.Tags{
+			"domain:risk", "domain:payments",
+		}))
+		assert.False(t, matches(qbe, api.Tags{"language:lua"}))
+	})
+
 	t.Run("a step with no tags", func(t *testing.T) {
-		qbe := api.SpaceQuery{"domain:risk"}
+		qbe := api.SpaceQuery{{"domain:risk"}}
 		assert.False(t, matches(qbe, api.Tags{}))
 	})
 }
@@ -81,7 +111,7 @@ func TestQBESelectorMatches(t *testing.T) {
 func TestQBESelectorEscapes(t *testing.T) {
 	zeroWidth := string(rune(0x200b))
 	tag := "new\nline" + zeroWidth + `quo"te\slash`
-	cfg := script.QBESelector(api.SpaceQuery{tag})
+	cfg := script.QBESelector(api.SpaceQuery{{tag}})
 	assert.Equal(t,
 		`$["tags"]["new\nline`+zeroWidth+`quo\"te\\slash"]`, cfg.Script)
 
@@ -97,7 +127,7 @@ func TestQBESelectorEscapes(t *testing.T) {
 
 func TestQBESelectorEscapesMarkup(t *testing.T) {
 	tag := `a<b>c&d`
-	cfg := script.QBESelector(api.SpaceQuery{tag})
+	cfg := script.QBESelector(api.SpaceQuery{{tag}})
 
 	env := script.NewJPathEnv()
 	comp, err := env.Compile(script.MatchStep, cfg)
@@ -112,7 +142,7 @@ func TestQBESelectorEscapesMarkup(t *testing.T) {
 func TestQBESelectorEscapesControlChars(t *testing.T) {
 	// A control char with no short escape falls back to \uXXXX
 	tag := "bell\a" + "tab\t"
-	cfg := script.QBESelector(api.SpaceQuery{tag})
+	cfg := script.QBESelector(api.SpaceQuery{{tag}})
 	assert.Equal(t, "$[\"tags\"][\"bell\\u0007tab\\t\"]", cfg.Script)
 
 	env := script.NewJPathEnv()

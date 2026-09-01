@@ -2,8 +2,10 @@ import React from "react";
 import { ScriptConfig, Space } from "@/app/api";
 import { useSpaces } from "@/app/store/flowStore";
 import {
+  describeQBE,
   emptyDraft,
   fingerprint,
+  hasQBE,
   isCurrentPreview,
   isDetailsValid,
   isDraftValid,
@@ -86,7 +88,7 @@ export const useSpaceEditor = (onClose: () => void) => {
 
   const handleEditScript = () => {
     const selector = currentPreview?.space.selector;
-    if (draft.qbe.length > 0 && !selector) return;
+    if (hasQBE(draft) && !selector) return;
     setDraft((current) => ({
       ...current,
       qbe: [],
@@ -122,6 +124,7 @@ export const useSpaceEditor = (onClose: () => void) => {
     handleEditScript,
     handleNext,
     handleSave,
+    hasQBE: hasQBE(draft),
     hasValidDetails: isDetailsValid(draft),
     hasValidQBE: isQBEValid(draft),
     isEditing,
@@ -132,7 +135,7 @@ export const useSpaceEditor = (onClose: () => void) => {
       ? draft.selector
       : currentPreview?.space.selector,
     saving,
-    selectorDescription: draft.qbe.join(", "),
+    selectorDescription: describeQBE(draft.qbe),
     spaces,
   };
 };

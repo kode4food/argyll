@@ -1902,16 +1902,22 @@ components:
             `$["tags"]["domain:risk"]`
         qbe:
           type: array
-          description: Optional query-by-example source. A Step matches when it
-            carries every listed tag. When present, the engine stores it sorted
-            and deduplicated and replaces `selector` with generated JPath.
-            Alternatives are expressed by editing the selector directly
+          description: Optional query-by-example source, a list of alternative
+            tag sets. A Step matches when it carries every tag of any one of
+            them, so tags within a set are ANDed and the sets themselves are
+            ORed. When present, the engine stores each set sorted and
+            deduplicated, sorts and deduplicates the sets, and replaces
+            `selector` with generated JPath. Every tag across all sets counts
+            toward the tag limit
           minItems: 1
           items:
-            type: string
+            type: array
+            minItems: 1
+            items:
+              type: string
           example:
-            - domain:payments
-            - tier:gold
+            - [domain:payments, tier:gold]
+            - [domain:risk, tier:gold]
 
     SpacePreviewResponse:
       type: object

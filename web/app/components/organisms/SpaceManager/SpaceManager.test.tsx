@@ -62,7 +62,7 @@ describe("SpaceManager", () => {
           language: "lua",
           script: 'return value["domain"] == "risk"',
         },
-        qbe: ["domain:risk"],
+        qbe: [["domain:risk"]],
       },
       {
         id: "gold",
@@ -170,7 +170,7 @@ describe("SpaceManager", () => {
     ).toHaveValue("domain-trading-tier-gold");
     expect(
       screen.getByPlaceholderText(t("spaceManager.namePlaceholder"))
-    ).toHaveValue("Domain Trading / Tier Gold");
+    ).toHaveValue("Domain Trading Tier Gold");
   });
 
   test("registers a new Space through selector and details", async () => {
@@ -200,7 +200,7 @@ describe("SpaceManager", () => {
       expect(mockApi.previewSpace).toHaveBeenCalledWith({
         id: "domain-trading",
         name: "trading",
-        qbe: ["domain:trading"],
+        qbe: [["domain:trading"]],
       })
     );
     expect(screen.getByText("1 Step in this Space")).toBeInTheDocument();
@@ -213,7 +213,7 @@ describe("SpaceManager", () => {
       expect(mockApi.registerSpace).toHaveBeenCalledWith({
         id: "domain-trading",
         name: "trading",
-        qbe: ["domain:trading"],
+        qbe: [["domain:trading"]],
       });
       expect(setSpaceId).toHaveBeenCalledWith("domain-trading");
     });
@@ -228,7 +228,7 @@ describe("SpaceManager", () => {
       expect(mockApi.previewSpace).toHaveBeenLastCalledWith({
         id: "",
         name: "",
-        qbe: ["domain:trading"],
+        qbe: [["domain:trading"]],
       })
     );
     expect(screen.getByText("1 Step in this Space")).toBeInTheDocument();
@@ -242,7 +242,7 @@ describe("SpaceManager", () => {
     await waitFor(() =>
       expect(mockApi.previewSpace).toHaveBeenLastCalledWith(
         expect.objectContaining({
-          qbe: ["domain:bell\u0007"],
+          qbe: [["domain:bell"]],
         })
       )
     );
@@ -272,7 +272,78 @@ describe("SpaceManager", () => {
 
     await waitFor(() =>
       expect(mockApi.previewSpace).toHaveBeenLastCalledWith(
-        expect.objectContaining({ qbe: ["domain:trading"] })
+        expect.objectContaining({ qbe: [["domain:trading"]] })
+      )
+    );
+  });
+
+  const addAlternative = (tag: string) => {
+    fireEvent.click(
+      screen.getByRole("button", { name: t("spaceManager.addAlternative") })
+    );
+    const inputs = screen.getAllByLabelText(t("stepEditor.tagPlaceholder"));
+    const added = inputs[inputs.length - 1];
+    fireEvent.change(added, { target: { value: tag } });
+    fireEvent.keyDown(added, { key: "Enter" });
+  };
+
+  test("ORs an added alternative", async () => {
+    open();
+    startNew();
+    addSelector("domain:trading");
+    addAlternative("domain:risk");
+
+    await waitFor(() =>
+      expect(mockApi.previewSpace).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          qbe: [["domain:risk"], ["domain:trading"]],
+        })
+      )
+    );
+  });
+
+  test("blocks adding while a term is empty", () => {
+    open();
+    startNew();
+    const addButton = screen.getByRole("button", {
+      name: t("spaceManager.addAlternative"),
+    });
+
+    expect(addButton).toBeDisabled();
+    addSelector("domain:trading");
+    expect(addButton).toBeEnabled();
+
+    fireEvent.click(addButton);
+    expect(addButton).toBeDisabled();
+  });
+
+  test("requires every alternative to carry a tag", () => {
+    open();
+    startNew();
+    addSelector("domain:trading");
+    fireEvent.click(
+      screen.getByRole("button", { name: t("spaceManager.addAlternative") })
+    );
+
+    expect(
+      screen.getByRole("button", { name: t("spaceManager.next") })
+    ).toBeDisabled();
+  });
+
+  test("removes an alternative", async () => {
+    open();
+    startNew();
+    addSelector("domain:trading");
+    addAlternative("domain:risk");
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: `${t("spaceManager.removeAlternative")} 2`,
+      })
+    );
+
+    await waitFor(() =>
+      expect(mockApi.previewSpace).toHaveBeenLastCalledWith(
+        expect.objectContaining({ qbe: [["domain:trading"]] })
       )
     );
   });
@@ -299,7 +370,7 @@ describe("SpaceManager", () => {
         id: "risk",
         name: "Risk Domain",
         description: "Risk steps",
-        qbe: ["domain:risk"],
+        qbe: [["domain:risk"]],
       });
       expect(setSpaceId).toHaveBeenCalledWith("risk");
     });
@@ -321,7 +392,7 @@ describe("SpaceManager", () => {
         id: "risk",
         name: "Risk",
         description: "Risk steps",
-        qbe: ["domain:risk", "domain:trading"],
+        qbe: [["domain:risk", "domain:trading"]],
       });
     });
   });

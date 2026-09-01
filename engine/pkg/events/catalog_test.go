@@ -181,7 +181,7 @@ func TestSpaceSelectionProjection(t *testing.T) {
 	sp := api.Space{
 		ID:   "payments",
 		Name: "Payments",
-		QBE:  api.SpaceQuery{"domain:payments"},
+		QBE:  api.SpaceQuery{{"domain:payments"}},
 	}
 	inside := &api.Step{ID: "inside", Tags: api.Tags{"domain:payments"}}
 	outside := &api.Step{ID: "outside", Tags: api.Tags{"domain:orders"}}

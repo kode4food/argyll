@@ -25,8 +25,12 @@ type (
 	// SpaceSelection contains the Step IDs each Space's selector selected
 	SpaceSelection map[SpaceID][]StepID
 
-	// SpaceQuery matches steps carrying every one of its tags
-	SpaceQuery []string
+	// SpaceQuery matches steps against alternative tag sets, selecting a step
+	// that carries every tag of any one of them
+	SpaceQuery []SpaceQueryTerm
+
+	// SpaceQueryTerm matches steps carrying every one of its tags
+	SpaceQueryTerm []string
 )
 
 var (
@@ -61,21 +65,15 @@ func (s Space) ValidateSelector() error {
 	if s.Selector.Script == "" {
 		return ErrScriptEmpty
 	}
-	if len(s.QBE) > MaxTagCount {
-		return fmt.Errorf("%w: maximum is %d", ErrTooManyTags, MaxTagCount)
-	}
-	if slices.Contains(s.QBE, "") {
-		return ErrInvalidSpaceQuery
-	}
-	return nil
+	return s.QBE.Validate()
 }
 
-// Normalize returns the Space with its QBE tags sorted and deduped
+// Normalize returns the Space with its QBE terms sorted and deduped
 func (s Space) Normalize() Space {
 	if len(s.QBE) == 0 {
 		return s
 	}
-	s.QBE = slices.Compact(slices.Sorted(slices.Values(s.QBE)))
+	s.QBE = s.QBE.Normalize()
 	return s
 }
 
@@ -84,5 +82,32 @@ func (s Space) Equal(other Space) bool {
 	sameIdentity := s.ID == other.ID && s.Name == other.Name &&
 		s.Description == other.Description
 	return sameIdentity && s.Selector.Equal(other.Selector) &&
-		slices.Equal(s.QBE, other.QBE)
+		slices.EqualFunc(s.QBE, other.QBE, slices.Equal)
+}
+
+// Validate checks that every term carries at least one non-empty tag and that
+// the query stays within the tag limit
+func (q SpaceQuery) Validate() error {
+	tags := 0
+	for _, term := range q {
+		if len(term) == 0 || slices.Contains(term, "") {
+			return ErrInvalidSpaceQuery
+		}
+		tags += len(term)
+	}
+	if tags > MaxTagCount {
+		return fmt.Errorf("%w: maximum is %d", ErrTooManyTags, MaxTagCount)
+	}
+	return nil
+}
+
+// Normalize returns the query with each term's tags sorted and deduped, and the
+// terms themselves sorted and deduped
+func (q SpaceQuery) Normalize() SpaceQuery {
+	res := make(SpaceQuery, 0, len(q))
+	for _, term := range q {
+		res = append(res, slices.Compact(slices.Sorted(slices.Values(term))))
+	}
+	slices.SortFunc(res, slices.Compare)
+	return slices.CompactFunc(res, slices.Equal)
 }

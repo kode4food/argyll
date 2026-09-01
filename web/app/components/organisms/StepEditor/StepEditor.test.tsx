@@ -344,7 +344,7 @@ describe("StepEditor", () => {
         id: "risk",
         name: "Risk",
         selector: { language: "lua", script: "return true" },
-        qbe: ["domain:risk", "tier:gold"],
+        qbe: [["domain:risk", "tier:gold"]],
       },
     ];
     selectedSpaceId = "risk";

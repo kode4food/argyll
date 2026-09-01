@@ -15,7 +15,7 @@ func TestSpaces(t *testing.T) {
 		sp := api.Space{
 			ID:   "payments",
 			Name: "Payments",
-			QBE:  api.SpaceQuery{"domain:payments"},
+			QBE:  api.SpaceQuery{{"domain:payments"}},
 		}
 		assert.NoError(t, eng.RegisterSpace(sp))
 		assert.NoError(t, eng.RegisterSpace(sp))
@@ -38,7 +38,7 @@ func TestSpaces(t *testing.T) {
 			Name:        "Payments",
 			Description: "Production payments",
 			QBE: api.SpaceQuery{
-				"domain:payments", "environment:production",
+				{"domain:payments", "environment:production"},
 			},
 		}
 		_, before, err := eng.GetCatalogStateSeq()
@@ -107,11 +107,11 @@ func TestPreviewSpace(t *testing.T) {
 
 		// A Space being drafted has no ID or Name yet
 		preview, err := eng.PreviewSpace(api.Space{
-			QBE: api.SpaceQuery{"domain:risk", "domain:risk"},
+			QBE: api.SpaceQuery{{"domain:risk"}, {"domain:risk"}},
 		})
 		assert.NoError(t, err)
 		assert.Equal(t, []api.StepID{risk.ID}, preview.StepIDs)
-		assert.Equal(t, api.SpaceQuery{"domain:risk"}, preview.Space.QBE)
+		assert.Equal(t, api.SpaceQuery{{"domain:risk"}}, preview.Space.QBE)
 		assert.Equal(t, &api.ScriptConfig{
 			Language: api.ScriptLangJPath,
 			Script:   `$["tags"]["domain:risk"]`,
@@ -139,7 +139,7 @@ func TestSpacesRejectInvalid(t *testing.T) {
 
 		err = eng.RegisterSpace(api.Space{
 			Name: "No ID",
-			QBE:  api.SpaceQuery{"domain:payments"},
+			QBE:  api.SpaceQuery{{"domain:payments"}},
 		})
 		assert.ErrorIs(t, err, engine.ErrInvalidSpace)
 		assert.ErrorIs(t, err, api.ErrSpaceIDEmpty)
@@ -147,7 +147,7 @@ func TestSpacesRejectInvalid(t *testing.T) {
 		err = eng.UpdateSpace(api.Space{
 			ID:   "missing",
 			Name: "Missing",
-			QBE:  api.SpaceQuery{"domain:payments"},
+			QBE:  api.SpaceQuery{{"domain:payments"}},
 		})
 		assert.ErrorIs(t, err, engine.ErrSpaceNotFound)
 
@@ -187,7 +187,7 @@ func TestSpaceSelectionEvents(t *testing.T) {
 		domain := api.Space{
 			ID:   "z-domain",
 			Name: "Domain",
-			QBE:  api.SpaceQuery{"domain:payments"},
+			QBE:  api.SpaceQuery{{"domain:payments"}},
 		}
 		assert.NoError(t, eng.RegisterSpace(domain))
 		evs, err := eng.GetCatalogEvents()
@@ -200,7 +200,7 @@ func TestSpaceSelectionEvents(t *testing.T) {
 		environment := api.Space{
 			ID:   "a-environment",
 			Name: "Environment",
-			QBE:  api.SpaceQuery{"environment:production"},
+			QBE:  api.SpaceQuery{{"environment:production"}},
 		}
 		assert.NoError(t, eng.RegisterSpace(environment))
 
@@ -237,7 +237,7 @@ func TestSpaceSelectionEvents(t *testing.T) {
 		domain = api.Space{
 			ID:   domain.ID,
 			Name: domain.Name,
-			QBE:  api.SpaceQuery{"environment:production"},
+			QBE:  api.SpaceQuery{{"environment:production"}},
 		}
 		assert.NoError(t, eng.UpdateSpace(domain))
 		evs, err = eng.GetCatalogEvents()

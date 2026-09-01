@@ -48,7 +48,8 @@ const StepEditor: React.FC<StepEditorProps> = ({
   const { spaceId } = useUI();
   const tagVocabulary = useTagVocabulary();
   const defaultTags = React.useMemo(
-    () => spaces.find((space) => space.id === spaceId)?.qbe,
+    // A new Step only has to satisfy one alternative, so the first is enough
+    () => spaces.find((space) => space.id === spaceId)?.qbe?.[0],
     [spaces, spaceId]
   );
   const {

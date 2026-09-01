@@ -211,6 +211,8 @@
   "spaceManager.descriptionPlaceholder": "A cosa serve questo Space",
   "spaceManager.selectorLabel": "Selector",
   "spaceManager.removeSelector": "Rimuovi label del selector",
+  "spaceManager.addAlternative": "Aggiungi alternativa",
+  "spaceManager.removeAlternative": "Rimuovi alternativa",
   "spaceManager.editScript": "Modifica script",
   "spaceManager.selectorStep": "Selector",
   "spaceManager.detailsStep": "Dettagli",

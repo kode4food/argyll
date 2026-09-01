@@ -113,6 +113,54 @@
   overflow-y: auto;
 }
 
+.section {
+  composes: section from "@/app/styles/components/form.module.css";
+}
+
+.sectionHeader {
+  composes: sectionHeader from "@/app/styles/components/form.module.css";
+}
+
+.labelWithIcon {
+  composes: labelWithIcon from "@/app/styles/components/form.module.css";
+}
+
+.labelIcon {
+  composes: labelIcon from "@/app/styles/components/form.module.css";
+}
+
+.term {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+/* The tag field takes the row; the remove button keeps its intrinsic size */
+.term > :first-child {
+  flex: 1;
+  min-width: 0;
+}
+
+.addTerm {
+  composes: addButton from "@/app/styles/components/form.module.css";
+  font-family: inherit;
+  font-size: var(--text-xs);
+  font-weight: var(--font-medium);
+}
+
+.addTerm:disabled {
+  opacity: var(--opacity-disabled);
+  cursor: not-allowed;
+}
+
+.removeTerm {
+  composes: removeButton from "@/app/styles/components/form.module.css";
+}
+
+.iconSm {
+  composes: iconBox from "@/app/styles/components/icon.module.css";
+}
+
 .field {
   display: flex;
   flex-direction: column;

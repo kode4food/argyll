@@ -10,18 +10,33 @@ import (
 )
 
 // QBESelector returns a JPath match script equivalent to the query by example,
-// ANDing its tags so a step matches when it carries every one of them
+// ANDing the tags within a term and ORing the terms, so a step matches when it
+// carries every tag of any one of them
 func QBESelector(qbe api.SpaceQuery) *api.ScriptConfig {
-	tags := jpathString(MatchTags)
-	clauses := make([]string, 0, len(qbe))
-	for _, tag := range slices.Sorted(slices.Values(qbe)) {
-		clauses = append(clauses,
-			fmt.Sprintf("$[%s][%s]", tags, jpathString(tag)))
+	terms := make([]string, 0, len(qbe))
+	for _, term := range qbe {
+		terms = append(terms, termScript(term, len(qbe) > 1))
 	}
 	return &api.ScriptConfig{
 		Language: api.ScriptLangJPath,
-		Script:   strings.Join(clauses, " &&\n    "),
+		Script:   strings.Join(terms, " ||\n"),
 	}
+}
+
+// termScript ANDs a term's tags, grouping them in parentheses when the term
+// sits beside alternatives
+func termScript(term api.SpaceQueryTerm, group bool) string {
+	tags := jpathString(MatchTags)
+	clauses := make([]string, 0, len(term))
+	for _, tag := range slices.Sorted(slices.Values(term)) {
+		clauses = append(clauses,
+			fmt.Sprintf("$[%s][%s]", tags, jpathString(tag)))
+	}
+	res := strings.Join(clauses, " &&\n    ")
+	if group {
+		return "(" + res + ")"
+	}
+	return res
 }
 
 // jpathString quotes a tag for JPath source, whose string literals take JSON
