@@ -141,14 +141,8 @@ const (
 
 // Validate checks that the request has a valid flow ID and at least one goal
 func (r *CreateFlowRequest) Validate() error {
-	if r.ID == "" {
-		return ErrFlowIDEmpty
-	}
-	if SanitizeID(r.ID) != r.ID {
-		return ErrFlowIDInvalid
-	}
-	if len(r.ID) > MaxFlowIDLen {
-		return fmt.Errorf("%w: maximum is %d", ErrFlowIDTooLong, MaxFlowIDLen)
+	if err := r.validateID(); err != nil {
+		return err
 	}
 	if len(r.Goals) == 0 {
 		return ErrGoalsRequired
@@ -164,6 +158,19 @@ func (r *CreateFlowRequest) Validate() error {
 	}
 	if slices.Contains(r.Tags, "") {
 		return ErrTagEmpty
+	}
+	return nil
+}
+
+func (r *CreateFlowRequest) validateID() error {
+	if r.ID == "" {
+		return ErrFlowIDEmpty
+	}
+	if SanitizeID(r.ID) != r.ID {
+		return ErrFlowIDInvalid
+	}
+	if len(r.ID) > MaxFlowIDLen {
+		return fmt.Errorf("%w: maximum is %d", ErrFlowIDTooLong, MaxFlowIDLen)
 	}
 	return nil
 }

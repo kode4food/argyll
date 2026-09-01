@@ -11,18 +11,13 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/events"
 	"github.com/kode4food/argyll/engine/pkg/log"
-	"github.com/kode4food/argyll/engine/pkg/util"
 	"github.com/kode4food/argyll/engine/pkg/util/call"
 )
 
-type (
-	CatalogTx struct {
-		e  *Engine
-		ag *CatalogAggregator
-	}
-
-	stepSet = util.Set[api.StepID]
-)
+type CatalogTx struct {
+	e  *Engine
+	ag *CatalogAggregator
+}
 
 var (
 	ErrInvalidStep        = errors.New("invalid step")
@@ -140,37 +135,39 @@ func (e *Engine) validateStep(st *api.Step) error {
 func (e *Engine) raiseStepRegisteredEvent(
 	st *api.Step, ag *CatalogAggregator,
 ) error {
-	spaces, err := e.matchingSpaceIDs(ag.Value(), st)
-	if err != nil {
-		return err
-	}
-	if err := events.Raise(ag, api.EventTypeStepRegistered,
-		api.StepRegisteredEvent{
-			Step:   st,
-			Spaces: spaces,
-		},
-	); err != nil {
-		return err
-	}
-	ag.OnSuccess(func(api.CatalogState, []*timebox.Event) {
-		e.resetStepHealth(st)
+	return e.raiseStepEvent(st, ag, func(spaces []api.SpaceID) error {
+		return events.Raise(ag, api.EventTypeStepRegistered,
+			api.StepRegisteredEvent{
+				Step:   st,
+				Spaces: spaces,
+			},
+		)
 	})
-	return nil
 }
 
 func (e *Engine) raiseStepUpdatedEvent(
 	st *api.Step, ag *CatalogAggregator,
 ) error {
+	return e.raiseStepEvent(st, ag, func(spaces []api.SpaceID) error {
+		return events.Raise(ag, api.EventTypeStepUpdated,
+			api.StepUpdatedEvent{
+				Step:   st,
+				Spaces: spaces,
+			},
+		)
+	})
+}
+
+// raiseStepEvent resolves the step's Spaces, raises the event built from
+// them, and refreshes the step's health once the transaction commits
+func (e *Engine) raiseStepEvent(
+	st *api.Step, ag *CatalogAggregator, raise func([]api.SpaceID) error,
+) error {
 	spaces, err := e.matchingSpaceIDs(ag.Value(), st)
 	if err != nil {
 		return err
 	}
-	if err := events.Raise(ag, api.EventTypeStepUpdated,
-		api.StepUpdatedEvent{
-			Step:   st,
-			Spaces: spaces,
-		},
-	); err != nil {
+	if err := raise(spaces); err != nil {
 		return err
 	}
 	ag.OnSuccess(func(api.CatalogState, []*timebox.Event) {
@@ -247,104 +244,6 @@ func checkAttributeConflicts(
 			}
 		}
 	}
-	return nil
-}
-
-func detectStepCycles(
-	cat api.CatalogState, newStep *api.Step,
-	children func(*api.Step) ([]api.StepID, error),
-) error {
-	if err := detectAttributeCycles(cat, newStep); err != nil {
-		return err
-	}
-	return detectFlowCycles(cat, newStep, children)
-}
-
-func detectAttributeCycles(cat api.CatalogState, newStep *api.Step) error {
-	steps := stepsIncluding(cat, newStep)
-	deps := cat.Attributes
-	if existing, ok := cat.Steps[newStep.ID]; ok {
-		deps = deps.RemoveStep(existing)
-	}
-	deps = deps.AddStep(newStep)
-	return checkCycleFromStep(newStep.ID, deps, steps, stepSet{})
-}
-
-func detectFlowCycles(
-	cat api.CatalogState, newStep *api.Step,
-	children func(*api.Step) ([]api.StepID, error),
-) error {
-	steps := stepsIncluding(cat, newStep)
-	for sid := range steps {
-		if err := checkFlowCycleFromStep(
-			sid, steps, children, stepSet{},
-		); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func checkCycleFromStep(
-	currentID api.StepID, deps api.AttributeGraph, steps api.Steps,
-	stack stepSet,
-) error {
-	if stack.Contains(currentID) {
-		return fmt.Errorf("%w: step %s", ErrCircularDependency, currentID)
-	}
-
-	stack.Add(currentID)
-	defer stack.Remove(currentID)
-
-	st := steps[currentID]
-	for name, attr := range st.Attributes {
-		if attr.IsInput() {
-			if depInfo := deps[name]; depInfo != nil {
-				for _, providerID := range depInfo.Providers {
-					if err := checkCycleFromStep(
-						providerID, deps, steps, stack,
-					); err != nil {
-						return err
-					}
-				}
-			}
-		}
-	}
-
-	return nil
-}
-
-func checkFlowCycleFromStep(
-	currentID api.StepID, steps api.Steps,
-	children func(*api.Step) ([]api.StepID, error), stack stepSet,
-) error {
-	if stack.Contains(currentID) {
-		return fmt.Errorf("%w: step %s", ErrCircularDependency, currentID)
-	}
-
-	st, ok := steps[currentID]
-	if !ok {
-		return nil
-	}
-	childIDs, err := children(st)
-	if err != nil {
-		return err
-	}
-	if len(childIDs) == 0 {
-		return nil
-	}
-
-	stack.Add(currentID)
-	defer stack.Remove(currentID)
-
-	for _, goalID := range childIDs {
-		if err := checkFlowCycleFromStep(
-			goalID, steps, children, stack,
-		); err != nil {
-			return err
-		}
-	}
-
 	return nil
 }
 

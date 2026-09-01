@@ -81,8 +81,8 @@ func (s Space) Normalize() Space {
 
 // Equal returns true if two normalized space definitions are equal
 func (s Space) Equal(other Space) bool {
-	return s.ID == other.ID && s.Name == other.Name &&
-		s.Description == other.Description &&
-		s.Selector.Equal(other.Selector) &&
+	sameIdentity := s.ID == other.ID && s.Name == other.Name &&
+		s.Description == other.Description
+	return sameIdentity && s.Selector.Equal(other.Selector) &&
 		slices.Equal(s.QBE, other.QBE)
 }

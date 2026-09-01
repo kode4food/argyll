@@ -17,6 +17,58 @@ export interface TagInputProps {
   tags: string[];
 }
 
+interface KeyContext {
+  available: string[];
+  commit: (value: string) => void;
+  draft: string;
+  event: React.KeyboardEvent;
+  highlightedIndex: number;
+  isOpen: boolean;
+  onChange: (tags: string[]) => void;
+  setHighlightedIndex: React.Dispatch<React.SetStateAction<number>>;
+  setOpen: (open: boolean) => void;
+  tags: string[];
+}
+
+const moveHighlight = (ctx: KeyContext, step: number) => {
+  ctx.event.preventDefault();
+  ctx.setHighlightedIndex((current) => {
+    const next = current + step;
+    if (next < 0) return ctx.available.length - 1;
+    return next >= ctx.available.length ? 0 : next;
+  });
+};
+
+const commitHighlighted = (ctx: KeyContext) => {
+  ctx.event.preventDefault();
+  ctx.commit(ctx.available[ctx.highlightedIndex] ?? ctx.draft);
+};
+
+const openOrMoveDown = (ctx: KeyContext) => {
+  if (!ctx.isOpen && ctx.available.length > 0) {
+    ctx.event.preventDefault();
+    ctx.setOpen(true);
+    ctx.setHighlightedIndex(0);
+    return;
+  }
+  moveHighlight(ctx, 1);
+};
+
+const dropLastTag = (ctx: KeyContext) => {
+  if (ctx.draft === "" && ctx.tags.length > 0) {
+    ctx.onChange(ctx.tags.slice(0, -1));
+  }
+};
+
+const KEY_HANDLERS: Record<string, (ctx: KeyContext) => void> = {
+  ",": commitHighlighted,
+  ArrowDown: openOrMoveDown,
+  ArrowUp: (ctx) => moveHighlight(ctx, -1),
+  Backspace: dropLastTag,
+  Enter: commitHighlighted,
+  Escape: (ctx) => ctx.setOpen(false),
+};
+
 const TagInput: React.FC<TagInputProps> = ({
   Icon,
   label,
@@ -72,33 +124,18 @@ const TagInput: React.FC<TagInputProps> = ({
   }, [isOpen]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" || e.key === ",") {
-      e.preventDefault();
-      commit(available[highlightedIndex] ?? draft);
-      return;
-    }
-    if (e.key === "Backspace" && draft === "" && tags.length > 0) {
-      onChange(tags.slice(0, -1));
-      return;
-    }
-    if (e.key === "ArrowDown" && !isOpen && available.length > 0) {
-      e.preventDefault();
-      setOpen(true);
-      setHighlightedIndex(0);
-      return;
-    }
-    if (e.key === "ArrowDown" || e.key === "ArrowUp") {
-      e.preventDefault();
-      const step = e.key === "ArrowDown" ? 1 : -1;
-      setHighlightedIndex((current) => {
-        const next = current + step;
-        if (next < 0) return available.length - 1;
-        if (next >= available.length) return 0;
-        return next;
-      });
-      return;
-    }
-    if (e.key === "Escape") setOpen(false);
+    KEY_HANDLERS[e.key]?.({
+      available,
+      commit,
+      draft,
+      event: e,
+      highlightedIndex,
+      isOpen,
+      onChange,
+      setHighlightedIndex,
+      setOpen,
+      tags,
+    });
   };
 
   return (

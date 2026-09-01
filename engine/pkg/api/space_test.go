@@ -2,6 +2,7 @@ package api_test
 
 import (
 	"encoding/json"
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -89,4 +90,40 @@ func TestSpaceNormalize(t *testing.T) {
 		"domain:payments", "domain:risk", "tier:gold",
 	}, normalized.QBE)
 	assert.Equal(t, sp.Selector, normalized.Selector)
+}
+
+func TestSpaceValidateIdentity(t *testing.T) {
+	selector := &api.ScriptConfig{
+		Language: api.ScriptLangJPath,
+		Script:   `$["domain:payments"]`,
+	}
+
+	invalidID := api.Space{
+		ID: "not a valid id", Name: "Payments", Selector: selector,
+	}
+	assert.ErrorIs(t, invalidID.Validate(), api.ErrSpaceIDInvalid)
+
+	noName := api.Space{ID: "payments", Selector: selector}
+	assert.ErrorIs(t, noName.Validate(), api.ErrSpaceNameEmpty)
+}
+
+func TestSpaceValidateSelectorScript(t *testing.T) {
+	noScript := api.Space{
+		ID: "payments", Name: "Payments",
+		Selector: &api.ScriptConfig{Language: api.ScriptLangJPath},
+	}
+	assert.ErrorIs(t, noScript.ValidateSelector(), api.ErrScriptEmpty)
+
+	qbe := make(api.SpaceQuery, api.MaxTagCount+1)
+	for i := range qbe {
+		qbe[i] = fmt.Sprintf("tag:%d", i)
+	}
+	tooManyTags := api.Space{
+		ID: "payments", Name: "Payments", QBE: qbe,
+		Selector: &api.ScriptConfig{
+			Language: api.ScriptLangJPath,
+			Script:   `$["domain:payments"]`,
+		},
+	}
+	assert.ErrorIs(t, tooManyTags.ValidateSelector(), api.ErrTooManyTags)
 }

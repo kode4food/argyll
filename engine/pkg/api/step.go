@@ -9,6 +9,7 @@ import (
 	"sync"
 
 	"github.com/kode4food/argyll/engine/pkg/util"
+	"github.com/kode4food/argyll/engine/pkg/util/call"
 )
 
 type (
@@ -217,6 +218,17 @@ var (
 
 // Validate checks if the step configuration is valid
 func (s *Step) Validate() error {
+	return call.Perform(
+		s.validateIdentity,
+		s.validateHandling,
+		s.validateTypeConfig,
+		s.validateAttributes,
+		s.validateMappingNames,
+		s.validateWorkConfig,
+	)
+}
+
+func (s *Step) validateIdentity() error {
 	if s.ID == "" {
 		return ErrStepIDEmpty
 	}
@@ -232,32 +244,19 @@ func (s *Step) Validate() error {
 	if slices.Contains(s.Tags, "") {
 		return ErrTagEmpty
 	}
-	if err := s.validateHandling(); err != nil {
-		return err
-	}
+	return nil
+}
 
+func (s *Step) validateTypeConfig() error {
 	switch s.Type {
 	case StepTypeService:
-		if err := s.validateHTTPConfig(); err != nil {
-			return err
-		}
+		return s.validateHTTPConfig()
 	case StepTypeFlow:
-		if err := s.validateFlowConfig(); err != nil {
-			return err
-		}
+		return s.validateFlowConfig()
 	case StepTypeScript:
-		if err := s.validateScriptConfig(); err != nil {
-			return err
-		}
+		return s.validateScriptConfig()
 	}
-
-	if err := s.validateAttributes(); err != nil {
-		return err
-	}
-	if err := s.validateMappingNames(); err != nil {
-		return err
-	}
-	return s.validateWorkConfig()
+	return nil
 }
 
 // Copy returns a shallow copy of the step without copying internal cache state
@@ -379,37 +378,16 @@ func (s *Step) MappedName(name Name) (Name, bool) {
 
 // Equal returns true if two steps are equal
 func (s *Step) Equal(other *Step) bool {
-	if s.ID != other.ID || s.Name != other.Name || s.Type != other.Type {
-		return false
-	}
-	if s.DefaultedHandling() != other.DefaultedHandling() {
-		return false
-	}
-	if !s.Attributes.Equal(other.Attributes) {
-		return false
-	}
-	if !s.HTTP.Equal(other.HTTP) {
-		return false
-	}
-	if !s.Flow.Equal(other.Flow) {
-		return false
-	}
-	if !s.Script.Equal(other.Script) {
-		return false
-	}
-	if !s.Predicate.Equal(other.Predicate) {
-		return false
-	}
-	if !s.WorkConfig.Equal(other.WorkConfig) {
-		return false
-	}
-	if !s.Tags.Equal(other.Tags) {
-		return false
-	}
-	if s.Description != other.Description {
-		return false
-	}
-	return true
+	sameIdentity := s.ID == other.ID && s.Name == other.Name &&
+		s.Type == other.Type && s.Description == other.Description
+	sameAction := s.HTTP.Equal(other.HTTP) && s.Flow.Equal(other.Flow) &&
+		s.Script.Equal(other.Script)
+	sameWork := s.DefaultedHandling() == other.DefaultedHandling() &&
+		s.WorkConfig.Equal(other.WorkConfig) &&
+		s.Predicate.Equal(other.Predicate)
+	sameContent := s.Attributes.Equal(other.Attributes) &&
+		s.Tags.Equal(other.Tags)
+	return sameIdentity && sameAction && sameWork && sameContent
 }
 
 // HashKey computes a deterministic SHA256 hash key of the functional parts of
@@ -471,35 +449,17 @@ func (s *Step) validateHTTPConfig() error {
 	if s.Script != nil {
 		return ErrScriptNotAllowed
 	}
-	if s.HTTP.Invoke.Endpoint == "" {
-		return ErrStepEndpointEmpty
-	}
-	method := s.HTTP.Invoke.DefaultedMethod()
-	if !validHTTPMethods.Contains(method) {
-		return fmt.Errorf("%w: %s", ErrInvalidHTTPMethod, method)
-	}
-	mode := s.HTTP.Invoke.DefaultedMode()
-	if !validActionModes.Contains(mode) {
-		return fmt.Errorf("%w: %s", ErrInvalidActionMode, mode)
+	if err := validateAction(&s.HTTP.Invoke); err != nil {
+		return err
 	}
 	if s.HTTP.Compensate == nil {
 		return s.validateEndpointParams()
 	}
-	if s.HTTP.Compensate.Endpoint == "" {
-		return ErrStepEndpointEmpty
-	}
-	compMethod := s.HTTP.Compensate.DefaultedMethod()
-	if !validHTTPMethods.Contains(compMethod) {
-		return fmt.Errorf("%w: %s", ErrInvalidHTTPMethod, compMethod)
-	}
-	compMode := s.HTTP.Compensate.DefaultedMode()
-	if !validActionModes.Contains(compMode) {
-		return fmt.Errorf("%w: %s", ErrInvalidActionMode, compMode)
-	}
-	if err := s.validateEndpointParams(); err != nil {
-		return err
-	}
-	return s.validateCompensateParams()
+	return call.Perform(
+		call.WithArg(validateAction, s.HTTP.Compensate),
+		s.validateEndpointParams,
+		s.validateCompensateParams,
+	)
 }
 
 func (s *Step) validateEndpointParams() error {
@@ -788,11 +748,12 @@ func (c *WorkConfig) Equal(other *WorkConfig) bool {
 	if c == nil || other == nil {
 		return c == other
 	}
-	return c.Parallelism == other.Parallelism &&
-		c.MaxRetries == other.MaxRetries &&
-		c.InitBackoff == other.InitBackoff &&
+	sameLimits := c.Parallelism == other.Parallelism &&
+		c.MaxRetries == other.MaxRetries
+	sameBackoff := c.InitBackoff == other.InitBackoff &&
 		c.MaxBackoff == other.MaxBackoff &&
 		c.BackoffType == other.BackoffType
+	return sameLimits && sameBackoff
 }
 
 // Equal returns true if two normalized tag sets are equal
@@ -807,6 +768,21 @@ func (t Tags) Normalize() Tags {
 		return t
 	}
 	return slices.Compact(slices.Sorted(slices.Values(t)))
+}
+
+func validateAction(act *HTTPAction) error {
+	if act.Endpoint == "" {
+		return ErrStepEndpointEmpty
+	}
+	method := act.DefaultedMethod()
+	if !validHTTPMethods.Contains(method) {
+		return fmt.Errorf("%w: %s", ErrInvalidHTTPMethod, method)
+	}
+	mode := act.DefaultedMode()
+	if !validActionModes.Contains(mode) {
+		return fmt.Errorf("%w: %s", ErrInvalidActionMode, mode)
+	}
+	return nil
 }
 
 func endpointParams(endpoint string) util.Set[string] {

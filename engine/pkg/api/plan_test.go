@@ -337,3 +337,48 @@ func buildGraph(steps api.Steps) api.AttributeGraph {
 	}
 	return graph
 }
+
+func TestAddStepIdempotent(t *testing.T) {
+	graph := api.AttributeGraph{}
+
+	stepA := &api.Step{
+		ID:   "step-a",
+		Name: "Step A",
+		Attributes: api.AttributeSpecs{
+			"input":  {Role: api.RoleRequired, Type: api.TypeString},
+			"output": {Role: api.RoleOutput, Type: api.TypeString},
+		},
+	}
+
+	graph = graph.AddStep(stepA).AddStep(stepA)
+
+	assert.Len(t, graph["input"].Consumers, 1)
+	assert.Len(t, graph["output"].Providers, 1)
+}
+
+func TestRemoveStepNotInEdges(t *testing.T) {
+	graph := api.AttributeGraph{
+		"input": &api.AttributeEdges{
+			Providers: []api.StepID{},
+			Consumers: []api.StepID{"step-a"},
+		},
+		"output": &api.AttributeEdges{
+			Providers: []api.StepID{"step-a"},
+			Consumers: []api.StepID{},
+		},
+	}
+
+	stepB := &api.Step{
+		ID:   "step-b",
+		Name: "Step B",
+		Attributes: api.AttributeSpecs{
+			"input":  {Role: api.RoleRequired, Type: api.TypeString},
+			"output": {Role: api.RoleOutput, Type: api.TypeString},
+		},
+	}
+
+	graph = graph.RemoveStep(stepB)
+
+	assert.Equal(t, []api.StepID{"step-a"}, graph["input"].Consumers)
+	assert.Equal(t, []api.StepID{"step-a"}, graph["output"].Providers)
+}

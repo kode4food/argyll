@@ -238,6 +238,93 @@ func TestHubClose(t *testing.T) {
 	assert.True(t, closer.IsClosed(h))
 }
 
+func TestHubConsumerFiltersOtherPrefix(t *testing.T) {
+	h := event.NewHub()
+	flows := h.NewAggregateConsumer(timebox.NewAggregateID("flow"))
+	defer flows.Close()
+	engines := h.NewAggregateConsumer(timebox.NewAggregateID("engine"))
+	defer engines.Close()
+
+	flowCh := flows.Receive()
+	engineCh := engines.Receive()
+	h.Publish(newEvent("incremented", timebox.NewAggregateID("flow", "a"), 0))
+
+	select {
+	case ev := <-flowCh:
+		assert.Equal(t, timebox.ID("flow"), ev.AggregateID[0])
+	case <-time.After(eventWait):
+		t.Fatal("timeout waiting for event")
+	}
+
+	select {
+	case ev := <-engineCh:
+		t.Fatalf("unexpected event %v", ev.AggregateID)
+	case <-time.After(idleWait):
+	}
+}
+
+func TestHubConsumerFiltersOtherType(t *testing.T) {
+	h := event.NewHub()
+	prefix := timebox.NewAggregateID("flow")
+	started := h.NewAggregateConsumer(prefix, "started")
+	defer started.Close()
+	stopped := h.NewAggregateConsumer(prefix, "stopped")
+	defer stopped.Close()
+
+	startedCh := started.Receive()
+	stoppedCh := stopped.Receive()
+	h.Publish(newEvent("started", timebox.NewAggregateID("flow", "a"), 0))
+
+	select {
+	case ev := <-startedCh:
+		assert.Equal(t, timebox.EventType("started"), ev.Type)
+	case <-time.After(eventWait):
+		t.Fatal("timeout waiting for event")
+	}
+
+	select {
+	case ev := <-stoppedCh:
+		t.Fatalf("unexpected event %v", ev.Type)
+	case <-time.After(idleWait):
+	}
+}
+
+func TestHubUnsubscribeSharedPrefix(t *testing.T) {
+	h := event.NewHub()
+	prefix := timebox.NewAggregateID("flow")
+	first := h.NewAggregateConsumer(prefix)
+	second := h.NewAggregateConsumer(prefix)
+	defer second.Close()
+
+	ch := second.Receive()
+	first.Close()
+	h.Publish(newEvent("incremented", timebox.NewAggregateID("flow", "a"), 0))
+
+	select {
+	case ev := <-ch:
+		assert.Equal(t, timebox.ID("flow"), ev.AggregateID[0])
+	case <-time.After(eventWait):
+		t.Fatal("timeout waiting for event")
+	}
+}
+
+func TestHubPrefixLongerThanAggregate(t *testing.T) {
+	h := event.NewHub()
+	consumer := h.NewAggregateConsumer(
+		timebox.NewAggregateID("flow", "a", "b"),
+	)
+	defer consumer.Close()
+
+	ch := consumer.Receive()
+	h.Publish(newEvent("incremented", timebox.NewAggregateID("flow", "a"), 0))
+
+	select {
+	case ev := <-ch:
+		t.Fatalf("unexpected event %v", ev.AggregateID)
+	case <-time.After(idleWait):
+	}
+}
+
 func newEvent(
 	typ timebox.EventType, agg timebox.AggregateID, seq int64,
 ) *timebox.Event {
