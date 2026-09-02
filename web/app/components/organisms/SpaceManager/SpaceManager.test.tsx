@@ -292,6 +292,7 @@ describe("SpaceManager", () => {
     await addSelector("domain:trading");
     await addAlternative("domain:risk");
 
+    expect(screen.getByText(t("spaceManager.or"))).toBeInTheDocument();
     await waitFor(() =>
       expect(mockApi.previewSpace).toHaveBeenLastCalledWith(
         expect.objectContaining({

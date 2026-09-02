@@ -1,7 +1,7 @@
 import React from "react";
 import TagInput from "@/app/components/molecules/TagInput";
 import { useT } from "@/app/i18n";
-import { IconAttributeLabel, IconRemove } from "@/utils/iconRegistry";
+import { IconAdd, IconAttributeLabel, IconRemove } from "@/utils/iconRegistry";
 import styles from "./SpaceManager.module.css";
 
 interface SpaceManagerSelectorStepProps {
@@ -46,7 +46,7 @@ const SpaceManagerSelectorStep: React.FC<SpaceManagerSelectorStepProps> = ({
               onTermsChange([...terms, []]);
             }}
           >
-            ||
+            <IconAdd className={styles.iconSm} />
           </button>
         </div>
         {terms.map((term, index) => (
@@ -66,6 +66,9 @@ const SpaceManagerSelectorStep: React.FC<SpaceManagerSelectorStepProps> = ({
               }
               suggestions={suggestions}
             />
+            {index > 0 && (
+              <span className={styles.or}>{t("spaceManager.or")}</span>
+            )}
             {terms.length > 1 && (
               <button
                 type="button"

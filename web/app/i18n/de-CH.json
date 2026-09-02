@@ -212,6 +212,7 @@
   "spaceManager.selectorLabel": "Selector",
   "spaceManager.removeSelector": "Selector-Label entfernen",
   "spaceManager.addAlternative": "Alternative hinzufügen",
+  "spaceManager.or": "ODER",
   "spaceManager.removeAlternative": "Alternative entfernen",
   "spaceManager.editScript": "Script bearbeiten",
   "spaceManager.selectorStep": "Selector",
