@@ -14,6 +14,7 @@ export interface TagInputProps {
   onChange: (tags: string[]) => void;
   placeholder: string;
   removeLabel: string;
+  shouldFocus?: boolean;
   shouldShowFieldIcon?: boolean;
   suggestions: readonly string[];
   tags: string[];
@@ -43,6 +44,7 @@ const TagInput: React.FC<TagInputProps> = ({
   onChange,
   placeholder,
   removeLabel,
+  shouldFocus,
   shouldShowFieldIcon,
   suggestions,
   tags,
@@ -78,6 +80,7 @@ const TagInput: React.FC<TagInputProps> = ({
     });
     tagify.on("change", () => onChangeRef.current(valuesOf(tagify)));
     tagifyRef.current = tagify;
+    if (shouldFocus) tagify.DOM.input.focus();
     return () => tagify.destroy();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

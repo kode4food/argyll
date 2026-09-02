@@ -68,6 +68,7 @@
   --tags-border-color: transparent;
   --tags-focus-border-color: transparent;
   --placeholder-color: var(--panel-text-placeholder);
+  --placeholder-color-focus: var(--panel-text-placeholder);
   flex: 1;
   min-width: 0;
   align-items: center;

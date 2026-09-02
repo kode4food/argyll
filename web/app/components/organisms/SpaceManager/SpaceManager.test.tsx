@@ -152,6 +152,13 @@ describe("SpaceManager", () => {
     expect(screen.getByText("risk")).toBeInTheDocument();
   });
 
+  test("focuses the selector when starting a new Space", () => {
+    open();
+    startNew();
+
+    expect(document.querySelector(".tagify__input")).toHaveFocus();
+  });
+
   test("prefills the id and name from the selector tags", async () => {
     open();
     startNew();
@@ -307,6 +314,19 @@ describe("SpaceManager", () => {
 
     fireEvent.click(addButton);
     expect(addButton).toBeDisabled();
+  });
+
+  test("focuses an added alternative", async () => {
+    open();
+    startNew();
+    await addSelector("domain:trading");
+
+    fireEvent.click(
+      screen.getByRole("button", { name: t("spaceManager.addAlternative") })
+    );
+
+    const fields = document.querySelectorAll(".tagify__input");
+    expect(fields[fields.length - 1]).toHaveFocus();
   });
 
   test("requires every alternative to carry a tag", async () => {

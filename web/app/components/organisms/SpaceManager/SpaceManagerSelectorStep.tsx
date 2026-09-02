@@ -22,6 +22,7 @@ const SpaceManagerSelectorStep: React.FC<SpaceManagerSelectorStepProps> = ({
   terms,
 }) => {
   const t = useT();
+  const [focusTermIndex, setFocusTermIndex] = React.useState(-1);
   const addAlternative = t("spaceManager.addAlternative");
   const removeAlternative = t("spaceManager.removeAlternative");
   return (
@@ -40,7 +41,10 @@ const SpaceManagerSelectorStep: React.FC<SpaceManagerSelectorStepProps> = ({
             title={addAlternative}
             aria-label={addAlternative}
             disabled={isAddDisabled}
-            onClick={() => onTermsChange([...terms, []])}
+            onClick={() => {
+              setFocusTermIndex(terms.length);
+              onTermsChange([...terms, []]);
+            }}
           >
             ||
           </button>
@@ -51,6 +55,9 @@ const SpaceManagerSelectorStep: React.FC<SpaceManagerSelectorStepProps> = ({
               Icon={IconAttributeLabel}
               removeLabel={t("spaceManager.removeSelector")}
               placeholder={t("stepEditor.tagPlaceholder")}
+              shouldFocus={
+                index === focusTermIndex || (terms.length === 1 && !term.length)
+              }
               tags={term}
               onChange={(tags) =>
                 onTermsChange(
