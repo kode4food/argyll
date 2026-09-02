@@ -1,5 +1,6 @@
 import React from "react";
 import { useT } from "@/app/i18n";
+import formStyles from "@/app/styles/components/form.module.css";
 import { SpaceDraft } from "./spaceManagerUtils";
 import styles from "./SpaceManager.module.css";
 
@@ -19,7 +20,9 @@ const SpaceManagerDetailsStep: React.FC<SpaceManagerDetailsStepProps> = ({
   const t = useT();
   return (
     <div className={styles.detail}>
-      <div className={styles.field}>
+      <div
+        className={`${styles.field} ${isIdLocked ? formStyles.disabledField : ""}`}
+      >
         <label className={styles.label}>{t("spaceManager.idLabel")}</label>
         <input
           type="text"

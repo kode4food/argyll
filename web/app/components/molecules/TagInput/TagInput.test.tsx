@@ -51,6 +51,14 @@ describe("TagInput", () => {
     expect(screen.getByLabelText("Remove alpha")).toBeInTheDocument();
   });
 
+  test("returns the caret to the input when a tag is clicked", () => {
+    const { container } = renderInput(["alpha"]);
+
+    fireEvent.click(container.querySelector("tag")!);
+
+    expect(container.querySelector(".tagify__input")).toHaveFocus();
+  });
+
   test("reports the remaining tags when one is removed", async () => {
     renderInput(["alpha", "beta"]);
     // Tagify holds back change events until its own load has settled

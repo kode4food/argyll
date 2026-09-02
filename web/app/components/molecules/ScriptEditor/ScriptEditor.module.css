@@ -42,3 +42,42 @@
   outline: 2px solid rgba(76, 175, 80, 0.5);
   outline-offset: -2px;
 }
+
+.editor :global(.cm-tooltip.cm-tooltip-autocomplete) {
+  overflow: hidden;
+  padding: var(--spacing-xs);
+  color: inherit;
+  background-color: inherit;
+  border: 1px solid color-mix(in srgb, currentColor 22%, transparent);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+}
+
+.editor :global(.cm-tooltip.cm-tooltip-autocomplete > ul) {
+  min-width: 0;
+  max-height: 12rem;
+  padding: 0;
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+}
+
+.editor :global(.cm-tooltip-autocomplete > ul > li) {
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--radius-sm);
+  line-height: 1.4;
+}
+
+.editor :global(.cm-tooltip-autocomplete > ul > li[aria-selected]) {
+  color: inherit;
+  background-color: color-mix(in srgb, currentColor 12%, transparent);
+}
+
+.editor :global(.cm-completionIcon) {
+  display: none;
+}
+
+.editor :global(.cm-completionMatchedText) {
+  color: var(--color-primary-light);
+  text-decoration: none;
+  font-weight: var(--font-semibold);
+}

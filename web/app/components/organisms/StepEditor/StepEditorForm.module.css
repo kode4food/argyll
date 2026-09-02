@@ -103,11 +103,6 @@
   gap: var(--spacing-xs);
 }
 
-/* Dim a field's label alongside its own disabled control */
-.field:has(.formControl:disabled) .label {
-  opacity: var(--opacity-disabled);
-}
-
 .labelIcon {
   composes: iconBox from "@/app/styles/components/icon.module.css";
 }
@@ -292,11 +287,6 @@
 .inlineSelectButton:focus-visible,
 .inlineSelectButtonOpen {
   color: var(--color-info-light);
-}
-
-.inlineSelectDisabled {
-  opacity: 0.5;
-  cursor: not-allowed;
 }
 
 .collectIcon {

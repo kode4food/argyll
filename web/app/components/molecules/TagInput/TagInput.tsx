@@ -79,6 +79,10 @@ const TagInput: React.FC<TagInputProps> = ({
       templates: { tag: tagTemplate(removeLabel) },
     });
     tagify.on("change", () => onChangeRef.current(valuesOf(tagify)));
+    tagify.on("click", () => {
+      tagify.DOM.input.focus();
+      tagify.setRangeAtStartEnd(false, tagify.DOM.input);
+    });
     tagifyRef.current = tagify;
     if (shouldFocus) tagify.DOM.input.focus();
     return () => tagify.destroy();

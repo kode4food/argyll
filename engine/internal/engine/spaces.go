@@ -189,5 +189,18 @@ func (e *Engine) spaceMatches(sp api.Space, st *api.Step) (bool, error) {
 	for _, tag := range st.Tags {
 		tags[tag] = true
 	}
-	return e.Matcher(sp.Selector, map[string]any{script.MatchTags: tags})
+	attrs := make(map[string]any, len(st.Attributes))
+	for name, attr := range st.Attributes {
+		attrs[string(name)] = map[string]any{
+			script.MatchAttributeRole:        string(attr.Role),
+			script.MatchType:                 string(attr.Type),
+			script.MatchAttributeCompensated: attr.Compensated,
+		}
+	}
+	return e.Matcher(sp.Selector, map[string]any{
+		script.MatchTags:       tags,
+		script.MatchType:       string(st.Type),
+		script.MatchHandling:   string(st.DefaultedHandling()),
+		script.MatchAttributes: attrs,
+	})
 }

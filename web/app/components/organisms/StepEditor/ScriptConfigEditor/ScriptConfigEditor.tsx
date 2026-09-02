@@ -16,6 +16,7 @@ interface ScriptConfigEditorProps {
   label: string;
   value: string;
   onChange: (value: string) => void;
+  completions?: readonly string[];
   language: string;
   onLanguageChange: (language: string) => void;
   languageOptions?: ScriptLanguageOption[];
@@ -36,6 +37,7 @@ const ScriptConfigEditor: React.FC<ScriptConfigEditorProps> = ({
   label,
   value,
   onChange,
+  completions,
   language,
   onLanguageChange,
   languageOptions = defaultLanguageOptions,
@@ -68,6 +70,7 @@ const ScriptConfigEditor: React.FC<ScriptConfigEditorProps> = ({
         <ScriptEditor
           value={value}
           onChange={onChange}
+          completions={completions}
           language={language}
           readOnly={readOnly}
         />

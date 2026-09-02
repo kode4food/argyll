@@ -46,8 +46,13 @@ type (
 )
 
 const (
-	// MatchTags names the key holding a step's tags in a selector document
-	MatchTags = "tags"
+	// Selector document keys
+	MatchTags                 = "tags"
+	MatchType                 = "type"
+	MatchHandling             = "handling"
+	MatchAttributes           = "attributes"
+	MatchAttributeRole        = "role"
+	MatchAttributeCompensated = "compensated"
 
 	matchValue = api.Name("value")
 )

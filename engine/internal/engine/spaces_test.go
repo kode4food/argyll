@@ -65,6 +65,10 @@ func TestSpaceScriptSelectors(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
 		risk := helpers.NewSimpleStep("risk")
 		risk.Tags = api.Tags{"domain:risk"}
+		risk.Attributes["score"] = &api.AttributeSpec{
+			Role: api.RoleOutput,
+			Type: api.TypeNumber,
+		}
 		trading := helpers.NewSimpleStep("trading")
 		trading.Tags = api.Tags{"domain:trading"}
 		assert.NoError(t, eng.RegisterStep(risk))
@@ -74,7 +78,11 @@ func TestSpaceScriptSelectors(t *testing.T) {
 			ID: "lua", Name: "Lua",
 			Selector: &api.ScriptConfig{
 				Language: api.ScriptLangLua,
-				Script:   `return value["tags"]["domain:risk"]`,
+				Script: `return value["tags"]["domain:risk"] and
+    value["type"] == "service" and value["handling"] == "standard" and
+    value["attributes"]["score"]["role"] == "output" and
+    value["attributes"]["score"]["type"] == "number" and
+    value["attributes"]["score"]["compensated"] == false`,
 			},
 		}
 		jpathSpace := api.Space{

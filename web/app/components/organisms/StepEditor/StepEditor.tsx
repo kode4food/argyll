@@ -21,6 +21,7 @@ import StepEditorHttpConfiguration from "./StepEditorHttpConfiguration";
 import StepEditorFooter from "./StepEditorFooter";
 import { predicateLanguageOptions } from "./stepEditorConstants";
 import { useScrollFade } from "@/app/hooks/useScrollFade";
+import { stepAttributeCompletions } from "@/utils/scriptCompletions";
 
 interface StepEditorProps {
   step: Step | null;
@@ -112,6 +113,14 @@ const StepEditor: React.FC<StepEditorProps> = ({
   const [flowPreviewPlan, setFlowPreviewPlan] =
     React.useState<ExecutionPlan | null>(null);
   const [flowInitialState, setFlowInitialState] = React.useState("{}");
+  const predicateCompletions = React.useMemo(
+    () => stepAttributeCompletions(attributes, predicateLanguage, false),
+    [attributes, predicateLanguage]
+  );
+  const scriptCompletions = React.useMemo(
+    () => stepAttributeCompletions(attributes, scriptLanguage, true),
+    [attributes, scriptLanguage]
+  );
 
   const updateFlowPreviewPlan = React.useCallback(
     async (
@@ -242,6 +251,7 @@ const StepEditor: React.FC<StepEditorProps> = ({
               <ScriptConfigEditor
                 Icon={IconPredicate}
                 label={t("stepEditor.predicateLabel")}
+                completions={predicateCompletions}
                 value={predicate}
                 onChange={setPredicate}
                 language={predicateLanguage}
@@ -254,6 +264,7 @@ const StepEditor: React.FC<StepEditorProps> = ({
                 <ScriptConfigEditor
                   Icon={IconStepTypeScript}
                   label={t("stepEditor.scriptLabel")}
+                  completions={scriptCompletions}
                   value={script}
                   onChange={setScript}
                   language={scriptLanguage}

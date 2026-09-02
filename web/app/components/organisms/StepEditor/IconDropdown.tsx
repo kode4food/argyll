@@ -1,6 +1,7 @@
 import React from "react";
 import useDropdown from "@/app/hooks/useDropdown";
 import dropdownStyles from "@/app/styles/components/dropdown.module.css";
+import sharedFormStyles from "@/app/styles/components/form.module.css";
 import formStyles from "./StepEditorForm.module.css";
 
 export interface IconDropdownOption {
@@ -49,7 +50,7 @@ const IconDropdown: React.FC<IconDropdownProps> = ({
         className={[
           formStyles.iconDropdownFace,
           open && formStyles.iconDropdownFaceOpen,
-          disabled && formStyles.inlineSelectDisabled,
+          disabled && sharedFormStyles.disabledField,
         ]
           .filter(Boolean)
           .join(" ")}

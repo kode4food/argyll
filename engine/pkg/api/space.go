@@ -56,8 +56,7 @@ func (s Space) Validate() error {
 }
 
 // ValidateSelector checks if the space selector and its QBE source are valid.
-// The selector is a tag predicate, so its language is left to the script
-// registry to accept or reject
+// Its language is left to the script registry to accept or reject
 func (s Space) ValidateSelector() error {
 	if s.Selector == nil {
 		return ErrSpaceSelectorEmpty

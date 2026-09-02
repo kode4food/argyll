@@ -5,6 +5,7 @@ import SelectField, {
   type SelectFieldOption,
 } from "@/app/components/molecules/SelectField";
 import TagInput from "@/app/components/molecules/TagInput";
+import sharedFormStyles from "@/app/styles/components/form.module.css";
 import {
   getStepTypeIcon,
   IconAttributeLabel,
@@ -96,7 +97,9 @@ const StepEditorBasicFields: React.FC<StepEditorBasicFieldsProps> = ({
   return (
     <>
       <div className={formStyles.row}>
-        <div className={`${formStyles.field} ${formStyles.flex1}`}>
+        <div
+          className={`${formStyles.field} ${formStyles.flex1} ${!isCreateMode ? sharedFormStyles.disabledField : ""}`}
+        >
           <label className={formStyles.label}>
             {t("stepEditor.stepIdLabel")}
           </label>

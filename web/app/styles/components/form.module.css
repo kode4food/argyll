@@ -32,6 +32,16 @@
   composes: iconBox from "./icon.module.css";
 }
 
+.disabledField label {
+  color: var(--panel-text-disabled);
+}
+
+.disabledField:is(input, textarea, select, button):disabled,
+.disabledField :is(input, textarea, select, button):disabled {
+  color: var(--panel-text-disabled);
+  cursor: not-allowed;
+}
+
 .rowList {
   display: flex;
   flex-direction: column;

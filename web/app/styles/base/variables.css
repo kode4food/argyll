@@ -68,6 +68,7 @@
     var(--panel-text) 40%,
     transparent
   );
+  --panel-text-disabled: color-mix(in srgb, var(--panel-text) 30%, transparent);
 
   --panel-surface: var(--color-surface);
   --panel-border: var(--color-neutral-border);

@@ -202,10 +202,6 @@
   border-color: var(--color-info);
 }
 
-.input:disabled {
-  opacity: var(--opacity-disabled);
-}
-
 .matches {
   color: var(--panel-text-muted);
   font-size: var(--text-xs);

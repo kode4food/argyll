@@ -5,6 +5,8 @@ import { predicateLanguageOptions } from "@/app/components/organisms/StepEditor/
 import { useT } from "@/app/i18n";
 import { IconPredicate } from "@/utils/iconRegistry";
 import styles from "./SpaceManager.module.css";
+import { useSteps } from "@/app/store/flowStore";
+import { spaceSelectorCompletions } from "@/utils/scriptCompletions";
 
 interface SpaceManagerReviewStepProps {
   isScriptMode: boolean;
@@ -22,14 +24,21 @@ const SpaceManagerReviewStep: React.FC<SpaceManagerReviewStepProps> = ({
   selector,
 }) => {
   const t = useT();
+  const steps = useSteps();
+  const language = selector?.language ?? SCRIPT_LANGUAGE_LUA;
+  const completions = React.useMemo(
+    () => spaceSelectorCompletions(steps, language),
+    [language, steps]
+  );
   return (
     <div className={styles.detail}>
       <ScriptConfigEditor
         Icon={IconPredicate}
         label={t("spaceManager.selectorLabel")}
+        completions={completions}
         value={selector?.script ?? ""}
         onChange={onScriptChange}
-        language={selector?.language ?? SCRIPT_LANGUAGE_LUA}
+        language={language}
         onLanguageChange={onLanguageChange}
         languageOptions={predicateLanguageOptions}
         readOnly={!isScriptMode}

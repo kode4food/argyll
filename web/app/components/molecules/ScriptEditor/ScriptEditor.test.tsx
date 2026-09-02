@@ -23,7 +23,9 @@ jest.mock("@uiw/react-codemirror", () => ({
 
 jest.mock("@codemirror/language", () => ({
   StreamLanguage: {
-    define: jest.fn(() => "lua-extension"),
+    define: jest.fn(() => ({
+      data: { of: jest.fn(() => "completion-extension") },
+    })),
   },
 }));
 
@@ -131,5 +133,20 @@ describe("ScriptEditor", () => {
     expect(codeMirrorMock).toHaveBeenCalledWith(
       expect.objectContaining({ height: "500px", theme: "light" })
     );
+  });
+
+  test("registers supplied completions with the language", () => {
+    render(
+      <ScriptEditor
+        value=""
+        onChange={jest.fn()}
+        completions={["amount", "status"]}
+      />
+    );
+
+    const language = (StreamLanguage.define as jest.Mock).mock.results[0].value;
+    expect(language.data.of).toHaveBeenCalledWith({
+      autocomplete: ["amount", "status"],
+    });
   });
 });

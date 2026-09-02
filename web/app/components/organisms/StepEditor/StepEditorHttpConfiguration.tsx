@@ -3,6 +3,7 @@ import DurationInput from "@/app/components/molecules/DurationInput";
 import SegmentedGroup from "@/app/components/molecules/SegmentedGroup";
 import type { ActionMode, Handling, HTTPMethod, StepType } from "@/app/api";
 import { useT } from "@/app/i18n";
+import sharedFormStyles from "@/app/styles/components/form.module.css";
 import {
   getStepTypeIcon,
   IconActionModeAsync,
@@ -119,7 +120,9 @@ const StepEditorHttpActionFields: React.FC<StepEditorHttpActionFieldsProps> = ({
           disabled={!mode}
         />
       </SegmentedGroup>
-      <div className={formStyles.fieldNoFlex}>
+      <div
+        className={`${formStyles.fieldNoFlex} ${!method ? sharedFormStyles.disabledField : ""}`}
+      >
         <label className={formStyles.label}>
           {t("stepEditor.httpMethodLabel")}
         </label>

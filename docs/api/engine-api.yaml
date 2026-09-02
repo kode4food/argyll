@@ -740,7 +740,7 @@ paths:
       description: |
         Create and start a new flow execution with goal-driven planning.
 
-        If `space_id` is omitted, planning uses the complete global step catalog. If supplied, the current Space selector is resolved against registered Step tags before planning.
+        If `space_id` is omitted, planning uses the complete global step catalog. If supplied, the current Space selector is resolved against registered Step metadata before planning.
 
         The engine will:
         1. Create an execution plan containing only necessary steps
@@ -1733,7 +1733,7 @@ components:
         For step execution (`type: script`), `lua` is supported.
         For predicates and attribute mappings, all registered languages are valid
         (`lua`, `jpath` in the default engine).
-        Space selectors use the same languages and evaluate only Step tags.
+        Space selectors use the same languages and evaluate stable Step metadata.
         A selector generated from `qbe` is emitted as `jpath`.
       required:
         - language
@@ -1893,13 +1893,14 @@ components:
         selector:
           allOf:
             - $ref: "#/components/schemas/ScriptConfig"
-          description: Authoritative selector, a predicate over the Step tags
-            in any registered scripting language. The document holds the tags
-            as a set under a `tags` key, so membership is a lookup and further
-            queryable surfaces have room to join it. Lua receives the document
-            as `value`, making a test read `value["tags"]["domain:risk"]`;
-            JPath receives it directly, making the same test read
-            `$["tags"]["domain:risk"]`
+          description: Authoritative selector, a predicate over stable Step
+            metadata in any registered scripting language. The document exposes
+            tags as a set under `tags`, the Step `type`, its defaulted `handling`,
+            and `attributes` keyed by name. Each attribute contains only `role`,
+            `type`, and `compensated`. Lua receives the document as `value`,
+            making a tag test read `value["tags"]["domain:risk"]`; JPath receives
+            it directly, making the same test read `$["tags"]["domain:risk"]`.
+            Query-by-example matches on tags.
         qbe:
           type: array
           description: Optional query-by-example source, a list of alternative

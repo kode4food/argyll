@@ -11,6 +11,7 @@ import styles from "./ScriptEditor.module.css";
 interface ScriptEditorProps {
   value: string;
   onChange: (value: string) => void;
+  completions?: readonly string[];
   readOnly?: boolean;
   language?: string;
   height?: string;
@@ -20,6 +21,7 @@ interface ScriptEditorProps {
 const ScriptEditor: React.FC<ScriptEditorProps> = ({
   value,
   onChange,
+  completions,
   readOnly = false,
   language = "lua",
   height = "100%",
@@ -31,8 +33,14 @@ const ScriptEditor: React.FC<ScriptEditorProps> = ({
     }
     const langMode = language === "lua" ? lua : scheme;
     const langExt = StreamLanguage.define(langMode);
-    return [langExt, EditorView.lineWrapping];
-  }, [language]);
+    return [
+      langExt,
+      ...(completions?.length
+        ? [langExt.data.of({ autocomplete: completions })]
+        : []),
+      EditorView.lineWrapping,
+    ];
+  }, [completions, language]);
 
   return (
     <div className={styles.editor}>
