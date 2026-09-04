@@ -89,7 +89,7 @@ return has(value.tags, "domain:risk") and score and
 			ID: "jpath", Name: "JPath",
 			Selector: &api.ScriptConfig{
 				Language: api.ScriptLangJPath,
-				Script:   `$.tags[?@ == "domain:trading"]`,
+				Script:   `$.tags[?@=="domain:trading"]`,
 			},
 		}
 		assert.NoError(t, eng.RegisterSpace(luaSpace))
@@ -170,7 +170,7 @@ func TestSpaceMarketSelector(t *testing.T) {
 		preview, err := eng.PreviewSpace(api.Space{
 			Selector: &api.ScriptConfig{
 				Language: api.ScriptLangJPath,
-				Script: `$.tags[?@ == "market:europe" || @ == "market:all"] ||
+				Script: `$.tags[?@=="market:europe" || @=="market:all"] ||
     !$.tags[?search(@, "^market:")]`,
 			},
 		})

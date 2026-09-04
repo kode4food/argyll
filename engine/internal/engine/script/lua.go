@@ -48,14 +48,13 @@ var luaPreludeSource string
 var (
 	ErrLuaLoad      = errors.New("lua load error")
 	ErrLuaExecution = errors.New("lua execution error")
-	ErrLuaEnv       = errors.New("lua environment error")
 )
 
 // _G reaches the globals table directly and getmetatable reaches a library
 // table behind its stand-in, so both would outlive the call
 var luaExclude = [...]string{
 	"io", "os", "debug", "package", "require", "dofile", "loadfile", "load",
-	"_G", "getmetatable",
+	luaGlobalTableName, "getmetatable",
 }
 
 // NewLuaEnv creates a new Lua script execution environment with a state pool
@@ -143,17 +142,13 @@ func (e *LuaEnv) compile(src string, argNames []string) (*CompiledLua, error) {
 
 	e.setupSandbox(L)
 
-	if err := lua.LoadString(L, src); err != nil {
-		return nil, err
-	}
-
-	var buf bytes.Buffer
-	if err := L.Dump(&buf); err != nil {
+	code, err := dumpChunk(L, src)
+	if err != nil {
 		return nil, err
 	}
 
 	return &CompiledLua{
-		bytecode: buf.Bytes(),
+		bytecode: code,
 		argNames: argNames,
 	}, nil
 }
@@ -241,12 +236,20 @@ func (e *LuaEnv) returnState(L *lua.State) {
 func compileLuaPrelude() ([]byte, error) {
 	L := lua.NewState()
 	lua.OpenLibraries(L)
-	if err := lua.LoadString(L, luaPreludeSource); err != nil {
+	code, err := dumpChunk(L, luaPreludeSource)
+	if err != nil {
 		return nil, errors.Join(ErrLuaLoad, err)
+	}
+	return code, nil
+}
+
+func dumpChunk(L *lua.State, src string) ([]byte, error) {
+	if err := lua.LoadString(L, src); err != nil {
+		return nil, err
 	}
 	var buf bytes.Buffer
 	if err := L.Dump(&buf); err != nil {
-		return nil, errors.Join(ErrLuaLoad, err)
+		return nil, err
 	}
 	return buf.Bytes(), nil
 }
@@ -261,9 +264,10 @@ func setChunkEnv(L *lua.State) error {
 	L.PushBoolean(false)
 	L.SetField(-2, "__metatable")
 	L.SetMetaTable(-2)
+	// a main chunk always carries _ENV, so this only fires if that changes
 	if _, ok := lua.SetUpValue(L, -2, luaEnvUpValue); !ok {
 		L.Pop(1)
-		return ErrLuaEnv
+		return ErrLuaLoad
 	}
 	return nil
 }
