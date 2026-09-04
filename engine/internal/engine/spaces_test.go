@@ -26,7 +26,7 @@ func TestSpaces(t *testing.T) {
 		assert.Equal(t, sp.QBE, stored.QBE)
 		assert.Equal(t, &api.ScriptConfig{
 			Language: api.ScriptLangJPath,
-			Script:   `$["tags"]["domain:payments"]`,
+			Script:   `$.tags[?@=="domain:payments"]`,
 		}, stored.Selector)
 
 		spaces, err := eng.ListSpaces()
@@ -78,18 +78,18 @@ func TestSpaceScriptSelectors(t *testing.T) {
 			ID: "lua", Name: "Lua",
 			Selector: &api.ScriptConfig{
 				Language: api.ScriptLangLua,
-				Script: `return value["tags"]["domain:risk"] and
-    value["type"] == "service" and value["handling"] == "standard" and
-    value["attributes"]["score"]["role"] == "output" and
-    value["attributes"]["score"]["type"] == "number" and
-    value["attributes"]["score"]["compensated"] == false`,
+				Script: `local score = value.attributes.score
+return has(value.tags, "domain:risk") and score and
+    value.type == "service" and value.handling == "standard" and
+    score.role == "output" and score.type == "number" and
+    score.compensated == false`,
 			},
 		}
 		jpathSpace := api.Space{
 			ID: "jpath", Name: "JPath",
 			Selector: &api.ScriptConfig{
 				Language: api.ScriptLangJPath,
-				Script:   `$["tags"]["domain:trading"]`,
+				Script:   `$.tags[?@ == "domain:trading"]`,
 			},
 		}
 		assert.NoError(t, eng.RegisterSpace(luaSpace))
@@ -101,6 +101,82 @@ func TestSpaceScriptSelectors(t *testing.T) {
 			cat.SpaceSteps(luaSpace.ID))
 		assert.Equal(t, api.Steps{trading.ID: cat.Steps[trading.ID]},
 			cat.SpaceSteps(jpathSpace.ID))
+	})
+}
+
+func TestSpaceMetadataSelectors(t *testing.T) {
+	helpers.WithEngine(t, func(eng *engine.Engine) {
+		risk := helpers.NewSimpleStep("risk")
+		risk.Attributes["risk_score"] = &api.AttributeSpec{
+			Role: api.RoleOutput,
+			Type: api.TypeNumber,
+		}
+		reversible := helpers.NewSimpleStep("reversible")
+		reversible.Handling = api.HandlingCompensated
+		reversible.HTTP.Compensate = &api.HTTPAction{
+			Endpoint: "http://test:8080/compensate",
+		}
+		assert.NoError(t, eng.RegisterStep(risk))
+		assert.NoError(t, eng.RegisterStep(reversible))
+
+		cases := []struct {
+			name     string
+			script   string
+			expected []api.StepID
+		}{
+			{
+				name:     "handling",
+				script:   `$.type == "service" && $.handling == "compensated"`,
+				expected: []api.StepID{reversible.ID},
+			},
+			{
+				name: "attribute contract",
+				script: `$.attributes.risk_score.role == "output" &&
+    $.attributes.risk_score.type == "number"`,
+				expected: []api.StepID{risk.ID},
+			},
+		}
+		for _, tt := range cases {
+			t.Run(tt.name, func(t *testing.T) {
+				preview, err := eng.PreviewSpace(api.Space{
+					Selector: &api.ScriptConfig{
+						Language: api.ScriptLangJPath,
+						Script:   tt.script,
+					},
+				})
+				assert.NoError(t, err)
+				assert.Equal(t, tt.expected, preview.StepIDs)
+			})
+		}
+	})
+}
+
+func TestSpaceMarketSelector(t *testing.T) {
+	helpers.WithEngine(t, func(eng *engine.Engine) {
+		steps := []*api.Step{
+			helpers.NewSimpleStep("europe"),
+			helpers.NewSimpleStep("all"),
+			helpers.NewSimpleStep("unclassified"),
+			helpers.NewSimpleStep("us"),
+		}
+		steps[0].Tags = api.Tags{"market:europe"}
+		steps[1].Tags = api.Tags{"market:all"}
+		steps[2].Tags = api.Tags{"domain:fulfillment"}
+		steps[3].Tags = api.Tags{"market:us"}
+		for _, st := range steps {
+			assert.NoError(t, eng.RegisterStep(st))
+		}
+
+		preview, err := eng.PreviewSpace(api.Space{
+			Selector: &api.ScriptConfig{
+				Language: api.ScriptLangJPath,
+				Script: `$.tags[?@ == "market:europe" || @ == "market:all"] ||
+    !$.tags[?search(@, "^market:")]`,
+			},
+		})
+		assert.NoError(t, err)
+		assert.Equal(t, []api.StepID{"all", "europe", "unclassified"},
+			preview.StepIDs)
 	})
 }
 
@@ -122,13 +198,13 @@ func TestPreviewSpace(t *testing.T) {
 		assert.Equal(t, api.SpaceQuery{{"domain:risk"}}, preview.Space.QBE)
 		assert.Equal(t, &api.ScriptConfig{
 			Language: api.ScriptLangJPath,
-			Script:   `$["tags"]["domain:risk"]`,
+			Script:   `$.tags[?@=="domain:risk"]`,
 		}, preview.Space.Selector)
 
 		preview, err = eng.PreviewSpace(api.Space{
 			Selector: &api.ScriptConfig{
 				Language: api.ScriptLangLua,
-				Script:   `return value["tags"]["unknown"]`,
+				Script:   `return has(value.tags, "unknown")`,
 			},
 		})
 		assert.NoError(t, err)

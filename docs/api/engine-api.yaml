@@ -1895,11 +1895,13 @@ components:
             - $ref: "#/components/schemas/ScriptConfig"
           description: Authoritative selector, a predicate over stable Step
             metadata in any registered scripting language. The document exposes
-            tags as a set under `tags`, the Step `type`, its defaulted `handling`,
+            tags as an array under `tags`, the Step `type`, its defaulted `handling`,
             and `attributes` keyed by name. Each attribute contains only `role`,
-            `type`, and `compensated`. Lua receives the document as `value`,
-            making a tag test read `value["tags"]["domain:risk"]`; JPath receives
-            it directly, making the same test read `$["tags"]["domain:risk"]`.
+            `type`, and `compensated`. JPath receives the document directly,
+            making a tag test read `$.tags[?@=="domain:risk"]`. Lua receives it
+            as `value` and gets the helpers `has(list, value)` and
+            `has_prefix(list, prefix)`, making the same test read
+            `has(value.tags, "domain:risk")`.
             Query-by-example matches on tags.
         qbe:
           type: array

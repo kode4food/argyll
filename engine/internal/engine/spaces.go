@@ -184,10 +184,9 @@ func (e *Engine) selectSpaceSteps(
 }
 
 func (e *Engine) spaceMatches(sp api.Space, st *api.Step) (bool, error) {
-	// A set, since neither script language has a built-in contains
-	tags := make(map[string]any, len(st.Tags))
-	for _, tag := range st.Tags {
-		tags[tag] = true
+	tags := make([]any, len(st.Tags))
+	for i, tag := range st.Tags {
+		tags[i] = tag
 	}
 	attrs := make(map[string]any, len(st.Attributes))
 	for name, attr := range st.Attributes {

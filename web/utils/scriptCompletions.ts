@@ -6,10 +6,20 @@ interface AttributeCompletion {
   mappingName?: string;
 }
 
-const path = (language: string, parts: string[]): string =>
-  `${language === SCRIPT_LANGUAGE_JPATH ? "$" : "value"}${parts
-    .map((part) => `[${JSON.stringify(part)}]`)
+// attribute names come from Step authors, so only the engine's own field
+// names are safe as bare dot segments
+const JPATH_DOT_NAME = /^[A-Za-z_][A-Za-z0-9_]*$/;
+
+const path = (language: string, parts: string[]): string => {
+  if (language !== SCRIPT_LANGUAGE_JPATH) {
+    return `value${parts.map((part) => `[${JSON.stringify(part)}]`).join("")}`;
+  }
+  return `$${parts
+    .map((part) =>
+      JPATH_DOT_NAME.test(part) ? `.${part}` : `[${JSON.stringify(part)}]`
+    )
     .join("")}`;
+};
 
 export const stepAttributeCompletions = (
   attributes: AttributeCompletion[],
@@ -39,7 +49,6 @@ export const spaceSelectorCompletions = (
   });
 
   const paths = [["tags"], ["type"], ["handling"], ["attributes"]];
-  [...tags].sort().forEach((tag) => paths.push(["tags", tag]));
   [...attributes].sort().forEach((name) => {
     paths.push(
       ["attributes", name],
@@ -48,5 +57,15 @@ export const spaceSelectorCompletions = (
       ["attributes", name, "compensated"]
     );
   });
-  return paths.map((parts) => path(language, parts));
+  // a tag test is a filter in JPath and a prelude helper in Lua, so neither
+  // is a plain path
+  const tagTest = (tag: string): string =>
+    language === SCRIPT_LANGUAGE_JPATH
+      ? `$.tags[?@==${JSON.stringify(tag)}]`
+      : `has(value["tags"], ${JSON.stringify(tag)})`;
+
+  return [
+    ...paths.map((parts) => path(language, parts)),
+    ...[...tags].sort().map(tagTest),
+  ];
 };

@@ -589,3 +589,82 @@ func TestLuaLargeArray(t *testing.T) {
 	assert.Equal(t, 10, numbers[0])
 	assert.Equal(t, 100, numbers[9])
 }
+
+func TestLuaPrelude(t *testing.T) {
+	env := script.NewLuaEnv()
+	match := func(src string, tags []any) bool {
+		comp, err := env.Compile(script.MatchStep, &api.ScriptConfig{
+			Script: src, Language: api.ScriptLangLua,
+		})
+		assert.NoError(t, err)
+		matched, err := env.EvaluateMatch(comp, map[string]any{
+			script.MatchTags: tags,
+		})
+		assert.NoError(t, err)
+		return matched
+	}
+
+	tags := []any{"domain:risk", "market:europe"}
+	assert.True(t, match(`return has(value.tags, "domain:risk")`, tags))
+	assert.False(t, match(`return has(value.tags, "domain:payments")`, tags))
+	assert.True(t, match(`return has_prefix(value.tags, "market:")`, tags))
+	assert.False(t, match(`return has_prefix(value.tags, "tier:")`, tags))
+
+	// a Step with no tags reaches the helpers as an absent field
+	assert.False(t, match(`return has(value.tags, "any")`, nil))
+	assert.False(t, match(`return has_prefix(value.tags, "any")`, nil))
+}
+
+func TestLuaScriptIsolation(t *testing.T) {
+	env := script.NewLuaEnv()
+	run := func(src string) (bool, error) {
+		comp, err := env.Compile(script.MatchStep, &api.ScriptConfig{
+			Script: src, Language: api.ScriptLangLua,
+		})
+		assert.NoError(t, err)
+		return env.EvaluateMatch(comp, map[string]any{})
+	}
+	helperLives := func(t *testing.T) {
+		matched, err := run(`return has({"a"}, "a")`)
+		assert.NoError(t, err)
+		assert.True(t, matched)
+	}
+
+	t.Run("a global write does not reach the next script", func(t *testing.T) {
+		matched, err := run(`leak = 1; return true`)
+		assert.NoError(t, err)
+		assert.True(t, matched)
+
+		matched, err = run(`return leak ~= nil`)
+		assert.NoError(t, err)
+		assert.False(t, matched)
+	})
+
+	t.Run("the globals table is out of reach", func(t *testing.T) {
+		_, err := run(`_G.has = nil; return true`)
+		assert.ErrorIs(t, err, script.ErrLuaExecution)
+		helperLives(t)
+	})
+
+	t.Run("the environment metatable is out of reach", func(t *testing.T) {
+		_, err := run(`getmetatable(_ENV).__index.has = nil; return true`)
+		assert.ErrorIs(t, err, script.ErrLuaExecution)
+		helperLives(t)
+	})
+
+	t.Run("a library table refuses writes", func(t *testing.T) {
+		_, err := run(`string.rep = nil; return true`)
+		assert.ErrorIs(t, err, script.ErrLuaExecution)
+
+		matched, err := run(`return string.rep("a", 2) == "aa"`)
+		assert.NoError(t, err)
+		assert.True(t, matched)
+	})
+
+	t.Run("a library table still reads through", func(t *testing.T) {
+		matched, err := run(`return table.concat({"a", "b"}) == "ab"
+			and math.max(1, 2) == 2`)
+		assert.NoError(t, err)
+		assert.True(t, matched)
+	})
+}

@@ -42,7 +42,7 @@ func TestSpaceAPI(t *testing.T) {
 		assert.Equal(t, sp.QBE, got.QBE)
 		assert.Equal(t, &api.ScriptConfig{
 			Language: api.ScriptLangJPath,
-			Script:   `$["tags"]["domain:payments"]`,
+			Script:   `$.tags[?@=="domain:payments"]`,
 		}, got.Selector)
 
 		w = spaceRequest(t, spaceRequestArgs{
@@ -139,7 +139,7 @@ func TestSpacePreviewAPI(t *testing.T) {
 
 		w := preview(api.Space{Selector: &api.ScriptConfig{
 			Language: api.ScriptLangJPath,
-			Script:   `$["tags"]["domain:payments"]`,
+			Script:   `$.tags[?@=="domain:payments"]`,
 		}})
 		assert.Equal(t, http.StatusOK, w.Code)
 		var got api.SpacePreviewResponse
@@ -155,12 +155,12 @@ func TestSpacePreviewAPI(t *testing.T) {
 		assert.Equal(t, []api.StepID{matching.ID}, got.StepIDs)
 		assert.Equal(t, &api.ScriptConfig{
 			Language: api.ScriptLangJPath,
-			Script:   `$["tags"]["domain:payments"]`,
+			Script:   `$.tags[?@=="domain:payments"]`,
 		}, got.Space.Selector)
 
 		w = preview(api.Space{Selector: &api.ScriptConfig{
 			Language: api.ScriptLangLua,
-			Script:   `return value["tags"]["nothing"]`,
+			Script:   `return has(value.tags, "nothing")`,
 		}})
 		assert.Equal(t, http.StatusOK, w.Code)
 		assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &got))

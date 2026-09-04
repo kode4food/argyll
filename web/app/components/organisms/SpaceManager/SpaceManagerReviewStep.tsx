@@ -1,5 +1,5 @@
 import React from "react";
-import { SCRIPT_LANGUAGE_LUA, ScriptConfig } from "@/app/api";
+import { SCRIPT_LANGUAGE_JPATH, ScriptConfig } from "@/app/api";
 import ScriptConfigEditor from "@/app/components/organisms/StepEditor/ScriptConfigEditor";
 import { predicateLanguageOptions } from "@/app/components/organisms/StepEditor/stepEditorConstants";
 import { useT } from "@/app/i18n";
@@ -25,7 +25,7 @@ const SpaceManagerReviewStep: React.FC<SpaceManagerReviewStepProps> = ({
 }) => {
   const t = useT();
   const steps = useSteps();
-  const language = selector?.language ?? SCRIPT_LANGUAGE_LUA;
+  const language = selector?.language ?? SCRIPT_LANGUAGE_JPATH;
   const completions = React.useMemo(
     () => spaceSelectorCompletions(steps, language),
     [language, steps]

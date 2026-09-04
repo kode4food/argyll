@@ -26,11 +26,10 @@ func QBESelector(qbe api.SpaceQuery) *api.ScriptConfig {
 // termScript ANDs a term's tags, grouping them in parentheses when the term
 // sits beside alternatives
 func termScript(term api.SpaceQueryTerm, group bool) string {
-	tags := jpathString(MatchTags)
 	clauses := make([]string, 0, len(term))
 	for _, tag := range slices.Sorted(slices.Values(term)) {
 		clauses = append(clauses,
-			fmt.Sprintf("$[%s][%s]", tags, jpathString(tag)))
+			fmt.Sprintf("$.%s[?@==%s]", MatchTags, jpathString(tag)))
 	}
 	res := strings.Join(clauses, " &&\n    ")
 	if group {

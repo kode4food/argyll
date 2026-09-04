@@ -47,8 +47,8 @@ import { api } from "@/app/api";
 
 const mockApi = api as jest.Mocked<typeof api>;
 const GENERATED_SELECTOR = {
-  language: "lua" as const,
-  script: "return engine_generated",
+  language: "jpath" as const,
+  script: '$.tags[?@=="domain:risk"]',
 };
 
 describe("SpaceManager", () => {
@@ -60,8 +60,8 @@ describe("SpaceManager", () => {
         name: "Risk",
         description: "Risk steps",
         selector: {
-          language: "lua",
-          script: 'return value["domain"] == "risk"',
+          language: "jpath",
+          script: '$.tags[?@=="domain:risk"]',
         },
         qbe: [["domain:risk"]],
       },
@@ -69,8 +69,8 @@ describe("SpaceManager", () => {
         id: "gold",
         name: "Gold",
         selector: {
-          language: "lua",
-          script: 'return value["tier"] == "gold"',
+          language: "jpath",
+          script: '$.tags[?@ == "tier:gold"]',
         },
       },
     ];
@@ -410,7 +410,7 @@ describe("SpaceManager", () => {
     });
   });
 
-  test("ejects QBE into an editable Lua selector", async () => {
+  test("ejects QBE into an editable JPath selector", async () => {
     open();
     fireEvent.click(screen.getByText("Risk"));
     await addSelector("domain:trading");
@@ -426,15 +426,15 @@ describe("SpaceManager", () => {
     expect(screen.getByTestId("selector-editor")).not.toHaveAttribute(
       "readonly"
     );
-    setScript('return value["tier"] == "gold"');
+    setScript('$.tags[?@ == "tier:gold"]');
     await waitFor(() =>
       expect(mockApi.previewSpace).toHaveBeenLastCalledWith({
         id: "risk",
         name: "Risk",
         description: "Risk steps",
         selector: {
-          language: "lua",
-          script: 'return value["tier"] == "gold"',
+          language: "jpath",
+          script: '$.tags[?@ == "tier:gold"]',
         },
       })
     );
@@ -448,8 +448,8 @@ describe("SpaceManager", () => {
         name: "Risk",
         description: "Risk steps",
         selector: {
-          language: "lua",
-          script: 'return value["tier"] == "gold"',
+          language: "jpath",
+          script: '$.tags[?@ == "tier:gold"]',
         },
       });
     });
@@ -466,16 +466,16 @@ describe("SpaceManager", () => {
     editScript();
     await waitFor(() => expect(mockApi.previewSpace).toHaveBeenCalledTimes(1));
 
-    setScript("return ");
-    setScript('return value["tier"]');
-    setScript('return value["tier"] == "gold"');
+    setScript("$.tags[");
+    setScript("$.tags[?@");
+    setScript('$.tags[?@ == "tier:gold"]');
 
     await waitFor(() =>
       expect(mockApi.previewSpace).toHaveBeenLastCalledWith(
         expect.objectContaining({
           selector: {
-            language: "lua",
-            script: 'return value["tier"] == "gold"',
+            language: "jpath",
+            script: '$.tags[?@ == "tier:gold"]',
           },
         })
       )
@@ -493,12 +493,12 @@ describe("SpaceManager", () => {
     );
     editScript();
 
-    const typed = '  return value["tier"] == "gold"\n\n';
+    const typed = '  $.tags[?@ == "tier:gold"]\n\n';
     setScript(typed);
     await waitFor(() =>
       expect(mockApi.previewSpace).toHaveBeenLastCalledWith(
         expect.objectContaining({
-          selector: { language: "lua", script: typed.trim() },
+          selector: { language: "jpath", script: typed.trim() },
         })
       )
     );
@@ -523,21 +523,22 @@ describe("SpaceManager", () => {
     fireEvent.click(screen.getByText("Gold"));
 
     const editor = screen.getByTestId("selector-editor");
-    expect(editor).toHaveValue('return value["tier"] == "gold"');
+    expect(editor).toHaveValue('$.tags[?@ == "tier:gold"]');
     expect(editor).not.toHaveAttribute("readonly");
     await waitFor(() =>
       expect(screen.getByText("1 Step in this Space")).toBeInTheDocument()
     );
   });
 
-  test("bypasses QBE with a JPath selector", async () => {
+  test("bypasses QBE with the default JPath selector", async () => {
     open();
     startNew();
     editScript();
-    fireEvent.click(
-      screen.getByRole("button", { name: t("script.language.jpath") })
+    expect(screen.getByTestId("selector-editor")).toHaveAttribute(
+      "data-language",
+      "jpath"
     );
-    setScript('$.domain == "risk"');
+    setScript('$.type == "service"');
     fireEvent.click(
       screen.getByRole("button", { name: t("spaceManager.back") })
     );
@@ -554,7 +555,7 @@ describe("SpaceManager", () => {
       expect(mockApi.previewSpace).toHaveBeenLastCalledWith({
         id: "risk-script",
         name: "Risk Script",
-        selector: { language: "jpath", script: '$.domain == "risk"' },
+        selector: { language: "jpath", script: '$.type == "service"' },
       })
     );
     fireEvent.click(
@@ -565,7 +566,7 @@ describe("SpaceManager", () => {
       expect(mockApi.registerSpace).toHaveBeenCalledWith({
         id: "risk-script",
         name: "Risk Script",
-        selector: { language: "jpath", script: '$.domain == "risk"' },
+        selector: { language: "jpath", script: '$.type == "service"' },
       });
     });
   });

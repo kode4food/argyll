@@ -25,7 +25,10 @@ const step: Step = {
 const space: Space = {
   id: "risk",
   name: "Risk",
-  selector: { language: "lua", script: 'return value["domain"] == "risk"' },
+  selector: {
+    language: "jpath",
+    script: '$.tags[?@ == "domain:risk"]',
+  },
 };
 
 describe("ArgyllApi", () => {

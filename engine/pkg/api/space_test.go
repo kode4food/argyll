@@ -17,7 +17,7 @@ func TestSpaceJSON(t *testing.T) {
 		QBE:  api.SpaceQuery{{"domain:payments"}, {"domain:risk"}},
 		Selector: &api.ScriptConfig{
 			Language: api.ScriptLangJPath,
-			Script:   `$["domain:payments"]`,
+			Script:   `$.tags[?@=="domain:payments"]`,
 		},
 	}.Normalize()
 	data, err := json.Marshal(sp)
@@ -28,7 +28,7 @@ func TestSpaceJSON(t *testing.T) {
 		"qbe": [["domain:payments"], ["domain:risk"]],
 		"selector": {
 			"language": "jpath",
-			"script": "$[\"domain:payments\"]"
+			"script": "$.tags[?@==\"domain:payments\"]"
 		}
 	}`, string(data))
 }
@@ -39,7 +39,7 @@ func TestSpaceValidate(t *testing.T) {
 		QBE: api.SpaceQuery{{"domain:payments"}},
 		Selector: &api.ScriptConfig{
 			Language: api.ScriptLangJPath,
-			Script:   `$["domain:payments"]`,
+			Script:   `$.tags[?@=="domain:payments"]`,
 		},
 	}.Normalize()
 	assert.NoError(t, sp.Validate())
@@ -82,7 +82,7 @@ func TestSpaceNormalize(t *testing.T) {
 		ID: "payments", Name: "Payments",
 		Selector: &api.ScriptConfig{
 			Language: api.ScriptLangJPath,
-			Script:   `$["domain:payments"]`,
+			Script:   `$.tags[?@=="domain:payments"]`,
 		},
 		QBE: api.SpaceQuery{
 			{"tier:gold", "domain:risk", "tier:gold"},
@@ -104,7 +104,7 @@ func TestSpaceNormalize(t *testing.T) {
 func TestSpaceValidateIdentity(t *testing.T) {
 	selector := &api.ScriptConfig{
 		Language: api.ScriptLangJPath,
-		Script:   `$["domain:payments"]`,
+		Script:   `$.tags[?@=="domain:payments"]`,
 	}
 
 	invalidID := api.Space{
@@ -132,7 +132,7 @@ func TestSpaceValidateSelectorScript(t *testing.T) {
 		ID: "payments", Name: "Payments", QBE: qbe,
 		Selector: &api.ScriptConfig{
 			Language: api.ScriptLangJPath,
-			Script:   `$["domain:payments"]`,
+			Script:   `$.tags[?@=="domain:payments"]`,
 		},
 	}
 	assert.ErrorIs(t, tooManyTags.ValidateSelector(), api.ErrTooManyTags)

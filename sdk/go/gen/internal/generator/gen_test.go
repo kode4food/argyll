@@ -285,6 +285,8 @@ func TestAttributeProps(t *testing.T) {
 	// a default or const value reaches the engine as JSON
 	assert.Equal(t, `"USD"`, attrs["currency"].Optional.Default)
 	assert.Equal(t, `"stripe"`, attrs["gateway"].Const.Value)
+	assert.Equal(t, "return value > 0",
+		attrs["amount"].Required.Match.Script)
 }
 
 func TestStepConfig(t *testing.T) {
@@ -294,6 +296,7 @@ func TestStepConfig(t *testing.T) {
 	assert.Equal(t, api.Name("Charge Card (v2)"), st.Name)
 	assert.Equal(t, int64(2500), st.HTTP.Invoke.Timeout)
 	assert.Equal(t, api.ScriptLangLua, st.Predicate.Language)
+	assert.Equal(t, "return amount > 0", st.Predicate.Script)
 
 	// the endpoints are paths until the step server knows its own host
 	assert.Equal(t, "/charge-card-v2", st.HTTP.Invoke.Endpoint)

@@ -2,6 +2,7 @@ package script
 
 import (
 	"bytes"
+	_ "embed"
 	"errors"
 	"fmt"
 	"strings"
@@ -15,7 +16,9 @@ type (
 	// LuaEnv provides a Lua script execution environment with state pooling
 	LuaEnv struct {
 		*compiler[*CompiledLua]
-		statePool chan *lua.State
+		statePool  chan *lua.State
+		prelude    []byte
+		preludeErr error
 	}
 
 	// CompiledLua represents a compiled Lua script
@@ -34,22 +37,35 @@ const (
 	luaArgLocalTemplate = "local %s = select(%d, ...)"
 	luaGlobalTableName  = "_G"
 	luaSeparator        = "\n"
+	luaEnvUpValue       = 1
 )
+
+// helper functions setupSandbox installs as globals for every script
+//
+//go:embed prelude.lua
+var luaPreludeSource string
 
 var (
 	ErrLuaLoad      = errors.New("lua load error")
 	ErrLuaExecution = errors.New("lua execution error")
+	ErrLuaEnv       = errors.New("lua environment error")
 )
 
+// _G reaches the globals table directly and getmetatable reaches a library
+// table behind its stand-in, so both would outlive the call
 var luaExclude = [...]string{
 	"io", "os", "debug", "package", "require", "dofile", "loadfile", "load",
+	"_G", "getmetatable",
 }
 
 // NewLuaEnv creates a new Lua script execution environment with a state pool
 // for efficient script reuse
 func NewLuaEnv() *LuaEnv {
+	prelude, err := compileLuaPrelude()
 	luaEnv := &LuaEnv{
-		statePool: make(chan *lua.State, luaStatePoolSize),
+		statePool:  make(chan *lua.State, luaStatePoolSize),
+		prelude:    prelude,
+		preludeErr: err,
 	}
 	luaEnv.compiler = newCompiler(luaCacheSize,
 		func(st *api.Step, cfg *api.ScriptConfig) (*CompiledLua, error) {
@@ -142,6 +158,8 @@ func (e *LuaEnv) compile(src string, argNames []string) (*CompiledLua, error) {
 	}, nil
 }
 
+// runs once per state, since the prelude's stand-ins keep scripts from
+// reaching anything it installs
 func (*LuaEnv) setupSandbox(L *lua.State) {
 	lua.OpenLibraries(L)
 	L.Global(luaGlobalTableName)
@@ -152,15 +170,35 @@ func (*LuaEnv) setupSandbox(L *lua.State) {
 	L.Pop(1)
 }
 
+// a script's private env cannot write to the globals, so the helpers are
+// installed once per state rather than repaired on every call
+func (e *LuaEnv) installPrelude(L *lua.State) error {
+	if e.preludeErr != nil {
+		return e.preludeErr
+	}
+	if err := L.Load(bytes.NewReader(e.prelude), "prelude", "b"); err != nil {
+		return errors.Join(ErrLuaLoad, err)
+	}
+	if err := L.ProtectedCall(0, 0, 0); err != nil {
+		return errors.Join(ErrLuaExecution, err)
+	}
+	return nil
+}
+
 func (e *LuaEnv) withCompiledResult(
 	proc *CompiledLua, inputs api.Args, onResult func(*lua.State),
 ) error {
-	L := e.getState()
+	L, err := e.getState()
+	if err != nil {
+		return err
+	}
 	defer e.returnState(L)
 
-	e.setupSandbox(L)
 	if err := L.Load(bytes.NewReader(proc.bytecode), "chunk", "b"); err != nil {
 		return errors.Join(ErrLuaLoad, err)
+	}
+	if err := setChunkEnv(L); err != nil {
+		return err
 	}
 
 	for _, name := range proc.argNames {
@@ -175,13 +213,18 @@ func (e *LuaEnv) withCompiledResult(
 	return nil
 }
 
-func (e *LuaEnv) getState() *lua.State {
+func (e *LuaEnv) getState() (*lua.State, error) {
 	select {
 	case L := <-e.statePool:
-		return L
+		return L, nil
 	default:
-		return lua.NewState()
 	}
+	L := lua.NewState()
+	e.setupSandbox(L)
+	if err := e.installPrelude(L); err != nil {
+		return nil, err
+	}
+	return L, nil
 }
 
 func (e *LuaEnv) returnState(L *lua.State) {
@@ -191,6 +234,38 @@ func (e *LuaEnv) returnState(L *lua.State) {
 	case e.statePool <- L:
 	default:
 	}
+}
+
+// compiled once, so scripts load bytecode rather than parsing the source on
+// every call
+func compileLuaPrelude() ([]byte, error) {
+	L := lua.NewState()
+	lua.OpenLibraries(L)
+	if err := lua.LoadString(L, luaPreludeSource); err != nil {
+		return nil, errors.Join(ErrLuaLoad, err)
+	}
+	var buf bytes.Buffer
+	if err := L.Dump(&buf); err != nil {
+		return nil, errors.Join(ErrLuaLoad, err)
+	}
+	return buf.Bytes(), nil
+}
+
+// gives the chunk on the stack a private _ENV that reads through to the
+// globals, so its writes are discarded with the call
+func setChunkEnv(L *lua.State) error {
+	L.NewTable()
+	L.NewTable()
+	L.PushGlobalTable()
+	L.SetField(-2, "__index")
+	L.PushBoolean(false)
+	L.SetField(-2, "__metatable")
+	L.SetMetaTable(-2)
+	if _, ok := lua.SetUpValue(L, -2, luaEnvUpValue); !ok {
+		L.Pop(1)
+		return ErrLuaEnv
+	}
+	return nil
 }
 
 func pushLuaArg(L *lua.State, inputs api.Args, argName string) {

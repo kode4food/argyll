@@ -1,5 +1,5 @@
 import {
-  SCRIPT_LANGUAGE_LUA,
+  SCRIPT_LANGUAGE_JPATH,
   ScriptConfig,
   Space,
   SpacePreviewResponse,
@@ -29,7 +29,7 @@ export function toDraft(space: Space): SpaceDraft {
     qbe: (space.qbe ?? []).map((term) => [...term]),
     selector: space.selector
       ? { ...space.selector }
-      : { language: SCRIPT_LANGUAGE_LUA, script: "" },
+      : { language: SCRIPT_LANGUAGE_JPATH, script: "" },
     scriptMode: !space.qbe || space.qbe.length === 0,
   };
 }
@@ -40,7 +40,7 @@ export function emptyDraft(): SpaceDraft {
     name: "",
     description: "",
     qbe: [[]],
-    selector: { language: SCRIPT_LANGUAGE_LUA, script: "" },
+    selector: { language: SCRIPT_LANGUAGE_JPATH, script: "" },
     scriptMode: false,
   };
 }
