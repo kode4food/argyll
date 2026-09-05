@@ -8,7 +8,7 @@ require (
 	github.com/gin-gonic/gin v1.12.0
 	github.com/gorilla/websocket v1.5.3
 	github.com/kode4food/caravan v0.0.0-20260905062940-5af4c3674974
-	github.com/kode4food/jpath v0.0.0-20260821124846-7265794f74f9
+	github.com/kode4food/jpath v0.0.0-20260905083916-75398b35d8c1
 	github.com/kode4food/lru v0.0.0-20260821124822-50bd9a308b71
 	github.com/kode4food/timebox v0.0.0-20260831165837-e3945223be77
 	github.com/stretchr/testify v1.12.1

@@ -66,8 +66,8 @@ github.com/klauspost/cpuid/v2 v2.4.0 h1:S6Hrbc7+ywsr0r+RLapfGBHfyefhCTwEh3A0tV91
 github.com/klauspost/cpuid/v2 v2.4.0/go.mod h1:19jmZ9mjzoF//ddRSUsv0zfBTJWh3QJh9FNxZTMrGxU=
 github.com/kode4food/caravan v0.0.0-20260905062940-5af4c3674974 h1:C/uzNNHL2FJh8Sd1AucDQPcB7ffpjHMAXv469cO/el0=
 github.com/kode4food/caravan v0.0.0-20260905062940-5af4c3674974/go.mod h1:2926EylBdGCztWOEDu1VPk8WlNnFkwxn8Q0sOEmf2E4=
-github.com/kode4food/jpath v0.0.0-20260821124846-7265794f74f9 h1:tpDsDd9j+L/h6h7Wpir/J/+wyI13W4eANIUK7MbMUJc=
-github.com/kode4food/jpath v0.0.0-20260821124846-7265794f74f9/go.mod h1:gYY1OfgNwxDs30LLA1moTAQtzapUvEpMO+zX6GI2Fpg=
+github.com/kode4food/jpath v0.0.0-20260905083916-75398b35d8c1 h1:6ytqWuRxFO65M9DHQWpC57oTkPmd7eq04vGMNS1WjXk=
+github.com/kode4food/jpath v0.0.0-20260905083916-75398b35d8c1/go.mod h1:gYY1OfgNwxDs30LLA1moTAQtzapUvEpMO+zX6GI2Fpg=
 github.com/kode4food/lru v0.0.0-20260821124822-50bd9a308b71 h1:xqHrCb85JXvWEWCHRM3zsuNUWEJSNktvs7ROFEnKhIo=
 github.com/kode4food/lru v0.0.0-20260821124822-50bd9a308b71/go.mod h1:qxHo1+SIRuVcQ5s3HaZYMWw5v1B6W4kJIJ4KP/gg67c=
 github.com/kode4food/timebox v0.0.0-20260831165837-e3945223be77 h1:NmCuH670QP3gaWDbcrLqot8oo4XUrK0TAbcfwcJVG6I=
