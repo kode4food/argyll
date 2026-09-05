@@ -145,7 +145,7 @@ func (tx *flowTx) startPendingCompensations(
 
 func (tx *flowTx) completeCompensation(sid api.StepID, tkn api.Token) error {
 	ex := tx.Value().Executions[sid]
-	if !policy.WorkCompActive(ex.WorkItems[tkn].Status) {
+	if !policy.WorkCompUnsettled(ex.WorkItems[tkn].Status) {
 		return nil
 	}
 	if err := tx.raiseCompSucceeded(sid, tkn); err != nil {
@@ -158,7 +158,7 @@ func (tx *flowTx) failCompensation(
 	sid api.StepID, tkn api.Token, errMsg string,
 ) error {
 	ex := tx.Value().Executions[sid]
-	if !policy.WorkCompActive(ex.WorkItems[tkn].Status) {
+	if !policy.WorkCompUnsettled(ex.WorkItems[tkn].Status) {
 		return nil
 	}
 	if err := tx.raiseCompFailed(sid, tkn, errMsg); err != nil {
@@ -191,10 +191,6 @@ func (tx *flowTx) scheduleCompensationRetry(
 		if err != nil {
 			return err
 		}
-		fs := api.FlowStep{FlowID: tx.flowID, StepID: sid}
-		tx.OnSuccess(func(api.FlowState, []*timebox.Event) {
-			tx.scheduleCompensationTask(fs, tkn, nextRetryAt)
-		})
 		return nil
 	}
 
@@ -275,10 +271,10 @@ func (e *Engine) runCompensationTask(fs api.FlowStep, tkn api.Token) error {
 
 		ex := fl.Executions[fs.StepID]
 		work, ok := ex.WorkItems[tkn]
-		if !ok || !policy.WorkCompActive(work.Status) {
+		if !ok || !policy.WorkCompPending(work.Status) {
 			return nil
 		}
-		if !work.NextRetryAt.IsZero() && work.NextRetryAt.After(tx.Now()) {
+		if work.NextRetryAt.After(tx.Now()) {
 			tx.OnSuccess(func(api.FlowState, []*timebox.Event) {
 				tx.scheduleCompensationTask(fs, tkn, work.NextRetryAt)
 			})
@@ -290,7 +286,6 @@ func (e *Engine) runCompensationTask(fs api.FlowStep, tkn api.Token) error {
 			return tx.raiseDispatchDeferred(fs.StepID)
 		}
 
-		// Raise CompStarted to clear NextRetryAt (self-transition)
 		if err := tx.raiseCompStarted(fs.StepID, tkn); err != nil {
 			return err
 		}
@@ -334,11 +329,7 @@ func (e *Engine) recoverStepCompensations(
 ) {
 	ex := fl.Executions[sid]
 	for tkn, work := range ex.WorkItems {
-		if policy.WorkCompActive(work.Status) {
-			retryAt := work.NextRetryAt
-			if retryAt.IsZero() || retryAt.Before(now) {
-				retryAt = now
-			}
+		if retryAt, ok := policy.CompRetryAt(work, now); ok {
 			e.scheduleCompensationTask(api.FlowStep{
 				FlowID: fl.ID,
 				StepID: sid,
@@ -358,7 +349,7 @@ func (e *Engine) recoverStepCompensations(
 func (e *Engine) scheduleCompensationStart(
 	fid api.FlowID, sid api.StepID, at time.Time,
 ) {
-	key := []string{"comp-start", string(fid), string(sid)}
+	key := compStartKey(fid, sid)
 	e.ScheduleTask(key, at, func() error {
 		return e.flowTx(fid, func(tx *flowTx) error {
 			fl := tx.Value()
@@ -380,6 +371,11 @@ func (e *Engine) scheduleCompensationStart(
 }
 
 func (tx *flowTx) raiseCompStarted(sid api.StepID, tkn api.Token) error {
+	if err := tx.checkWorkTransition(
+		sid, tkn, api.WorkCompensating,
+	); err != nil {
+		return err
+	}
 	return events.Raise(tx.FlowAggregator, api.EventTypeCompStarted,
 		api.CompStartedEvent{
 			FlowID: tx.flowID,
@@ -390,6 +386,11 @@ func (tx *flowTx) raiseCompStarted(sid api.StepID, tkn api.Token) error {
 }
 
 func (tx *flowTx) raiseCompSucceeded(sid api.StepID, tkn api.Token) error {
+	if err := tx.checkWorkTransition(
+		sid, tkn, api.WorkCompensated,
+	); err != nil {
+		return err
+	}
 	return events.Raise(tx.FlowAggregator, api.EventTypeCompSucceeded,
 		api.CompSucceededEvent{
 			FlowID: tx.flowID,
@@ -402,6 +403,11 @@ func (tx *flowTx) raiseCompSucceeded(sid api.StepID, tkn api.Token) error {
 func (tx *flowTx) raiseCompFailed(
 	sid api.StepID, tkn api.Token, errMsg string,
 ) error {
+	if err := tx.checkWorkTransition(
+		sid, tkn, api.WorkCompFailed,
+	); err != nil {
+		return err
+	}
 	return events.Raise(tx.FlowAggregator, api.EventTypeCompFailed,
 		api.CompFailedEvent{
 			FlowID: tx.flowID,
@@ -423,6 +429,11 @@ type raiseCompRetryScheduledArgs struct {
 func (tx *flowTx) raiseCompRetryScheduled(
 	args raiseCompRetryScheduledArgs,
 ) error {
+	if err := tx.checkWorkTransition(
+		args.stepID, args.token, api.WorkCompPending,
+	); err != nil {
+		return err
+	}
 	return events.Raise(tx.FlowAggregator, api.EventTypeCompRetryScheduled,
 		api.CompRetryScheduledEvent{
 			FlowID:      tx.flowID,
@@ -435,24 +446,18 @@ func (tx *flowTx) raiseCompRetryScheduled(
 	)
 }
 
-func flowCompensating(fl api.FlowState) bool {
-	return fl.Status == api.FlowFailed && fl.Compensate
-}
-
-func compensationActive(fl api.FlowState) bool {
-	for _, ex := range fl.Executions {
-		for _, work := range ex.WorkItems {
-			if policy.WorkCompActive(work.Status) {
-				return true
-			}
+// compensationPending reports whether succeeded work still owes an unstarted
+// compensation, which a terminal flow must not deactivate out from under
+func (e *Engine) compensationPending(fl api.FlowState) bool {
+	for sid, ex := range fl.Executions {
+		st, ok := fl.Plan.Steps[sid]
+		if !ok || !hasSucceededWork(ex) {
+			continue
 		}
-	}
-	return false
-}
-
-func hasSucceededWork(ex api.ExecutionState) bool {
-	for _, work := range ex.WorkItems {
-		if policy.WorkSucceeded(work.Status) {
+		if !policy.StepFailed(ex.Status) && !flowCompensating(fl) {
+			continue
+		}
+		if comp, err := e.steps.Compensator(st); err == nil && comp != nil {
 			return true
 		}
 	}
@@ -476,6 +481,46 @@ func (w *compensationWaveWalk) dependentPending(
 	return false
 }
 
+func (tx *flowTx) compensateMetadata(
+	meta api.Metadata, st *api.Step, tkn api.Token,
+) api.Metadata {
+	res := meta.Apply(api.Metadata{
+		api.MetaFlowID:       tx.flowID,
+		api.MetaStepID:       st.ID,
+		api.MetaReceiptToken: tkn,
+	})
+	if st.HTTP != nil && st.HTTP.Compensate.Async() {
+		res[api.MetaWebhookURL] = tx.Engine.compensateCallbackURL(
+			tx.flowID, st.ID, tkn,
+		)
+	}
+	return res
+}
+
+func flowCompensating(fl api.FlowState) bool {
+	return fl.Status == api.FlowFailed && fl.Compensate
+}
+
+func compensationActive(fl api.FlowState) bool {
+	for _, ex := range fl.Executions {
+		for _, work := range ex.WorkItems {
+			if policy.WorkCompUnsettled(work.Status) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func hasSucceededWork(ex api.ExecutionState) bool {
+	for _, work := range ex.WorkItems {
+		if policy.WorkSucceeded(work.Status) {
+			return true
+		}
+	}
+	return false
+}
+
 func dependents(pl *api.ExecutionPlan, sid api.StepID) []api.StepID {
 	st, ok := pl.Steps[sid]
 	if !ok {
@@ -493,24 +538,12 @@ func dependents(pl *api.ExecutionPlan, sid api.StepID) []api.StepID {
 	return res
 }
 
-func compensateKey(fs api.FlowStep, tkn api.Token) []string {
-	return []string{
-		"comp", string(fs.FlowID), string(fs.StepID), string(tkn),
-	}
+func compStartKey(fid api.FlowID, sid api.StepID) []string {
+	return []string{string(fid), "comp-start", string(sid)}
 }
 
-func (tx *flowTx) compensateMetadata(
-	meta api.Metadata, st *api.Step, tkn api.Token,
-) api.Metadata {
-	res := meta.Apply(api.Metadata{
-		api.MetaFlowID:       tx.flowID,
-		api.MetaStepID:       st.ID,
-		api.MetaReceiptToken: tkn,
-	})
-	if st.HTTP != nil && st.HTTP.Compensate.Async() {
-		res[api.MetaWebhookURL] = tx.Engine.compensateCallbackURL(
-			tx.flowID, st.ID, tkn,
-		)
+func compensateKey(fs api.FlowStep, tkn api.Token) []string {
+	return []string{
+		string(fs.FlowID), "comp", string(fs.StepID), string(tkn),
 	}
-	return res
 }

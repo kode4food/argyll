@@ -173,7 +173,7 @@ type (
 		Token  Token  `json:"token"`
 	}
 
-	// CompRetryScheduledEvent is emitted when a compensation is to be retried
+	// CompRetryScheduledEvent is emitted when compensation awaits a retry
 	CompRetryScheduledEvent struct {
 		NextRetryAt time.Time `json:"next_retry_at"`
 		FlowID      FlowID    `json:"flow_id"`

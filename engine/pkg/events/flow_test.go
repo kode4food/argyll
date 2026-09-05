@@ -614,7 +614,7 @@ func TestRetryScheduled(t *testing.T) {
 				Status: api.StepActive,
 				WorkItems: api.WorkItems{
 					"token1": {
-						Status:     api.WorkFailed,
+						Status:     api.WorkNotCompleted,
 						Error:      "previous error",
 						RetryCount: 0,
 					},
@@ -648,6 +648,46 @@ func TestRetryScheduled(t *testing.T) {
 	ex := result.Executions["step1"]
 	work := ex.WorkItems["token1"]
 	assert.Equal(t, api.WorkPending, work.Status)
+	assert.Equal(t, 1, work.RetryCount)
+	assert.True(t, work.NextRetryAt.Equal(nextRetry))
+}
+
+func TestCompRetryScheduled(t *testing.T) {
+	fl := api.FlowState{
+		ID:     "test-flow",
+		Status: api.FlowFailed,
+		Executions: api.Executions{
+			"step1": {
+				Status: api.StepFailed,
+				WorkItems: api.WorkItems{
+					"token1": {Status: api.WorkCompensating},
+				},
+			},
+		},
+	}
+	now := scheduler.Now()
+	nextRetry := now.Add(5 * time.Second)
+	eventData := api.CompRetryScheduledEvent{
+		StepID:      "step1",
+		Token:       "token1",
+		RetryCount:  1,
+		NextRetryAt: nextRetry,
+		Error:       "previous error",
+	}
+	data, err := json.Marshal(eventData)
+	assert.NoError(t, err)
+
+	event := &timebox.Event{
+		Timestamp:   now,
+		AggregateID: events.FlowKey("test-flow"),
+		Type:        timebox.EventType(api.EventTypeCompRetryScheduled),
+		Data:        data,
+	}
+
+	applier := events.FlowAppliers[event.Type]
+	result := applier(fl, event)
+	work := result.Executions["step1"].WorkItems["token1"]
+	assert.Equal(t, api.WorkCompPending, work.Status)
 	assert.Equal(t, 1, work.RetryCount)
 	assert.True(t, work.NextRetryAt.Equal(nextRetry))
 }

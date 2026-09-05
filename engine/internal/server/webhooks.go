@@ -80,7 +80,7 @@ func (s *Server) handleWebhook(c *gin.Context) {
 func (s *Server) handleCompensateWebhook(
 	c *gin.Context, fs api.FlowStep, tkn api.Token, work api.WorkState,
 ) {
-	if !policy.WorkCompActive(work.Status) &&
+	if !policy.WorkCompUnsettled(work.Status) &&
 		work.Status != api.WorkCompensated &&
 		work.Status != api.WorkCompFailed {
 		c.JSON(http.StatusBadRequest, api.ErrorResponse{

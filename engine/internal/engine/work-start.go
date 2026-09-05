@@ -219,31 +219,25 @@ func (tx *flowTx) startRetryWorkItem(
 	}
 
 	now := tx.Now()
-	shouldStart := false
 	action, nextAt := policy.RetryStartDecision(work, now)
-	switch action {
-	case policy.RetryStartWait:
+	if action == policy.RetryStartWait {
 		return nil, nextAt, nil
-	case policy.RetryStartCheckPending:
-		var err error
-		if shouldStart, err = tx.shouldStartRetryPending(
-			shouldStartRetryPendingArgs{
-				step:  st,
-				base:  ex.Inputs,
-				work:  work,
-				items: ex.WorkItems,
-				when:  now,
-			},
-		); err != nil {
-			return nil, time.Time{}, err
-		}
-	case policy.RetryStartNow:
-		shouldStart = true
-	default:
+	}
+	if action != policy.RetryStartCheckPending {
 		return nil, time.Time{}, nil
 	}
-	if !shouldStart {
-		return nil, time.Time{}, nil
+
+	shouldStart, err := tx.shouldStartRetryPending(
+		shouldStartRetryPendingArgs{
+			step:  st,
+			base:  ex.Inputs,
+			work:  work,
+			items: ex.WorkItems,
+			when:  now,
+		},
+	)
+	if err != nil || !shouldStart {
+		return nil, time.Time{}, err
 	}
 
 	inputs := ex.Inputs.Apply(work.Inputs)
@@ -306,6 +300,9 @@ func (tx *flowTx) shouldStartRetryPending(
 func (tx *flowTx) raiseWorkStarted(
 	sid api.StepID, tkn api.Token, inputs api.Args,
 ) error {
+	if err := tx.checkWorkTransition(sid, tkn, api.WorkActive); err != nil {
+		return err
+	}
 	return events.Raise(tx.FlowAggregator, api.EventTypeWorkStarted,
 		api.WorkStartedEvent{
 			FlowID: tx.flowID,

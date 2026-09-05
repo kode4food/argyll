@@ -34,6 +34,7 @@ type (
 		flowExec   *timebox.Executor[api.FlowState]
 		subscribe  func(Publisher) func()
 		unsubs     *unsubscribeTracker
+		conflict   *conflictOnce
 		ownsHub    bool
 	}
 
@@ -46,7 +47,17 @@ type (
 
 	backend struct {
 		timebox.Backend
-		publish Publisher
+		publish  Publisher
+		conflict *conflictOnce
+	}
+
+	// conflictOnce makes one append to a chosen aggregate report a stale
+	// sequence, which is what the executor sees when another writer wins
+	conflictOnce struct {
+		target timebox.AggregateID
+		armed  bool
+		fired  bool
+		mu     sync.Mutex
 	}
 
 	unsubscribeTracker struct {
@@ -159,8 +170,10 @@ func NewTestEngineWithDeps(
 			})
 		}
 	}
+	conflict := &conflictOnce{}
 	backend := backend{
-		Backend: memory.NewPersistence(),
+		Backend:  memory.NewPersistence(),
+		conflict: conflict,
 		publish: func(evs ...*timebox.Event) {
 			published := cloneCommittedEvents(evs)
 			publishMu.Lock()
@@ -206,6 +219,7 @@ func NewTestEngineWithDeps(
 		EventHub:   deps.EventHub,
 		engStore:   deps.EngineStore,
 		flowStore:  deps.FlowStore,
+		conflict:   conflict,
 		flowExec:   flowExec,
 		subscribe:  subscribe,
 		unsubs:     &unsubscribeTracker{},
@@ -318,6 +332,53 @@ func (e *TestEngineEnv) SeedFlow(
 	return e.RaiseFlowEvents(fid, evs...)
 }
 
+// SeedStartedWork stores a flow whose single work item has been claimed, the
+// state a node leaves behind when it dies mid-attempt
+func (e *TestEngineEnv) SeedStartedWork(
+	fs api.FlowStep, pl *api.ExecutionPlan, tkn api.Token,
+) error {
+	return e.RaiseFlowEvents(fs.FlowID,
+		FlowEvent{
+			Type: api.EventTypeFlowStarted,
+			Data: api.FlowStartedEvent{
+				FlowID: fs.FlowID,
+				Plan:   pl,
+				Init:   api.InitArgs{},
+			},
+		},
+		FlowEvent{
+			Type: api.EventTypeStepStarted,
+			Data: api.StepStartedEvent{
+				FlowID:    fs.FlowID,
+				StepID:    fs.StepID,
+				Inputs:    api.Args{},
+				WorkItems: map[api.Token]api.Args{tkn: {}},
+			},
+		},
+		FlowEvent{
+			Type: api.EventTypeWorkStarted,
+			Data: api.WorkStartedEvent{
+				FlowID: fs.FlowID,
+				StepID: fs.StepID,
+				Token:  tkn,
+				Inputs: api.Args{},
+			},
+		},
+	)
+}
+
+// ConflictOnNextAppend makes the next append for a flow lose an optimistic-
+// concurrency race, so the executor discards that attempt and runs the command
+// again. Pair it with ConflictFired to confirm it took effect
+func (e *TestEngineEnv) ConflictOnNextAppend(fid api.FlowID) {
+	e.conflict.arm(events.FlowKey(fid))
+}
+
+// ConflictFired reports whether an armed conflict was actually injected
+func (e *TestEngineEnv) ConflictFired() bool {
+	return e.conflict.hasFired()
+}
+
 // AppendEvents appends raw events to the shared test store
 func (e *TestEngineEnv) AppendEvents(
 	id timebox.AggregateID, atSeq int64, evs ...*timebox.Event,
@@ -367,6 +428,12 @@ func (e *TestEngineEnv) engineDeps(
 }
 
 func (b backend) Append(req timebox.AppendRequest) error {
+	if b.conflict.take(req.ID) {
+		return &timebox.VersionConflictError{
+			ExpectedSequence: req.ExpectedSequence,
+			ActualSequence:   req.ExpectedSequence + 1,
+		}
+	}
 	err := b.Backend.Append(req)
 	if err != nil || len(req.Events) == 0 {
 		return err
@@ -377,6 +444,31 @@ func (b backend) Append(req timebox.AppendRequest) error {
 
 func (b backend) NewStore(cfg timebox.Config) (*timebox.Store, error) {
 	return timebox.NewStore(b, cfg)
+}
+
+func (c *conflictOnce) arm(id timebox.AggregateID) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.target = id
+	c.armed = true
+	c.fired = false
+}
+
+func (c *conflictOnce) take(id timebox.AggregateID) bool {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if !c.armed || !id.Equal(c.target) {
+		return false
+	}
+	c.armed = false
+	c.fired = true
+	return true
+}
+
+func (c *conflictOnce) hasFired() bool {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.fired
 }
 
 func raiseFlowEvent(

@@ -16,17 +16,12 @@ const (
 	RetryStartIgnore RetryStartAction = iota
 
 	// RetryStartWait means retry handling should schedule another callback at
-	// the returned time. A zero time preserves existing behavior for failed
-	// work without a retry timestamp: do not start and do not reschedule
+	// the returned time, which is the work item's pending retry timestamp
 	RetryStartWait
 
 	// RetryStartCheckPending means pending work may start only after normal
 	// predicate and parallelism checks are applied by the executor
 	RetryStartCheckPending
-
-	// RetryStartNow means the work item should be restarted immediately,
-	// subject only to the executor successfully raising WorkStarted
-	RetryStartNow
 )
 
 // RetryStartDecision classifies retry task handling for a work item at the
@@ -35,54 +30,41 @@ const (
 func RetryStartDecision(
 	work api.WorkState, when time.Time,
 ) (RetryStartAction, time.Time) {
-	switch work.Status {
-	case api.WorkPending:
-		if !work.NextRetryAt.IsZero() && work.NextRetryAt.After(when) {
-			return RetryStartWait, work.NextRetryAt
-		}
-		return RetryStartCheckPending, time.Time{}
-	case api.WorkFailed:
-		if work.NextRetryAt.IsZero() || work.NextRetryAt.After(when) {
-			return RetryStartWait, work.NextRetryAt
-		}
-		return RetryStartNow, time.Time{}
-	case api.WorkActive, api.WorkNotCompleted:
-		return RetryStartNow, time.Time{}
-	default:
+	if !WorkPending(work.Status) {
 		return RetryStartIgnore, time.Time{}
 	}
+	if !work.NextRetryAt.IsZero() && work.NextRetryAt.After(when) {
+		return RetryStartWait, work.NextRetryAt
+	}
+	return RetryStartCheckPending, time.Time{}
 }
 
-// RecoverableDeadline returns when startup recovery should schedule a work
-// item for retry handling. Active and not-completed work are recovered now;
-// pending or failed work are recovered at NextRetryAt when one exists, with
-// active-step pending work also recoverable immediately
+// RecoverableDeadline returns when recovery should schedule a work item for
+// retry handling. Only pending work qualifies, at NextRetryAt when one exists,
+// with active-step pending work also recoverable immediately
 func RecoverableDeadline(
 	ex api.ExecutionState, work api.WorkState, when time.Time,
 ) (time.Time, bool) {
-	switch work.Status {
-	case api.WorkActive, api.WorkNotCompleted:
-		return when, true
-	case api.WorkPending:
-		if !work.NextRetryAt.IsZero() {
-			return work.NextRetryAt, true
-		}
-		if ex.Status == api.StepActive {
-			return when, true
-		}
-		return time.Time{}, false
-	case api.WorkFailed:
-		if !work.NextRetryAt.IsZero() {
-			return work.NextRetryAt, true
-		}
-		return time.Time{}, false
-	default:
+	if !WorkPending(work.Status) {
 		return time.Time{}, false
 	}
+	if !work.NextRetryAt.IsZero() {
+		return work.NextRetryAt, true
+	}
+	if ex.Status == api.StepActive {
+		return when, true
+	}
+	return time.Time{}, false
 }
 
-// Recoverable reports whether startup recovery should consider this work item
-func Recoverable(ex api.ExecutionState, work api.WorkState) bool {
-	_, ok := RecoverableDeadline(ex, work, time.Time{})
-	return ok
+// CompRetryAt returns when a pending compensation should next be attempted, and
+// whether it is waiting for one. A lapsed time means attempt it now
+func CompRetryAt(work api.WorkState, when time.Time) (time.Time, bool) {
+	if !WorkCompPending(work.Status) {
+		return time.Time{}, false
+	}
+	if work.NextRetryAt.After(when) {
+		return work.NextRetryAt, true
+	}
+	return when, true
 }

@@ -24,8 +24,7 @@ github.com/kode4food/argyll/engine v0.0.0-20260827045536-9ade6fec529a h1:mPwyt+F
 github.com/kode4food/argyll/engine v0.0.0-20260827045536-9ade6fec529a/go.mod h1:40rb+IJSavQLHTHbAoyxM/hKFNzgXh3HmcFJyFbME8Y=
 github.com/kode4food/argyll/sdk/go v0.0.0-20260827045536-9ade6fec529a h1:MI3cuZ+ZJjetlj+YlJXY17RPj6P76Qot0lqxFAuAz0g=
 github.com/kode4food/argyll/sdk/go v0.0.0-20260827045536-9ade6fec529a/go.mod h1:secTwb3SdUgq6X3hvY2nMHZAKWk0lMafImRHoITx2WQ=
-github.com/kode4food/caravan v0.0.0-20260821122510-0a730966b1a2 h1:b+sY2PgiFSi6f/8TwDrLl6DirJA+6E8/zfxtBIvbZPQ=
-github.com/kode4food/caravan v0.0.0-20260821122510-0a730966b1a2/go.mod h1:2926EylBdGCztWOEDu1VPk8WlNnFkwxn8Q0sOEmf2E4=
+github.com/kode4food/caravan v0.0.0-20260905062940-5af4c3674974 h1:C/uzNNHL2FJh8Sd1AucDQPcB7ffpjHMAXv469cO/el0=
 github.com/kode4food/jpath v0.0.0-20260821124846-7265794f74f9 h1:tpDsDd9j+L/h6h7Wpir/J/+wyI13W4eANIUK7MbMUJc=
 github.com/kode4food/jpath v0.0.0-20260821124846-7265794f74f9/go.mod h1:gYY1OfgNwxDs30LLA1moTAQtzapUvEpMO+zX6GI2Fpg=
 github.com/kode4food/lru v0.0.0-20260821124822-50bd9a308b71 h1:xqHrCb85JXvWEWCHRM3zsuNUWEJSNktvs7ROFEnKhIo=

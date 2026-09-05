@@ -8,6 +8,7 @@ import (
 
 	"github.com/kode4food/argyll/engine/internal/assert/helpers"
 	"github.com/kode4food/argyll/engine/internal/assert/wait"
+	"github.com/kode4food/argyll/engine/internal/engine/scheduler"
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
@@ -292,12 +293,34 @@ func TestRecoveryWorkStates(t *testing.T) {
 				},
 			},
 			helpers.FlowEvent{
+				Type: api.EventTypeWorkStarted,
+				Data: api.WorkStartedEvent{
+					FlowID: notCompletedFlowID,
+					StepID: retry.ID,
+					Token:  retryToken,
+					Inputs: api.Args{},
+				},
+			},
+			helpers.FlowEvent{
 				Type: api.EventTypeWorkNotCompleted,
 				Data: api.WorkNotCompletedEvent{
 					FlowID: notCompletedFlowID,
 					StepID: retry.ID,
 					Token:  retryToken,
 					Error:  api.ErrWorkNotCompleted.Error(),
+				},
+			},
+			// Reporting not-completed settles into a scheduled retry, which
+			// is the state recovery actually finds at rest
+			helpers.FlowEvent{
+				Type: api.EventTypeWorkRetryScheduled,
+				Data: api.WorkRetryScheduledEvent{
+					FlowID:      notCompletedFlowID,
+					StepID:      retry.ID,
+					Token:       retryToken,
+					RetryCount:  1,
+					NextRetryAt: scheduler.Now().Add(-time.Second),
+					Error:       api.ErrWorkNotCompleted.Error(),
 				},
 			},
 		))

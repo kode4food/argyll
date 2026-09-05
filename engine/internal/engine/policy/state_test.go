@@ -30,6 +30,7 @@ func TestWorkStatusPolicy(t *testing.T) {
 
 	assert.True(t, policy.WorkBlocksFlowDeactivation(api.WorkPending))
 	assert.True(t, policy.WorkBlocksFlowDeactivation(api.WorkActive))
+	assert.True(t, policy.WorkBlocksFlowDeactivation(api.WorkCompPending))
 	assert.True(t, policy.WorkBlocksFlowDeactivation(api.WorkCompensating))
 	assert.False(t, policy.WorkBlocksFlowDeactivation(api.WorkSucceeded))
 	assert.False(t, policy.WorkBlocksFlowDeactivation(api.WorkCompensated))
@@ -45,8 +46,17 @@ func TestWorkStatusPolicy(t *testing.T) {
 	assert.False(t, policy.WorkNotCompleted(api.WorkSucceeded))
 
 	assert.True(t, policy.WorkClaimableForRetry(api.WorkPending))
-	assert.True(t, policy.WorkClaimableForRetry(api.WorkFailed))
+	assert.True(t, policy.WorkClaimableForRetry(api.WorkNotCompleted))
+	assert.False(t, policy.WorkClaimableForRetry(api.WorkFailed))
 	assert.False(t, policy.WorkClaimableForRetry(api.WorkActive))
+
+	assert.True(t, policy.WorkCompPending(api.WorkCompPending))
+	assert.False(t, policy.WorkCompPending(api.WorkCompensating))
+	assert.True(t, policy.WorkCompActive(api.WorkCompensating))
+	assert.False(t, policy.WorkCompActive(api.WorkCompPending))
+	assert.True(t, policy.WorkCompUnsettled(api.WorkCompPending))
+	assert.True(t, policy.WorkCompUnsettled(api.WorkCompensating))
+	assert.False(t, policy.WorkCompUnsettled(api.WorkCompensated))
 }
 
 func TestTransitionPolicy(t *testing.T) {
@@ -54,5 +64,27 @@ func TestTransitionPolicy(t *testing.T) {
 	assert.False(t, policy.FlowTerminal(api.FlowActive))
 
 	assert.True(t, policy.WorkCanTransition(api.WorkPending, api.WorkActive))
+	assert.False(t, policy.WorkCanTransition(api.WorkActive, api.WorkActive))
+	assert.False(t, policy.WorkCanTransition(
+		api.WorkCompensating, api.WorkCompensating,
+	))
+	assert.True(t, policy.WorkCanTransition(
+		api.WorkCompensating, api.WorkCompPending,
+	))
+	assert.True(t, policy.WorkCanTransition(
+		api.WorkCompPending, api.WorkCompensating,
+	))
 	assert.False(t, policy.WorkCanTransition(api.WorkSucceeded, api.WorkActive))
+}
+
+func TestTransitionsRejectSameState(t *testing.T) {
+	for status := range policy.FlowTransitions {
+		assert.False(t, policy.FlowTransitions.CanTransition(status, status))
+	}
+	for status := range policy.StepTransitions {
+		assert.False(t, policy.StepTransitions.CanTransition(status, status))
+	}
+	for status := range policy.WorkTransitions {
+		assert.False(t, policy.WorkTransitions.CanTransition(status, status))
+	}
 }

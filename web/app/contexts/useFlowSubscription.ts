@@ -133,8 +133,9 @@ const workItemPatchers: Partial<Record<WorkItemEventType, WorkItemPatcher>> = {
     next_retry_at: data?.next_retry_at,
     error: data?.error,
   }),
-  comp_started: () => ({
+  comp_started: (_data, ts) => ({
     status: "compensating",
+    started_at: ts,
     next_retry_at: undefined,
   }),
   comp_succeeded: (_data, ts) => ({
@@ -142,12 +143,12 @@ const workItemPatchers: Partial<Record<WorkItemEventType, WorkItemPatcher>> = {
     completed_at: ts,
   }),
   comp_failed: (data, ts) => ({
-    status: "compensation_failed",
+    status: "compensate_failed",
     completed_at: ts,
     error: data?.error,
   }),
   comp_retry_scheduled: (data, ts) => ({
-    status: "compensating",
+    status: "compensate_pending",
     retry_count: data?.retry_count ?? 0,
     next_retry_at: data?.next_retry_at,
     error: data?.error,

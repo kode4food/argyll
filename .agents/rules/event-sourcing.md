@@ -347,4 +347,5 @@ func reconstructState(aggregateID ID) State {
 - Event types: `engine/pkg/events/` (event definitions)
 - Recovery: `engine/internal/engine/recover.go` (RecoverFlows logic)
 - Retry and deferred dispatch scheduling: `engine/internal/engine/work-continue.go`, `engine/internal/engine/step-dispatch.go`, and `engine/internal/engine/scheduler/`
+- Work item deadlines for in-flight attempts: `engine/internal/engine/work-deadline.go`
 - WebSocket broadcast: `engine/cmd/argyll/main.go` and `engine/internal/server/websocket.go`

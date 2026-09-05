@@ -2416,18 +2416,22 @@ components:
             - succeeded
             - failed
             - not_completed
+            - compensate_pending
             - compensating
             - compensated
-            - compensation_failed
+            - compensate_failed
           description: |
-            Current work item status. Compensation event names use the shorter
-            `comp_*` prefix; for example, `comp_failed` sets this status to
-            `compensation_failed`.
+            Current work item status. `comp_failed` sets the status to
+            `compensate_failed`. A compensation retry waits in
+            `compensate_pending` before returning to `compensating` when the
+            next attempt starts.
           example: "succeeded"
         started_at:
           type: string
           format: date-time
-          description: When the work item started
+          description: |
+            When the current attempt started. Restamped on each invoke or
+            compensation attempt, so it anchors that attempt's deadline.
         completed_at:
           type: string
           format: date-time

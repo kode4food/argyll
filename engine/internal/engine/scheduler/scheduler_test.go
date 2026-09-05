@@ -287,7 +287,10 @@ func TestTimerSignalDoesNotRunFutureTask(t *testing.T) {
 	})
 }
 
-func TestNoTimeoutTasks(t *testing.T) {
+// TestScriptFlowCompletes covers a step with no optional inputs, whose only
+// scheduled tasks are the reconciliations each committed batch requests and
+// the recovery deadline of the attempt itself
+func TestScriptFlowCompletes(t *testing.T) {
 	withFakeScheduler(t, func(
 		eng *engine.Engine, timer *fakeTimer, _ time.Time,
 	) {
@@ -324,7 +327,6 @@ func TestNoTimeoutTasks(t *testing.T) {
 
 		assert.Equal(t, time.Duration(0), timer.WaitReset(t))
 		assertFlowEventuallyCompleted(t, eng, id)
-		assertNoSchedulerResets(t, timer)
 	})
 }
 

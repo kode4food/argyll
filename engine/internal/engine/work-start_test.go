@@ -500,3 +500,48 @@ func TestLuaScriptWithInputs(t *testing.T) {
 		assert.NoError(t, err)
 	})
 }
+
+func TestCompetingNodesStartOnce(t *testing.T) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		cfg := util.MutableCopy(env.Config)
+		cfg.Raft.LocalID = "node-compete"
+		cfg.Raft.Servers = append(cfg.Raft.Servers,
+			raft.Server{ID: "node-compete", Address: "127.0.0.1:9703"},
+		)
+
+		peer, unsub, err := env.NewEngineWithConfig(cfg, env.Dependencies())
+		assert.NoError(t, err)
+		if !assert.NotNil(t, peer) {
+			return
+		}
+		defer func() {
+			unsub()
+			assert.NoError(t, peer.Stop())
+		}()
+
+		assert.NoError(t, env.Engine.Start())
+		assert.NoError(t, peer.Start())
+
+		st := helpers.NewSimpleStep("compete-step")
+		assert.NoError(t, env.Engine.RegisterStep(st))
+		env.MockClient.SetResponse(st.ID, api.Args{})
+
+		// Both nodes can run the step, so both race to claim the work item
+		assert.NoError(t,
+			env.Engine.UpdateStepHealth(st.ID, api.HealthHealthy, ""),
+		)
+		assert.NoError(t, peer.UpdateStepHealth(st.ID, api.HealthHealthy, ""))
+
+		id := api.FlowID("wf-compete")
+		pl := &api.ExecutionPlan{
+			Goals: []api.StepID{st.ID},
+			Steps: api.Steps{st.ID: st},
+		}
+
+		fl := env.WaitForFlowStatus(id, func() {
+			assert.NoError(t, env.Engine.StartFlow(id, pl))
+		})
+		assert.Equal(t, api.FlowCompleted, fl.Status)
+		assert.Equal(t, []api.StepID{st.ID}, env.MockClient.GetInvocations())
+	})
+}

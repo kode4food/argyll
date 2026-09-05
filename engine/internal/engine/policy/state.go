@@ -59,6 +59,7 @@ func WorkActive(status api.WorkStatus) bool {
 func WorkBlocksFlowDeactivation(status api.WorkStatus) bool {
 	return status == api.WorkPending ||
 		status == api.WorkActive ||
+		status == api.WorkCompPending ||
 		status == api.WorkCompensating
 }
 
@@ -78,15 +79,25 @@ func WorkNotCompleted(status api.WorkStatus) bool {
 	return status == api.WorkNotCompleted
 }
 
-// WorkClaimableForRetry reports whether retry task handling may try to claim
-// the work item for dispatch ownership
+// WorkClaimableForRetry reports whether retry task handling may try to start
+// the work item
 func WorkClaimableForRetry(status api.WorkStatus) bool {
-	return status == api.WorkPending || status == api.WorkFailed
+	return status == api.WorkPending || status == api.WorkNotCompleted
 }
 
 // WorkCompActive reports whether a work item is in the compensation phase
 func WorkCompActive(status api.WorkStatus) bool {
 	return status == api.WorkCompensating
+}
+
+// WorkCompPending reports whether compensation awaits dispatch
+func WorkCompPending(status api.WorkStatus) bool {
+	return status == api.WorkCompPending
+}
+
+// WorkCompUnsettled reports whether compensation can still take an outcome
+func WorkCompUnsettled(status api.WorkStatus) bool {
+	return WorkCompPending(status) || WorkCompActive(status)
 }
 
 // WorkAcceptsResult reports whether a work item can still take an outcome

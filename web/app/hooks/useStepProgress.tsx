@@ -3,7 +3,7 @@ import { ExecutionResult, StepStatus } from "../api";
 import { useExecutions } from "../store/flowStore";
 
 export type StepProgressStatus =
-  StepStatus | "compensating" | "compensated" | "compensation_failed";
+  StepStatus | "compensating" | "compensated" | "compensate_failed";
 
 interface WorkItemProgress {
   total: number;
@@ -37,12 +37,14 @@ const computeWorkItemProgress = (
     completed: items.filter((item: any) => item.status === "succeeded").length,
     failed: items.filter((item: any) => item.status === "failed").length,
     active: items.filter((item: any) => item.status === "active").length,
-    compensating: items.filter((item: any) => item.status === "compensating")
-      .length,
+    compensating: items.filter(
+      (item: any) =>
+        item.status === "compensate_pending" || item.status === "compensating"
+    ).length,
     compensated: items.filter((item: any) => item.status === "compensated")
       .length,
     compensationFailed: items.filter(
-      (item: any) => item.status === "compensation_failed"
+      (item: any) => item.status === "compensate_failed"
     ).length,
   };
 };
@@ -52,7 +54,7 @@ const compensationStatus = (
 ): StepProgressStatus | undefined => {
   if (!progress) return undefined;
   if (progress.compensating > 0) return "compensating";
-  if (progress.compensationFailed > 0) return "compensation_failed";
+  if (progress.compensationFailed > 0) return "compensate_failed";
   if (progress.compensated > 0) return "compensated";
   return undefined;
 };

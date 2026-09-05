@@ -147,8 +147,12 @@ func (tx *flowTx) handleStepFailure(sid api.StepID) error {
 // handleTerminalWork handles work completion when the flow is already
 // terminal: checks step completion then deactivates if no work remains
 func (tx *flowTx) handleTerminalWork(sid api.StepID) error {
-	if _, err := tx.checkStepCompletion(sid); err != nil {
-		return err
+	// A late result on a settled step is recorded for the audit trail, but
+	// there is no step outcome left to decide
+	if policy.StepActive(tx.Value().Executions[sid].Status) {
+		if _, err := tx.checkStepCompletion(sid); err != nil {
+			return err
+		}
 	}
 	return tx.maybeDeactivate()
 }

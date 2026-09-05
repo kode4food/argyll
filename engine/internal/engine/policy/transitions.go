@@ -39,9 +39,9 @@ var (
 		api.StepSkipped:   {},
 	}
 
-	// WorkTransitions defines the valid work item lifecycle. Not-completed
-	// work may be restarted or resolved. Succeeded work may begin compensation
-	// if the step ultimately fails
+	// WorkTransitions defines the valid work item lifecycle. Not-completed work
+	// may be retried or resolved, and succeeded work may begin compensation if
+	// the step ultimately fails
 	WorkTransitions = StateTransitions[api.WorkStatus]{
 		api.WorkPending: util.SetOf(
 			api.WorkActive,
@@ -58,11 +58,16 @@ var (
 		),
 		api.WorkFailed: {},
 		api.WorkNotCompleted: util.SetOf(
-			api.WorkActive,
+			api.WorkPending,
 			api.WorkSucceeded,
 			api.WorkFailed,
 		),
 		api.WorkCompensating: util.SetOf(
+			api.WorkCompPending,
+			api.WorkCompensated,
+			api.WorkCompFailed,
+		),
+		api.WorkCompPending: util.SetOf(
 			api.WorkCompensating,
 			api.WorkCompensated,
 			api.WorkCompFailed,
@@ -73,8 +78,11 @@ var (
 )
 
 // CanTransition reports whether a status change is valid according to the
-// transition table
+// transition table. Remaining in the same state is not a transition
 func (t StateTransitions[T]) CanTransition(from, to T) bool {
+	if from == to {
+		return false
+	}
 	allowed, ok := t[from]
 	if !ok {
 		return false

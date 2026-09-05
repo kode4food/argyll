@@ -130,9 +130,10 @@ const (
 	WorkSucceeded    WorkStatus = "succeeded"
 	WorkFailed       WorkStatus = "failed"
 	WorkNotCompleted WorkStatus = "not_completed"
+	WorkCompPending  WorkStatus = "compensate_pending"
 	WorkCompensating WorkStatus = "compensating"
 	WorkCompensated  WorkStatus = "compensated"
-	WorkCompFailed   WorkStatus = "compensation_failed"
+	WorkCompFailed   WorkStatus = "compensate_failed"
 )
 
 const (

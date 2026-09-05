@@ -284,15 +284,21 @@ func TestCompRetriesExhausted(t *testing.T) {
 	})
 }
 
-func TestCompensationRecovery(t *testing.T) {
+func TestActiveCompensationDoesNotRestart(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		assert.NoError(t, env.Engine.Start())
 
 		st := newCompensatingStep("comp-recover-step")
 		assert.NoError(t, env.Engine.RegisterStep(st))
+		invoked := make(chan struct{}, 1)
+		env.MockClient.SetCompHandler(st.ID,
+			func(client.CompensateRequest) error {
+				invoked <- struct{}{}
+				return nil
+			},
+		)
 
 		id := api.FlowID("wf-comp-recover")
-		fs := api.FlowStep{FlowID: id, StepID: st.ID}
 		tkn := api.Token("work-d")
 
 		// State: failed flow with WorkCompensating already started
@@ -304,19 +310,17 @@ func TestCompensationRecovery(t *testing.T) {
 			started: true,
 		})
 
-		env.WithConsumer(func(consumer *event.Consumer) {
-			w := wait.On(t, consumer)
-			assert.NoError(t, env.Engine.RecoverFlow(id))
-			w.ForAll(
-				wait.CompSucceeded(fs),
-				wait.FlowDeactivated(id),
-			)
-		})
+		assert.NoError(t, env.Engine.RecoverFlow(id))
+		select {
+		case <-invoked:
+			t.Fatal("active compensation was restarted")
+		case <-time.After(100 * time.Millisecond):
+		}
 
 		fl, err := env.Engine.GetFlowState(id)
 		assert.NoError(t, err)
 		work := fl.Executions[st.ID].WorkItems[tkn]
-		assert.Equal(t, api.WorkCompensated, work.Status)
+		assert.Equal(t, api.WorkCompensating, work.Status)
 	})
 }
 
@@ -372,7 +376,7 @@ func TestCompFailDirectly(t *testing.T) {
 	})
 }
 
-func TestCompDeferred(t *testing.T) {
+func TestCompRetryRunsOnHealthyPeer(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		cfg := util.MutableCopy(env.Config)
 		cfg.Raft.LocalID = "node-comp-peer"
@@ -410,21 +414,17 @@ func TestCompDeferred(t *testing.T) {
 		fs := api.FlowStep{FlowID: id, StepID: st.ID}
 		tkn := api.Token("work-deferred")
 
-		// Inject flow state: step failed with one succeeded work item and
-		// comp already started (WorkCompensating)
-		setupCompensatingFlow(setupCompensatingFlowArgs{
-			env:     env,
-			id:      id,
-			step:    st,
-			token:   tkn,
-			started: true,
-		})
-
 		env.WithConsumer(func(consumer *event.Consumer) {
 			w := wait.On(t, consumer)
-			assert.NoError(t, env.Engine.RecoverFlow(id))
+			setupCompensatingFlow(setupCompensatingFlowArgs{
+				env:     env,
+				id:      id,
+				step:    st,
+				token:   tkn,
+				started: true,
+				pending: true,
+			})
 			w.ForAll(
-				wait.DispatchDeferred(fs),
 				wait.CompSucceeded(fs),
 				wait.FlowDeactivated(id),
 			)
@@ -572,10 +572,180 @@ func TestCompRetryNoop(t *testing.T) {
 	})
 }
 
+func TestCompRetryDeferredUntilPeerRecovers(t *testing.T) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		cfg := util.MutableCopy(env.Config)
+		cfg.Raft.LocalID = "node-comp-deferred"
+		cfg.Raft.Servers = append(cfg.Raft.Servers,
+			raft.Server{ID: "node-comp-deferred", Address: "127.0.0.1:9711"},
+		)
+
+		peer, unsub, err := env.NewEngineWithConfig(cfg, env.Dependencies())
+		assert.NoError(t, err)
+		if !assert.NotNil(t, peer) {
+			return
+		}
+		defer func() {
+			unsub()
+			assert.NoError(t, peer.Stop())
+		}()
+
+		st := newCompensatingStep("comp-deferred-recovery-step")
+		env.MockClient.SetCompHandler(st.ID,
+			func(client.CompensateRequest) error {
+				return nil
+			},
+		)
+
+		// Both replicas retain the committed retry while they are unhealthy
+		assert.NoError(t, env.Engine.UpdateStepHealth(
+			st.ID, api.HealthUnhealthy, "offline",
+		))
+		assert.NoError(t, peer.UpdateStepHealth(
+			st.ID, api.HealthUnhealthy, "offline",
+		))
+		assert.NoError(t, env.Engine.Start())
+		assert.NoError(t, peer.Start())
+
+		id := api.FlowID("wf-comp-deferred-recovery")
+		fs := api.FlowStep{FlowID: id, StepID: st.ID}
+		tkn := api.Token("work-deferred-recovery")
+
+		env.WithConsumer(func(consumer *event.Consumer) {
+			w := wait.On(t, consumer)
+			setupCompensatingFlow(setupCompensatingFlowArgs{
+				env:     env,
+				id:      id,
+				step:    st,
+				token:   tkn,
+				started: true,
+				pending: true,
+			})
+			w.ForEvent(wait.DispatchDeferred(fs))
+		})
+
+		assert.NoError(t, peer.UpdateStepHealth(st.ID, api.HealthHealthy, ""))
+
+		fl := helpers.WaitForFlowState(t, env.Engine, helpers.FlowStateQuery{
+			FlowID:  id,
+			Timeout: wait.DefaultTimeout,
+			Accept: func(fl api.FlowState) bool {
+				return fl.Executions[st.ID].WorkItems[tkn].Status ==
+					api.WorkCompensated
+			},
+		})
+		assert.Equal(t,
+			api.WorkCompensated, fl.Executions[st.ID].WorkItems[tkn].Status,
+		)
+	})
+}
+
+func TestLateCompCallbackSettlesPending(t *testing.T) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		st := newCompensatingStep("comp-late-callback-step")
+		assert.NoError(t, env.Engine.RegisterStep(st))
+		invoked := make(chan struct{}, 1)
+		env.MockClient.SetCompHandler(st.ID,
+			func(client.CompensateRequest) error {
+				invoked <- struct{}{}
+				return nil
+			},
+		)
+
+		id := api.FlowID("wf-comp-late-callback")
+		fs := api.FlowStep{FlowID: id, StepID: st.ID}
+		tkn := api.Token("work-late")
+
+		// State: compensation waiting for its next attempt
+		setupCompensatingFlow(setupCompensatingFlowArgs{
+			env:     env,
+			id:      id,
+			step:    st,
+			token:   tkn,
+			started: true,
+			pending: true,
+		})
+
+		// The earlier attempt's callback arrives before the retry is claimed
+		assert.NoError(t, env.Engine.CompleteCompensation(fs, tkn))
+
+		fl, err := env.Engine.GetFlowState(id)
+		assert.NoError(t, err)
+		assert.Equal(t,
+			api.WorkCompensated, fl.Executions[st.ID].WorkItems[tkn].Status,
+		)
+
+		// The scheduled retry now has nothing left to claim
+		assert.NoError(t, env.Engine.Start())
+		assert.NoError(t, env.Engine.RecoverFlow(id))
+		select {
+		case <-invoked:
+			t.Fatal("settled compensation was retried")
+		case <-time.After(100 * time.Millisecond):
+		}
+
+		fl, err = env.Engine.GetFlowState(id)
+		assert.NoError(t, err)
+		assert.Equal(t,
+			api.WorkCompensated, fl.Executions[st.ID].WorkItems[tkn].Status,
+		)
+	})
+}
+
+func TestLateCompFailureSettlesPending(t *testing.T) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		st := newCompensatingStep("comp-late-fail-step")
+		assert.NoError(t, env.Engine.RegisterStep(st))
+		invoked := make(chan struct{}, 1)
+		env.MockClient.SetCompHandler(st.ID,
+			func(client.CompensateRequest) error {
+				invoked <- struct{}{}
+				return nil
+			},
+		)
+
+		id := api.FlowID("wf-comp-late-fail")
+		fs := api.FlowStep{FlowID: id, StepID: st.ID}
+		tkn := api.Token("work-late-fail")
+
+		// State: compensation waiting for its next attempt
+		setupCompensatingFlow(setupCompensatingFlowArgs{
+			env:     env,
+			id:      id,
+			step:    st,
+			token:   tkn,
+			started: true,
+			pending: true,
+		})
+
+		// The earlier attempt reports a permanent failure before the retry
+		assert.NoError(t, env.Engine.FailCompensation(fs, tkn, "gone"))
+
+		fl, err := env.Engine.GetFlowState(id)
+		assert.NoError(t, err)
+		work := fl.Executions[st.ID].WorkItems[tkn]
+		assert.Equal(t, api.WorkCompFailed, work.Status)
+		assert.Equal(t, "gone", work.Error)
+
+		// The scheduled retry now has nothing left to claim
+		assert.NoError(t, env.Engine.Start())
+		assert.NoError(t, env.Engine.RecoverFlow(id))
+		select {
+		case <-invoked:
+			t.Fatal("settled compensation was retried")
+		case <-time.After(100 * time.Millisecond):
+		}
+
+		fl, err = env.Engine.GetFlowState(id)
+		assert.NoError(t, err)
+		assert.Equal(t,
+			api.WorkCompFailed, fl.Executions[st.ID].WorkItems[tkn].Status,
+		)
+	})
+}
+
 func TestCompDispatchRecovery(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		assert.NoError(t, env.Engine.Start())
-
 		st := newCompensatingStep("dispatch-recovery-step")
 		st.WorkConfig = &api.WorkConfig{
 			MaxRetries:  2,
@@ -597,14 +767,16 @@ func TestCompDispatchRecovery(t *testing.T) {
 		fs := api.FlowStep{FlowID: id, StepID: st.ID}
 		tkn := api.Token("work-recovery")
 
-		// State: failed flow with comp in progress (WorkCompensating)
+		// State: failed flow with compensation waiting for its next attempt
 		setupCompensatingFlow(setupCompensatingFlowArgs{
 			env:     env,
 			id:      id,
 			step:    st,
 			token:   tkn,
 			started: true,
+			pending: true,
 		})
+		assert.NoError(t, env.Engine.Start())
 
 		env.WithConsumer(func(consumer *event.Consumer) {
 			w := wait.On(t, consumer)
@@ -1069,6 +1241,7 @@ type setupCompensatingFlowArgs struct {
 	step    *api.Step
 	token   api.Token
 	started bool
+	pending bool
 }
 
 func setupCompensatingFlow(args setupCompensatingFlowArgs) {
@@ -1113,6 +1286,19 @@ func setupCompensatingFlow(args setupCompensatingFlowArgs) {
 				FlowID: args.id,
 				StepID: args.step.ID,
 				Token:  args.token,
+			},
+		})
+	}
+	if args.pending {
+		evs = append(evs, helpers.FlowEvent{
+			Type: api.EventTypeCompRetryScheduled,
+			Data: api.CompRetryScheduledEvent{
+				FlowID:      args.id,
+				StepID:      args.step.ID,
+				Token:       args.token,
+				RetryCount:  1,
+				NextRetryAt: time.Time{},
+				Error:       "retry",
 			},
 		})
 	}

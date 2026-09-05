@@ -18,7 +18,7 @@ require (
 	github.com/gobwas/ws v1.4.0 // indirect
 	github.com/gorilla/websocket v1.5.3 // indirect
 	github.com/klauspost/compress v1.19.2 // indirect
-	github.com/kode4food/caravan v0.0.0-20260821122510-0a730966b1a2 // indirect
+	github.com/kode4food/caravan v0.0.0-20260905062940-5af4c3674974 // indirect
 	github.com/kode4food/jpath v0.0.0-20260821124846-7265794f74f9 // indirect
 	github.com/kode4food/lru v0.0.0-20260821124822-50bd9a308b71 // indirect
 	github.com/kode4food/timebox v0.0.0-20260831165837-e3945223be77 // indirect

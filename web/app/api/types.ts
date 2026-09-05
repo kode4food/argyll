@@ -10,9 +10,10 @@ export type WorkStatus =
   | "succeeded"
   | "failed"
   | "not_completed"
+  | "compensate_pending"
   | "compensating"
   | "compensated"
-  | "compensation_failed";
+  | "compensate_failed";
 
 export type HealthStatus = "healthy" | "unhealthy" | "unconfigured" | "unknown";
 export type StepType = "service" | "script" | "flow";

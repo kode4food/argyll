@@ -8,7 +8,6 @@ import (
 	"github.com/kode4food/argyll/engine/internal/engine/policy"
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/events"
-	"github.com/kode4food/argyll/engine/pkg/log"
 	"github.com/kode4food/argyll/engine/pkg/util"
 )
 
@@ -39,67 +38,9 @@ func (e *Engine) RecoverFlows() error {
 	return nil
 }
 
-// RecoverFlow resumes execution of a specific flow by scheduling optional
-// timeout callbacks and any pending work retries
-func (e *Engine) RecoverFlow(fid api.FlowID) error {
-	fl, err := e.GetFlowState(fid)
-	if err != nil {
-		return errors.Join(ErrGetFlowState, err)
-	}
-	if err := validateParentMetadata(fl.Metadata); err != nil {
-		return err
-	}
-
-	e.recoverCompensations(fl)
-
-	if policy.FlowTerminal(fl.Status) {
-		// The parent's release may have been missed while this engine was down
-		return e.flowTx(fid, func(tx *flowTx) error {
-			return tx.maybeDeactivate()
-		})
-	}
-
-	e.recoverWork(fl)
-	return nil
-}
-
-func (e *Engine) recoverWork(fl api.FlowState) {
-	e.recoverTimeouts(fl)
-	e.recoverWorkDispatch(fl)
-	e.recoverRetries(fl)
-}
-
-// FindRetrySteps identifies all steps in a flow that have work items that
-// might need recovery
-func (*Engine) FindRetrySteps(fl api.FlowState) util.Set[api.StepID] {
-	steps := util.Set[api.StepID]{}
-
-	for sid, ex := range fl.Executions {
-		for _, work := range ex.WorkItems {
-			if !policy.Recoverable(ex, work) {
-				continue
-			}
-			steps.Add(sid)
-			break
-		}
-	}
-
-	return steps
-}
-
-func (e *Engine) recoverTimeouts(fl api.FlowState) {
-	e.scheduleTimeouts(fl, e.Now())
-}
-
 func (e *Engine) recoverRetries(fl api.FlowState) {
-	steps := e.FindRetrySteps(fl)
-	if steps.IsEmpty() {
-		return
-	}
-
 	now := e.Now()
-	for sid := range steps {
-		ex := fl.Executions[sid]
+	for sid, ex := range fl.Executions {
 		for tkn, work := range ex.WorkItems {
 			if retryAt, ok := policy.RecoverableDeadline(ex, work, now); ok {
 				e.scheduleRetryTask(api.FlowStep{
@@ -138,12 +79,11 @@ func (e *Engine) listIndexedFlows(status string) ([]api.FlowID, error) {
 	return res, nil
 }
 
+// recoverFlows reconciles the indexed flows through the same tasks the
+// committed-event wake-ups use, so a transient failure is retried
 func (e *Engine) recoverFlows(ids []api.FlowID) {
+	now := e.Now()
 	for _, id := range ids {
-		if err := e.RecoverFlow(id); err != nil {
-			slog.Error("Failed to recover flow",
-				log.FlowID(id),
-				log.Error(err))
-		}
+		e.scheduleFlowReconcile(id, now)
 	}
 }

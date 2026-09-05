@@ -130,4 +130,25 @@ describe("useStepProgress", () => {
 
     expect(result.current.status).toBe("compensating");
   });
+
+  test("reports compensating while a compensation retry is pending", () => {
+    mockUseExecutions.mockReturnValue([
+      {
+        step_id: "step-1",
+        flow_id: "flow-1",
+        status: "completed",
+        inputs: {},
+        started_at: "2024-01-01T00:00:00Z",
+        work_items: {
+          a: { status: "compensate_pending" },
+        },
+      },
+    ]);
+
+    const { result } = renderHook(() =>
+      useStepProgress("step-1", "flow-1", undefined)
+    );
+
+    expect(result.current.status).toBe("compensating");
+  });
 });

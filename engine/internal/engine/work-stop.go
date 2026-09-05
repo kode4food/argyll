@@ -42,21 +42,12 @@ func (e *Engine) NotCompleteWork(
 	fs api.FlowStep, tkn api.Token, errMsg string,
 ) error {
 	return e.flowTx(fs.FlowID, func(tx *flowTx) error {
-		err := tx.checkWorkTransition(fs.StepID, tkn, api.WorkNotCompleted)
-		if err != nil {
-			return err
-		}
-
 		if err := tx.raiseWorkNotCompleted(fs.StepID, tkn, errMsg); err != nil {
 			return err
 		}
 
 		return tx.handleWorkNotCompleted(fs.StepID, tkn)
 	})
-}
-
-func (tx *flowTx) clearRetryTask(fs api.FlowStep, tkn api.Token) {
-	tx.CancelTask(retryKey(fs, tkn))
 }
 
 func (tx *flowTx) completeWork(
@@ -80,16 +71,20 @@ func (tx *flowTx) completeWork(
 		return err
 	}
 
-	tx.OnSuccess(func(fl api.FlowState, _ []*timebox.Event) {
-		if hasRetryTask(fl, sid, tkn) {
-			tx.clearRetryTask(api.FlowStep{
-				FlowID: tx.flowID,
-				StepID: sid,
-			}, tkn)
-		}
-	})
+	tx.clearRetryTask(sid, tkn)
 
 	return tx.handleWorkSucceeded(sid)
+}
+
+func (tx *flowTx) clearRetryTask(sid api.StepID, tkn api.Token) {
+	tx.OnSuccess(func(fl api.FlowState, _ []*timebox.Event) {
+		if !hasRetryTask(fl, sid, tkn) {
+			return
+		}
+		tx.CancelTask(
+			retryKey(api.FlowStep{FlowID: tx.flowID, StepID: sid}, tkn),
+		)
+	})
 }
 
 func (tx *flowTx) memoizeWorkOutput(
@@ -114,9 +109,6 @@ func (tx *flowTx) memoizeWorkOutput(
 func (tx *flowTx) failWork(
 	sid api.StepID, tkn api.Token, errMsg string,
 ) error {
-	if err := tx.checkWorkTransition(sid, tkn, api.WorkFailed); err != nil {
-		return err
-	}
 	if err := tx.raiseWorkFailed(sid, tkn, errMsg); err != nil {
 		return err
 	}
@@ -192,6 +184,11 @@ func (tx *flowTx) handleWorkNotCompleted(
 func (tx *flowTx) handleMemoCacheHit(
 	sid api.StepID, tkn api.Token, outputs api.Args,
 ) error {
+	if err := tx.checkWorkTransition(
+		sid, tkn, api.WorkSucceeded,
+	); err != nil {
+		return err
+	}
 	if err := events.Raise(tx.FlowAggregator, api.EventTypeWorkSucceeded,
 		api.WorkSucceededEvent{
 			FlowID:  tx.flowID,
@@ -202,18 +199,16 @@ func (tx *flowTx) handleMemoCacheHit(
 	); err != nil {
 		return err
 	}
-	tx.OnSuccess(func(fl api.FlowState, _ []*timebox.Event) {
-		if hasRetryTask(fl, sid, tkn) {
-			fs := api.FlowStep{FlowID: tx.flowID, StepID: sid}
-			tx.clearRetryTask(fs, tkn)
-		}
-	})
+	tx.clearRetryTask(sid, tkn)
 	return tx.handleWorkSucceeded(sid)
 }
 
 func (tx *flowTx) raiseWorkFailed(
 	sid api.StepID, tkn api.Token, errMsg string,
 ) error {
+	if err := tx.checkWorkTransition(sid, tkn, api.WorkFailed); err != nil {
+		return err
+	}
 	return events.Raise(tx.FlowAggregator, api.EventTypeWorkFailed,
 		api.WorkFailedEvent{
 			FlowID: tx.flowID,
@@ -227,6 +222,9 @@ func (tx *flowTx) raiseWorkFailed(
 func (tx *flowTx) raiseRetryScheduled(
 	sid api.StepID, tkn api.Token, work api.WorkState, nextRetryAt time.Time,
 ) error {
+	if err := tx.checkWorkTransition(sid, tkn, api.WorkPending); err != nil {
+		return err
+	}
 	return events.Raise(tx.FlowAggregator, api.EventTypeWorkRetryScheduled,
 		api.WorkRetryScheduledEvent{
 			FlowID:      tx.flowID,
@@ -242,6 +240,11 @@ func (tx *flowTx) raiseRetryScheduled(
 func (tx *flowTx) raiseWorkNotCompleted(
 	sid api.StepID, tkn api.Token, errMsg string,
 ) error {
+	if err := tx.checkWorkTransition(
+		sid, tkn, api.WorkNotCompleted,
+	); err != nil {
+		return err
+	}
 	return events.Raise(tx.FlowAggregator, api.EventTypeWorkNotCompleted,
 		api.WorkNotCompletedEvent{
 			FlowID: tx.flowID,

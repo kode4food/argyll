@@ -224,6 +224,14 @@ func WorkFailed(steps ...api.FlowStep) EventFilter {
 	return And(Type(api.EventTypeWorkFailed), FlowSteps(steps...))
 }
 
+// WorkNotCompleted matches not completed events for the provided flow steps
+func WorkNotCompleted(steps ...api.FlowStep) EventFilter {
+	return And(
+		Type(api.EventTypeWorkNotCompleted),
+		FlowSteps(steps...),
+	)
+}
+
 // WorkRetryScheduled matches retry scheduled events for flow steps
 func WorkRetryScheduled(steps ...api.FlowStep) EventFilter {
 	return And(
@@ -250,12 +258,12 @@ func CompSucceeded(steps ...api.FlowStep) EventFilter {
 	return And(Type(api.EventTypeCompSucceeded), FlowSteps(steps...))
 }
 
-// CompFailed matches comp failed events for the provided flow steps
+// CompFailed matches compensation failure events for the provided flow steps
 func CompFailed(steps ...api.FlowStep) EventFilter {
 	return And(Type(api.EventTypeCompFailed), FlowSteps(steps...))
 }
 
-// CompRetryScheduled matches comp retry scheduled events for flow steps
+// CompRetryScheduled matches compensation retry events for provided flow steps
 func CompRetryScheduled(steps ...api.FlowStep) EventFilter {
 	return And(Type(api.EventTypeCompRetryScheduled), FlowSteps(steps...))
 }

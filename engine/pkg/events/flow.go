@@ -362,15 +362,17 @@ func workScheduled(
 }
 
 func compStarted(
-	fl api.FlowState, _ *timebox.Event, data api.CompStartedEvent,
+	fl api.FlowState, ev *timebox.Event, data api.CompStartedEvent,
 ) api.FlowState {
 	ex := fl.Executions[data.StepID]
 	item, ok := ex.WorkItems[data.Token]
 	if !ok {
 		return fl
 	}
+	// Each attempt restamps the start, so its deadline covers that attempt
 	item = item.
 		SetStatus(api.WorkCompensating).
+		SetStartedAt(ev.Timestamp).
 		SetNextRetryAt(time.Time{})
 	return fl.SetExecution(data.StepID, ex.SetWorkItem(data.Token, item))
 }
@@ -384,7 +386,7 @@ func compScheduled(
 		return fl
 	}
 	item = item.
-		SetStatus(api.WorkCompensating).
+		SetStatus(api.WorkCompPending).
 		SetRetryCount(data.RetryCount).
 		SetNextRetryAt(data.NextRetryAt).
 		SetError(data.Error)

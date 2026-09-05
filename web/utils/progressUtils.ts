@@ -18,7 +18,7 @@ const progressIconMap: Record<StepProgressStatus, LucideIcon> = {
   failed: IconProgressFailed,
   skipped: IconProgressSkipped,
   compensated: IconCompensate,
-  compensation_failed: IconCompensateFailed,
+  compensate_failed: IconCompensateFailed,
 };
 
 export const getProgressIcon = (status: StepProgressStatus): LucideIcon => {

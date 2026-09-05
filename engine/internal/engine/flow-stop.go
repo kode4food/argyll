@@ -41,14 +41,7 @@ func (tx *flowTx) checkTerminal() error {
 		); err != nil {
 			return err
 		}
-		tx.OnSuccess(func(fl api.FlowState, _ []*timebox.Event) {
-			if flowHasRetryTasks(fl) {
-				tx.CancelPrefixedTasks(retryPrefix(tx.flowID))
-			}
-			if flowHasTimeouts(fl) {
-				tx.CancelPrefixedTasks(timeoutFlowPrefix(tx.flowID))
-			}
-		})
+		tx.cancelObsoleteTasks()
 		return tx.maybeDeactivate()
 	}
 	if tx.IsFlowFailed(fl) {
@@ -61,17 +54,23 @@ func (tx *flowTx) checkTerminal() error {
 		); err != nil {
 			return err
 		}
-		tx.OnSuccess(func(fl api.FlowState, _ []*timebox.Event) {
-			if flowHasRetryTasks(fl) {
-				tx.CancelPrefixedTasks(retryPrefix(tx.flowID))
-			}
-			if flowHasTimeouts(fl) {
-				tx.CancelPrefixedTasks(timeoutFlowPrefix(tx.flowID))
-			}
-		})
+		tx.cancelObsoleteTasks()
 		return tx.maybeDeactivate()
 	}
 	return nil
+}
+
+// cancelObsoleteTasks drops the retry and timeout tasks a terminal flow can
+// no longer act on
+func (tx *flowTx) cancelObsoleteTasks() {
+	tx.OnSuccess(func(fl api.FlowState, _ []*timebox.Event) {
+		if flowHasRetryTasks(fl) {
+			tx.CancelPrefixedTasks(retryPrefix(tx.flowID))
+		}
+		if flowHasTimeouts(fl) {
+			tx.CancelPrefixedTasks(timeoutFlowPrefix(tx.flowID))
+		}
+	})
 }
 
 // maybeDeactivate reports the outcome to the parent, then deactivates once
@@ -85,7 +84,8 @@ func (tx *flowTx) maybeDeactivate() error {
 	if err := tx.compensateFlow(); err != nil {
 		return err
 	}
-	if hasActiveWork(tx.Value()) {
+	fl := tx.Value()
+	if hasActiveWork(fl) || tx.compensationPending(fl) {
 		return nil
 	}
 	// Told before deactivating, since the parent decides the rollback
@@ -113,6 +113,8 @@ func (tx *flowTx) deactivate() error {
 		return err
 	}
 	tx.OnSuccess(func(fl api.FlowState, _ []*timebox.Event) {
+		// Deactivation, not failure: compensation deadlines outlive the latter
+		tx.CancelPrefixedTasks(deadlinePrefix(tx.flowID))
 		tx.releaseChildFlows(fl)
 	})
 	return nil
@@ -140,7 +142,7 @@ func (tx *flowTx) parentReleased(fl api.FlowState) (bool, error) {
 }
 
 // releaseChildFlows lets child flows held open by this one deactivate
-func (tx *flowTx) releaseChildFlows(fl api.FlowState) {
+func (e *Engine) releaseChildFlows(fl api.FlowState) {
 	for sid, ex := range fl.Executions {
 		st, ok := fl.Plan.Steps[sid]
 		if !ok || st.Type != api.StepTypeFlow {
@@ -148,14 +150,14 @@ func (tx *flowTx) releaseChildFlows(fl api.FlowState) {
 		}
 		fs := api.FlowStep{FlowID: fl.ID, StepID: sid}
 		for tkn := range ex.WorkItems {
-			tx.releaseChildFlow(fs, tkn)
+			e.releaseChildFlow(fs, tkn)
 		}
 	}
 }
 
-func (tx *flowTx) releaseChildFlow(fs api.FlowStep, tkn api.Token) {
+func (e *Engine) releaseChildFlow(fs api.FlowStep, tkn api.Token) {
 	childID := childFlowID(fs, tkn)
-	err := tx.flowTx(childID, func(child *flowTx) error {
+	err := e.flowTx(childID, func(child *flowTx) error {
 		if child.Value().ID == "" {
 			return nil
 		}
@@ -168,13 +170,13 @@ func (tx *flowTx) releaseChildFlow(fs api.FlowStep, tkn api.Token) {
 	}
 }
 
-func (tx *flowTx) completeParentWork(fl api.FlowState) {
+func (e *Engine) completeParentWork(fl api.FlowState) {
 	target := &parentWork{}
 	ok, err := parentMeta(fl, target)
 	if !ok || err != nil {
 		if err != nil {
 			slog.Error("Failed to resolve parent work item",
-				log.FlowID(tx.flowID),
+				log.FlowID(fl.ID),
 				log.Error(err))
 		}
 		return
@@ -183,17 +185,17 @@ func (tx *flowTx) completeParentWork(fl api.FlowState) {
 		return
 	}
 
-	if err := tx.completeParentFlowWork(fl, target); err != nil {
+	if err := e.completeParentFlowWork(fl, target); err != nil {
 		slog.Error("Failed to update parent work item",
-			log.FlowID(tx.flowID),
+			log.FlowID(fl.ID),
 			log.Error(err))
 	}
 }
 
-func (tx *flowTx) completeParentFlowWork(
+func (e *Engine) completeParentFlowWork(
 	child api.FlowState, target *parentWork,
 ) error {
-	return tx.flowTx(target.fs.FlowID, func(parentTx *flowTx) error {
+	return e.flowTx(target.fs.FlowID, func(parentTx *flowTx) error {
 		parent := parentTx.Value()
 		if parent.ID == "" {
 			return errors.Join(ErrGetFlowState, ErrFlowNotFound)
@@ -228,15 +230,6 @@ func (tx *flowTx) completeParentFlowWork(
 }
 
 // getFailureReason extracts a failure reason from flow state
-func getFailureReason(fl api.FlowState) string {
-	for sid, ex := range fl.Executions {
-		if policy.StepFailed(ex.Status) {
-			return fmt.Sprintf("step %s failed: %s", sid, ex.Error)
-		}
-	}
-	return "flow failed"
-}
-
 func flowHasRetryTasks(fl api.FlowState) bool {
 	for _, ex := range fl.Executions {
 		for _, work := range ex.WorkItems {
@@ -246,6 +239,15 @@ func flowHasRetryTasks(fl api.FlowState) bool {
 		}
 	}
 	return false
+}
+
+func getFailureReason(fl api.FlowState) string {
+	for sid, ex := range fl.Executions {
+		if policy.StepFailed(ex.Status) {
+			return fmt.Sprintf("step %s failed: %s", sid, ex.Error)
+		}
+	}
+	return "flow failed"
 }
 
 func parentMeta(fl api.FlowState, target *parentWork) (bool, error) {

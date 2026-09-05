@@ -1,6 +1,7 @@
 package engine_test
 
 import (
+	"errors"
 	"fmt"
 	"testing"
 	"time"
@@ -105,7 +106,7 @@ func TestRecoverActiveFlows(t *testing.T) {
 	})
 }
 
-func TestRecoverActiveWorkStartsRetry(t *testing.T) {
+func TestRecoverActiveWorkDoesNotRestart(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		assert.NoError(t, env.Engine.Start())
 
@@ -125,16 +126,25 @@ func TestRecoverActiveWorkStartsRetry(t *testing.T) {
 			FlowID: id,
 			StepID: st.ID,
 		}), func() {
-			err := env.Engine.StartFlow(id, pl)
-			assert.NoError(t, err)
+			assert.NoError(t, env.Engine.StartFlow(id, pl))
 		})
+		assert.True(t,
+			env.MockClient.WaitForInvocation(st.ID, wait.DefaultTimeout),
+		)
 
-		env.WaitFor(wait.WorkStarted(api.FlowStep{
-			FlowID: id,
-			StepID: st.ID,
-		}), func() {
-			assert.NoError(t, env.Engine.RecoverFlow(id))
-		})
+		before, err := env.Engine.GetFlowState(id)
+		assert.NoError(t, err)
+		assert.NoError(t, env.Engine.RecoverFlow(id))
+		after, err := env.Engine.GetFlowState(id)
+		assert.NoError(t, err)
+
+		for tkn, work := range after.Executions[st.ID].WorkItems {
+			assert.Equal(t, api.WorkActive, work.Status)
+			assert.Equal(t,
+				before.Executions[st.ID].WorkItems[tkn].StartedAt,
+				work.StartedAt)
+		}
+		assert.Equal(t, []api.StepID{st.ID}, env.MockClient.GetInvocations())
 	})
 }
 
@@ -384,40 +394,55 @@ func TestPendingWorkWithActiveStep(t *testing.T) {
 	})
 }
 
-func TestFailedWorkRetryable(t *testing.T) {
+func TestPendingRetryRecovers(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		assert.NoError(t, env.Engine.Start())
+		st := helpers.NewSimpleStep("pending-retry-step")
+		assert.NoError(t, env.Engine.RegisterStep(st))
+		env.MockClient.SetResponse(st.ID, api.Args{})
 
-		st := helpers.NewSimpleStep("failing-step")
-		st.WorkConfig = &api.WorkConfig{
-			MaxRetries:  3,
-			InitBackoff: 100,
-			MaxBackoff:  1000,
-			BackoffType: api.BackoffTypeFixed,
-		}
-
-		env.MockClient.SetError("failing-step",
-			fmt.Errorf("%w: test error", api.ErrWorkNotCompleted))
-
-		err := env.Engine.RegisterStep(st)
-		assert.NoError(t, err)
-
+		id := api.FlowID("wf-pending-retry")
+		fs := api.FlowStep{FlowID: id, StepID: st.ID}
+		tkn := api.Token("work-pending-retry")
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{"failing-step"},
+			Goals: []api.StepID{st.ID},
 			Steps: api.Steps{st.ID: st},
 		}
 
-		id := api.FlowID("failed-work-flow")
-		env.WaitFor(wait.WorkRetryScheduled(api.FlowStep{
-			FlowID: id,
-			StepID: "failing-step",
-		}), func() {
-			err = env.Engine.StartFlow(id, pl)
-			assert.NoError(t, err)
+		// State: work awaiting a retry whose deadline has already passed
+		assert.NoError(t, env.SeedStartedWork(fs, pl, tkn))
+		assert.NoError(t, env.RaiseFlowEvents(id,
+			helpers.FlowEvent{
+				Type: api.EventTypeWorkNotCompleted,
+				Data: api.WorkNotCompletedEvent{
+					FlowID: id,
+					StepID: st.ID,
+					Token:  tkn,
+					Error:  "transient",
+				},
+			},
+			helpers.FlowEvent{
+				Type: api.EventTypeWorkRetryScheduled,
+				Data: api.WorkRetryScheduledEvent{
+					FlowID:      id,
+					StepID:      st.ID,
+					Token:       tkn,
+					RetryCount:  1,
+					NextRetryAt: scheduler.Now().Add(-time.Second),
+					Error:       "transient",
+				},
+			},
+		))
+		assert.NoError(t, env.Engine.Start())
+
+		env.WaitFor(wait.WorkStarted(fs), func() {
+			assert.NoError(t, env.Engine.RecoverFlow(id))
 		})
 
-		err = env.Engine.RecoverFlow(id)
-		assert.NoError(t, err)
+		fl := env.WaitForTerminalFlow(id)
+		assert.Equal(t, api.FlowCompleted, fl.Status)
+		assert.Equal(t,
+			api.WorkSucceeded, fl.Executions[st.ID].WorkItems[tkn].Status,
+		)
 	})
 }
 
@@ -425,9 +450,8 @@ func TestInvalidFlowID(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
 		id := api.FlowID("nonexistent-flow")
 
-		err := eng.RecoverFlow(id)
-		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "failed to get flow state")
+		// An unknown flow has no scheduling intent left to reconstruct
+		assert.NoError(t, eng.RecoverFlow(id))
 	})
 }
 
@@ -931,4 +955,49 @@ func (t *earlyDelayedTimer) Reset(delay time.Duration) bool {
 		return t.Timer.Reset(0)
 	}
 	return t.Timer.Reset(delay)
+}
+
+func TestFailedWorkNotRestarted(t *testing.T) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		assert.NoError(t, env.Engine.Start())
+
+		st := helpers.NewSimpleStep("terminal-fail-step")
+		assert.NoError(t, env.Engine.RegisterStep(st))
+		env.MockClient.SetResponse(st.ID, api.Args{})
+
+		id := api.FlowID("wf-terminal-fail")
+		fs := api.FlowStep{FlowID: id, StepID: st.ID}
+		tkn := api.Token("work-failed")
+		pl := &api.ExecutionPlan{
+			Goals: []api.StepID{st.ID},
+			Steps: api.Steps{st.ID: st},
+		}
+
+		assert.NoError(t, env.SeedStartedWork(fs, pl, tkn))
+		assert.NoError(t, env.RaiseFlowEvents(id,
+			helpers.FlowEvent{
+				Type: api.EventTypeWorkFailed,
+				Data: api.WorkFailedEvent{
+					FlowID: id,
+					StepID: st.ID,
+					Token:  tkn,
+					Error:  "permanent",
+				},
+			},
+		))
+
+		assert.NoError(t, env.Engine.RecoverFlow(id))
+		assert.False(t,
+			env.MockClient.WaitForInvocation(st.ID, 100*time.Millisecond),
+		)
+
+		err := env.Engine.CompleteWork(fs, tkn, api.Args{})
+		assert.True(t, errors.Is(err, engine.ErrInvalidWorkTransition))
+
+		fl, err := env.Engine.GetFlowState(id)
+		assert.NoError(t, err)
+		assert.Equal(t,
+			api.WorkFailed, fl.Executions[st.ID].WorkItems[tkn].Status,
+		)
+	})
 }

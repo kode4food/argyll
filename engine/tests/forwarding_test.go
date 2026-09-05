@@ -331,11 +331,9 @@ func closeRaftNodes(nodes []*raftNode) {
 		if n == nil || n.engine == nil {
 			continue
 		}
-		wg.Add(1)
-		go func(n *raftNode) {
-			defer wg.Done()
+		wg.Go(func() {
 			_ = n.engine.Stop()
-		}(n)
+		})
 	}
 	wg.Wait()
 

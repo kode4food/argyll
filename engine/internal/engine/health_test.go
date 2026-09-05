@@ -447,6 +447,127 @@ func TestMergeNodeHealthUnknown(t *testing.T) {
 	}
 }
 
+func TestResolveHealthFlowUnhealthyChild(t *testing.T) {
+	helpers.WithEngine(t, func(eng *engine.Engine) {
+		goal := helpers.NewSimpleStep("unhealthy-goal")
+		st := &api.Step{
+			ID:   "unhealthy-flow-step",
+			Name: "Flow Step",
+			Type: api.StepTypeFlow,
+			Flow: &api.FlowConfig{
+				Goals: []api.StepID{goal.ID},
+			},
+			Attributes: api.AttributeSpecs{
+				"out": {Role: api.RoleOutput, Type: api.TypeString},
+			},
+		}
+		cat := api.CatalogState{
+			Steps: api.Steps{
+				goal.ID: goal,
+				st.ID:   st,
+			},
+			Attributes: api.AttributeGraph{},
+		}
+		base := map[api.StepID]api.HealthState{
+			goal.ID: {Status: api.HealthUnhealthy, Error: "endpoint down"},
+		}
+
+		h := eng.ResolveHealth(helpers.Matcher(), cat, base)
+		if assert.Contains(t, h, st.ID) {
+			assert.Equal(t, api.HealthUnhealthy, h[st.ID].Status)
+			assert.Equal(t,
+				"step unhealthy-goal: endpoint down", h[st.ID].Error)
+		}
+	})
+}
+
+func TestResolveHealthUnhealthyWithoutReason(t *testing.T) {
+	helpers.WithEngine(t, func(eng *engine.Engine) {
+		goal := helpers.NewSimpleStep("silent-goal")
+		st := &api.Step{
+			ID:   "silent-flow-step",
+			Name: "Flow Step",
+			Type: api.StepTypeFlow,
+			Flow: &api.FlowConfig{
+				Goals: []api.StepID{goal.ID},
+			},
+			Attributes: api.AttributeSpecs{
+				"out": {Role: api.RoleOutput, Type: api.TypeString},
+			},
+		}
+		cat := api.CatalogState{
+			Steps: api.Steps{
+				goal.ID: goal,
+				st.ID:   st,
+			},
+			Attributes: api.AttributeGraph{},
+		}
+		base := map[api.StepID]api.HealthState{
+			goal.ID: {Status: api.HealthUnhealthy},
+		}
+
+		h := eng.ResolveHealth(helpers.Matcher(), cat, base)
+		if assert.Contains(t, h, st.ID) {
+			assert.Equal(t, api.HealthUnhealthy, h[st.ID].Status)
+			assert.Equal(t, "step silent-goal unhealthy", h[st.ID].Error)
+		}
+	})
+}
+
+func TestResolveHealthBaseWins(t *testing.T) {
+	helpers.WithEngine(t, func(eng *engine.Engine) {
+		st := helpers.NewSimpleStep("reported-step")
+		cat := api.CatalogState{
+			Steps:      api.Steps{st.ID: st},
+			Attributes: api.AttributeGraph{},
+		}
+		base := map[api.StepID]api.HealthState{
+			st.ID: {Status: api.HealthHealthy},
+		}
+
+		// A node has reported on this step, so no handler is consulted
+		h := eng.ResolveHealth(helpers.Matcher(), cat, base)
+		if assert.Contains(t, h, st.ID) {
+			assert.Equal(t, api.HealthHealthy, h[st.ID].Status)
+			assert.Empty(t, h[st.ID].Error)
+		}
+	})
+}
+
+func TestGetClusterEvents(t *testing.T) {
+	helpers.WithEngine(t, func(eng *engine.Engine) {
+		st := helpers.NewSimpleStep("cluster-event-step")
+		assert.NoError(t, eng.RegisterStep(st))
+		assert.NoError(t, eng.UpdateStepHealth(
+			st.ID, api.HealthUnhealthy, "down",
+		))
+
+		evs, err := eng.GetClusterEvents()
+		assert.NoError(t, err)
+		assert.NotEmpty(t, evs)
+	})
+}
+
+func TestStepHealthFromHandler(t *testing.T) {
+	helpers.WithEngine(t, func(eng *engine.Engine) {
+		st := &api.Step{
+			ID:   "handler-health-step",
+			Name: "Script Step",
+			Type: api.StepTypeScript,
+			Script: &api.ScriptConfig{
+				Language: api.ScriptLangLua,
+				Script:   "return {}",
+			},
+			Attributes: api.AttributeSpecs{},
+		}
+		assert.NoError(t, eng.RegisterStep(st))
+
+		h, err := eng.StepHealth(st)
+		assert.NoError(t, err)
+		assert.Equal(t, api.HealthHealthy, h.Status)
+	})
+}
+
 func resolveHealth(
 	t *testing.T, eng *engine.Engine,
 ) map[api.StepID]api.HealthState {

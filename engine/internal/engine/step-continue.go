@@ -163,14 +163,14 @@ func stepHasTimeouts(st *api.Step) bool {
 }
 
 func timeoutKey(fs api.FlowStep, name api.Name) []string {
-	return []string{"timeout", string(fs.FlowID), string(fs.StepID),
+	return []string{string(fs.FlowID), "timeout", string(fs.StepID),
 		string(name)}
 }
 
 func timeoutFlowPrefix(fid api.FlowID) []string {
-	return []string{"timeout", string(fid)}
+	return []string{string(fid), "timeout"}
 }
 
 func timeoutStepPrefix(fs api.FlowStep) []string {
-	return []string{"timeout", string(fs.FlowID), string(fs.StepID)}
+	return []string{string(fs.FlowID), "timeout", string(fs.StepID)}
 }

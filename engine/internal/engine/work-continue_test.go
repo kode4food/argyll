@@ -2,6 +2,7 @@ package engine_test
 
 import (
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 
@@ -113,53 +114,37 @@ func TestRetryDeferredOnUnhealthyNode(t *testing.T) {
 			Steps: api.Steps{st.ID: st},
 		}
 
-		// Failed retry work is recovered by retry handling, but cannot be
-		// claimed by normal pending-work dispatch scheduled by StepStarted
-		assert.NoError(t, env.RaiseFlowEvents(id,
-			helpers.FlowEvent{
-				Type: api.EventTypeFlowStarted,
-				Data: api.FlowStartedEvent{
-					FlowID: id, Plan: pl, Init: api.InitArgs{},
-				},
-			},
-			helpers.FlowEvent{
-				Type: api.EventTypeStepStarted,
-				Data: api.StepStartedEvent{
-					FlowID:    id,
-					StepID:    st.ID,
-					Inputs:    api.Args{},
-					WorkItems: map[api.Token]api.Args{tkn: {}},
-				},
-			},
-			helpers.FlowEvent{
-				Type: api.EventTypeWorkRetryScheduled,
-				Data: api.WorkRetryScheduledEvent{
-					FlowID:      id,
-					StepID:      st.ID,
-					Token:       tkn,
-					RetryCount:  1,
-					NextRetryAt: scheduler.Now(),
-					Error:       "transient",
-				},
-			},
-			helpers.FlowEvent{
-				Type: api.EventTypeWorkFailed,
-				Data: api.WorkFailedEvent{
-					FlowID: id,
-					StepID: st.ID,
-					Token:  tkn,
-					Error:  "transient",
-				},
-			},
-		))
-
-		assert.NoError(t, peer.UpdateStepHealth(st.ID, api.HealthHealthy, ""))
-
+		// Every replica remembers the committed retry even while unhealthy, so
+		// a returning one needs no explicit recovery scan
 		env.WithConsumer(func(consumer *event.Consumer) {
 			w := wait.On(t, consumer)
-			assert.NoError(t, env.Engine.RecoverFlow(id))
+			assert.NoError(t, env.SeedStartedWork(fs, pl, tkn))
+			assert.NoError(t, env.RaiseFlowEvents(id,
+				helpers.FlowEvent{
+					Type: api.EventTypeWorkNotCompleted,
+					Data: api.WorkNotCompletedEvent{
+						FlowID: id,
+						StepID: st.ID,
+						Token:  tkn,
+						Error:  "transient",
+					},
+				},
+				helpers.FlowEvent{
+					Type: api.EventTypeWorkRetryScheduled,
+					Data: api.WorkRetryScheduledEvent{
+						FlowID:      id,
+						StepID:      st.ID,
+						Token:       tkn,
+						RetryCount:  1,
+						NextRetryAt: scheduler.Now().Add(20 * time.Millisecond),
+						Error:       "transient",
+					},
+				},
+			))
 			w.ForEvent(wait.DispatchDeferred(fs))
 		})
+
+		assert.NoError(t, peer.UpdateStepHealth(st.ID, api.HealthHealthy, ""))
 
 		fl := env.WaitForTerminalFlow(id)
 		assert.Equal(t, api.FlowCompleted, fl.Status)

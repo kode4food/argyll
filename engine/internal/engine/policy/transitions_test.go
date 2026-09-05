@@ -21,10 +21,14 @@ const (
 func TestCanTransition(t *testing.T) {
 	transitions := policy.StateTransitions[TestState]{
 		StateInit:     util.SetOf(StateRunning, StateFailed),
-		StateRunning:  util.SetOf(StateComplete, StateFailed),
+		StateRunning:  util.SetOf(StateRunning, StateComplete, StateFailed),
 		StateComplete: {},
 		StateFailed:   {},
 	}
+
+	// The table lists StateRunning as its own successor, but staying put is
+	// not a transition
+	assert.False(t, transitions.CanTransition(StateRunning, StateRunning))
 
 	assert.True(t, transitions.CanTransition(StateInit, StateRunning))
 	assert.True(t, transitions.CanTransition(StateInit, StateFailed))
