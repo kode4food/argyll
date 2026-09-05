@@ -13,6 +13,37 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
+func TestOverdueOptionalRecovery(t *testing.T) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		fixture := collectTimeoutPlan(api.InputCollectSome)
+		delete(fixture.consumer.Attributes, "seed")
+		delete(fixture.plan.Attributes, "seed")
+		for _, st := range fixture.plan.Steps {
+			assert.NoError(t, env.Engine.RegisterStep(st))
+		}
+		env.MockClient.SetResponse(
+			fixture.consumer.ID, api.Args{"result": "ok"},
+		)
+		fs := api.FlowStep{
+			FlowID: "overdue-optional",
+			StepID: fixture.providerA.ID,
+		}
+		assert.NoError(t, env.SeedStartedWork(fs, fixture.plan, "token"))
+		assert.NoError(t, env.Engine.RecoverFlow(fs.FlowID))
+		time.Sleep(100 * time.Millisecond)
+		assert.NoError(t, env.Engine.RecoverFlow(fs.FlowID))
+		assert.NoError(t, env.Engine.Start())
+		assert.True(t,
+			env.MockClient.WaitForInvocation(
+				fixture.consumer.ID, time.Second,
+			))
+		fl, err := env.Engine.GetFlowState(fs.FlowID)
+		assert.NoError(t, err)
+		assert.Equal(t,
+			"fallback", fl.Executions[fixture.consumer.ID].Inputs["opt"])
+	})
+}
+
 func TestDefaultTimeoutBeforeProvider(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		assert.NoError(t, env.Engine.Start())

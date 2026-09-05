@@ -1,21 +1,31 @@
 package engine_test
 
 import (
+	"slices"
+	"sync/atomic"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
 
+	"github.com/kode4food/timebox"
+	"github.com/kode4food/timebox/memory"
 	"github.com/kode4food/timebox/raft"
 
 	"github.com/kode4food/argyll/engine/internal/assert/helpers"
 	"github.com/kode4food/argyll/engine/internal/assert/wait"
 	"github.com/kode4food/argyll/engine/internal/client"
+	"github.com/kode4food/argyll/engine/internal/engine"
 	"github.com/kode4food/argyll/engine/internal/engine/plan"
 	"github.com/kode4food/argyll/engine/internal/event"
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/util"
 )
+
+type deadlineConflictBackend struct {
+	timebox.Backend
+	beforeAppend func(timebox.AppendRequest) error
+}
 
 // newDeadlineStep builds an async step whose callback deadline is short enough
 // to expire during a test
@@ -329,4 +339,148 @@ func TestLiveChildFlowSurvivesDeadline(t *testing.T) {
 			api.WorkActive, fl.Executions[parent.ID].WorkItems[tkn].Status,
 		)
 	})
+}
+
+func TestDeadlineConflict(t *testing.T) {
+	for name, compensating := range map[string]bool{
+		"invoke": false, "compensate": true,
+	} {
+		t.Run(name, func(t *testing.T) {
+			var envRef *helpers.TestEngineEnv
+			var fired atomic.Bool
+			checked := make(chan struct{})
+			fs := api.FlowStep{FlowID: "deadline-conflict", StepID: "step"}
+			tkn := api.Token("token")
+			retryType := api.EventTypeWorkNotCompleted
+			expected := api.WorkActive
+			if compensating {
+				retryType = api.EventTypeCompRetryScheduled
+				expected = api.WorkCompensating
+			}
+			backend := &deadlineConflictBackend{
+				Backend: memory.NewPersistence(),
+				beforeAppend: func(req timebox.AppendRequest) error {
+					if !containsEvent(req, retryType) ||
+						!fired.CompareAndSwap(false, true) {
+						return nil
+					}
+					assert.NoError(t,
+						envRef.RaiseFlowEvents(
+							fs.FlowID,
+							makeRetryAttemptEvents(fs, compensating)...,
+						))
+					envRef.Engine.ScheduleTask(
+						[]string{"deadline-checked"}, time.Now(),
+						func() error { close(checked); return nil },
+					)
+					return nil
+				},
+			}
+			cfg := helpers.NewTestConfig()
+			store, err := timebox.NewStore(backend, cfg.FlowStoreConfig())
+			assert.NoError(t, err)
+			helpers.WithTestEnvDeps(t,
+				engine.Dependencies{FlowStore: store},
+				func(env *helpers.TestEngineEnv) {
+					envRef = env
+					st := newDeadlineStep(fs.StepID)
+					st.Handling = api.HandlingCompensated
+					st.HTTP.Invoke.Timeout = 500
+					st.HTTP.Compensate = &api.HTTPAction{
+						Endpoint: "http://example.com/compensate",
+						Timeout:  500,
+					}
+					assert.NoError(t, env.Engine.RegisterStep(st))
+					assert.NoError(t,
+						env.SeedStartedWork(
+							fs, &api.ExecutionPlan{
+								Goals: []api.StepID{st.ID},
+								Steps: api.Steps{st.ID: st},
+							}, tkn,
+						))
+					if compensating {
+						assert.NoError(t,
+							env.RaiseFlowEvents(fs.FlowID,
+								helpers.FlowEvent{
+									Type: api.EventTypeWorkSucceeded,
+									Data: api.WorkSucceededEvent{
+										FlowID: fs.FlowID,
+										StepID: fs.StepID,
+										Token:  tkn,
+									},
+								},
+								helpers.FlowEvent{
+									Type: api.EventTypeCompStarted,
+									Data: api.CompStartedEvent{
+										FlowID: fs.FlowID,
+										StepID: fs.StepID,
+										Token:  tkn,
+									},
+								},
+							))
+					}
+					assert.NoError(t, env.Engine.Start())
+					select {
+					case <-checked:
+					case <-time.After(2 * time.Second):
+						t.Fatal("deadline did not attempt settlement")
+					}
+					fl, err := env.Engine.GetFlowState(fs.FlowID)
+					assert.NoError(t, err)
+					work := fl.Executions[fs.StepID].WorkItems[tkn]
+					assert.Equal(t, expected, work.Status)
+					assert.Equal(t, 1, work.RetryCount)
+				},
+			)
+		})
+	}
+}
+
+func (b *deadlineConflictBackend) Append(req timebox.AppendRequest) error {
+	if err := b.beforeAppend(req); err != nil {
+		return err
+	}
+	return b.Backend.Append(req)
+}
+
+func containsEvent(req timebox.AppendRequest, kind api.EventType) bool {
+	return slices.ContainsFunc(req.Events, func(ev *timebox.Event) bool {
+		return api.EventType(ev.Type) == kind
+	})
+}
+
+func makeRetryAttemptEvents(fs api.FlowStep, comp bool) []helpers.FlowEvent {
+	retry := helpers.FlowEvent{
+		Type: api.EventTypeWorkRetryScheduled,
+		Data: api.WorkRetryScheduledEvent{
+			FlowID:     fs.FlowID,
+			StepID:     fs.StepID,
+			Token:      "token",
+			RetryCount: 1,
+		},
+	}
+	start := helpers.FlowEvent{
+		Type: api.EventTypeWorkStarted,
+		Data: api.WorkStartedEvent{
+			FlowID: fs.FlowID,
+			StepID: fs.StepID,
+			Token:  "token",
+		},
+	}
+	if comp {
+		retry.Type = api.EventTypeCompRetryScheduled
+		retry.Data = api.CompRetryScheduledEvent{
+			FlowID:     fs.FlowID,
+			StepID:     fs.StepID,
+			Token:      "token",
+			RetryCount: 1,
+		}
+		start.Type = api.EventTypeCompStarted
+		start.Data = api.CompStartedEvent{
+			FlowID: fs.FlowID,
+			StepID: fs.StepID,
+			Token:  "token",
+		}
+	}
+	return []helpers.FlowEvent{retry, start}
 }

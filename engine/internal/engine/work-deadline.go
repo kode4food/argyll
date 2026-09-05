@@ -4,6 +4,8 @@ import (
 	"errors"
 	"time"
 
+	"github.com/kode4food/timebox"
+
 	"github.com/kode4food/argyll/engine/internal/engine/policy"
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
@@ -30,40 +32,35 @@ func (e *Engine) scheduleWorkDeadlineAt(
 }
 
 func (e *Engine) runWorkDeadline(fs api.FlowStep, tkn api.Token) error {
-	fl, err := e.GetFlowState(fs.FlowID)
-	if err != nil {
-		if errors.Is(err, ErrFlowNotFound) {
+	return e.flowTx(fs.FlowID, func(tx *flowTx) error {
+		fl := tx.Value()
+		at, ok := tx.workDeadline(fl, fs.StepID, tkn)
+		if !ok {
 			return nil
 		}
-		return err
-	}
+		if at.After(tx.Now()) {
+			tx.OnSuccess(func(api.FlowState, []*timebox.Event) {
+				tx.scheduleWorkDeadlineAt(fs, tkn, at)
+			})
+			return nil
+		}
 
-	at, ok := e.workDeadline(fl, fs.StepID, tkn)
-	if !ok {
-		return nil
-	}
-	if at.After(e.Now()) {
-		// A newer attempt restamped the start, so wait out its deadline
-		e.scheduleWorkDeadlineAt(fs, tkn, at)
-		return nil
-	}
-
-	work := fl.Executions[fs.StepID].WorkItems[tkn]
-	if policy.WorkAwaitsChildFlow(fl.Plan.Steps[fs.StepID], work) {
-		return e.settleMissingChildFlow(fs, tkn)
-	}
-
-	settle := e.NotCompleteWork
-	if policy.WorkCompActive(work.Status) {
-		settle = e.NotCompleteCompensation
-	}
-
-	err = settle(fs, tkn, ErrWorkDeadlineExceeded.Error())
-	if errors.Is(err, ErrInvalidWorkTransition) {
-		// The attempt reached its real outcome first, so leave it alone
-		return nil
-	}
-	return err
+		work := fl.Executions[fs.StepID].WorkItems[tkn]
+		if policy.WorkAwaitsChildFlow(fl.Plan.Steps[fs.StepID], work) {
+			return tx.settleMissingChildFlow(fs, tkn)
+		}
+		if policy.WorkCompActive(work.Status) {
+			return tx.scheduleCompensationRetry(
+				fs.StepID, tkn, ErrWorkDeadlineExceeded.Error(),
+			)
+		}
+		if err := tx.raiseWorkNotCompleted(
+			fs.StepID, tkn, ErrWorkDeadlineExceeded.Error(),
+		); err != nil {
+			return err
+		}
+		return tx.handleWorkNotCompleted(fs.StepID, tkn)
+	})
 }
 
 func (e *Engine) workDeadline(
@@ -97,19 +94,20 @@ func (e *Engine) recoverInFlightWork(fl api.FlowState) {
 
 // settleMissingChildFlow settles work whose child was never started, so the
 // retry path can launch it again; a live child is left alone however long
-func (e *Engine) settleMissingChildFlow(
+func (tx *flowTx) settleMissingChildFlow(
 	fs api.FlowStep, tkn api.Token,
 ) error {
-	_, err := e.GetFlowState(childFlowID(fs, tkn))
+	_, err := tx.GetFlowState(childFlowID(fs, tkn))
 	if !errors.Is(err, ErrFlowNotFound) {
 		return err
 	}
 
-	err = e.NotCompleteWork(fs, tkn, ErrChildFlowMissing.Error())
-	if errors.Is(err, ErrInvalidWorkTransition) {
-		return nil
+	if err := tx.raiseWorkNotCompleted(
+		fs.StepID, tkn, ErrChildFlowMissing.Error(),
+	); err != nil {
+		return err
 	}
-	return err
+	return tx.handleWorkNotCompleted(fs.StepID, tkn)
 }
 
 func deadlineKey(fs api.FlowStep, tkn api.Token) []string {

@@ -3,17 +3,31 @@ package engine_test
 import (
 	"errors"
 	"fmt"
+	"sync/atomic"
 	"testing"
 	"time"
 
+	"github.com/kode4food/timebox"
+	"github.com/kode4food/timebox/memory"
 	testify "github.com/stretchr/testify/assert"
 
 	"github.com/kode4food/argyll/engine/internal/assert"
 	"github.com/kode4food/argyll/engine/internal/assert/helpers"
 	"github.com/kode4food/argyll/engine/internal/assert/wait"
+	"github.com/kode4food/argyll/engine/internal/engine"
 	"github.com/kode4food/argyll/engine/internal/engine/flow"
 	"github.com/kode4food/argyll/engine/internal/engine/plan"
 	"github.com/kode4food/argyll/engine/pkg/api"
+	"github.com/kode4food/argyll/engine/pkg/events"
+)
+
+type parentWriteBackend struct {
+	timebox.Backend
+	beforeAppend func(timebox.AppendRequest) error
+}
+
+var (
+	ErrParentWrite = errors.New("parent write unavailable")
 )
 
 func TestCompleteFlow(t *testing.T) {
@@ -472,6 +486,94 @@ func TestFlowStepMissingOutput(t *testing.T) {
 		})
 		testify.Equal(t, api.FlowFailed, fl.Status)
 	})
+}
+
+func TestParentNotificationRetries(t *testing.T) {
+	var fail atomic.Bool
+	checked := make(chan struct{}, 1)
+	var envRef *helpers.TestEngineEnv
+	parentID := api.FlowID("notification-parent")
+	childID := api.FlowID("notification-parent:sub:token")
+	backend := &parentWriteBackend{
+		Backend: memory.NewPersistence(),
+		beforeAppend: func(req timebox.AppendRequest) error {
+			if !fail.Load() || !req.ID.Equal(events.FlowKey(parentID)) ||
+				len(req.Events) == 0 {
+				return nil
+			}
+			envRef.Engine.ScheduleTask(
+				[]string{"notification-checked"}, time.Now(),
+				func() error { checked <- struct{}{}; return nil },
+			)
+			return ErrParentWrite
+		},
+	}
+	cfg := helpers.NewTestConfig()
+	store, err := timebox.NewStore(backend, cfg.FlowStoreConfig())
+	testify.NoError(t, err)
+	helpers.WithTestEnvDeps(t,
+		engine.Dependencies{FlowStore: store},
+		func(env *helpers.TestEngineEnv) {
+			envRef = env
+			sub := &api.Step{ID: "sub", Type: api.StepTypeFlow}
+			testify.NoError(t,
+				env.SeedStartedWork(
+					api.FlowStep{FlowID: parentID, StepID: sub.ID},
+					&api.ExecutionPlan{
+						Goals: []api.StepID{sub.ID},
+						Steps: api.Steps{sub.ID: sub},
+					}, "token",
+				))
+			testify.NoError(t,
+				env.RaiseFlowEvents(childID,
+					helpers.FlowEvent{
+						Type: api.EventTypeFlowStarted,
+						Data: api.FlowStartedEvent{
+							FlowID: childID,
+							Plan:   &api.ExecutionPlan{},
+							Metadata: api.Metadata{
+								api.MetaParentFlowID:        string(parentID),
+								api.MetaParentStepID:        "sub",
+								api.MetaParentWorkItemToken: "token",
+							},
+						},
+					},
+					helpers.FlowEvent{
+						Type: api.EventTypeFlowCompleted,
+						Data: api.FlowCompletedEvent{FlowID: childID},
+					},
+				))
+			fail.Store(true)
+			testify.ErrorIs(t,
+				env.Engine.RecoverFlow(childID), ErrParentWrite)
+			child, err := env.Engine.GetFlowState(childID)
+			testify.NoError(t, err)
+			testify.True(t, child.DeactivatedAt.IsZero())
+			testify.NoError(t, env.Engine.Start())
+			<-checked
+			// Drain startup reconciliation before allowing writes again.
+			barrier := make(chan struct{})
+			env.Engine.ScheduleTask(
+				[]string{"startup-checked"}, time.Now(),
+				func() error { close(barrier); return nil },
+			)
+			<-barrier
+			fail.Store(false)
+			fl := env.WaitForTerminalFlow(parentID)
+			testify.Equal(t, api.FlowCompleted, fl.Status)
+			testify.NoError(t, env.Engine.RecoverFlow(childID))
+			child, err = env.Engine.GetFlowState(childID)
+			testify.NoError(t, err)
+			testify.False(t, child.DeactivatedAt.IsZero())
+		},
+	)
+}
+
+func (b *parentWriteBackend) Append(req timebox.AppendRequest) error {
+	if err := b.beforeAppend(req); err != nil {
+		return err
+	}
+	return b.Backend.Append(req)
 }
 
 func metaFlowID(meta api.Metadata) api.FlowID {

@@ -94,7 +94,11 @@ func (e *Engine) scheduleStepTimeouts(
 			continue
 		}
 		dec := s.optionalDecisionAt(name, attr, anchor)
-		if dec.ready || dec.nextAt.IsZero() {
+		if dec.ready {
+			e.scheduleTimeoutTask(fs, name, when)
+			continue
+		}
+		if dec.nextAt.IsZero() {
 			continue
 		}
 		e.scheduleTimeoutTask(fs, name, dec.nextAt)

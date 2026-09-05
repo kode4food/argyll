@@ -90,7 +90,13 @@ func (tx *flowTx) maybeDeactivate() error {
 	}
 	// Told before deactivating, since the parent decides the rollback
 	tx.OnSuccess(func(fl api.FlowState, _ []*timebox.Event) {
-		tx.completeParentWork(fl)
+		if err := tx.completeParentWork(fl); err != nil {
+			slog.Error("Failed to update parent work item",
+				log.FlowID(fl.ID), log.Error(err))
+			tx.scheduleFlowReconcile(
+				fl.ID, tx.Now().Add(localDispatchBackoff),
+			)
+		}
 	})
 	return tx.deactivate()
 }
@@ -170,26 +176,16 @@ func (e *Engine) releaseChildFlow(fs api.FlowStep, tkn api.Token) {
 	}
 }
 
-func (e *Engine) completeParentWork(fl api.FlowState) {
+func (e *Engine) completeParentWork(fl api.FlowState) error {
 	target := &parentWork{}
 	ok, err := parentMeta(fl, target)
 	if !ok || err != nil {
-		if err != nil {
-			slog.Error("Failed to resolve parent work item",
-				log.FlowID(fl.ID),
-				log.Error(err))
-		}
-		return
+		return err
 	}
-	if fl.Status != api.FlowCompleted && fl.Status != api.FlowFailed {
-		return
+	if !policy.FlowTerminal(fl.Status) {
+		return nil
 	}
-
-	if err := e.completeParentFlowWork(fl, target); err != nil {
-		slog.Error("Failed to update parent work item",
-			log.FlowID(fl.ID),
-			log.Error(err))
-	}
+	return e.completeParentFlowWork(fl, target)
 }
 
 func (e *Engine) completeParentFlowWork(
