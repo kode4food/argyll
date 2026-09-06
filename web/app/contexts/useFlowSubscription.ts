@@ -10,11 +10,13 @@ type SocketClient = ReturnType<typeof useWebSocketClient>;
 type FlowStatePayload = {
   id: string;
   status: FlowContext["status"];
+  compensate?: boolean;
   attributes?: Record<string, unknown>;
   plan?: ExecutionPlan;
   executions?: Record<string, unknown>;
   created_at?: string;
   completed_at?: string;
+  deactivated_at?: string;
   error?: string;
 };
 
@@ -27,6 +29,7 @@ const flowEventTypes = [
   "attribute_set",
   "flow_completed",
   "flow_failed",
+  "flow_deactivated",
   "work_started",
   "work_succeeded",
   "work_failed",
@@ -240,6 +243,9 @@ const applyFlowUpdate = (
         timestamp: ts,
       };
       flowUpdate.completed_at = ts;
+      break;
+    case "flow_deactivated":
+      flowUpdate.deactivated_at = ts;
       break;
     default:
       break;

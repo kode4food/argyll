@@ -140,6 +140,7 @@ describe("WebSocketProvider", () => {
           "attribute_set",
           "flow_completed",
           "flow_failed",
+          "flow_deactivated",
           "work_started",
           "work_succeeded",
           "work_failed",

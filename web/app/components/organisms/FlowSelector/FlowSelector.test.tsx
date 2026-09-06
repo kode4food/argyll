@@ -76,6 +76,7 @@ jest.mock("@/app/store/flowStore", () => {
   const setVisibleFlowIDs = jest.fn();
   return {
     useFlows: () => flowSessionMock.flows,
+    useFlowCompensating: () => false,
     useSelectedFlow: () => flowSessionMock.selectedFlow,
     useFlowsHasMore: () => flowSessionMock.flowsHasMore,
     useFlowsLoading: () => flowSessionMock.flowsLoading,

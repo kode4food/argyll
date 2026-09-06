@@ -11,11 +11,13 @@ import {
 export interface FlowStateUpdate {
   id: string;
   status: FlowContext["status"];
+  compensate?: boolean;
   attributes?: Record<string, any>;
   plan?: ExecutionPlan;
   executions?: Record<string, any>;
   created_at?: string;
   completed_at?: string;
+  deactivated_at?: string;
   error?: string;
 }
 
@@ -165,11 +167,13 @@ export function buildFlowContext(state: FlowStateUpdate): FlowContext {
   return {
     id: state.id,
     status: state.status,
+    compensate: state.compensate,
     state: attrs,
     error_state: errorState,
     plan,
     started_at: state.created_at || new Date().toISOString(),
     completed_at: state.completed_at,
+    deactivated_at: state.deactivated_at,
   };
 }
 

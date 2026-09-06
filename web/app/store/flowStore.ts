@@ -10,6 +10,7 @@ import {
   WorkState,
 } from "../api";
 import { ConnectionStatus } from "../types/websocket";
+import { isValidTimestamp } from "@/utils/dates";
 import {
   buildExecutionList,
   buildFlowContext,
@@ -458,6 +459,11 @@ if (isDevHost) {
   window.flowStore = useFlowStore;
 }
 
+const isCompensating = (flow: FlowContext | null): boolean =>
+  flow?.status === "failed" &&
+  !!flow.compensate &&
+  !isValidTimestamp(flow.deactivated_at);
+
 // State selectors
 export const useSteps = () => useFlowStore((state) => state.steps);
 export const useSpaces = () => useFlowStore((state) => state.spaces);
@@ -472,6 +478,8 @@ export const useSelectedFlow = () =>
   useFlowStore((state) => state.selectedFlow);
 export const useFlowData = () => useFlowStore((state) => state.flowData);
 export const useExecutions = () => useFlowStore((state) => state.executions);
+export const useFlowCompensating = () =>
+  useFlowStore((state) => isCompensating(state.flowData));
 export const useResolvedAttributes = () =>
   useFlowStore((state) => state.resolvedAttributes);
 export const useFlowLoading = () => useFlowStore((state) => state.loading);

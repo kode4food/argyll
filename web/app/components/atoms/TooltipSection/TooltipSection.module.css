@@ -33,7 +33,9 @@
 .valueCode {
   font-family: var(--font-mono);
   font-size: var(--text-xs);
-  white-space: pre-wrap;
+  white-space: pre;
+  overflow: hidden;
+  text-overflow: ellipsis;
   background: var(--color-tooltip-code-bg);
   padding: var(--spacing-xs) 6px;
   border-radius: var(--radius-sm);

@@ -5,6 +5,7 @@ import {
   useFlows,
   useSelectedFlow,
   useFlowData,
+  useFlowCompensating,
   useExecutions,
   useResolvedAttributes,
   useFlowLoading,
@@ -1007,6 +1008,50 @@ describe("flowStore", () => {
       useFlowStore.setState({ error: "Test error" });
       const { result } = renderHook(() => useFlowError());
       expect(result.current).toBe("Test error");
+    });
+  });
+
+  describe("useFlowCompensating", () => {
+    const failedFlow = {
+      id: "flow-1",
+      status: "failed",
+      compensate: true,
+      state: {},
+      started_at: "2024-01-01T00:00:00Z",
+    } as FlowContext;
+
+    const compensatingFor = (flow: FlowContext): boolean => {
+      useFlowStore.setState({ flowData: flow });
+      const { result } = renderHook(() => useFlowCompensating());
+      return result.current;
+    };
+
+    test("reports compensating from the moment the flow fails", () => {
+      expect(compensatingFor(failedFlow)).toBe(true);
+    });
+
+    test("stops once the flow is deactivated", () => {
+      const deactivated = {
+        ...failedFlow,
+        deactivated_at: "2024-01-01T01:00:00Z",
+      };
+      expect(compensatingFor(deactivated)).toBe(false);
+    });
+
+    test("ignores a zero deactivation timestamp", () => {
+      const notDeactivated = {
+        ...failedFlow,
+        deactivated_at: "0001-01-01T00:00:00Z",
+      };
+      expect(compensatingFor(notDeactivated)).toBe(true);
+    });
+
+    test("ignores flows not started with compensation", () => {
+      expect(compensatingFor({ ...failedFlow, compensate: false })).toBe(false);
+    });
+
+    test("ignores flows that have not failed", () => {
+      expect(compensatingFor({ ...failedFlow, status: "active" })).toBe(false);
     });
   });
 });

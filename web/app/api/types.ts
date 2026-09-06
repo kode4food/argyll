@@ -171,6 +171,7 @@ export interface ExecutionPlan {
 export interface FlowContext {
   id: string;
   status: FlowStatus;
+  compensate?: boolean;
   state: Record<string, AttributeValue[]>;
   error_state?: {
     message: string;
@@ -180,6 +181,7 @@ export interface FlowContext {
   plan?: ExecutionPlan;
   started_at: string;
   completed_at?: string;
+  deactivated_at?: string;
 }
 
 export interface WorkState {

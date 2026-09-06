@@ -17,6 +17,7 @@ import { getProgressIcon } from "@/utils/progressUtils";
 import { useKeyboardShortcuts } from "@/app/hooks/useKeyboardShortcuts";
 import styles from "./FlowSelector.module.css";
 import {
+  useFlowCompensating,
   useFlows,
   useFlowsHasMore,
   useFlowsLoading,
@@ -79,6 +80,7 @@ const FlowSelectorDropdown: React.FC<FlowSelectorDropdownProps> = ({
   loadMoreFlows,
 }) => {
   const t = useT();
+  const compensating = useFlowCompensating();
 
   const handleDropdownScroll = (e: React.UIEvent<HTMLDivElement>) => {
     setScrollTop(e.currentTarget.scrollTop);
@@ -157,10 +159,13 @@ const FlowSelectorDropdown: React.FC<FlowSelectorDropdownProps> = ({
           />
         </div>
         {filteredFlows.map((flow, index) => {
-          const progressStatus = mapFlowStatusToProgressStatus(flow.status);
-          const StatusIcon = getProgressIcon(progressStatus);
           const isHighlighted = selectedIndex === index;
           const isSelected = selectedFlow === flow.id;
+          const progressStatus =
+            isSelected && compensating
+              ? "compensating"
+              : mapFlowStatusToProgressStatus(flow.status);
+          const StatusIcon = getProgressIcon(progressStatus);
           const dropdownItemClassName = [
             dropdownStyles.item,
             styles.dropdownItem,
@@ -230,9 +235,9 @@ const FlowSelectorDropdown: React.FC<FlowSelectorDropdownProps> = ({
           <>
             {(() => {
               const flow = flows.find((w) => w.id === selectedFlow);
-              const progressStatus = mapFlowStatusToProgressStatus(
-                flow?.status ?? "pending"
-              );
+              const progressStatus = compensating
+                ? "compensating"
+                : mapFlowStatusToProgressStatus(flow?.status ?? "pending");
               const StatusIcon = getProgressIcon(progressStatus);
               return (
                 <StatusIcon
