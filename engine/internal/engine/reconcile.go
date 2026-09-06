@@ -11,9 +11,9 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/events"
 )
 
-// HandleCommitted requests reconciliation for every flow named by a committed
-// batch, on every online replica. It never acts directly, since that would
-// broadcast the same external work to all of them
+// HandleCommitted requests reconciliation for committed flow events except
+// attribute updates. Every online replica schedules tasks; none dispatches
+// external work directly from the batch
 func (e *Engine) HandleCommitted(evs ...*timebox.Event) {
 	requested := map[api.FlowID]time.Time{}
 	now := e.Now()
@@ -24,7 +24,10 @@ func (e *Engine) HandleCommitted(evs ...*timebox.Event) {
 			continue
 		}
 		at := now
-		if api.EventType(ev.Type) == api.EventTypeDispatchDeferred {
+		switch api.EventType(ev.Type) {
+		case api.EventTypeAttributeSet:
+			continue
+		case api.EventTypeDispatchDeferred:
 			// No node could run the step, so poll rather than spin
 			at = now.Add(localDispatchBackoff)
 		}

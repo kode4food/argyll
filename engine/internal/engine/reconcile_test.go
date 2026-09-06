@@ -9,12 +9,14 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
+	"github.com/kode4food/timebox"
 	"github.com/kode4food/timebox/raft"
 
 	"github.com/kode4food/argyll/engine/internal/assert/helpers"
 	"github.com/kode4food/argyll/engine/internal/assert/wait"
 	"github.com/kode4food/argyll/engine/internal/engine"
 	"github.com/kode4food/argyll/engine/pkg/api"
+	"github.com/kode4food/argyll/engine/pkg/events"
 	"github.com/kode4food/argyll/engine/pkg/util"
 )
 
@@ -43,6 +45,71 @@ func TestCommittedEventWakesIdleReplica(t *testing.T) {
 		assert.True(t,
 			env.MockClient.WaitForInvocation(st.ID, wait.DefaultTimeout),
 		)
+	})
+}
+
+func TestCommittedEventFilter(t *testing.T) {
+	types := []api.EventType{
+		api.EventTypeWorkRetryScheduled,
+		api.EventTypeDispatchDeferred,
+		"future_flow_event",
+	}
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		st := helpers.NewSimpleStep("reconcile-filter-step")
+		assert.NoError(t, env.Engine.RegisterStep(st))
+		invoked := make(chan struct{}, 1)
+		env.MockClient.SetHandler(st.ID,
+			func(*api.Step, api.Args, api.Metadata) (api.Args, error) {
+				invoked <- struct{}{}
+				return api.Args{}, nil
+			},
+		)
+
+		// Start before seeding, without subscribing this engine to commits.
+		eng, err := engine.New(env.Config, env.Dependencies())
+		assert.NoError(t, err)
+		defer func() { assert.NoError(t, eng.Stop()) }()
+		assert.NoError(t, eng.Start())
+
+		for _, typ := range types {
+			t.Run(string(typ), func(t *testing.T) {
+				fid := api.FlowID("wf-filter-" + typ)
+				fs := api.FlowStep{FlowID: fid, StepID: st.ID}
+				seedRetryScheduledFlow(env, fs, "work-a")
+				ev := &timebox.Event{
+					AggregateID: events.FlowKey(fid),
+					Type:        timebox.EventType(typ),
+				}
+
+				// Notifications only select a flow; recovery uses its state.
+				eng.HandleCommitted(&timebox.Event{
+					AggregateID: events.FlowKey(fid),
+					Type:        timebox.EventType(api.EventTypeAttributeSet),
+				})
+				select {
+				case <-invoked:
+					t.Fatal("attribute update reconciled the flow")
+				case <-time.After(50 * time.Millisecond):
+				}
+
+				eng.HandleCommitted(ev, &timebox.Event{
+					AggregateID: events.FlowKey(fid),
+					Type:        timebox.EventType(api.EventTypeAttributeSet),
+				})
+				if typ == api.EventTypeDispatchDeferred {
+					select {
+					case <-invoked:
+						t.Fatal("ignored event bypassed dispatch backoff")
+					case <-time.After(300 * time.Millisecond):
+					}
+				}
+				select {
+				case <-invoked:
+				case <-time.After(wait.DefaultTimeout):
+					t.Fatal("flow event did not reconcile the flow")
+				}
+			})
+		}
 	})
 }
 
