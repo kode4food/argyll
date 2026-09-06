@@ -1,13 +1,33 @@
+import { SCRIPT_LANGUAGE_LUA } from "@/app/api";
+
 export interface ScriptPreviewData {
   preview: string;
   lineCount: number;
 }
 
+const LEADING_LUA_RETURN = /^[ \t]*return[ \t]+/;
+
 /**
- * Formats a script by replacing newlines with spaces for inline display
+ * Drops the leading `return` a Lua script needs but a one-line footer does
+ * not. Tooltips show the script as written
  */
-export const formatScriptPreview = (script: string): string => {
-  return script.replace(/\n/g, " ");
+export const stripLuaReturn = (script: string, language?: string): string => {
+  if (language !== SCRIPT_LANGUAGE_LUA) {
+    return script;
+  }
+  return script.replace(LEADING_LUA_RETURN, "");
+};
+
+/**
+ * Formats a script onto one line for inline display, collapsing every run of
+ * whitespace to a single space. Spacing inside string literals collapses too,
+ * which the tooltip's as-written copy makes acceptable
+ */
+export const formatScriptPreview = (
+  script: string,
+  language?: string
+): string => {
+  return stripLuaReturn(script, language).replace(/\s+/g, " ").trim();
 };
 
 /**

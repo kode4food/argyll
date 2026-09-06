@@ -98,7 +98,7 @@ const computeDisplayInfo = (step: Step): DisplayInfo => {
   if (step.type === "script" && step.script) {
     return {
       icon: TypeIcon,
-      text: formatScriptPreview(step.script.script),
+      text: formatScriptPreview(step.script.script, step.script.language),
       className: "endpoint-script",
     };
   }

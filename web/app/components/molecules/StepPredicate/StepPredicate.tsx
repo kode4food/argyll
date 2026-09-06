@@ -4,6 +4,7 @@ import Tooltip from "@/app/components/atoms/Tooltip";
 import TooltipSection from "@/app/components/atoms/TooltipSection";
 import tooltipStyles from "@/app/components/atoms/TooltipSection/TooltipSection.module.css";
 import styles from "./StepPredicate.module.css";
+import { formatScriptPreview } from "@/utils/stepFooterUtils";
 import { useT } from "@/app/i18n";
 
 interface StepPredicateProps {
@@ -17,6 +18,10 @@ const StepPredicate: React.FC<StepPredicateProps> = ({ step }) => {
     return null;
   }
 
+  const inline = formatScriptPreview(
+    step.predicate.script,
+    step.predicate.language
+  );
   const scriptPreview = step.predicate.script
     .split("\n")
     .slice(0, 5)
@@ -28,9 +33,7 @@ const StepPredicate: React.FC<StepPredicateProps> = ({ step }) => {
       <Tooltip
         trigger={
           <div className={styles.content}>
-            <div className={`${styles.code} predicate-code`}>
-              {step.predicate.script}
-            </div>
+            <div className={`${styles.code} predicate-code`}>{inline}</div>
           </div>
         }
       >

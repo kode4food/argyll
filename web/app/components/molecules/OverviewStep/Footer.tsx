@@ -61,7 +61,10 @@ const Footer: React.FC<FooterProps> = ({
     const TypeIcon = getStepActionIcon(step);
 
     if (step.type === "script" && step.script) {
-      const scriptPreview = formatScriptPreview(step.script.script);
+      const scriptPreview = formatScriptPreview(
+        step.script.script,
+        step.script.language
+      );
       displayInfo = {
         icon: TypeIcon,
         text: scriptPreview,

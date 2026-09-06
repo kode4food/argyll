@@ -1,6 +1,7 @@
 package script_test
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -203,6 +204,28 @@ func TestLuaScriptCache(t *testing.T) {
 	assert.NoError(t, err)
 
 	assert.Equal(t, proc1, proc2)
+}
+
+// more scripts than a single state keeps loaded, so its chunk table is dropped
+// and rebuilt part way through
+func TestLuaChunkTableReset(t *testing.T) {
+	env := script.NewLuaEnv()
+
+	for i := range 300 {
+		comp, err := env.Compile(script.MatchStep, &api.ScriptConfig{
+			Script:   fmt.Sprintf("return value == %d", i),
+			Language: api.ScriptLangLua,
+		})
+		assert.NoError(t, err)
+
+		matched, err := env.EvaluateMatch(comp, i)
+		assert.NoError(t, err)
+		assert.True(t, matched)
+
+		matched, err = env.EvaluateMatch(comp, i+1)
+		assert.NoError(t, err)
+		assert.False(t, matched)
+	}
 }
 
 func TestLuaCompileViaRegistry(t *testing.T) {
@@ -638,6 +661,28 @@ func TestLuaScriptIsolation(t *testing.T) {
 		matched, err = run(`return leak ~= nil`)
 		assert.NoError(t, err)
 		assert.False(t, matched)
+	})
+
+	// a state keeps a script's chunk loaded, so a repeat runs the same closure
+	// and would see anything the last call left behind
+	t.Run("a repeated script starts from a clean env", func(t *testing.T) {
+		for _, src := range []string{
+			`local seen = leak ~= nil
+leak = 1
+return seen`,
+			`local broken = has == nil
+has = nil
+return broken`,
+			`local found = stash ~= nil
+stash = function() return 1 end
+return found`,
+		} {
+			for range 3 {
+				matched, err := run(src)
+				assert.NoError(t, err)
+				assert.False(t, matched)
+			}
+		}
 	})
 
 	t.Run("the globals table is out of reach", func(t *testing.T) {

@@ -36,7 +36,7 @@ describe("StepPredicate", () => {
       )
     ).toBeInTheDocument();
     expect(container.querySelector(".predicate-code")?.textContent).toBe(
-      "return temperature > 100"
+      "temperature > 100"
     );
   });
 
@@ -55,7 +55,37 @@ describe("StepPredicate", () => {
     const { container } = render(<StepPredicate step={step} />);
 
     expect(container.querySelector(".predicate-code")?.textContent).toBe(
-      "return temperature > 50 and humidity < 80"
+      "temperature > 50 and humidity < 80"
+    );
+  });
+
+  test("collapses a multi-line predicate onto one line", () => {
+    const step = createStep(
+      "return temperature > 50\n\tand humidity     < 80",
+      SCRIPT_LANGUAGE_LUA
+    );
+    const { container } = render(<StepPredicate step={step} />);
+
+    expect(container.querySelector(".predicate-code")?.textContent).toBe(
+      "temperature > 50 and humidity < 80"
+    );
+  });
+
+  test("keeps the return in the tooltip it drops from the footer", () => {
+    const step = createStep("return temperature > 100", SCRIPT_LANGUAGE_LUA);
+    render(<StepPredicate step={step} />);
+
+    expect(
+      screen.getByText((content) => content === "return temperature > 100")
+    ).toBeInTheDocument();
+  });
+
+  test("keeps a JPath predicate intact", () => {
+    const step = createStep('$.tags[?@=="domain:payments"]', "jpath");
+    const { container } = render(<StepPredicate step={step} />);
+
+    expect(container.querySelector(".predicate-code")?.textContent).toBe(
+      '$.tags[?@=="domain:payments"]'
     );
   });
 });

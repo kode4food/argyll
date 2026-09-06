@@ -774,6 +774,7 @@ github.com/kisielk/gotool v1.0.0 h1:AV2c/EiW3KqPNT9ZKl07ehoAGi4C5/01Cfbblndcapg=
 github.com/klauspost/compress v1.18.0/go.mod h1:2Pp+KzxcywXVXMr50+X0Q/Lsb43OQHYWRCY2AiWywWQ=
 github.com/klauspost/cpuid/v2 v2.3.0/go.mod h1:hqwkgyIinND0mEev00jJYCxPNVRVXFQeu1XKlok6oO0=
 github.com/kode4food/jpath v0.0.0-20260905083916-75398b35d8c1/go.mod h1:gYY1OfgNwxDs30LLA1moTAQtzapUvEpMO+zX6GI2Fpg=
+github.com/kode4food/jpath v0.0.0-20260906122037-f29e67fdab37/go.mod h1:gYY1OfgNwxDs30LLA1moTAQtzapUvEpMO+zX6GI2Fpg=
 github.com/kode4food/lru v0.0.0-20260718151352-0ac133042e5e/go.mod h1:sTzhcYU0AAXpB+uEWdUEukwNQAhc64BefD3eNmcw6Ug=
 github.com/kode4food/timebox v0.0.0-20210725081753-1b98a9a9ce9f/go.mod h1:YNilbgWLtqNPkGTc05dM3Ac0VE131FBYh8pxEXzagmQ=
 github.com/kode4food/timebox v0.0.0-20251103090827-097f5682025e/go.mod h1:376zyuGRsoxRQZsCh9b1hbpbB1pPmA821jjE6SMeCP0=

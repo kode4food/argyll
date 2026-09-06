@@ -126,7 +126,7 @@ describe("Footer", () => {
 
     const preview = container.querySelector(".step-endpoint");
     expect(preview).toBeInTheDocument();
-    expect(preview?.textContent).toBe('return {greeting = "Hello" .. name}');
+    expect(preview?.textContent).toBe('{greeting = "Hello" .. name}');
   });
 
   test("renders flow goals for flow step", () => {
@@ -153,7 +153,7 @@ describe("Footer", () => {
     const { container } = render(<Footer step={step} />);
 
     const preview = container.querySelector(".step-endpoint");
-    expect(preview?.textContent).toBe("return {   result = 1 + 2 }");
+    expect(preview?.textContent).toBe("{ result = 1 + 2 }");
   });
 
   test("shows progress icon when flow is active", () => {

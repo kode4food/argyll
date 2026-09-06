@@ -16,7 +16,7 @@ type (
 	// LuaEnv provides a Lua script execution environment with state pooling
 	LuaEnv struct {
 		*compiler[*CompiledLua]
-		statePool  chan *lua.State
+		statePool  chan *luaState
 		prelude    []byte
 		preludeErr error
 	}
@@ -26,16 +26,25 @@ type (
 		bytecode []byte
 		argNames []string
 	}
+
+	// luaState is a pooled state and the number of chunks it has loaded
+	luaState struct {
+		state  *lua.State
+		chunks int
+	}
 )
 
 const (
 	luaCacheSize        = 4096
 	luaStatePoolSize    = 10
+	luaChunkPoolSize    = 256
 	luaGlobalTableIndex = -2
 	luaArrayTableIndex  = -3
 	luaMapTableIndex    = -3
+	luaChunkTableIndex  = -4
 	luaArgLocalTemplate = "local %s = select(%d, ...)"
 	luaGlobalTableName  = "_G"
+	luaChunkTableName   = "argyll_chunks"
 	luaSeparator        = "\n"
 	luaEnvUpValue       = 1
 )
@@ -62,7 +71,7 @@ var luaExclude = [...]string{
 func NewLuaEnv() *LuaEnv {
 	prelude, err := compileLuaPrelude()
 	luaEnv := &LuaEnv{
-		statePool:  make(chan *lua.State, luaStatePoolSize),
+		statePool:  make(chan *luaState, luaStatePoolSize),
 		prelude:    prelude,
 		preludeErr: err,
 	}
@@ -183,14 +192,15 @@ func (e *LuaEnv) installPrelude(L *lua.State) error {
 func (e *LuaEnv) withCompiledResult(
 	proc *CompiledLua, inputs api.Args, onResult func(*lua.State),
 ) error {
-	L, err := e.getState()
+	st, err := e.getState()
 	if err != nil {
 		return err
 	}
-	defer e.returnState(L)
+	defer e.returnState(st)
 
-	if err := L.Load(bytes.NewReader(proc.bytecode), "chunk", "b"); err != nil {
-		return errors.Join(ErrLuaLoad, err)
+	L := st.state
+	if err := st.pushChunk(proc); err != nil {
+		return err
 	}
 	if err := setChunkEnv(L); err != nil {
 		return err
@@ -208,10 +218,10 @@ func (e *LuaEnv) withCompiledResult(
 	return nil
 }
 
-func (e *LuaEnv) getState() (*lua.State, error) {
+func (e *LuaEnv) getState() (*luaState, error) {
 	select {
-	case L := <-e.statePool:
-		return L, nil
+	case st := <-e.statePool:
+		return st, nil
 	default:
 	}
 	L := lua.NewState()
@@ -219,16 +229,55 @@ func (e *LuaEnv) getState() (*lua.State, error) {
 	if err := e.installPrelude(L); err != nil {
 		return nil, err
 	}
-	return L, nil
+	st := &luaState{state: L}
+	st.resetChunks()
+	return st, nil
 }
 
-func (e *LuaEnv) returnState(L *lua.State) {
-	L.SetTop(0)
+func (e *LuaEnv) returnState(st *luaState) {
+	st.state.SetTop(0)
 
 	select {
-	case e.statePool <- L:
+	case e.statePool <- st:
 	default:
 	}
+}
+
+// a chunk stays loaded on the state that ran it, so later calls reuse the
+// closure instead of reading the bytecode again
+func (st *luaState) pushChunk(proc *CompiledLua) error {
+	L := st.state
+	L.Field(lua.RegistryIndex, luaChunkTableName)
+	L.RawGetValue(-1, proc)
+	if L.IsFunction(-1) {
+		L.Remove(-2)
+		return nil
+	}
+	L.Pop(1)
+
+	if st.chunks >= luaChunkPoolSize {
+		L.Pop(1)
+		st.resetChunks()
+		L.Field(lua.RegistryIndex, luaChunkTableName)
+	}
+	if err := L.Load(bytes.NewReader(proc.bytecode), "chunk", "b"); err != nil {
+		L.Pop(1)
+		return errors.Join(ErrLuaLoad, err)
+	}
+	L.PushLightUserData(proc)
+	L.PushValue(-2)
+	L.RawSet(luaChunkTableIndex)
+	L.Remove(-2)
+	st.chunks++
+	return nil
+}
+
+// a cached chunk pins its script, so a state holding enough of them drops the
+// whole table rather than tracking each one's last use
+func (st *luaState) resetChunks() {
+	st.state.NewTable()
+	st.state.SetField(lua.RegistryIndex, luaChunkTableName)
+	st.chunks = 0
 }
 
 // compiled once, so scripts load bytecode rather than parsing the source on

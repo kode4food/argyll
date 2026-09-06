@@ -19,7 +19,7 @@ require (
 	github.com/gorilla/websocket v1.5.3 // indirect
 	github.com/klauspost/compress v1.19.2 // indirect
 	github.com/kode4food/caravan v0.0.0-20260905062940-5af4c3674974 // indirect
-	github.com/kode4food/jpath v0.0.0-20260906122037-f29e67fdab37 // indirect
+	github.com/kode4food/jpath v0.0.0-20260906125407-9cba525a6f65 // indirect
 	github.com/kode4food/lru v0.0.0-20260821124822-50bd9a308b71 // indirect
 	github.com/kode4food/timebox v0.0.0-20260831165837-e3945223be77 // indirect
 	github.com/kr/pretty v0.3.1 // indirect
