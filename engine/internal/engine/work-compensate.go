@@ -303,14 +303,13 @@ func (e *Engine) runCompensationTask(fs api.FlowStep, tkn api.Token) error {
 	})
 }
 
-func (e *Engine) recoverCompensations(fl api.FlowState) {
-	now := e.Now()
-	for sid := range fl.Executions {
-		st, ok := fl.Plan.Steps[sid]
+func (tx *flowTx) recoverCompensations() error {
+	for sid := range tx.Value().Executions {
+		st, ok := tx.Value().Plan.Steps[sid]
 		if !ok {
 			continue
 		}
-		comp, err := e.steps.Compensator(st)
+		comp, err := tx.Engine.steps.Compensator(st)
 		if err != nil {
 			slog.Error("Failed to resolve step compensator",
 				log.StepID(sid),
@@ -320,54 +319,39 @@ func (e *Engine) recoverCompensations(fl api.FlowState) {
 		if comp == nil {
 			continue
 		}
-		e.recoverStepCompensations(fl, sid, now)
+		if err := tx.recoverStepCompensations(sid); err != nil {
+			return err
+		}
 	}
+	return nil
 }
 
-func (e *Engine) recoverStepCompensations(
-	fl api.FlowState, sid api.StepID, now time.Time,
-) {
+func (tx *flowTx) recoverStepCompensations(sid api.StepID) error {
+	fl := tx.Value()
 	ex := fl.Executions[sid]
+	now := tx.Now()
 	for tkn, work := range ex.WorkItems {
 		if retryAt, ok := policy.CompRetryAt(work, now); ok {
-			e.scheduleCompensationTask(api.FlowStep{
-				FlowID: fl.ID,
-				StepID: sid,
-			}, tkn, retryAt)
+			fs := api.FlowStep{FlowID: fl.ID, StepID: sid}
+			tx.OnSuccess(func(api.FlowState, []*timebox.Event) {
+				tx.scheduleCompensationTask(fs, tkn, retryAt)
+			})
 			continue
 		}
 		if policy.WorkSucceeded(work.Status) &&
 			(policy.StepFailed(ex.Status) || flowCompensating(fl)) {
 			// Compensation was never started (e.g., engine crashed after
-			// step failed but before startPendingCompensations ran)
-			e.scheduleCompensationStart(fl.ID, sid, now)
-			return // one task per step covers all succeeded items
-		}
-	}
-}
-
-func (e *Engine) scheduleCompensationStart(
-	fid api.FlowID, sid api.StepID, at time.Time,
-) {
-	key := compStartKey(fid, sid)
-	e.ScheduleTask(key, at, func() error {
-		return e.flowTx(fid, func(tx *flowTx) error {
-			fl := tx.Value()
-			if fl.ID == "" {
-				return nil
-			}
+			// step failed but before startPendingCompensations ran), so it
+			// joins this transaction rather than a task rereading the state
 			if flowCompensating(fl) {
-				// Covers the whole flow, so sibling tasks are redundant
+				// Covers the whole flow, so sibling steps are redundant
 				return tx.compensateFlow()
 			}
-			ex := fl.Executions[sid]
-			if !policy.StepFailed(ex.Status) {
-				return nil
-			}
-			st := fl.Plan.Steps[sid]
-			return tx.startPendingCompensations(st, ex)
-		})
-	})
+			// One pass per step covers all succeeded items
+			return tx.startPendingCompensations(fl.Plan.Steps[sid], ex)
+		}
+	}
+	return nil
 }
 
 func (tx *flowTx) raiseCompStarted(sid api.StepID, tkn api.Token) error {
@@ -536,10 +520,6 @@ func dependents(pl *api.ExecutionPlan, sid api.StepID) []api.StepID {
 		}
 	}
 	return res
-}
-
-func compStartKey(fid api.FlowID, sid api.StepID) []string {
-	return []string{string(fid), "comp-start", string(sid)}
 }
 
 func compensateKey(fs api.FlowStep, tkn api.Token) []string {

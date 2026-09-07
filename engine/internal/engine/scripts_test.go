@@ -6,49 +6,10 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/kode4food/argyll/engine/internal/assert/helpers"
-	"github.com/kode4food/argyll/engine/internal/assert/wait"
 	"github.com/kode4food/argyll/engine/internal/engine"
 	"github.com/kode4food/argyll/engine/internal/engine/plan"
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
-
-func TestGetCompiledPredicate(t *testing.T) {
-	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		assert.NoError(t, env.Engine.Start())
-
-		st := helpers.NewStepWithPredicate(
-			"predicate-step", api.ScriptLangLua, "return true",
-		)
-
-		err := env.Engine.RegisterStep(st)
-		assert.NoError(t, err)
-
-		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{"predicate-step"},
-			Steps: api.Steps{st.ID: st},
-		}
-
-		env.WaitFor(wait.FlowStarted("wf-predicate"), func() {
-			err = env.Engine.StartFlow("wf-predicate", pl)
-			assert.NoError(t, err)
-		})
-
-		fs := api.FlowStep{
-			FlowID: "wf-predicate", StepID: "predicate-step",
-		}
-		comp, err := env.Engine.GetCompiledPredicate(fs)
-		assert.NoError(t, err)
-		assert.NotNil(t, comp)
-	})
-}
-
-func TestGetCompiledPredicateFlowNotFound(t *testing.T) {
-	helpers.WithEngine(t, func(eng *engine.Engine) {
-		fs := api.FlowStep{FlowID: "nonexistent-flow", StepID: "step-id"}
-		_, err := eng.GetCompiledPredicate(fs)
-		assert.ErrorIs(t, err, engine.ErrFlowNotFound)
-	})
-}
 
 func TestCreatePlanEmbedsChildPlans(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {

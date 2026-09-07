@@ -273,32 +273,33 @@ func updateStepHealth(
 	tx storeTx, sid api.StepID, health api.HealthStatus, errMsg string,
 ) error {
 	nid := tx.LocalNodeID()
-	cmd := func(st api.ClusterState, ag *ClusterAggregator) error {
-		ag.OnSuccess(func(api.ClusterState, []*timebox.Event) {
-			tx.setLocalHealth(sid, api.HealthState{
-				Status: health,
-				Error:  errMsg,
-			})
-		})
 
-		node := st.Nodes[nid]
-		if h, ok := node.Health[sid]; ok {
-			if h.Status == health && h.Error == errMsg {
-				return nil
+	_, err := tx.Exec(tx.clusterExec, events.ClusterKey,
+		func(st api.ClusterState, ag *ClusterAggregator) error {
+			node := st.Nodes[nid]
+			if h, ok := node.Health[sid]; ok {
+				if h.Status == health && h.Error == errMsg {
+					return nil
+				}
 			}
-		}
 
-		return events.Raise(ag, api.EventTypeStepHealthChanged,
-			api.StepHealthChangedEvent{
-				NodeID: nid,
-				StepID: sid,
-				Status: health,
-				Error:  errMsg,
-			},
-		)
-	}
+			ag.OnSuccess(func(api.ClusterState, []*timebox.Event) {
+				tx.setLocalHealth(sid, api.HealthState{
+					Status: health,
+					Error:  errMsg,
+				})
+			})
 
-	_, err := tx.Exec(tx.clusterExec, events.ClusterKey, cmd)
+			return events.Raise(ag, api.EventTypeStepHealthChanged,
+				api.StepHealthChangedEvent{
+					NodeID: nid,
+					StepID: sid,
+					Status: health,
+					Error:  errMsg,
+				},
+			)
+		},
+	)
 	return err
 }
 
