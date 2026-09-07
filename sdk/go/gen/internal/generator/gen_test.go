@@ -9,9 +9,10 @@ import (
 	"strconv"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/sdk/go/gen/internal/generator"
-	"github.com/stretchr/testify/assert"
 )
 
 var specPattern = regexp.MustCompile(`(?m)^\s*Spec:\s+(".*"),$`)

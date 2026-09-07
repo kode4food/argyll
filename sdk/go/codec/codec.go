@@ -206,7 +206,7 @@ func (c sliceCodec[T]) Decode(d *jsontext.Decoder) ([]T, error) {
 	if err := expect(d, '['); err != nil {
 		return nil, err
 	}
-	res := []T{}
+	var res []T
 	for d.PeekKind() != ']' {
 		v, err := c.elem.Decode(d)
 		if err != nil {

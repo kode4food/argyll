@@ -6,8 +6,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/kode4food/argyll/sdk/go/codec"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/kode4food/argyll/sdk/go/codec"
 )
 
 type (

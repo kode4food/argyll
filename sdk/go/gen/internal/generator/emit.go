@@ -15,9 +15,10 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/kode4food/argyll/engine/pkg/api"
 	"golang.org/x/tools/go/packages"
 	"golang.org/x/tools/imports"
+
+	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
 type (

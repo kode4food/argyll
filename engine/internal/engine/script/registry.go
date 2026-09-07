@@ -47,6 +47,7 @@ type (
 
 const (
 	// Selector document keys
+
 	MatchTags                 = "tags"
 	MatchType                 = "type"
 	MatchHandling             = "handling"

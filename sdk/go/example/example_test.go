@@ -10,11 +10,12 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/kode4food/argyll/engine/pkg/api"
 	argyll "github.com/kode4food/argyll/sdk/go"
 	"github.com/kode4food/argyll/sdk/go/example"
 	"github.com/kode4food/argyll/sdk/go/gen"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestSyncStep(t *testing.T) {
