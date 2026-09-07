@@ -128,3 +128,40 @@ func TestCompRetryAt(t *testing.T) {
 	)
 	assert.False(t, ok)
 }
+
+func TestRetryDerivation(t *testing.T) {
+	now := time.Unix(10, 0)
+	skewed := now.Add(time.Hour)
+	// Beyond the skew, so the retry time is still pending on the second call
+	later := skewed.Add(time.Hour)
+
+	t.Run("pending retry ignores the clock", func(t *testing.T) {
+		at, ok := policy.RecoverableDeadline(
+			api.ExecutionState{Status: api.StepPending},
+			api.WorkState{Status: api.WorkPending, NextRetryAt: later},
+			now,
+		)
+		assert.True(t, ok)
+
+		again, ok := policy.RecoverableDeadline(
+			api.ExecutionState{Status: api.StepPending},
+			api.WorkState{Status: api.WorkPending, NextRetryAt: later},
+			skewed,
+		)
+		assert.True(t, ok)
+		assert.Equal(t, at, again)
+	})
+
+	t.Run("pending compensation ignores the clock", func(t *testing.T) {
+		work := api.WorkState{
+			Status:      api.WorkCompPending,
+			NextRetryAt: later,
+		}
+		at, ok := policy.CompRetryAt(work, now)
+		assert.True(t, ok)
+
+		again, ok := policy.CompRetryAt(work, skewed)
+		assert.True(t, ok)
+		assert.Equal(t, at, again)
+	})
+}
