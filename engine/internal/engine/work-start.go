@@ -18,7 +18,6 @@ type (
 	ExecContext struct {
 		engine *Engine
 		step   *api.Step
-		child  *api.ExecutionPlan
 		inputs api.Args
 		meta   api.Metadata
 		flowID api.FlowID
@@ -61,20 +60,6 @@ func (e *ExecContext) CompleteWork(tkn api.Token, outputs api.Args) error {
 	return e.engine.CompleteWork(fs, tkn, outputs)
 }
 
-func (e *ExecContext) StartChildFlow(
-	tkn api.Token, init api.InitArgs,
-) (api.FlowID, error) {
-	fs := api.FlowStep{FlowID: e.flowID, StepID: e.stepID}
-	return e.engine.StartChildFlow(&ChildFlowRequest{
-		Parent:     fs,
-		Token:      tkn,
-		Plan:       e.child,
-		Init:       init,
-		Metadata:   e.meta,
-		Compensate: e.step.Flow != nil && e.step.Flow.Compensate,
-	})
-}
-
 func (e *ExecContext) UpdateHealth(s api.HealthStatus, msg string) error {
 	return e.engine.UpdateStepHealth(e.stepID, s, msg)
 }
@@ -87,7 +72,6 @@ func (tx *flowTx) executeStartedWork(
 		flowID: tx.flowID,
 		stepID: st.ID,
 		step:   st,
-		child:  tx.Value().Plan.Children[st.ID],
 		inputs: inputs,
 		meta:   meta,
 	}
@@ -303,12 +287,18 @@ func (tx *flowTx) raiseWorkStarted(
 	if err := tx.checkWorkTransition(sid, tkn, api.WorkActive); err != nil {
 		return err
 	}
-	return events.Raise(tx.FlowAggregator, api.EventTypeWorkStarted,
+	if err := events.Raise(tx.FlowAggregator, api.EventTypeWorkStarted,
 		api.WorkStartedEvent{
 			FlowID: tx.flowID,
 			StepID: sid,
 			Token:  tkn,
 			Inputs: inputs,
 		},
-	)
+	); err != nil {
+		return err
+	}
+	if tx.Value().Plan.Steps[sid].Type == api.StepTypeFlow {
+		return tx.startChildFlow(sid, tkn, inputs)
+	}
+	return nil
 }

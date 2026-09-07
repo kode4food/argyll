@@ -12,7 +12,6 @@ import (
 
 var (
 	ErrWorkDeadlineExceeded = errors.New("work item deadline exceeded")
-	ErrChildFlowMissing     = errors.New("child flow was never started")
 )
 
 // scheduleWorkDeadlineAt arms the expiry check for an in-flight attempt. Every
@@ -46,9 +45,6 @@ func (e *Engine) runWorkDeadline(fs api.FlowStep, tkn api.Token) error {
 		}
 
 		work := fl.Executions[fs.StepID].WorkItems[tkn]
-		if policy.WorkAwaitsChildFlow(fl.Plan.Steps[fs.StepID], work) {
-			return tx.settleMissingChildFlow(fs, tkn)
-		}
 		if policy.WorkCompActive(work.Status) {
 			return tx.scheduleCompensationRetry(
 				fs.StepID, tkn, ErrWorkDeadlineExceeded.Error(),
@@ -90,32 +86,6 @@ func (e *Engine) recoverInFlightWork(fl api.FlowState) {
 			}
 		}
 	}
-}
-
-// settleMissingChildFlow settles work whose child was never started, so the
-// retry path can launch it again; a live child is left alone however long
-func (tx *flowTx) settleMissingChildFlow(
-	fs api.FlowStep, tkn api.Token,
-) error {
-	// Joined raising nothing, so the child's absence is guarded by this
-	// commit. If the child appears first, the append conflicts and the retry
-	// sees it rather than settling work that has a live child
-	child, err := tx.flowTxIn(tx.Transaction(), childFlowID(fs, tkn),
-		func(*flowTx) error { return nil },
-	)
-	if err != nil {
-		return err
-	}
-	if child.ID != "" {
-		return nil
-	}
-
-	if err := tx.raiseWorkNotCompleted(
-		fs.StepID, tkn, ErrChildFlowMissing.Error(),
-	); err != nil {
-		return err
-	}
-	return tx.handleWorkNotCompleted(fs.StepID, tkn)
 }
 
 func deadlineKey(fs api.FlowStep, tkn api.Token) []string {

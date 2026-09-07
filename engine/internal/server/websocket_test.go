@@ -2,6 +2,7 @@ package server_test
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strconv"
@@ -68,6 +69,35 @@ func TestSocket(t *testing.T) {
 	_ = env.Conn.SetReadDeadline(scheduler.Now().Add(100 * time.Millisecond))
 	_, _, err := env.Conn.ReadMessage()
 	assert.Error(t, err)
+}
+
+func TestMalformedSubscription(t *testing.T) {
+	for _, ids := range [][][]string{
+		{{"flow", "id", "extra"}},
+		{{}},
+		{{"flow", ""}},
+		{{"", "key"}},
+		{{"flow"}},
+		{{"catalog"}, {"flow", "id", "extra"}},
+	} {
+		t.Run(fmt.Sprint(ids), func(t *testing.T) {
+			env := testWebSocket(t, nil)
+			defer env.Cleanup()
+			err := env.Conn.WriteJSON(api.SubscribeRequest{
+				Type: "subscribe",
+				Data: api.ClientSubscription{
+					SubscriptionID: "invalid",
+					AggregateIDs:   ids,
+				},
+			})
+			assert.NoError(t, err)
+			_ = env.Conn.SetReadDeadline(
+				scheduler.Now().Add(100 * time.Millisecond),
+			)
+			_, _, err = env.Conn.ReadMessage()
+			assert.Error(t, err)
+		})
+	}
 }
 
 func TestClientReceivesEvent(t *testing.T) {
@@ -616,7 +646,10 @@ func TestSocketCallbackEngine(t *testing.T) {
 		err = ws.Conn.ReadJSON(&stateMsg)
 		assert.NoError(t, err)
 		item := subscribedItem(t, stateMsg)
-		assert.Equal(t, []string{events.CatalogPrefix}, item.AggregateID)
+		assert.Equal(t,
+			[]string{events.CatalogPrefix, string(timebox.SingletonKey)},
+			item.AggregateID,
+		)
 
 		var cat api.CatalogState
 		err = json.Unmarshal(item.Data, &cat)
@@ -645,7 +678,10 @@ func TestSocketCallbackCluster(t *testing.T) {
 		err = ws.Conn.ReadJSON(&stateMsg)
 		assert.NoError(t, err)
 		item := subscribedItem(t, stateMsg)
-		assert.Equal(t, []string{events.ClusterPrefix}, item.AggregateID)
+		assert.Equal(t,
+			[]string{events.ClusterPrefix, string(timebox.SingletonKey)},
+			item.AggregateID,
+		)
 
 		var cluster api.ClusterState
 		err = json.Unmarshal(item.Data, &cluster)
@@ -693,9 +729,9 @@ func TestSocketBadCallbackTarget(t *testing.T) {
 		ws := testServerWebSocket(t, env.Server)
 		defer ws.Cleanup()
 
+		singleton := string(timebox.SingletonKey)
 		for _, aggregateID := range [][]string{
-			{events.FlowPrefix},
-			{"invalid"},
+			{"invalid", singleton},
 		} {
 			sub := api.SubscribeRequest{
 				Type: "subscribe",

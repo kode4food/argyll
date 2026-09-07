@@ -12,8 +12,8 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/util/call"
 )
 
-type CatalogTx struct {
-	e  *Engine
+type catalogTx struct {
+	storeTx
 	ag *CatalogAggregator
 }
 
@@ -28,40 +28,62 @@ var (
 
 // UnregisterStep removes a step from the engine registry
 func (e *Engine) UnregisterStep(sid api.StepID) error {
-	return e.CatalogTx(func(tx *CatalogTx) error {
-		return tx.Remove(sid)
+	return e.catalogTx(func(tx *catalogTx) error {
+		return tx.remove(sid)
 	})
 }
 
 // RegisterStep registers a new step with the engine after validating its
 // configuration and checking for conflicts
 func (e *Engine) RegisterStep(st *api.Step) error {
-	return e.CatalogTx(func(tx *CatalogTx) error {
-		return tx.Register(st)
+	return e.catalogTx(func(tx *catalogTx) error {
+		return tx.register(st)
+	})
+}
+
+// RegisterSteps registers several steps in one transaction, so a conflict
+// among them leaves the catalog as it was
+func (e *Engine) RegisterSteps(steps ...*api.Step) error {
+	return e.catalogTx(func(tx *catalogTx) error {
+		for _, st := range steps {
+			if err := tx.register(st); err != nil {
+				return err
+			}
+		}
+		return nil
 	})
 }
 
 // UpdateStep updates an existing step registration with new configuration
 // after validation
 func (e *Engine) UpdateStep(st *api.Step) error {
-	return e.CatalogTx(func(tx *CatalogTx) error {
-		return tx.Update(st)
+	return e.catalogTx(func(tx *catalogTx) error {
+		return tx.update(st)
 	})
 }
 
-func (e *Engine) CatalogTx(fn func(*CatalogTx) error) error {
-	_, err := e.execCatalog(
+func (e *Engine) catalogTx(fn func(*catalogTx) error) error {
+	return e.engStore.Transact(func(t *timebox.Transaction) error {
+		tx := storeTx{Engine: e, Transaction: t}
+		_, err := tx.catalogTx(fn)
+		return err
+	})
+}
+
+func (tx storeTx) catalogTx(
+	fn func(*catalogTx) error,
+) (api.CatalogState, error) {
+	return tx.Exec(tx.catalogExec, events.CatalogKey,
 		func(_ api.CatalogState, ag *CatalogAggregator) error {
-			return fn(&CatalogTx{
-				e:  e,
-				ag: ag,
+			return fn(&catalogTx{
+				storeTx: tx,
+				ag:      ag,
 			})
 		},
 	)
-	return err
 }
 
-func (tx *CatalogTx) Register(newStep *api.Step) error {
+func (tx *catalogTx) register(newStep *api.Step) error {
 	newStep, err := tx.prepareStep(newStep)
 	if err != nil {
 		return err
@@ -73,14 +95,14 @@ func (tx *CatalogTx) Register(newStep *api.Step) error {
 		}
 		return fmt.Errorf("%w: %s", ErrStepExists, newStep.ID)
 	}
-	err = tx.e.validateStepUpsert(cat, newStep, tx.e.steps.Children)
+	err = tx.validateStepUpsert(cat, newStep, tx.steps.Children)
 	if err != nil {
 		return err
 	}
-	return tx.e.raiseStepRegisteredEvent(newStep, tx.ag)
+	return tx.raiseStepRegisteredEvent(newStep)
 }
 
-func (tx *CatalogTx) Update(newStep *api.Step) error {
+func (tx *catalogTx) update(newStep *api.Step) error {
 	newStep, err := tx.prepareStep(newStep)
 	if err != nil {
 		return err
@@ -93,14 +115,14 @@ func (tx *CatalogTx) Update(newStep *api.Step) error {
 	if old.Equal(newStep) {
 		return nil
 	}
-	err = tx.e.validateStepUpsert(cat, newStep, tx.e.steps.Children)
+	err = tx.validateStepUpsert(cat, newStep, tx.steps.Children)
 	if err != nil {
 		return err
 	}
-	return tx.e.raiseStepUpdatedEvent(newStep, tx.ag)
+	return tx.raiseStepUpdatedEvent(newStep)
 }
 
-func (tx *CatalogTx) Remove(sid api.StepID) error {
+func (tx *catalogTx) remove(sid api.StepID) error {
 	cat := tx.ag.Value()
 	if ref, ok := spaceSubFlowGoal(cat, sid); ok {
 		return fmt.Errorf("%w: %s", ErrSubFlowGoalInUse, ref)
@@ -108,7 +130,7 @@ func (tx *CatalogTx) Remove(sid api.StepID) error {
 	var spaces []api.SpaceID
 	if oldStep, ok := cat.Steps[sid]; ok {
 		var err error
-		spaces, err = tx.e.matchingSpaceIDs(cat, oldStep)
+		spaces, err = tx.matchingSpaceIDs(cat, oldStep)
 		if err != nil {
 			return err
 		}
@@ -130,11 +152,9 @@ func (e *Engine) validateStep(st *api.Step) error {
 	return nil
 }
 
-func (e *Engine) raiseStepRegisteredEvent(
-	st *api.Step, ag *CatalogAggregator,
-) error {
-	return e.raiseStepEvent(st, ag, func(spaces []api.SpaceID) error {
-		return events.Raise(ag, api.EventTypeStepRegistered,
+func (tx *catalogTx) raiseStepRegisteredEvent(st *api.Step) error {
+	return tx.raiseStepEvent(st, func(spaces []api.SpaceID) error {
+		return events.Raise(tx.ag, api.EventTypeStepRegistered,
 			api.StepRegisteredEvent{
 				Step:   st,
 				Spaces: spaces,
@@ -143,11 +163,9 @@ func (e *Engine) raiseStepRegisteredEvent(
 	})
 }
 
-func (e *Engine) raiseStepUpdatedEvent(
-	st *api.Step, ag *CatalogAggregator,
-) error {
-	return e.raiseStepEvent(st, ag, func(spaces []api.SpaceID) error {
-		return events.Raise(ag, api.EventTypeStepUpdated,
+func (tx *catalogTx) raiseStepUpdatedEvent(st *api.Step) error {
+	return tx.raiseStepEvent(st, func(spaces []api.SpaceID) error {
+		return events.Raise(tx.ag, api.EventTypeStepUpdated,
 			api.StepUpdatedEvent{
 				Step:   st,
 				Spaces: spaces,
@@ -160,33 +178,23 @@ func (e *Engine) raiseStepUpdatedEvent(
 // them, and records the step's health in the same transaction. The catalog
 // and cluster aggregates share a Store, so a registered step can never be
 // left without the health its registration implies
-func (e *Engine) raiseStepEvent(
-	st *api.Step, ag *CatalogAggregator, raise func([]api.SpaceID) error,
+func (tx *catalogTx) raiseStepEvent(
+	st *api.Step, raise func([]api.SpaceID) error,
 ) error {
-	spaces, err := e.matchingSpaceIDs(ag.Value(), st)
+	spaces, err := tx.matchingSpaceIDs(tx.ag.Value(), st)
 	if err != nil {
 		return err
 	}
 	if err := raise(spaces); err != nil {
 		return err
 	}
-	return e.resetStepHealth(ag.Transaction(), st)
+	return resetStepHealth(tx.storeTx, st)
 }
 
-func (e *Engine) resetStepHealth(
-	tx *timebox.Transaction, st *api.Step,
-) error {
-	h, err := e.steps.Health(st)
-	if err != nil {
-		return err
-	}
-	return e.updateStepHealth(tx, st.ID, h.Status, h.Error)
-}
-
-func (tx *CatalogTx) prepareStep(st *api.Step) (*api.Step, error) {
-	st = st.WithWorkDefaults(&tx.e.config.Work)
+func (tx *catalogTx) prepareStep(st *api.Step) (*api.Step, error) {
+	st = st.WithWorkDefaults(&tx.config.Work)
 	st.Tags = st.Tags.Normalize()
-	if err := tx.e.validateStep(st); err != nil {
+	if err := tx.validateStep(st); err != nil {
 		return nil, err
 	}
 	return st, nil
@@ -204,6 +212,14 @@ func (e *Engine) validateStepUpsert(
 		return errors.Join(ErrInvalidStep, err)
 	}
 	return nil
+}
+
+func resetStepHealth(tx storeTx, st *api.Step) error {
+	h, err := tx.steps.Health(st)
+	if err != nil {
+		return err
+	}
+	return updateStepHealth(tx, st.ID, h.Status, h.Error)
 }
 
 func validateAttributeTypes(cat api.CatalogState, newStep *api.Step) error {

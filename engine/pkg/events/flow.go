@@ -33,14 +33,10 @@ func FlowKey[T ~string](flowID T) timebox.AggregateID {
 }
 
 func ParseFlowID(id timebox.AggregateID) (api.FlowID, bool) {
-	if len(id) < 2 || id[0] != FlowPrefix {
+	if !IsFlowEventID(id) {
 		return "", false
 	}
-	fid := api.FlowID(id[1])
-	if fid == "" {
-		return "", false
-	}
-	return fid, true
+	return api.FlowID(id.Key), true
 }
 
 func FlowIndexer(evs []*timebox.Event) []*timebox.Index {
@@ -94,7 +90,7 @@ func IsFlowEvent(ev *timebox.Event) bool {
 
 // IsFlowEventID returns true if the ID belongs to a flow aggregate
 func IsFlowEventID(id timebox.AggregateID) bool {
-	return len(id) == 2 && id[0] == FlowPrefix
+	return id.Type == FlowPrefix && id.Key != ""
 }
 
 func makeFlowAppliers() timebox.Appliers[api.FlowState] {

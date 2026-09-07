@@ -51,7 +51,7 @@ func (e *Engine) GetFlowStateSeq(
 	fid api.FlowID,
 ) (api.FlowState, int64, error) {
 	var nextSeq int64
-	st, err := e.execFlow(events.FlowKey(fid),
+	st, err := e.flowExec.Exec(events.FlowKey(fid),
 		func(fl api.FlowState, ag *FlowAggregator) error {
 			nextSeq = ag.NextSequence()
 			return nil

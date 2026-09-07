@@ -17,14 +17,12 @@ type (
 		Metadata() api.Metadata
 		WebhookURL(api.Token) string
 		CompleteWork(api.Token, api.Args) error
-		StartChildFlow(api.Token, api.InitArgs) (api.FlowID, error)
 		UpdateHealth(api.HealthStatus, string) error
 	}
 
-	// Handler describes step-type-specific behavior. The engine validates the
-	// common step shape (scripts, mappings, attributes) before dispatching to
-	// Validate and Execute. All capability fields except Execute may
-	// be nil
+	// Handler describes optional step-type-specific capabilities. The engine
+	// validates the common step shape before using them. Flow steps have no
+	// external Execute action
 	Handler struct {
 		Validate   ValidateFunc
 		Execute    ExecuteFunc

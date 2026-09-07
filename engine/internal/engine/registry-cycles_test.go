@@ -71,7 +71,7 @@ func TestRegisterStepRejectsFlowGoalCycles(t *testing.T) {
 	})
 }
 
-func TestCatalogTxRejectsGoalCycle(t *testing.T) {
+func TestRegisterStepsRejectsGoalCycle(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
 		stepA := &api.Step{
 			ID:   "flow-a",
@@ -92,12 +92,7 @@ func TestCatalogTxRejectsGoalCycle(t *testing.T) {
 			Attributes: api.AttributeSpecs{},
 		}
 
-		err := eng.CatalogTx(func(tx *engine.CatalogTx) error {
-			if err := tx.Register(stepA); err != nil {
-				return err
-			}
-			return tx.Register(stepB)
-		})
+		err := eng.RegisterSteps(stepA, stepB)
 		assert.ErrorIs(t, err, engine.ErrInvalidStep)
 		assert.ErrorIs(t, err, engine.ErrCircularDependency)
 

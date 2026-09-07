@@ -498,7 +498,7 @@ func TestParentNotificationRetries(t *testing.T) {
 	backend := &parentWriteBackend{
 		Backend: memory.NewPersistence(),
 		beforeAppend: func(req timebox.AppendRequest) error {
-			if !fail.Load() || !req.ID.Equal(events.FlowKey(parentID)) ||
+			if !fail.Load() || req.ID != events.FlowKey(parentID) ||
 				len(req.Events) == 0 {
 				return nil
 			}
@@ -552,7 +552,7 @@ func TestParentNotificationRetries(t *testing.T) {
 			testify.True(t, child.DeactivatedAt.IsZero())
 			testify.NoError(t, env.Engine.Start())
 			<-checked
-			// Drain startup reconciliation before allowing writes again.
+			// Drain startup reconciliation before allowing writes again
 			barrier := make(chan struct{})
 			env.Engine.ScheduleTask(
 				[]string{"startup-checked"}, time.Now(),
@@ -622,7 +622,7 @@ func TestParentSettledAtomically(t *testing.T) {
 	backend := &parentWriteBackend{
 		Backend: memory.NewPersistence(),
 		beforeAppend: func(req timebox.AppendRequest) error {
-			if fail.Load() && req.ID.Equal(events.FlowKey(parentID)) &&
+			if fail.Load() && req.ID == events.FlowKey(parentID) &&
 				len(req.Events) != 0 {
 				return ErrParentWrite
 			}

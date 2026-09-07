@@ -68,7 +68,7 @@ func StepWorkCompletion(items api.WorkItems) WorkCompletion {
 func WorkDeadline(
 	st *api.Step, work api.WorkState, fallback time.Duration,
 ) (time.Time, bool) {
-	if st == nil || work.StartedAt.IsZero() {
+	if st == nil || st.Type == api.StepTypeFlow || work.StartedAt.IsZero() {
 		return time.Time{}, false
 	}
 
@@ -95,13 +95,6 @@ func WorkDeadline(
 		return time.Time{}, false
 	}
 	return work.StartedAt.Add(res), true
-}
-
-// WorkAwaitsChildFlow reports whether an in-flight item is waiting on a child
-// flow. That child's existence is the only evidence the work really launched,
-// since a flow step has no timeout to expire against
-func WorkAwaitsChildFlow(st *api.Step, work api.WorkState) bool {
-	return st != nil && st.Type == api.StepTypeFlow && WorkActive(work.Status)
 }
 
 // WorkReadyToDispatch reports whether a step has a pending work item that can

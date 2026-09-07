@@ -30,45 +30,11 @@ type healthResolver struct {
 func (e *Engine) UpdateStepHealth(
 	sid api.StepID, health api.HealthStatus, errMsg string,
 ) error {
-	return e.engStore.Transaction(func(tx *timebox.Transaction) error {
-		return e.updateStepHealth(tx, sid, health, errMsg)
-	})
-}
-
-// updateStepHealth records the step's health on the cluster aggregate in tx,
-// so a catalog change and the health it implies commit together
-func (e *Engine) updateStepHealth(
-	tx *timebox.Transaction, sid api.StepID,
-	health api.HealthStatus, errMsg string,
-) error {
-	nid := e.LocalNodeID()
-	cmd := func(st api.ClusterState, ag *ClusterAggregator) error {
-		ag.OnSuccess(func(api.ClusterState, []*timebox.Event) {
-			e.setLocalHealth(sid, api.HealthState{
-				Status: health,
-				Error:  errMsg,
-			})
-		})
-
-		node := st.Nodes[nid]
-		if h, ok := node.Health[sid]; ok {
-			if h.Status == health && h.Error == errMsg {
-				return nil
-			}
-		}
-
-		return events.Raise(ag, api.EventTypeStepHealthChanged,
-			api.StepHealthChangedEvent{
-				NodeID: nid,
-				StepID: sid,
-				Status: health,
-				Error:  errMsg,
-			},
+	return e.engStore.Transact(func(t *timebox.Transaction) error {
+		return updateStepHealth(
+			storeTx{Engine: e, Transaction: t}, sid, health, errMsg,
 		)
-	}
-
-	_, err := tx.Exec(e.clusterExec, events.ClusterKey, cmd)
-	return err
+	})
 }
 
 // ResolveHealth returns resolved health for all steps, deriving flow step
@@ -299,6 +265,41 @@ func (r *healthResolver) previewFlowPlan(
 
 	r.plans[sid] = pl
 	return pl, nil
+}
+
+// updateStepHealth records the step's health on the cluster aggregate in tx, so
+// a catalog change and the health it implies commit together
+func updateStepHealth(
+	tx storeTx, sid api.StepID, health api.HealthStatus, errMsg string,
+) error {
+	nid := tx.LocalNodeID()
+	cmd := func(st api.ClusterState, ag *ClusterAggregator) error {
+		ag.OnSuccess(func(api.ClusterState, []*timebox.Event) {
+			tx.setLocalHealth(sid, api.HealthState{
+				Status: health,
+				Error:  errMsg,
+			})
+		})
+
+		node := st.Nodes[nid]
+		if h, ok := node.Health[sid]; ok {
+			if h.Status == health && h.Error == errMsg {
+				return nil
+			}
+		}
+
+		return events.Raise(ag, api.EventTypeStepHealthChanged,
+			api.StepHealthChangedEvent{
+				NodeID: nid,
+				StepID: sid,
+				Status: health,
+				Error:  errMsg,
+			},
+		)
+	}
+
+	_, err := tx.Exec(tx.clusterExec, events.ClusterKey, cmd)
+	return err
 }
 
 func flowStepHealth(sid api.StepID, h api.HealthState) api.HealthState {

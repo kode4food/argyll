@@ -191,76 +191,7 @@ func TestCompensationDeadlineRetries(t *testing.T) {
 	})
 }
 
-func TestMissingChildFlowRecovers(t *testing.T) {
-	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		child := &api.Step{
-			ID:   "orphan-child-step",
-			Name: "Child Step",
-			Type: api.StepTypeScript,
-			Script: &api.ScriptConfig{
-				Language: api.ScriptLangLua,
-				Script:   "return {}",
-			},
-			Attributes: api.AttributeSpecs{},
-		}
-		parent := &api.Step{
-			ID:         "orphan-parent-step",
-			Name:       "Parent Step",
-			Type:       api.StepTypeFlow,
-			Flow:       &api.FlowConfig{Goals: []api.StepID{child.ID}},
-			Attributes: api.AttributeSpecs{},
-			WorkConfig: &api.WorkConfig{
-				MaxRetries:  1,
-				InitBackoff: 1,
-				MaxBackoff:  1,
-				BackoffType: api.BackoffTypeFixed,
-			},
-		}
-		assert.NoError(t, env.Engine.RegisterStep(child))
-		assert.NoError(t, env.Engine.RegisterStep(parent))
-
-		cat, err := env.Engine.GetCatalogState()
-		assert.NoError(t, err)
-		pl, err := plan.Create(&plan.Request{
-			Match:    env.Engine.Matcher,
-			Children: env.Engine.Children,
-			Steps:    cat.Steps,
-			Goals:    []api.StepID{parent.ID},
-			Init:     api.InitArgs{},
-		})
-		assert.NoError(t, err)
-
-		id := api.FlowID("wf-missing-child")
-		fs := api.FlowStep{FlowID: id, StepID: parent.ID}
-		tkn := api.Token("work-no-child")
-		assert.NoError(t, env.SeedStartedWork(fs, pl, tkn))
-
-		assert.NoError(t, env.Engine.Start())
-
-		// The recovery deadline of a flow step is the engine step timeout,
-		// so allow for a full one to elapse before the retry lands
-		fl := helpers.WaitForFlowState(t, env.Engine, helpers.FlowStateQuery{
-			FlowID:  id,
-			Timeout: 3 * wait.DefaultTimeout,
-			Accept: func(fl api.FlowState) bool {
-				return fl.Status == api.FlowCompleted
-			},
-		})
-		work := fl.Executions[parent.ID].WorkItems[tkn]
-		assert.Equal(t, api.FlowCompleted, fl.Status)
-		assert.Equal(t, api.WorkSucceeded, work.Status)
-
-		childID := api.FlowID(
-			string(id) + ":" + string(parent.ID) + ":" + string(tkn),
-		)
-		childFl, err := env.Engine.GetFlowState(childID)
-		assert.NoError(t, err)
-		assert.Equal(t, api.FlowCompleted, childFl.Status)
-	})
-}
-
-// TestLiveChildFlowSurvivesDeadline proves a recovery deadline settles only
-// work whose child never launched. A running child keeps its parent in flight
+// A running child keeps its parent in flight beyond the work timeout
 func TestLiveChildFlowSurvivesDeadline(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		child := &api.Step{
@@ -299,8 +230,7 @@ func TestLiveChildFlowSurvivesDeadline(t *testing.T) {
 		tkn := api.Token("work-live-child")
 		assert.NoError(t, env.SeedStartedWork(fs, pl, tkn))
 
-		// The child exists and is still running, so the parent's attempt is
-		// accounted for however long the deadline has been past
+		// The child controls completion, not the parent's work timeout
 		childID := api.FlowID(
 			string(id) + ":" + string(parent.ID) + ":" + string(tkn),
 		)

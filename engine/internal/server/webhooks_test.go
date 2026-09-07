@@ -22,7 +22,7 @@ func TestCompensationCallbackIsPhaseSpecific(t *testing.T) {
 		base := fmt.Sprintf("/callbacks/%s/%s/%s",
 			fs.FlowID, fs.StepID, tkn)
 
-		// A delayed invocation callback must not complete compensation.
+		// A delayed invocation callback must not complete compensation
 		req := httptest.NewRequest("POST", base+"/invoke",
 			bytes.NewReader([]byte(`{}`)))
 		req.Header.Set("Content-Type", api.JSONContentType)

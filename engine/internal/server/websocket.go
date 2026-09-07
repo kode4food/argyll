@@ -5,7 +5,6 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
-	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -58,7 +57,7 @@ type (
 	}
 
 	clientSubscription struct {
-		minSeqs      map[string]int64
+		minSeqs      map[timebox.AggregateID]int64
 		consumer     *event.Consumer
 		id           string
 		aggregateIDs []timebox.AggregateID
@@ -137,7 +136,7 @@ func (s *Server) lookupSubscriptionState(
 	case events.IsClusterEventID(id):
 		return s.engine.GetClusterStateSeq()
 	case events.IsFlowEventID(id):
-		return s.engine.GetFlowStateSeq(api.FlowID(id[1]))
+		return s.engine.GetFlowStateSeq(api.FlowID(id.Key))
 	}
 	return nil, 0, nil
 }
@@ -296,7 +295,9 @@ func (c *Client) sendSubscribeState(sub *clientSubscription) bool {
 
 	if sub.includeState && c.getState != nil {
 		items = make([]api.SubscribedItem, 0, len(sub.aggregateIDs))
-		sub.minSeqs = make(map[string]int64, len(sub.aggregateIDs))
+		sub.minSeqs = make(
+			map[timebox.AggregateID]int64, len(sub.aggregateIDs),
+		)
 		for _, id := range sub.aggregateIDs {
 			state, nextSeq, err := c.getState(id)
 			if err != nil {
@@ -322,7 +323,7 @@ func (c *Client) sendSubscribeState(sub *clientSubscription) bool {
 				Data:        data,
 				Sequence:    nextSeq,
 			})
-			sub.minSeqs[aggregateIDKey(id)] = nextSeq
+			sub.minSeqs[id] = nextSeq
 		}
 	}
 
@@ -352,7 +353,7 @@ func (c *Client) writeSubscriptionEvent(
 		return true
 	}
 
-	if minSeq, ok := sub.minSeqs[aggregateIDKey(event.AggregateID)]; ok &&
+	if minSeq, ok := sub.minSeqs[event.AggregateID]; ok &&
 		event.Sequence < minSeq {
 		return true
 	}
@@ -408,9 +409,13 @@ func newClientSubscription(
 	if sub.SubscriptionID == "" {
 		return nil, ErrMissingSubscriptionID
 	}
+	ids, err := stringsToIDs(sub.AggregateIDs)
+	if err != nil {
+		return nil, err
+	}
 	res := &clientSubscription{
 		id:           sub.SubscriptionID,
-		aggregateIDs: stringsToIDs(sub.AggregateIDs),
+		aggregateIDs: ids,
 		includeState: sub.IncludeState,
 		eventTypes:   subscriptionEventTypes(sub),
 	}
@@ -421,23 +426,33 @@ func newClientSubscription(
 	return res, nil
 }
 
-func stringsToIDs(parts [][]string) []timebox.AggregateID {
-	if len(parts) == 0 {
-		return nil
-	}
+func stringsToIDs(parts [][]string) ([]timebox.AggregateID, error) {
 	res := make([]timebox.AggregateID, 0, len(parts))
 	for _, p := range parts {
-		res = append(res, stringsToID(p))
+		id, ok := stringsToID(p)
+		if !ok {
+			return nil, timebox.ErrInvalidAggregateID
+		}
+		res = append(res, id)
 	}
-	return res
+	return res, nil
 }
 
-func stringsToID(parts []string) timebox.AggregateID {
-	res := make(timebox.AggregateID, 0, len(parts))
-	for _, part := range parts {
-		res = append(res, timebox.ID(part))
+// stringsToID reads the wire form, where one part names a type's only aggregate
+// and two name one of many
+func stringsToID(parts []string) (timebox.AggregateID, bool) {
+	switch len(parts) {
+	case 1:
+		if parts[0] == events.CatalogPrefix ||
+			parts[0] == events.ClusterPrefix {
+			return timebox.NewAggregateType(timebox.ID(parts[0])), true
+		}
+	case 2:
+		return timebox.NewAggregateID(
+			timebox.ID(parts[0]), timebox.ID(parts[1]),
+		), parts[0] != "" && parts[1] != ""
 	}
-	return res
+	return timebox.AggregateID{}, false
 }
 
 func subscriptionEventTypes(sub *api.ClientSubscription) []timebox.EventType {
@@ -452,15 +467,7 @@ func subscriptionEventTypes(sub *api.ClientSubscription) []timebox.EventType {
 }
 
 func idToStrings(id timebox.AggregateID) []string {
-	res := make([]string, len(id))
-	for i, p := range id {
-		res[i] = string(p)
-	}
-	return res
-}
-
-func aggregateIDKey(id timebox.AggregateID) string {
-	return strings.Join(idToStrings(id), "\x00")
+	return []string{string(id.Type), string(id.Key)}
 }
 
 func transformEvent(ev *timebox.Event) *api.WebSocketEvent {

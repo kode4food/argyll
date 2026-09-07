@@ -74,8 +74,6 @@ func (e *Engine) dispatchWork(fs api.FlowStep) error {
 		}
 
 		st := fl.Plan.Steps[fs.StepID]
-		inputs := ex.Inputs
-		meta := fl.Metadata
 
 		if policy.WorkReadyToDispatch(st, ex, tx.Now()) &&
 			!tx.canDispatchLocally(st.ID) {
@@ -96,10 +94,7 @@ func (e *Engine) dispatchWork(fs api.FlowStep) error {
 			return nil
 		}
 
-		tx.OnSuccess(func(fl api.FlowState, _ []*timebox.Event) {
-			tx.executeStartedWork(st, inputs, meta, started)
-		})
-		return nil
+		return tx.startContinuedWork(fs.StepID, st, started)
 	})
 }
 

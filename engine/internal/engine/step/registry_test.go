@@ -47,9 +47,6 @@ type testRuntime struct {
 	completeToken api.Token
 	completeOut   api.Args
 	completeCalls int
-	startToken    api.Token
-	startInit     api.InitArgs
-	startCalls    int
 	healthStatus  api.HealthStatus
 	healthError   string
 	healthCalls   int
@@ -98,15 +95,6 @@ func (r *testRuntime) CompleteWork(
 	r.completeOut = outputs
 	r.completeCalls++
 	return nil
-}
-
-func (r *testRuntime) StartChildFlow(
-	tkn api.Token, init api.InitArgs,
-) (api.FlowID, error) {
-	r.startToken = tkn
-	r.startInit = init
-	r.startCalls++
-	return "child-flow", nil
 }
 
 func (r *testRuntime) UpdateHealth(
@@ -199,24 +187,11 @@ func TestHTTPHandlerAsyncAddsWebhookURL(t *testing.T) {
 	assert.Equal(t, 1, calls.webhookCalls)
 }
 
-func TestFlowHandlerStartsChildFlow(t *testing.T) {
+func TestFlowHandlerHasNoExternalExecution(t *testing.T) {
 	reg := newRegistry(&testClient{})
 	handler, err := reg.Lookup(api.StepTypeFlow)
 	assert.NoError(t, err)
-
-	rt, calls := newRuntime("flow-parent", "step-parent", nil, "")
-	st := &api.Step{
-		ID:   "step-parent",
-		Type: api.StepTypeFlow,
-	}
-
-	err = handler.Execute(rt, st, api.Args{"foo": "bar"}, "token-1")
-	assert.NoError(t, err)
-	assert.Equal(t, 1, calls.startCalls)
-	assert.Equal(t, api.Token("token-1"), calls.startToken)
-	assert.Equal(t,
-		api.InitArgs{"foo": []any{"bar"}}, calls.startInit,
-	)
+	assert.Nil(t, handler.Execute)
 }
 
 func TestRegistryLookupMissing(t *testing.T) {

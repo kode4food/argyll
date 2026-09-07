@@ -7,6 +7,13 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/events"
 )
 
+// storeTx is a transaction in progress and the Engine running it. Every
+// aggregate joined during that transaction is reached through it
+type storeTx struct {
+	*Engine
+	*timebox.Transaction
+}
+
 // GetCatalogState retrieves the current catalog state
 func (e *Engine) GetCatalogState() (api.CatalogState, error) {
 	return e.catalogExec.Get(events.CatalogKey)
@@ -24,7 +31,7 @@ func (e *Engine) GetClusterState() (api.ClusterState, error) {
 // GetCatalogStateSeq retrieves catalog state and its next event sequence
 func (e *Engine) GetCatalogStateSeq() (api.CatalogState, int64, error) {
 	var seq int64
-	st, err := e.execCatalog(
+	st, err := e.catalogExec.Exec(events.CatalogKey,
 		func(_ api.CatalogState, ag *CatalogAggregator) error {
 			seq = ag.NextSequence()
 			return nil
@@ -36,7 +43,7 @@ func (e *Engine) GetCatalogStateSeq() (api.CatalogState, int64, error) {
 // GetClusterStateSeq retrieves cluster state and its next event sequence
 func (e *Engine) GetClusterStateSeq() (api.ClusterState, int64, error) {
 	var seq int64
-	st, err := e.execCluster(
+	st, err := e.clusterExec.Exec(events.ClusterKey,
 		func(_ api.ClusterState, ag *ClusterAggregator) error {
 			seq = ag.NextSequence()
 			return nil
@@ -61,18 +68,6 @@ func (e *Engine) ListSteps() ([]*api.Step, error) {
 	}
 
 	return steps, nil
-}
-
-func (e *Engine) execCatalog(
-	cmd timebox.Command[api.CatalogState],
-) (api.CatalogState, error) {
-	return e.catalogExec.Exec(events.CatalogKey, cmd)
-}
-
-func (e *Engine) execCluster(
-	cmd timebox.Command[api.ClusterState],
-) (api.ClusterState, error) {
-	return e.clusterExec.Exec(events.ClusterKey, cmd)
 }
 
 // GetCatalogEvents retrieves all events for the catalog aggregate

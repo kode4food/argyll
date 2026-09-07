@@ -33,8 +33,8 @@ type (
 
 	// registry tracks active subscriptions and counts references
 	registry struct {
-		anyType        *prefixNode
-		byType         map[timebox.EventType]*prefixNode
+		anyType        *aggregateNode
+		byType         map[timebox.EventType]*aggregateNode
 		allEventsCount int64
 		mu             sync.RWMutex
 	}
@@ -42,12 +42,12 @@ type (
 	// interests describes what events a consumer is interested in
 	interests struct {
 		eventTypes map[timebox.EventType]bool // empty = all event types
-		prefixes   []timebox.AggregateID      // empty = all aggregates
+		ids        []timebox.AggregateID      // empty = all aggregates
 	}
 
-	prefixNode struct {
-		children map[timebox.ID]*prefixNode
-		count    int64
+	aggregateNode struct {
+		byID map[timebox.AggregateID]int64
+		all  int64
 	}
 )
 
@@ -63,8 +63,8 @@ func NewHubWithTopic(inner topic.Topic[*timebox.Event]) *Hub {
 		inner:    inner,
 		producer: inner.NewProducer(),
 		registry: &registry{
-			anyType: &prefixNode{},
-			byType:  make(map[timebox.EventType]*prefixNode),
+			anyType: &aggregateNode{},
+			byType:  make(map[timebox.EventType]*aggregateNode),
 		},
 		closed: make(chan struct{}),
 	}
@@ -105,23 +105,21 @@ func (h *Hub) NewTypeConsumer(eventTypes ...timebox.EventType) *Consumer {
 	return h.NewAggregatesConsumer(nil, eventTypes...)
 }
 
-// NewAggregateConsumer creates a consumer interested in events from aggregates
-// matching the provided prefix. If no event types are specified, the consumer
-// receives all events for aggregates matching the prefix
+// NewAggregateConsumer creates a consumer interested in events from one
+// aggregate. If no event types are specified, it receives all of its events
 func (h *Hub) NewAggregateConsumer(
-	prefix timebox.AggregateID, eventTypes ...timebox.EventType,
+	id timebox.AggregateID, eventTypes ...timebox.EventType,
 ) *Consumer {
-	return h.NewAggregatesConsumer([]timebox.AggregateID{prefix}, eventTypes...)
+	return h.NewAggregatesConsumer([]timebox.AggregateID{id}, eventTypes...)
 }
 
-// NewAggregatesConsumer creates a consumer interested in events from
-// aggregates matching any provided prefix. If no event types are specified,
-// the consumer receives all events for aggregates matching those prefixes
+// NewAggregatesConsumer creates a consumer for the specified aggregates and
+// event types. An empty filter places no restriction on that dimension
 func (h *Hub) NewAggregatesConsumer(
-	prefixes []timebox.AggregateID, eventTypes ...timebox.EventType,
+	ids []timebox.AggregateID, eventTypes ...timebox.EventType,
 ) *Consumer {
 	i := &interests{
-		prefixes: prefixes,
+		ids: ids,
 	}
 
 	if len(eventTypes) > 0 {
@@ -191,12 +189,8 @@ func (h *Hub) hasSubscribers(
 
 // matches checks if an event matches the consumer's interests
 func (c *Consumer) matches(ev *timebox.Event) bool {
-	if len(c.interests.prefixes) > 0 {
-		if !slices.ContainsFunc(
-			c.interests.prefixes, ev.AggregateID.HasPrefix,
-		) {
-			return false
-		}
+	if !c.interests.wantsAggregate(ev.AggregateID) {
+		return false
 	}
 
 	if len(c.interests.eventTypes) > 0 && !c.interests.eventTypes[ev.Type] {
@@ -211,29 +205,18 @@ func (r *registry) register(i *interests) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	if len(i.prefixes) == 0 && len(i.eventTypes) == 0 {
+	if i.wantsEverything() {
 		r.allEventsCount++
 		return
 	}
 
 	if len(i.eventTypes) == 0 {
-		for _, pfx := range i.prefixes {
-			r.anyType.add(pfx)
-		}
+		i.addTo(r.anyType)
 		return
 	}
 
-	if len(i.prefixes) == 0 {
-		for et := range i.eventTypes {
-			r.getOrCreateNode(et).add(nil)
-		}
-		return
-	}
-
-	for _, pfx := range i.prefixes {
-		for et := range i.eventTypes {
-			r.getOrCreateNode(et).add(pfx)
-		}
+	for et := range i.eventTypes {
+		i.addTo(r.getOrCreateNode(et))
 	}
 }
 
@@ -242,38 +225,24 @@ func (r *registry) unregister(i *interests) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	if len(i.prefixes) == 0 && len(i.eventTypes) == 0 {
+	if i.wantsEverything() {
 		r.allEventsCount--
 		return
 	}
 
 	if len(i.eventTypes) == 0 {
-		for _, pfx := range i.prefixes {
-			r.anyType.remove(pfx)
-		}
+		i.removeFrom(r.anyType)
 		return
 	}
 
-	if len(i.prefixes) == 0 {
-		for et := range i.eventTypes {
-			if node, ok := r.byType[et]; ok {
-				node.remove(nil)
-				if node.isEmpty() {
-					delete(r.byType, et)
-				}
-			}
+	for et := range i.eventTypes {
+		node, ok := r.byType[et]
+		if !ok {
+			continue
 		}
-		return
-	}
-
-	for _, pfx := range i.prefixes {
-		for et := range i.eventTypes {
-			if node, ok := r.byType[et]; ok {
-				node.remove(pfx)
-				if node.isEmpty() {
-					delete(r.byType, et)
-				}
-			}
+		i.removeFrom(node)
+		if node.isEmpty() {
+			delete(r.byType, et)
 		}
 	}
 }
@@ -288,12 +257,12 @@ func (r *registry) hasSubscribers(
 		return true
 	}
 
-	if r.anyType.hasPrefixMatch(id) {
+	if r.anyType.hasSubscriber(id) {
 		return true
 	}
 
 	if node, ok := r.byType[typ]; ok {
-		if node.hasPrefixMatch(id) {
+		if node.hasSubscriber(id) {
 			return true
 		}
 	}
@@ -301,86 +270,61 @@ func (r *registry) hasSubscribers(
 	return false
 }
 
-func (r *registry) getOrCreateNode(et timebox.EventType) *prefixNode {
+func (r *registry) getOrCreateNode(et timebox.EventType) *aggregateNode {
 	if node, ok := r.byType[et]; ok {
 		return node
 	}
-	node := &prefixNode{}
+	node := &aggregateNode{}
 	r.byType[et] = node
 	return node
 }
 
-func (p *prefixNode) add(prefix timebox.AggregateID) {
-	node := p
-	for _, part := range prefix {
-		if node.children == nil {
-			node.children = make(map[timebox.ID]*prefixNode)
-		}
-		child := node.children[part]
-		if child == nil {
-			child = &prefixNode{}
-			node.children[part] = child
-		}
-		node = child
-	}
-	node.count++
+func (i *interests) wantsEverything() bool {
+	return len(i.ids) == 0 && len(i.eventTypes) == 0
 }
 
-func (p *prefixNode) remove(prefix timebox.AggregateID) {
-	node := p
-	type pathEntry struct {
-		node *prefixNode
-		key  timebox.ID
-	}
-	var path []pathEntry
+// wantsAggregate is satisfied by interests naming no aggregate at all
+func (i *interests) wantsAggregate(id timebox.AggregateID) bool {
+	return len(i.ids) == 0 || slices.Contains(i.ids, id)
+}
 
-	for _, part := range prefix {
-		if node.children == nil {
-			return
-		}
-		child := node.children[part]
-		if child == nil {
-			return
-		}
-		path = append(path, pathEntry{node: node, key: part})
-		node = child
-	}
-
-	node.count--
-	if node.count > 0 || len(node.children) > 0 {
+func (i *interests) addTo(node *aggregateNode) {
+	if len(i.ids) == 0 {
+		node.all++
 		return
 	}
-
-	for _, entry := range slices.Backward(path) {
-		parent := entry.node
-		delete(parent.children, entry.key)
-		if parent.count > 0 || len(parent.children) > 0 {
-			return
-		}
+	for _, id := range i.ids {
+		node.addID(id)
 	}
 }
 
-func (p *prefixNode) hasPrefixMatch(id timebox.AggregateID) bool {
-	node := p
-	if node.count > 0 {
-		return true
+func (i *interests) removeFrom(node *aggregateNode) {
+	if len(i.ids) == 0 {
+		node.all--
+		return
 	}
-	for _, part := range id {
-		if node.children == nil {
-			return false
-		}
-		child := node.children[part]
-		if child == nil {
-			return false
-		}
-		node = child
-		if node.count > 0 {
-			return true
-		}
+	for _, id := range i.ids {
+		node.removeID(id)
 	}
-	return false
 }
 
-func (p *prefixNode) isEmpty() bool {
-	return p.count == 0 && len(p.children) == 0
+func (a *aggregateNode) addID(id timebox.AggregateID) {
+	if a.byID == nil {
+		a.byID = map[timebox.AggregateID]int64{}
+	}
+	a.byID[id]++
+}
+
+func (a *aggregateNode) removeID(id timebox.AggregateID) {
+	if a.byID[id]--; a.byID[id] <= 0 {
+		delete(a.byID, id)
+	}
+}
+
+func (a *aggregateNode) hasSubscriber(id timebox.AggregateID) bool {
+	return a.all > 0 || a.byID[id] > 0
+}
+
+func (a *aggregateNode) isEmpty() bool {
+	return a.all == 0 && len(a.byID) == 0
 }

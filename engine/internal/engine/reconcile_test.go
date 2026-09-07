@@ -65,7 +65,7 @@ func TestCommittedEventFilter(t *testing.T) {
 			},
 		)
 
-		// Start before seeding, without subscribing this engine to commits.
+		// Start before seeding, without subscribing this engine to commits
 		eng, err := engine.New(env.Config, env.Dependencies())
 		assert.NoError(t, err)
 		defer func() { assert.NoError(t, eng.Stop()) }()
@@ -81,7 +81,7 @@ func TestCommittedEventFilter(t *testing.T) {
 					Type:        timebox.EventType(typ),
 				}
 
-				// Notifications only select a flow; recovery uses its state.
+				// Notifications only select a flow; recovery uses its state
 				eng.HandleCommitted(&timebox.Event{
 					AggregateID: events.FlowKey(fid),
 					Type:        timebox.EventType(api.EventTypeAttributeSet),

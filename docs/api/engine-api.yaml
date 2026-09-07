@@ -1121,9 +1121,15 @@ paths:
 
         ## Aggregate IDs
 
+        An aggregate ID is a type and a key. An aggregate that is the only one of its type uses the key `_`, which you may omit when subscribing.
+
         - **Catalog events**: `["catalog"]` - step registration and updates
         - **Cluster events**: `["cluster"]` - per-step health across nodes
         - **Flow events**: `["flow", "flow-id"]` - flow and step execution events
+
+        Server messages always carry both parts, so catalog events arrive as `["catalog", "_"]`.
+
+        Each ID selects one aggregate; `["flow"]` is not a wildcard. Omitted or empty `aggregate_ids` selects all aggregates. Malformed IDs and empty components prevent the subscription from being registered.
 
         ## Event Filtering
 
@@ -1283,7 +1289,7 @@ components:
           example: "flow_started"
         aggregate_id:
           type: array
-          description: Aggregate identifier components (e.g. ["flow", "wf-123"] or ["catalog"])
+          description: Aggregate type and key (e.g. ["flow", "wf-123"] or ["catalog", "_"])
           items:
             type: string
           example: ["flow", "wf-text-processing-001"]

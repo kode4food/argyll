@@ -31,9 +31,8 @@ type (
 	}
 )
 
-// prepareStep validates and prepares a step to execute within a transaction,
-// raising the StepStarted event via aggregator and scheduling work execution
-// after commit
+// prepareStep validates a step and raises its StepStarted event with the work
+// items to run, leaving dispatch to the work start path
 func (tx *flowTx) prepareStep(sid api.StepID) error {
 	fl := tx.Value()
 

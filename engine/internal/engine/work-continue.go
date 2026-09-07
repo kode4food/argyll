@@ -122,6 +122,9 @@ func (tx *flowTx) handleWorkContinuation(sid api.StepID) error {
 func (tx *flowTx) startContinuedWork(
 	sid api.StepID, st *api.Step, started api.WorkItems,
 ) error {
+	if st.Type == api.StepTypeFlow {
+		return nil
+	}
 	tx.OnSuccess(func(fl api.FlowState, _ []*timebox.Event) {
 		ex := fl.Executions[sid]
 		tx.executeStartedWork(st, ex.Inputs, fl.Metadata, started)

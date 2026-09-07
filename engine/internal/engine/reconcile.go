@@ -59,7 +59,6 @@ func (e *Engine) RecoverFlow(fid api.FlowID) error {
 
 	if !fl.DeactivatedAt.IsZero() {
 		e.CancelPrefixedTasks(flowTaskPrefix(fid))
-		e.releaseChildFlows(fl)
 		return nil
 	}
 
@@ -69,7 +68,9 @@ func (e *Engine) RecoverFlow(fid api.FlowID) error {
 	e.recoverInFlightWork(fl)
 
 	if policy.FlowTerminal(fl.Status) {
-		return e.reconcileTerminalFlow(fl)
+		return e.flowTx(fid, func(tx *flowTx) error {
+			return tx.maybeDeactivate()
+		})
 	}
 
 	e.scheduleTimeouts(fl, e.Now())
@@ -87,23 +88,6 @@ func (e *Engine) scheduleFlowReconcile(fid api.FlowID, at time.Time) {
 			e.scheduleFlowReconcile(fid, e.Now().Add(localDispatchBackoff))
 		}
 		return err
-	})
-}
-
-// reconcileTerminalFlow settles a terminal flow with its parent and its
-// children. Each part rechecks state, so a repeat changes nothing
-func (e *Engine) reconcileTerminalFlow(fl api.FlowState) error {
-	err := e.flowExec.GetStore().Transaction(
-		func(tx *timebox.Transaction) error {
-			_, err := e.completeParentWork(tx, fl)
-			return err
-		},
-	)
-	if err != nil {
-		return err
-	}
-	return e.flowTx(fl.ID, func(tx *flowTx) error {
-		return tx.maybeDeactivate()
 	})
 }
 

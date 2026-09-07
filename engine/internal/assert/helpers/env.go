@@ -464,7 +464,7 @@ func (c *conflictOnce) arm(id timebox.AggregateID) {
 func (c *conflictOnce) take(id timebox.AggregateID) bool {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	if !c.armed || !id.Equal(c.target) {
+	if !c.armed || id != c.target {
 		return false
 	}
 	c.armed = false
@@ -518,13 +518,12 @@ func cloneCommittedEvents(src []*timebox.Event) []*timebox.Event {
 			res = append(res, nil)
 			continue
 		}
-		id := append(timebox.AggregateID(nil), ev.AggregateID...)
 		data := append([]byte{}, ev.Data...)
 		res = append(res, &timebox.Event{
 			Timestamp:   ev.Timestamp,
 			Sequence:    ev.Sequence,
 			Type:        ev.Type,
-			AggregateID: id,
+			AggregateID: ev.AggregateID,
 			Data:        data,
 		})
 	}

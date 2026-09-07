@@ -27,32 +27,22 @@ func TestIsFlowEvent(t *testing.T) {
 	flowEvent := &timebox.Event{
 		AggregateID: events.FlowKey("test-flow"),
 	}
-	shortEvent := &timebox.Event{
-		AggregateID: timebox.NewAggregateID(events.FlowPrefix),
-	}
-	longEvent := &timebox.Event{
-		AggregateID: timebox.NewAggregateID(
-			events.FlowPrefix, "test-flow", "bad",
-		),
+	emptyEvent := &timebox.Event{
+		AggregateID: events.FlowKey(""),
 	}
 	catEvent := &timebox.Event{
 		AggregateID: events.CatalogKey,
 	}
 
 	assert.True(t, events.IsFlowEvent(flowEvent))
-	assert.False(t, events.IsFlowEvent(shortEvent))
-	assert.False(t, events.IsFlowEvent(longEvent))
+	assert.False(t, events.IsFlowEvent(emptyEvent))
 	assert.False(t, events.IsFlowEvent(catEvent))
 }
 
 func TestIsFlowEventID(t *testing.T) {
 	assert.True(t, events.IsFlowEventID(events.FlowKey("test-flow")))
-	assert.False(t, events.IsFlowEventID(
-		timebox.NewAggregateID(events.FlowPrefix),
-	))
-	assert.False(t, events.IsFlowEventID(
-		timebox.NewAggregateID(events.FlowPrefix, "test-flow", "bad"),
-	))
+	assert.True(t, events.IsFlowEventID(events.FlowKey("_")))
+	assert.False(t, events.IsFlowEventID(events.FlowKey("")))
 	assert.False(t, events.IsFlowEventID(events.CatalogKey))
 }
 
@@ -166,14 +156,15 @@ func TestParseFlowID(t *testing.T) {
 			ok:   false,
 		},
 		{
-			name: "too short",
-			id:   timebox.AggregateID{timebox.ID(events.FlowPrefix)},
+			name: "empty flow id",
+			id:   events.FlowKey(""),
 			ok:   false,
 		},
 		{
-			name: "empty flow id",
-			id:   timebox.AggregateID{timebox.ID(events.FlowPrefix), ""},
-			ok:   false,
+			name: "underscore",
+			id:   events.FlowKey("_"),
+			want: "_",
+			ok:   true,
 		},
 	}
 

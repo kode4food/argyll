@@ -3,7 +3,6 @@ package engine
 import (
 	"errors"
 	"fmt"
-	"log/slog"
 	"maps"
 
 	"github.com/kode4food/timebox"
@@ -11,7 +10,6 @@ import (
 	"github.com/kode4food/argyll/engine/internal/engine/policy"
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/events"
-	"github.com/kode4food/argyll/engine/pkg/log"
 )
 
 type parentWork struct {
@@ -76,7 +74,8 @@ func (tx *flowTx) cancelObsoleteTasks() {
 // maybeDeactivate reports the outcome to the parent, then deactivates once
 // the parent can no longer order a rollback
 func (tx *flowTx) maybeDeactivate() error {
-	if !policy.FlowTerminal(tx.Value().Status) {
+	if !policy.FlowTerminal(tx.Value().Status) ||
+		!tx.Value().DeactivatedAt.IsZero() {
 		return nil
 	}
 	// Compensation may start new work, so sweep before testing for active
@@ -84,15 +83,15 @@ func (tx *flowTx) maybeDeactivate() error {
 	if err := tx.compensateFlow(); err != nil {
 		return err
 	}
+	// Told before deactivating, since the parent decides the rollback. Both
+	// halves join one transaction, so the parent cannot miss the outcome
+	parent, err := tx.completeParentWork()
+	if err != nil {
+		return err
+	}
 	fl := tx.Value()
 	if hasActiveWork(fl) || tx.compensationPending(fl) {
 		return nil
-	}
-	// Told before deactivating, since the parent decides the rollback. Both
-	// halves join one transaction, so the parent cannot miss the outcome
-	parent, err := tx.completeParentWork(tx.Transaction(), fl)
-	if err != nil {
-		return err
 	}
 	return tx.deactivate(parent)
 }
@@ -117,9 +116,8 @@ func (tx *flowTx) deactivate(parent api.FlowState) error {
 	tx.OnSuccess(func(fl api.FlowState, _ []*timebox.Event) {
 		// Deactivation, not failure: compensation deadlines outlive the latter
 		tx.CancelPrefixedTasks(deadlinePrefix(tx.flowID))
-		tx.releaseChildFlows(fl)
 	})
-	return nil
+	return tx.releaseChildFlows()
 }
 
 // parentReleased reports whether the parent can still order a rollback.
@@ -141,7 +139,8 @@ func (tx *flowTx) parentReleased(
 }
 
 // releaseChildFlows lets child flows held open by this one deactivate
-func (e *Engine) releaseChildFlows(fl api.FlowState) {
+func (tx *flowTx) releaseChildFlows() error {
+	fl := tx.Value()
 	for sid, ex := range fl.Executions {
 		st, ok := fl.Plan.Steps[sid]
 		if !ok || st.Type != api.StepTypeFlow {
@@ -149,44 +148,32 @@ func (e *Engine) releaseChildFlows(fl api.FlowState) {
 		}
 		fs := api.FlowStep{FlowID: fl.ID, StepID: sid}
 		for tkn := range ex.WorkItems {
-			e.releaseChildFlow(fs, tkn)
+			if _, err := tx.flowTx(childFlowID(fs, tkn),
+				func(child *flowTx) error {
+					return child.maybeDeactivate()
+				},
+			); err != nil {
+				return err
+			}
 		}
 	}
-}
-
-func (e *Engine) releaseChildFlow(fs api.FlowStep, tkn api.Token) {
-	childID := childFlowID(fs, tkn)
-	err := e.flowTx(childID, func(child *flowTx) error {
-		if child.Value().ID == "" {
-			return nil
-		}
-		return child.maybeDeactivate()
-	})
-	if err != nil {
-		slog.Error("Failed to release child flow",
-			log.FlowID(childID),
-			log.Error(err))
-	}
+	return nil
 }
 
 // completeParentWork settles this flow's outcome with its parent in tx and
 // returns the parent's resulting state, so both halves land in one commit
-func (e *Engine) completeParentWork(
-	tx *timebox.Transaction, fl api.FlowState,
-) (api.FlowState, error) {
+func (tx *flowTx) completeParentWork() (api.FlowState, error) {
+	fl := tx.Value()
 	target := &parentWork{}
 	ok, err := parentMeta(fl, target)
 	if !ok || err != nil {
 		return api.FlowState{}, err
 	}
-	if !policy.FlowTerminal(fl.Status) {
-		return api.FlowState{}, nil
-	}
-	return e.completeParentFlowWork(tx, fl, target)
+	return tx.completeParentFlowWork(fl, target)
 }
 
-func (e *Engine) completeParentFlowWork(
-	tx *timebox.Transaction, child api.FlowState, target *parentWork,
+func (tx *flowTx) completeParentFlowWork(
+	child api.FlowState, target *parentWork,
 ) (api.FlowState, error) {
 	settle := func(parentTx *flowTx) error {
 		parent := parentTx.Value()
@@ -201,8 +188,9 @@ func (e *Engine) completeParentFlowWork(
 		}
 
 		if child.Status == api.FlowCompleted {
-			outputs, err := mapFlowOutputs(
-				parent.Plan.Steps[target.fs.StepID], child.GetAttributes(),
+			outputs := child.GetAttributes()
+			err := validateFlowOutputs(
+				parent.Plan.Steps[target.fs.StepID], outputs,
 			)
 			if err != nil {
 				return parentTx.failWork(
@@ -220,7 +208,7 @@ func (e *Engine) completeParentFlowWork(
 		}
 		return parentTx.failWork(target.fs.StepID, target.token, errMsg)
 	}
-	return e.flowTxIn(tx, target.fs.FlowID, settle)
+	return tx.flowTx(target.fs.FlowID, settle)
 }
 
 // getFailureReason extracts a failure reason from flow state
@@ -263,9 +251,7 @@ func parentMeta(fl api.FlowState, target *parentWork) (bool, error) {
 	return true, nil
 }
 
-func mapFlowOutputs(st *api.Step, childAttrs api.Args) (api.Args, error) {
-	outputs := maps.Clone(childAttrs)
-
+func validateFlowOutputs(st *api.Step, outputs api.Args) error {
 	for name, attr := range st.Attributes {
 		if !attr.IsOutput() {
 			continue
@@ -275,14 +261,12 @@ func mapFlowOutputs(st *api.Step, childAttrs api.Args) (api.Args, error) {
 			continue
 		}
 
-		value, ok := childAttrs[mapped]
-		if !ok {
-			return nil, fmt.Errorf("%w: %s", ErrFlowOutputMissing, mapped)
+		if _, ok := outputs[mapped]; !ok {
+			return fmt.Errorf("%w: %s", ErrFlowOutputMissing, mapped)
 		}
-		outputs[mapped] = value
 	}
 
-	return outputs, nil
+	return nil
 }
 
 func validateParentMetadata(meta api.Metadata) error {

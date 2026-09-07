@@ -14,23 +14,11 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/util/call"
 )
 
-type (
-	// ChildFlowRequest contains the state needed to start a child flow
-	ChildFlowRequest struct {
-		Parent     api.FlowStep
-		Token      api.Token
-		Plan       *api.ExecutionPlan
-		Init       api.InitArgs
-		Metadata   api.Metadata
-		Compensate bool
-	}
-
-	flowTx struct {
-		*Engine
-		*FlowAggregator
-		flowID api.FlowID
-	}
-)
+type flowTx struct {
+	storeTx
+	*FlowAggregator
+	flowID api.FlowID
+}
 
 var (
 	ErrFlowExists        = errors.New("flow exists with different plan or init")
@@ -42,6 +30,12 @@ func (e *Engine) StartFlow(
 	fid api.FlowID, pl *api.ExecutionPlan, apps ...flow.Applier,
 ) error {
 	opts := flow.Defaults(apps...)
+	return e.flowTx(fid, func(tx *flowTx) error {
+		return tx.startFlow(pl, opts)
+	})
+}
+
+func (tx *flowTx) startFlow(pl *api.ExecutionPlan, opts *flow.Options) error {
 	if err := call.Perform(
 		call.WithArg(validateParentMetadata, opts.Metadata),
 		call.WithArg(pl.ValidateInputs, opts.Init),
@@ -49,54 +43,59 @@ func (e *Engine) StartFlow(
 		return err
 	}
 
-	return e.flowTx(fid, func(tx *flowTx) error {
-		if tx.Value().ID != "" {
-			match, err := e.matchesStartedFlow(fid, pl, opts.Init)
-			if err != nil {
-				return err
-			}
-			if match {
-				return nil
-			}
-			return ErrFlowExists
-		}
-		if err := events.Raise(tx.FlowAggregator, api.EventTypeFlowStarted,
-			api.FlowStartedEvent{
-				FlowID:     fid,
-				Plan:       pl,
-				Init:       opts.Init,
-				Metadata:   opts.Metadata,
-				Tags:       opts.Tags,
-				Compensate: opts.Compensate,
-			},
-		); err != nil {
+	if tx.Value().ID != "" {
+		match, err := tx.matchesStartedFlow(tx.flowID, pl, opts.Init)
+		if err != nil {
 			return err
 		}
-		for _, sid := range tx.findInitialSteps(tx.Value()) {
-			if err := tx.prepareStep(sid); err != nil {
-				return err
-			}
+		if match {
+			return nil
 		}
-		tx.OnSuccess(func(fl api.FlowState, _ []*timebox.Event) {
-			tx.scheduleTimeouts(fl, tx.Now())
-		})
-		return nil
+		return ErrFlowExists
+	}
+	if err := events.Raise(tx.FlowAggregator, api.EventTypeFlowStarted,
+		api.FlowStartedEvent{
+			FlowID:     tx.flowID,
+			Plan:       pl,
+			Init:       opts.Init,
+			Metadata:   opts.Metadata,
+			Tags:       opts.Tags,
+			Compensate: opts.Compensate,
+		},
+	); err != nil {
+		return err
+	}
+	for _, sid := range tx.findInitialSteps(tx.Value()) {
+		if err := tx.prepareStep(sid); err != nil {
+			return err
+		}
+	}
+	tx.OnSuccess(func(fl api.FlowState, _ []*timebox.Event) {
+		tx.scheduleTimeouts(fl, tx.Now())
 	})
+	return nil
 }
 
-func (e *Engine) StartChildFlow(req *ChildFlowRequest) (api.FlowID, error) {
-	childID := childFlowID(req.Parent, req.Token)
-	err := e.StartFlow(childID, req.Plan,
-		flow.WithInit(req.Init),
-		flow.WithMetadata(req.Metadata),
-		flow.WithParent(req.Parent, req.Token),
-		flow.WithCompensate(req.Compensate),
-	)
-	if err != nil {
-		return "", err
+func (tx *flowTx) startChildFlow(
+	sid api.StepID, tkn api.Token, inputs api.Args,
+) error {
+	fl := tx.Value()
+	st := fl.Plan.Steps[sid]
+	fs := api.FlowStep{FlowID: fl.ID, StepID: sid}
+	init := api.InitArgs{}
+	for name, value := range inputs {
+		init[name] = []any{value}
 	}
-
-	return childID, nil
+	opts := flow.Defaults(
+		flow.WithInit(init),
+		flow.WithMetadata(fl.Metadata),
+		flow.WithParent(fs, tkn),
+		flow.WithCompensate(st.Flow != nil && st.Flow.Compensate),
+	)
+	_, err := tx.flowTx(childFlowID(fs, tkn), func(child *flowTx) error {
+		return child.startFlow(fl.Plan.Children[sid], opts)
+	})
+	return err
 }
 
 func (e *Engine) matchesStartedFlow(
@@ -121,30 +120,23 @@ func (e *Engine) matchesStartedFlow(
 	return false, nil
 }
 
-func (e *Engine) execFlow(
-	flowID timebox.AggregateID, cmd timebox.Command[api.FlowState],
-) (api.FlowState, error) {
-	return e.flowExec.Exec(flowID, cmd)
-}
-
 func (e *Engine) flowTx(fid api.FlowID, fn func(*flowTx) error) error {
-	return e.flowExec.GetStore().Transaction(
-		func(tx *timebox.Transaction) error {
-			_, err := e.flowTxIn(tx, fid, fn)
+	return e.flowExec.GetStore().Transact(
+		func(t *timebox.Transaction) error {
+			tx := storeTx{Engine: e, Transaction: t}
+			_, err := tx.flowTx(fid, fn)
 			return err
 		},
 	)
 }
 
-// flowTxIn enlists the flow in tx, so its events commit alongside every
-// other aggregate joined to it
-func (e *Engine) flowTxIn(
-	tx *timebox.Transaction, fid api.FlowID, fn func(*flowTx) error,
+func (tx storeTx) flowTx(
+	fid api.FlowID, fn func(*flowTx) error,
 ) (api.FlowState, error) {
-	return tx.Exec(e.flowExec, events.FlowKey(fid),
+	return tx.Exec(tx.flowExec, events.FlowKey(fid),
 		func(_ api.FlowState, ag *FlowAggregator) error {
 			return fn(&flowTx{
-				Engine:         e,
+				storeTx:        tx,
 				FlowAggregator: ag,
 				flowID:         fid,
 			})

@@ -9,7 +9,7 @@ import (
 const CatalogPrefix = "catalog"
 
 var (
-	CatalogKey = timebox.NewAggregateID(CatalogPrefix)
+	CatalogKey = timebox.NewAggregateType(CatalogPrefix)
 
 	CatalogAppliers = makeCatalogAppliers()
 )
@@ -31,7 +31,7 @@ func IsCatalogEvent(ev *timebox.Event) bool {
 
 // IsCatalogEventID returns true if the ID is for the catalog aggregate
 func IsCatalogEventID(id timebox.AggregateID) bool {
-	return len(id) == 1 && id[0] == CatalogPrefix
+	return id == CatalogKey
 }
 
 func makeCatalogAppliers() timebox.Appliers[api.CatalogState] {

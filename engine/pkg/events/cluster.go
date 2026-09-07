@@ -9,7 +9,7 @@ import (
 const ClusterPrefix = "cluster"
 
 var (
-	ClusterKey = timebox.NewAggregateID(ClusterPrefix)
+	ClusterKey = timebox.NewAggregateType(ClusterPrefix)
 
 	ClusterAppliers = makeClusterAppliers()
 )
@@ -28,7 +28,7 @@ func IsClusterEvent(ev *timebox.Event) bool {
 
 // IsClusterEventID returns true if the ID is for the cluster aggregate
 func IsClusterEventID(id timebox.AggregateID) bool {
-	return len(id) == 1 && id[0] == ClusterPrefix
+	return id == ClusterKey
 }
 
 func makeClusterAppliers() timebox.Appliers[api.ClusterState] {

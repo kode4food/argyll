@@ -41,9 +41,12 @@ func TestHubPublishOrder(t *testing.T) {
 	}
 }
 
-func TestHubAggregatePrefix(t *testing.T) {
+func TestHubAggregateIDs(t *testing.T) {
 	h := event.NewHub()
-	consumer := h.NewAggregateConsumer(timebox.NewAggregateID("flow"))
+	consumer := h.NewAggregatesConsumer([]timebox.AggregateID{
+		timebox.NewAggregateID("flow", "a"),
+		timebox.NewAggregateID("flow", "b"),
+	})
 	defer consumer.Close()
 
 	ch := consumer.Receive()
@@ -56,7 +59,7 @@ func TestHubAggregatePrefix(t *testing.T) {
 	for range 2 {
 		select {
 		case ev := <-ch:
-			assert.Equal(t, timebox.ID("flow"), ev.AggregateID[0])
+			assert.Equal(t, timebox.ID("flow"), ev.AggregateID.Type)
 		case <-time.After(eventWait):
 			t.Fatal("timeout waiting for flow event")
 		}
@@ -69,10 +72,10 @@ func TestHubAggregatePrefix(t *testing.T) {
 	}
 }
 
-func TestHubTypeFilterWithPrefix(t *testing.T) {
+func TestHubTypeFilterWithAggregate(t *testing.T) {
 	h := event.NewHub()
 	consumer := h.NewAggregateConsumer(
-		timebox.NewAggregateID("flow"), "incremented",
+		timebox.NewAggregateID("flow", "a"), "incremented",
 	)
 	defer consumer.Close()
 
@@ -86,7 +89,7 @@ func TestHubTypeFilterWithPrefix(t *testing.T) {
 	select {
 	case ev := <-ch:
 		assert.Equal(t, timebox.EventType("incremented"), ev.Type)
-		assert.Equal(t, timebox.ID("flow"), ev.AggregateID[0])
+		assert.Equal(t, timebox.ID("flow"), ev.AggregateID.Type)
 	case <-time.After(eventWait):
 		t.Fatal("timeout waiting for filtered event")
 	}
@@ -125,7 +128,7 @@ func TestHubTypeOnly(t *testing.T) {
 
 func TestHubUnsubscribe(t *testing.T) {
 	h := event.NewHub()
-	consumer := h.NewAggregateConsumer(timebox.NewAggregateID("flow"))
+	consumer := h.NewAggregateConsumer(timebox.NewAggregateID("flow", "a"))
 	ch := consumer.Receive()
 
 	h.Publish(newEvent("incremented", timebox.NewAggregateID("flow", "a"), 0))
@@ -148,7 +151,10 @@ func TestHubUnsubscribe(t *testing.T) {
 
 func TestHubCloseUnblocksFilteredSend(t *testing.T) {
 	h := event.NewHub()
-	consumer := h.NewAggregateConsumer(timebox.NewAggregateID("flow"))
+	consumer := h.NewAggregatesConsumer([]timebox.AggregateID{
+		timebox.NewAggregateID("flow", "a"),
+		timebox.NewAggregateID("flow", "b"),
+	})
 	ch := consumer.Receive()
 
 	h.Publish(
@@ -177,11 +183,11 @@ func TestHubCloseUnblocksFilteredSend(t *testing.T) {
 	}
 }
 
-func TestHubMultiplePrefixes(t *testing.T) {
+func TestHubMultipleAggregates(t *testing.T) {
 	h := event.NewHub()
 	consumer := h.NewAggregatesConsumer([]timebox.AggregateID{
-		timebox.NewAggregateID("flow"),
-		timebox.NewAggregateID("engine"),
+		timebox.NewAggregateID("flow", "a"),
+		timebox.NewAggregateID("engine", "x"),
 	})
 	defer consumer.Close()
 
@@ -195,7 +201,7 @@ func TestHubMultiplePrefixes(t *testing.T) {
 	for range 2 {
 		select {
 		case ev := <-ch:
-			got = append(got, ev.AggregateID[0])
+			got = append(got, ev.AggregateID.Type)
 		case <-time.After(eventWait):
 			t.Fatal("timeout waiting for event")
 		}
@@ -238,11 +244,11 @@ func TestHubClose(t *testing.T) {
 	assert.True(t, closer.IsClosed(h))
 }
 
-func TestHubConsumerFiltersOtherPrefix(t *testing.T) {
+func TestHubConsumerFiltersOtherAggregate(t *testing.T) {
 	h := event.NewHub()
-	flows := h.NewAggregateConsumer(timebox.NewAggregateID("flow"))
+	flows := h.NewAggregateConsumer(timebox.NewAggregateID("flow", "a"))
 	defer flows.Close()
-	engines := h.NewAggregateConsumer(timebox.NewAggregateID("engine"))
+	engines := h.NewAggregateConsumer(timebox.NewAggregateID("engine", "x"))
 	defer engines.Close()
 
 	flowCh := flows.Receive()
@@ -251,7 +257,7 @@ func TestHubConsumerFiltersOtherPrefix(t *testing.T) {
 
 	select {
 	case ev := <-flowCh:
-		assert.Equal(t, timebox.ID("flow"), ev.AggregateID[0])
+		assert.Equal(t, timebox.ID("flow"), ev.AggregateID.Type)
 	case <-time.After(eventWait):
 		t.Fatal("timeout waiting for event")
 	}
@@ -265,10 +271,10 @@ func TestHubConsumerFiltersOtherPrefix(t *testing.T) {
 
 func TestHubConsumerFiltersOtherType(t *testing.T) {
 	h := event.NewHub()
-	prefix := timebox.NewAggregateID("flow")
-	started := h.NewAggregateConsumer(prefix, "started")
+	id := timebox.NewAggregateID("flow", "a")
+	started := h.NewAggregateConsumer(id, "started")
 	defer started.Close()
-	stopped := h.NewAggregateConsumer(prefix, "stopped")
+	stopped := h.NewAggregateConsumer(id, "stopped")
 	defer stopped.Close()
 
 	startedCh := started.Receive()
@@ -289,11 +295,11 @@ func TestHubConsumerFiltersOtherType(t *testing.T) {
 	}
 }
 
-func TestHubUnsubscribeSharedPrefix(t *testing.T) {
+func TestHubUnsubscribeSharedAggregate(t *testing.T) {
 	h := event.NewHub()
-	prefix := timebox.NewAggregateID("flow")
-	first := h.NewAggregateConsumer(prefix)
-	second := h.NewAggregateConsumer(prefix)
+	id := timebox.NewAggregateID("flow", "a")
+	first := h.NewAggregateConsumer(id)
+	second := h.NewAggregateConsumer(id)
 	defer second.Close()
 
 	ch := second.Receive()
@@ -302,17 +308,15 @@ func TestHubUnsubscribeSharedPrefix(t *testing.T) {
 
 	select {
 	case ev := <-ch:
-		assert.Equal(t, timebox.ID("flow"), ev.AggregateID[0])
+		assert.Equal(t, timebox.ID("flow"), ev.AggregateID.Type)
 	case <-time.After(eventWait):
 		t.Fatal("timeout waiting for event")
 	}
 }
 
-func TestHubPrefixLongerThanAggregate(t *testing.T) {
+func TestHubOtherAggregate(t *testing.T) {
 	h := event.NewHub()
-	consumer := h.NewAggregateConsumer(
-		timebox.NewAggregateID("flow", "a", "b"),
-	)
+	consumer := h.NewAggregateConsumer(timebox.NewAggregateID("flow", "b"))
 	defer consumer.Close()
 
 	ch := consumer.Receive()

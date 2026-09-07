@@ -27,9 +27,10 @@ github.com/kode4food/argyll/engine v0.0.0-20260827045536-9ade6fec529a/go.mod h1:
 github.com/kode4food/caravan v0.0.0-20260905062940-5af4c3674974 h1:C/uzNNHL2FJh8Sd1AucDQPcB7ffpjHMAXv469cO/el0=
 github.com/kode4food/caravan v0.0.0-20260905062940-5af4c3674974/go.mod h1:2926EylBdGCztWOEDu1VPk8WlNnFkwxn8Q0sOEmf2E4=
 github.com/kode4food/jpath v0.0.0-20260906125407-9cba525a6f65 h1:bcDTbjLAl2IG/ODJ4A97cC4knXIwHHfwW9Qu8nV8RME=
+github.com/kode4food/jpath v0.0.0-20260906125407-9cba525a6f65/go.mod h1:gYY1OfgNwxDs30LLA1moTAQtzapUvEpMO+zX6GI2Fpg=
 github.com/kode4food/lru v0.0.0-20260821124822-50bd9a308b71 h1:xqHrCb85JXvWEWCHRM3zsuNUWEJSNktvs7ROFEnKhIo=
 github.com/kode4food/lru v0.0.0-20260821124822-50bd9a308b71/go.mod h1:qxHo1+SIRuVcQ5s3HaZYMWw5v1B6W4kJIJ4KP/gg67c=
-github.com/kode4food/timebox v0.0.0-20260907051312-77ac6268595a h1:Aaq31UQ3/gJaRBamwgTcDv2lWcqvrp4Zs8imC1CV8YE=
+github.com/kode4food/timebox v0.0.0-20260907163559-5ccaf3777ded h1:1rhK1/z99mXxygNqorjye+2JL6RuMhnf3YX/bNkAtes=
 github.com/stretchr/testify v1.12.1 h1:EuwCh5fleGS7H32xRwO3wRGT7DxrDhLAT6FF8MpWDWE=
 github.com/stretchr/testify v1.12.1/go.mod h1:MDEgiDPPsNp5cuIrHPPCyornHKgEVbtFUmoNlxoYthg=
 go.etcd.io/raft/v3 v3.7.0 h1:BGzlwx07bLv8PW6OU5HObuz1y4hlPZUXA07pM1mPUh4=

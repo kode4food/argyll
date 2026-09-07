@@ -24,7 +24,7 @@ func (e *Engine) RegisterSpace(sp api.Space) error {
 	if err != nil {
 		return err
 	}
-	return e.CatalogTx(func(tx *CatalogTx) error {
+	return e.catalogTx(func(tx *catalogTx) error {
 		cat := tx.ag.Value()
 		old, ok := cat.Spaces[sp.ID]
 		if !ok {
@@ -82,7 +82,7 @@ func (e *Engine) UpdateSpace(sp api.Space) error {
 	if err != nil {
 		return err
 	}
-	return e.CatalogTx(func(tx *CatalogTx) error {
+	return e.catalogTx(func(tx *catalogTx) error {
 		cat := tx.ag.Value()
 		old, ok := cat.Spaces[sp.ID]
 		if !ok {
@@ -109,7 +109,7 @@ func (e *Engine) UpdateSpace(sp api.Space) error {
 
 // UnregisterSpace removes a planning space
 func (e *Engine) UnregisterSpace(spaceID api.SpaceID) error {
-	return e.CatalogTx(func(tx *CatalogTx) error {
+	return e.catalogTx(func(tx *catalogTx) error {
 		cat := tx.ag.Value()
 		if _, ok := cat.Spaces[spaceID]; !ok {
 			return fmt.Errorf("%w: %s", ErrSpaceNotFound, spaceID)

@@ -41,13 +41,13 @@ executor.Exec(ctx, aggregateID, cmd)
 
 **Side effects use `ag.OnSuccess()`**
 
-Register side effects such as network calls, starting work, cross-aggregate operations, and retry queue updates through `ag.OnSuccess()` inside the command callback rather than calling them directly in the command.
+Register external effects such as network calls, script execution, and retry queue updates through `ag.OnSuccess()` inside the command callback rather than calling them directly in the command. Related aggregate changes within the same Store belong in `ag.Transaction().Exec(...)`, so they commit atomically and retry together. Child creation joins parent work start; child settlement joins parent work completion; parent deactivation joins eligible child deactivation. Catalog registration and its cluster health update also share a transaction.
 
 **Why:** If the command retries (optimistic concurrency conflict), direct side effects execute multiple times. `ag.OnSuccess()` runs only once, after Exec commits, and receives the final aggregate state plus the successfully flushed `[]*timebox.Event`.
 
 **Real patterns from the codebase:**
 
-For cluster state mutations (`execCluster` with no external side effects needed):
+For cluster state mutations (the cluster executor with no external side effects needed):
 
 ```go
 // health.go: UpdateStepHealth
@@ -69,7 +69,7 @@ func (e *Engine) UpdateStepHealth(stepID api.StepID, health api.HealthStatus, er
             },
         )
     }
-    _, err := e.execCluster(cmd)
+    _, err := e.clusterExec.Exec(events.ClusterKey, cmd)
     return err
 }
 ```
@@ -78,45 +78,53 @@ For flow state mutations (flowTx wrapper with OnSuccess for side effects):
 
 ```go
 // flow-start.go: StartFlow using flowTx
-func (e *Engine) StartFlow(flowID api.FlowID, pl *api.ExecutionPlan, apps ...flow.Applier) error {
+func (e *Engine) StartFlow(
+    fid api.FlowID, pl *api.ExecutionPlan, apps ...flow.Applier,
+) error {
     opts := flow.Defaults(apps...)
+    return e.flowTx(fid, func(tx *flowTx) error {
+        return tx.startFlow(pl, opts)
+    })
+}
 
-    return e.flowTx(flowID, func(tx *flowTx) error {
-        if tx.Value().ID != "" {
-            return ErrFlowExists
-        }
-        if err := events.Raise(tx.FlowAggregator, api.EventTypeFlowStarted, ...); err != nil {
+func (tx *flowTx) startFlow(pl *api.ExecutionPlan, opts *flow.Options) error {
+    if tx.Value().ID != "" {
+        // ... match the already started flow, or return ErrFlowExists
+    }
+    if err := events.Raise(
+        tx.FlowAggregator, api.EventTypeFlowStarted, ...,
+    ); err != nil {
+        return err
+    }
+    // Prepare initial steps (may register more OnSuccess)
+    for _, sid := range tx.findInitialSteps(tx.Value()) {
+        if err := tx.prepareStep(sid); err != nil {
             return err
         }
-        // Prepare initial steps (may register more OnSuccess)
-        for _, stepID := range tx.findInitialSteps(tx.Value()) {
-            if err := tx.prepareStep(stepID); err != nil {
-                return err
-            }
-        }
-        tx.OnSuccess(func(flow api.FlowState, _ []*timebox.Event) {
-            tx.scheduleTimeouts(flow, tx.Now())
-        })
-        return nil
+    }
+    tx.OnSuccess(func(fl api.FlowState, _ []*timebox.Event) {
+        tx.scheduleTimeouts(fl, tx.Now())
     })
+    return nil
 }
 ```
 
-Work execution (inside flowTx prepareStep):
+Work execution (inside flowTx, after the work items are started):
 
 ```go
-// step-start.go: prepareStep (called inside flowTx command)
-func (tx *flowTx) prepareStep(stepID api.StepID) error {
-    if err := events.Raise(tx.FlowAggregator, api.EventTypeStepStarted, ...); err != nil {
-        return err
+// work-continue.go: startContinuedWork (called inside flowTx command)
+func (tx *flowTx) startContinuedWork(
+    sid api.StepID, st *api.Step, started api.WorkItems,
+) error {
+    if st.Type == api.StepTypeFlow {
+        // Child flows already started inside this transaction
+        return nil
     }
-    started, err := tx.startPendingWork(step)
-    if len(started) > 0 {
-        tx.OnSuccess(func(flow api.FlowState, _ []*timebox.Event) {
-            // Execute work AFTER commit succeeds
-            tx.handleWorkItemsExecution(step, inputs, flow.Metadata, started)
-        })
-    }
+    tx.OnSuccess(func(fl api.FlowState, _ []*timebox.Event) {
+        // Execute work AFTER commit succeeds
+        ex := fl.Executions[sid]
+        tx.executeStartedWork(st, ex.Inputs, fl.Metadata, started)
+    })
     return nil
 }
 ```
@@ -126,21 +134,31 @@ Flow completion (inside flowTx checkTerminal):
 ```go
 // flow-stop.go: checkTerminal (called inside flowTx command)
 func (tx *flowTx) checkTerminal() error {
-    if tx.isFlowComplete(flow) {
-        if err := events.Raise(tx.FlowAggregator, api.EventTypeFlowCompleted, ...); err != nil {
+    fl := tx.Value()
+    if isFlowComplete(fl) {
+        if err := events.Raise(
+            tx.FlowAggregator, api.EventTypeFlowCompleted, ...,
+        ); err != nil {
             return err
         }
-        tx.OnSuccess(func(flow api.FlowState, _ []*timebox.Event) {
-            if flowHasRetryTasks(flow) {
-                tx.CancelPrefixedTasks(retryPrefix(tx.flowID))
-            }
-            if flowHasTimeouts(flow) {
-                tx.CancelPrefixedTasks(timeoutFlowPrefix(tx.flowID))
-            }
-        })
+        tx.cancelObsoleteTasks()
         return tx.maybeDeactivate()
     }
+    // ... same shape for the failed case
     return nil
+}
+
+// cancelObsoleteTasks drops the retry and timeout tasks a terminal flow can
+// no longer act on
+func (tx *flowTx) cancelObsoleteTasks() {
+    tx.OnSuccess(func(fl api.FlowState, _ []*timebox.Event) {
+        if flowHasRetryTasks(fl) {
+            tx.CancelPrefixedTasks(retryPrefix(tx.flowID))
+        }
+        if flowHasTimeouts(fl) {
+            tx.CancelPrefixedTasks(timeoutFlowPrefix(tx.flowID))
+        }
+    })
 }
 ```
 
@@ -246,7 +264,7 @@ POST /engine/flows (server)
   ↓
 Server validates request, builds the plan, calls engine.StartFlow()
   ↓
-engine.StartFlow() calls flowTx(), which wraps execFlow()
+engine.StartFlow() calls flowTx(), which joins the flow to Store.Transact()
   ↓
 Inside the executor command:
   - Raise FlowStartedEvent
@@ -266,7 +284,7 @@ OnSuccess handlers run:
 Work item execution branch:
   - Script/sync HTTP: perform work, then call CompleteWork() on success
   - Async HTTP: invoke the step and return; webhook later calls CompleteWork()/FailWork()
-  - Flow step: StartChildFlow() with the precomputed child plan from the parent plan; parent work completes later when the child flow deactivates
+  - Flow step: no external execution; parent work start and child creation already committed atomically using the precomputed child plan
   ↓
 Completion transaction:
   - Raise WorkSucceededEvent / WorkFailedEvent / WorkNotCompletedEvent
@@ -278,8 +296,8 @@ Completion transaction:
   - Maybe start newly ready pending steps
   ↓
 Check terminal state:
-  - Raise FlowCompletedEvent or FlowFailedEvent when appropriate
-  - Raise FlowDeactivatedEvent only after the flow is terminal and no active work remains
+  - Raise FlowCompletedEvent or FlowFailedEvent when appropriate, settling the parent work in the same transaction
+  - Raise FlowDeactivatedEvent only after the flow is terminal, no active work or compensation remains, and the parent releases it; join eligible child deactivations to the same transaction
 ```
 
 ## State Reconstruction (Recovery)

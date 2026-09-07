@@ -119,7 +119,7 @@ func TestUpdateStepDefaultIdempotent(t *testing.T) {
 	})
 }
 
-func TestCatalogTxRegister(t *testing.T) {
+func TestRegisterSteps(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
 		stepA := &api.Step{
 			ID:   "step-a",
@@ -145,13 +145,7 @@ func TestCatalogTxRegister(t *testing.T) {
 			},
 		}
 
-		err := eng.CatalogTx(func(tx *engine.CatalogTx) error {
-			if err := tx.Register(stepA); err != nil {
-				return err
-			}
-			return tx.Register(stepB)
-		})
-		assert.NoError(t, err)
+		assert.NoError(t, eng.RegisterSteps(stepA, stepB))
 
 		cat, err := eng.GetCatalogState()
 		assert.NoError(t, err)
@@ -160,7 +154,7 @@ func TestCatalogTxRegister(t *testing.T) {
 	})
 }
 
-func TestCatalogTxRollback(t *testing.T) {
+func TestRegisterStepsRollback(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
 		stepA := &api.Step{
 			ID:   "step-a",
@@ -185,12 +179,7 @@ func TestCatalogTxRollback(t *testing.T) {
 			},
 		}
 
-		err := eng.CatalogTx(func(tx *engine.CatalogTx) error {
-			if err := tx.Register(stepA); err != nil {
-				return err
-			}
-			return tx.Register(stepB)
-		})
+		err := eng.RegisterSteps(stepA, stepB)
 		assert.ErrorIs(t, err, engine.ErrInvalidStep)
 		assert.ErrorIs(t, err, engine.ErrTypeConflict)
 
@@ -379,7 +368,7 @@ func TestStepHealthSettledAtomically(t *testing.T) {
 	backend := &clusterWriteBackend{
 		Backend: memory.NewPersistence(),
 		beforeAppend: func(req timebox.AppendRequest) error {
-			if fail.Load() && req.ID.Equal(events.ClusterKey) &&
+			if fail.Load() && req.ID == events.ClusterKey &&
 				len(req.Events) != 0 {
 				return ErrClusterWrite
 			}

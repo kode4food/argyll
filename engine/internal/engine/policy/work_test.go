@@ -162,6 +162,10 @@ func TestCompensationDeadline(t *testing.T) {
 func TestNoWorkDeadline(t *testing.T) {
 	started := time.Unix(1000, 0)
 	active := api.WorkState{Status: api.WorkActive, StartedAt: started}
+	_, childDeadline := policy.WorkDeadline(
+		&api.Step{Type: api.StepTypeFlow}, active, deadlineFallback,
+	)
+	assert.False(t, childDeadline)
 	http := &api.Step{
 		ID:   "http-step",
 		Type: api.StepTypeService,
