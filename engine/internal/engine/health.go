@@ -5,6 +5,8 @@ import (
 	"maps"
 	"sort"
 
+	"github.com/kode4food/timebox"
+
 	"github.com/kode4food/argyll/engine/internal/engine/plan"
 	"github.com/kode4food/argyll/engine/internal/engine/policy"
 	"github.com/kode4food/argyll/engine/pkg/api"
@@ -28,8 +30,26 @@ type healthResolver struct {
 func (e *Engine) UpdateStepHealth(
 	sid api.StepID, health api.HealthStatus, errMsg string,
 ) error {
+	return e.engStore.Transaction(func(tx *timebox.Transaction) error {
+		return e.updateStepHealth(tx, sid, health, errMsg)
+	})
+}
+
+// updateStepHealth records the step's health on the cluster aggregate in tx,
+// so a catalog change and the health it implies commit together
+func (e *Engine) updateStepHealth(
+	tx *timebox.Transaction, sid api.StepID,
+	health api.HealthStatus, errMsg string,
+) error {
 	nid := e.LocalNodeID()
 	cmd := func(st api.ClusterState, ag *ClusterAggregator) error {
+		ag.OnSuccess(func(api.ClusterState, []*timebox.Event) {
+			e.setLocalHealth(sid, api.HealthState{
+				Status: health,
+				Error:  errMsg,
+			})
+		})
+
 		node := st.Nodes[nid]
 		if h, ok := node.Health[sid]; ok {
 			if h.Status == health && h.Error == errMsg {
@@ -47,16 +67,8 @@ func (e *Engine) UpdateStepHealth(
 		)
 	}
 
-	_, err := e.execCluster(cmd)
-	if err != nil {
-		return err
-	}
-
-	e.setLocalHealth(sid, api.HealthState{
-		Status: health,
-		Error:  errMsg,
-	})
-	return nil
+	_, err := tx.Exec(e.clusterExec, events.ClusterKey, cmd)
+	return err
 }
 
 // ResolveHealth returns resolved health for all steps, deriving flow step

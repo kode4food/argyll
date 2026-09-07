@@ -1,15 +1,27 @@
 package engine_test
 
 import (
+	"errors"
+	"sync/atomic"
 	"testing"
 
+	"github.com/kode4food/timebox"
+	"github.com/kode4food/timebox/memory"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/kode4food/argyll/engine/internal/assert/helpers"
 	"github.com/kode4food/argyll/engine/internal/engine"
 	"github.com/kode4food/argyll/engine/internal/engine/script"
 	"github.com/kode4food/argyll/engine/pkg/api"
+	"github.com/kode4food/argyll/engine/pkg/events"
 )
+
+type clusterWriteBackend struct {
+	timebox.Backend
+	beforeAppend func(timebox.AppendRequest) error
+}
+
+var ErrClusterWrite = errors.New("cluster write unavailable")
 
 func TestRegisterStep(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
@@ -356,4 +368,61 @@ func TestUpdateStepNotFound(t *testing.T) {
 		err := eng.UpdateStep(st)
 		assert.ErrorIs(t, err, engine.ErrStepNotFound)
 	})
+}
+
+// TestStepHealthSettledAtomically proves a step's catalog registration and the
+// cluster health it implies now commit together. The catalog and cluster
+// aggregates share a Store, so a failing health write must abort the
+// registration rather than leaving a registered step with no health
+func TestStepHealthSettledAtomically(t *testing.T) {
+	var fail atomic.Bool
+	backend := &clusterWriteBackend{
+		Backend: memory.NewPersistence(),
+		beforeAppend: func(req timebox.AppendRequest) error {
+			if fail.Load() && req.ID.Equal(events.ClusterKey) &&
+				len(req.Events) != 0 {
+				return ErrClusterWrite
+			}
+			return nil
+		},
+	}
+	cfg := helpers.NewTestConfig()
+	store, err := timebox.NewStore(backend, cfg.EngineStoreConfig())
+	assert.NoError(t, err)
+
+	helpers.WithTestEnvDeps(t,
+		engine.Dependencies{EngineStore: store},
+		func(env *helpers.TestEngineEnv) {
+			st := helpers.NewSimpleStep("atomic-health")
+
+			fail.Store(true)
+			assert.ErrorIs(t, env.Engine.RegisterStep(st), ErrClusterWrite)
+
+			cat, err := env.Engine.GetCatalogState()
+			assert.NoError(t, err)
+			assert.NotContains(t, cat.Steps, st.ID,
+				"step must not register when its health write fails")
+
+			fail.Store(false)
+			assert.NoError(t, env.Engine.RegisterStep(st))
+
+			cat, err = env.Engine.GetCatalogState()
+			assert.NoError(t, err)
+			assert.Contains(t, cat.Steps, st.ID)
+		})
+}
+
+func (b *clusterWriteBackend) Append(reqs ...timebox.AppendRequest) error {
+	for _, req := range reqs {
+		if err := b.beforeAppend(req); err != nil {
+			return err
+		}
+	}
+	return b.Backend.Append(reqs...)
+}
+
+func (b *clusterWriteBackend) NewStore(
+	cfg timebox.Config,
+) (*timebox.Store, error) {
+	return timebox.NewStore(b, cfg)
 }

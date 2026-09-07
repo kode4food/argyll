@@ -436,11 +436,15 @@ func TestDeadlineConflict(t *testing.T) {
 	}
 }
 
-func (b *deadlineConflictBackend) Append(req timebox.AppendRequest) error {
-	if err := b.beforeAppend(req); err != nil {
-		return err
+func (b *deadlineConflictBackend) Append(
+	reqs ...timebox.AppendRequest,
+) error {
+	for _, req := range reqs {
+		if err := b.beforeAppend(req); err != nil {
+			return err
+		}
 	}
-	return b.Backend.Append(req)
+	return b.Backend.Append(reqs...)
 }
 
 func containsEvent(req timebox.AppendRequest, kind api.EventType) bool {

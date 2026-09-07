@@ -207,8 +207,8 @@ func NewTestEngineWithDeps(
 	deps := mergeDependencies(defaultDeps, overrides)
 	eng, err := engine.New(cfg, deps)
 	assert.NoError(t, err)
-	flowExec := timebox.NewExecutor(
-		deps.FlowStore, events.NewFlowState, events.FlowAppliers,
+	flowExec := deps.FlowStore.Executor(
+		events.NewFlowState, events.FlowAppliers,
 	)
 
 	testEnv := &TestEngineEnv{
@@ -268,8 +268,8 @@ func (e *TestEngineEnv) NewEngineInstance() (*engine.Engine, error) {
 		return nil, err
 	}
 	e.trackUnsubscribe(e.SubscribeCommitted(eng.HandleCommitted))
-	e.flowExec = timebox.NewExecutor(
-		e.flowStore, events.NewFlowState, events.FlowAppliers,
+	e.flowExec = e.flowStore.Executor(
+		events.NewFlowState, events.FlowAppliers,
 	)
 	return eng, nil
 }
@@ -427,18 +427,25 @@ func (e *TestEngineEnv) engineDeps(
 	}
 }
 
-func (b backend) Append(req timebox.AppendRequest) error {
-	if b.conflict.take(req.ID) {
-		return &timebox.VersionConflictError{
-			ExpectedSequence: req.ExpectedSequence,
-			ActualSequence:   req.ExpectedSequence + 1,
+func (b backend) Append(reqs ...timebox.AppendRequest) error {
+	// an armed conflict fails the whole set, as a real one would
+	for _, req := range reqs {
+		if b.conflict.take(req.ID) {
+			return &timebox.VersionConflictError{
+				ID:               req.ID,
+				ExpectedSequence: req.ExpectedSequence,
+				ActualSequence:   req.ExpectedSequence + 1,
+			}
 		}
 	}
-	err := b.Backend.Append(req)
-	if err != nil || len(req.Events) == 0 {
+	if err := b.Backend.Append(reqs...); err != nil {
 		return err
 	}
-	b.publish(req.Events...)
+	for _, req := range reqs {
+		if len(req.Events) != 0 {
+			b.publish(req.Events...)
+		}
+	}
 	return nil
 }
 

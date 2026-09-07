@@ -128,17 +128,28 @@ func (e *Engine) execFlow(
 }
 
 func (e *Engine) flowTx(fid api.FlowID, fn func(*flowTx) error) error {
-	_, err := e.execFlow(events.FlowKey(fid),
+	return e.flowExec.GetStore().Transaction(
+		func(tx *timebox.Transaction) error {
+			_, err := e.flowTxIn(tx, fid, fn)
+			return err
+		},
+	)
+}
+
+// flowTxIn enlists the flow in tx, so its events commit alongside every
+// other aggregate joined to it
+func (e *Engine) flowTxIn(
+	tx *timebox.Transaction, fid api.FlowID, fn func(*flowTx) error,
+) (api.FlowState, error) {
+	return tx.Exec(e.flowExec, events.FlowKey(fid),
 		func(_ api.FlowState, ag *FlowAggregator) error {
-			tx := &flowTx{
+			return fn(&flowTx{
 				Engine:         e,
 				FlowAggregator: ag,
 				flowID:         fid,
-			}
-			return fn(tx)
+			})
 		},
 	)
-	return err
 }
 
 func childFlowID(parent api.FlowStep, tkn api.Token) api.FlowID {

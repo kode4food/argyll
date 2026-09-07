@@ -88,25 +88,21 @@ func (tx *flowTx) maybeDeactivate() error {
 	if hasActiveWork(fl) || tx.compensationPending(fl) {
 		return nil
 	}
-	// Told before deactivating, since the parent decides the rollback
-	tx.OnSuccess(func(fl api.FlowState, _ []*timebox.Event) {
-		if err := tx.completeParentWork(fl); err != nil {
-			slog.Error("Failed to update parent work item",
-				log.FlowID(fl.ID), log.Error(err))
-			tx.scheduleFlowReconcile(
-				fl.ID, tx.Now().Add(localDispatchBackoff),
-			)
-		}
-	})
-	return tx.deactivate()
+	// Told before deactivating, since the parent decides the rollback. Both
+	// halves join one transaction, so the parent cannot miss the outcome
+	parent, err := tx.completeParentWork(tx.Transaction(), fl)
+	if err != nil {
+		return err
+	}
+	return tx.deactivate(parent)
 }
 
-func (tx *flowTx) deactivate() error {
+func (tx *flowTx) deactivate(parent api.FlowState) error {
 	fl := tx.Value()
 	if !fl.DeactivatedAt.IsZero() {
 		return nil
 	}
-	released, err := tx.parentReleased(fl)
+	released, err := tx.parentReleased(fl, parent)
 	if err != nil || !released {
 		return err
 	}
@@ -126,21 +122,18 @@ func (tx *flowTx) deactivate() error {
 	return nil
 }
 
-// parentReleased reports whether the parent can still order a rollback
-func (tx *flowTx) parentReleased(fl api.FlowState) (bool, error) {
+// parentReleased reports whether the parent can still order a rollback.
+// parent carries the state settled earlier in this same transaction, so the
+// decision sees the outcome the parent is committing to
+func (tx *flowTx) parentReleased(
+	fl api.FlowState, parent api.FlowState,
+) (bool, error) {
 	target := &parentWork{}
 	ok, err := parentMeta(fl, target)
 	if err != nil {
 		return false, err
 	}
-	if !ok {
-		return true, nil
-	}
-	parent, err := tx.Engine.GetFlowState(target.fs.FlowID)
-	if err != nil {
-		return false, err
-	}
-	if parent.ID == "" || !parent.DeactivatedAt.IsZero() {
+	if !ok || parent.ID == "" || !parent.DeactivatedAt.IsZero() {
 		return true, nil
 	}
 	work := parent.Executions[target.fs.StepID].WorkItems[target.token]
@@ -176,22 +169,26 @@ func (e *Engine) releaseChildFlow(fs api.FlowStep, tkn api.Token) {
 	}
 }
 
-func (e *Engine) completeParentWork(fl api.FlowState) error {
+// completeParentWork settles this flow's outcome with its parent in tx and
+// returns the parent's resulting state, so both halves land in one commit
+func (e *Engine) completeParentWork(
+	tx *timebox.Transaction, fl api.FlowState,
+) (api.FlowState, error) {
 	target := &parentWork{}
 	ok, err := parentMeta(fl, target)
 	if !ok || err != nil {
-		return err
+		return api.FlowState{}, err
 	}
 	if !policy.FlowTerminal(fl.Status) {
-		return nil
+		return api.FlowState{}, nil
 	}
-	return e.completeParentFlowWork(fl, target)
+	return e.completeParentFlowWork(tx, fl, target)
 }
 
 func (e *Engine) completeParentFlowWork(
-	child api.FlowState, target *parentWork,
-) error {
-	return e.flowTx(target.fs.FlowID, func(parentTx *flowTx) error {
+	tx *timebox.Transaction, child api.FlowState, target *parentWork,
+) (api.FlowState, error) {
+	settle := func(parentTx *flowTx) error {
 		parent := parentTx.Value()
 		if parent.ID == "" {
 			return errors.Join(ErrGetFlowState, ErrFlowNotFound)
@@ -222,7 +219,8 @@ func (e *Engine) completeParentFlowWork(
 			errMsg = "child flow failed"
 		}
 		return parentTx.failWork(target.fs.StepID, target.token, errMsg)
-	})
+	}
+	return e.flowTxIn(tx, target.fs.FlowID, settle)
 }
 
 // getFailureReason extracts a failure reason from flow state

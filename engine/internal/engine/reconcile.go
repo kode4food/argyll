@@ -93,7 +93,13 @@ func (e *Engine) scheduleFlowReconcile(fid api.FlowID, at time.Time) {
 // reconcileTerminalFlow settles a terminal flow with its parent and its
 // children. Each part rechecks state, so a repeat changes nothing
 func (e *Engine) reconcileTerminalFlow(fl api.FlowState) error {
-	if err := e.completeParentWork(fl); err != nil {
+	err := e.flowExec.GetStore().Transaction(
+		func(tx *timebox.Transaction) error {
+			_, err := e.completeParentWork(tx, fl)
+			return err
+		},
+	)
+	if err != nil {
 		return err
 	}
 	return e.flowTx(fl.ID, func(tx *flowTx) error {

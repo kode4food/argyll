@@ -97,9 +97,17 @@ func (e *Engine) recoverInFlightWork(fl api.FlowState) {
 func (tx *flowTx) settleMissingChildFlow(
 	fs api.FlowStep, tkn api.Token,
 ) error {
-	_, err := tx.GetFlowState(childFlowID(fs, tkn))
-	if !errors.Is(err, ErrFlowNotFound) {
+	// Joined raising nothing, so the child's absence is guarded by this
+	// commit. If the child appears first, the append conflicts and the retry
+	// sees it rather than settling work that has a live child
+	child, err := tx.flowTxIn(tx.Transaction(), childFlowID(fs, tkn),
+		func(*flowTx) error { return nil },
+	)
+	if err != nil {
 		return err
+	}
+	if child.ID != "" {
+		return nil
 	}
 
 	if err := tx.raiseWorkNotCompleted(

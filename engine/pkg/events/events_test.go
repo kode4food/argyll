@@ -19,7 +19,7 @@ func TestRaiseEnqueuesEvent(t *testing.T) {
 	require.NoError(t, err)
 	defer func() { _ = store.Close() }()
 
-	ex := timebox.NewExecutor(store, func() int { return 0 }, nil)
+	ex := store.Executor(func() int { return 0 }, nil)
 
 	id := timebox.NewAggregateID("flow", "flow-1")
 	called := false

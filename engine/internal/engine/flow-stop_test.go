@@ -17,6 +17,7 @@ import (
 	"github.com/kode4food/argyll/engine/internal/engine"
 	"github.com/kode4food/argyll/engine/internal/engine/flow"
 	"github.com/kode4food/argyll/engine/internal/engine/plan"
+	"github.com/kode4food/argyll/engine/internal/engine/policy"
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/events"
 )
@@ -569,11 +570,13 @@ func TestParentNotificationRetries(t *testing.T) {
 	)
 }
 
-func (b *parentWriteBackend) Append(req timebox.AppendRequest) error {
-	if err := b.beforeAppend(req); err != nil {
-		return err
+func (b *parentWriteBackend) Append(reqs ...timebox.AppendRequest) error {
+	for _, req := range reqs {
+		if err := b.beforeAppend(req); err != nil {
+			return err
+		}
 	}
-	return b.Backend.Append(req)
+	return b.Backend.Append(reqs...)
 }
 
 func metaFlowID(meta api.Metadata) api.FlowID {
@@ -607,4 +610,116 @@ func metaToken(meta api.Metadata) api.Token {
 	default:
 		return ""
 	}
+}
+
+// TestParentSettledAtomically proves the child's outcome and the parent's work
+// item now commit together. A failing parent write must leave the child
+// unchanged, rather than committing the child and losing the notification
+func TestParentSettledAtomically(t *testing.T) {
+	var fail atomic.Bool
+	parentID := api.FlowID("atomic-parent")
+	childID := api.FlowID("atomic-parent:sub:token")
+	backend := &parentWriteBackend{
+		Backend: memory.NewPersistence(),
+		beforeAppend: func(req timebox.AppendRequest) error {
+			if fail.Load() && req.ID.Equal(events.FlowKey(parentID)) &&
+				len(req.Events) != 0 {
+				return ErrParentWrite
+			}
+			return nil
+		},
+	}
+	cfg := helpers.NewTestConfig()
+	store, err := timebox.NewStore(backend, cfg.FlowStoreConfig())
+	testify.NoError(t, err)
+
+	helpers.WithTestEnvDeps(t,
+		engine.Dependencies{FlowStore: store},
+		func(env *helpers.TestEngineEnv) {
+			sub := &api.Step{ID: "sub", Type: api.StepTypeFlow}
+			testify.NoError(t, env.SeedStartedWork(
+				api.FlowStep{FlowID: parentID, StepID: sub.ID},
+				&api.ExecutionPlan{
+					Goals: []api.StepID{sub.ID},
+					Steps: api.Steps{sub.ID: sub},
+				}, "token",
+			))
+
+			leaf := &api.Step{ID: "leaf", Type: api.StepTypeScript}
+			testify.NoError(t, env.RaiseFlowEvents(childID,
+				helpers.FlowEvent{
+					Type: api.EventTypeFlowStarted,
+					Data: api.FlowStartedEvent{
+						FlowID: childID,
+						Plan: &api.ExecutionPlan{
+							Goals: []api.StepID{leaf.ID},
+							Steps: api.Steps{leaf.ID: leaf},
+						},
+						Init: api.InitArgs{},
+						Metadata: api.Metadata{
+							api.MetaParentFlowID:        string(parentID),
+							api.MetaParentStepID:        "sub",
+							api.MetaParentWorkItemToken: "token",
+						},
+					},
+				},
+				helpers.FlowEvent{
+					Type: api.EventTypeStepStarted,
+					Data: api.StepStartedEvent{
+						FlowID:    childID,
+						StepID:    leaf.ID,
+						Inputs:    api.Args{},
+						WorkItems: map[api.Token]api.Args{"w": {}},
+					},
+				},
+				helpers.FlowEvent{
+					Type: api.EventTypeWorkStarted,
+					Data: api.WorkStartedEvent{
+						FlowID: childID,
+						StepID: leaf.ID,
+						Token:  "w",
+						Inputs: api.Args{},
+					},
+				},
+			))
+
+			childStep := api.FlowStep{FlowID: childID, StepID: leaf.ID}
+			before, err := env.Engine.GetFlowState(childID)
+			testify.NoError(t, err)
+
+			// the parent write fails, so neither half may land
+			fail.Store(true)
+			testify.ErrorIs(t,
+				env.Engine.CompleteWork(childStep, "w", api.Args{}),
+				ErrParentWrite,
+			)
+
+			after, err := env.Engine.GetFlowState(childID)
+			testify.NoError(t, err)
+			testify.Equal(t, before.Status, after.Status,
+				"child must not advance when the parent write fails")
+			testify.True(t, after.DeactivatedAt.IsZero())
+
+			parent, err := env.Engine.GetFlowState(parentID)
+			testify.NoError(t, err)
+			testify.True(t, policy.WorkAcceptsResult(
+				parent.Executions[sub.ID].WorkItems["token"].Status,
+			), "parent work must still be open")
+
+			// with the write allowed, both halves land in one commit
+			fail.Store(false)
+			testify.NoError(t,
+				env.Engine.CompleteWork(childStep, "w", api.Args{}),
+			)
+
+			child, err := env.Engine.GetFlowState(childID)
+			testify.NoError(t, err)
+			testify.Equal(t, api.FlowCompleted, child.Status)
+
+			parent, err = env.Engine.GetFlowState(parentID)
+			testify.NoError(t, err)
+			testify.Equal(t, api.WorkSucceeded,
+				parent.Executions[sub.ID].WorkItems["token"].Status,
+			)
+		})
 }

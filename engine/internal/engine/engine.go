@@ -88,14 +88,14 @@ func New(cfg *config.Config, deps Dependencies) (*Engine, error) {
 
 	ctx, cancel := context.WithCancel(context.Background())
 	e := &Engine{
-		catalogExec: timebox.NewExecutor(
-			deps.EngineStore, events.NewCatalogState, events.CatalogAppliers,
+		catalogExec: deps.EngineStore.Executor(
+			events.NewCatalogState, events.CatalogAppliers,
 		),
-		clusterExec: timebox.NewExecutor(
-			deps.EngineStore, events.NewClusterState, events.ClusterAppliers,
+		clusterExec: deps.EngineStore.Executor(
+			events.NewClusterState, events.ClusterAppliers,
 		),
-		flowExec: timebox.NewExecutor(
-			deps.FlowStore, events.NewFlowState, events.FlowAppliers,
+		flowExec: deps.FlowStore.Executor(
+			events.NewFlowState, events.FlowAppliers,
 		),
 		scripts:   deps.Scripts,
 		steps:     deps.Steps,

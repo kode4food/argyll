@@ -3,14 +3,12 @@ package engine
 import (
 	"errors"
 	"fmt"
-	"log/slog"
 	"maps"
 
 	"github.com/kode4food/timebox"
 
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/events"
-	"github.com/kode4food/argyll/engine/pkg/log"
 	"github.com/kode4food/argyll/engine/pkg/util/call"
 )
 
@@ -159,7 +157,9 @@ func (e *Engine) raiseStepUpdatedEvent(
 }
 
 // raiseStepEvent resolves the step's Spaces, raises the event built from
-// them, and refreshes the step's health once the transaction commits
+// them, and records the step's health in the same transaction. The catalog
+// and cluster aggregates share a Store, so a registered step can never be
+// left without the health its registration implies
 func (e *Engine) raiseStepEvent(
 	st *api.Step, ag *CatalogAggregator, raise func([]api.SpaceID) error,
 ) error {
@@ -170,25 +170,17 @@ func (e *Engine) raiseStepEvent(
 	if err := raise(spaces); err != nil {
 		return err
 	}
-	ag.OnSuccess(func(api.CatalogState, []*timebox.Event) {
-		e.resetStepHealth(st)
-	})
-	return nil
+	return e.resetStepHealth(ag.Transaction(), st)
 }
 
-func (e *Engine) resetStepHealth(st *api.Step) {
+func (e *Engine) resetStepHealth(
+	tx *timebox.Transaction, st *api.Step,
+) error {
 	h, err := e.steps.Health(st)
 	if err != nil {
-		slog.Error("Failed to evaluate step health",
-			log.StepID(st.ID),
-			log.Error(err))
-		return
+		return err
 	}
-	if err := e.UpdateStepHealth(st.ID, h.Status, h.Error); err != nil {
-		slog.Error("Failed to update step health",
-			log.StepID(st.ID),
-			log.Error(err))
-	}
+	return e.updateStepHealth(tx, st.ID, h.Status, h.Error)
 }
 
 func (tx *CatalogTx) prepareStep(st *api.Step) (*api.Step, error) {
