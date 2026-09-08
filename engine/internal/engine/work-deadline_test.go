@@ -288,7 +288,7 @@ func TestDeadlineConflict(t *testing.T) {
 				expected = api.WorkCompensating
 			}
 			backend := &deadlineConflictBackend{
-				Backend: memory.NewPersistence(),
+				Backend: memory.Open(),
 				beforeAppend: func(req timebox.AppendRequest) error {
 					if !containsEvent(req, retryType) ||
 						!fired.CompareAndSwap(false, true) {

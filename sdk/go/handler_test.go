@@ -27,9 +27,7 @@ func TestHTTPError(t *testing.T) {
 		},
 	))
 
-	handler := func(
-		_ *argyll.StepContext, _ api.Args,
-	) (api.Args, error) {
+	handler := func(_ *argyll.StepContext, _ api.Args) (api.Args, error) {
 		return nil, argyll.NewHTTPError(http.StatusTeapot, "teapot")
 	}
 
@@ -61,9 +59,7 @@ func TestStepRequests(t *testing.T) {
 		},
 	))
 
-	handler := func(
-		_ *argyll.StepContext, _ api.Args,
-	) (api.Args, error) {
+	handler := func(_ *argyll.StepContext, _ api.Args) (api.Args, error) {
 		return api.Args{}, nil
 	}
 
@@ -98,9 +94,7 @@ func TestStepHandlerPlainError(t *testing.T) {
 		},
 	))
 
-	handler := func(
-		_ *argyll.StepContext, _ api.Args,
-	) (api.Args, error) {
+	handler := func(_ *argyll.StepContext, _ api.Args) (api.Args, error) {
 		return nil, assert.AnError
 	}
 
@@ -132,9 +126,7 @@ func TestPanic(t *testing.T) {
 		},
 	))
 
-	handler := func(
-		_ *argyll.StepContext, _ api.Args,
-	) (api.Args, error) {
+	handler := func(_ *argyll.StepContext, _ api.Args) (api.Args, error) {
 		panic("boom")
 	}
 
@@ -179,9 +171,7 @@ func TestStartConflict(t *testing.T) {
 		},
 	))
 
-	handler := func(
-		_ *argyll.StepContext, _ api.Args,
-	) (api.Args, error) {
+	handler := func(_ *argyll.StepContext, _ api.Args) (api.Args, error) {
 		return api.Args{}, nil
 	}
 
@@ -225,9 +215,7 @@ func TestCompensateSuccess(t *testing.T) {
 	))
 
 	var gotArgs api.Args
-	handler := func(
-		_ *argyll.StepContext, _ api.Args,
-	) (api.Args, error) {
+	handler := func(_ *argyll.StepContext, _ api.Args) (api.Args, error) {
 		return api.Args{}, nil
 	}
 	compensate := func(_ *argyll.StepContext, args api.Args) error {
@@ -276,9 +264,7 @@ func TestCompensateRequests(t *testing.T) {
 		},
 	))
 
-	handler := func(
-		_ *argyll.StepContext, _ api.Args,
-	) (api.Args, error) {
+	handler := func(_ *argyll.StepContext, _ api.Args) (api.Args, error) {
 		return api.Args{}, nil
 	}
 	compensate := func(_ *argyll.StepContext, _ api.Args) error {
@@ -308,6 +294,10 @@ func TestCompensateRequests(t *testing.T) {
 }
 
 func TestCompensateErrors(t *testing.T) {
+	handler := func(_ *argyll.StepContext, _ api.Args) (api.Args, error) {
+		return api.Args{}, nil
+	}
+
 	cases := []struct {
 		name   string
 		err    error
@@ -338,11 +328,6 @@ func TestCompensateErrors(t *testing.T) {
 				},
 			))
 
-			handler := func(
-				_ *argyll.StepContext, _ api.Args,
-			) (api.Args, error) {
-				return api.Args{}, nil
-			}
 			compensate := func(_ *argyll.StepContext, _ api.Args) error {
 				return tc.err
 			}
@@ -383,9 +368,7 @@ func TestCompensatePanic(t *testing.T) {
 		},
 	))
 
-	handler := func(
-		_ *argyll.StepContext, _ api.Args,
-	) (api.Args, error) {
+	handler := func(_ *argyll.StepContext, _ api.Args) (api.Args, error) {
 		return api.Args{}, nil
 	}
 	compensate := func(_ *argyll.StepContext, _ api.Args) error {

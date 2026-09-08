@@ -43,21 +43,19 @@ func FlowIndexer(evs []*timebox.Event) []*timebox.Index {
 	res := make([]*timebox.Index, 0, len(evs))
 
 	handleStarted := func(data api.FlowStartedEvent) {
-		status := FlowStatusActive
 		tags := make(map[string]bool, len(data.Tags))
 		for _, tag := range data.Tags {
 			tags[tag] = true
 		}
 		res = append(res, &timebox.Index{
-			Status: &status,
+			Status: new(FlowStatusActive),
 			Tags:   tags,
 		})
 	}
 
 	handleDeactivated := func(data api.FlowDeactivatedEvent) {
-		status := string(data.Status)
 		res = append(res, &timebox.Index{
-			Status: &status,
+			Status: new(string(data.Status)),
 		})
 	}
 

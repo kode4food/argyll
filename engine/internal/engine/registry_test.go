@@ -366,7 +366,7 @@ func TestUpdateStepNotFound(t *testing.T) {
 func TestStepHealthSettledAtomically(t *testing.T) {
 	var fail atomic.Bool
 	backend := &clusterWriteBackend{
-		Backend: memory.NewPersistence(),
+		Backend: memory.Open(),
 		beforeAppend: func(req timebox.AppendRequest) error {
 			if fail.Load() && req.ID == events.ClusterKey &&
 				len(req.Events) != 0 {

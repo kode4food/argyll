@@ -496,7 +496,7 @@ func TestParentNotificationRetries(t *testing.T) {
 	parentID := api.FlowID("notification-parent")
 	childID := api.FlowID("notification-parent:sub:token")
 	backend := &parentWriteBackend{
-		Backend: memory.NewPersistence(),
+		Backend: memory.Open(),
 		beforeAppend: func(req timebox.AppendRequest) error {
 			if !fail.Load() || req.ID != events.FlowKey(parentID) ||
 				len(req.Events) == 0 {
@@ -620,7 +620,7 @@ func TestParentSettledAtomically(t *testing.T) {
 	parentID := api.FlowID("atomic-parent")
 	childID := api.FlowID("atomic-parent:sub:token")
 	backend := &parentWriteBackend{
-		Backend: memory.NewPersistence(),
+		Backend: memory.Open(),
 		beforeAppend: func(req timebox.AppendRequest) error {
 			if fail.Load() && req.ID == events.FlowKey(parentID) &&
 				len(req.Events) != 0 {

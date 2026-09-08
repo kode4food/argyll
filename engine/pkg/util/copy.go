@@ -8,6 +8,5 @@ func MutableCopy[T any](val *T) *T {
 		var zero T
 		return &zero
 	}
-	res := *val
-	return &res
+	return new(*val)
 }

@@ -28,13 +28,13 @@ import (
 )
 
 type raftNode struct {
-	id          string
-	engStore    *timebox.Store
-	flowStore   *timebox.Store
-	persistence *raft.Persistence
-	engine      *engine.Engine
-	server      *server.Server
-	hub         *event.Hub
+	id        string
+	engStore  *timebox.Store
+	flowStore *timebox.Store
+	backend   *raft.Backend
+	engine    *engine.Engine
+	server    *server.Server
+	hub       *event.Hub
 }
 
 type raftInit struct {
@@ -200,25 +200,25 @@ func newRaftInits(t *testing.T, n int) []*raftInit {
 }
 
 func bootRaftNode(init *raftInit) (*raftNode, error) {
-	p, err := raft.NewPersistence(init.cfg.Raft)
+	b, err := raft.Open(init.cfg.Raft)
 	if err != nil {
 		return nil, err
 	}
 
-	engStore, err := p.NewStore(init.cfg.EngineStoreConfig())
+	engStore, err := b.NewStore(init.cfg.EngineStoreConfig())
 	if err != nil {
-		_ = p.Close()
+		_ = b.Close()
 		return nil, err
 	}
-	flowStore, err := p.NewStore(init.cfg.FlowStoreConfig())
+	flowStore, err := b.NewStore(init.cfg.FlowStoreConfig())
 	if err != nil {
-		_ = engStore.Close()
+		_ = b.Close()
 		return nil, err
 	}
 	closeStore := true
 	defer func() {
 		if closeStore {
-			_ = flowStore.Close()
+			_ = b.Close()
 		}
 	}()
 
@@ -254,16 +254,16 @@ func bootRaftNode(init *raftInit) (*raftNode, error) {
 
 	closeStore = false
 	return &raftNode{
-		id:          init.id,
-		engStore:    engStore,
-		flowStore:   flowStore,
-		persistence: p,
-		engine:      eng,
-		hub:         init.hub,
+		id:        init.id,
+		engStore:  engStore,
+		flowStore: flowStore,
+		backend:   b,
+		engine:    eng,
+		hub:       init.hub,
 		server: server.NewServer(
 			eng,
 			init.hub,
-			server.NewRaftStatusProvider(p),
+			server.NewRaftStatusProvider(b),
 		),
 	}, nil
 }
@@ -274,7 +274,7 @@ func findFollower(t *testing.T, nodes []*raftNode) (*raftNode, *raftNode) {
 	var leader *raftNode
 	assert.Eventually(t, func() bool {
 		for _, n := range nodes {
-			if n.persistence.State() == raft.StateLeader {
+			if n.backend.State() == raft.StateLeader {
 				leader = n
 				return true
 			}
@@ -294,7 +294,7 @@ func findFollower(t *testing.T, nodes []*raftNode) (*raftNode, *raftNode) {
 func currentFollowers(nodes []*raftNode) []*raftNode {
 	var leader *raftNode
 	for _, n := range nodes {
-		if n.persistence.State() == raft.StateLeader {
+		if n.backend.State() == raft.StateLeader {
 			leader = n
 			break
 		}
@@ -344,14 +344,8 @@ func closeRaftNodes(nodes []*raftNode) {
 		if n.hub != nil {
 			n.hub.Close()
 		}
-		if n.flowStore != nil {
-			_ = n.flowStore.Close()
-		}
-		if n.engStore != nil {
-			_ = n.engStore.Close()
-		}
-		if n.persistence != nil {
-			_ = n.persistence.Close()
+		if n.backend != nil {
+			_ = n.backend.Close()
 		}
 	}
 }

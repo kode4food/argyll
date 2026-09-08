@@ -30,7 +30,7 @@ github.com/kode4food/jpath v0.0.0-20260906125407-9cba525a6f65 h1:bcDTbjLAl2IG/OD
 github.com/kode4food/jpath v0.0.0-20260906125407-9cba525a6f65/go.mod h1:gYY1OfgNwxDs30LLA1moTAQtzapUvEpMO+zX6GI2Fpg=
 github.com/kode4food/lru v0.0.0-20260821124822-50bd9a308b71 h1:xqHrCb85JXvWEWCHRM3zsuNUWEJSNktvs7ROFEnKhIo=
 github.com/kode4food/lru v0.0.0-20260821124822-50bd9a308b71/go.mod h1:qxHo1+SIRuVcQ5s3HaZYMWw5v1B6W4kJIJ4KP/gg67c=
-github.com/kode4food/timebox v0.0.0-20260907163559-5ccaf3777ded h1:1rhK1/z99mXxygNqorjye+2JL6RuMhnf3YX/bNkAtes=
+github.com/kode4food/timebox v0.0.0-20260908130223-7c9ace0aa7aa h1:RK658lP+Hha8nFCblkdHrdgilnd12gRuDAI1Dg/IYlc=
 github.com/stretchr/testify v1.12.1 h1:EuwCh5fleGS7H32xRwO3wRGT7DxrDhLAT6FF8MpWDWE=
 github.com/stretchr/testify v1.12.1/go.mod h1:MDEgiDPPsNp5cuIrHPPCyornHKgEVbtFUmoNlxoYthg=
 go.etcd.io/raft/v3 v3.7.0 h1:BGzlwx07bLv8PW6OU5HObuz1y4hlPZUXA07pM1mPUh4=

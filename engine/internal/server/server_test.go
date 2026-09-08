@@ -175,13 +175,13 @@ func TestRaftStatus(t *testing.T) {
 		{ID: cfg.Raft.LocalID, Address: addr},
 	}
 
-	p, err := raft.NewPersistence(cfg.Raft)
+	b, err := raft.Open(cfg.Raft)
 	assert.NoError(t, err)
-	if p != nil {
-		defer func() { _ = p.Close() }()
+	if b != nil {
+		defer func() { _ = b.Close() }()
 	}
 
-	st := server.NewRaftStatusProvider(p)()
+	st := server.NewRaftStatusProvider(b)()
 	if assert.Contains(t, st, "backend") {
 		backend, ok := st["backend"].(map[string]any)
 		if assert.True(t, ok) {

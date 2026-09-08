@@ -18,16 +18,16 @@ func NewWebSocketStatusProvider(s *Server) StatusProvider {
 	}
 }
 
-func NewRaftStatusProvider(p *raft.Persistence) StatusProvider {
+func NewRaftStatusProvider(b *raft.Backend) StatusProvider {
 	return func() map[string]any {
-		if p == nil {
+		if b == nil {
 			return nil
 		}
-		addr, id := p.LeaderWithID()
+		addr, id := b.LeaderWithID()
 		return map[string]any{
 			"backend": map[string]any{
 				"type":           "raft",
-				"state":          p.State(),
+				"state":          b.State(),
 				"leader_address": addr,
 				"leader_id":      id,
 			},

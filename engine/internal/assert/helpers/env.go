@@ -172,7 +172,7 @@ func NewTestEngineWithDeps(
 	}
 	conflict := &conflictOnce{}
 	backend := backend{
-		Backend:  memory.NewPersistence(),
+		Backend:  memory.Open(),
 		conflict: conflict,
 		publish: func(evs ...*timebox.Event) {
 			published := cloneCommittedEvents(evs)
@@ -233,8 +233,7 @@ func NewTestEngineWithDeps(
 		if testEnv.ownsHub {
 			testEnv.EventHub.Close()
 		}
-		_ = testEnv.engStore.Close()
-		_ = testEnv.flowStore.Close()
+		_ = backend.Close()
 	}
 
 	return testEnv

@@ -39,9 +39,7 @@ func TestSetupStepWithMockEngine(t *testing.T) {
 		_ = os.Unsetenv("STEP_PORT")
 	}()
 
-	handler := func(
-		ctx *argyll.StepContext, args api.Args,
-	) (api.Args, error) {
+	handler := func(ctx *argyll.StepContext, args api.Args) (api.Args, error) {
 		return api.Args{}, nil
 	}
 

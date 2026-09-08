@@ -32,7 +32,7 @@ func TestAtomicFlowLifecycle(t *testing.T) {
 		}
 		t.Run(name, func(t *testing.T) {
 			backend := &atomicFlowBackend{
-				Backend:       memory.NewPersistence(),
+				Backend:       memory.Open(),
 				childConflict: childConflict,
 				conflicts:     map[api.EventType]bool{},
 				commits:       map[api.EventType][]timebox.AppendRequest{},

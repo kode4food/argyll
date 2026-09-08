@@ -14,10 +14,10 @@ import (
 )
 
 func TestRaiseEnqueuesEvent(t *testing.T) {
-	p := memory.NewPersistence()
-	store, err := p.NewStore(timebox.Config{})
+	b := memory.Open()
+	store, err := b.NewStore(timebox.Config{})
 	require.NoError(t, err)
-	defer func() { _ = store.Close() }()
+	defer func() { _ = b.Close() }()
 
 	ex := store.Executor(func() int { return 0 }, nil)
 

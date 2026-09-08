@@ -36,12 +36,11 @@ func (s *Server) generateStepImpl(args generateStepImplArgs) (any, error) {
 		actionMode = ""
 		method = ""
 		lang := strings.ToLower(stringValue(scriptCfg["language"]))
-		body := stringValue(scriptCfg["script"])
 		if lang == "" {
 			lang = "lua"
 		}
 		scriptLang = &lang
-		scriptBody = &body
+		scriptBody = new(stringValue(scriptCfg["script"]))
 	}
 	if httpCfg, ok := asMap(args.Step["http"]); ok {
 		isExternal = true

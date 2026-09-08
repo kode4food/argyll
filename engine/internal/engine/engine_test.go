@@ -118,11 +118,11 @@ func TestNewCustomStep(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		deps := env.Dependencies()
 		handlers := step.DefaultHandlers(deps.Scripts, env.MockClient)
-		handlers["custom"] = &step.Handler{Execute: func(
-			step.Runtime, *api.Step, api.Args, api.Token,
-		) error {
-			return nil
-		}}
+		handlers["custom"] = &step.Handler{
+			Execute: func(step.Runtime, *api.Step, api.Args, api.Token) error {
+				return nil
+			},
+		}
 		deps.Steps = step.NewRegistry(handlers)
 		eng, err := engine.New(env.Config, deps)
 		assert.NoError(t, err)

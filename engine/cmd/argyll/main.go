@@ -27,15 +27,15 @@ import (
 )
 
 type argyll struct {
-	cfg         *config.Config
-	engStore    *timebox.Store
-	flowStore   *timebox.Store
-	persistence *raft.Persistence
-	engine      *engine.Engine
-	health      *server.HealthChecker
-	apiServer   *server.Server
-	httpServer  *http.Server
-	quit        chan os.Signal
+	cfg        *config.Config
+	engStore   *timebox.Store
+	flowStore  *timebox.Store
+	backend    *raft.Backend
+	engine     *engine.Engine
+	health     *server.HealthChecker
+	apiServer  *server.Server
+	httpServer *http.Server
+	quit       chan os.Signal
 }
 
 const defaultStoreReadyTimeout = 5 * time.Second
@@ -119,18 +119,18 @@ func (a *argyll) setupLogging() {
 }
 
 func (a *argyll) initializeStores() error {
-	p, err := raft.NewPersistence(a.cfg.Raft)
+	b, err := raft.Open(a.cfg.Raft)
 	if err != nil {
 		return errors.Join(ErrCreateStore, err)
 	}
-	engStore, err := p.NewStore(a.cfg.EngineStoreConfig())
+	engStore, err := b.NewStore(a.cfg.EngineStoreConfig())
 	if err != nil {
-		_ = p.Close()
+		_ = b.Close()
 		return errors.Join(ErrCreateStore, err)
 	}
-	flowStore, err := p.NewStore(a.cfg.FlowStoreConfig())
+	flowStore, err := b.NewStore(a.cfg.FlowStoreConfig())
 	if err != nil {
-		_ = engStore.Close()
+		_ = b.Close()
 		return errors.Join(ErrCreateStore, err)
 	}
 	ctx, cancel := context.WithTimeout(
@@ -138,11 +138,11 @@ func (a *argyll) initializeStores() error {
 	)
 	defer cancel()
 	if err := flowStore.WaitReady(ctx); err != nil {
-		_ = engStore.Close()
+		_ = b.Close()
 		return errors.Join(ErrCreateStore, err)
 	}
 
-	a.persistence = p
+	a.backend = b
 	a.engStore = engStore
 	a.flowStore = flowStore
 	return nil
@@ -175,7 +175,7 @@ func (a *argyll) startServer() {
 
 	a.apiServer = server.NewServer(
 		a.engine, a.engine.GetEventHub(),
-		server.NewRaftStatusProvider(a.persistence),
+		server.NewRaftStatusProvider(a.backend),
 	)
 	mux := a.apiServer.SetupRoutes()
 
@@ -223,11 +223,10 @@ func (a *argyll) closeStores() {
 		return
 	}
 
-	_ = a.flowStore.Close()
-	_ = a.engStore.Close()
+	_ = a.backend.Close()
 	a.engStore = nil
 	a.flowStore = nil
-	a.persistence = nil
+	a.backend = nil
 }
 
 func formatRaftServers(srvs []raft.Server) string {

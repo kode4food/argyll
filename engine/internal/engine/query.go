@@ -398,8 +398,7 @@ func buildFlowQueryResponse(
 ) *api.QueryFlowsResponse {
 	flows := make([]*api.QueryFlowsItem, 0, len(page))
 	for _, item := range page {
-		summary := item.summary
-		flows = append(flows, &summary)
+		flows = append(flows, new(item.summary))
 	}
 	return &api.QueryFlowsResponse{
 		Flows:      flows,

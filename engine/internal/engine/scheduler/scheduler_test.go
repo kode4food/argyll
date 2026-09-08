@@ -33,29 +33,29 @@ type (
 const schedulerWaitTimeout = time.Second
 
 func TestScheduleTask(t *testing.T) {
-	withFakeScheduler(t, func(
-		eng *engine.Engine, timer *fakeTimer, when time.Time,
-	) {
-		done := make(chan struct{}, 1)
+	withFakeScheduler(t,
+		func(eng *engine.Engine, timer *fakeTimer, when time.Time) {
+			done := make(chan struct{}, 1)
 
-		eng.ScheduleTask(
-			[]string{"sched", "run"},
-			when.Add(40*time.Millisecond),
-			func() error {
-				done <- struct{}{}
-				return nil
-			},
-		)
-		delay := timer.WaitReset(t)
-		assert.Equal(t, 40*time.Millisecond, delay)
-		timer.Fire(when.Add(40 * time.Millisecond))
+			eng.ScheduleTask(
+				[]string{"sched", "run"},
+				when.Add(40*time.Millisecond),
+				func() error {
+					done <- struct{}{}
+					return nil
+				},
+			)
+			delay := timer.WaitReset(t)
+			assert.Equal(t, 40*time.Millisecond, delay)
+			timer.Fire(when.Add(40 * time.Millisecond))
 
-		select {
-		case <-done:
-		case <-time.After(schedulerWaitTimeout):
-			t.Fatal("scheduled task did not run")
-		}
-	})
+			select {
+			case <-done:
+			case <-time.After(schedulerWaitTimeout):
+				t.Fatal("scheduled task did not run")
+			}
+		},
+	)
 }
 
 func TestRunAfterSchedule(t *testing.T) {
@@ -98,236 +98,236 @@ func TestRunAfterSchedule(t *testing.T) {
 }
 
 func TestScheduleTaskReplacesSamePath(t *testing.T) {
-	withFakeScheduler(t, func(
-		eng *engine.Engine, timer *fakeTimer, when time.Time,
-	) {
-		var firstRuns atomic.Int32
-		var secondRuns atomic.Int32
-		secondDone := make(chan struct{}, 1)
-		path := []string{"sched", "replace"}
+	withFakeScheduler(t,
+		func(eng *engine.Engine, timer *fakeTimer, when time.Time) {
+			var firstRuns atomic.Int32
+			var secondRuns atomic.Int32
+			secondDone := make(chan struct{}, 1)
+			path := []string{"sched", "replace"}
 
-		eng.ScheduleTask(path, when.Add(300*time.Millisecond),
-			func() error {
-				firstRuns.Add(1)
-				return nil
-			},
-		)
-		assert.Equal(t, 300*time.Millisecond, timer.WaitReset(t))
+			eng.ScheduleTask(path, when.Add(300*time.Millisecond),
+				func() error {
+					firstRuns.Add(1)
+					return nil
+				},
+			)
+			assert.Equal(t, 300*time.Millisecond, timer.WaitReset(t))
 
-		eng.ScheduleTask(path, when.Add(40*time.Millisecond),
-			func() error {
-				secondRuns.Add(1)
-				secondDone <- struct{}{}
-				return nil
-			},
-		)
-		assertEventuallyEqual(t, 40*time.Millisecond, timer.WaitReset)
-		timer.Fire(when.Add(40 * time.Millisecond))
+			eng.ScheduleTask(path, when.Add(40*time.Millisecond),
+				func() error {
+					secondRuns.Add(1)
+					secondDone <- struct{}{}
+					return nil
+				},
+			)
+			assertEventuallyEqual(t, 40*time.Millisecond, timer.WaitReset)
+			timer.Fire(when.Add(40 * time.Millisecond))
 
-		select {
-		case <-secondDone:
-		case <-time.After(schedulerWaitTimeout):
-			t.Fatal("replacement task did not run")
-		}
-		assert.Equal(t, int32(0), firstRuns.Load())
-		assert.Equal(t, int32(1), secondRuns.Load())
-	})
+			select {
+			case <-secondDone:
+			case <-time.After(schedulerWaitTimeout):
+				t.Fatal("replacement task did not run")
+			}
+			assert.Equal(t, int32(0), firstRuns.Load())
+			assert.Equal(t, int32(1), secondRuns.Load())
+		},
+	)
 }
 
 func TestSameTimeTasksBothRun(t *testing.T) {
-	withFakeScheduler(t, func(
-		eng *engine.Engine, timer *fakeTimer, when time.Time,
-	) {
-		runAt := when.Add(40 * time.Millisecond)
-		done := make(chan string, 2)
+	withFakeScheduler(t,
+		func(eng *engine.Engine, timer *fakeTimer, when time.Time) {
+			runAt := when.Add(40 * time.Millisecond)
+			done := make(chan string, 2)
 
-		eng.ScheduleTask([]string{"sched", "same-time", "a"}, runAt,
-			func() error {
-				done <- "a"
-				return nil
-			},
-		)
-		assert.Equal(t, 40*time.Millisecond, timer.WaitReset(t))
+			eng.ScheduleTask([]string{"sched", "same-time", "a"}, runAt,
+				func() error {
+					done <- "a"
+					return nil
+				},
+			)
+			assert.Equal(t, 40*time.Millisecond, timer.WaitReset(t))
 
-		eng.ScheduleTask([]string{"sched", "same-time", "b"}, runAt,
-			func() error {
-				done <- "b"
-				return nil
-			},
-		)
-		assertNoSchedulerResets(t, timer)
+			eng.ScheduleTask([]string{"sched", "same-time", "b"}, runAt,
+				func() error {
+					done <- "b"
+					return nil
+				},
+			)
+			assertNoSchedulerResets(t, timer)
 
-		timer.Fire(runAt)
-		seen := map[string]bool{}
-		for range 2 {
-			select {
-			case id := <-done:
-				seen[id] = true
-			case <-time.After(schedulerWaitTimeout):
-				t.Fatal("same-time task did not run")
+			timer.Fire(runAt)
+			seen := map[string]bool{}
+			for range 2 {
+				select {
+				case id := <-done:
+					seen[id] = true
+				case <-time.After(schedulerWaitTimeout):
+					t.Fatal("same-time task did not run")
+				}
 			}
-		}
-		assert.True(t, seen["a"])
-		assert.True(t, seen["b"])
-	})
+			assert.True(t, seen["a"])
+			assert.True(t, seen["b"])
+		},
+	)
 }
 
 func TestCancelTask(t *testing.T) {
-	withFakeScheduler(t, func(
-		eng *engine.Engine, timer *fakeTimer, when time.Time,
-	) {
-		var ran atomic.Bool
-		done := make(chan struct{}, 1)
+	withFakeScheduler(t,
+		func(eng *engine.Engine, timer *fakeTimer, when time.Time) {
+			var ran atomic.Bool
+			done := make(chan struct{}, 1)
 
-		path := []string{"sched", "cancel", "one"}
-		eng.ScheduleTask(path, when.Add(100*time.Millisecond),
-			func() error {
-				ran.Store(true)
-				done <- struct{}{}
-				return nil
-			},
-		)
-		assert.Equal(t, 100*time.Millisecond, timer.WaitReset(t))
-		eng.CancelTask(path)
-		timer.WaitStop(t)
-		timer.Fire(when.Add(100 * time.Millisecond))
+			path := []string{"sched", "cancel", "one"}
+			eng.ScheduleTask(path, when.Add(100*time.Millisecond),
+				func() error {
+					ran.Store(true)
+					done <- struct{}{}
+					return nil
+				},
+			)
+			assert.Equal(t, 100*time.Millisecond, timer.WaitReset(t))
+			eng.CancelTask(path)
+			timer.WaitStop(t)
+			timer.Fire(when.Add(100 * time.Millisecond))
 
-		select {
-		case <-done:
-			t.Fatal("cancelled task ran")
-		case <-time.After(100 * time.Millisecond):
-		}
-		assert.False(t, ran.Load())
-	})
+			select {
+			case <-done:
+				t.Fatal("cancelled task ran")
+			case <-time.After(100 * time.Millisecond):
+			}
+			assert.False(t, ran.Load())
+		},
+	)
 }
 
 func TestCancelPrefixedTasks(t *testing.T) {
-	withFakeScheduler(t, func(
-		eng *engine.Engine, timer *fakeTimer, when time.Time,
-	) {
-		var cancelledRuns atomic.Int32
-		var activeRuns atomic.Int32
-		activeDone := make(chan struct{}, 1)
+	withFakeScheduler(t,
+		func(eng *engine.Engine, timer *fakeTimer, when time.Time) {
+			var cancelledRuns atomic.Int32
+			var activeRuns atomic.Int32
+			activeDone := make(chan struct{}, 1)
 
-		cancelledPrefix := []string{"sched", "prefix", "cancelled"}
-		eng.ScheduleTask(
-			[]string{"sched", "prefix", "cancelled", "a"},
-			when.Add(100*time.Millisecond),
-			func() error {
-				cancelledRuns.Add(1)
-				return nil
-			},
-		)
-		eng.ScheduleTask(
-			[]string{"sched", "prefix", "cancelled", "b"},
-			when.Add(100*time.Millisecond),
-			func() error {
-				cancelledRuns.Add(1)
-				return nil
-			},
-		)
-		eng.ScheduleTask(
-			[]string{"sched", "prefix", "active", "c"},
-			when.Add(100*time.Millisecond),
-			func() error {
-				activeRuns.Add(1)
-				activeDone <- struct{}{}
-				return nil
-			},
-		)
-		assert.Equal(t, 100*time.Millisecond, timer.WaitReset(t))
-		timer.DrainResets()
+			cancelledPrefix := []string{"sched", "prefix", "cancelled"}
+			eng.ScheduleTask(
+				[]string{"sched", "prefix", "cancelled", "a"},
+				when.Add(100*time.Millisecond),
+				func() error {
+					cancelledRuns.Add(1)
+					return nil
+				},
+			)
+			eng.ScheduleTask(
+				[]string{"sched", "prefix", "cancelled", "b"},
+				when.Add(100*time.Millisecond),
+				func() error {
+					cancelledRuns.Add(1)
+					return nil
+				},
+			)
+			eng.ScheduleTask(
+				[]string{"sched", "prefix", "active", "c"},
+				when.Add(100*time.Millisecond),
+				func() error {
+					activeRuns.Add(1)
+					activeDone <- struct{}{}
+					return nil
+				},
+			)
+			assert.Equal(t, 100*time.Millisecond, timer.WaitReset(t))
+			timer.DrainResets()
 
-		eng.CancelPrefixedTasks(cancelledPrefix)
-		assertEventuallyEqual(t, 100*time.Millisecond, timer.WaitReset)
-		timer.Fire(when.Add(100 * time.Millisecond))
+			eng.CancelPrefixedTasks(cancelledPrefix)
+			assertEventuallyEqual(t, 100*time.Millisecond, timer.WaitReset)
+			timer.Fire(when.Add(100 * time.Millisecond))
 
-		select {
-		case <-activeDone:
-		case <-time.After(schedulerWaitTimeout):
-			t.Fatal("active task did not run")
-		}
-		assert.Equal(t, int32(0), cancelledRuns.Load())
-		assert.Equal(t, int32(1), activeRuns.Load())
-	})
+			select {
+			case <-activeDone:
+			case <-time.After(schedulerWaitTimeout):
+				t.Fatal("active task did not run")
+			}
+			assert.Equal(t, int32(0), cancelledRuns.Load())
+			assert.Equal(t, int32(1), activeRuns.Load())
+		},
+	)
 }
 
 func TestTimerSignalDoesNotRunFutureTask(t *testing.T) {
-	withFakeScheduler(t, func(
-		eng *engine.Engine, timer *fakeTimer, when time.Time,
-	) {
-		var ran atomic.Bool
-		done := make(chan struct{}, 1)
-		runAt := when.Add(100 * time.Millisecond)
+	withFakeScheduler(t,
+		func(eng *engine.Engine, timer *fakeTimer, when time.Time) {
+			var ran atomic.Bool
+			done := make(chan struct{}, 1)
+			runAt := when.Add(100 * time.Millisecond)
 
-		eng.ScheduleTask([]string{"sched", "future"}, runAt,
-			func() error {
-				ran.Store(true)
-				done <- struct{}{}
-				return nil
-			},
-		)
-		assert.Equal(t, 100*time.Millisecond, timer.WaitReset(t))
+			eng.ScheduleTask([]string{"sched", "future"}, runAt,
+				func() error {
+					ran.Store(true)
+					done <- struct{}{}
+					return nil
+				},
+			)
+			assert.Equal(t, 100*time.Millisecond, timer.WaitReset(t))
 
-		timer.Fire(when.Add(50 * time.Millisecond))
-		select {
-		case <-done:
-			t.Fatal("future task ran before its scheduled time")
-		case <-time.After(100 * time.Millisecond):
-		}
-		assert.False(t, ran.Load())
+			timer.Fire(when.Add(50 * time.Millisecond))
+			select {
+			case <-done:
+				t.Fatal("future task ran before its scheduled time")
+			case <-time.After(100 * time.Millisecond):
+			}
+			assert.False(t, ran.Load())
 
-		timer.Fire(runAt)
-		select {
-		case <-done:
-		case <-time.After(schedulerWaitTimeout):
-			t.Fatal("future task did not run at its scheduled time")
-		}
-		assert.True(t, ran.Load())
-	})
+			timer.Fire(runAt)
+			select {
+			case <-done:
+			case <-time.After(schedulerWaitTimeout):
+				t.Fatal("future task did not run at its scheduled time")
+			}
+			assert.True(t, ran.Load())
+		},
+	)
 }
 
 // TestScriptFlowCompletes covers a step with no optional inputs, whose only
 // scheduled tasks are the reconciliations each committed batch requests and
 // the recovery deadline of the attempt itself
 func TestScriptFlowCompletes(t *testing.T) {
-	withFakeScheduler(t, func(
-		eng *engine.Engine, timer *fakeTimer, _ time.Time,
-	) {
-		st := &api.Step{
-			ID:   "script-step",
-			Name: "Script Step",
-			Type: api.StepTypeScript,
-			Script: &api.ScriptConfig{
-				Language: api.ScriptLangLua,
-				Script:   "return { result = input }",
-			},
-			Attributes: api.AttributeSpecs{
-				"input": {
-					Role: api.RoleRequired,
-					Type: api.TypeString,
+	withFakeScheduler(t,
+		func(eng *engine.Engine, timer *fakeTimer, _ time.Time) {
+			st := &api.Step{
+				ID:   "script-step",
+				Name: "Script Step",
+				Type: api.StepTypeScript,
+				Script: &api.ScriptConfig{
+					Language: api.ScriptLangLua,
+					Script:   "return { result = input }",
 				},
-				"result": {
-					Role: api.RoleOutput,
-					Type: api.TypeString,
+				Attributes: api.AttributeSpecs{
+					"input": {
+						Role: api.RoleRequired,
+						Type: api.TypeString,
+					},
+					"result": {
+						Role: api.RoleOutput,
+						Type: api.TypeString,
+					},
 				},
-			},
-		}
-		assert.NoError(t, eng.RegisterStep(st))
+			}
+			assert.NoError(t, eng.RegisterStep(st))
 
-		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{st.ID},
-			Steps: api.Steps{st.ID: st},
-		}
+			pl := &api.ExecutionPlan{
+				Goals: []api.StepID{st.ID},
+				Steps: api.Steps{st.ID: st},
+			}
 
-		id := api.FlowID("wf-no-timeouts")
-		assert.NoError(t, eng.StartFlow(id, pl,
-			flow.WithInit(api.InitArgs{"input": {"ok"}}),
-		))
+			id := api.FlowID("wf-no-timeouts")
+			assert.NoError(t, eng.StartFlow(id, pl,
+				flow.WithInit(api.InitArgs{"input": {"ok"}}),
+			))
 
-		assert.Equal(t, time.Duration(0), timer.WaitReset(t))
-		assertFlowEventuallyCompleted(t, eng, id)
-	})
+			assert.Equal(t, time.Duration(0), timer.WaitReset(t))
+			assertFlowEventuallyCompleted(t, eng, id)
+		},
+	)
 }
 
 func (c *testTimerConstructor) NewTimer(delay time.Duration) scheduler.Timer {
