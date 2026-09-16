@@ -13,11 +13,11 @@ import (
 
 	"github.com/kode4food/argyll/engine/internal/assert/helpers"
 	"github.com/kode4food/argyll/engine/internal/assert/wait"
-	"github.com/kode4food/argyll/engine/internal/client"
 	"github.com/kode4food/argyll/engine/internal/engine"
 	"github.com/kode4food/argyll/engine/internal/engine/script"
-	"github.com/kode4food/argyll/engine/internal/engine/step"
 	"github.com/kode4food/argyll/engine/pkg/api"
+	"github.com/kode4food/argyll/engine/pkg/step"
+	"github.com/kode4food/argyll/engine/pkg/step/builtins"
 	"github.com/kode4food/argyll/engine/pkg/util"
 )
 
@@ -251,7 +251,7 @@ func TestRetryExhaustion(t *testing.T) {
 			FlowID: id,
 			StepID: "failing-step",
 		}), func() {
-			err = env.Engine.StartFlow(id, pl)
+			err = env.Engine.StartPlan(id, pl)
 			assert.NoError(t, err)
 		})
 
@@ -293,8 +293,8 @@ func TestHTTPRetryRecovers(t *testing.T) {
 	scripts := script.NewRegistry()
 	deps := engine.Dependencies{
 		Scripts: scripts,
-		Steps: step.NewRegistry(step.DefaultHandlers(
-			scripts, client.NewHTTPClient(5*time.Second),
+		Steps: step.NewRegistry(builtins.All(
+			builtins.NewHTTPClient(5*time.Second), nil,
 		)),
 	}
 	helpers.WithTestEnvDeps(t, deps, func(env *helpers.TestEngineEnv) {
@@ -308,8 +308,8 @@ func TestHTTPRetryRecovers(t *testing.T) {
 		deps := env.Dependencies()
 		scripts := script.NewRegistry()
 		deps.Scripts = scripts
-		deps.Steps = step.NewRegistry(step.DefaultHandlers(
-			scripts, client.NewHTTPClient(5*time.Second),
+		deps.Steps = step.NewRegistry(builtins.All(
+			builtins.NewHTTPClient(5*time.Second), nil,
 		))
 		eng, unsubscribe, err := env.NewEngineWithConfig(cfg, deps)
 		assert.NoError(t, err)
@@ -331,7 +331,7 @@ func TestHTTPRetryRecovers(t *testing.T) {
 		}
 
 		id := api.FlowID("wf-http-retry")
-		err = eng.StartFlow(id, pl)
+		err = eng.StartPlan(id, pl)
 		assert.NoError(t, err)
 		fl := helpers.WaitForTerminalFlowState(t, eng, id)
 

@@ -212,7 +212,7 @@ func TestGetFlowEvents(t *testing.T) {
 			Goals: []api.StepID{"flow-events-step"},
 			Steps: api.Steps{"flow-events-step": st},
 		}
-		assert.NoError(t, testEnv.Engine.StartFlow("flow-events-id", pl))
+		assert.NoError(t, testEnv.Engine.StartPlan("flow-events-id", pl))
 
 		req := httptest.NewRequest(
 			"GET", "/engine/flows/flow-events-id/events", nil,

@@ -171,7 +171,7 @@ func TestCanStartFlows(t *testing.T) {
 			Steps: api.Steps{st.ID: st},
 		}
 
-		err = eng.StartFlow("test-wf", pl)
+		err = eng.StartPlan("test-wf", pl)
 		assert.NoError(t, err)
 
 		wf, err := eng.GetFlowState("test-wf")

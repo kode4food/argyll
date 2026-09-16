@@ -784,11 +784,11 @@ func wrapBody(
 
 	var sb strings.Builder
 	if len(lhs) > 0 {
-		fmt.Fprintf(&sb, "%s := ", strings.Join(lhs, ", "))
+		_, _ = fmt.Fprintf(&sb, "%s := ", strings.Join(lhs, ", "))
 	}
-	fmt.Fprintf(&sb, "%s(%s)\n", fn, strings.Join(call, ", "))
+	_, _ = fmt.Fprintf(&sb, "%s(%s)\n", fn, strings.Join(call, ", "))
 	if hasErr {
-		fmt.Fprintf(&sb, "if err != nil {\nreturn %s{}, err\n}\n", outType)
+		_, _ = fmt.Fprintf(&sb, "if err != nil {\nreturn %s{}, err\n}\n", outType)
 	}
 	sb.WriteString(res)
 	return sb.String()

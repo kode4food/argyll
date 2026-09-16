@@ -2,7 +2,7 @@ package server
 
 import (
 	"context"
-	"fmt"
+	"errors"
 	"log/slog"
 	"net/http"
 	"time"
@@ -28,6 +28,10 @@ const (
 	healthCheckInterval = 30 * time.Second
 	httpErrorThreshold  = 400
 	roleUnknown         = "unknown"
+)
+
+var (
+	ErrGetStepHealth = errors.New("failed to get step health")
 )
 
 // NewHealthChecker creates a health checker that periodically monitors HTTP
@@ -78,119 +82,61 @@ func (h *HealthChecker) checkAllSteps() {
 		return
 	}
 
-	health := make(map[api.StepID]api.HealthState, len(cat.Steps))
-
-	var httpSteps []*api.Step
+	var steps []*api.Step
 	for _, st := range cat.Steps {
-		switch st.Type {
-		case api.StepTypeScript:
-			h.updateScriptHealth(st, health)
-			h.updateFlowSteps(cat, health)
-		case api.StepTypeService:
-			if st.HTTP != nil && st.HTTP.Health != "" {
-				httpSteps = append(httpSteps, st)
-			}
+		if st.Type == api.StepTypeService && st.HTTP != nil &&
+			st.HTTP.Health != "" {
+			steps = append(steps, st)
 		}
 	}
 
-	httpCount := len(httpSteps)
+	// The engine derives script and flow step health on its own, so a pass
+	// with nothing probed still refreshes those
+	probed := make(map[api.StepID]api.HealthState, len(steps))
+	h.refresh(probed)
+
 	var delay time.Duration
-	if httpCount > 1 {
-		delay = healthCheckInterval / time.Duration(httpCount)
+	if len(steps) > 1 {
+		delay = healthCheckInterval / time.Duration(len(steps))
 	}
-	for _, st := range httpSteps {
-		h.updateStepHealth(st, health)
-		h.updateFlowSteps(cat, health)
+	for _, st := range steps {
+		probed[st.ID] = h.probe(st)
+		h.refresh(probed)
 		if delay > 0 {
 			time.Sleep(delay)
 		}
 	}
 }
 
-func (h *HealthChecker) updateScriptHealth(
-	st *api.Step, health map[api.StepID]api.HealthState,
-) {
-	hs, err := h.engine.StepHealth(st)
-	if err != nil {
-		slog.Error("Failed to resolve initial step health",
-			log.StepID(st.ID), log.Error(err))
-		return
-	}
-	health[st.ID] = hs
-	if err := h.engine.UpdateStepHealth(
-		st.ID, hs.Status, hs.Error,
-	); err != nil {
-		slog.Error("Failed to update script health",
-			log.StepID(st.ID), log.Error(err))
+func (h *HealthChecker) refresh(probed map[api.StepID]api.HealthState) {
+	if err := h.engine.RefreshStepHealth(probed); err != nil {
+		slog.Error("Failed to refresh step health", log.Error(err))
 	}
 }
 
-func (h *HealthChecker) updateFlowSteps(
-	cat api.CatalogState, health map[api.StepID]api.HealthState,
-) {
-	resolved := h.engine.ResolveHealth(h.engine.Matcher, cat, health)
-	for sid, st := range cat.Steps {
-		if st.Type != api.StepTypeFlow {
-			continue
-		}
-		stepHealth, ok := resolved[sid]
-		if !ok {
-			continue
-		}
-		health[sid] = stepHealth
-		if err := h.engine.UpdateStepHealth(
-			sid, stepHealth.Status, stepHealth.Error,
-		); err != nil {
-			slog.Error("Failed to update flow step health",
-				log.StepID(sid), log.Error(err))
-		}
-	}
-}
-
-func (h *HealthChecker) updateStepHealth(
-	st *api.Step, health map[api.StepID]api.HealthState,
-) {
-	status := api.HealthHealthy
-	errorMsg := ""
-
+func (h *HealthChecker) probe(st *api.Step) api.HealthState {
 	resp, err := h.client.Get(st.HTTP.Health)
 	if err != nil {
-		status = api.HealthUnhealthy
-		errorMsg = err.Error()
 		slog.Error("Health check failed",
 			log.StepID(st.ID),
 			log.Error(err))
-		health[st.ID] = api.HealthState{
-			Status: status,
-			Error:  errorMsg,
+		return api.HealthState{
+			Status: api.HealthUnhealthy,
+			Error:  err.Error(),
 		}
-		err := h.engine.UpdateStepHealth(st.ID, status, errorMsg)
-		if err != nil {
-			slog.Error("Failed to update step health",
-				log.StepID(st.ID),
-				log.Error(err))
-		}
-		return
 	}
 
 	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode >= httpErrorThreshold {
-		status = api.HealthUnhealthy
-		errorMsg = "HTTP " + resp.Status
 		slog.Error("Health check failed",
 			log.StepID(st.ID),
 			log.Status(resp.Status))
+		return api.HealthState{
+			Status: api.HealthUnhealthy,
+			Error:  "HTTP " + resp.Status,
+		}
 	}
-
-	health[st.ID] = api.HealthState{
-		Status: status,
-		Error:  errorMsg,
-	}
-	if err := h.engine.UpdateStepHealth(st.ID, status, errorMsg); err != nil {
-		slog.Error("Failed to update step health",
-			log.StepID(st.ID),
-			log.Error(err))
-	}
+	return api.HealthState{Status: api.HealthHealthy}
 }
 
 func (s *Server) handleHealth(c *gin.Context) {
@@ -218,32 +164,15 @@ func (s *Server) handleEngineHealth(c *gin.Context) {
 func (s *Server) handleEngineHealthByID(c *gin.Context) {
 	sid := api.StepID(c.Param("step_id"))
 
-	cat, err := s.engine.GetCatalogState()
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, api.ErrorResponse{
-			Error:  fmt.Sprintf("%s: %v", ErrGetCatalogState, err),
-			Status: http.StatusInternalServerError,
-		})
-		return
-	}
-	cluster, err := s.engine.GetClusterState()
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, api.ErrorResponse{
-			Error:  fmt.Sprintf("%s: %v", ErrGetClusterState, err),
-			Status: http.StatusInternalServerError,
-		})
-		return
-	}
-
-	merged := s.engine.ResolveHealth(
-		s.engine.Matcher, cat, engine.MergeNodeHealth(cluster),
-	)
-	health, ok := merged[sid]
-	if !ok {
+	health, err := s.engine.GetStepHealth(sid)
+	if errors.Is(err, api.ErrStepNotFound) {
 		c.JSON(http.StatusNotFound, api.ErrorResponse{
-			Error:  fmt.Sprintf("Health not found for step: %s", sid),
+			Error:  err.Error(),
 			Status: http.StatusNotFound,
 		})
+		return
+	}
+	if writeError(c, ErrGetStepHealth, err) {
 		return
 	}
 

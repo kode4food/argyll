@@ -65,7 +65,7 @@ func TestDependencyChain(t *testing.T) {
 
 		id := api.FlowID("test-dependency-chain")
 		fl := env.WaitForFlowStatus(id, func() {
-			err := env.Engine.StartFlow(id, pl)
+			err := env.Engine.StartPlan(id, pl)
 			assert.NoError(t, err)
 		})
 		assert.Equal(t, api.FlowCompleted, fl.Status)
@@ -169,7 +169,7 @@ func TestDiamondDependencies(t *testing.T) {
 
 		id := api.FlowID("test-diamond")
 		fl := env.WaitForFlowStatus(id, func() {
-			err := env.Engine.StartFlow(id, pl)
+			err := env.Engine.StartPlan(id, pl)
 			assert.NoError(t, err)
 		})
 		assert.Equal(t, api.FlowCompleted, fl.Status)

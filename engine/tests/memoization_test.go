@@ -6,8 +6,8 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/kode4food/argyll/engine/internal/assert/helpers"
-	"github.com/kode4food/argyll/engine/internal/engine/flow"
 	"github.com/kode4food/argyll/engine/pkg/api"
+	"github.com/kode4food/argyll/engine/pkg/flow"
 )
 
 func TestMemoizationHit(t *testing.T) {
@@ -31,7 +31,7 @@ func TestMemoizationHit(t *testing.T) {
 		}
 
 		id1 := api.FlowID("f1")
-		err := env.Engine.StartFlow(id1, pl)
+		err := env.Engine.StartPlan(id1, pl)
 		assert.NoError(t, err)
 		f1 := env.WaitForTerminalFlow(id1)
 		assert.Equal(t, api.FlowCompleted, f1.Status)
@@ -39,7 +39,7 @@ func TestMemoizationHit(t *testing.T) {
 		assert.True(t, env.MockClient.WasInvoked("memo"))
 
 		id2 := api.FlowID("f2")
-		err = env.Engine.StartFlow(id2, pl)
+		err = env.Engine.StartPlan(id2, pl)
 		assert.NoError(t, err)
 		f2 := env.WaitForTerminalFlow(id2)
 		assert.Equal(t, api.FlowCompleted, f2.Status)
@@ -71,7 +71,7 @@ func TestMemoizationMiss(t *testing.T) {
 
 		env.MockClient.SetResponse("memo", api.Args{"out": "a"})
 		id1 := api.FlowID("f1")
-		err := env.Engine.StartFlow(id1, pl,
+		err := env.Engine.StartPlan(id1, pl,
 			flow.WithInit(api.InitArgs{"in": {"a"}}),
 		)
 		assert.NoError(t, err)
@@ -81,7 +81,7 @@ func TestMemoizationMiss(t *testing.T) {
 
 		env.MockClient.SetResponse("memo", api.Args{"out": "b"})
 		id2 := api.FlowID("f2")
-		err = env.Engine.StartFlow(id2, pl,
+		err = env.Engine.StartPlan(id2, pl,
 			flow.WithInit(api.InitArgs{"in": {"b"}}),
 		)
 		assert.NoError(t, err)

@@ -338,7 +338,7 @@ func TestSuccess(t *testing.T) {
 				StepID: "async-step",
 			},
 			func() {
-				err = testEnv.Engine.StartFlow("webhook-wf", &api.ExecutionPlan{
+				err = testEnv.Engine.StartPlan("webhook-wf", &api.ExecutionPlan{
 					Goals: []api.StepID{"async-step"},
 					Steps: api.Steps{
 						"async-step": st,
@@ -420,7 +420,7 @@ func TestHookStepNotFound(t *testing.T) {
 			},
 		}
 
-		err = testEnv.Engine.StartFlow("webhook-wf", pl)
+		err = testEnv.Engine.StartPlan("webhook-wf", pl)
 		assert.NoError(t, err)
 
 		body, _ := json.Marshal(api.Args{})
@@ -469,7 +469,7 @@ func TestHookInvalidToken(t *testing.T) {
 				StepID: "async-step",
 			},
 			func() {
-				err = testEnv.Engine.StartFlow("webhook-wf", &api.ExecutionPlan{
+				err = testEnv.Engine.StartPlan("webhook-wf", &api.ExecutionPlan{
 					Goals: []api.StepID{"async-step"},
 					Steps: api.Steps{
 						"async-step": st,
@@ -522,7 +522,7 @@ func TestHookInvalidJSONRoute(t *testing.T) {
 				StepID: "async-step",
 			},
 			func() {
-				err = testEnv.Engine.StartFlow("webhook-wf", &api.ExecutionPlan{
+				err = testEnv.Engine.StartPlan("webhook-wf", &api.ExecutionPlan{
 					Goals: []api.StepID{"async-step"},
 					Steps: api.Steps{
 						"async-step": st,
@@ -590,7 +590,7 @@ func TestHookFailurePath(t *testing.T) {
 				StepID: "async-step",
 			},
 			func() {
-				err = testEnv.Engine.StartFlow(
+				err = testEnv.Engine.StartPlan(
 					"wf-fail-path", &api.ExecutionPlan{
 						Goals: []api.StepID{"async-step"},
 						Steps: api.Steps{
@@ -648,7 +648,7 @@ func TestGetFlow(t *testing.T) {
 			},
 		}
 
-		err = testEnv.Engine.StartFlow("test-wf-id", pl)
+		err = testEnv.Engine.StartPlan("test-wf-id", pl)
 		assert.NoError(t, err)
 
 		req := httptest.NewRequest("GET", "/engine/flows/test-wf-id", nil)
@@ -684,7 +684,7 @@ func TestGetFlowStatus(t *testing.T) {
 		}
 
 		testEnv.WaitForFlowStatus("status-wf-id", func() {
-			err = testEnv.Engine.StartFlow("status-wf-id", pl)
+			err = testEnv.Engine.StartPlan("status-wf-id", pl)
 			assert.NoError(t, err)
 		})
 
@@ -1192,7 +1192,7 @@ func TestListFlowsEndpoint(t *testing.T) {
 		}
 
 		testEnv.WaitFor(wait.FlowActivated("wf-list"), func() {
-			err = testEnv.Engine.StartFlow("wf-list", pl)
+			err = testEnv.Engine.StartPlan("wf-list", pl)
 			assert.NoError(t, err)
 		})
 
@@ -1391,7 +1391,7 @@ func TestStartFlowDuplicate(t *testing.T) {
 				},
 			}
 
-			err = testEnv.Engine.StartFlow("duplicate-flow", pl)
+			err = testEnv.Engine.StartPlan("duplicate-flow", pl)
 			assert.NoError(t, err)
 
 			reqBody := api.CreateFlowRequest{
@@ -1429,7 +1429,7 @@ func TestStartFlowDuplicate(t *testing.T) {
 				},
 			}
 
-			err := testEnv.Engine.StartFlow("duplicate-flow", pl)
+			err := testEnv.Engine.StartPlan("duplicate-flow", pl)
 			assert.NoError(t, err)
 
 			reqBody := api.CreateFlowRequest{
@@ -1576,10 +1576,10 @@ func TestQueryFlowsMultiple(t *testing.T) {
 
 		testEnv.WaitForCount(2,
 			wait.FlowActivated("flow-1", "flow-2"), func() {
-				err = testEnv.Engine.StartFlow("flow-1", pl)
+				err = testEnv.Engine.StartPlan("flow-1", pl)
 				assert.NoError(t, err)
 
-				err = testEnv.Engine.StartFlow("flow-2", pl)
+				err = testEnv.Engine.StartPlan("flow-2", pl)
 				assert.NoError(t, err)
 			})
 
@@ -1687,7 +1687,7 @@ func TestHookSuccessRoute(t *testing.T) {
 				StepID: st.ID,
 			},
 			func() {
-				err = testEnv.Engine.StartFlow("webhook-flow", pl)
+				err = testEnv.Engine.StartPlan("webhook-flow", pl)
 				assert.NoError(t, err)
 			})
 

@@ -12,10 +12,10 @@ import (
 
 	"github.com/kode4food/argyll/engine/internal/assert/helpers"
 	"github.com/kode4food/argyll/engine/internal/engine"
-	"github.com/kode4food/argyll/engine/internal/engine/plan"
 	"github.com/kode4food/argyll/engine/internal/engine/scheduler"
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/events"
+	"github.com/kode4food/argyll/engine/pkg/plan"
 )
 
 func TestQueryFlows(t *testing.T) {
@@ -367,7 +367,7 @@ func TestSkipChildFlows(t *testing.T) {
 
 		var childID api.FlowID
 		fl := env.WaitForFlowStatus("parent-list", func() {
-			err = env.Engine.StartFlow("parent-list", pl)
+			err = env.Engine.StartPlan("parent-list", pl)
 			assert.NoError(t, err)
 		})
 		assert.Equal(t, api.FlowCompleted, fl.Status)

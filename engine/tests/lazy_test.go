@@ -92,7 +92,7 @@ func TestLazyEvaluation(t *testing.T) {
 
 		id := api.FlowID("test-lazy-eval")
 		fl := env.WaitForFlowStatus(id, func() {
-			err := env.Engine.StartFlow(id, pl)
+			err := env.Engine.StartPlan(id, pl)
 			assert.NoError(t, err)
 		})
 		assert.Equal(t, api.FlowCompleted, fl.Status)

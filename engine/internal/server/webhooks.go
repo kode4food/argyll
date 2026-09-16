@@ -7,7 +7,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"github.com/kode4food/argyll/engine/internal/engine"
 	"github.com/kode4food/argyll/engine/internal/engine/policy"
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/log"
@@ -153,7 +152,7 @@ func (s *Server) handleInvokeWebhook(
 	}
 
 	if err := s.engine.CompleteWork(fs, tkn, outputs); err != nil {
-		if errors.Is(err, engine.ErrInvalidWorkTransition) {
+		if errors.Is(err, api.ErrInvalidWorkTransition) {
 			slog.Info("Ignoring duplicate work completion",
 				log.FlowID(fs.FlowID),
 				log.StepID(fs.StepID),
@@ -200,7 +199,7 @@ func (s *Server) handleInvokeProblemWebhook(
 		log.Token(tkn),
 		log.ErrorString(errMsg))
 	if err := s.engine.FailWork(fs, tkn, errMsg); err != nil {
-		if errors.Is(err, engine.ErrInvalidWorkTransition) {
+		if errors.Is(err, api.ErrInvalidWorkTransition) {
 			slog.Info("Ignoring duplicate work failure",
 				log.FlowID(fs.FlowID),
 				log.StepID(fs.StepID),

@@ -1,14 +1,13 @@
-package step_test
+package builtins_test
 
 import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/kode4food/argyll/engine/internal/client"
-	"github.com/kode4food/argyll/engine/internal/engine/script"
-	"github.com/kode4food/argyll/engine/internal/engine/step"
 	"github.com/kode4food/argyll/engine/pkg/api"
+	"github.com/kode4food/argyll/engine/pkg/step"
+	"github.com/kode4food/argyll/engine/pkg/step/builtins"
 )
 
 type testClient struct {
@@ -20,7 +19,7 @@ type testClient struct {
 	err     error
 }
 
-var _ client.Client = (*testClient)(nil)
+var _ builtins.Client = (*testClient)(nil)
 
 func (c *testClient) Invoke(
 	_ *api.Step, inputs api.Args, meta api.Metadata,
@@ -34,39 +33,41 @@ func (c *testClient) Invoke(
 	return c.outputs, nil
 }
 
-func (c *testClient) InvokeCompensate(client.CompensateRequest) error {
+func (c *testClient) InvokeCompensate(req step.CompensateRequest) error {
 	c.compens++
-	return nil
+	c.meta = req.Metadata
+	return c.err
 }
 
 type testRuntime struct {
 	flowID        api.FlowID
 	stepID        api.StepID
 	meta          api.Metadata
-	webhookURL    string
 	completeToken api.Token
 	completeOut   api.Args
 	completeCalls int
 	healthStatus  api.HealthStatus
 	healthError   string
 	healthCalls   int
-	webhookCalls  int
 }
 
 var _ step.Runtime = (*testRuntime)(nil)
 
-func newRegistry(c client.Client) *step.Registry {
-	return step.NewRegistry(step.DefaultHandlers(script.NewRegistry(), c))
+const testCallbackBase = "http://example.test"
+
+func newRegistry(c builtins.Client) *step.Registry {
+	return step.NewRegistry(builtins.All(
+		c, builtins.BaseCallbackURL(testCallbackBase),
+	))
 }
 
 func newRuntime(
-	fid api.FlowID, sid api.StepID, meta api.Metadata, webhookURL string,
+	fid api.FlowID, sid api.StepID, meta api.Metadata,
 ) (*testRuntime, *testRuntime) {
 	rt := &testRuntime{
-		flowID:     fid,
-		stepID:     sid,
-		meta:       meta,
-		webhookURL: webhookURL,
+		flowID: fid,
+		stepID: sid,
+		meta:   meta,
 	}
 	return rt, rt
 }
@@ -81,11 +82,6 @@ func (r *testRuntime) StepID() api.StepID {
 
 func (r *testRuntime) Metadata() api.Metadata {
 	return r.meta
-}
-
-func (r *testRuntime) WebhookURL(api.Token) string {
-	r.webhookCalls++
-	return r.webhookURL
 }
 
 func (r *testRuntime) CompleteWork(
@@ -132,7 +128,6 @@ func TestHTTPHandlerPropagatesMetadata(t *testing.T) {
 
 	rt, calls := newRuntime(
 		"flow-1", "step-1", api.Metadata{"source": "test"},
-		"http://example.test/callbacks/flow-1/step-1/token-1",
 	)
 	st := &api.Step{
 		ID:   "step-1",
@@ -163,7 +158,6 @@ func TestHTTPHandlerAsyncAddsWebhookURL(t *testing.T) {
 
 	rt, calls := newRuntime(
 		"flow-1", "step-1", api.Metadata{"source": "test"},
-		"http://example.test/callbacks/flow-1/step-1/token-1",
 	)
 	st := &api.Step{
 		ID:   "step-1",
@@ -180,11 +174,31 @@ func TestHTTPHandlerAsyncAddsWebhookURL(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, 1, cl.invoked)
 	assert.Equal(t,
-		"http://example.test/callbacks/flow-1/step-1/token-1",
+		testCallbackBase+"/callbacks/flow-1/step-1/token-1/invoke",
 		cl.meta[api.MetaWebhookURL])
 	assert.Equal(t, api.Token("token-1"), cl.meta[api.MetaReceiptToken])
 	assert.Equal(t, 0, calls.completeCalls)
-	assert.Equal(t, 1, calls.webhookCalls)
+}
+
+func TestAsyncStepNeedsCallbackURL(t *testing.T) {
+	reg := step.NewRegistry(builtins.All(
+		&testClient{}, nil,
+	))
+
+	st := &api.Step{
+		ID:   "step-1",
+		Type: api.StepTypeService,
+		HTTP: &api.HTTPConfig{
+			Invoke: api.HTTPAction{
+				Endpoint: "http://example.test/execute",
+				Mode:     api.ActionModeAsync,
+			},
+		},
+	}
+	assert.ErrorIs(t, reg.Validate(st), builtins.ErrNoCallbackURL)
+
+	st.HTTP.Invoke.Mode = ""
+	assert.NoError(t, reg.Validate(st))
 }
 
 func TestFlowHandlerHasNoExternalExecution(t *testing.T) {

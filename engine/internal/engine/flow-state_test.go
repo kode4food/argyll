@@ -186,7 +186,7 @@ func TestIsFlowFailed(t *testing.T) {
 			FlowID: "wf-failed-test",
 			StepID: stepA.ID,
 		}), func() {
-			err = env.Engine.StartFlow("wf-failed-test", pl)
+			err = env.Engine.StartPlan("wf-failed-test", pl)
 			assert.NoError(t, err)
 		})
 
@@ -208,7 +208,7 @@ func TestIsFlowNotFailed(t *testing.T) {
 		err := eng.RegisterStep(st)
 		assert.NoError(t, err)
 
-		err = eng.StartFlow("wf-ok-test", pl)
+		err = eng.StartPlan("wf-ok-test", pl)
 		assert.NoError(t, err)
 
 		fl, err := eng.GetFlowState("wf-ok-test")
@@ -246,7 +246,7 @@ func TestHasInputProvider(t *testing.T) {
 		err = eng.RegisterStep(stepB)
 		assert.NoError(t, err)
 
-		err = eng.StartFlow("wf-provider-test", pl)
+		err = eng.StartPlan("wf-provider-test", pl)
 		assert.NoError(t, err)
 
 		fl, err := eng.GetFlowState("wf-provider-test")
@@ -272,7 +272,7 @@ func TestHasInputProviderNone(t *testing.T) {
 		err := eng.RegisterStep(st)
 		assert.NoError(t, err)
 
-		err = eng.StartFlow("wf-no-provider-test", pl)
+		err = eng.StartPlan("wf-no-provider-test", pl)
 		assert.NoError(t, err)
 
 		fl, err := eng.GetFlowState("wf-no-provider-test")
@@ -284,7 +284,7 @@ func TestHasInputProviderNone(t *testing.T) {
 func TestGetStateNotFound(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
 		_, err := eng.GetFlowState("nonexistent")
-		assert.ErrorIs(t, err, engine.ErrFlowNotFound)
+		assert.ErrorIs(t, err, api.ErrFlowNotFound)
 	})
 }
 
@@ -300,7 +300,7 @@ func TestGetFlowState(t *testing.T) {
 			Steps: api.Steps{st.ID: st},
 		}
 
-		err = eng.StartFlow("wf-state", pl)
+		err = eng.StartPlan("wf-state", pl)
 		assert.NoError(t, err)
 
 		fl, err := eng.GetFlowState("wf-state")
@@ -346,7 +346,7 @@ func TestGetStatusFailed(t *testing.T) {
 func TestGetStatusNotFound(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
 		_, err := eng.GetFlowStatus("nonexistent")
-		assert.ErrorIs(t, err, engine.ErrFlowNotFound)
+		assert.ErrorIs(t, err, api.ErrFlowNotFound)
 	})
 }
 
@@ -388,7 +388,7 @@ func TestGetAttributes(t *testing.T) {
 		}
 
 		fl := env.WaitForFlowStatus("wf-getattrs", func() {
-			err = env.Engine.StartFlow("wf-getattrs", pl)
+			err = env.Engine.StartPlan("wf-getattrs", pl)
 			assert.NoError(t, err)
 		})
 
@@ -422,7 +422,7 @@ func TestGetAttribute(t *testing.T) {
 		}
 
 		fl := env.WaitForFlowStatus("wf-attr", func() {
-			err := env.Engine.StartFlow("wf-attr", pl)
+			err := env.Engine.StartPlan("wf-attr", pl)
 			assert.NoError(t, err)
 		})
 		assert.Equal(t, api.FlowCompleted, fl.Status)

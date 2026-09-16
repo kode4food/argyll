@@ -9,21 +9,17 @@ type (
 		Step      *api.Step
 		Values    func(api.Name) []*api.AttributeValue
 		Providers func(api.Name) ProviderSummary
-		Match     Matcher
+		Match     api.Matcher
 	}
 
 	// RequiredMatchSpec carries layer facts needed to evaluate required match
 	// gates for an attribute specification
 	RequiredMatchSpec struct {
 		Attr     *api.AttributeSpec
-		Match    Matcher
+		Match    api.Matcher
 		Values   []*api.AttributeValue
 		Provider ProviderSummary
 	}
-
-	// Matcher evaluates a required match script against one candidate
-	// attribute value
-	Matcher func(*api.ScriptConfig, any) (bool, error)
 
 	// MatchStatus classifies whether a step's required match gates are open,
 	// closed, still waiting for more candidate values, or absent
@@ -153,7 +149,7 @@ func StepPrunedByRequiredMatch(status api.StepStatus, reason string) bool {
 // MatchCandidateValues returns only candidate values that satisfy a required
 // match predicate, plus the count of candidates that were evaluated and failed
 func MatchCandidateValues(
-	attr *api.AttributeSpec, values []*api.AttributeValue, match Matcher,
+	attr *api.AttributeSpec, values []*api.AttributeValue, match api.Matcher,
 ) ([]*api.AttributeValue, int, error) {
 	if !RequiredInputHasMatch(attr) {
 		return values, 0, nil

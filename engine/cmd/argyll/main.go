@@ -16,14 +16,14 @@ import (
 	"github.com/kode4food/timebox/raft"
 
 	app "github.com/kode4food/argyll/engine"
-	"github.com/kode4food/argyll/engine/internal/client"
 	"github.com/kode4food/argyll/engine/internal/config"
 	"github.com/kode4food/argyll/engine/internal/engine"
 	"github.com/kode4food/argyll/engine/internal/engine/script"
-	"github.com/kode4food/argyll/engine/internal/engine/step"
 	"github.com/kode4food/argyll/engine/internal/event"
 	"github.com/kode4food/argyll/engine/internal/server"
 	"github.com/kode4food/argyll/engine/pkg/log"
+	"github.com/kode4food/argyll/engine/pkg/step"
+	"github.com/kode4food/argyll/engine/pkg/step/builtins"
 )
 
 type argyll struct {
@@ -149,11 +149,13 @@ func (a *argyll) initializeStores() error {
 }
 
 func (a *argyll) initializeEngine(hub *event.Hub) error {
-	stepClient := client.NewHTTPClient(
+	stepClient := builtins.NewHTTPClient(
 		time.Duration(a.cfg.StepTimeout) * time.Millisecond,
 	)
 	scripts := script.NewRegistry()
-	steps := step.NewRegistry(step.DefaultHandlers(scripts, stepClient))
+	steps := step.NewRegistry(builtins.All(
+		stepClient, builtins.BaseCallbackURL(a.cfg.WebhookBaseURL),
+	))
 
 	eng, err := engine.New(a.cfg, engine.Dependencies{
 		EngineStore: a.engStore,

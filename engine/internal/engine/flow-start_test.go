@@ -8,9 +8,9 @@ import (
 	"github.com/kode4food/argyll/engine/internal/assert/helpers"
 	"github.com/kode4food/argyll/engine/internal/assert/wait"
 	"github.com/kode4food/argyll/engine/internal/engine"
-	"github.com/kode4food/argyll/engine/internal/engine/flow"
-	"github.com/kode4food/argyll/engine/internal/engine/plan"
 	"github.com/kode4food/argyll/engine/pkg/api"
+	"github.com/kode4food/argyll/engine/pkg/flow"
+	"github.com/kode4food/argyll/engine/pkg/plan"
 )
 
 func TestStartDuplicate(t *testing.T) {
@@ -26,10 +26,10 @@ func TestStartDuplicate(t *testing.T) {
 				Steps: api.Steps{st.ID: st},
 			}
 
-			err = eng.StartFlow("wf-dup", pl)
+			err = eng.StartPlan("wf-dup", pl)
 			assert.NoError(t, err)
 
-			err = eng.StartFlow("wf-dup", pl)
+			err = eng.StartPlan("wf-dup", pl)
 			assert.NoError(t, err)
 		})
 	})
@@ -51,11 +51,11 @@ func TestStartDuplicate(t *testing.T) {
 				Steps: api.Steps{st2.ID: st2},
 			}
 
-			err := eng.StartFlow("wf-conflict", pl1)
+			err := eng.StartPlan("wf-conflict", pl1)
 			assert.NoError(t, err)
 
-			err = eng.StartFlow("wf-conflict", pl2)
-			assert.ErrorIs(t, err, engine.ErrFlowExists)
+			err = eng.StartPlan("wf-conflict", pl2)
+			assert.ErrorIs(t, err, api.ErrFlowExists)
 		})
 	})
 }
@@ -81,7 +81,7 @@ func TestStartFlowSchedulesWork(t *testing.T) {
 			FlowID: id,
 			StepID: st.ID,
 		}), func() {
-			err = env.Engine.StartFlow(id, pl)
+			err = env.Engine.StartPlan(id, pl)
 			assert.NoError(t, err)
 		})
 
@@ -111,7 +111,7 @@ func TestStartMissingInput(t *testing.T) {
 			Required: []api.Name{"required_value"},
 		}
 
-		err := eng.StartFlow("wf-missing", pl)
+		err := eng.StartPlan("wf-missing", pl)
 		assert.Error(t, err)
 	})
 }
@@ -124,7 +124,7 @@ func TestStartRejectsPartialParent(t *testing.T) {
 			Steps: api.Steps{st.ID: st},
 		}
 
-		err := eng.StartFlow("wf-partial-parent-meta", pl,
+		err := eng.StartPlan("wf-partial-parent-meta", pl,
 			flow.WithMetadata(api.Metadata{
 				api.MetaParentFlowID: "parent",
 			}),
@@ -162,7 +162,7 @@ func TestStartFlowSimple(t *testing.T) {
 			},
 		}
 
-		err = env.Engine.StartFlow("wf-simple", pl)
+		err = env.Engine.StartPlan("wf-simple", pl)
 		assert.NoError(t, err)
 
 		fl, err := env.Engine.GetFlowState("wf-simple")
@@ -191,7 +191,7 @@ func TestStartChildFlowUsesPlan(t *testing.T) {
 			Steps: cat.Steps, Goals: []api.StepID{parent.ID},
 		})
 		assert.NoError(t, err)
-		assert.NoError(t, env.Engine.StartFlow("parent", pl,
+		assert.NoError(t, env.Engine.StartPlan("parent", pl,
 			flow.WithMetadata(api.Metadata{"source": "test"}),
 		))
 

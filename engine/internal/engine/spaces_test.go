@@ -211,21 +211,21 @@ func TestPreviewSpace(t *testing.T) {
 		assert.Empty(t, preview.StepIDs)
 
 		_, err = eng.PreviewSpace(api.Space{})
-		assert.ErrorIs(t, err, engine.ErrInvalidSpace)
+		assert.ErrorIs(t, err, api.ErrInvalidSpace)
 	})
 }
 
 func TestSpacesRejectInvalid(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
 		err := eng.RegisterSpace(api.Space{})
-		assert.ErrorIs(t, err, engine.ErrInvalidSpace)
+		assert.ErrorIs(t, err, api.ErrInvalidSpace)
 		assert.ErrorIs(t, err, api.ErrSpaceSelectorEmpty)
 
 		err = eng.RegisterSpace(api.Space{
 			Name: "No ID",
 			QBE:  api.SpaceQuery{{"domain:payments"}},
 		})
-		assert.ErrorIs(t, err, engine.ErrInvalidSpace)
+		assert.ErrorIs(t, err, api.ErrInvalidSpace)
 		assert.ErrorIs(t, err, api.ErrSpaceIDEmpty)
 
 		err = eng.UpdateSpace(api.Space{
@@ -233,7 +233,7 @@ func TestSpacesRejectInvalid(t *testing.T) {
 			Name: "Missing",
 			QBE:  api.SpaceQuery{{"domain:payments"}},
 		})
-		assert.ErrorIs(t, err, engine.ErrSpaceNotFound)
+		assert.ErrorIs(t, err, api.ErrSpaceNotFound)
 
 		err = eng.RegisterSpace(api.Space{
 			ID: "invalid-script", Name: "Invalid Script",
@@ -242,7 +242,7 @@ func TestSpacesRejectInvalid(t *testing.T) {
 				Script:   "return value[",
 			},
 		})
-		assert.ErrorIs(t, err, engine.ErrInvalidSpace)
+		assert.ErrorIs(t, err, api.ErrInvalidSpace)
 
 		err = eng.RegisterSpace(api.Space{
 			ID: "unknown-language", Name: "Unknown Language",
@@ -251,11 +251,11 @@ func TestSpacesRejectInvalid(t *testing.T) {
 				Script:   "labels(risk).",
 			},
 		})
-		assert.ErrorIs(t, err, engine.ErrInvalidSpace)
+		assert.ErrorIs(t, err, api.ErrInvalidSpace)
 		assert.ErrorIs(t, err, api.ErrInvalidScriptLanguage)
 
 		err = eng.UnregisterSpace("missing")
-		assert.ErrorIs(t, err, engine.ErrSpaceNotFound)
+		assert.ErrorIs(t, err, api.ErrSpaceNotFound)
 	})
 }
 

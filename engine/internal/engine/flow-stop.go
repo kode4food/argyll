@@ -120,9 +120,8 @@ func (tx *flowTx) deactivate(parent api.FlowState) error {
 	return tx.releaseChildFlows()
 }
 
-// parentReleased reports whether the parent can still order a rollback.
-// parent carries the state settled earlier in this same transaction, so the
-// decision sees the outcome the parent is committing to
+// parentReleased reports whether the parent can still order a rollback, from
+// the state it settled earlier in this same transaction
 func (tx *flowTx) parentReleased(
 	fl api.FlowState, parent api.FlowState,
 ) (bool, error) {
@@ -178,7 +177,7 @@ func (tx *flowTx) completeParentFlowWork(
 	settle := func(parentTx *flowTx) error {
 		parent := parentTx.Value()
 		if parent.ID == "" {
-			return errors.Join(ErrGetFlowState, ErrFlowNotFound)
+			return errors.Join(ErrGetFlowState, api.ErrFlowNotFound)
 		}
 
 		ex := parent.Executions[target.fs.StepID]

@@ -63,7 +63,7 @@ func TestLinearFlowCompletes(t *testing.T) {
 		}
 
 		fl := env.WaitForFlowStatus("wf-linear", func() {
-			err := env.Engine.StartFlow("wf-linear", pl)
+			err := env.Engine.StartPlan("wf-linear", pl)
 			assert.NoError(t, err)
 		})
 		assert.Equal(t, api.FlowCompleted, fl.Status)
@@ -140,7 +140,7 @@ func TestPendingUnusedSkip(t *testing.T) {
 		}
 
 		fl := env.WaitForFlowStatus("wf-skip-unneeded", func() {
-			err := env.Engine.StartFlow("wf-skip-unneeded", pl)
+			err := env.Engine.StartPlan("wf-skip-unneeded", pl)
 			assert.NoError(t, err)
 		})
 		assert.Equal(t, api.FlowCompleted, fl.Status)
@@ -232,7 +232,7 @@ func TestSkipFailedAllProvider(t *testing.T) {
 			FlowID: id,
 			StepID: providerA.ID,
 		}), func() {
-			err := env.Engine.StartFlow(id, pl)
+			err := env.Engine.StartPlan(id, pl)
 			assert.NoError(t, err)
 		})
 		fl, err := env.Engine.GetFlowState(id)
@@ -264,7 +264,7 @@ func TestSkipStep(t *testing.T) {
 			FlowID: "wf-skip",
 			StepID: "step-skip",
 		}), func() {
-			err = env.Engine.StartFlow("wf-skip", pl)
+			err = env.Engine.StartPlan("wf-skip", pl)
 			assert.NoError(t, err)
 		})
 

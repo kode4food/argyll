@@ -53,7 +53,7 @@ func TestRegisterStepRejectsUnconfiguredType(t *testing.T) {
 		err := eng.RegisterStep(&api.Step{
 			ID: "custom-step", Name: "Custom Step", Type: "custom",
 		})
-		assert.ErrorIs(t, err, engine.ErrInvalidStep)
+		assert.ErrorIs(t, err, api.ErrInvalidStep)
 		assert.ErrorIs(t, err, api.ErrInvalidStepType)
 	})
 }
@@ -180,7 +180,7 @@ func TestRegisterStepsRollback(t *testing.T) {
 		}
 
 		err := eng.RegisterSteps(stepA, stepB)
-		assert.ErrorIs(t, err, engine.ErrInvalidStep)
+		assert.ErrorIs(t, err, api.ErrInvalidStep)
 		assert.ErrorIs(t, err, engine.ErrTypeConflict)
 
 		cat, err := eng.GetCatalogState()
@@ -206,7 +206,7 @@ func TestRegisterStepValidatesMappings(t *testing.T) {
 		}
 
 		err := eng.RegisterStep(st)
-		assert.ErrorIs(t, err, engine.ErrInvalidStep)
+		assert.ErrorIs(t, err, api.ErrInvalidStep)
 		assert.ErrorContains(t, err, api.ErrInvalidMappingConfig.Error())
 	})
 }
@@ -218,7 +218,7 @@ func TestRegisterStepJPathInvalid(t *testing.T) {
 		)
 
 		err := eng.RegisterStep(st)
-		assert.ErrorIs(t, err, engine.ErrInvalidStep)
+		assert.ErrorIs(t, err, api.ErrInvalidStep)
 		assert.ErrorContains(t, err, script.ErrJPathCompile.Error())
 	})
 }
@@ -251,7 +251,7 @@ func TestJPathNotValidForScripts(t *testing.T) {
 		}
 
 		err := eng.RegisterStep(st)
-		assert.ErrorIs(t, err, engine.ErrInvalidStep)
+		assert.ErrorIs(t, err, api.ErrInvalidStep)
 		assert.ErrorIs(t, err, api.ErrInvalidScriptLanguage)
 	})
 }
@@ -322,7 +322,7 @@ func TestRegisterConflictingStep(t *testing.T) {
 		updatedStep.Name = "Updated Name"
 
 		err = eng.RegisterStep(updatedStep)
-		assert.ErrorIs(t, err, engine.ErrStepExists)
+		assert.ErrorIs(t, err, api.ErrStepExists)
 	})
 }
 
@@ -355,14 +355,12 @@ func TestUpdateStepNotFound(t *testing.T) {
 		st := helpers.NewSimpleStep("nonexistent")
 
 		err := eng.UpdateStep(st)
-		assert.ErrorIs(t, err, engine.ErrStepNotFound)
+		assert.ErrorIs(t, err, api.ErrStepNotFound)
 	})
 }
 
-// TestStepHealthSettledAtomically proves a step's catalog registration and the
-// cluster health it implies now commit together. The catalog and cluster
-// aggregates share a Store, so a failing health write must abort the
-// registration rather than leaving a registered step with no health
+// TestStepHealthSettledAtomically proves registration and the health it implies
+// commit together, so a failing health write aborts the registration
 func TestStepHealthSettledAtomically(t *testing.T) {
 	var fail atomic.Bool
 	backend := &clusterWriteBackend{

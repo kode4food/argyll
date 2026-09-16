@@ -10,7 +10,6 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/kode4food/argyll/engine/internal/assert/helpers"
-	"github.com/kode4food/argyll/engine/internal/engine"
 	"github.com/kode4food/argyll/engine/internal/server"
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
@@ -522,7 +521,7 @@ func TestCreateStepInvalidScript(t *testing.T) {
 		router.ServeHTTP(w, req)
 
 		assert.Equal(t, http.StatusBadRequest, w.Code)
-		assert.Contains(t, w.Body.String(), engine.ErrInvalidStep.Error())
+		assert.Contains(t, w.Body.String(), api.ErrInvalidStep.Error())
 	})
 }
 

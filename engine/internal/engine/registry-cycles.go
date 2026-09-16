@@ -27,7 +27,7 @@ type (
 
 func (w *attrCycleWalker) check(sid api.StepID) error {
 	if w.stack.Contains(sid) {
-		return fmt.Errorf("%w: step %s", ErrCircularDependency, sid)
+		return fmt.Errorf("%w: step %s", api.ErrCircularDependency, sid)
 	}
 
 	w.stack.Add(sid)
@@ -50,7 +50,7 @@ func (w *attrCycleWalker) check(sid api.StepID) error {
 
 func (w *flowCycleWalker) check(sid api.StepID) error {
 	if w.stack.Contains(sid) {
-		return fmt.Errorf("%w: step %s", ErrCircularDependency, sid)
+		return fmt.Errorf("%w: step %s", api.ErrCircularDependency, sid)
 	}
 
 	st, ok := w.steps[sid]

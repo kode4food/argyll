@@ -10,10 +10,10 @@ import (
 
 	"github.com/kode4food/argyll/engine/internal/assert/helpers"
 	"github.com/kode4food/argyll/engine/internal/assert/wait"
-	"github.com/kode4food/argyll/engine/internal/engine/flow"
 	"github.com/kode4food/argyll/engine/internal/engine/scheduler"
 	"github.com/kode4food/argyll/engine/internal/event"
 	"github.com/kode4food/argyll/engine/pkg/api"
+	"github.com/kode4food/argyll/engine/pkg/flow"
 	"github.com/kode4food/argyll/engine/pkg/util"
 )
 
@@ -48,7 +48,7 @@ func TestRetryPendingParallelism(t *testing.T) {
 		id := api.FlowID("wf-retry-parallel")
 		env.WithConsumer(func(consumer *event.Consumer) {
 			w := wait.On(t, consumer)
-			err := env.Engine.StartFlow(id, pl,
+			err := env.Engine.StartPlan(id, pl,
 				flow.WithInit(api.InitArgs{"items": {[]any{"a", "b"}}}),
 			)
 			assert.NoError(t, err)

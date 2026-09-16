@@ -212,6 +212,24 @@ func TestGetStepHealthNotFound(t *testing.T) {
 	})
 }
 
+func TestGetStepHealth(t *testing.T) {
+	helpers.WithEngine(t, func(eng *engine.Engine) {
+		st := helpers.NewSimpleStep("resolved-step")
+		assert.NoError(t, eng.RegisterStep(st))
+		assert.NoError(t, eng.UpdateStepHealth(
+			st.ID, api.HealthUnhealthy, "service down",
+		))
+
+		h, err := eng.GetStepHealth(st.ID)
+		assert.NoError(t, err)
+		assert.Equal(t, api.HealthUnhealthy, h.Status)
+		assert.Contains(t, h.Error, "service down")
+
+		_, err = eng.GetStepHealth("missing-step")
+		assert.ErrorIs(t, err, api.ErrStepNotFound)
+	})
+}
+
 func TestMergeNodeHealth(t *testing.T) {
 	cluster := api.ClusterState{
 		Nodes: map[api.NodeID]api.NodeState{

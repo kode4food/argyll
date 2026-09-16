@@ -14,10 +14,11 @@ import (
 	"github.com/kode4food/argyll/engine/internal/engine"
 	"github.com/kode4food/argyll/engine/internal/engine/scheduler"
 	"github.com/kode4food/argyll/engine/internal/engine/script"
-	"github.com/kode4food/argyll/engine/internal/engine/step"
 	"github.com/kode4food/argyll/engine/internal/event"
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/events"
+	"github.com/kode4food/argyll/engine/pkg/step"
+	"github.com/kode4food/argyll/engine/pkg/step/builtins"
 )
 
 type (
@@ -193,7 +194,9 @@ func NewTestEngineWithDeps(
 	flowStore, err := backend.NewStore(cfg.FlowStoreConfig())
 	assert.NoError(t, err)
 	scripts := script.NewRegistry()
-	steps := step.NewRegistry(step.DefaultHandlers(scripts, mockCli))
+	steps := step.NewRegistry(builtins.All(
+		mockCli, builtins.BaseCallbackURL(cfg.WebhookBaseURL),
+	))
 
 	defaultDeps := engine.Dependencies{
 		EngineStore:      engStore,
@@ -413,7 +416,10 @@ func (e *TestEngineEnv) engineDeps(
 	clock scheduler.Clock, makeTimer scheduler.TimerConstructor,
 ) engine.Dependencies {
 	scripts := script.NewRegistry()
-	steps := step.NewRegistry(step.DefaultHandlers(scripts, e.MockClient))
+	steps := step.NewRegistry(builtins.All(
+		e.MockClient,
+		builtins.BaseCallbackURL(e.Config.WebhookBaseURL),
+	))
 
 	return engine.Dependencies{
 		EngineStore:      e.engStore,

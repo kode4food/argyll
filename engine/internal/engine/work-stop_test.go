@@ -10,10 +10,10 @@ import (
 
 	"github.com/kode4food/argyll/engine/internal/assert/helpers"
 	"github.com/kode4food/argyll/engine/internal/assert/wait"
-	"github.com/kode4food/argyll/engine/internal/engine/flow"
 	"github.com/kode4food/argyll/engine/internal/engine/scheduler"
 	"github.com/kode4food/argyll/engine/internal/event"
 	"github.com/kode4food/argyll/engine/pkg/api"
+	"github.com/kode4food/argyll/engine/pkg/flow"
 )
 
 func TestIncompleteWorkFails(t *testing.T) {
@@ -39,7 +39,7 @@ func TestIncompleteWorkFails(t *testing.T) {
 		id := api.FlowID("wf-not-complete")
 		env.WithConsumer(func(consumer *event.Consumer) {
 			w := wait.On(t, consumer)
-			err := env.Engine.StartFlow(id, pl)
+			err := env.Engine.StartPlan(id, pl)
 			assert.NoError(t, err)
 			w.ForAll(
 				wait.WorkFailed(api.FlowStep{
@@ -78,7 +78,7 @@ func TestWorkFailure(t *testing.T) {
 
 		id := api.FlowID("wf-failure")
 		env.WaitFor(wait.FlowFailed(id), func() {
-			err := env.Engine.StartFlow(id, pl)
+			err := env.Engine.StartPlan(id, pl)
 			assert.NoError(t, err)
 		})
 
@@ -238,7 +238,7 @@ func TestWorkFailed(t *testing.T) {
 		}
 
 		fl := env.WaitForFlowStatus("wf-fail", func() {
-			err = env.Engine.StartFlow("wf-fail", pl)
+			err = env.Engine.StartPlan("wf-fail", pl)
 			assert.NoError(t, err)
 		})
 
@@ -272,7 +272,7 @@ func TestLateResultsAfterFlowFails(t *testing.T) {
 		}
 
 		env.WaitForCount(2, wait.WorkStartedAny(fs), func() {
-			assert.NoError(t, env.Engine.StartFlow(id, pl,
+			assert.NoError(t, env.Engine.StartPlan(id, pl,
 				flow.WithInit(api.InitArgs{"items": {[]any{"a", "b"}}}),
 			))
 		})
@@ -341,7 +341,7 @@ func TestSideEffectRunsOnceUnderConflict(t *testing.T) {
 		}
 
 		env.WaitFor(wait.WorkStartedAny(fs), func() {
-			assert.NoError(t, env.Engine.StartFlow(id, pl,
+			assert.NoError(t, env.Engine.StartPlan(id, pl,
 				flow.WithInit(api.InitArgs{"items": {[]any{"a", "b"}}}),
 			))
 		})

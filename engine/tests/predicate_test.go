@@ -55,7 +55,7 @@ func TestPredicateSkipping(t *testing.T) {
 		assert.NoError(t, err)
 
 		fl := env.WaitForFlowStatus(id, func() {
-			err = env.Engine.StartFlow(id, pl)
+			err = env.Engine.StartPlan(id, pl)
 			assert.NoError(t, err)
 		})
 

@@ -21,10 +21,11 @@ import (
 	"github.com/kode4food/argyll/engine/internal/engine"
 	"github.com/kode4food/argyll/engine/internal/engine/scheduler"
 	"github.com/kode4food/argyll/engine/internal/engine/script"
-	"github.com/kode4food/argyll/engine/internal/engine/step"
 	"github.com/kode4food/argyll/engine/internal/event"
 	"github.com/kode4food/argyll/engine/internal/server"
 	"github.com/kode4food/argyll/engine/pkg/api"
+	"github.com/kode4food/argyll/engine/pkg/step"
+	"github.com/kode4food/argyll/engine/pkg/step/builtins"
 )
 
 type raftNode struct {
@@ -106,9 +107,8 @@ func TestFollowerWriteStartup(t *testing.T) {
 		closeRaftNodes(nodes)
 	})
 
-	// The follower's write-forwarding path may not be ready immediately after
-	// leader election. Try current followers in turn because a node can be up
-	// but still unable to propose during staggered startup
+	// A node can be up but unable to propose during staggered startup, so try
+	// the current followers in turn
 	var resp api.StepRegisteredResponse
 	attempt := 0
 	assert.Eventually(t, func() bool {
@@ -233,7 +233,10 @@ func bootRaftNode(init *raftInit) (*raftNode, error) {
 
 	scripts := script.NewRegistry()
 	steps := step.NewRegistry(
-		step.DefaultHandlers(scripts, helpers.NewMockClient()),
+		builtins.All(
+			helpers.NewMockClient(),
+			builtins.BaseCallbackURL(init.cfg.WebhookBaseURL),
+		),
 	)
 	eng, err := engine.New(init.cfg, engine.Dependencies{
 		EngineStore:      engStore,

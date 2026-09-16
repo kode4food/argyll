@@ -18,12 +18,8 @@ type catalogTx struct {
 }
 
 var (
-	ErrInvalidStep        = errors.New("invalid step")
-	ErrStepExists         = errors.New("step exists")
-	ErrStepNotFound       = errors.New("step not found")
-	ErrSubFlowGoalInUse   = errors.New("goal in use")
-	ErrTypeConflict       = errors.New("attribute type conflict")
-	ErrCircularDependency = errors.New("circular dependency detected")
+	ErrSubFlowGoalInUse = errors.New("goal in use")
+	ErrTypeConflict     = errors.New("attribute type conflict")
 )
 
 // UnregisterStep removes a step from the engine registry
@@ -93,7 +89,7 @@ func (tx *catalogTx) register(newStep *api.Step) error {
 		if old.Equal(newStep) {
 			return nil
 		}
-		return fmt.Errorf("%w: %s", ErrStepExists, newStep.ID)
+		return fmt.Errorf("%w: %s", api.ErrStepExists, newStep.ID)
 	}
 	err = tx.validateStepUpsert(cat, newStep, tx.steps.Children)
 	if err != nil {
@@ -110,7 +106,7 @@ func (tx *catalogTx) update(newStep *api.Step) error {
 	cat := tx.ag.Value()
 	old, ok := cat.Steps[newStep.ID]
 	if !ok {
-		return fmt.Errorf("%w: %s", ErrStepNotFound, newStep.ID)
+		return fmt.Errorf("%w: %s", api.ErrStepNotFound, newStep.ID)
 	}
 	if old.Equal(newStep) {
 		return nil
@@ -147,7 +143,7 @@ func (e *Engine) validateStep(st *api.Step) error {
 		call.WithArg(e.scripts.ValidateStep, st),
 		call.WithArg(e.steps.Validate, st),
 	); err != nil {
-		return errors.Join(ErrInvalidStep, err)
+		return errors.Join(api.ErrInvalidStep, err)
 	}
 	return nil
 }
@@ -174,10 +170,8 @@ func (tx *catalogTx) raiseStepUpdatedEvent(st *api.Step) error {
 	})
 }
 
-// raiseStepEvent resolves the step's Spaces, raises the event built from
-// them, and records the step's health in the same transaction. The catalog
-// and cluster aggregates share a Store, so a registered step can never be
-// left without the health its registration implies
+// raiseStepEvent raises the event and records the step's health in one
+// transaction, so a registered step always has the health it implies
 func (tx *catalogTx) raiseStepEvent(
 	st *api.Step, raise func([]api.SpaceID) error,
 ) error {
@@ -209,7 +203,7 @@ func (e *Engine) validateStepUpsert(
 		call.WithArgs(e.validateSpaceSubFlows, cat, newStep),
 		func() error { return detectStepCycles(cat, newStep, children) },
 	); err != nil {
-		return errors.Join(ErrInvalidStep, err)
+		return errors.Join(api.ErrInvalidStep, err)
 	}
 	return nil
 }

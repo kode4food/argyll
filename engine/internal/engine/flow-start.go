@@ -8,9 +8,10 @@ import (
 
 	"github.com/kode4food/timebox"
 
-	"github.com/kode4food/argyll/engine/internal/engine/flow"
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/events"
+	"github.com/kode4food/argyll/engine/pkg/flow"
+	"github.com/kode4food/argyll/engine/pkg/plan"
 	"github.com/kode4food/argyll/engine/pkg/util/call"
 )
 
@@ -21,21 +22,72 @@ type flowTx struct {
 }
 
 var (
-	ErrFlowExists        = errors.New("flow exists with different plan or init")
 	ErrInvariantViolated = errors.New("engine invariant violated")
 )
 
-// StartFlow begins a new flow execution with the given plan and options
-func (e *Engine) StartFlow(
+// StartFlow validates a request, plans it against the catalog, and starts the
+// flow it describes
+func (e *Engine) StartFlow(req api.CreateFlowRequest) error {
+	if err := req.Validate(); err != nil {
+		return err
+	}
+	planReq, err := e.PlanRequest(req.SpaceID)
+	if err != nil {
+		return err
+	}
+	planReq.Goals = req.Goals
+	planReq.Init = req.Init
+
+	pl, err := plan.Create(planReq)
+	if err != nil {
+		return err
+	}
+
+	apps := []flow.Applier{flow.WithCompensate(req.Compensate)}
+	if req.Init != nil {
+		apps = append(apps, flow.WithInit(req.Init))
+	}
+	if len(req.Tags) > 0 {
+		apps = append(apps, flow.WithTags(req.Tags))
+	}
+	return e.StartPlan(req.ID, pl, apps...)
+}
+
+// PlanRequest builds a planning request over the current catalog, narrowed to a
+// space when one is named. Goals and Init are the caller's to fill in
+func (e *Engine) PlanRequest(spaceID api.SpaceID) (*plan.Request, error) {
+	cat, err := e.GetCatalogState()
+	if err != nil {
+		return nil, err
+	}
+
+	steps := cat.Steps
+	if spaceID != "" {
+		if _, ok := cat.Spaces[spaceID]; !ok {
+			return nil, fmt.Errorf("%w: %s", api.ErrSpaceNotFound, spaceID)
+		}
+		steps = cat.SpaceSteps(spaceID)
+	}
+
+	return &plan.Request{
+		Match:    e.Matcher,
+		Children: e.Children,
+		Catalog:  cat,
+		Steps:    steps,
+	}, nil
+}
+
+// StartPlan begins a new flow execution with the given plan and options
+func (e *Engine) StartPlan(
 	fid api.FlowID, pl *api.ExecutionPlan, apps ...flow.Applier,
 ) error {
 	opts := flow.Defaults(apps...)
 	return e.flowTx(fid, func(tx *flowTx) error {
-		return tx.startFlow(pl, opts)
+		return tx.startPlan(pl, opts)
 	})
 }
 
-func (tx *flowTx) startFlow(pl *api.ExecutionPlan, opts *flow.Options) error {
+func (tx *flowTx) startPlan(pl *api.ExecutionPlan, opts *flow.Options) error {
 	if err := call.Perform(
 		call.WithArg(validateParentMetadata, opts.Metadata),
 		call.WithArg(pl.ValidateInputs, opts.Init),
@@ -51,7 +103,7 @@ func (tx *flowTx) startFlow(pl *api.ExecutionPlan, opts *flow.Options) error {
 		if match {
 			return nil
 		}
-		return ErrFlowExists
+		return api.ErrFlowExists
 	}
 	if err := events.Raise(tx.FlowAggregator, api.EventTypeFlowStarted,
 		api.FlowStartedEvent{
@@ -93,7 +145,7 @@ func (tx *flowTx) startChildFlow(
 		flow.WithCompensate(st.Flow != nil && st.Flow.Compensate),
 	)
 	_, err := tx.flowTx(childFlowID(fs, tkn), func(child *flowTx) error {
-		return child.startFlow(fl.Plan.Children[sid], opts)
+		return child.startPlan(fl.Plan.Children[sid], opts)
 	})
 	return err
 }

@@ -1,13 +1,13 @@
-package step_test
+package builtins_test
 
 import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/kode4food/argyll/engine/internal/client"
-	"github.com/kode4food/argyll/engine/internal/engine/step"
 	"github.com/kode4food/argyll/engine/pkg/api"
+	"github.com/kode4food/argyll/engine/pkg/step"
+	"github.com/kode4food/argyll/engine/pkg/step/builtins"
 )
 
 func TestRegistryValidation(t *testing.T) {
@@ -94,7 +94,7 @@ func TestHTTPCompensatorInvokes(t *testing.T) {
 	comp, err := reg.Compensator(st)
 	assert.NoError(t, err)
 	assert.NotNil(t, comp)
-	err = comp(client.CompensateRequest{
+	completed, err := comp(step.CompensateRequest{
 		Step:     st,
 		Inputs:   api.Args{"in": "v"},
 		Outputs:  api.Args{"out": "v"},
@@ -102,6 +102,7 @@ func TestHTTPCompensatorInvokes(t *testing.T) {
 	})
 	assert.NoError(t, err)
 	assert.Equal(t, 1, cl.compens)
+	assert.True(t, completed)
 }
 
 func TestCompensatorEndpoint(t *testing.T) {
@@ -116,13 +117,48 @@ func TestCompensatorEndpoint(t *testing.T) {
 	assert.Nil(t, comp)
 }
 
+func TestCompensationCallback(t *testing.T) {
+	cl := &testClient{}
+	fs := api.FlowStep{FlowID: "flow", StepID: "step"}
+	token := api.Token("token")
+	callback := func(
+		got api.FlowStep, tkn api.Token, action api.CallbackAction,
+	) string {
+		assert.Equal(t, fs, got)
+		assert.Equal(t, token, tkn)
+		assert.Equal(t, api.ActionCompensate, action)
+		return "https://host.test/custom/undo"
+	}
+	h := builtins.HTTP(cl, callback)
+	meta := api.Metadata{api.MetaFlowID: fs.FlowID}
+	completed, err := h.Compensate(step.CompensateRequest{
+		Step: &api.Step{
+			ID: fs.StepID,
+			HTTP: &api.HTTPConfig{
+				Compensate: &api.HTTPAction{
+					Endpoint: "https://step.test/undo",
+					Mode:     api.ActionModeAsync,
+				},
+			},
+		},
+		FlowID:   fs.FlowID,
+		Token:    token,
+		Metadata: meta,
+	})
+	assert.NoError(t, err)
+	assert.False(t, completed)
+	assert.Equal(t, "https://host.test/custom/undo",
+		cl.meta[api.MetaWebhookURL])
+	assert.NotContains(t, meta, api.MetaWebhookURL)
+}
+
 func TestMetaInputs(t *testing.T) {
 	cl := &testClient{outputs: api.Args{}}
 	reg := newRegistry(cl)
 	handler, err := reg.Lookup(api.StepTypeService)
 	assert.NoError(t, err)
 
-	rt, _ := newRuntime("flow-1", "step-1", api.Metadata{}, "")
+	rt, _ := newRuntime("flow-1", "step-1", api.Metadata{})
 	st := &api.Step{
 		ID:   "step-1",
 		Type: api.StepTypeService,
@@ -157,7 +193,7 @@ func TestScriptValidationJPath(t *testing.T) {
 			Script:   "$.x",
 		},
 	})
-	assert.ErrorIs(t, err, step.ErrLangNotValid)
+	assert.ErrorIs(t, err, builtins.ErrLangNotValid)
 }
 
 func TestScriptValidationLua(t *testing.T) {
@@ -212,7 +248,7 @@ func TestScriptOutput(t *testing.T) {
 	handler, err := reg.Lookup(api.StepTypeScript)
 	assert.NoError(t, err)
 
-	rt, calls := newRuntime("flow-1", "step-1", nil, "")
+	rt, calls := newRuntime("flow-1", "step-1", nil)
 	st := &api.Step{
 		ID:   "step-1",
 		Type: api.StepTypeScript,
@@ -237,7 +273,7 @@ func TestScriptFailure(t *testing.T) {
 	handler, err := reg.Lookup(api.StepTypeScript)
 	assert.NoError(t, err)
 
-	rt, calls := newRuntime("flow-1", "step-1", nil, "")
+	rt, calls := newRuntime("flow-1", "step-1", nil)
 	st := &api.Step{
 		ID:   "step-1",
 		Type: api.StepTypeScript,
@@ -249,7 +285,7 @@ func TestScriptFailure(t *testing.T) {
 
 	err = handler.Execute(rt, st, api.Args{}, "token-1")
 	assert.Error(t, err)
-	assert.ErrorIs(t, err, step.ErrScriptCompileFailed)
+	assert.ErrorIs(t, err, builtins.ErrScriptCompileFailed)
 	assert.Equal(t, api.HealthUnhealthy, calls.healthStatus)
 	assert.NotEmpty(t, calls.healthError)
 }

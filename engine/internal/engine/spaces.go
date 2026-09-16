@@ -11,9 +11,6 @@ import (
 )
 
 var (
-	ErrInvalidSpace      = errors.New("invalid space")
-	ErrSpaceExists       = errors.New("space exists")
-	ErrSpaceNotFound     = errors.New("space not found")
 	ErrSpaceInUse        = errors.New("space in use")
 	ErrSpaceGoalExcluded = errors.New("goal not in space")
 )
@@ -42,7 +39,7 @@ func (e *Engine) RegisterSpace(sp api.Space) error {
 		if old.Equal(sp) {
 			return nil
 		}
-		return fmt.Errorf("%w: %s", ErrSpaceExists, sp.ID)
+		return fmt.Errorf("%w: %s", api.ErrSpaceExists, sp.ID)
 	})
 }
 
@@ -86,7 +83,7 @@ func (e *Engine) UpdateSpace(sp api.Space) error {
 		cat := tx.ag.Value()
 		old, ok := cat.Spaces[sp.ID]
 		if !ok {
-			return fmt.Errorf("%w: %s", ErrSpaceNotFound, sp.ID)
+			return fmt.Errorf("%w: %s", api.ErrSpaceNotFound, sp.ID)
 		}
 		if old.Equal(sp) {
 			return nil
@@ -112,7 +109,7 @@ func (e *Engine) UnregisterSpace(spaceID api.SpaceID) error {
 	return e.catalogTx(func(tx *catalogTx) error {
 		cat := tx.ag.Value()
 		if _, ok := cat.Spaces[spaceID]; !ok {
-			return fmt.Errorf("%w: %s", ErrSpaceNotFound, spaceID)
+			return fmt.Errorf("%w: %s", api.ErrSpaceNotFound, spaceID)
 		}
 		if ref, ok := spaceSubFlow(cat, spaceID); ok {
 			return fmt.Errorf("%w: %s", ErrSpaceInUse, ref)
@@ -130,7 +127,7 @@ func (e *Engine) matchingSpaceIDs(
 	for id, sp := range cat.Spaces {
 		matches, err := e.spaceMatches(sp, st)
 		if err != nil {
-			return nil, errors.Join(ErrInvalidSpace, err)
+			return nil, errors.Join(api.ErrInvalidSpace, err)
 		}
 		if matches {
 			res = append(res, id)
@@ -146,7 +143,7 @@ func (e *Engine) prepareSpace(sp api.Space) (api.Space, error) {
 		return api.Space{}, err
 	}
 	if err := sp.Validate(); err != nil {
-		return api.Space{}, errors.Join(ErrInvalidSpace, err)
+		return api.Space{}, errors.Join(api.ErrInvalidSpace, err)
 	}
 	return sp, nil
 }
@@ -157,11 +154,11 @@ func (e *Engine) prepareSelector(sp api.Space) (api.Space, error) {
 		sp.Selector = script.QBESelector(sp.QBE)
 	}
 	if err := sp.ValidateSelector(); err != nil {
-		return api.Space{}, errors.Join(ErrInvalidSpace, err)
+		return api.Space{}, errors.Join(api.ErrInvalidSpace, err)
 	}
 	_, err := e.scripts.Compile(script.MatchStep, sp.Selector)
 	if err != nil {
-		return api.Space{}, errors.Join(ErrInvalidSpace, err)
+		return api.Space{}, errors.Join(api.ErrInvalidSpace, err)
 	}
 	return sp, nil
 }

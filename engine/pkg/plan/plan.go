@@ -1,7 +1,6 @@
 package plan
 
 import (
-	"errors"
 	"fmt"
 	"slices"
 
@@ -13,7 +12,7 @@ import (
 type (
 	// Request contains the inputs needed to build an execution plan
 	Request struct {
-		Match    policy.Matcher
+		Match    api.Matcher
 		Children ChildrenFunc
 		Catalog  api.CatalogState
 		Steps    api.Steps
@@ -45,7 +44,7 @@ type (
 		dependencies api.AttributeGraph
 		candidates   api.Steps
 		catalog      api.CatalogState
-		match        policy.Matcher
+		match        api.Matcher
 		providers    selectProviders
 		init         api.InitArgs
 		goals        []api.StepID
@@ -54,17 +53,9 @@ type (
 	selectProviders func(*builder, []api.StepID) []api.StepID
 )
 
-var (
-	ErrNoGoals            = errors.New("at least one goal step is required")
-	ErrStepNotFound       = errors.New("step not found")
-	ErrSpaceNotFound      = errors.New("space not found")
-	ErrCircularDependency = errors.New("circular dependency detected")
-)
-
-// Create builds an execution plan for the given goal steps, resolving
-// dependencies and determining required inputs. If children is non-nil it is
-// called for each step in the plan to discover child goals, and the result is
-// built recursively and attached to ExecutionPlan.Children
+// Create builds an execution plan for the request's goals, resolving
+// dependencies and required inputs. Children discovered through
+// Request.Children are planned recursively into ExecutionPlan.Children
 func Create(req *Request) (*api.ExecutionPlan, error) {
 	return create(newPlanArgs(req, strictProviders), req.Children,
 		util.Set[api.StepID]{})
@@ -119,14 +110,16 @@ func create(
 			continue
 		}
 		if ancestors.Contains(sid) {
-			return nil, fmt.Errorf("%w: step %s", ErrCircularDependency, sid)
+			return nil, fmt.Errorf("%w: step %s",
+				api.ErrCircularDependency, sid,
+			)
 		}
 		candidates := args.candidates
 		dependencies := args.dependencies
 		if st.Flow != nil && st.Flow.SpaceID != "" {
 			if _, ok := args.catalog.Spaces[st.Flow.SpaceID]; !ok {
 				return nil, fmt.Errorf(
-					"%w: %s", ErrSpaceNotFound, st.Flow.SpaceID,
+					"%w: %s", api.ErrSpaceNotFound, st.Flow.SpaceID,
 				)
 			}
 			candidates = args.catalog.SpaceSteps(st.Flow.SpaceID)
@@ -156,7 +149,7 @@ func create(
 
 func build(args planArgs) (*api.ExecutionPlan, error) {
 	if len(args.goals) == 0 {
-		return nil, ErrNoGoals
+		return nil, api.ErrGoalsRequired
 	}
 
 	if err := validateGoals(args.candidates, args.goals); err != nil {
@@ -504,7 +497,7 @@ func (b *builder) getRequiredInputs() []api.Name {
 func validateGoals(steps api.Steps, goals []api.StepID) error {
 	for _, goalID := range goals {
 		if _, ok := steps[goalID]; !ok {
-			return ErrStepNotFound
+			return api.ErrGoalNotFound
 		}
 	}
 	return nil

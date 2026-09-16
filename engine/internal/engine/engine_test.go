@@ -12,8 +12,9 @@ import (
 	"github.com/kode4food/argyll/engine/internal/assert/wait"
 	"github.com/kode4food/argyll/engine/internal/config"
 	"github.com/kode4food/argyll/engine/internal/engine"
-	"github.com/kode4food/argyll/engine/internal/engine/step"
 	"github.com/kode4food/argyll/engine/pkg/api"
+	"github.com/kode4food/argyll/engine/pkg/step"
+	"github.com/kode4food/argyll/engine/pkg/step/builtins"
 	"github.com/kode4food/argyll/engine/pkg/util"
 )
 
@@ -117,7 +118,10 @@ func TestNewDefaultsTimeDeps(t *testing.T) {
 func TestNewCustomStep(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		deps := env.Dependencies()
-		handlers := step.DefaultHandlers(deps.Scripts, env.MockClient)
+		handlers := builtins.All(
+			env.MockClient,
+			builtins.BaseCallbackURL(env.Config.WebhookBaseURL),
+		)
 		handlers["custom"] = &step.Handler{
 			Execute: func(step.Runtime, *api.Step, api.Args, api.Token) error {
 				return nil
@@ -139,7 +143,10 @@ func TestNewMockStep(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		expected := errors.New("mock validation")
 		deps := env.Dependencies()
-		handlers := step.DefaultHandlers(deps.Scripts, env.MockClient)
+		handlers := builtins.All(
+			env.MockClient,
+			builtins.BaseCallbackURL(env.Config.WebhookBaseURL),
+		)
 		handlers[api.StepTypeService] = &step.Handler{
 			Validate: func(*api.Step) error { return expected },
 		}
@@ -299,7 +306,7 @@ func TestExecPublishesEvents(t *testing.T) {
 			Goals: []api.StepID{st.ID},
 			Steps: api.Steps{st.ID: st},
 		}
-		assert.NoError(t, env.Engine.StartFlow("wrapper-flow", pl))
+		assert.NoError(t, env.Engine.StartPlan("wrapper-flow", pl))
 		w.ForEvent(wait.FlowStarted("wrapper-flow"))
 	})
 }

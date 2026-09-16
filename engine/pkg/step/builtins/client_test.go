@@ -1,4 +1,4 @@
-package client_test
+package builtins_test
 
 import (
 	"encoding/json"
@@ -10,13 +10,15 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/kode4food/argyll/engine/internal/client"
+	"github.com/kode4food/argyll/engine"
 	"github.com/kode4food/argyll/engine/pkg/api"
+	"github.com/kode4food/argyll/engine/pkg/step"
+	"github.com/kode4food/argyll/engine/pkg/step/builtins"
 )
 
 func TestNewHTTPClient(t *testing.T) {
 	timeout := 30 * time.Second
-	c := client.NewHTTPClient(timeout)
+	c := builtins.NewHTTPClient(timeout)
 
 	assert.NotNil(t, c)
 }
@@ -26,7 +28,7 @@ func TestSuccess(t *testing.T) {
 		func(w http.ResponseWriter, r *http.Request) {
 			assert.Equal(t, "POST", r.Method)
 			assert.Equal(t, api.JSONContentType, r.Header.Get("Content-Type"))
-			assert.Equal(t, client.UserAgent, r.Header.Get("User-Agent"))
+			assert.Equal(t, engine.UserAgent, r.Header.Get("User-Agent"))
 
 			var req api.Args
 			assert.NoError(t, json.NewDecoder(r.Body).Decode(&req))
@@ -39,7 +41,7 @@ func TestSuccess(t *testing.T) {
 	))
 	defer server.Close()
 
-	cl := client.NewHTTPClient(5 * time.Second)
+	cl := builtins.NewHTTPClient(5 * time.Second)
 	st := &api.Step{
 		ID: "test-step",
 		HTTP: &api.HTTPConfig{
@@ -55,7 +57,7 @@ func TestSuccess(t *testing.T) {
 }
 
 func TestNoHTTPConfig(t *testing.T) {
-	cl := client.NewHTTPClient(5 * time.Second)
+	cl := builtins.NewHTTPClient(5 * time.Second)
 	st := &api.Step{
 		ID:   "test-step",
 		HTTP: nil,
@@ -74,7 +76,7 @@ func TestHTTPError(t *testing.T) {
 	))
 	defer server.Close()
 
-	cl := client.NewHTTPClient(5 * time.Second)
+	cl := builtins.NewHTTPClient(5 * time.Second)
 	st := &api.Step{
 		ID: "test-step",
 		HTTP: &api.HTTPConfig{
@@ -85,7 +87,7 @@ func TestHTTPError(t *testing.T) {
 	_, err := cl.Invoke(st, api.Args{}, api.Metadata{})
 	assert.Error(t, err)
 	assert.ErrorIs(t, err, api.ErrWorkNotCompleted)
-	assert.ErrorIs(t, err, client.ErrHTTPError)
+	assert.ErrorIs(t, err, builtins.ErrHTTPError)
 	assert.Contains(t, err.Error(), "500")
 }
 
@@ -101,7 +103,7 @@ func TestPermanentProblem(t *testing.T) {
 	))
 	defer server.Close()
 
-	cl := client.NewHTTPClient(5 * time.Second)
+	cl := builtins.NewHTTPClient(5 * time.Second)
 	st := &api.Step{
 		ID: "test-step",
 		HTTP: &api.HTTPConfig{
@@ -111,7 +113,7 @@ func TestPermanentProblem(t *testing.T) {
 
 	_, err := cl.Invoke(st, api.Args{}, api.Metadata{})
 	assert.Error(t, err)
-	assert.ErrorIs(t, err, client.ErrHTTPError)
+	assert.ErrorIs(t, err, builtins.ErrHTTPError)
 	assert.NotErrorIs(t, err, api.ErrWorkNotCompleted)
 	assert.Contains(t, err.Error(), "validation failed")
 }
@@ -130,7 +132,7 @@ func TestProblemMediaParams(t *testing.T) {
 	))
 	defer server.Close()
 
-	cl := client.NewHTTPClient(5 * time.Second)
+	cl := builtins.NewHTTPClient(5 * time.Second)
 	st := &api.Step{
 		ID: "test-step",
 		HTTP: &api.HTTPConfig{
@@ -140,7 +142,7 @@ func TestProblemMediaParams(t *testing.T) {
 
 	_, err := cl.Invoke(st, api.Args{}, api.Metadata{})
 	assert.Error(t, err)
-	assert.ErrorIs(t, err, client.ErrHTTPError)
+	assert.ErrorIs(t, err, builtins.ErrHTTPError)
 	assert.Contains(t, err.Error(), "validation failed")
 }
 
@@ -156,7 +158,7 @@ func TestProblemMediaRequired(t *testing.T) {
 	))
 	defer server.Close()
 
-	cl := client.NewHTTPClient(5 * time.Second)
+	cl := builtins.NewHTTPClient(5 * time.Second)
 	st := &api.Step{
 		ID: "test-step",
 		HTTP: &api.HTTPConfig{
@@ -166,7 +168,7 @@ func TestProblemMediaRequired(t *testing.T) {
 
 	_, err := cl.Invoke(st, api.Args{}, api.Metadata{})
 	assert.Error(t, err)
-	assert.ErrorIs(t, err, client.ErrHTTPError)
+	assert.ErrorIs(t, err, builtins.ErrHTTPError)
 	assert.NotContains(t, err.Error(), "validation failed")
 }
 
@@ -182,7 +184,7 @@ func TestRetryableProblem(t *testing.T) {
 	))
 	defer server.Close()
 
-	cl := client.NewHTTPClient(5 * time.Second)
+	cl := builtins.NewHTTPClient(5 * time.Second)
 	st := &api.Step{
 		ID: "test-step",
 		HTTP: &api.HTTPConfig{
@@ -193,7 +195,7 @@ func TestRetryableProblem(t *testing.T) {
 	_, err := cl.Invoke(st, api.Args{}, api.Metadata{})
 	assert.Error(t, err)
 	assert.ErrorIs(t, err, api.ErrWorkNotCompleted)
-	assert.ErrorIs(t, err, client.ErrHTTPError)
+	assert.ErrorIs(t, err, builtins.ErrHTTPError)
 	assert.Contains(t, err.Error(), "custom error message")
 }
 
@@ -206,7 +208,7 @@ func TestInvalidJSON(t *testing.T) {
 	))
 	defer server.Close()
 
-	cl := client.NewHTTPClient(5 * time.Second)
+	cl := builtins.NewHTTPClient(5 * time.Second)
 	st := &api.Step{
 		ID: "test-step",
 		HTTP: &api.HTTPConfig{
@@ -231,7 +233,7 @@ func TestTimeout(t *testing.T) {
 	defer server.Close()
 	defer close(serverDone)
 
-	cl := client.NewHTTPClient(50 * time.Millisecond)
+	cl := builtins.NewHTTPClient(50 * time.Millisecond)
 	st := &api.Step{
 		ID: "test-step",
 		HTTP: &api.HTTPConfig{
@@ -253,7 +255,7 @@ func TestStepTimeoutOverride(t *testing.T) {
 	))
 	defer server.Close()
 
-	cl := client.NewHTTPClient(50 * time.Millisecond)
+	cl := builtins.NewHTTPClient(50 * time.Millisecond)
 	st := &api.Step{
 		ID: "test-step",
 		HTTP: &api.HTTPConfig{
@@ -282,7 +284,7 @@ func TestStepTimeoutShorter(t *testing.T) {
 	defer server.Close()
 	defer close(serverDone)
 
-	cl := client.NewHTTPClient(1 * time.Second)
+	cl := builtins.NewHTTPClient(1 * time.Second)
 	st := &api.Step{
 		ID: "test-step",
 		HTTP: &api.HTTPConfig{
@@ -306,7 +308,7 @@ func TestEmptyOutputs(t *testing.T) {
 	))
 	defer server.Close()
 
-	cl := client.NewHTTPClient(5 * time.Second)
+	cl := builtins.NewHTTPClient(5 * time.Second)
 	st := &api.Step{
 		ID: "test-step",
 		HTTP: &api.HTTPConfig{
@@ -332,7 +334,7 @@ func TestMultipleOutputs(t *testing.T) {
 	))
 	defer server.Close()
 
-	cl := client.NewHTTPClient(5 * time.Second)
+	cl := builtins.NewHTTPClient(5 * time.Second)
 	st := &api.Step{
 		ID: "test-step",
 		HTTP: &api.HTTPConfig{
@@ -355,7 +357,7 @@ func TestHTTP4xxError(t *testing.T) {
 	))
 	defer server.Close()
 
-	cl := client.NewHTTPClient(5 * time.Second)
+	cl := builtins.NewHTTPClient(5 * time.Second)
 	st := &api.Step{
 		ID: "test-step",
 		HTTP: &api.HTTPConfig{
@@ -365,7 +367,7 @@ func TestHTTP4xxError(t *testing.T) {
 
 	_, err := cl.Invoke(st, api.Args{}, api.Metadata{})
 	assert.Error(t, err)
-	assert.ErrorIs(t, err, client.ErrHTTPError)
+	assert.ErrorIs(t, err, builtins.ErrHTTPError)
 	assert.NotErrorIs(t, err, api.ErrWorkNotCompleted)
 	assert.Contains(t, err.Error(), "400")
 }
@@ -387,7 +389,7 @@ func TestGETURLParams(t *testing.T) {
 	))
 	defer server.Close()
 
-	cl := client.NewHTTPClient(5 * time.Second)
+	cl := builtins.NewHTTPClient(5 * time.Second)
 	st := &api.Step{
 		ID: "get-step",
 		HTTP: &api.HTTPConfig{
@@ -406,7 +408,7 @@ func TestGETURLParams(t *testing.T) {
 }
 
 func TestMissingURLArg(t *testing.T) {
-	cl := client.NewHTTPClient(5 * time.Second)
+	cl := builtins.NewHTTPClient(5 * time.Second)
 	st := &api.Step{
 		ID: "missing-arg-step",
 		HTTP: &api.HTTPConfig{
@@ -419,7 +421,7 @@ func TestMissingURLArg(t *testing.T) {
 
 	_, err := cl.Invoke(st, api.Args{}, api.Metadata{})
 	assert.Error(t, err)
-	assert.ErrorIs(t, err, client.ErrMissingEndpointArg)
+	assert.ErrorIs(t, err, builtins.ErrMissingEndpointArg)
 }
 
 func TestCompensateMethod(t *testing.T) {
@@ -436,7 +438,7 @@ func TestCompensateMethod(t *testing.T) {
 	))
 	defer server.Close()
 
-	cl := client.NewHTTPClient(5 * time.Second)
+	cl := builtins.NewHTTPClient(5 * time.Second)
 	st := &api.Step{
 		ID:       "charge",
 		Handling: api.HandlingCompensated,
@@ -455,7 +457,7 @@ func TestCompensateMethod(t *testing.T) {
 	}
 
 	err := cl.InvokeCompensate(
-		client.CompensateRequest{
+		step.CompensateRequest{
 			Step:     st,
 			Inputs:   api.Args{"amount": 10, "secret": "private"},
 			Outputs:  api.Args{"charge_id": "ch_1"},
@@ -474,7 +476,7 @@ func TestCompensateMethod(t *testing.T) {
 }
 
 func TestCompensateConflict(t *testing.T) {
-	cl := client.NewHTTPClient(5 * time.Second)
+	cl := builtins.NewHTTPClient(5 * time.Second)
 	st := &api.Step{
 		ID:       "replace",
 		Handling: api.HandlingCompensated,
@@ -503,7 +505,7 @@ func TestCompensateConflict(t *testing.T) {
 	}
 
 	err := cl.InvokeCompensate(
-		client.CompensateRequest{
+		step.CompensateRequest{
 			Step:    st,
 			Inputs:  api.Args{"value": "before"},
 			Outputs: api.Args{"value": "after"},
@@ -526,7 +528,7 @@ func TestInvokeBody(t *testing.T) {
 			))
 			defer server.Close()
 
-			cl := client.NewHTTPClient(5 * time.Second)
+			cl := builtins.NewHTTPClient(5 * time.Second)
 			st := &api.Step{
 				ID: "step",
 				HTTP: &api.HTTPConfig{
@@ -558,7 +560,7 @@ func TestCompensateBody(t *testing.T) {
 			))
 			defer server.Close()
 
-			cl := client.NewHTTPClient(5 * time.Second)
+			cl := builtins.NewHTTPClient(5 * time.Second)
 			st := &api.Step{
 				ID: "step",
 				HTTP: &api.HTTPConfig{
@@ -570,7 +572,7 @@ func TestCompensateBody(t *testing.T) {
 				},
 			}
 
-			err := cl.InvokeCompensate(client.CompensateRequest{Step: st})
+			err := cl.InvokeCompensate(step.CompensateRequest{Step: st})
 			assert.NoError(t, err)
 			assert.Empty(t, gotBody)
 		})
@@ -590,7 +592,7 @@ func TestCompensateTimeout(t *testing.T) {
 	defer server.Close()
 	defer close(serverDone)
 
-	cl := client.NewHTTPClient(1 * time.Second)
+	cl := builtins.NewHTTPClient(1 * time.Second)
 	st := &api.Step{
 		ID: "step",
 		HTTP: &api.HTTPConfig{
@@ -599,17 +601,17 @@ func TestCompensateTimeout(t *testing.T) {
 		},
 	}
 
-	err := cl.InvokeCompensate(client.CompensateRequest{Step: st})
+	err := cl.InvokeCompensate(step.CompensateRequest{Step: st})
 	assert.Error(t, err)
 }
 
 func TestCompensateMissing(t *testing.T) {
-	cl := client.NewHTTPClient(5 * time.Second)
+	cl := builtins.NewHTTPClient(5 * time.Second)
 	st := &api.Step{
 		ID:   "step",
 		HTTP: &api.HTTPConfig{Invoke: api.HTTPAction{Endpoint: "http://x"}},
 	}
 
-	err := cl.InvokeCompensate(client.CompensateRequest{Step: st})
-	assert.ErrorIs(t, err, client.ErrNoHTTPConfig)
+	err := cl.InvokeCompensate(step.CompensateRequest{Step: st})
+	assert.ErrorIs(t, err, builtins.ErrNoHTTPConfig)
 }

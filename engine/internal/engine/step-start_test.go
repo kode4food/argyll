@@ -9,10 +9,10 @@ import (
 
 	"github.com/kode4food/argyll/engine/internal/assert/helpers"
 	"github.com/kode4food/argyll/engine/internal/assert/wait"
-	"github.com/kode4food/argyll/engine/internal/engine/flow"
-	"github.com/kode4food/argyll/engine/internal/engine/plan"
 	"github.com/kode4food/argyll/engine/internal/event"
 	"github.com/kode4food/argyll/engine/pkg/api"
+	"github.com/kode4food/argyll/engine/pkg/flow"
+	"github.com/kode4food/argyll/engine/pkg/plan"
 )
 
 func TestOptionalDefaults(t *testing.T) {
@@ -47,7 +47,7 @@ func TestOptionalDefaults(t *testing.T) {
 		id := api.FlowID("wf-defaults")
 		env.WithConsumer(func(consumer *event.Consumer) {
 			w := wait.On(t, consumer)
-			err := env.Engine.StartFlow(id, pl,
+			err := env.Engine.StartPlan(id, pl,
 				flow.WithInit(api.InitArgs{"input": {"value"}}),
 			)
 			assert.NoError(t, err)
@@ -99,7 +99,7 @@ func TestCollectFirst(t *testing.T) {
 
 		id := api.FlowID("wf-collect-first")
 		fl := env.WaitForFlowStatus(id, func() {
-			err := env.Engine.StartFlow(id, pl,
+			err := env.Engine.StartPlan(id, pl,
 				flow.WithInit(api.InitArgs{"input": {"a", "b"}}),
 			)
 			assert.NoError(t, err)
@@ -147,7 +147,7 @@ func TestCollectLast(t *testing.T) {
 			providerA.ID,
 			providerB.ID,
 		}, func() {
-			assert.NoError(t, env.Engine.StartFlow(id, pl))
+			assert.NoError(t, env.Engine.StartPlan(id, pl))
 		})
 		assert.True(t,
 			env.MockClient.WaitForInvocation(
@@ -207,7 +207,7 @@ func TestCollectLists(t *testing.T) {
 
 				id := api.FlowID("wf-collect-" + tt.name)
 				fl := env.WaitForFlowStatus(id, func() {
-					err := env.Engine.StartFlow(id, pl)
+					err := env.Engine.StartPlan(id, pl)
 					assert.NoError(t, err)
 				})
 				assert.Equal(t, api.FlowCompleted, fl.Status)
@@ -270,7 +270,7 @@ func TestCollectNone(t *testing.T) {
 
 		id := api.FlowID("wf-collect-none")
 		fl := env.WaitForFlowStatus(id, func() {
-			err := env.Engine.StartFlow(id, pl)
+			err := env.Engine.StartPlan(id, pl)
 			assert.NoError(t, err)
 		})
 		assert.Equal(t, api.FlowCompleted, fl.Status)
@@ -314,7 +314,7 @@ func TestCollectNoneNoProvider(t *testing.T) {
 
 		id := api.FlowID("wf-collect-none-no-provider")
 		fl := env.WaitForFlowStatus(id, func() {
-			err := env.Engine.StartFlow(id, pl)
+			err := env.Engine.StartPlan(id, pl)
 			assert.NoError(t, err)
 		})
 		assert.Equal(t, api.FlowCompleted, fl.Status)
@@ -358,7 +358,7 @@ func TestCollectSomeInit(t *testing.T) {
 
 		id := api.FlowID("wf-collect-some-init-no-provider")
 		fl := env.WaitForFlowStatus(id, func() {
-			err := env.Engine.StartFlow(id, pl,
+			err := env.Engine.StartPlan(id, pl,
 				flow.WithInit(api.InitArgs{"data": {"ready"}}))
 			assert.NoError(t, err)
 		})
@@ -393,7 +393,7 @@ func TestConstObject(t *testing.T) {
 
 		id := api.FlowID("wf-const-object")
 		fl := env.WaitForFlowStatus(id, func() {
-			err := env.Engine.StartFlow(id, pl)
+			err := env.Engine.StartPlan(id, pl)
 			assert.NoError(t, err)
 		})
 		assert.Equal(t, api.FlowCompleted, fl.Status)
@@ -440,7 +440,7 @@ func TestConstNullDefault(t *testing.T) {
 
 		id := api.FlowID("wf-const-null-default")
 		fl := env.WaitForFlowStatus(id, func() {
-			assert.NoError(t, env.Engine.StartFlow(id, pl))
+			assert.NoError(t, env.Engine.StartPlan(id, pl))
 		})
 		assert.Equal(t, api.FlowCompleted, fl.Status)
 	})
@@ -480,7 +480,7 @@ func TestOptionalNullDefault(t *testing.T) {
 
 		id := api.FlowID("wf-optional-null-default")
 		fl := env.WaitForFlowStatus(id, func() {
-			assert.NoError(t, env.Engine.StartFlow(id, pl))
+			assert.NoError(t, env.Engine.StartPlan(id, pl))
 		})
 		assert.Equal(t, api.FlowCompleted, fl.Status)
 	})
@@ -520,7 +520,7 @@ func TestInputMapping(t *testing.T) {
 
 		id := api.FlowID("wf-input-mapping")
 		fl := env.WaitForFlowStatus(id, func() {
-			err := env.Engine.StartFlow(id, pl,
+			err := env.Engine.StartPlan(id, pl,
 				flow.WithInit(api.InitArgs{
 					"input": {map[string]any{"foo": "value"}},
 				}),
@@ -562,7 +562,7 @@ func TestInputRename(t *testing.T) {
 
 		id := api.FlowID("wf-input-rename")
 		fl := env.WaitForFlowStatus(id, func() {
-			err := env.Engine.StartFlow(id, pl,
+			err := env.Engine.StartPlan(id, pl,
 				flow.WithInit(api.InitArgs{"user_email": {"test@example.com"}}),
 			)
 			assert.NoError(t, err)
@@ -586,7 +586,7 @@ func TestPredicateFailure(t *testing.T) {
 		}
 
 		ex := env.WaitForStepStatus("wf-pred-fail", st.ID, func() {
-			err := env.Engine.StartFlow("wf-pred-fail", pl)
+			err := env.Engine.StartPlan("wf-pred-fail", pl)
 			assert.NoError(t, err)
 		})
 		assert.Equal(t, api.StepFailed, ex.Status)
@@ -615,7 +615,7 @@ func TestJPathNullMatch(t *testing.T) {
 		}
 
 		fl := env.WaitForFlowStatus("wf-jpath-null", func() {
-			err := env.Engine.StartFlow("wf-jpath-null", pl,
+			err := env.Engine.StartPlan("wf-jpath-null", pl,
 				flow.WithInit(api.InitArgs{"flag": {nil}}),
 			)
 			assert.NoError(t, err)
@@ -708,7 +708,7 @@ func TestMatchRoutes(t *testing.T) {
 
 				id := api.FlowID("wf-match-" + tt.name)
 				fl := env.WaitForFlowStatus(id, func() {
-					err := env.Engine.StartFlow(id, pl,
+					err := env.Engine.StartPlan(id, pl,
 						flow.WithInit(tt.init),
 					)
 					assert.NoError(t, err)
@@ -757,7 +757,7 @@ func TestMatchFilters(t *testing.T) {
 
 		id := api.FlowID("wf-match-some")
 		fl := env.WaitForFlowStatus(id, func() {
-			assert.NoError(t, env.Engine.StartFlow(id, pl))
+			assert.NoError(t, env.Engine.StartPlan(id, pl))
 		})
 		assert.Equal(t, api.FlowCompleted, fl.Status)
 	})
@@ -792,7 +792,7 @@ func TestMatchFirstPending(t *testing.T) {
 
 		id := api.FlowID("wf-match-first")
 		fl := env.WaitForFlowStatus(id, func() {
-			assert.NoError(t, env.Engine.StartFlow(id, pl))
+			assert.NoError(t, env.Engine.StartPlan(id, pl))
 		})
 		assert.Equal(t, api.FlowCompleted, fl.Status)
 	})
@@ -821,7 +821,7 @@ func TestMatchAllPrunes(t *testing.T) {
 		env.MockClient.SetResponse(consumer.ID, api.Args{"result": "ok"})
 
 		id := api.FlowID("wf-match-all")
-		err := env.Engine.StartFlow(id, pl)
+		err := env.Engine.StartPlan(id, pl)
 		assert.NoError(t, err)
 		fl := env.WaitForTerminalFlow(id)
 		assert.False(t, env.MockClient.WasInvoked(consumer.ID))
@@ -863,7 +863,7 @@ func TestMatchSkipInputs(t *testing.T) {
 		}
 
 		id := api.FlowID("wf-required-match-skip-inputs")
-		err := env.Engine.StartFlow(id, pl,
+		err := env.Engine.StartPlan(id, pl,
 			flow.WithInit(api.InitArgs{
 				"user_info":      {"resolved-user"},
 				"payment_result": {"declined"},
@@ -915,7 +915,7 @@ func TestInputLua(t *testing.T) {
 
 		id := api.FlowID("wf-lua-input")
 		fl := env.WaitForFlowStatus(id, func() {
-			err := env.Engine.StartFlow(id, pl,
+			err := env.Engine.StartPlan(id, pl,
 				flow.WithInit(api.InitArgs{"amount": {float64(5)}}),
 			)
 			assert.NoError(t, err)
@@ -947,7 +947,7 @@ func TestPredicateExecution(t *testing.T) {
 			Steps: api.Steps{st.ID: st},
 		}
 
-		err = env.Engine.StartFlow("wf-pred", pl)
+		err = env.Engine.StartPlan("wf-pred", pl)
 		assert.NoError(t, err)
 	})
 }
@@ -973,7 +973,7 @@ func TestPredicateFalse(t *testing.T) {
 			Steps: api.Steps{st.ID: st},
 		}
 
-		err = env.Engine.StartFlow("wf-pred-false", pl)
+		err = env.Engine.StartPlan("wf-pred-false", pl)
 		assert.NoError(t, err)
 
 		assert.False(t, env.MockClient.WasInvoked("predicate-false-step"))
@@ -1000,7 +1000,7 @@ func TestLuaPredicate(t *testing.T) {
 			Steps: api.Steps{st.ID: st},
 		}
 
-		err = env.Engine.StartFlow("wf-lua-pred", pl)
+		err = env.Engine.StartPlan("wf-lua-pred", pl)
 		assert.NoError(t, err)
 	})
 }
@@ -1027,7 +1027,7 @@ func TestPredicateError(t *testing.T) {
 		}
 
 		fl := env.WaitForFlowStatus("wf-pred-err", func() {
-			err = env.Engine.StartFlow("wf-pred-err", pl)
+			err = env.Engine.StartPlan("wf-pred-err", pl)
 			assert.NoError(t, err)
 		})
 

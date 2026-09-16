@@ -213,7 +213,7 @@ func (g *pkgGen) importBlock() string {
 	var sb strings.Builder
 	sb.WriteString("import (\n")
 	for _, p := range slices.Sorted(maps.Keys(paths)) {
-		fmt.Fprintf(&sb, "%q\n", p)
+		_, _ = fmt.Fprintf(&sb, "%q\n", p)
 	}
 	sb.WriteString(")\n\n")
 	return sb.String()
@@ -225,14 +225,14 @@ func (g *pkgGen) wrapStruct(
 	fields := make([]codecField, len(names))
 	attrs := api.AttributeSpecs{}
 	var decl strings.Builder
-	fmt.Fprintf(&decl, "type %s struct {\n", name)
+	_, _ = fmt.Fprintf(&decl, "type %s struct {\n", name)
 	for i, n := range names {
 		expr, err := g.codecExpr(types[i])
 		if err != nil {
 			return "", nil, err
 		}
 		field, typ := ExportedName(n), g.typeOf(types[i])
-		fmt.Fprintf(&decl, "%s %s\n", field, typ)
+		_, _ = fmt.Fprintf(&decl, "%s %s\n", field, typ)
 		fields[i] = codecField{
 			attr:  n,
 			field: field,
@@ -383,7 +383,7 @@ func renderStructDeclaration(decl structDeclaration) string {
 	var sb strings.Builder
 	sb.WriteString("codec.Struct(\n")
 	for _, f := range decl.fields {
-		fmt.Fprintf(&sb, "codec.Field(%q, %s,\nfunc(v *%s) *%s {\n"+
+		_, _ = fmt.Fprintf(&sb, "codec.Field(%q, %s,\nfunc(v *%s) *%s {\n"+
 			"return &v.%s\n},\n),\n", f.attr, f.codec, f.owner, f.typ,
 			f.field)
 	}

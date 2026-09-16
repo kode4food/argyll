@@ -96,7 +96,7 @@ func TestPartialFlowFailure(t *testing.T) {
 
 		id := api.FlowID("test-partial-failure")
 		fl := env.WaitForFlowStatus(id, func() {
-			err := env.Engine.StartFlow(id, pl)
+			err := env.Engine.StartPlan(id, pl)
 			assert.NoError(t, err)
 		})
 
@@ -171,7 +171,7 @@ func TestWorkItemFailFast(t *testing.T) {
 
 		id := api.FlowID("test-workitem-failfast")
 		fl := env.WaitForFlowStatus(id, func() {
-			err := env.Engine.StartFlow(id, pl)
+			err := env.Engine.StartPlan(id, pl)
 			assert.NoError(t, err)
 		})
 
@@ -225,7 +225,7 @@ func TestUnreachableStep(t *testing.T) {
 		}
 
 		fl := env.WaitForFlowStatus("wf-unreachable", func() {
-			err := env.Engine.StartFlow("wf-unreachable", pl)
+			err := env.Engine.StartPlan("wf-unreachable", pl)
 			assert.NoError(t, err)
 		})
 		assert.Equal(t, api.FlowFailed, fl.Status)
@@ -313,7 +313,7 @@ func TestSkippedProviderCascade(t *testing.T) {
 		}
 
 		fl := env.WaitForFlowStatus("wf-skipped-provider", func() {
-			err := env.Engine.StartFlow("wf-skipped-provider", pl)
+			err := env.Engine.StartPlan("wf-skipped-provider", pl)
 			assert.NoError(t, err)
 		})
 

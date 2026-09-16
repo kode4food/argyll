@@ -2,9 +2,6 @@ package policy
 
 import "github.com/kode4food/argyll/engine/pkg/api"
 
-// ProviderSummary is the executor's concrete view of all providers for an
-// attribute. It lets collect-mode policy reason about provider completion
-// without depending on FlowState directly
 type (
 	// RequiredInputState describes available values and providers for an input
 	RequiredInputState struct {
@@ -12,7 +9,7 @@ type (
 		HasInit     bool
 		HasProvider bool
 		Values      []*api.AttributeValue
-		Match       Matcher
+		Match       api.Matcher
 	}
 
 	ProviderSummary struct {
@@ -76,10 +73,9 @@ func InitBlocksRuntime(attr *api.AttributeSpec, hasInit bool) bool {
 	return attr.IsRuntimeInput() && InitBlocksInput(attr.Collect(), hasInit)
 }
 
-// RequiredInputMissing reports whether a required input should be surfaced as
-// missing to the caller building a plan. Providers satisfy the requirement
-// speculatively, collect:none never requires a supplied value, and otherwise
-// an init value is required
+// RequiredInputMissing reports whether a required input is missing. Providers
+// satisfy it speculatively and collect:none never needs a supplied value, so
+// otherwise an init value is required
 func RequiredInputMissing(
 	collect api.InputCollect, hasProvider, hasInit bool,
 ) bool {

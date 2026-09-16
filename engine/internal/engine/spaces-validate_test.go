@@ -27,7 +27,7 @@ func TestSpaceSubFlowReferences(t *testing.T) {
 			},
 		}
 		err := eng.RegisterStep(subFlow)
-		assert.ErrorIs(t, err, engine.ErrSpaceNotFound)
+		assert.ErrorIs(t, err, api.ErrSpaceNotFound)
 
 		sp := api.Space{
 			ID:   "payments",

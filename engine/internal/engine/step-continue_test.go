@@ -8,9 +8,9 @@ import (
 
 	"github.com/kode4food/argyll/engine/internal/assert/helpers"
 	"github.com/kode4food/argyll/engine/internal/assert/wait"
-	"github.com/kode4food/argyll/engine/internal/engine/flow"
 	"github.com/kode4food/argyll/engine/internal/event"
 	"github.com/kode4food/argyll/engine/pkg/api"
+	"github.com/kode4food/argyll/engine/pkg/flow"
 )
 
 func TestOverdueOptionalRecovery(t *testing.T) {
@@ -122,7 +122,7 @@ func TestDefaultTimeoutBeforeProvider(t *testing.T) {
 			provider.ID,
 			consumer.ID,
 		}, func() {
-			assert.NoError(t, env.Engine.StartFlow(id, pl,
+			assert.NoError(t, env.Engine.StartPlan(id, pl,
 				flow.WithInit(api.InitArgs{"seed": {"x"}}),
 			))
 		})
@@ -243,7 +243,7 @@ func TestTimeoutZeroFallsBackImmediately(t *testing.T) {
 			provider.ID,
 			consumer.ID,
 		}, func() {
-			assert.NoError(t, env.Engine.StartFlow(id, pl,
+			assert.NoError(t, env.Engine.StartPlan(id, pl,
 				flow.WithInit(api.InitArgs{"seed": {"x"}}),
 			))
 		})
@@ -364,7 +364,7 @@ func TestTimeoutDefaultIsStepLocal(t *testing.T) {
 			provider.ID,
 			fast.ID,
 		}, func() {
-			assert.NoError(t, env.Engine.StartFlow(id, pl,
+			assert.NoError(t, env.Engine.StartPlan(id, pl,
 				flow.WithInit(api.InitArgs{"seed": {"x"}}),
 			))
 		})
@@ -489,7 +489,7 @@ func TestTimeoutRequiredsGateFallback(t *testing.T) {
 			userProvider.ID,
 			productProvider.ID,
 		}, func() {
-			assert.NoError(t, env.Engine.StartFlow(id, pl))
+			assert.NoError(t, env.Engine.StartPlan(id, pl))
 		})
 
 		assert.True(t, env.MockClient.WaitForInvocation(
@@ -633,7 +633,7 @@ func TestTimeoutWaitsForLaterOptional(t *testing.T) {
 			providerA.ID,
 			providerB.ID,
 		}, func() {
-			assert.NoError(t, env.Engine.StartFlow(id, pl,
+			assert.NoError(t, env.Engine.StartPlan(id, pl,
 				flow.WithInit(api.InitArgs{"seed": {"x"}}),
 			))
 		})
@@ -754,7 +754,7 @@ func TestTimeoutStepReadyAnchor(t *testing.T) {
 			gate.ID,
 			orderCreator.ID,
 		}, func() {
-			assert.NoError(t, env.Engine.StartFlow(id, pl,
+			assert.NoError(t, env.Engine.StartPlan(id, pl,
 				flow.WithInit(api.InitArgs{"product_info": {"real-product"}}),
 			))
 		})
@@ -872,7 +872,7 @@ func TestTimeoutAfterRequireds(t *testing.T) {
 			reqProvider.ID,
 			optProvider.ID,
 		}, func() {
-			assert.NoError(t, env.Engine.StartFlow(id, pl))
+			assert.NoError(t, env.Engine.StartPlan(id, pl))
 		})
 
 		assert.True(t, env.MockClient.WaitForInvocation(
@@ -917,7 +917,7 @@ func TestOptionalLastTimeout(t *testing.T) {
 
 		id := api.FlowID("wf-opt-last-timeout")
 		fl := env.WaitForFlowStatus(id, func() {
-			err := env.Engine.StartFlow(id, pl,
+			err := env.Engine.StartPlan(id, pl,
 				flow.WithInit(api.InitArgs{"seed": {"x"}}),
 			)
 			assert.NoError(t, err)
@@ -951,7 +951,7 @@ func TestOptionalSomeTimeout(t *testing.T) {
 
 		id := api.FlowID("wf-opt-some-timeout")
 		fl := env.WaitForFlowStatus(id, func() {
-			err := env.Engine.StartFlow(id, pl,
+			err := env.Engine.StartPlan(id, pl,
 				flow.WithInit(api.InitArgs{"seed": {"x"}}),
 			)
 			assert.NoError(t, err)

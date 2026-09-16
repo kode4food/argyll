@@ -10,9 +10,9 @@ import (
 
 	"github.com/kode4food/argyll/engine/internal/assert/helpers"
 	"github.com/kode4food/argyll/engine/internal/engine"
-	"github.com/kode4food/argyll/engine/internal/engine/flow"
 	"github.com/kode4food/argyll/engine/internal/engine/scheduler"
 	"github.com/kode4food/argyll/engine/pkg/api"
+	"github.com/kode4food/argyll/engine/pkg/flow"
 )
 
 type (
@@ -320,7 +320,7 @@ func TestScriptFlowCompletes(t *testing.T) {
 			}
 
 			id := api.FlowID("wf-no-timeouts")
-			assert.NoError(t, eng.StartFlow(id, pl,
+			assert.NoError(t, eng.StartPlan(id, pl,
 				flow.WithInit(api.InitArgs{"input": {"ok"}}),
 			))
 

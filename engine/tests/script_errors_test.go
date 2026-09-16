@@ -74,7 +74,7 @@ func TestScriptStepError(t *testing.T) {
 
 		id := api.FlowID("test-script-error")
 		fl := env.WaitForFlowStatus(id, func() {
-			err := env.Engine.StartFlow(id, pl)
+			err := env.Engine.StartPlan(id, pl)
 			assert.NoError(t, err)
 		})
 
@@ -163,7 +163,7 @@ func TestScriptStepErrorLua(t *testing.T) {
 
 		id := api.FlowID("test-script-error-lua")
 		fl := env.WaitForFlowStatus(id, func() {
-			err := env.Engine.StartFlow(id, pl)
+			err := env.Engine.StartPlan(id, pl)
 			assert.NoError(t, err)
 		})
 

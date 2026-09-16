@@ -17,7 +17,7 @@ func (e *Engine) validateSpaceSubFlows(
 		}
 		sp, ok := cat.Spaces[st.Flow.SpaceID]
 		if !ok {
-			return fmt.Errorf("%w: %s", ErrSpaceNotFound, st.Flow.SpaceID)
+			return fmt.Errorf("%w: %s", api.ErrSpaceNotFound, st.Flow.SpaceID)
 		}
 		if err := e.validateSubFlowGoals(steps, st, sp); err != nil {
 			return err
@@ -44,7 +44,7 @@ func (e *Engine) validateSubFlowGoals(
 	for _, goalID := range st.Flow.Goals {
 		goal, ok := steps[goalID]
 		if !ok {
-			return fmt.Errorf("%w: %s", ErrStepNotFound, goalID)
+			return fmt.Errorf("%w: %s", api.ErrStepNotFound, goalID)
 		}
 		matches, err := e.spaceMatches(sp, goal)
 		if err != nil {

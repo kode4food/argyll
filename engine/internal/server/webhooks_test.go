@@ -134,7 +134,7 @@ func TestHookInvalidWorkItem(t *testing.T) {
 			Steps: api.Steps{st.ID: st},
 		}
 
-		err = env.Engine.StartFlow("invalid-work-flow", pl)
+		err = env.Engine.StartPlan("invalid-work-flow", pl)
 		assert.NoError(t, err)
 
 		body, _ := json.Marshal(api.Args{})
@@ -188,7 +188,7 @@ func TestHookExecutionMissing(t *testing.T) {
 			Steps: api.Steps{st.ID: st},
 		}
 
-		err = env.Engine.StartFlow("missing-exec-flow", pl)
+		err = env.Engine.StartPlan("missing-exec-flow", pl)
 		assert.NoError(t, err)
 
 		req := httptest.NewRequest("POST",
@@ -237,7 +237,7 @@ func TestHookCompleteTwice(t *testing.T) {
 		env.WaitForStepStarted(
 			api.FlowStep{FlowID: "double-complete-flow", StepID: st.ID},
 			func() {
-				err = env.Engine.StartFlow("double-complete-flow", pl)
+				err = env.Engine.StartPlan("double-complete-flow", pl)
 				assert.NoError(t, err)
 			},
 		)
@@ -314,7 +314,7 @@ func TestHookFailTwice(t *testing.T) {
 		env.WaitForStepStarted(
 			api.FlowStep{FlowID: "double-fail-flow", StepID: st.ID},
 			func() {
-				err = env.Engine.StartFlow("double-fail-flow", pl)
+				err = env.Engine.StartPlan("double-fail-flow", pl)
 				assert.NoError(t, err)
 			},
 		)
@@ -395,7 +395,7 @@ func TestHookSuccess(t *testing.T) {
 		env.WaitForStepStarted(
 			api.FlowStep{FlowID: "webhook-success-flow", StepID: st.ID},
 			func() {
-				err = env.Engine.StartFlow("webhook-success-flow", pl)
+				err = env.Engine.StartPlan("webhook-success-flow", pl)
 				assert.NoError(t, err)
 			},
 		)
@@ -476,7 +476,7 @@ func TestHookWorkFailure(t *testing.T) {
 		env.WaitForStepStarted(
 			api.FlowStep{FlowID: "webhook-fail-flow", StepID: st.ID},
 			func() {
-				err = env.Engine.StartFlow("webhook-fail-flow", pl)
+				err = env.Engine.StartPlan("webhook-fail-flow", pl)
 				assert.NoError(t, err)
 			},
 		)
@@ -537,7 +537,7 @@ func TestHookInvalidJSON(t *testing.T) {
 		env.WaitForStepStarted(
 			api.FlowStep{FlowID: "webhook-badjson-flow", StepID: st.ID},
 			func() {
-				err = env.Engine.StartFlow("webhook-badjson-flow", pl)
+				err = env.Engine.StartPlan("webhook-badjson-flow", pl)
 				assert.NoError(t, err)
 			},
 		)

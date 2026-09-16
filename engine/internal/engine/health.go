@@ -1,16 +1,16 @@
 package engine
 
 import (
+	"errors"
 	"fmt"
 	"maps"
 	"sort"
 
 	"github.com/kode4food/timebox"
 
-	"github.com/kode4food/argyll/engine/internal/engine/plan"
-	"github.com/kode4food/argyll/engine/internal/engine/policy"
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/events"
+	"github.com/kode4food/argyll/engine/pkg/plan"
 )
 
 type healthResolver struct {
@@ -22,7 +22,70 @@ type healthResolver struct {
 	visiting map[api.StepID]bool
 	plans    map[api.StepID]*api.ExecutionPlan
 	planErrs map[api.StepID]error
-	match    policy.Matcher
+	match    api.Matcher
+}
+
+// RefreshStepHealth records externally probed step health, derives script and
+// flow step health from it, and persists whatever the engine can determine
+func (e *Engine) RefreshStepHealth(
+	probed map[api.StepID]api.HealthState,
+) error {
+	cat, err := e.GetCatalogState()
+	if err != nil {
+		return err
+	}
+
+	health := make(map[api.StepID]api.HealthState, len(cat.Steps))
+	maps.Copy(health, probed)
+
+	var errs []error
+	for sid, st := range cat.Steps {
+		if st.Type != api.StepTypeScript {
+			continue
+		}
+		h, err := e.StepHealth(st)
+		if err != nil {
+			errs = append(errs, err)
+			continue
+		}
+		health[sid] = h
+	}
+
+	resolved := e.ResolveHealth(e.Matcher, cat, health)
+	for sid, st := range cat.Steps {
+		h, ok := health[sid]
+		if st.Type == api.StepTypeFlow {
+			h, ok = resolved[sid]
+		}
+		if !ok {
+			continue
+		}
+		if err := e.UpdateStepHealth(sid, h.Status, h.Error); err != nil {
+			errs = append(errs, err)
+		}
+	}
+	return errors.Join(errs...)
+}
+
+// GetStepHealth resolves cluster-wide health for a single registered step
+func (e *Engine) GetStepHealth(sid api.StepID) (api.HealthState, error) {
+	cat, err := e.GetCatalogState()
+	if err != nil {
+		return api.HealthState{}, err
+	}
+	cluster, err := e.GetClusterState()
+	if err != nil {
+		return api.HealthState{}, err
+	}
+
+	merged := e.ResolveHealth(e.Matcher, cat, MergeNodeHealth(cluster))
+	h, ok := merged[sid]
+	if !ok {
+		return api.HealthState{}, fmt.Errorf(
+			"%w: %s", api.ErrStepNotFound, sid,
+		)
+	}
+	return h, nil
 }
 
 // UpdateStepHealth updates the health status of a registered step, used
@@ -40,7 +103,7 @@ func (e *Engine) UpdateStepHealth(
 // ResolveHealth returns resolved health for all steps, deriving flow step
 // health from all steps included in the flow's execution preview
 func (e *Engine) ResolveHealth(
-	match policy.Matcher, cat api.CatalogState,
+	match api.Matcher, cat api.CatalogState,
 	base map[api.StepID]api.HealthState,
 ) map[api.StepID]api.HealthState {
 	resolver := &healthResolver{
@@ -246,7 +309,7 @@ func (r *healthResolver) previewFlowPlan(
 	st := r.steps[sid]
 	if st.Flow != nil && st.Flow.SpaceID != "" {
 		if _, ok := r.cat.Spaces[st.Flow.SpaceID]; !ok {
-			return nil, fmt.Errorf("%w: %s", plan.ErrSpaceNotFound,
+			return nil, fmt.Errorf("%w: %s", api.ErrSpaceNotFound,
 				st.Flow.SpaceID)
 		}
 		steps = r.cat.SpaceSteps(st.Flow.SpaceID)

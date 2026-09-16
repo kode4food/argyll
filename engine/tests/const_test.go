@@ -6,8 +6,8 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/kode4food/argyll/engine/internal/assert/helpers"
-	"github.com/kode4food/argyll/engine/internal/engine/flow"
 	"github.com/kode4food/argyll/engine/pkg/api"
+	"github.com/kode4food/argyll/engine/pkg/flow"
 )
 
 // TestConstAttribute verifies const attributes always use their default value
@@ -43,7 +43,7 @@ func TestConstAttribute(t *testing.T) {
 
 		id := api.FlowID("test-const-attribute")
 		fl := env.WaitForFlowStatus(id, func() {
-			err := env.Engine.StartFlow(id, pl,
+			err := env.Engine.StartPlan(id, pl,
 				flow.WithInit(api.InitArgs{"const_value": {"override"}}),
 			)
 			assert.NoError(t, err)

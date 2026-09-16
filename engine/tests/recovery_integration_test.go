@@ -44,7 +44,7 @@ func TestBasicFlowRecovery(t *testing.T) {
 			FlowID: id,
 			StepID: st.ID,
 		}, func() {
-			err = env.Engine.StartFlow(id, pl)
+			err = env.Engine.StartPlan(id, pl)
 			assert.NoError(t, err)
 		})
 
@@ -141,9 +141,9 @@ func TestMultipleFlowRecovery(t *testing.T) {
 			api.FlowStep{FlowID: flowID2, StepID: step2.ID},
 			api.FlowStep{FlowID: flowID3, StepID: step3.ID},
 		), func() {
-			assert.NoError(t, env.Engine.StartFlow(flowID1, plan1))
-			assert.NoError(t, env.Engine.StartFlow(flowID2, plan2))
-			assert.NoError(t, env.Engine.StartFlow(flowID3, plan3))
+			assert.NoError(t, env.Engine.StartPlan(flowID1, plan1))
+			assert.NoError(t, env.Engine.StartPlan(flowID2, plan2))
+			assert.NoError(t, env.Engine.StartPlan(flowID3, plan3))
 		})
 
 		// Verify all flows are active with work in progress
@@ -435,7 +435,7 @@ func TestRecoveryPreservesState(t *testing.T) {
 			FlowID: id,
 			StepID: st.ID,
 		}, func() {
-			err := env.Engine.StartFlow(id, pl)
+			err := env.Engine.StartPlan(id, pl)
 			assert.NoError(t, err)
 		})
 

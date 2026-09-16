@@ -1,4 +1,4 @@
-package client
+package builtins
 
 import (
 	"bytes"
@@ -13,36 +13,20 @@ import (
 	"regexp"
 	"time"
 
-	argyll "github.com/kode4food/argyll/engine"
+	"github.com/kode4food/argyll/engine"
 	"github.com/kode4food/argyll/engine/internal/engine/scheduler"
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/log"
+	"github.com/kode4food/argyll/engine/pkg/step"
 )
 
-type (
-	// Client defines the interface for invoking step handlers
-	Client interface {
-		Invoke(*api.Step, api.Args, api.Metadata) (api.Args, error)
-		InvokeCompensate(CompensateRequest) error
-	}
+// httpClient invokes step handlers over HTTP
+type httpClient struct {
+	httpClient *http.Client
+	timeout    time.Duration
+}
 
-	// CompensateRequest carries the work item being reversed, holding the
-	// inputs it ran with and the outputs it produced
-	CompensateRequest struct {
-		Step     *api.Step
-		Inputs   api.Args
-		Outputs  api.Args
-		Metadata api.Metadata
-	}
-
-	// HTTPClient implements Client using HTTP requests
-	HTTPClient struct {
-		httpClient *http.Client
-		timeout    time.Duration
-	}
-)
-
-const UserAgent = "Argyll-Engine/" + argyll.Version
+var _ Client = (*httpClient)(nil)
 
 var (
 	ErrHTTPError          = errors.New("step returned HTTP error")
@@ -53,11 +37,9 @@ var (
 
 var endpointParamPattern = regexp.MustCompile(`\{([^{}]+)\}`)
 
-var _ Client = (*HTTPClient)(nil)
-
 // NewHTTPClient creates a new HTTP client with the specified request timeout
-func NewHTTPClient(timeout time.Duration) *HTTPClient {
-	return &HTTPClient{
+func NewHTTPClient(timeout time.Duration) Client {
+	return &httpClient{
 		httpClient: &http.Client{},
 		timeout:    timeout,
 	}
@@ -65,7 +47,7 @@ func NewHTTPClient(timeout time.Duration) *HTTPClient {
 
 // Invoke sends an HTTP POST request to the step's endpoint with the provided
 // arguments and metadata, returning the step's output arguments or an error
-func (c *HTTPClient) Invoke(
+func (c *httpClient) Invoke(
 	st *api.Step, args api.Args, meta api.Metadata,
 ) (api.Args, error) {
 	if st.HTTP == nil {
@@ -88,7 +70,7 @@ func (c *HTTPClient) Invoke(
 }
 
 // InvokeCompensate sends selected work attributes to the compensate endpoint
-func (c *HTTPClient) InvokeCompensate(req CompensateRequest) error {
+func (c *httpClient) InvokeCompensate(req step.CompensateRequest) error {
 	st := req.Step
 	if st.HTTP == nil || st.HTTP.Compensate == nil {
 		return fmt.Errorf("%w: %s", ErrNoHTTPConfig, st.ID)
@@ -110,7 +92,7 @@ func (c *HTTPClient) InvokeCompensate(req CompensateRequest) error {
 	return err
 }
 
-func (c *HTTPClient) sendRequest(
+func (c *httpClient) sendRequest(
 	st *api.Step, timeout time.Duration, httpReq *http.Request,
 ) ([]byte, error) {
 	ctx, cancel := context.WithTimeout(httpReq.Context(), timeout)
@@ -148,7 +130,7 @@ func (c *HTTPClient) sendRequest(
 	return respBody, nil
 }
 
-func (c *HTTPClient) requestTimeout(timeoutMS int64) time.Duration {
+func (c *httpClient) requestTimeout(timeoutMS int64) time.Duration {
 	if timeoutMS > 0 {
 		return time.Duration(timeoutMS) * time.Millisecond
 	}
@@ -165,7 +147,7 @@ type sendActionArgs struct {
 	timeout int64
 }
 
-func (c *HTTPClient) sendAction(a sendActionArgs) ([]byte, error) {
+func (c *httpClient) sendAction(a sendActionArgs) ([]byte, error) {
 	endpoint, err := resolveEndpoint(a.action.Endpoint, a.args)
 	if err != nil {
 		slog.Error("Failed to resolve endpoint",
@@ -199,7 +181,7 @@ func (c *HTTPClient) sendAction(a sendActionArgs) ([]byte, error) {
 	}
 
 	httpReq.Header.Set("Accept", api.JSONContentType)
-	httpReq.Header.Set("User-Agent", UserAgent)
+	httpReq.Header.Set("User-Agent", engine.UserAgent)
 	api.SetMetadataHeaders(httpReq.Header, a.meta)
 	if body != nil {
 		httpReq.Header.Set("Content-Type", api.JSONContentType)
@@ -275,7 +257,7 @@ func parseResponse(st *api.Step, respBody []byte) (api.Args, error) {
 	return outputs, nil
 }
 
-func buildCompensationArgs(req CompensateRequest) (api.Args, error) {
+func buildCompensationArgs(req step.CompensateRequest) (api.Args, error) {
 	res := api.Args{}
 	for name, attr := range req.Step.Attributes {
 		if attr == nil || !attr.Compensated {

@@ -43,7 +43,7 @@ func TestMemoStepReusesToken(t *testing.T) {
 			FlowID: id,
 			StepID: st.ID,
 		}), func() {
-			err := env.Engine.StartFlow(id, pl)
+			err := env.Engine.StartPlan(id, pl)
 			assert.NoError(t, err)
 		})
 
@@ -89,7 +89,7 @@ func TestNonMemoStepReusesToken(t *testing.T) {
 			FlowID: id,
 			StepID: st.ID,
 		}), func() {
-			err := env.Engine.StartFlow(id, pl)
+			err := env.Engine.StartPlan(id, pl)
 			assert.NoError(t, err)
 		})
 
@@ -134,7 +134,7 @@ func TestRetriesReuseToken(t *testing.T) {
 			FlowID: id,
 			StepID: st.ID,
 		}), func() {
-			err := env.Engine.StartFlow(id, pl)
+			err := env.Engine.StartPlan(id, pl)
 			assert.NoError(t, err)
 		})
 

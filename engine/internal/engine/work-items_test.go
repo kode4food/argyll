@@ -8,8 +8,8 @@ import (
 
 	"github.com/kode4food/argyll/engine/internal/assert/helpers"
 	"github.com/kode4food/argyll/engine/internal/engine"
-	"github.com/kode4food/argyll/engine/internal/engine/flow"
 	"github.com/kode4food/argyll/engine/pkg/api"
+	"github.com/kode4food/argyll/engine/pkg/flow"
 )
 
 func TestForEachAggregatesOutputs(t *testing.T) {
@@ -48,7 +48,7 @@ func TestForEachAggregatesOutputs(t *testing.T) {
 		}
 
 		fl := env.WaitForFlowStatus("wf-foreach", func() {
-			err := env.Engine.StartFlow("wf-foreach", pl,
+			err := env.Engine.StartPlan("wf-foreach", pl,
 				flow.WithInit(api.InitArgs{"item": {[]any{"a", "b"}}}),
 			)
 			assert.NoError(t, err)
@@ -107,7 +107,7 @@ func TestForEachTypedSlice(t *testing.T) {
 		}
 
 		fl := env.WaitForFlowStatus("wf-foreach-typed", func() {
-			err := env.Engine.StartFlow("wf-foreach-typed", pl,
+			err := env.Engine.StartPlan("wf-foreach-typed", pl,
 				flow.WithInit(api.InitArgs{"item": {[]string{"a", "b"}}}),
 			)
 			assert.NoError(t, err)
@@ -166,7 +166,7 @@ func TestForEachTypedNumbers(t *testing.T) {
 		}
 
 		fl := env.WaitForFlowStatus("wf-foreach-nums", func() {
-			err := env.Engine.StartFlow("wf-foreach-nums", pl,
+			err := env.Engine.StartPlan("wf-foreach-nums", pl,
 				flow.WithInit(api.InitArgs{"item": {[]int{2, 3}}}),
 			)
 			assert.NoError(t, err)
@@ -239,7 +239,7 @@ func TestOutputMappingDescendants(t *testing.T) {
 		}
 
 		fl := env.WaitForFlowStatus("wf-desc-mapping", func() {
-			err := env.Engine.StartFlow("wf-desc-mapping", pl,
+			err := env.Engine.StartPlan("wf-desc-mapping", pl,
 				flow.WithInit(api.InitArgs{"input": {"value"}}),
 			)
 			assert.NoError(t, err)
@@ -289,7 +289,7 @@ func TestTooManyWorkItems(t *testing.T) {
 			Goals: []api.StepID{st.ID},
 			Steps: api.Steps{st.ID: st},
 		}
-		err := env.Engine.StartFlow("wf-too-many", pl,
+		err := env.Engine.StartPlan("wf-too-many", pl,
 			flow.WithInit(api.InitArgs{"x": {xArr}, "y": {yArr}}),
 		)
 		assert.True(t, errors.Is(err, engine.ErrTooManyWorkItems))

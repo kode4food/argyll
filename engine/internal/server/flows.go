@@ -9,9 +9,9 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"github.com/kode4food/argyll/engine/internal/engine"
-	"github.com/kode4food/argyll/engine/internal/engine/flow"
-	"github.com/kode4food/argyll/engine/internal/engine/plan"
 	"github.com/kode4food/argyll/engine/pkg/api"
+	"github.com/kode4food/argyll/engine/pkg/flow"
+	"github.com/kode4food/argyll/engine/pkg/plan"
 )
 
 const (
@@ -134,7 +134,6 @@ func (s *Server) startFlow(c *gin.Context) {
 	if pl == nil {
 		return
 	}
-
 	apps := []flow.Applier{flow.WithCompensate(req.Compensate)}
 	if req.Init != nil {
 		apps = append(apps, flow.WithInit(req.Init))
@@ -142,7 +141,7 @@ func (s *Server) startFlow(c *gin.Context) {
 	if len(req.Tags) > 0 {
 		apps = append(apps, flow.WithTags(req.Tags))
 	}
-	err := s.engine.StartFlow(req.ID, pl, apps...)
+	err := s.engine.StartPlan(req.ID, pl, apps...)
 	if err == nil {
 		c.JSON(http.StatusCreated, api.FlowStartedResponse{
 			FlowID: req.ID,
@@ -150,7 +149,7 @@ func (s *Server) startFlow(c *gin.Context) {
 		return
 	}
 
-	if errors.Is(err, engine.ErrFlowExists) {
+	if errors.Is(err, api.ErrFlowExists) {
 		c.JSON(http.StatusConflict, api.ErrorResponse{
 			Error:  fmt.Sprintf("%s: %s", err.Error(), req.ID),
 			Status: http.StatusConflict,
@@ -179,7 +178,7 @@ func (s *Server) getFlow(c *gin.Context) {
 		return
 	}
 
-	if errors.Is(err, engine.ErrFlowNotFound) {
+	if errors.Is(err, api.ErrFlowNotFound) {
 		c.JSON(http.StatusNotFound, api.ErrorResponse{
 			Error:  fmt.Sprintf("%s: %s", err.Error(), id),
 			Status: http.StatusNotFound,
@@ -200,7 +199,7 @@ func (s *Server) getFlowEvents(c *gin.Context) {
 	}
 	if len(evs) == 0 {
 		c.JSON(http.StatusNotFound, api.ErrorResponse{
-			Error:  fmt.Sprintf("%s: %s", engine.ErrFlowNotFound, id),
+			Error:  fmt.Sprintf("%s: %s", api.ErrFlowNotFound, id),
 			Status: http.StatusNotFound,
 		})
 		return
@@ -220,7 +219,7 @@ func (s *Server) getFlowStatus(c *gin.Context) {
 		return
 	}
 
-	if errors.Is(err, engine.ErrFlowNotFound) {
+	if errors.Is(err, api.ErrFlowNotFound) {
 		c.JSON(http.StatusNotFound, api.ErrorResponse{
 			Error:  fmt.Sprintf("%s: %s", err.Error(), id),
 			Status: http.StatusNotFound,
@@ -237,35 +236,31 @@ func (s *Server) createPlan(
 	c *gin.Context, req *plan.Request, planner plan.Planner,
 	spaceID api.SpaceID,
 ) *api.ExecutionPlan {
-	cat, err := s.engine.GetCatalogState()
+	planReq, err := s.engine.PlanRequest(spaceID)
 	if err != nil {
+		if errors.Is(err, api.ErrSpaceNotFound) {
+			c.JSON(http.StatusNotFound, api.ErrorResponse{
+				Error:  err.Error(),
+				Status: http.StatusNotFound,
+			})
+			return nil
+		}
 		c.JSON(http.StatusInternalServerError, api.ErrorResponse{
 			Error:  fmt.Sprintf("%s: %v", ErrGetCatalogState, err),
 			Status: http.StatusInternalServerError,
 		})
 		return nil
 	}
-	req.Catalog = cat
-	req.Steps = cat.Steps
-	if spaceID != "" {
-		if _, ok := cat.Spaces[spaceID]; !ok {
-			c.JSON(http.StatusNotFound, api.ErrorResponse{
-				Error:  fmt.Sprintf("%s: %s", engine.ErrSpaceNotFound, spaceID),
-				Status: http.StatusNotFound,
-			})
-			return nil
-		}
-		req.Steps = cat.SpaceSteps(spaceID)
-	}
-	req.Match = s.engine.Matcher
-	req.Children = s.engine.Children
-	pl, err := planner(req)
+	planReq.Goals = req.Goals
+	planReq.Init = req.Init
+
+	pl, err := planner(planReq)
 	if err == nil {
 		return pl
 	}
 
-	if errors.Is(err, plan.ErrStepNotFound) ||
-		errors.Is(err, plan.ErrSpaceNotFound) {
+	if errors.Is(err, api.ErrGoalNotFound) ||
+		errors.Is(err, api.ErrSpaceNotFound) {
 		c.JSON(http.StatusNotFound, api.ErrorResponse{
 			Error:  fmt.Sprintf("%s: %v", err.Error(), req.Goals),
 			Status: http.StatusNotFound,

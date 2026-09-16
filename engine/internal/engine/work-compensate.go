@@ -7,11 +7,11 @@ import (
 
 	"github.com/kode4food/timebox"
 
-	"github.com/kode4food/argyll/engine/internal/client"
 	"github.com/kode4food/argyll/engine/internal/engine/policy"
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/events"
 	"github.com/kode4food/argyll/engine/pkg/log"
+	"github.com/kode4food/argyll/engine/pkg/step"
 	"github.com/kode4food/argyll/engine/pkg/util"
 )
 
@@ -46,9 +46,8 @@ func (e *Engine) NotCompleteCompensation(
 	})
 }
 
-// compensateFlow unwinds the flow one wave at a time, in reverse dependency
-// order. maybeDeactivate re-enters here after every compensation outcome,
-// which drives the next wave
+// compensateFlow unwinds one wave in reverse dependency order, re-entered by
+// maybeDeactivate after every outcome to drive the next
 func (tx *flowTx) compensateFlow() error {
 	fl := tx.Value()
 	if !flowCompensating(fl) || compensationActive(fl) {
@@ -114,7 +113,7 @@ func (tx *flowTx) startPendingCompensations(
 	}
 
 	meta := tx.Value().Metadata
-	toCompensate := map[api.Token]client.CompensateRequest{}
+	toCompensate := map[api.Token]step.CompensateRequest{}
 
 	for tkn, work := range ex.WorkItems {
 		if !policy.WorkSucceeded(work.Status) {
@@ -123,11 +122,13 @@ func (tx *flowTx) startPendingCompensations(
 		if err := tx.raiseCompStarted(st.ID, tkn); err != nil {
 			return err
 		}
-		toCompensate[tkn] = client.CompensateRequest{
+		toCompensate[tkn] = step.CompensateRequest{
 			Step:     st,
 			Inputs:   ex.Inputs.Apply(work.Inputs),
 			Outputs:  work.Outputs,
 			Metadata: tx.compensateMetadata(meta, st, tkn),
+			FlowID:   tx.flowID,
+			Token:    tkn,
 		}
 	}
 
@@ -198,7 +199,7 @@ func (tx *flowTx) scheduleCompensationRetry(
 }
 
 func (tx *flowTx) performCompensation(
-	tkn api.Token, req client.CompensateRequest,
+	tkn api.Token, req step.CompensateRequest,
 ) {
 	sid := req.Step.ID
 	fs := api.FlowStep{FlowID: tx.flowID, StepID: sid}
@@ -213,9 +214,9 @@ func (tx *flowTx) performCompensation(
 		return
 	}
 
-	err = comp(req)
+	completed, err := comp(req)
 	if err == nil {
-		if req.Step.HTTP.Compensate.Async() {
+		if !completed {
 			return
 		}
 		if recErr := tx.Engine.CompleteCompensation(fs, tkn); recErr != nil {
@@ -289,11 +290,13 @@ func (e *Engine) runCompensationTask(fs api.FlowStep, tkn api.Token) error {
 		if err := tx.raiseCompStarted(fs.StepID, tkn); err != nil {
 			return err
 		}
-		req := client.CompensateRequest{
+		req := step.CompensateRequest{
 			Step:     st,
 			Inputs:   ex.Inputs.Apply(work.Inputs),
 			Outputs:  work.Outputs,
 			Metadata: tx.compensateMetadata(fl.Metadata, st, tkn),
+			FlowID:   fl.ID,
+			Token:    tkn,
 		}
 
 		tx.OnSuccess(func(api.FlowState, []*timebox.Event) {
@@ -340,9 +343,8 @@ func (tx *flowTx) recoverStepCompensations(sid api.StepID) error {
 		}
 		if policy.WorkSucceeded(work.Status) &&
 			(policy.StepFailed(ex.Status) || flowCompensating(fl)) {
-			// Compensation was never started (e.g., engine crashed after
-			// step failed but before startPendingCompensations ran), so it
-			// joins this transaction rather than a task rereading the state
+			// Compensation never started, so it joins this transaction rather
+			// than a task rereading the state
 			if flowCompensating(fl) {
 				// Covers the whole flow, so sibling steps are redundant
 				return tx.compensateFlow()
@@ -468,17 +470,11 @@ func (w *compensationWaveWalk) dependentPending(
 func (tx *flowTx) compensateMetadata(
 	meta api.Metadata, st *api.Step, tkn api.Token,
 ) api.Metadata {
-	res := meta.Apply(api.Metadata{
+	return meta.Apply(api.Metadata{
 		api.MetaFlowID:       tx.flowID,
 		api.MetaStepID:       st.ID,
 		api.MetaReceiptToken: tkn,
 	})
-	if st.HTTP != nil && st.HTTP.Compensate.Async() {
-		res[api.MetaWebhookURL] = tx.Engine.compensateCallbackURL(
-			tx.flowID, st.ID, tkn,
-		)
-	}
-	return res
 }
 
 func flowCompensating(fl api.FlowState) bool {

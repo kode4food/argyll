@@ -12,7 +12,6 @@ import (
 )
 
 var (
-	ErrFlowNotFound      = errors.New("flow not found")
 	ErrInvalidFlowStatus = errors.New("invalid indexed flow status")
 )
 
@@ -30,7 +29,7 @@ func (e *Engine) GetFlowStatus(fid api.FlowID) (api.FlowStatus, error) {
 		return "", err
 	}
 	if status == "" {
-		return "", ErrFlowNotFound
+		return "", api.ErrFlowNotFound
 	}
 
 	switch api.FlowStatus(status) {
@@ -62,7 +61,7 @@ func (e *Engine) GetFlowStateSeq(
 	}
 
 	if st.ID == "" {
-		return api.FlowState{}, 0, ErrFlowNotFound
+		return api.FlowState{}, 0, api.ErrFlowNotFound
 	}
 
 	return st, nextSeq, nil

@@ -14,11 +14,11 @@ import (
 
 	"github.com/kode4food/argyll/engine/internal/assert/helpers"
 	"github.com/kode4food/argyll/engine/internal/assert/wait"
-	"github.com/kode4food/argyll/engine/internal/client"
 	"github.com/kode4food/argyll/engine/internal/engine"
-	"github.com/kode4food/argyll/engine/internal/engine/plan"
 	"github.com/kode4food/argyll/engine/internal/event"
 	"github.com/kode4food/argyll/engine/pkg/api"
+	"github.com/kode4food/argyll/engine/pkg/plan"
+	"github.com/kode4food/argyll/engine/pkg/step"
 	"github.com/kode4food/argyll/engine/pkg/util"
 )
 
@@ -60,7 +60,7 @@ func TestAsyncCallbackDeadlineExpires(t *testing.T) {
 		// The callback never arrives, so the attempt expires and retries
 		env.WithConsumer(func(consumer *event.Consumer) {
 			w := wait.On(t, consumer)
-			assert.NoError(t, env.Engine.StartFlow(id, pl))
+			assert.NoError(t, env.Engine.StartPlan(id, pl))
 			w.ForAll(
 				wait.WorkNotCompleted(fs),
 				wait.WorkRetryScheduled(fs),
@@ -94,7 +94,7 @@ func TestCallbackBeforeDeadlineSurvives(t *testing.T) {
 		}
 
 		env.WaitFor(wait.WorkStarted(fs), func() {
-			assert.NoError(t, env.Engine.StartFlow(id, pl))
+			assert.NoError(t, env.Engine.StartPlan(id, pl))
 		})
 
 		fl, err := env.Engine.GetFlowState(id)
@@ -154,7 +154,7 @@ func TestCompensationDeadlineRetries(t *testing.T) {
 		}
 		assert.NoError(t, env.Engine.RegisterStep(st))
 		env.MockClient.SetCompHandler(st.ID,
-			func(client.CompensateRequest) error {
+			func(step.CompensateRequest) error {
 				return nil
 			},
 		)

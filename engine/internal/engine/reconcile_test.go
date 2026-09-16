@@ -283,7 +283,7 @@ func TestTransientFailureRearms(t *testing.T) {
 			Goals: []api.StepID{st.ID},
 			Steps: api.Steps{st.ID: st},
 		}
-		assert.NoError(t, env.Engine.StartFlow(id, pl))
+		assert.NoError(t, env.Engine.StartPlan(id, pl))
 
 		fl := env.WaitForTerminalFlow(id)
 		assert.Equal(t, api.FlowCompleted, fl.Status)
@@ -364,7 +364,7 @@ func TestDeferredDispatchResumesWhenHealthy(t *testing.T) {
 			Goals: []api.StepID{st.ID},
 			Steps: api.Steps{st.ID: st},
 		}
-		assert.NoError(t, env.Engine.StartFlow(id, pl))
+		assert.NoError(t, env.Engine.StartPlan(id, pl))
 
 		assert.False(t,
 			env.MockClient.WaitForInvocation(st.ID, 300*time.Millisecond),

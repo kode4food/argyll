@@ -12,8 +12,8 @@ import (
 	"github.com/kode4food/argyll/engine/internal/assert/helpers"
 	"github.com/kode4food/argyll/engine/internal/assert/wait"
 	"github.com/kode4food/argyll/engine/internal/engine"
-	"github.com/kode4food/argyll/engine/internal/engine/flow"
 	"github.com/kode4food/argyll/engine/pkg/api"
+	"github.com/kode4food/argyll/engine/pkg/flow"
 	"github.com/kode4food/argyll/engine/pkg/util"
 )
 
@@ -33,7 +33,7 @@ func TestMemoizedWork(t *testing.T) {
 		}
 
 		fl := env.WaitForFlowStatus("wf-memo-1", func() {
-			assert.NoError(t, env.Engine.StartFlow("wf-memo-1", pl,
+			assert.NoError(t, env.Engine.StartPlan("wf-memo-1", pl,
 				flow.WithInit(api.InitArgs{"input": {"value"}}),
 			))
 		})
@@ -42,7 +42,7 @@ func TestMemoizedWork(t *testing.T) {
 		assert.NotEmpty(t, firstInvocations)
 
 		fl = env.WaitForFlowStatus("wf-memo-2", func() {
-			assert.NoError(t, env.Engine.StartFlow("wf-memo-2", pl,
+			assert.NoError(t, env.Engine.StartPlan("wf-memo-2", pl,
 				flow.WithInit(api.InitArgs{"input": {"value"}}),
 			))
 		})
@@ -73,7 +73,7 @@ func TestHTTPMetadata(t *testing.T) {
 		}
 
 		fl := env.WaitForFlowStatus("wf-meta", func() {
-			err := env.Engine.StartFlow("wf-meta", pl,
+			err := env.Engine.StartPlan("wf-meta", pl,
 				flow.WithMetadata(flowMetadata),
 			)
 			assert.NoError(t, err)
@@ -132,7 +132,7 @@ func TestDispatchOnHealthyPeer(t *testing.T) {
 		}
 
 		fl := env.WaitForFlowStatus("wf-healthy-peer", func() {
-			err := env.Engine.StartFlow("wf-healthy-peer", pl)
+			err := env.Engine.StartPlan("wf-healthy-peer", pl)
 			assert.NoError(t, err)
 		})
 		assert.Equal(t, api.FlowCompleted, fl.Status)
@@ -162,7 +162,7 @@ func TestDispatchRecovery(t *testing.T) {
 		}
 
 		env.WaitFor(wait.StepStarted(fs), func() {
-			assert.NoError(t, env.Engine.StartFlow(id, pl))
+			assert.NoError(t, env.Engine.StartPlan(id, pl))
 		})
 		assert.False(t,
 			env.MockClient.WaitForInvocation(st.ID, 120*time.Millisecond),
@@ -203,7 +203,7 @@ func TestAsyncMetadata(t *testing.T) {
 			FlowID: "wf-async-meta",
 			StepID: st.ID,
 		}), func() {
-			err := env.Engine.StartFlow("wf-async-meta", pl,
+			err := env.Engine.StartPlan("wf-async-meta", pl,
 				flow.WithMetadata(flowMetadata),
 			)
 			assert.NoError(t, err)
@@ -250,7 +250,7 @@ func TestScriptWorkExecutes(t *testing.T) {
 		}
 
 		fl := env.WaitForFlowStatus("wf-script", func() {
-			err := env.Engine.StartFlow("wf-script", pl,
+			err := env.Engine.StartPlan("wf-script", pl,
 				flow.WithInit(api.InitArgs{"x": {float64(2)}}),
 			)
 			assert.NoError(t, err)
@@ -298,7 +298,7 @@ func TestScriptMapping(t *testing.T) {
 		}
 
 		fl := env.WaitForFlowStatus("wf-script-mapped", func() {
-			err := env.Engine.StartFlow("wf-script-mapped", pl,
+			err := env.Engine.StartPlan("wf-script-mapped", pl,
 				flow.WithInit(api.InitArgs{"amount": {float64(2)}}),
 			)
 			assert.NoError(t, err)
@@ -331,7 +331,7 @@ func TestUnsupportedStep(t *testing.T) {
 		id := api.FlowID("wf-bad-step-type")
 
 		env.WaitFor(wait.FlowFailed(id), func() {
-			assert.NoError(t, env.Engine.StartFlow(id, pl))
+			assert.NoError(t, env.Engine.StartPlan(id, pl))
 		})
 
 		fl, err := env.Engine.GetFlowState(id)
@@ -363,7 +363,7 @@ func TestParallelWorkItems(t *testing.T) {
 			Steps: api.Steps{st.ID: st},
 		}
 
-		err := env.Engine.StartFlow("wf-parallel", pl,
+		err := env.Engine.StartPlan("wf-parallel", pl,
 			flow.WithInit(api.InitArgs{"items": {[]any{"a", "b", "c"}}}),
 		)
 		assert.NoError(t, err)
@@ -406,7 +406,7 @@ func TestWorkPredicate(t *testing.T) {
 
 		id := api.FlowID("wf-pred-work-item")
 		fl := env.WaitForFlowStatus(id, func() {
-			err := env.Engine.StartFlow(id, pl,
+			err := env.Engine.StartPlan(id, pl,
 				flow.WithInit(api.InitArgs{"items": {[]any{"a", "b"}}}),
 			)
 			assert.NoError(t, err)
@@ -434,7 +434,7 @@ func TestHTTPExecution(t *testing.T) {
 			Steps: api.Steps{st.ID: st},
 		}
 
-		err = env.Engine.StartFlow("wf-http", pl)
+		err = env.Engine.StartPlan("wf-http", pl)
 		assert.NoError(t, err)
 	})
 }
@@ -453,7 +453,7 @@ func TestScriptExecution(t *testing.T) {
 			Steps: api.Steps{st.ID: st},
 		}
 
-		err = eng.StartFlow("wf-script", pl)
+		err = eng.StartPlan("wf-script", pl)
 		assert.NoError(t, err)
 	})
 }
@@ -472,7 +472,7 @@ func TestLuaScriptExecution(t *testing.T) {
 			Steps: api.Steps{st.ID: st},
 		}
 
-		err = eng.StartFlow("wf-lua-script", pl)
+		err = eng.StartPlan("wf-lua-script", pl)
 		assert.NoError(t, err)
 	})
 }
@@ -494,7 +494,7 @@ func TestLuaScriptWithInputs(t *testing.T) {
 			Required: []api.Name{"x"},
 		}
 
-		err = eng.StartFlow("wf-lua-input", pl,
+		err = eng.StartPlan("wf-lua-input", pl,
 			flow.WithInit(api.InitArgs{"x": {float64(21)}}),
 		)
 		assert.NoError(t, err)
@@ -539,7 +539,7 @@ func TestCompetingNodesStartOnce(t *testing.T) {
 		}
 
 		fl := env.WaitForFlowStatus(id, func() {
-			assert.NoError(t, env.Engine.StartFlow(id, pl))
+			assert.NoError(t, env.Engine.StartPlan(id, pl))
 		})
 		assert.Equal(t, api.FlowCompleted, fl.Status)
 		assert.Equal(t, []api.StepID{st.ID}, env.MockClient.GetInvocations())

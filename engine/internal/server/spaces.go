@@ -41,14 +41,14 @@ func (s *Server) createSpace(c *gin.Context) {
 		})
 		return
 	}
-	if errors.Is(err, engine.ErrSpaceExists) {
+	if errors.Is(err, api.ErrSpaceExists) {
 		c.JSON(http.StatusConflict, api.ErrorResponse{
 			Error:  err.Error(),
 			Status: http.StatusConflict,
 		})
 		return
 	}
-	if errors.Is(err, engine.ErrInvalidSpace) {
+	if errors.Is(err, api.ErrInvalidSpace) {
 		c.JSON(http.StatusBadRequest, api.ErrorResponse{
 			Error:  err.Error(),
 			Status: http.StatusBadRequest,
@@ -67,7 +67,7 @@ func (s *Server) previewSpace(c *gin.Context) {
 		return
 	}
 	preview, err := s.engine.PreviewSpace(sp)
-	if errors.Is(err, engine.ErrInvalidSpace) {
+	if errors.Is(err, api.ErrInvalidSpace) {
 		c.JSON(http.StatusBadRequest, api.ErrorResponse{
 			Error:  err.Error(),
 			Status: http.StatusBadRequest,
@@ -92,7 +92,7 @@ func (s *Server) getSpace(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusNotFound, api.ErrorResponse{
-		Error:  fmt.Sprintf("%s: %s", engine.ErrSpaceNotFound, id),
+		Error:  fmt.Sprintf("%s: %s", api.ErrSpaceNotFound, id),
 		Status: http.StatusNotFound,
 	})
 }
@@ -105,7 +105,7 @@ func (s *Server) listSpaceSteps(c *gin.Context) {
 	id := api.SpaceID(c.Param("space_id"))
 	if _, ok := cat.Spaces[id]; !ok {
 		c.JSON(http.StatusNotFound, api.ErrorResponse{
-			Error:  fmt.Sprintf("%s: %s", engine.ErrSpaceNotFound, id),
+			Error:  fmt.Sprintf("%s: %s", api.ErrSpaceNotFound, id),
 			Status: http.StatusNotFound,
 		})
 		return
@@ -144,7 +144,7 @@ func (s *Server) updateSpace(c *gin.Context) {
 		})
 		return
 	}
-	if errors.Is(err, engine.ErrSpaceNotFound) {
+	if errors.Is(err, api.ErrSpaceNotFound) {
 		c.JSON(http.StatusNotFound, api.ErrorResponse{
 			Error:  err.Error(),
 			Status: http.StatusNotFound,
@@ -158,7 +158,7 @@ func (s *Server) updateSpace(c *gin.Context) {
 		})
 		return
 	}
-	if errors.Is(err, engine.ErrInvalidSpace) {
+	if errors.Is(err, api.ErrInvalidSpace) {
 		c.JSON(http.StatusBadRequest, api.ErrorResponse{
 			Error:  err.Error(),
 			Status: http.StatusBadRequest,
@@ -180,7 +180,7 @@ func (s *Server) deleteSpace(c *gin.Context) {
 		})
 		return
 	}
-	if errors.Is(err, engine.ErrSpaceNotFound) {
+	if errors.Is(err, api.ErrSpaceNotFound) {
 		c.JSON(http.StatusNotFound, api.ErrorResponse{
 			Error:  err.Error(),
 			Status: http.StatusNotFound,

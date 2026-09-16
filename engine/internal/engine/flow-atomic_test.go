@@ -83,7 +83,7 @@ func TestAtomicFlowLifecycle(t *testing.T) {
 							return api.Args{}, nil
 						},
 					)
-					assert.NoError(t, env.Engine.StartFlow("atomic", pl))
+					assert.NoError(t, env.Engine.StartPlan("atomic", pl))
 					assert.NoError(t, env.Engine.Start())
 					parent := helpers.WaitForFlowState(t, env.Engine,
 						helpers.FlowStateQuery{
@@ -201,7 +201,7 @@ func TestNestedFlowSettlement(t *testing.T) {
 		)
 		assert.NoError(t, env.Engine.Start())
 		env.WaitFor(wait.FlowDeactivated("nested"), func() {
-			assert.NoError(t, env.Engine.StartFlow("nested", pl))
+			assert.NoError(t, env.Engine.StartPlan("nested", pl))
 		})
 		assert.True(t, env.ConflictFired())
 		fid := api.FlowID("nested")

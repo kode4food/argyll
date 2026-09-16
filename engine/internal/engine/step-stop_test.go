@@ -8,8 +8,8 @@ import (
 	"github.com/kode4food/argyll/engine/internal/assert"
 	"github.com/kode4food/argyll/engine/internal/assert/helpers"
 	"github.com/kode4food/argyll/engine/internal/assert/wait"
-	"github.com/kode4food/argyll/engine/internal/engine/flow"
 	"github.com/kode4food/argyll/engine/pkg/api"
+	"github.com/kode4food/argyll/engine/pkg/flow"
 )
 
 func TestSetAttribute(t *testing.T) {
@@ -33,7 +33,7 @@ func TestSetAttribute(t *testing.T) {
 		}
 
 		env.WaitFor(wait.FlowCompleted("wf-attr"), func() {
-			err = env.Engine.StartFlow("wf-attr", pl)
+			err = env.Engine.StartPlan("wf-attr", pl)
 			testify.NoError(t, err)
 		})
 
@@ -71,7 +71,7 @@ func TestDuplicateFirstWins(t *testing.T) {
 		}
 
 		fl := env.WaitForFlowStatus("wf-dup-attr", func() {
-			err = env.Engine.StartFlow("wf-dup-attr", pl)
+			err = env.Engine.StartPlan("wf-dup-attr", pl)
 			testify.NoError(t, err)
 		})
 
@@ -140,7 +140,7 @@ func TestUndeclaredOutputsIgnored(t *testing.T) {
 		}
 
 		fl := env.WaitForFlowStatus("wf-undeclared-outputs", func() {
-			err := env.Engine.StartFlow("wf-undeclared-outputs", pl)
+			err := env.Engine.StartPlan("wf-undeclared-outputs", pl)
 			testify.NoError(t, err)
 		})
 		testify.Equal(t, api.FlowCompleted, fl.Status)
@@ -192,7 +192,7 @@ func TestUnconsumedOutputsDiscarded(t *testing.T) {
 		}
 
 		fl := env.WaitForFlowStatus("wf-unconsumed-outputs", func() {
-			err := env.Engine.StartFlow("wf-unconsumed-outputs", pl)
+			err := env.Engine.StartPlan("wf-unconsumed-outputs", pl)
 			testify.NoError(t, err)
 		})
 
@@ -240,7 +240,7 @@ func TestOutputMapping(t *testing.T) {
 
 		id := api.FlowID("wf-output-mapping")
 		fl := env.WaitForFlowStatus(id, func() {
-			err := env.Engine.StartFlow(id, pl,
+			err := env.Engine.StartPlan(id, pl,
 				flow.WithInit(api.InitArgs{"input": {"value"}}),
 			)
 			testify.NoError(t, err)
@@ -281,7 +281,7 @@ func TestOutputMappingWithRename(t *testing.T) {
 
 		id := api.FlowID("wf-output-rename")
 		fl := env.WaitForFlowStatus(id, func() {
-			err := env.Engine.StartFlow(id, pl,
+			err := env.Engine.StartPlan(id, pl,
 				flow.WithInit(api.InitArgs{"input": {"test"}}),
 			)
 			testify.NoError(t, err)

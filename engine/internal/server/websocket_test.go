@@ -15,7 +15,6 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/kode4food/argyll/engine/internal/assert/helpers"
-	"github.com/kode4food/argyll/engine/internal/engine"
 	"github.com/kode4food/argyll/engine/internal/engine/scheduler"
 	"github.com/kode4food/argyll/engine/internal/server"
 	"github.com/kode4food/argyll/engine/pkg/api"
@@ -461,7 +460,7 @@ func TestSubscribeStateWithError(t *testing.T) {
 
 func TestSubscribeStateMissingFlow(t *testing.T) {
 	getState := func(id timebox.AggregateID) (any, int64, error) {
-		return nil, 0, engine.ErrFlowNotFound
+		return nil, 0, api.ErrFlowNotFound
 	}
 
 	env := testWebSocket(t, getState)
@@ -691,7 +690,7 @@ func TestSocketCallbackCluster(t *testing.T) {
 
 func TestSocketCallbackFlow(t *testing.T) {
 	withTestServerEnv(t, func(env *testServerEnv) {
-		err := env.Engine.StartFlow("wf-123", &api.ExecutionPlan{
+		err := env.Engine.StartPlan("wf-123", &api.ExecutionPlan{
 			Steps: api.Steps{},
 		})
 		assert.NoError(t, err)

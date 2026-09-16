@@ -52,14 +52,14 @@ func (s *Server) createStep(c *gin.Context) {
 		return
 	}
 
-	if errors.Is(err, engine.ErrStepExists) {
+	if errors.Is(err, api.ErrStepExists) {
 		c.JSON(http.StatusConflict, api.ErrorResponse{
 			Error:  err.Error(),
 			Status: http.StatusConflict,
 		})
 		return
 	}
-	if errors.Is(err, engine.ErrInvalidStep) {
+	if errors.Is(err, api.ErrInvalidStep) {
 		c.JSON(http.StatusBadRequest, api.ErrorResponse{
 			Error:  err.Error(),
 			Status: http.StatusBadRequest,
@@ -90,7 +90,7 @@ func (s *Server) getStep(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusNotFound, api.ErrorResponse{
-		Error:  fmt.Sprintf("%s: %s", engine.ErrStepNotFound, sid),
+		Error:  fmt.Sprintf("%s: %s", api.ErrStepNotFound, sid),
 		Status: http.StatusNotFound,
 	})
 }
@@ -130,14 +130,14 @@ func (s *Server) updateStep(c *gin.Context) {
 		return
 	}
 
-	if errors.Is(err, engine.ErrStepNotFound) {
+	if errors.Is(err, api.ErrStepNotFound) {
 		c.JSON(http.StatusNotFound, api.ErrorResponse{
 			Error:  err.Error(),
 			Status: http.StatusNotFound,
 		})
 		return
 	}
-	if errors.Is(err, engine.ErrInvalidStep) {
+	if errors.Is(err, api.ErrInvalidStep) {
 		c.JSON(http.StatusBadRequest, api.ErrorResponse{
 			Error:  err.Error(),
 			Status: http.StatusBadRequest,
@@ -164,7 +164,7 @@ func (s *Server) deleteStep(c *gin.Context) {
 
 	if _, ok := cat.Steps[sid]; !ok {
 		c.JSON(http.StatusNotFound, api.ErrorResponse{
-			Error:  fmt.Sprintf("%s: %s", engine.ErrStepNotFound, sid),
+			Error:  fmt.Sprintf("%s: %s", api.ErrStepNotFound, sid),
 			Status: http.StatusNotFound,
 		})
 		return

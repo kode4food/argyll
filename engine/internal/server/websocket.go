@@ -13,7 +13,6 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/kode4food/timebox"
 
-	"github.com/kode4food/argyll/engine/internal/engine"
 	"github.com/kode4food/argyll/engine/internal/engine/scheduler"
 	"github.com/kode4food/argyll/engine/internal/event"
 	"github.com/kode4food/argyll/engine/pkg/api"
@@ -301,7 +300,7 @@ func (c *Client) sendSubscribeState(sub *clientSubscription) bool {
 		for _, id := range sub.aggregateIDs {
 			state, nextSeq, err := c.getState(id)
 			if err != nil {
-				if errors.Is(err, engine.ErrFlowNotFound) {
+				if errors.Is(err, api.ErrFlowNotFound) {
 					continue
 				}
 				slog.Error("Failed to get state for subscription",

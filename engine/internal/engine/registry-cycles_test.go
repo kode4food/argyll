@@ -66,8 +66,8 @@ func TestRegisterStepRejectsFlowGoalCycles(t *testing.T) {
 		assert.NoError(t, eng.RegisterStep(stepA))
 
 		err := eng.RegisterStep(stepB)
-		assert.ErrorIs(t, err, engine.ErrInvalidStep)
-		assert.ErrorIs(t, err, engine.ErrCircularDependency)
+		assert.ErrorIs(t, err, api.ErrInvalidStep)
+		assert.ErrorIs(t, err, api.ErrCircularDependency)
 	})
 }
 
@@ -93,8 +93,8 @@ func TestRegisterStepsRejectsGoalCycle(t *testing.T) {
 		}
 
 		err := eng.RegisterSteps(stepA, stepB)
-		assert.ErrorIs(t, err, engine.ErrInvalidStep)
-		assert.ErrorIs(t, err, engine.ErrCircularDependency)
+		assert.ErrorIs(t, err, api.ErrInvalidStep)
+		assert.ErrorIs(t, err, api.ErrCircularDependency)
 
 		cat, err := eng.GetCatalogState()
 		assert.NoError(t, err)
@@ -139,7 +139,7 @@ func TestUpdateStepRejectsGoalCycles(t *testing.T) {
 		}
 
 		err := eng.UpdateStep(updatedLeaf)
-		assert.ErrorIs(t, err, engine.ErrInvalidStep)
-		assert.ErrorIs(t, err, engine.ErrCircularDependency)
+		assert.ErrorIs(t, err, api.ErrInvalidStep)
+		assert.ErrorIs(t, err, api.ErrCircularDependency)
 	})
 }

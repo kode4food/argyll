@@ -7,8 +7,8 @@ import (
 
 	"github.com/kode4food/argyll/engine/internal/assert/helpers"
 	"github.com/kode4food/argyll/engine/internal/engine"
-	"github.com/kode4food/argyll/engine/internal/engine/flow"
 	"github.com/kode4food/argyll/engine/pkg/api"
+	"github.com/kode4food/argyll/engine/pkg/flow"
 )
 
 // TestInitialFlowInputs verifies that flows can start with pre-populated
@@ -18,9 +18,8 @@ func TestInitialFlowInputs(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		assert.NoError(t, env.Engine.Start())
 
-		// Step A (Goal): Requires "initialValue" and "configValue", produces
-		// "result". Neither initialValue nor configValue are produced by any
-		// step, they must be provided as initial flow inputs
+		// No step produces initialValue or configValue, so both must arrive as
+		// initial flow inputs
 		stepA := helpers.NewTestStepWithArgs(
 			[]api.Name{"initialValue", "configValue"},
 			nil,
@@ -67,7 +66,7 @@ func TestInitialFlowInputs(t *testing.T) {
 
 		id := api.FlowID("test-initial-inputs")
 		fl := env.WaitForFlowStatus(id, func() {
-			err := env.Engine.StartFlow(id, pl,
+			err := env.Engine.StartPlan(id, pl,
 				flow.WithInit(initialInputs),
 			)
 			assert.NoError(t, err)
@@ -119,7 +118,7 @@ func TestRequiredInputsMissing(t *testing.T) {
 			Required: []api.Name{"customer_id"},
 		}
 
-		err := eng.StartFlow("wf-missing-required", pl)
+		err := eng.StartPlan("wf-missing-required", pl)
 		assert.ErrorIs(t, err, api.ErrRequiredInputs)
 	})
 }

@@ -6,8 +6,8 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/kode4food/argyll/engine/internal/assert/helpers"
-	"github.com/kode4food/argyll/engine/internal/engine/plan"
 	"github.com/kode4food/argyll/engine/pkg/api"
+	"github.com/kode4food/argyll/engine/pkg/plan"
 )
 
 var testEval = helpers.Matcher()
@@ -1123,7 +1123,7 @@ func TestSubFlowSpace(t *testing.T) {
 		cat := makeCatalogState(api.Steps{goal.ID: goal, st.ID: st})
 
 		_, err := createSubFlowPlan(cat, st.ID)
-		assert.ErrorIs(t, err, plan.ErrSpaceNotFound)
+		assert.ErrorIs(t, err, api.ErrSpaceNotFound)
 	})
 }
 

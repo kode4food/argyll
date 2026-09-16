@@ -37,7 +37,7 @@ func TestRecoveryActivation(t *testing.T) {
 		}
 
 		env.WaitFor(wait.FlowStarted(id), func() {
-			err := env.Engine.StartFlow(id, pl)
+			err := env.Engine.StartPlan(id, pl)
 			assert.NoError(t, err)
 		})
 
@@ -66,7 +66,7 @@ func TestRecoveryDeactivation(t *testing.T) {
 		}
 
 		env.WaitFor(wait.FlowDeactivated(id), func() {
-			err = env.Engine.StartFlow(id, pl)
+			err = env.Engine.StartPlan(id, pl)
 			assert.NoError(t, err)
 		})
 
@@ -90,10 +90,10 @@ func TestRecoverActiveFlows(t *testing.T) {
 		}
 
 		env.WaitForCount(2, wait.FlowStarted(flowID1, flowID2), func() {
-			err := env.Engine.StartFlow(flowID1, pl)
+			err := env.Engine.StartPlan(flowID1, pl)
 			assert.NoError(t, err)
 
-			err = env.Engine.StartFlow(flowID2, pl)
+			err = env.Engine.StartPlan(flowID2, pl)
 			assert.NoError(t, err)
 		})
 
@@ -126,7 +126,7 @@ func TestRecoverActiveWorkDoesNotRestart(t *testing.T) {
 			FlowID: id,
 			StepID: st.ID,
 		}), func() {
-			assert.NoError(t, env.Engine.StartFlow(id, pl))
+			assert.NoError(t, env.Engine.StartPlan(id, pl))
 		})
 		assert.True(t,
 			env.MockClient.WaitForInvocation(st.ID, wait.DefaultTimeout),
@@ -186,7 +186,7 @@ func TestRecoverDispatchPeer(t *testing.T) {
 			Steps: api.Steps{st.ID: st},
 		}
 
-		require.NoError(t, env.Engine.StartFlow(id, pl))
+		require.NoError(t, env.Engine.StartPlan(id, pl))
 		require.NoError(t, peer.Start())
 
 		fl := helpers.WaitForFlowState(t, env.Engine, helpers.FlowStateQuery{
@@ -264,7 +264,7 @@ func TestConcurrentRecoveryState(t *testing.T) {
 				for i := range count {
 					go func(idx int) {
 						id := api.FlowID(fmt.Sprintf("flow-%d", idx))
-						err := env.Engine.StartFlow(id, pl)
+						err := env.Engine.StartPlan(id, pl)
 						assert.NoError(t, err)
 						done <- true
 					}(i)
@@ -293,7 +293,7 @@ func TestTerminalFlow(t *testing.T) {
 			Steps: api.Steps{st.ID: st},
 		}
 
-		err := eng.StartFlow(id, pl)
+		err := eng.StartPlan(id, pl)
 		assert.NoError(t, err)
 
 		fl, err := eng.GetFlowState(id)
@@ -315,7 +315,7 @@ func TestNoRetryableSteps(t *testing.T) {
 			Steps: api.Steps{st.ID: st},
 		}
 
-		err := eng.StartFlow(id, pl)
+		err := eng.StartPlan(id, pl)
 		assert.NoError(t, err)
 
 		err = eng.RecoverFlow(id)
@@ -348,7 +348,7 @@ func TestWorkActiveItems(t *testing.T) {
 			FlowID: id,
 			StepID: st.ID,
 		}), func() {
-			err = env.Engine.StartFlow(id, pl)
+			err = env.Engine.StartPlan(id, pl)
 			assert.NoError(t, err)
 		})
 
@@ -385,7 +385,7 @@ func TestPendingWorkWithActiveStep(t *testing.T) {
 			FlowID: id,
 			StepID: st.ID,
 		}), func() {
-			err = env.Engine.StartFlow(id, pl)
+			err = env.Engine.StartPlan(id, pl)
 			assert.NoError(t, err)
 		})
 
@@ -469,10 +469,10 @@ func TestMultipleFlows(t *testing.T) {
 		flowID1 := api.FlowID("flow-1")
 		flowID2 := api.FlowID("flow-2")
 		env.WaitForCount(2, wait.FlowStarted(flowID1, flowID2), func() {
-			err = env.Engine.StartFlow(flowID1, pl)
+			err = env.Engine.StartPlan(flowID1, pl)
 			assert.NoError(t, err)
 
-			err = env.Engine.StartFlow(flowID2, pl)
+			err = env.Engine.StartPlan(flowID2, pl)
 			assert.NoError(t, err)
 		})
 
@@ -498,7 +498,7 @@ func TestMissingStepInPlan(t *testing.T) {
 			Steps: api.Steps{st.ID: st},
 		}
 
-		err := eng.StartFlow(id, pl)
+		err := eng.StartPlan(id, pl)
 		assert.NoError(t, err)
 
 		err = eng.RecoverFlow(id)
@@ -520,10 +520,10 @@ func TestRecoverFlowsWithFailure(t *testing.T) {
 		flowID1 := api.FlowID("good-flow")
 		flowID2 := api.FlowID("bad-flow")
 		env.WaitForCount(2, wait.FlowStarted(flowID1, flowID2), func() {
-			err = env.Engine.StartFlow(flowID1, pl)
+			err = env.Engine.StartPlan(flowID1, pl)
 			assert.NoError(t, err)
 
-			err = env.Engine.StartFlow(flowID2, pl)
+			err = env.Engine.StartPlan(flowID2, pl)
 			assert.NoError(t, err)
 		})
 
@@ -546,7 +546,7 @@ func TestRecoverFlowNilWorkItems(t *testing.T) {
 
 		var err error
 		env.WaitFor(wait.FlowStarted(id), func() {
-			err = env.Engine.StartFlow(id, pl)
+			err = env.Engine.StartPlan(id, pl)
 			assert.NoError(t, err)
 		})
 
@@ -992,7 +992,7 @@ func TestFailedWorkNotRestarted(t *testing.T) {
 		)
 
 		err := env.Engine.CompleteWork(fs, tkn, api.Args{})
-		assert.True(t, errors.Is(err, engine.ErrInvalidWorkTransition))
+		assert.True(t, errors.Is(err, api.ErrInvalidWorkTransition))
 
 		fl, err := env.Engine.GetFlowState(id)
 		assert.NoError(t, err)

@@ -55,6 +55,9 @@ type (
 		Script   string `json:"script"`
 	}
 
+	// Matcher evaluates a match script against one candidate value
+	Matcher func(*ScriptConfig, any) (bool, error)
+
 	// FlowConfig configures flow-based step execution
 	FlowConfig struct {
 		Goals      []StepID `json:"goals"`
@@ -300,9 +303,7 @@ func (s *Step) WithWorkDefaults(defaults *WorkConfig) *Step {
 
 // CanCompensate returns true if the step has compensation configured
 func (s *Step) CanCompensate() bool {
-	return s.DefaultedHandling() == HandlingCompensated &&
-		s.HTTP != nil && s.HTTP.Compensate != nil &&
-		s.HTTP.Compensate.Endpoint != ""
+	return s.DefaultedHandling() == HandlingCompensated
 }
 
 // DefaultedHandling returns the configured handling or standard when unset
@@ -420,17 +421,6 @@ func (s *Step) validateHandling() error {
 		return fmt.Errorf("%w: %s", ErrInvalidHandling, handling)
 	}
 
-	var compensate *HTTPAction
-	if s.HTTP != nil {
-		compensate = s.HTTP.Compensate
-	}
-	if handling == HandlingCompensated &&
-		(compensate == nil || compensate.Endpoint == "") {
-		return ErrCompensateRequired
-	}
-	if handling != HandlingCompensated && compensate != nil {
-		return ErrCompensateHandling
-	}
 	for name, attr := range s.Attributes {
 		if attr != nil && attr.Compensated && handling != HandlingCompensated {
 			return fmt.Errorf("%w: %s", ErrAttributeCompensated, name)
@@ -442,6 +432,14 @@ func (s *Step) validateHandling() error {
 func (s *Step) validateHTTPConfig() error {
 	if s.HTTP == nil {
 		return ErrHTTPRequired
+	}
+	if s.DefaultedHandling() == HandlingCompensated &&
+		(s.HTTP.Compensate == nil || s.HTTP.Compensate.Endpoint == "") {
+		return ErrCompensateRequired
+	}
+	if s.DefaultedHandling() != HandlingCompensated &&
+		s.HTTP.Compensate != nil {
+		return ErrCompensateHandling
 	}
 	if s.Flow != nil {
 		return ErrFlowNotAllowed

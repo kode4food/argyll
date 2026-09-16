@@ -13,10 +13,10 @@ import (
 	"github.com/kode4food/argyll/engine/internal/engine/memo"
 	"github.com/kode4food/argyll/engine/internal/engine/scheduler"
 	"github.com/kode4food/argyll/engine/internal/engine/script"
-	"github.com/kode4food/argyll/engine/internal/engine/step"
 	"github.com/kode4food/argyll/engine/internal/event"
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/events"
+	"github.com/kode4food/argyll/engine/pkg/step"
 )
 
 type (
@@ -122,26 +122,6 @@ func (e *Engine) LocalNodeID() api.NodeID {
 // GetEventHub exposes the engine's in-process event hub
 func (e *Engine) GetEventHub() *event.Hub {
 	return e.eventHub
-}
-
-func (e *Engine) invokeCallbackURL(
-	fid api.FlowID, sid api.StepID, tkn api.Token,
-) string {
-	return e.callbackURL(fid, sid, tkn, api.ActionInvoke)
-}
-
-func (e *Engine) compensateCallbackURL(
-	fid api.FlowID, sid api.StepID, tkn api.Token,
-) string {
-	return e.callbackURL(fid, sid, tkn, api.ActionCompensate)
-}
-
-func (e *Engine) callbackURL(
-	fid api.FlowID, sid api.StepID, tkn api.Token,
-	action api.CallbackAction,
-) string {
-	return e.config.WebhookBaseURL +
-		api.CallbackPath(fid, sid, tkn, action)
 }
 
 func normalizeDependencies(deps *Dependencies) error {

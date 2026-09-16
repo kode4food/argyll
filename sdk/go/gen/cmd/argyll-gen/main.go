@@ -22,7 +22,7 @@ func main() {
 
 	written, err := generator.Generate(".", *server, patterns...)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "argyll-gen:", err)
+		_, _ = fmt.Fprintln(os.Stderr, "argyll-gen:", err)
 		os.Exit(1)
 	}
 	for _, p := range written {

@@ -30,7 +30,7 @@ func TestWaitForFlowCompletedEvent(t *testing.T) {
 
 		id := api.FlowID("flow-completed-event")
 		env.WithConsumer(func(consumer *event.Consumer) {
-			err = env.Engine.StartFlow(id, pl)
+			err = env.Engine.StartPlan(id, pl)
 			assert.NoError(t, err)
 
 			wait.On(t, consumer).ForEvent(wait.FlowCompleted(id))
@@ -60,7 +60,7 @@ func TestWaitForFlowFailedEvent(t *testing.T) {
 
 		id := api.FlowID("flow-failed-event")
 		env.WithConsumer(func(consumer *event.Consumer) {
-			err = env.Engine.StartFlow(id, pl)
+			err = env.Engine.StartPlan(id, pl)
 			assert.NoError(t, err)
 
 			wait.On(t, consumer).ForEvent(wait.FlowFailed(id))
@@ -90,7 +90,7 @@ func TestWaitForStepStartedEvent(t *testing.T) {
 
 		id := api.FlowID("flow-step-started")
 		env.WithConsumer(func(consumer *event.Consumer) {
-			err = env.Engine.StartFlow(id, pl)
+			err = env.Engine.StartPlan(id, pl)
 			assert.NoError(t, err)
 
 			wait.On(t, consumer).ForEvent(wait.StepStarted(api.FlowStep{
@@ -119,7 +119,7 @@ func TestWaitForStepTerminalEvent(t *testing.T) {
 
 		id := api.FlowID("flow-step-terminal")
 		env.WithConsumer(func(consumer *event.Consumer) {
-			err = env.Engine.StartFlow(id, pl)
+			err = env.Engine.StartPlan(id, pl)
 			assert.NoError(t, err)
 
 			wait.On(t, consumer).ForEvent(wait.StepTerminal(api.FlowStep{
@@ -154,7 +154,7 @@ func TestWaitForWorkSucceededEvent(t *testing.T) {
 
 		id := api.FlowID("flow-work-succeeded")
 		env.WithConsumer(func(consumer *event.Consumer) {
-			err = env.Engine.StartFlow(id, pl)
+			err = env.Engine.StartPlan(id, pl)
 			assert.NoError(t, err)
 
 			wait.On(t, consumer).ForEvent(wait.WorkSucceeded(api.FlowStep{
@@ -183,7 +183,7 @@ func TestWaitForWorkFailedEvent(t *testing.T) {
 
 		id := api.FlowID("flow-work-failed")
 		env.WithConsumer(func(consumer *event.Consumer) {
-			err = env.Engine.StartFlow(id, pl)
+			err = env.Engine.StartPlan(id, pl)
 			assert.NoError(t, err)
 
 			wait.On(t, consumer).ForEvent(wait.WorkFailed(api.FlowStep{
@@ -218,7 +218,7 @@ func TestWaitForWorkRetryScheduledEvent(t *testing.T) {
 
 		id := api.FlowID("flow-work-retry")
 		env.WithConsumer(func(consumer *event.Consumer) {
-			err = env.Engine.StartFlow(id, pl)
+			err = env.Engine.StartPlan(id, pl)
 			assert.NoError(t, err)
 
 			wait.On(t, consumer).ForEvent(wait.WorkRetryScheduled(api.FlowStep{
@@ -264,7 +264,7 @@ func TestWaitFlowCompleted(t *testing.T) {
 
 		id := api.FlowID("test-flow-completed")
 		fl := env.WaitForFlowStatus(id, func() {
-			err = env.Engine.StartFlow(id, pl)
+			err = env.Engine.StartPlan(id, pl)
 			assert.NoError(t, err)
 		})
 		assert.NotNil(t, fl)
@@ -290,7 +290,7 @@ func TestWaitFlowFailed(t *testing.T) {
 
 		id := api.FlowID("test-flow-failed")
 		fl := env.WaitForFlowStatus(id, func() {
-			err = env.Engine.StartFlow(id, pl)
+			err = env.Engine.StartPlan(id, pl)
 			assert.NoError(t, err)
 		})
 		assert.NotNil(t, fl)
@@ -323,7 +323,7 @@ func TestWaitFlowStatusTerminal(t *testing.T) {
 		id := api.FlowID("test-flow-polling")
 		fs := api.FlowStep{FlowID: id, StepID: st.ID}
 		env.WaitFor(wait.WorkRetryScheduledAny(fs), func() {
-			err = env.Engine.StartFlow(id, pl)
+			err = env.Engine.StartPlan(id, pl)
 			assert.NoError(t, err)
 		})
 
@@ -354,7 +354,7 @@ func TestWaitStepCompleted(t *testing.T) {
 
 		id := api.FlowID("test-step-complete")
 		ex := env.WaitForStepStatus(id, st.ID, func() {
-			err = env.Engine.StartFlow(id, pl)
+			err = env.Engine.StartPlan(id, pl)
 			assert.NoError(t, err)
 		})
 		assert.NotNil(t, ex)
@@ -380,7 +380,7 @@ func TestWaitStepFailed(t *testing.T) {
 
 		id := api.FlowID("test-step-fail")
 		ex := env.WaitForStepStatus(id, st.ID, func() {
-			err = env.Engine.StartFlow(id, pl)
+			err = env.Engine.StartPlan(id, pl)
 			assert.NoError(t, err)
 		})
 		assert.NotNil(t, ex)
@@ -406,7 +406,7 @@ func TestWaitStepSkipped(t *testing.T) {
 
 		id := api.FlowID("test-step-skipped")
 		ex := env.WaitForStepStatus(id, st.ID, func() {
-			err = env.Engine.StartFlow(id, pl)
+			err = env.Engine.StartPlan(id, pl)
 			assert.NoError(t, err)
 		})
 		assert.NotNil(t, ex)
@@ -431,7 +431,7 @@ func TestWaitForHelper(t *testing.T) {
 		id := api.FlowID("waitfor-flow")
 
 		env.WaitFor(wait.FlowCompleted(id), func() {
-			err = env.Engine.StartFlow(id, pl)
+			err = env.Engine.StartPlan(id, pl)
 			assert.NoError(t, err)
 		})
 	})
@@ -475,7 +475,7 @@ func TestWaitAfterAllHelper(t *testing.T) {
 
 		env.WaitAfterAll(2, func(waits []*wait.Wait) {
 			assert.Len(t, waits, 2)
-			err = env.Engine.StartFlow(id, pl)
+			err = env.Engine.StartPlan(id, pl)
 			assert.NoError(t, err)
 			for _, w := range waits {
 				w.ForEvent(wait.FlowCompleted(id))

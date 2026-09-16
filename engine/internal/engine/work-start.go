@@ -7,10 +7,10 @@ import (
 	"time"
 
 	"github.com/kode4food/argyll/engine/internal/engine/policy"
-	"github.com/kode4food/argyll/engine/internal/engine/step"
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/events"
 	"github.com/kode4food/argyll/engine/pkg/log"
+	"github.com/kode4food/argyll/engine/pkg/step"
 )
 
 type (
@@ -49,10 +49,6 @@ func (e *ExecContext) StepID() api.StepID {
 
 func (e *ExecContext) Metadata() api.Metadata {
 	return e.meta
-}
-
-func (e *ExecContext) WebhookURL(tkn api.Token) string {
-	return e.engine.invokeCallbackURL(e.flowID, e.stepID, tkn)
 }
 
 func (e *ExecContext) CompleteWork(tkn api.Token, outputs api.Args) error {
@@ -98,7 +94,7 @@ func (e *ExecContext) performWorkItem(tkn api.Token, work api.WorkState) {
 func (e *ExecContext) handleWorkItemFailure(tkn api.Token, err error) {
 	fs := api.FlowStep{FlowID: e.flowID, StepID: e.stepID}
 
-	if errors.Is(err, ErrInvalidWorkTransition) {
+	if errors.Is(err, api.ErrInvalidWorkTransition) {
 		return
 	}
 
