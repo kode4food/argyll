@@ -11,7 +11,7 @@
 
 **WebSocket Notifications (separate from event sourcing):**
 
-- EventHub: `engine/internal/event.Hub`, wired through `engine/cmd/argyll/main.go` and `engine/internal/server/websocket.go`
+- EventHub: `engine/internal/event.Hub`, wired through `engine/cmd/argyll/internal/app/app.go` and `engine/cmd/argyll/internal/server/websocket.go`
 - Purpose: Broadcast events to WebSocket subscribers
 - Separate from event sourcing; used for real-time UI updates
 - Produces from timebox events, doesn't drive execution
@@ -366,4 +366,4 @@ func reconstructState(aggregateID ID) State {
 - Recovery: `engine/internal/engine/recover.go` (RecoverFlows logic)
 - Retry and deferred dispatch scheduling: `engine/internal/engine/work-continue.go`, `engine/internal/engine/step-dispatch.go`, and `engine/internal/engine/scheduler/`
 - Work item deadlines for in-flight attempts: `engine/internal/engine/work-deadline.go`
-- WebSocket broadcast: `engine/cmd/argyll/main.go` and `engine/internal/server/websocket.go`
+- WebSocket broadcast: `engine/cmd/argyll/internal/app/app.go` and `engine/cmd/argyll/internal/server/websocket.go`

@@ -6,9 +6,9 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/kode4food/argyll/engine/internal/config"
 	"github.com/kode4food/argyll/engine/internal/engine/scheduler"
 	"github.com/kode4food/argyll/engine/pkg/api"
+	"github.com/kode4food/argyll/engine/pkg/config"
 )
 
 type (
@@ -104,7 +104,6 @@ func (w *Wrapper) FlowStateEquals(ref FlowRef, key api.Name, expected any) {
 func (w *Wrapper) ConfigValid(cfg *config.Config) {
 	w.Helper()
 	w.NoError(cfg.Validate())
-	w.True(cfg.APIPort > 0 && cfg.APIPort <= 65535)
 	w.True(cfg.StepTimeout > 0)
 }
 

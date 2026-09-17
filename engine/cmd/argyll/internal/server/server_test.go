@@ -4,23 +4,21 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"net"
 	"net/http"
 	"net/http/httptest"
 	"slices"
-	"strconv"
 	"strings"
 	"testing"
 
 	"github.com/kode4food/timebox/raft"
 	"github.com/stretchr/testify/assert"
 
+	"github.com/kode4food/argyll/engine/cmd/argyll/internal/server"
 	"github.com/kode4food/argyll/engine/internal/assert/helpers"
 	"github.com/kode4food/argyll/engine/internal/assert/wait"
-	"github.com/kode4food/argyll/engine/internal/config"
 	"github.com/kode4food/argyll/engine/internal/engine"
-	"github.com/kode4food/argyll/engine/internal/server"
 	"github.com/kode4food/argyll/engine/pkg/api"
+	"github.com/kode4food/argyll/engine/pkg/config"
 	"github.com/kode4food/argyll/engine/pkg/util"
 )
 
@@ -160,39 +158,6 @@ func TestHealthUnknown(t *testing.T) {
 		assert.Equal(t, http.StatusOK, w.Code)
 		assert.Equal(t, "unknown", w.Header().Get("X-Argyll-Raft-State"))
 	})
-}
-
-func TestRaftStatusNil(t *testing.T) {
-	assert.Nil(t, server.NewRaftStatusProvider(nil)())
-}
-
-func TestRaftStatus(t *testing.T) {
-	addr := availableAddress(t)
-	cfg := config.DefaultRaftConfig(
-		api.NodeID("node-" + strconv.Itoa(availablePort(t))),
-	)
-	cfg.Address = addr
-	cfg.DataDir = t.TempDir()
-	cfg.Servers = []raft.Server{
-		{ID: cfg.LocalID, Address: addr},
-	}
-
-	b, err := raft.Open(cfg)
-	assert.NoError(t, err)
-	if b != nil {
-		defer func() { _ = b.Close() }()
-	}
-
-	st := server.NewRaftStatusProvider(b)()
-	if assert.Contains(t, st, "backend") {
-		backend, ok := st["backend"].(map[string]any)
-		if assert.True(t, ok) {
-			assert.Equal(t, "raft", backend["type"])
-			assert.NotEmpty(t, backend["state"])
-			assert.Contains(t, backend, "leader_address")
-			assert.Contains(t, backend, "leader_id")
-		}
-	}
 }
 
 func TestEngineHealth(t *testing.T) {
@@ -1948,28 +1913,6 @@ func TestStartFlowTooManyTags(t *testing.T) {
 		assert.Equal(t, http.StatusBadRequest, w.Code)
 		assert.Contains(t, w.Body.String(), "too many tags")
 	})
-}
-
-func availablePort(t *testing.T) int {
-	t.Helper()
-
-	ln, err := net.Listen("tcp", "127.0.0.1:0")
-	assert.NoError(t, err)
-	defer func() { _ = ln.Close() }()
-
-	addr, ok := ln.Addr().(*net.TCPAddr)
-	assert.True(t, ok)
-	return addr.Port
-}
-
-func availableAddress(t *testing.T) string {
-	t.Helper()
-
-	ln, err := net.Listen("tcp", "127.0.0.1:0")
-	assert.NoError(t, err)
-	defer func() { _ = ln.Close() }()
-
-	return ln.Addr().String()
 }
 
 func withTestServerEnv(t *testing.T, fn func(*testServerEnv)) {

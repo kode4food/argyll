@@ -1,9 +1,13 @@
-package argyll
+package argyll_test
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/kode4food/argyll/mcp/openapi/argyll"
+)
 
 func TestDefaultsDescribePlannerCapabilities(t *testing.T) {
-	got := Defaults()
+	got := argyll.Defaults()
 	if !got.AttributeMapping.Supported {
 		t.Fatalf("expected attribute mapping support")
 	}

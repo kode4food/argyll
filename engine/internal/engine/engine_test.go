@@ -10,9 +10,9 @@ import (
 
 	"github.com/kode4food/argyll/engine/internal/assert/helpers"
 	"github.com/kode4food/argyll/engine/internal/assert/wait"
-	"github.com/kode4food/argyll/engine/internal/config"
 	"github.com/kode4food/argyll/engine/internal/engine"
 	"github.com/kode4food/argyll/engine/pkg/api"
+	"github.com/kode4food/argyll/engine/pkg/config"
 	"github.com/kode4food/argyll/engine/pkg/step"
 	"github.com/kode4food/argyll/engine/pkg/step/builtins"
 	"github.com/kode4food/argyll/engine/pkg/util"
@@ -103,13 +103,13 @@ func TestNewOpenBackendError(t *testing.T) {
 func TestNewInvalidConfig(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		cfg := util.MutableCopy(env.Config)
-		cfg.APIPort = 0
+		cfg.StepTimeout = 0
 
 		eng, err := engine.New(cfg, env.Dependencies(), env.OpenBackend)
 		assert.Nil(t, eng)
 		assert.Error(t, err)
 		assert.True(t, errors.Is(err, engine.ErrInvalidConfig))
-		assert.True(t, errors.Is(err, config.ErrInvalidAPIPort))
+		assert.True(t, errors.Is(err, config.ErrInvalidStepTimeout))
 	})
 }
 

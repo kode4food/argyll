@@ -10,12 +10,12 @@ import (
 	"github.com/kode4food/timebox/memory"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/kode4food/argyll/engine/internal/config"
 	"github.com/kode4food/argyll/engine/internal/engine"
 	"github.com/kode4food/argyll/engine/internal/engine/scheduler"
 	"github.com/kode4food/argyll/engine/internal/engine/script"
 	"github.com/kode4food/argyll/engine/internal/event"
 	"github.com/kode4food/argyll/engine/pkg/api"
+	"github.com/kode4food/argyll/engine/pkg/config"
 	"github.com/kode4food/argyll/engine/pkg/events"
 	"github.com/kode4food/argyll/engine/pkg/step"
 	"github.com/kode4food/argyll/engine/pkg/step/builtins"
@@ -33,13 +33,11 @@ type (
 		backend    *backend
 		flowStore  *timebox.Store
 		flowExec   *timebox.Executor[api.FlowState]
-		subscribe  func(Publisher) func()
+		subscribe  func(timebox.Publisher) func()
 		unsubs     *unsubscribeTracker
 		conflict   *conflictOnce
 		ownsHub    bool
 	}
-
-	Publisher func(...*timebox.Event)
 
 	FlowEvent struct {
 		Data any
@@ -50,7 +48,7 @@ type (
 	// it with its own publisher, and all of them hear every commit
 	backend struct {
 		timebox.Backend
-		publish  Publisher
+		publish  timebox.Publisher
 		conflict *conflictOnce
 	}
 
@@ -132,13 +130,6 @@ func WithStartedEngine(t *testing.T, fn func(*engine.Engine)) {
 	})
 }
 
-// NewTestConfig creates a default configuration with debug logging enabled
-func NewTestConfig() *config.Config {
-	cfg := config.NewDefaultConfig()
-	cfg.LogLevel = "debug"
-	return cfg
-}
-
 // NewTestEngine creates a fully configured test engine environment with an
 // in-memory Timebox backend and mock HTTP client
 func NewTestEngine(t *testing.T) *TestEngineEnv {
@@ -158,7 +149,7 @@ func NewTestEngineWithDeps(
 func (e *TestEngineEnv) OpenBackend(
 	pub timebox.Publisher,
 ) (timebox.Backend, error) {
-	e.trackUnsubscribe(e.SubscribeCommitted(Publisher(pub)))
+	e.trackUnsubscribe(e.SubscribeCommitted(pub))
 	return sharedBackend{backend: e.backend}, nil
 }
 
@@ -169,7 +160,7 @@ func (sharedBackend) Close() error {
 
 // SubscribeCommitted registers a publisher against the shared committed-event
 // stream used by test engines. Call the returned function to unregister it
-func (e *TestEngineEnv) SubscribeCommitted(fn Publisher) func() {
+func (e *TestEngineEnv) SubscribeCommitted(fn timebox.Publisher) func() {
 	return e.subscribe(fn)
 }
 
@@ -181,7 +172,7 @@ func (e *TestEngineEnv) NewEngineWithConfig(
 	var unsubscribe func()
 	eng, err := engine.New(cfg, deps,
 		func(pub timebox.Publisher) (timebox.Backend, error) {
-			unsubscribe = e.SubscribeCommitted(Publisher(pub))
+			unsubscribe = e.SubscribeCommitted(pub)
 			e.trackUnsubscribe(unsubscribe)
 			return sharedBackend{backend: e.backend}, nil
 		},
@@ -413,13 +404,9 @@ func newTestEngine(
 ) *TestEngineEnv {
 	t.Helper()
 
-	cfg := NewTestConfig()
-	cfg.APIPort = 8080
-	cfg.APIHost = "localhost"
-	cfg.WebhookBaseURL = "http://localhost:8080"
+	cfg := config.NewDefaultConfig()
 	cfg.StepTimeout = 5 * api.Second
 	cfg.MemoCacheSize = 100
-	cfg.ShutdownTimeout = 2 * time.Second
 	cfg.Work = api.WorkConfig{
 		MaxRetries:  3,
 		InitBackoff: 1000,
@@ -435,9 +422,9 @@ func newTestEngine(
 		ownsHub = true
 	}
 	var publishMu sync.Mutex
-	committed := map[int]Publisher{}
+	committed := map[int]timebox.Publisher{}
 	nextCommittedID := 0
-	subscribe := func(fn Publisher) func() {
+	subscribe := func(fn timebox.Publisher) func() {
 		publishMu.Lock()
 		id := nextCommittedID
 		nextCommittedID++
@@ -459,7 +446,7 @@ func newTestEngine(
 		publish: func(evs ...*timebox.Event) {
 			published := cloneCommittedEvents(evs)
 			publishMu.Lock()
-			handlers := make([]Publisher, 0, len(committed))
+			handlers := make([]timebox.Publisher, 0, len(committed))
 			for _, fn := range committed {
 				handlers = append(handlers, fn)
 			}

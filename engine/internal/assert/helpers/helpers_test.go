@@ -215,16 +215,6 @@ func TestStepWithArgs(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-func TestConfig(t *testing.T) {
-	cfg := helpers.NewTestConfig()
-
-	assert.NotNil(t, cfg)
-	assert.Equal(t, "debug", cfg.LogLevel)
-
-	err := cfg.Validate()
-	assert.NoError(t, err)
-}
-
 func TestCleanup(t *testing.T) {
 	assert.NotPanics(t, func() {
 		helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {

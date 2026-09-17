@@ -8,8 +8,8 @@ import (
 	testify "github.com/stretchr/testify/assert"
 
 	"github.com/kode4food/argyll/engine/internal/assert"
-	"github.com/kode4food/argyll/engine/internal/config"
 	"github.com/kode4food/argyll/engine/pkg/api"
+	"github.com/kode4food/argyll/engine/pkg/config"
 )
 
 type mockGetter struct {
@@ -354,16 +354,7 @@ func TestFlowStateEquals(t *testing.T) {
 
 func TestConfigValid(t *testing.T) {
 	customValid := config.NewDefaultConfig()
-	customValid.APIPort = 9090
 	customValid.StepTimeout = 60000
-
-	minPort := config.NewDefaultConfig()
-	minPort.APIPort = 1
-	minPort.StepTimeout = 1000
-
-	maxPort := config.NewDefaultConfig()
-	maxPort.APIPort = 65535
-	maxPort.StepTimeout = 1000
 
 	tests := []struct {
 		name string
@@ -376,14 +367,6 @@ func TestConfigValid(t *testing.T) {
 		{
 			name: "custom valid config",
 			cfg:  customValid,
-		},
-		{
-			name: "minimum valid port",
-			cfg:  minPort,
-		},
-		{
-			name: "maximum valid port",
-			cfg:  maxPort,
 		},
 	}
 
@@ -402,43 +385,13 @@ func TestConfigInvalid(t *testing.T) {
 		contains string
 	}{
 		{
-			name: "invalid port zero",
-			cfg: &config.Config{
-				APIPort:     0,
-				StepTimeout: 1000,
-			},
-			contains: "port",
-		},
-		{
-			name: "invalid port negative",
-			cfg: &config.Config{
-				APIPort:     -1,
-				StepTimeout: 1000,
-			},
-			contains: "port",
-		},
-		{
-			name: "invalid port too large",
-			cfg: &config.Config{
-				APIPort:     65536,
-				StepTimeout: 1000,
-			},
-			contains: "port",
-		},
-		{
-			name: "invalid step timeout zero",
-			cfg: &config.Config{
-				APIPort:     8080,
-				StepTimeout: 0,
-			},
+			name:     "invalid step timeout zero",
+			cfg:      &config.Config{StepTimeout: 0},
 			contains: "timeout",
 		},
 		{
-			name: "invalid step timeout negative",
-			cfg: &config.Config{
-				APIPort:     8080,
-				StepTimeout: -1,
-			},
+			name:     "invalid step timeout negative",
+			cfg:      &config.Config{StepTimeout: -1},
 			contains: "timeout",
 		},
 	}

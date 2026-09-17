@@ -1,10 +1,6 @@
 package server
 
-import (
-	"maps"
-
-	"github.com/kode4food/timebox/raft"
-)
+import "maps"
 
 type StatusProvider func() map[string]any
 
@@ -13,23 +9,6 @@ func NewWebSocketStatusProvider(s *Server) StatusProvider {
 		return map[string]any{
 			"websocket": map[string]any{
 				"clients": s.webSocketCount(),
-			},
-		}
-	}
-}
-
-func NewRaftStatusProvider(b *raft.Backend) StatusProvider {
-	return func() map[string]any {
-		if b == nil {
-			return nil
-		}
-		addr, id := b.LeaderWithID()
-		return map[string]any{
-			"backend": map[string]any{
-				"type":           "raft",
-				"state":          b.State(),
-				"leader_address": addr,
-				"leader_id":      id,
 			},
 		}
 	}

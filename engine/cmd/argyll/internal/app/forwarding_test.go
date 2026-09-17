@@ -1,10 +1,9 @@
-package tests
+package app_test
 
 import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"net"
 	"net/http"
 	"net/http/httptest"
 	"sync"
@@ -15,14 +14,15 @@ import (
 	"github.com/kode4food/timebox/raft"
 	"github.com/stretchr/testify/assert"
 
+	"github.com/kode4food/argyll/engine/cmd/argyll/internal/app"
+	"github.com/kode4food/argyll/engine/cmd/argyll/internal/server"
 	"github.com/kode4food/argyll/engine/internal/assert/helpers"
-	"github.com/kode4food/argyll/engine/internal/config"
 	"github.com/kode4food/argyll/engine/internal/engine"
 	"github.com/kode4food/argyll/engine/internal/engine/scheduler"
 	"github.com/kode4food/argyll/engine/internal/engine/script"
 	"github.com/kode4food/argyll/engine/internal/event"
-	"github.com/kode4food/argyll/engine/internal/server"
 	"github.com/kode4food/argyll/engine/pkg/api"
+	"github.com/kode4food/argyll/engine/pkg/config"
 	"github.com/kode4food/argyll/engine/pkg/step"
 	"github.com/kode4food/argyll/engine/pkg/step/builtins"
 )
@@ -41,6 +41,11 @@ type (
 		cfg  *config.Config
 		raft raft.Config
 		hub  *event.Hub
+	}
+
+	raftBoot struct {
+		node *raftNode
+		err  error
 	}
 )
 
@@ -75,16 +80,12 @@ func TestFollowerWrite(t *testing.T) {
 
 func TestFollowerWriteStartup(t *testing.T) {
 	inits := newRaftInits(t, 3)
-	type res struct {
-		node *raftNode
-		err  error
-	}
 
-	started := make(chan res, len(inits))
+	started := make(chan raftBoot, len(inits))
 	start := func(init *raftInit) {
 		go func() {
 			n, err := bootRaftNode(init)
-			started <- res{node: n, err: err}
+			started <- raftBoot{node: n, err: err}
 		}()
 	}
 
@@ -139,16 +140,12 @@ func newRaftCluster(t *testing.T, n int) []*raftNode {
 	t.Helper()
 
 	inits := newRaftInits(t, n)
-	type res struct {
-		node *raftNode
-		err  error
-	}
 
-	started := make(chan res, len(inits))
+	started := make(chan raftBoot, len(inits))
 	for _, init := range inits {
 		go func(init *raftInit) {
 			n, err := bootRaftNode(init)
-			started <- res{node: n, err: err}
+			started <- raftBoot{node: n, err: err}
 		}(init)
 	}
 
@@ -175,25 +172,23 @@ func newRaftInits(t *testing.T, n int) []*raftInit {
 		id := fmt.Sprintf("node-%d", i+1)
 		srvs = append(srvs, raft.Server{
 			ID:      id,
-			Address: freeAddr(t),
+			Address: availableAddress(t),
 		})
 		inits = append(inits, &raftInit{id: id})
 	}
 
 	for i, init := range inits {
-		cfg := helpers.NewTestConfig()
-		cfg.APIHost = "127.0.0.1"
-		cfg.APIPort = 8080
+		cfg := config.NewDefaultConfig()
 		cfg.WebhookBaseURL = "http://127.0.0.1"
 		cfg.NodeID = api.NodeID(init.id)
 
-		raftCfg := config.DefaultRaftConfig(cfg.NodeID)
-		raftCfg.Address = srvs[i].Address
-		raftCfg.DataDir = t.TempDir()
-		raftCfg.Servers = srvs
-
 		init.cfg = cfg
-		init.raft = raftCfg
+		init.raft = raft.DefaultConfig().With(raft.Config{
+			LocalID: init.id,
+			Address: srvs[i].Address,
+			DataDir: t.TempDir(),
+			Servers: srvs,
+		})
 		init.hub = event.NewHub()
 	}
 	return inits
@@ -237,7 +232,7 @@ func bootRaftNode(init *raftInit) (*raftNode, error) {
 		server: server.NewServer(
 			eng,
 			init.hub,
-			server.NewRaftStatusProvider(b),
+			app.NewRaftStatusProvider(b),
 		),
 	}, nil
 }
@@ -345,15 +340,6 @@ func tryPostJSON(
 	w := httptest.NewRecorder()
 	h.ServeHTTP(w, req)
 	return w
-}
-
-func freeAddr(t *testing.T) string {
-	t.Helper()
-
-	ln, err := net.Listen("tcp", "127.0.0.1:0")
-	assert.NoError(t, err)
-	defer func() { _ = ln.Close() }()
-	return ln.Addr().String()
 }
 
 func newScriptStep() *api.Step {

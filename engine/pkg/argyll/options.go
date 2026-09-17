@@ -5,21 +5,21 @@ import (
 
 	"github.com/kode4food/timebox"
 
-	"github.com/kode4food/argyll/engine/internal/config"
 	"github.com/kode4food/argyll/engine/internal/engine"
 	"github.com/kode4food/argyll/engine/internal/engine/script"
 	"github.com/kode4food/argyll/engine/internal/event"
-	"github.com/kode4food/argyll/engine/pkg/api"
+	"github.com/kode4food/argyll/engine/pkg/config"
 	"github.com/kode4food/argyll/engine/pkg/step"
 	"github.com/kode4food/argyll/engine/pkg/step/builtins"
 )
 
 type (
-	// Options configures an embedded Engine. A nil Handlers map installs all
-	// standard handlers; a non-nil map is used exactly as supplied
+	// Options configures an embedded Engine. A nil Config uses the defaults.
+	// A nil Handlers map installs all standard handlers; a non-nil map is used
+	// exactly as supplied
 	Options struct {
 		Backend  OpenBackend
-		NodeID   api.NodeID
+		Config   *config.Config
 		Handlers step.Handlers
 	}
 
@@ -33,9 +33,9 @@ var _ Engine = (*engine.Engine)(nil)
 // New creates an Engine over the backend Options opens. Nothing is processed
 // until Start is called
 func New(opts Options) (Engine, error) {
-	cfg := config.NewDefaultConfig()
-	if opts.NodeID != "" {
-		cfg.NodeID = opts.NodeID
+	cfg := opts.Config
+	if cfg == nil {
+		cfg = config.NewDefaultConfig()
 	}
 
 	eng, err := engine.New(cfg, engine.Dependencies{

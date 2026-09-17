@@ -1,12 +1,14 @@
-package guidance
+package guidance_test
 
 import (
 	"strings"
 	"testing"
+
+	"github.com/kode4food/argyll/mcp/internal/guidance"
 )
 
 func TestRead(t *testing.T) {
-	text, err := Read("openapi-ingestion.md")
+	text, err := guidance.Read("openapi-ingestion.md")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -16,7 +18,7 @@ func TestRead(t *testing.T) {
 }
 
 func TestRenderTemplate(t *testing.T) {
-	code, err := RenderTemplate("go-step.tmpl", struct {
+	code, err := guidance.RenderTemplate("go-step.tmpl", struct {
 		StepName         string
 		Method           string
 		ScriptLanguage   string

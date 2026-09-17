@@ -1,9 +1,11 @@
-package main
+package app_test
 
 import (
+	"context"
+	"fmt"
 	"log/slog"
 	"net"
-	"os"
+	"net/http"
 	"strconv"
 	"testing"
 	"time"
@@ -11,19 +13,18 @@ import (
 	"github.com/kode4food/timebox/raft"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/kode4food/argyll/engine/internal/config"
+	"github.com/kode4food/argyll/engine/cmd/argyll/internal/app"
 	"github.com/kode4food/argyll/engine/internal/engine"
 	"github.com/kode4food/argyll/engine/pkg/api"
+	"github.com/kode4food/argyll/engine/pkg/config"
 )
 
-func TestInitializeEngineInvalidRaftConfig(t *testing.T) {
-	s := newRaftTest(t)
-	s.raft.Address = ""
+func TestStartInvalidRaftConfig(t *testing.T) {
+	cfg := newRaftTestConfig(t)
+	cfg.Raft.Address = ""
 
-	err := s.initializeEngine()
-
+	err := app.New(cfg).Start()
 	assert.ErrorIs(t, err, engine.ErrOpenBackend)
-	assert.Nil(t, s.backend)
 }
 
 func TestSetupLogging(t *testing.T) {
@@ -44,11 +45,9 @@ func TestSetupLogging(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			cfg := config.NewDefaultConfig()
-			cfg.LogLevel = tt.logLevel
-
-			s := &argyll{cfg: cfg}
-			s.setupLogging()
+			app.New(app.Config{
+				Server: app.ServerConfig{LogLevel: tt.logLevel},
+			}).SetupLogging()
 
 			handler := slog.Default().Handler()
 			ctx := t.Context()
@@ -60,45 +59,35 @@ func TestSetupLogging(t *testing.T) {
 	}
 }
 
-func TestInitializeEngine(t *testing.T) {
-	s := newRaftTest(t)
+func TestStartServesHTTP(t *testing.T) {
+	cfg := newRaftTestConfig(t)
+	a := app.New(cfg)
 
-	err := s.initializeEngine()
-	assert.NoError(t, err)
+	assert.NoError(t, a.Start())
+	defer a.Shutdown()
 
-	assert.NotNil(t, s.engine)
-	assert.NotNil(t, s.backend)
-
-	assert.NoError(t, s.engine.Stop())
-}
-
-func TestStartServer(t *testing.T) {
-	s := setupServerTest(t)
-
-	assert.NotNil(t, s.health)
-	assert.NotNil(t, s.httpServer)
-
-	s.shutdown()
-}
-
-func TestShutdown(t *testing.T) {
-	s := setupServerTest(t)
-
-	// Shutdown should not panic
-	s.shutdown()
+	url := fmt.Sprintf("http://127.0.0.1:%d/health", cfg.Server.APIPort)
+	assert.Eventually(t, func() bool {
+		res, err := http.Get(url)
+		if err != nil {
+			return false
+		}
+		_ = res.Body.Close()
+		return res.StatusCode == http.StatusOK
+	}, 5*time.Second, 50*time.Millisecond)
 }
 
 func TestRun(t *testing.T) {
-	s := newRaftTest(t)
-	s.cfg.ShutdownTimeout = 100 * time.Millisecond
-	s.quit = make(chan os.Signal, 1)
+	cfg := newRaftTestConfig(t)
+	cfg.Server.ShutdownTimeout = 100 * time.Millisecond
+	ctx, cancel := context.WithCancel(t.Context())
 
 	done := make(chan error, 1)
 	go func() {
-		done <- s.run()
+		done <- app.New(cfg).Run(ctx)
 	}()
 
-	s.quit <- os.Interrupt
+	cancel()
 
 	select {
 	case err := <-done:
@@ -106,26 +95,6 @@ func TestRun(t *testing.T) {
 	case <-time.After(10 * time.Second):
 		t.Fatal("timed out waiting for run to exit")
 	}
-}
-
-func TestLogLevels(t *testing.T) {
-	assert.Equal(t, slog.LevelDebug, logLevels["debug"])
-	assert.Equal(t, slog.LevelInfo, logLevels["info"])
-	assert.Equal(t, slog.LevelWarn, logLevels["warn"])
-	assert.Equal(t, slog.LevelError, logLevels["error"])
-}
-
-func TestMain(m *testing.M) {
-	os.Exit(m.Run())
-}
-
-func setupServerTest(t *testing.T) *argyll {
-	t.Helper()
-
-	s := newRaftTest(t)
-	assert.NoError(t, s.initializeEngine())
-	s.startServer()
-	return s
 }
 
 func availablePort(t *testing.T) int {
@@ -150,7 +119,7 @@ func availableAddress(t *testing.T) string {
 	return ln.Addr().String()
 }
 
-func newRaftTest(t *testing.T) *argyll {
+func newRaftTestConfig(t *testing.T) app.Config {
 	t.Helper()
 
 	addr := availableAddress(t)
@@ -158,15 +127,19 @@ func newRaftTest(t *testing.T) *argyll {
 	nid := "test-node-" + strconv.Itoa(port)
 
 	cfg := config.NewDefaultConfig()
-	cfg.APIPort = port
 	cfg.NodeID = api.NodeID(nid)
 
-	raftCfg := config.DefaultRaftConfig(cfg.NodeID)
-	raftCfg.Address = addr
-	raftCfg.DataDir = t.TempDir()
-	raftCfg.Servers = []raft.Server{{
-		ID:      nid,
-		Address: addr,
-	}}
-	return &argyll{cfg: cfg, raft: raftCfg}
+	return app.Config{
+		Engine: cfg,
+		Server: app.ServerConfig{
+			APIPort:         port,
+			ShutdownTimeout: app.DefaultShutdownTimeout,
+		},
+		Raft: raft.DefaultConfig().With(raft.Config{
+			LocalID: nid,
+			Address: addr,
+			DataDir: t.TempDir(),
+			Servers: []raft.Server{{ID: nid, Address: addr}},
+		}),
+	}
 }

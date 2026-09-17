@@ -9,12 +9,12 @@ import (
 
 	"github.com/kode4food/timebox"
 
-	"github.com/kode4food/argyll/engine/internal/config"
 	"github.com/kode4food/argyll/engine/internal/engine/memo"
 	"github.com/kode4food/argyll/engine/internal/engine/scheduler"
 	"github.com/kode4food/argyll/engine/internal/engine/script"
 	"github.com/kode4food/argyll/engine/internal/event"
 	"github.com/kode4food/argyll/engine/pkg/api"
+	"github.com/kode4food/argyll/engine/pkg/config"
 	"github.com/kode4food/argyll/engine/pkg/events"
 	"github.com/kode4food/argyll/engine/pkg/step"
 )
@@ -74,8 +74,7 @@ type (
 	FlowAggregator = timebox.Aggregator[api.FlowState]
 )
 
-// DefaultStoreReadyTimeout bounds how long New waits for the backend's stores
-const DefaultStoreReadyTimeout = 5 * time.Second
+const storeReadyTimeout = 5 * time.Second
 
 var (
 	ErrInvalidConfig     = errors.New("invalid config")
@@ -147,7 +146,7 @@ func (e *Engine) openStores(open OpenBackend) error {
 		return errors.Join(err, backend.Close())
 	}
 
-	ctx, cancel := context.WithTimeout(e.ctx, DefaultStoreReadyTimeout)
+	ctx, cancel := context.WithTimeout(e.ctx, storeReadyTimeout)
 	defer cancel()
 	if err := flowStore.WaitReady(ctx); err != nil {
 		return errors.Join(err, backend.Close())
