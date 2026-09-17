@@ -8,8 +8,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/kode4food/timebox/raft"
-
 	"github.com/kode4food/argyll/engine/internal/assert/helpers"
 	"github.com/kode4food/argyll/engine/internal/assert/wait"
 	"github.com/kode4food/argyll/engine/internal/event"
@@ -379,10 +377,7 @@ func TestCompFailDirectly(t *testing.T) {
 func TestCompRetryRunsOnHealthyPeer(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		cfg := util.MutableCopy(env.Config)
-		cfg.Raft.LocalID = "node-comp-peer"
-		cfg.Raft.Servers = append(cfg.Raft.Servers,
-			raft.Server{ID: "node-comp-peer", Address: "127.0.0.1:9710"},
-		)
+		cfg.NodeID = "node-comp-peer"
 
 		peer, unsub, err := env.NewEngineWithConfig(cfg, env.Dependencies())
 		assert.NoError(t, err)
@@ -575,10 +570,7 @@ func TestCompRetryNoop(t *testing.T) {
 func TestCompRetryDeferredUntilPeerRecovers(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		cfg := util.MutableCopy(env.Config)
-		cfg.Raft.LocalID = "node-comp-deferred"
-		cfg.Raft.Servers = append(cfg.Raft.Servers,
-			raft.Server{ID: "node-comp-deferred", Address: "127.0.0.1:9711"},
-		)
+		cfg.NodeID = "node-comp-deferred"
 
 		peer, unsub, err := env.NewEngineWithConfig(cfg, env.Dependencies())
 		assert.NoError(t, err)

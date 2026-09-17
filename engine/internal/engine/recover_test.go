@@ -6,7 +6,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kode4food/timebox/raft"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -157,10 +156,7 @@ func TestRecoverDispatchPeer(t *testing.T) {
 		require.NoError(t, env.Engine.RegisterStep(st))
 
 		cfg := util.MutableCopy(env.Config)
-		cfg.Raft.LocalID = "node-2"
-		cfg.Raft.Servers = []raft.Server{
-			{ID: "node-2", Address: "127.0.0.1:9702"},
-		}
+		cfg.NodeID = "node-2"
 
 		deps := env.Dependencies()
 		deps.EventHub = event.NewHub()

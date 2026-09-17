@@ -7,6 +7,7 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"slices"
 	"strconv"
 	"strings"
 	"testing"
@@ -166,16 +167,17 @@ func TestRaftStatusNil(t *testing.T) {
 }
 
 func TestRaftStatus(t *testing.T) {
-	cfg := config.NewDefaultConfig()
 	addr := availableAddress(t)
-	cfg.Raft.LocalID = "node-" + strconv.Itoa(availablePort(t))
-	cfg.Raft.Address = addr
-	cfg.Raft.DataDir = t.TempDir()
-	cfg.Raft.Servers = []raft.Server{
-		{ID: cfg.Raft.LocalID, Address: addr},
+	cfg := config.DefaultRaftConfig(
+		api.NodeID("node-" + strconv.Itoa(availablePort(t))),
+	)
+	cfg.Address = addr
+	cfg.DataDir = t.TempDir()
+	cfg.Servers = []raft.Server{
+		{ID: cfg.LocalID, Address: addr},
 	}
 
-	b, err := raft.Open(cfg.Raft)
+	b, err := raft.Open(cfg)
 	assert.NoError(t, err)
 	if b != nil {
 		defer func() { _ = b.Close() }()
@@ -805,6 +807,7 @@ func TestEngineHealthIncludesClusterNodes(t *testing.T) {
 
 		peer, err := engine.New(
 			peerOnlyConfig(testEnv.Config), testEnv.Dependencies(),
+			testEnv.OpenBackend,
 		)
 		assert.NoError(t, err)
 		if peer != nil {
@@ -857,9 +860,7 @@ func TestEngineHealthSilentNodes(t *testing.T) {
 		err := json.Unmarshal(w.Body.Bytes(), &response)
 		assert.NoError(t, err)
 		assert.Len(t, response.Nodes, 2)
-		assert.Contains(t,
-			response.Nodes, api.NodeID(testEnv.Config.Raft.LocalID),
-		)
+		assert.Contains(t, response.Nodes, testEnv.Config.NodeID)
 		if assert.Contains(t, response.Nodes, api.NodeID("node-2")) {
 			assert.Empty(t, response.Nodes["node-2"].Health)
 		}
@@ -892,6 +893,7 @@ func TestEngineHealthUnknownSteps(t *testing.T) {
 
 		peer, err := engine.New(
 			peerOnlyConfig(testEnv.Config), testEnv.Dependencies(),
+			testEnv.OpenBackend,
 		)
 		assert.NoError(t, err)
 		if peer != nil {
@@ -947,6 +949,7 @@ func TestEngineHealthScriptNodes(t *testing.T) {
 
 		peer, err := engine.New(
 			peerOnlyConfig(testEnv.Config), testEnv.Dependencies(),
+			testEnv.OpenBackend,
 		)
 		assert.NoError(t, err)
 		if peer != nil {
@@ -1001,7 +1004,7 @@ func TestEngineUnknownSteps(t *testing.T) {
 		err := json.Unmarshal(w.Body.Bytes(), &response)
 		assert.NoError(t, err)
 
-		nid := api.NodeID(testEnv.Config.Raft.LocalID)
+		nid := testEnv.Config.NodeID
 		if assert.Contains(t, response.Health, nid) {
 			if assert.Contains(t, response.Health[nid].Health, st.ID) {
 				assert.Equal(t,
@@ -1986,7 +1989,7 @@ func withServerEnvConfig(
 	t.Helper()
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		cfg := makeConfig(env.Config)
-		eng, err := engine.New(cfg, env.Dependencies())
+		eng, err := engine.New(cfg, env.Dependencies(), env.OpenBackend)
 		assert.NoError(t, err)
 		if eng == nil {
 			return
@@ -1996,8 +1999,9 @@ func withServerEnvConfig(
 		next := *env
 		next.Engine = eng
 		next.Config = cfg
+		next.EventHub = eng.GetEventHub()
 		fn(&testServerEnv{
-			Server:        server.NewServer(eng, env.EventHub),
+			Server:        server.NewServer(eng, next.EventHub),
 			TestEngineEnv: &next,
 		})
 	})
@@ -2005,18 +2009,12 @@ func withServerEnvConfig(
 
 func clusterConfigWithPeer(base *config.Config) *config.Config {
 	cfg := util.MutableCopy(base)
-	cfg.Raft.Servers = append([]raft.Server{}, base.Raft.Servers...)
-	cfg.Raft.Servers = append(cfg.Raft.Servers,
-		raft.Server{ID: "node-2", Address: "127.0.0.1:9702"},
-	)
+	cfg.Nodes = append(slices.Clone(base.Nodes), "node-2")
 	return cfg
 }
 
 func peerOnlyConfig(base *config.Config) *config.Config {
 	cfg := util.MutableCopy(base)
-	cfg.Raft.LocalID = "node-2"
-	cfg.Raft.Servers = []raft.Server{
-		{ID: "node-2", Address: "127.0.0.1:9702"},
-	}
+	cfg.NodeID = "node-2"
 	return cfg
 }

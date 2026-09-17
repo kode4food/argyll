@@ -11,7 +11,6 @@ import (
 
 	"github.com/kode4food/argyll/engine/internal/assert/helpers"
 	"github.com/kode4food/argyll/engine/internal/assert/wait"
-	"github.com/kode4food/argyll/engine/internal/engine"
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/events"
 )
@@ -37,11 +36,7 @@ func TestAtomicFlowLifecycle(t *testing.T) {
 				conflicts:     map[api.EventType]bool{},
 				commits:       map[api.EventType][]timebox.AppendRequest{},
 			}
-			cfg := helpers.NewTestConfig()
-			store, err := timebox.NewStore(backend, cfg.FlowStoreConfig())
-			assert.NoError(t, err)
-			helpers.WithTestEnvDeps(t,
-				engine.Dependencies{FlowStore: store},
+			helpers.WithTestBackend(t, backend,
 				func(env *helpers.TestEngineEnv) {
 					leaf := helpers.NewSimpleStep("leaf")
 					leaf.HTTP.Invoke.Mode = api.ActionModeAsync
@@ -105,10 +100,7 @@ func TestAtomicFlowLifecycle(t *testing.T) {
 					child, err := env.Engine.GetFlowState(fid)
 					assert.NoError(t, err)
 					assert.Equal(t, api.FlowActive, child.Status)
-					assert.Empty(t, leafStarted)
 
-					// This store has no commit subscriber: explicitly wake it
-					assert.NoError(t, env.Engine.RecoverFlow(fid))
 					var token api.Token
 					select {
 					case token = <-leafStarted:

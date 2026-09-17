@@ -12,6 +12,7 @@ import (
 	"github.com/kode4food/argyll/engine/internal/assert"
 	"github.com/kode4food/argyll/engine/internal/assert/helpers"
 	"github.com/kode4food/argyll/engine/internal/config"
+	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
 func TestConfigValidation(t *testing.T) {
@@ -117,11 +118,8 @@ func TestDefaultConfigValues(t *testing.T) {
 	as.Equal(config.DefaultStepTimeout, cfg.StepTimeout)
 	as.Equal(config.DefaultShutdownTimeout, cfg.ShutdownTimeout)
 	as.Equal("info", cfg.LogLevel)
-	as.Equal(config.DefaultRaftNodeID, cfg.Raft.LocalID)
-	as.Equal(config.DefaultRaftAddress, cfg.Raft.Address)
-	as.Equal(raft.DefaultLogTailSize, cfg.Raft.LogTailSize)
-	as.Len(cfg.Raft.Servers, 1)
-	as.Equal(config.DefaultRaftNodeID, cfg.Raft.Servers[0].ID)
+	as.Equal(api.NodeID(config.DefaultNodeID), cfg.NodeID)
+	as.Empty(cfg.Nodes)
 	as.False(cfg.Timebox.TrimEvents)
 	as.Equal(timebox.DefaultSnapshotRatio, cfg.Timebox.SnapshotRatio)
 	as.Equal(config.DefaultTimeboxCacheSize, cfg.Timebox.CacheSize)
@@ -291,38 +289,12 @@ func TestConfigLoadFromEnv(t *testing.T) {
 			},
 		},
 		{
-			name: "load_raft_settings",
-			envVars: map[string]string{
-				"RAFT_NODE_ID":       "node-2",
-				"RAFT_ADDRESS":       "10.0.0.2:9702",
-				"RAFT_DATA_DIR":      "/tmp/argyll-node-2",
-				"RAFT_LOG_TAIL_SIZE": "4096",
-				"RAFT_SERVERS": "node-1=10.0.0.1:9701," +
-					"node-2=10.0.0.2:9702",
-			},
-			check: func(t *testing.T, c *config.Config) {
-				testify.Equal(t, "node-2", c.Raft.LocalID)
-				testify.Equal(t, "10.0.0.2:9702", c.Raft.Address)
-				testify.Equal(t, "/tmp/argyll-node-2", c.Raft.DataDir)
-				testify.Equal(t, 4096, c.Raft.LogTailSize)
-				testify.Len(t, c.Raft.Servers, 2)
-				testify.Equal(t, "node-1", c.Raft.Servers[0].ID)
-				testify.Equal(t, "10.0.0.2:9702", c.Raft.Servers[1].Address)
-			},
-		},
-		{
-			name: "load_raft_node_id_updates_default_data_dir",
+			name: "load_node_id",
 			envVars: map[string]string{
 				"RAFT_NODE_ID": "node-2",
 			},
 			check: func(t *testing.T, c *config.Config) {
-				testify.Equal(t, "node-2", c.Raft.LocalID)
-				testify.Equal(t, filepath.Join(
-					os.TempDir(),
-					config.DefaultRaftDataDirName,
-					"node-2",
-				), c.Raft.DataDir)
-				testify.Equal(t, "node-2", c.Raft.Servers[0].ID)
+				testify.Equal(t, api.NodeID("node-2"), c.NodeID)
 			},
 		},
 		{
@@ -336,20 +308,6 @@ func TestConfigLoadFromEnv(t *testing.T) {
 				testify.Equal(t, config.EngineStoreCacheSize,
 					c.EngineStoreConfig().CacheSize)
 			},
-		},
-		{
-			name: "invalid_raft_servers_errors",
-			envVars: map[string]string{
-				"RAFT_SERVERS": "node-1-missing-equals",
-			},
-			wantErr: true,
-		},
-		{
-			name: "invalid_raft_log_tail_size_errors",
-			envVars: map[string]string{
-				"RAFT_LOG_TAIL_SIZE": "0",
-			},
-			wantErr: true,
 		},
 		{
 			name: "load_log_level",
@@ -478,6 +436,99 @@ func TestConfigLoadFromEnv(t *testing.T) {
 			}
 			testify.NoError(t, err)
 			tt.check(t, cfg)
+		})
+	}
+}
+
+func TestConfigLoadRaftFromEnv(t *testing.T) {
+	tests := []struct {
+		name    string
+		envVars map[string]string
+		wantErr bool
+		check   func(*testing.T, *config.Config, raft.Config)
+	}{
+		{
+			name: "defaults",
+			check: func(t *testing.T, c *config.Config, r raft.Config) {
+				testify.Equal(t, config.DefaultNodeID, r.LocalID)
+				testify.Equal(t, config.DefaultRaftAddress, r.Address)
+				testify.Equal(t, raft.DefaultLogTailSize, r.LogTailSize)
+				testify.Len(t, r.Servers, 1)
+				testify.Equal(t,
+					[]api.NodeID{config.DefaultNodeID}, c.Nodes,
+				)
+			},
+		},
+		{
+			name: "load_raft_settings",
+			envVars: map[string]string{
+				"RAFT_NODE_ID":       "node-2",
+				"RAFT_ADDRESS":       "10.0.0.2:9702",
+				"RAFT_DATA_DIR":      "/tmp/argyll-node-2",
+				"RAFT_LOG_TAIL_SIZE": "4096",
+				"RAFT_SERVERS": "node-1=10.0.0.1:9701," +
+					"node-2=10.0.0.2:9702",
+			},
+			check: func(t *testing.T, c *config.Config, r raft.Config) {
+				testify.Equal(t, "node-2", r.LocalID)
+				testify.Equal(t, "10.0.0.2:9702", r.Address)
+				testify.Equal(t, "/tmp/argyll-node-2", r.DataDir)
+				testify.Equal(t, 4096, r.LogTailSize)
+				testify.Len(t, r.Servers, 2)
+				testify.Equal(t, "node-1", r.Servers[0].ID)
+				testify.Equal(t, "10.0.0.2:9702", r.Servers[1].Address)
+				testify.Equal(t,
+					[]api.NodeID{"node-1", "node-2"}, c.Nodes,
+				)
+			},
+		},
+		{
+			name: "node_id_sets_default_data_dir",
+			envVars: map[string]string{
+				"RAFT_NODE_ID": "node-2",
+			},
+			check: func(t *testing.T, _ *config.Config, r raft.Config) {
+				testify.Equal(t, "node-2", r.LocalID)
+				testify.Equal(t, filepath.Join(
+					os.TempDir(),
+					config.DefaultRaftDataDirName,
+					"node-2",
+				), r.DataDir)
+				testify.Equal(t, "node-2", r.Servers[0].ID)
+			},
+		},
+		{
+			name: "invalid_raft_servers_errors",
+			envVars: map[string]string{
+				"RAFT_SERVERS": "node-1-missing-equals",
+			},
+			wantErr: true,
+		},
+		{
+			name: "invalid_raft_log_tail_size_errors",
+			envVars: map[string]string{
+				"RAFT_LOG_TAIL_SIZE": "0",
+			},
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			for key, value := range tt.envVars {
+				_ = os.Setenv(key, value)
+				t.Cleanup(func() { _ = os.Unsetenv(key) })
+			}
+
+			cfg := config.NewDefaultConfig()
+			testify.NoError(t, cfg.LoadFromEnv())
+			raftCfg, err := cfg.LoadRaftFromEnv()
+			if tt.wantErr {
+				testify.Error(t, err)
+				return
+			}
+			testify.NoError(t, err)
+			tt.check(t, cfg, raftCfg)
 		})
 	}
 }

@@ -72,17 +72,18 @@ func (e *Engine) ListSteps() ([]*api.Step, error) {
 
 // GetCatalogEvents retrieves all events for the catalog aggregate
 func (e *Engine) GetCatalogEvents() ([]*timebox.Event, error) {
-	return e.catalogExec.GetStore().GetEvents(events.CatalogKey, 0)
+	return e.engStore.GetEvents(events.CatalogKey, 0)
 }
 
 // GetClusterEvents retrieves all events for the cluster aggregate
 func (e *Engine) GetClusterEvents() ([]*timebox.Event, error) {
-	return e.clusterExec.GetStore().GetEvents(events.ClusterKey, 0)
+	return e.engStore.GetEvents(events.ClusterKey, 0)
 }
 
 func (e *Engine) withConfiguredNodes(st api.ClusterState) api.ClusterState {
-	for _, srv := range e.config.Raft.Servers {
-		st = st.EnsureNode(api.NodeID(srv.ID))
+	st = st.EnsureNode(e.config.NodeID)
+	for _, nid := range e.config.Nodes {
+		st = st.EnsureNode(nid)
 	}
 	return st
 }

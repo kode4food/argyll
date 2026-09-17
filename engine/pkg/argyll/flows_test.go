@@ -1,11 +1,10 @@
 package argyll_test
 
 import (
-	"net"
-	"strconv"
 	"testing"
 
-	"github.com/kode4food/timebox/raft"
+	"github.com/kode4food/timebox"
+	"github.com/kode4food/timebox/memory"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/kode4food/argyll/engine/pkg/api"
@@ -57,18 +56,8 @@ func TestEmbeddedFlowUnknownGoal(t *testing.T) {
 func newTestEngine(t *testing.T, opts argyll.Options) argyll.Engine {
 	t.Helper()
 
-	ln, err := net.Listen("tcp", "127.0.0.1:0")
-	assert.NoError(t, err)
-	addr := ln.Addr().String()
-	port := ln.Addr().(*net.TCPAddr).Port
-	assert.NoError(t, ln.Close())
-
-	nid := "embedded-" + strconv.Itoa(port)
-	opts.Raft = raft.Config{
-		LocalID: nid,
-		Address: addr,
-		DataDir: t.TempDir(),
-		Servers: []raft.Server{{ID: nid, Address: addr}},
+	opts.Backend = func(pub timebox.Publisher) (timebox.Backend, error) {
+		return memory.Open(memory.Config{Publisher: pub}), nil
 	}
 
 	eng, err := argyll.New(opts)

@@ -7,12 +7,12 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/log"
 )
 
-// Stop gracefully shuts down the engine
+// Stop gracefully shuts down the engine and closes the backend it opened
 func (e *Engine) Stop() error {
 	e.cancel()
 	e.saveEngineSnapshot()
 	slog.Info("Engine stopped")
-	return nil
+	return e.backend.Close()
 }
 
 func (e *Engine) saveEngineSnapshot() {

@@ -173,7 +173,7 @@ func (e *Engine) matchesStartedFlow(
 }
 
 func (e *Engine) flowTx(fid api.FlowID, fn func(*flowTx) error) error {
-	return e.flowExec.GetStore().Transact(
+	return e.flowStore.Transact(
 		func(t *timebox.Transaction) error {
 			tx := storeTx{Engine: e, Transaction: t}
 			_, err := tx.flowTx(fid, fn)

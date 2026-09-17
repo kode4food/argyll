@@ -28,8 +28,7 @@ import (
 
 type argyll struct {
 	cfg        *config.Config
-	engStore   *timebox.Store
-	flowStore  *timebox.Store
+	raft       raft.Config
 	backend    *raft.Backend
 	engine     *engine.Engine
 	health     *server.HealthChecker
@@ -37,12 +36,6 @@ type argyll struct {
 	httpServer *http.Server
 	quit       chan os.Signal
 }
-
-const defaultStoreReadyTimeout = 5 * time.Second
-
-var (
-	ErrCreateStore = errors.New("failed to create raft store")
-)
 
 var logLevels = map[string]slog.Level{
 	"debug": slog.LevelDebug,
@@ -57,9 +50,15 @@ func main() {
 		slog.Error("Invalid configuration", log.Error(err))
 		os.Exit(1)
 	}
+	raftCfg, err := cfg.LoadRaftFromEnv()
+	if err != nil {
+		slog.Error("Invalid raft configuration", log.Error(err))
+		os.Exit(1)
+	}
 
 	s := &argyll{
 		cfg:  cfg,
+		raft: raftCfg,
 		quit: make(chan os.Signal, 1),
 	}
 	s.setupLogging()
@@ -71,17 +70,7 @@ func main() {
 }
 
 func (a *argyll) run() error {
-	hub := event.NewHub()
-	a.cfg.Raft.Publisher = func(evs ...*timebox.Event) {
-		a.engine.HandleCommitted(evs...)
-		hub.Publish(evs...)
-	}
-
-	if err := a.initializeStores(); err != nil {
-		return err
-	}
-
-	if err := a.initializeEngine(hub); err != nil {
+	if err := a.initializeEngine(); err != nil {
 		return err
 	}
 	a.startServer()
@@ -109,66 +98,44 @@ func (a *argyll) setupLogging() {
 		slog.String("log_level", a.cfg.LogLevel))
 
 	slog.Info("Configuration loaded",
-		slog.String("raft_node_id", a.cfg.Raft.LocalID),
-		slog.String("raft_address", a.cfg.Raft.Address),
-		slog.String("raft_data_dir", a.cfg.Raft.DataDir),
-		slog.Int("raft_log_tail_size", a.cfg.Raft.LogTailSize),
-		slog.String("raft_servers", formatRaftServers(a.cfg.Raft.Servers)),
+		slog.String("raft_node_id", a.raft.LocalID),
+		slog.String("raft_address", a.raft.Address),
+		slog.String("raft_data_dir", a.raft.DataDir),
+		slog.Int("raft_log_tail_size", a.raft.LogTailSize),
+		slog.String("raft_servers", formatRaftServers(a.raft.Servers)),
 		slog.String("api_host", a.cfg.APIHost),
 		slog.Int("api_port", a.cfg.APIPort))
 }
 
-func (a *argyll) initializeStores() error {
-	b, err := raft.Open(a.cfg.Raft)
-	if err != nil {
-		return errors.Join(ErrCreateStore, err)
-	}
-	engStore, err := b.NewStore(a.cfg.EngineStoreConfig())
-	if err != nil {
-		_ = b.Close()
-		return errors.Join(ErrCreateStore, err)
-	}
-	flowStore, err := b.NewStore(a.cfg.FlowStoreConfig())
-	if err != nil {
-		_ = b.Close()
-		return errors.Join(ErrCreateStore, err)
-	}
-	ctx, cancel := context.WithTimeout(
-		context.Background(), defaultStoreReadyTimeout,
-	)
-	defer cancel()
-	if err := flowStore.WaitReady(ctx); err != nil {
-		_ = b.Close()
-		return errors.Join(ErrCreateStore, err)
-	}
-
-	a.backend = b
-	a.engStore = engStore
-	a.flowStore = flowStore
-	return nil
-}
-
-func (a *argyll) initializeEngine(hub *event.Hub) error {
+func (a *argyll) initializeEngine() error {
 	stepClient := builtins.NewHTTPClient(
 		time.Duration(a.cfg.StepTimeout) * time.Millisecond,
 	)
-	scripts := script.NewRegistry()
 	steps := step.NewRegistry(builtins.All(
 		stepClient, builtins.BaseCallbackURL(a.cfg.WebhookBaseURL),
 	))
 
 	eng, err := engine.New(a.cfg, engine.Dependencies{
-		EngineStore: a.engStore,
-		FlowStore:   a.flowStore,
-		Scripts:     scripts,
-		Steps:       steps,
-		EventHub:    hub,
-	})
+		Scripts:  script.NewRegistry(),
+		Steps:    steps,
+		EventHub: event.NewHub(),
+	}, a.openRaft)
 	if err != nil {
 		return err
 	}
 	a.engine = eng
 	return a.engine.Start()
+}
+
+// openRaft keeps the raft backend it opens, which the server reports status
+// from, while the engine owns its lifecycle
+func (a *argyll) openRaft(pub timebox.Publisher) (timebox.Backend, error) {
+	b, err := raft.Open(a.raft.With(raft.Config{Publisher: pub}))
+	if err != nil {
+		return nil, err
+	}
+	a.backend = b
+	return b, nil
 }
 
 func (a *argyll) startServer() {
@@ -215,20 +182,7 @@ func (a *argyll) shutdown() {
 		slog.Error("Engine shutdown failed", log.Error(err))
 	}
 
-	a.closeStores()
-
 	slog.Info("Server exited")
-}
-
-func (a *argyll) closeStores() {
-	if a.flowStore == nil {
-		return
-	}
-
-	_ = a.backend.Close()
-	a.engStore = nil
-	a.flowStore = nil
-	a.backend = nil
 }
 
 func formatRaftServers(srvs []raft.Server) string {

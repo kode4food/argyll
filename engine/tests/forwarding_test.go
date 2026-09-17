@@ -2,7 +2,6 @@ package tests
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"fmt"
 	"net"
@@ -28,21 +27,22 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/step/builtins"
 )
 
-type raftNode struct {
-	id        string
-	engStore  *timebox.Store
-	flowStore *timebox.Store
-	backend   *raft.Backend
-	engine    *engine.Engine
-	server    *server.Server
-	hub       *event.Hub
-}
+type (
+	raftNode struct {
+		id      string
+		backend *raft.Backend
+		engine  *engine.Engine
+		server  *server.Server
+		hub     *event.Hub
+	}
 
-type raftInit struct {
-	id  string
-	cfg *config.Config
-	hub *event.Hub
-}
+	raftInit struct {
+		id   string
+		cfg  *config.Config
+		raft raft.Config
+		hub  *event.Hub
+	}
+)
 
 const followerWriteStartupTimeout = 45 * time.Second
 
@@ -185,50 +185,26 @@ func newRaftInits(t *testing.T, n int) []*raftInit {
 		cfg.APIHost = "127.0.0.1"
 		cfg.APIPort = 8080
 		cfg.WebhookBaseURL = "http://127.0.0.1"
-		cfg.Raft.LocalID = init.id
-		cfg.Raft.Address = srvs[i].Address
-		cfg.Raft.DataDir = t.TempDir()
-		cfg.Raft.Servers = srvs
+		cfg.NodeID = api.NodeID(init.id)
 
-		hub := event.NewHub()
-		cfg.Raft.Publisher = hub.Publish
+		raftCfg := config.DefaultRaftConfig(cfg.NodeID)
+		raftCfg.Address = srvs[i].Address
+		raftCfg.DataDir = t.TempDir()
+		raftCfg.Servers = srvs
 
 		init.cfg = cfg
-		init.hub = hub
+		init.raft = raftCfg
+		init.hub = event.NewHub()
 	}
 	return inits
 }
 
 func bootRaftNode(init *raftInit) (*raftNode, error) {
-	b, err := raft.Open(init.cfg.Raft)
-	if err != nil {
-		return nil, err
-	}
-
-	engStore, err := b.NewStore(init.cfg.EngineStoreConfig())
-	if err != nil {
-		_ = b.Close()
-		return nil, err
-	}
-	flowStore, err := b.NewStore(init.cfg.FlowStoreConfig())
-	if err != nil {
-		_ = b.Close()
-		return nil, err
-	}
-	closeStore := true
-	defer func() {
-		if closeStore {
-			_ = b.Close()
-		}
-	}()
-
-	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
-	defer cancel()
-	if err := engStore.WaitReady(ctx); err != nil {
-		return nil, err
-	}
-	if err := flowStore.WaitReady(ctx); err != nil {
-		return nil, err
+	var b *raft.Backend
+	open := func(pub timebox.Publisher) (timebox.Backend, error) {
+		var err error
+		b, err = raft.Open(init.raft.With(raft.Config{Publisher: pub}))
+		return b, err
 	}
 
 	scripts := script.NewRegistry()
@@ -239,14 +215,12 @@ func bootRaftNode(init *raftInit) (*raftNode, error) {
 		),
 	)
 	eng, err := engine.New(init.cfg, engine.Dependencies{
-		EngineStore:      engStore,
-		FlowStore:        flowStore,
 		Scripts:          scripts,
 		Steps:            steps,
 		Clock:            time.Now,
 		TimerConstructor: scheduler.NewTimer,
 		EventHub:         init.hub,
-	})
+	}, open)
 	if err != nil {
 		return nil, err
 	}
@@ -255,14 +229,11 @@ func bootRaftNode(init *raftInit) (*raftNode, error) {
 		return nil, err
 	}
 
-	closeStore = false
 	return &raftNode{
-		id:        init.id,
-		engStore:  engStore,
-		flowStore: flowStore,
-		backend:   b,
-		engine:    eng,
-		hub:       init.hub,
+		id:      init.id,
+		backend: b,
+		engine:  eng,
+		hub:     init.hub,
 		server: server.NewServer(
 			eng,
 			init.hub,
@@ -341,14 +312,8 @@ func closeRaftNodes(nodes []*raftNode) {
 	wg.Wait()
 
 	for _, n := range nodes {
-		if n == nil {
-			continue
-		}
-		if n.hub != nil {
+		if n != nil && n.hub != nil {
 			n.hub.Close()
-		}
-		if n.backend != nil {
-			_ = n.backend.Close()
 		}
 	}
 }

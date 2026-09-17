@@ -122,8 +122,7 @@ func (e *Engine) collectRootFlowEntries(
 func (e *Engine) listIndexedEntries(
 	status string, flowStatus api.FlowStatus,
 ) ([]flowStatusEntry, error) {
-	store := e.flowExec.GetStore()
-	entries, err := store.ListAggregatesByStatus(status)
+	entries, err := e.flowStore.ListAggregatesByStatus(status)
 	if err != nil {
 		return nil, err
 	}
@@ -182,11 +181,9 @@ func (e *Engine) collectTagFlowIDs(
 		return nil, nil
 	}
 
-	store := e.flowExec.GetStore()
 	var res util.Set[api.FlowID]
-
 	for _, tag := range tags {
-		ids, err := store.ListAggregatesByTag(tag)
+		ids, err := e.flowStore.ListAggregatesByTag(tag)
 		if err != nil {
 			return nil, err
 		}

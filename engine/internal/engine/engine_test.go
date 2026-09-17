@@ -6,7 +6,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/kode4food/timebox/raft"
+	"github.com/kode4food/timebox"
 
 	"github.com/kode4food/argyll/engine/internal/assert/helpers"
 	"github.com/kode4food/argyll/engine/internal/assert/wait"
@@ -26,9 +26,7 @@ func TestNew(t *testing.T) {
 
 func TestLocalNodeID(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		assert.Equal(t,
-			api.NodeID(env.Config.Raft.LocalID), env.Engine.LocalNodeID(),
-		)
+		assert.Equal(t, env.Config.NodeID, env.Engine.LocalNodeID())
 	})
 }
 
@@ -44,18 +42,6 @@ func TestNewMissingDependency(t *testing.T) {
 			name string
 			edit func(*engine.Dependencies)
 		}{
-			{
-				name: "engine store",
-				edit: func(deps *engine.Dependencies) {
-					deps.EngineStore = nil
-				},
-			},
-			{
-				name: "flow store",
-				edit: func(deps *engine.Dependencies) {
-					deps.FlowStore = nil
-				},
-			},
 			{
 				name: "script registry",
 				edit: func(deps *engine.Dependencies) {
@@ -81,7 +67,9 @@ func TestNewMissingDependency(t *testing.T) {
 				deps := env.Dependencies()
 				tt.edit(&deps)
 
-				eng, err := engine.New(config.NewDefaultConfig(), deps)
+				eng, err := engine.New(
+					config.NewDefaultConfig(), deps, env.OpenBackend,
+				)
 				assert.Nil(t, eng)
 				assert.Error(t, err)
 				assert.True(t, errors.Is(err, engine.ErrMissingDependency))
@@ -90,12 +78,34 @@ func TestNewMissingDependency(t *testing.T) {
 	})
 }
 
+func TestNewMissingBackend(t *testing.T) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		eng, err := engine.New(env.Config, env.Dependencies(), nil)
+		assert.Nil(t, eng)
+		assert.ErrorIs(t, err, engine.ErrMissingDependency)
+	})
+}
+
+func TestNewOpenBackendError(t *testing.T) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		expected := errors.New("open failed")
+		eng, err := engine.New(env.Config, env.Dependencies(),
+			func(timebox.Publisher) (timebox.Backend, error) {
+				return nil, expected
+			},
+		)
+		assert.Nil(t, eng)
+		assert.ErrorIs(t, err, engine.ErrOpenBackend)
+		assert.ErrorIs(t, err, expected)
+	})
+}
+
 func TestNewInvalidConfig(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		cfg := util.MutableCopy(env.Config)
 		cfg.APIPort = 0
 
-		eng, err := engine.New(cfg, env.Dependencies())
+		eng, err := engine.New(cfg, env.Dependencies(), env.OpenBackend)
 		assert.Nil(t, eng)
 		assert.Error(t, err)
 		assert.True(t, errors.Is(err, engine.ErrInvalidConfig))
@@ -109,7 +119,7 @@ func TestNewDefaultsTimeDeps(t *testing.T) {
 		deps.Clock = nil
 		deps.TimerConstructor = nil
 
-		eng, err := engine.New(env.Config, deps)
+		eng, err := engine.New(env.Config, deps, env.OpenBackend)
 		assert.NoError(t, err)
 		assert.NotNil(t, eng)
 	})
@@ -128,7 +138,7 @@ func TestNewCustomStep(t *testing.T) {
 			},
 		}
 		deps.Steps = step.NewRegistry(handlers)
-		eng, err := engine.New(env.Config, deps)
+		eng, err := engine.New(env.Config, deps, env.OpenBackend)
 		assert.NoError(t, err)
 		assert.NotNil(t, eng)
 
@@ -151,7 +161,7 @@ func TestNewMockStep(t *testing.T) {
 			Validate: func(*api.Step) error { return expected },
 		}
 		deps.Steps = step.NewRegistry(handlers)
-		eng, err := engine.New(env.Config, deps)
+		eng, err := engine.New(env.Config, deps, env.OpenBackend)
 		assert.NoError(t, err)
 		assert.NotNil(t, eng)
 
@@ -225,11 +235,9 @@ func TestGetStoreStateErrors(t *testing.T) {
 func TestStateIncludesConfiguredNodes(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		cfg := util.MutableCopy(env.Config)
-		cfg.Raft.Servers = append(cfg.Raft.Servers,
-			raft.Server{ID: "node-2", Address: "127.0.0.1:9702"},
-		)
+		cfg.Nodes = append(cfg.Nodes, "node-2")
 
-		eng, err := engine.New(cfg, env.Dependencies())
+		eng, err := engine.New(cfg, env.Dependencies(), env.OpenBackend)
 		assert.NoError(t, err)
 		if !assert.NotNil(t, eng) {
 			return
@@ -250,12 +258,9 @@ func TestStateIncludesConfiguredNodes(t *testing.T) {
 func TestClusterTracksMultipleNodes(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		cfg := util.MutableCopy(env.Config)
-		cfg.Raft.LocalID = "node-2"
-		cfg.Raft.Servers = []raft.Server{
-			{ID: "node-2", Address: "127.0.0.1:9702"},
-		}
+		cfg.NodeID = "node-2"
 
-		peer, err := engine.New(cfg, env.Dependencies())
+		peer, err := engine.New(cfg, env.Dependencies(), env.OpenBackend)
 		assert.NoError(t, err)
 		if peer != nil {
 			defer func() { _ = peer.Stop() }()

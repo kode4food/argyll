@@ -373,12 +373,7 @@ func TestStepHealthSettledAtomically(t *testing.T) {
 			return nil
 		},
 	}
-	cfg := helpers.NewTestConfig()
-	store, err := timebox.NewStore(backend, cfg.EngineStoreConfig())
-	assert.NoError(t, err)
-
-	helpers.WithTestEnvDeps(t,
-		engine.Dependencies{EngineStore: store},
+	helpers.WithTestBackend(t, backend,
 		func(env *helpers.TestEngineEnv) {
 			st := helpers.NewSimpleStep("atomic-health")
 

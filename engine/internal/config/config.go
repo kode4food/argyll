@@ -19,11 +19,12 @@ import (
 
 // Config holds configuration settings for the orchestrator
 type Config struct {
-	Raft            raft.Config
 	Timebox         timebox.Config
+	NodeID          api.NodeID
 	APIHost         string
 	WebhookBaseURL  string
 	LogLevel        string
+	Nodes           []api.NodeID
 	Work            api.WorkConfig
 	APIPort         int
 	StepTimeout     int64
@@ -42,7 +43,7 @@ const (
 	DefaultFlowSnapshotRatio = 2.0
 	DefaultTimeboxCacheSize  = 32768
 	DefaultMemoCacheSize     = 65536
-	DefaultRaftNodeID        = "argyll-1"
+	DefaultNodeID            = "argyll-1"
 	DefaultRaftAddress       = "127.0.0.1:9701"
 	DefaultRaftDataDirName   = "argyll-raft"
 
@@ -88,7 +89,7 @@ func NewDefaultConfig() *Config {
 		APIPort:        DefaultAPIPort,
 		APIHost:        DefaultAPIHost,
 		WebhookBaseURL: "http://localhost:8080",
-		Raft:           DefaultRaftConfig(),
+		NodeID:         DefaultNodeID,
 		Timebox:        DefaultTimebox(),
 		Work: api.WorkConfig{
 			MaxRetries:  DefaultRetryMaxRetries,
@@ -103,11 +104,12 @@ func NewDefaultConfig() *Config {
 	}
 }
 
-func DefaultRaftConfig() raft.Config {
+// DefaultRaftConfig returns the raft backend defaults for a node
+func DefaultRaftConfig(nodeID api.NodeID) raft.Config {
 	cfg := raft.DefaultConfig().With(raft.Config{
-		LocalID: DefaultRaftNodeID,
+		LocalID: string(nodeID),
 		Address: DefaultRaftAddress,
-		DataDir: defaultRaftDataDir(DefaultRaftNodeID),
+		DataDir: defaultRaftDataDir(string(nodeID)),
 	})
 	cfg.Servers = defaultRaftServers(cfg)
 	return cfg
@@ -142,8 +144,6 @@ func (c *Config) FlowStoreConfig() timebox.Config {
 // LoadFromEnv populates configuration values from environment variables
 // Returns an error if any env var cannot be parsed
 func (c *Config) LoadFromEnv() error {
-	raftDataDirSet := false
-
 	if apiHost := os.Getenv("API_HOST"); apiHost != "" {
 		c.APIHost = apiHost
 	}
@@ -156,15 +156,8 @@ func (c *Config) LoadFromEnv() error {
 	if backoffType := os.Getenv("RETRY_BACKOFF_TYPE"); backoffType != "" {
 		c.Work.BackoffType = backoffType
 	}
-	if raftNodeID := os.Getenv("RAFT_NODE_ID"); raftNodeID != "" {
-		c.Raft.LocalID = raftNodeID
-	}
-	if raftAddress := os.Getenv("RAFT_ADDRESS"); raftAddress != "" {
-		c.Raft.Address = raftAddress
-	}
-	if raftDataDir := os.Getenv("RAFT_DATA_DIR"); raftDataDir != "" {
-		c.Raft.DataDir = raftDataDir
-		raftDataDirSet = true
+	if nodeID := os.Getenv("RAFT_NODE_ID"); nodeID != "" {
+		c.NodeID = api.NodeID(nodeID)
 	}
 
 	if err := loadEnvInt("API_PORT", &c.APIPort, 0, MaxTCPPort); err != nil {
@@ -178,11 +171,6 @@ func (c *Config) LoadFromEnv() error {
 	}
 	if err := loadEnvInt(
 		"MEMO_CACHE_SIZE", &c.MemoCacheSize, 0, MaxMemoCacheSize,
-	); err != nil {
-		return err
-	}
-	if err := loadEnvInt(
-		"RAFT_LOG_TAIL_SIZE", &c.Raft.LogTailSize, 0, MaxRaftLogTailSize,
 	); err != nil {
 		return err
 	}
@@ -202,25 +190,41 @@ func (c *Config) LoadFromEnv() error {
 	); err != nil {
 		return err
 	}
-	if err := loadEnvInt(
+	return loadEnvInt(
 		"RETRY_MAX_BACKOFF", &c.Work.MaxBackoff, 0, MaxRetryMaxBackoff,
+	)
+}
+
+// LoadRaftFromEnv builds the raft backend configuration for the node the config
+// identifies, and records the cluster's nodes on the config
+func (c *Config) LoadRaftFromEnv() (raft.Config, error) {
+	cfg := DefaultRaftConfig(c.NodeID)
+	if address := os.Getenv("RAFT_ADDRESS"); address != "" {
+		cfg.Address = address
+	}
+	if dataDir := os.Getenv("RAFT_DATA_DIR"); dataDir != "" {
+		cfg.DataDir = dataDir
+	}
+	if err := loadEnvInt(
+		"RAFT_LOG_TAIL_SIZE", &cfg.LogTailSize, 0, MaxRaftLogTailSize,
 	); err != nil {
-		return err
-	}
-	if !raftDataDirSet {
-		c.Raft.DataDir = defaultRaftDataDir(c.Raft.LocalID)
-	}
-	if raftServers := os.Getenv("RAFT_SERVERS"); raftServers != "" {
-		srvs, err := parseRaftServers(raftServers)
-		if err != nil {
-			return err
-		}
-		c.Raft.Servers = srvs
-	} else {
-		c.Raft.Servers = defaultRaftServers(c.Raft)
+		return raft.Config{}, err
 	}
 
-	return nil
+	cfg.Servers = defaultRaftServers(cfg)
+	if servers := os.Getenv("RAFT_SERVERS"); servers != "" {
+		srvs, err := parseRaftServers(servers)
+		if err != nil {
+			return raft.Config{}, err
+		}
+		cfg.Servers = srvs
+	}
+
+	c.Nodes = make([]api.NodeID, 0, len(cfg.Servers))
+	for _, srv := range cfg.Servers {
+		c.Nodes = append(c.Nodes, api.NodeID(srv.ID))
+	}
+	return cfg, cfg.Validate()
 }
 
 // WithWorkDefaults returns a copy of the config with zero-valued work fields
@@ -274,7 +278,7 @@ func (c *Config) Validate() error {
 		return fmt.Errorf("%w: %s", ErrInvalidRetryBackoffType,
 			c.Work.BackoffType)
 	}
-	return c.Raft.Validate()
+	return nil
 }
 
 // loadEnvInt reads key from the environment, parses it as an integer, and

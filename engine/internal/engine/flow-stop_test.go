@@ -14,7 +14,6 @@ import (
 	"github.com/kode4food/argyll/engine/internal/assert"
 	"github.com/kode4food/argyll/engine/internal/assert/helpers"
 	"github.com/kode4food/argyll/engine/internal/assert/wait"
-	"github.com/kode4food/argyll/engine/internal/engine"
 	"github.com/kode4food/argyll/engine/internal/engine/policy"
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/events"
@@ -509,11 +508,7 @@ func TestParentNotificationRetries(t *testing.T) {
 			return ErrParentWrite
 		},
 	}
-	cfg := helpers.NewTestConfig()
-	store, err := timebox.NewStore(backend, cfg.FlowStoreConfig())
-	testify.NoError(t, err)
-	helpers.WithTestEnvDeps(t,
-		engine.Dependencies{FlowStore: store},
+	helpers.WithTestBackend(t, backend,
 		func(env *helpers.TestEngineEnv) {
 			envRef = env
 			sub := &api.Step{ID: "sub", Type: api.StepTypeFlow}
@@ -629,12 +624,7 @@ func TestParentSettledAtomically(t *testing.T) {
 			return nil
 		},
 	}
-	cfg := helpers.NewTestConfig()
-	store, err := timebox.NewStore(backend, cfg.FlowStoreConfig())
-	testify.NoError(t, err)
-
-	helpers.WithTestEnvDeps(t,
-		engine.Dependencies{FlowStore: store},
+	helpers.WithTestBackend(t, backend,
 		func(env *helpers.TestEngineEnv) {
 			sub := &api.Step{ID: "sub", Type: api.StepTypeFlow}
 			testify.NoError(t, env.SeedStartedWork(

@@ -24,7 +24,7 @@ func (e *Engine) GetFlowState(fid api.FlowID) (api.FlowState, error) {
 // GetFlowStatus retrieves the current indexed status of a flow by its ID
 func (e *Engine) GetFlowStatus(fid api.FlowID) (api.FlowStatus, error) {
 	key := events.FlowKey(fid)
-	status, err := e.flowExec.GetStore().GetAggregateStatus(key)
+	status, err := e.flowStore.GetAggregateStatus(key)
 	if err != nil {
 		return "", err
 	}
@@ -42,7 +42,7 @@ func (e *Engine) GetFlowStatus(fid api.FlowID) (api.FlowStatus, error) {
 
 // GetFlowEvents retrieves all events for a flow aggregate
 func (e *Engine) GetFlowEvents(fid api.FlowID) ([]*timebox.Event, error) {
-	return e.flowExec.GetStore().GetEvents(events.FlowKey(fid), 0)
+	return e.flowStore.GetEvents(events.FlowKey(fid), 0)
 }
 
 // GetFlowStateSeq retrieves the current state and next sequence for a flow

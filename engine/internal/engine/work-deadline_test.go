@@ -10,11 +10,9 @@ import (
 
 	"github.com/kode4food/timebox"
 	"github.com/kode4food/timebox/memory"
-	"github.com/kode4food/timebox/raft"
 
 	"github.com/kode4food/argyll/engine/internal/assert/helpers"
 	"github.com/kode4food/argyll/engine/internal/assert/wait"
-	"github.com/kode4food/argyll/engine/internal/engine"
 	"github.com/kode4food/argyll/engine/internal/event"
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/plan"
@@ -250,10 +248,7 @@ func TestLiveChildFlowSurvivesDeadline(t *testing.T) {
 
 		cfg := util.MutableCopy(env.Config)
 		cfg.StepTimeout = 100
-		cfg.Raft.LocalID = "node-live-child"
-		cfg.Raft.Servers = append(cfg.Raft.Servers,
-			raft.Server{ID: "node-live-child", Address: "127.0.0.1:9723"},
-		)
+		cfg.NodeID = "node-live-child"
 		peer, unsub, err := env.NewEngineWithConfig(cfg, env.Dependencies())
 		assert.NoError(t, err)
 		defer func() {
@@ -306,11 +301,7 @@ func TestDeadlineConflict(t *testing.T) {
 					return nil
 				},
 			}
-			cfg := helpers.NewTestConfig()
-			store, err := timebox.NewStore(backend, cfg.FlowStoreConfig())
-			assert.NoError(t, err)
-			helpers.WithTestEnvDeps(t,
-				engine.Dependencies{FlowStore: store},
+			helpers.WithTestBackend(t, backend,
 				func(env *helpers.TestEngineEnv) {
 					envRef = env
 					st := newDeadlineStep(fs.StepID)

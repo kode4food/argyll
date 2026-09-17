@@ -7,8 +7,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/kode4food/timebox/raft"
-
 	"github.com/kode4food/argyll/engine/internal/assert/helpers"
 	"github.com/kode4food/argyll/engine/internal/assert/wait"
 	"github.com/kode4food/argyll/engine/internal/engine"
@@ -95,10 +93,7 @@ func TestHTTPMetadata(t *testing.T) {
 func TestDispatchOnHealthyPeer(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		cfg := util.MutableCopy(env.Config)
-		cfg.Raft.LocalID = "node-2"
-		cfg.Raft.Servers = append(cfg.Raft.Servers,
-			raft.Server{ID: "node-2", Address: "127.0.0.1:9702"},
-		)
+		cfg.NodeID = "node-2"
 
 		peer, unsub, err := env.NewEngineWithConfig(cfg, env.Dependencies())
 		assert.NoError(t, err)
@@ -504,10 +499,7 @@ func TestLuaScriptWithInputs(t *testing.T) {
 func TestCompetingNodesStartOnce(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		cfg := util.MutableCopy(env.Config)
-		cfg.Raft.LocalID = "node-compete"
-		cfg.Raft.Servers = append(cfg.Raft.Servers,
-			raft.Server{ID: "node-compete", Address: "127.0.0.1:9703"},
-		)
+		cfg.NodeID = "node-compete"
 
 		peer, unsub, err := env.NewEngineWithConfig(cfg, env.Dependencies())
 		assert.NoError(t, err)

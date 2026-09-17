@@ -12,31 +12,18 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/kode4food/argyll/engine/internal/config"
-	"github.com/kode4food/argyll/engine/internal/event"
+	"github.com/kode4food/argyll/engine/internal/engine"
+	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
-func TestInitStoresInvalidRaftConfig(t *testing.T) {
-	cfg := newRaftTestConfig(t)
-	cfg.Raft.Address = ""
+func TestInitializeEngineInvalidRaftConfig(t *testing.T) {
+	s := newRaftTest(t)
+	s.raft.Address = ""
 
-	s := &argyll{cfg: cfg}
-	err := s.initializeStores()
+	err := s.initializeEngine()
 
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "failed to create")
-}
-
-func TestInitializeStoresSuccess(t *testing.T) {
-	cfg := newRaftTestConfig(t)
-
-	s := &argyll{cfg: cfg}
-	err := s.initializeStores()
-
-	assert.NoError(t, err)
-	assert.NotNil(t, s.engStore)
-	assert.NotNil(t, s.flowStore)
-
-	s.closeStores()
+	assert.ErrorIs(t, err, engine.ErrOpenBackend)
+	assert.Nil(t, s.backend)
 }
 
 func TestSetupLogging(t *testing.T) {
@@ -74,24 +61,19 @@ func TestSetupLogging(t *testing.T) {
 }
 
 func TestInitializeEngine(t *testing.T) {
-	cfg := newRaftTestConfig(t)
+	s := newRaftTest(t)
 
-	s := &argyll{cfg: cfg}
-	err := s.initializeStores()
-	assert.NoError(t, err)
-
-	err = s.initializeEngine(event.NewHub())
+	err := s.initializeEngine()
 	assert.NoError(t, err)
 
 	assert.NotNil(t, s.engine)
+	assert.NotNil(t, s.backend)
 
-	_ = s.engine.Stop()
-	s.closeStores()
+	assert.NoError(t, s.engine.Stop())
 }
 
 func TestStartServer(t *testing.T) {
-	s, cleanup := setupServerTest(t)
-	defer cleanup()
+	s := setupServerTest(t)
 
 	assert.NotNil(t, s.health)
 	assert.NotNil(t, s.httpServer)
@@ -100,21 +82,16 @@ func TestStartServer(t *testing.T) {
 }
 
 func TestShutdown(t *testing.T) {
-	s, cleanup := setupServerTest(t)
-	defer cleanup()
+	s := setupServerTest(t)
 
 	// Shutdown should not panic
 	s.shutdown()
 }
 
 func TestRun(t *testing.T) {
-	cfg := newRaftTestConfig(t)
-	cfg.ShutdownTimeout = 100 * time.Millisecond
-
-	s := &argyll{
-		cfg:  cfg,
-		quit: make(chan os.Signal, 1),
-	}
+	s := newRaftTest(t)
+	s.cfg.ShutdownTimeout = 100 * time.Millisecond
+	s.quit = make(chan os.Signal, 1)
 
 	done := make(chan error, 1)
 	go func() {
@@ -142,20 +119,13 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
-func setupServerTest(t *testing.T) (*argyll, func()) {
+func setupServerTest(t *testing.T) *argyll {
 	t.Helper()
 
-	cfg := newRaftTestConfig(t)
-
-	s := &argyll{cfg: cfg}
-	err := s.initializeStores()
-	assert.NoError(t, err)
-
-	err = s.initializeEngine(event.NewHub())
-	assert.NoError(t, err)
+	s := newRaftTest(t)
+	assert.NoError(t, s.initializeEngine())
 	s.startServer()
-
-	return s, s.closeStores
+	return s
 }
 
 func availablePort(t *testing.T) int {
@@ -180,21 +150,23 @@ func availableAddress(t *testing.T) string {
 	return ln.Addr().String()
 }
 
-func newRaftTestConfig(t *testing.T) *config.Config {
+func newRaftTest(t *testing.T) *argyll {
 	t.Helper()
 
-	cfg := config.NewDefaultConfig()
 	addr := availableAddress(t)
 	port := availablePort(t)
 	nid := "test-node-" + strconv.Itoa(port)
 
+	cfg := config.NewDefaultConfig()
 	cfg.APIPort = port
-	cfg.Raft.LocalID = nid
-	cfg.Raft.Address = addr
-	cfg.Raft.DataDir = t.TempDir()
-	cfg.Raft.Servers = []raft.Server{{
+	cfg.NodeID = api.NodeID(nid)
+
+	raftCfg := config.DefaultRaftConfig(cfg.NodeID)
+	raftCfg.Address = addr
+	raftCfg.DataDir = t.TempDir()
+	raftCfg.Servers = []raft.Server{{
 		ID:      nid,
 		Address: addr,
 	}}
-	return cfg
+	return &argyll{cfg: cfg, raft: raftCfg}
 }

@@ -53,8 +53,7 @@ func (e *Engine) recoverRetries(fl api.FlowState) {
 }
 
 func (e *Engine) listIndexedFlows(status string) ([]api.FlowID, error) {
-	store := e.flowExec.GetStore()
-	entries, err := store.ListAggregatesByStatus(status)
+	entries, err := e.flowStore.ListAggregatesByStatus(status)
 	if err != nil {
 		return nil, err
 	}

@@ -10,7 +10,6 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/kode4food/timebox"
-	"github.com/kode4food/timebox/raft"
 
 	"github.com/kode4food/argyll/engine/internal/assert/helpers"
 	"github.com/kode4food/argyll/engine/internal/assert/wait"
@@ -66,8 +65,11 @@ func TestCommittedEventFilter(t *testing.T) {
 		)
 
 		// Start before seeding, without subscribing this engine to commits
-		eng, err := engine.New(env.Config, env.Dependencies())
+		eng, unsub, err := env.NewEngineWithConfig(
+			env.Config, env.Dependencies(),
+		)
 		assert.NoError(t, err)
+		unsub()
 		defer func() { assert.NoError(t, eng.Stop()) }()
 		assert.NoError(t, eng.Start())
 
@@ -202,10 +204,7 @@ func TestBatchUsesFinalState(t *testing.T) {
 func TestConcurrentReplicasStartWorkOnce(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		cfg := util.MutableCopy(env.Config)
-		cfg.Raft.LocalID = "node-concurrent"
-		cfg.Raft.Servers = append(cfg.Raft.Servers,
-			raft.Server{ID: "node-concurrent", Address: "127.0.0.1:9721"},
-		)
+		cfg.NodeID = "node-concurrent"
 
 		peer, unsub, err := env.NewEngineWithConfig(cfg, env.Dependencies())
 		assert.NoError(t, err)
@@ -310,10 +309,7 @@ func TestScriptCannotStayActive(t *testing.T) {
 		// A short step timeout, since that is what bounds a script
 		cfg := util.MutableCopy(env.Config)
 		cfg.StepTimeout = 200
-		cfg.Raft.LocalID = "node-script"
-		cfg.Raft.Servers = append(cfg.Raft.Servers,
-			raft.Server{ID: "node-script", Address: "127.0.0.1:9722"},
-		)
+		cfg.NodeID = "node-script"
 
 		peer, unsub, err := env.NewEngineWithConfig(cfg, env.Dependencies())
 		assert.NoError(t, err)
