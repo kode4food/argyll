@@ -3,8 +3,6 @@ package argyll
 import (
 	"time"
 
-	"github.com/kode4food/timebox"
-
 	"github.com/kode4food/argyll/engine/internal/engine"
 	"github.com/kode4food/argyll/engine/internal/engine/script"
 	"github.com/kode4food/argyll/engine/internal/event"
@@ -15,17 +13,18 @@ import (
 
 type (
 	// Options configures an embedded Engine. A nil Config uses the defaults.
-	// A nil Handlers map installs all standard handlers; a non-nil map is used
-	// exactly as supplied
+	// A nil Handlers map installs the standard handlers, which reject async
+	// HTTP steps unless Callback is set
 	Options struct {
 		Backend  OpenBackend
 		Config   *config.Config
+		Callback builtins.CallbackURL
 		Handlers step.Handlers
 	}
 
 	// OpenBackend opens the timebox backend an Engine runs on, wired to the
 	// publisher its committed events must reach
-	OpenBackend func(timebox.Publisher) (timebox.Backend, error)
+	OpenBackend = engine.OpenBackend
 )
 
 var _ Engine = (*engine.Engine)(nil)
@@ -42,7 +41,7 @@ func New(opts Options) (Engine, error) {
 		Scripts:  script.NewRegistry(),
 		Steps:    step.NewRegistry(opts.handlers(cfg)),
 		EventHub: event.NewHub(),
-	}, engine.OpenBackend(opts.Backend))
+	}, opts.Backend)
 	if err != nil {
 		return nil, err
 	}
@@ -59,6 +58,6 @@ func (o Options) handlers(cfg *config.Config) step.Handlers {
 		builtins.NewHTTPClient(
 			time.Duration(cfg.StepTimeout)*time.Millisecond,
 		),
-		builtins.BaseCallbackURL(cfg.WebhookBaseURL),
+		o.Callback,
 	)
 }

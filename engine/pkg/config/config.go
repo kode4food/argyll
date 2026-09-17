@@ -13,18 +13,16 @@ import (
 
 // Config holds the settings an Engine runs with, whether embedded or served
 type Config struct {
-	Timebox        timebox.Config
-	NodeID         api.NodeID
-	WebhookBaseURL string
-	Nodes          []api.NodeID
-	Work           api.WorkConfig
-	StepTimeout    int64
-	MemoCacheSize  int
+	Timebox       timebox.Config
+	NodeID        api.NodeID
+	Nodes         []api.NodeID
+	Work          api.WorkConfig
+	StepTimeout   int64
+	MemoCacheSize int
 }
 
 const (
-	DefaultStepTimeout    = 30 * api.Second
-	DefaultWebhookBaseURL = "http://localhost:8080"
+	DefaultStepTimeout = 30 * api.Second
 
 	DefaultFlowSnapshotRatio = 2.0
 	DefaultTimeboxCacheSize  = 32768
@@ -60,9 +58,8 @@ var (
 // engine settings, stores, and retry behavior
 func NewDefaultConfig() *Config {
 	return &Config{
-		WebhookBaseURL: DefaultWebhookBaseURL,
-		NodeID:         DefaultNodeID,
-		Timebox:        DefaultTimebox(),
+		NodeID:  DefaultNodeID,
+		Timebox: DefaultTimebox(),
 		Work: api.WorkConfig{
 			MaxRetries:  DefaultRetryMaxRetries,
 			InitBackoff: DefaultRetryInitBackoff,

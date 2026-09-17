@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/kode4food/argyll/engine/cmd/argyll/internal/app"
+	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/config"
 )
 
@@ -18,16 +19,19 @@ func TestLoadRaftConfig(t *testing.T) {
 		name    string
 		envVars map[string]string
 		wantErr error
-		check   func(*testing.T, raft.Config)
+		check   func(*testing.T, app.Config)
 	}{
 		{
 			name: "defaults",
-			check: func(t *testing.T, r raft.Config) {
-				assert.Equal(t, config.DefaultNodeID, r.LocalID)
-				assert.Equal(t, app.DefaultRaftAddress, r.Address)
-				assert.Equal(t, raft.DefaultLogTailSize, r.LogTailSize)
-				assert.Len(t, r.Servers, 1)
-				assert.Equal(t, config.DefaultNodeID, r.Servers[0].ID)
+			check: func(t *testing.T, c app.Config) {
+				assert.Equal(t, config.DefaultNodeID, c.Raft.LocalID)
+				assert.Equal(t, app.DefaultRaftAddress, c.Raft.Address)
+				assert.Equal(t, raft.DefaultLogTailSize, c.Raft.LogTailSize)
+				assert.Len(t, c.Raft.Servers, 1)
+				assert.Equal(t, config.DefaultNodeID, c.Raft.Servers[0].ID)
+				assert.Equal(t,
+					[]api.NodeID{config.DefaultNodeID}, c.Engine.Nodes,
+				)
 			},
 		},
 		{
@@ -40,14 +44,18 @@ func TestLoadRaftConfig(t *testing.T) {
 				"RAFT_SERVERS": "node-1=10.0.0.1:9701," +
 					"node-2=10.0.0.2:9702",
 			},
-			check: func(t *testing.T, r raft.Config) {
-				assert.Equal(t, "node-2", r.LocalID)
-				assert.Equal(t, "10.0.0.2:9702", r.Address)
-				assert.Equal(t, "/tmp/argyll-node-2", r.DataDir)
-				assert.Equal(t, 4096, r.LogTailSize)
-				assert.Len(t, r.Servers, 2)
-				assert.Equal(t, "node-1", r.Servers[0].ID)
-				assert.Equal(t, "10.0.0.2:9702", r.Servers[1].Address)
+			check: func(t *testing.T, c app.Config) {
+				assert.Equal(t, "node-2", c.Raft.LocalID)
+				assert.Equal(t, "10.0.0.2:9702", c.Raft.Address)
+				assert.Equal(t, "/tmp/argyll-node-2", c.Raft.DataDir)
+				assert.Equal(t, 4096, c.Raft.LogTailSize)
+				assert.Len(t, c.Raft.Servers, 2)
+				assert.Equal(t, "node-1", c.Raft.Servers[0].ID)
+				assert.Equal(t, "10.0.0.2:9702", c.Raft.Servers[1].Address)
+				assert.Equal(t, api.NodeID("node-2"), c.Engine.NodeID)
+				assert.Equal(t,
+					[]api.NodeID{"node-1", "node-2"}, c.Engine.Nodes,
+				)
 			},
 		},
 		{
@@ -55,12 +63,12 @@ func TestLoadRaftConfig(t *testing.T) {
 			envVars: map[string]string{
 				"RAFT_NODE_ID": "node-2",
 			},
-			check: func(t *testing.T, r raft.Config) {
-				assert.Equal(t, "node-2", r.LocalID)
+			check: func(t *testing.T, c app.Config) {
+				assert.Equal(t, "node-2", c.Raft.LocalID)
 				assert.Equal(t, filepath.Join(
 					os.TempDir(), app.DefaultRaftDataDirName, "node-2",
-				), r.DataDir)
-				assert.Equal(t, "node-2", r.Servers[0].ID)
+				), c.Raft.DataDir)
+				assert.Equal(t, "node-2", c.Raft.Servers[0].ID)
 			},
 		},
 		{
@@ -83,7 +91,7 @@ func TestLoadRaftConfig(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			setEnv(t, tt.envVars)
 
-			cfg, err := app.LoadRaftConfig()
+			cfg, err := app.LoadConfig()
 			if tt.wantErr != nil {
 				assert.ErrorIs(t, err, tt.wantErr)
 				return

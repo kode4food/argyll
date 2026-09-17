@@ -56,7 +56,7 @@ func (a *App) Run(ctx context.Context) error {
 
 // SetupLogging installs the default logger at the configured level
 func (a *App) SetupLogging() {
-	level, ok := logLevels[a.cfg.Server.LogLevel]
+	level, ok := logLevels[a.cfg.LogLevel]
 	if !ok {
 		level = slog.LevelInfo
 	}
@@ -67,7 +67,7 @@ func (a *App) SetupLogging() {
 	slog.SetLogLoggerLevel(level)
 
 	slog.Info("Argyll Engine starting",
-		slog.String("log_level", a.cfg.Server.LogLevel))
+		slog.String("log_level", a.cfg.LogLevel))
 
 	slog.Info("Configuration loaded",
 		slog.String("raft_node_id", a.cfg.Raft.LocalID),
@@ -75,8 +75,8 @@ func (a *App) SetupLogging() {
 		slog.String("raft_data_dir", a.cfg.Raft.DataDir),
 		slog.Int("raft_log_tail_size", a.cfg.Raft.LogTailSize),
 		slog.String("raft_servers", formatRaftServers(a.cfg.Raft.Servers)),
-		slog.String("api_host", a.cfg.Server.APIHost),
-		slog.Int("api_port", a.cfg.Server.APIPort))
+		slog.String("api_host", a.cfg.APIHost),
+		slog.Int("api_port", a.cfg.APIPort))
 }
 
 // Start opens the engine on its raft backend and begins serving the HTTP API
@@ -93,7 +93,7 @@ func (a *App) Shutdown() {
 	slog.Info("Shutting down")
 
 	ctx, cancel := context.WithTimeout(
-		context.Background(), a.cfg.Server.ShutdownTimeout,
+		context.Background(), a.cfg.ShutdownTimeout,
 	)
 	defer cancel()
 
@@ -116,7 +116,7 @@ func (a *App) startEngine() error {
 		time.Duration(a.cfg.Engine.StepTimeout) * time.Millisecond,
 	)
 	steps := step.NewRegistry(builtins.All(
-		stepClient, builtins.BaseCallbackURL(a.cfg.Engine.WebhookBaseURL),
+		stepClient, builtins.BaseCallbackURL(a.cfg.WebhookBaseURL),
 	))
 
 	eng, err := engine.New(a.cfg.Engine, engine.Dependencies{
@@ -156,9 +156,7 @@ func (a *App) startServer() {
 	mux := a.apiServer.SetupRoutes()
 
 	a.httpServer = &http.Server{
-		Addr: fmt.Sprintf("%s:%d",
-			a.cfg.Server.APIHost, a.cfg.Server.APIPort,
-		),
+		Addr:    fmt.Sprintf("%s:%d", a.cfg.APIHost, a.cfg.APIPort),
 		Handler: mux,
 	}
 

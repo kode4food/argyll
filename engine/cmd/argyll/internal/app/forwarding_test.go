@@ -179,7 +179,6 @@ func newRaftInits(t *testing.T, n int) []*raftInit {
 
 	for i, init := range inits {
 		cfg := config.NewDefaultConfig()
-		cfg.WebhookBaseURL = "http://127.0.0.1"
 		cfg.NodeID = api.NodeID(init.id)
 
 		init.cfg = cfg
@@ -206,7 +205,7 @@ func bootRaftNode(init *raftInit) (*raftNode, error) {
 	steps := step.NewRegistry(
 		builtins.All(
 			helpers.NewMockClient(),
-			builtins.BaseCallbackURL(init.cfg.WebhookBaseURL),
+			builtins.BaseCallbackURL("http://127.0.0.1"),
 		),
 	)
 	eng, err := engine.New(init.cfg, engine.Dependencies{

@@ -24,9 +24,25 @@ var (
 	ErrInvalidRaftServers = errors.New("invalid RAFT_SERVERS")
 )
 
-// LoadRaftConfig reads the raft backend settings for this node from the
+// NewRaftStatusProvider reports the raft backend's role and leader to the
+// server's health and status endpoints
+func NewRaftStatusProvider(b *raft.Backend) server.StatusProvider {
+	return func() map[string]any {
+		addr, id := b.LeaderWithID()
+		return map[string]any{
+			"backend": map[string]any{
+				"type":           "raft",
+				"state":          b.State(),
+				"leader_address": addr,
+				"leader_id":      id,
+			},
+		}
+	}
+}
+
+// loadRaftConfig reads the raft backend settings for this node from the
 // environment. A node with no RAFT_SERVERS forms a cluster of one
-func LoadRaftConfig() (raft.Config, error) {
+func loadRaftConfig() (raft.Config, error) {
 	nid := config.DefaultNodeID
 	if nodeID := os.Getenv("RAFT_NODE_ID"); nodeID != "" {
 		nid = nodeID
@@ -57,22 +73,6 @@ func LoadRaftConfig() (raft.Config, error) {
 		cfg.Servers = srvs
 	}
 	return cfg, cfg.Validate()
-}
-
-// NewRaftStatusProvider reports the raft backend's role and leader to the
-// server's health and status endpoints
-func NewRaftStatusProvider(b *raft.Backend) server.StatusProvider {
-	return func() map[string]any {
-		addr, id := b.LeaderWithID()
-		return map[string]any{
-			"backend": map[string]any{
-				"type":           "raft",
-				"state":          b.State(),
-				"leader_address": addr,
-				"leader_id":      id,
-			},
-		}
-	}
 }
 
 func raftNodes(srvs []raft.Server) []api.NodeID {

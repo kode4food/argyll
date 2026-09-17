@@ -84,7 +84,6 @@ func TestDefaultConfigValues(t *testing.T) {
 	cfg := config.NewDefaultConfig()
 
 	as.Equal(config.DefaultStepTimeout, cfg.StepTimeout)
-	as.Equal(config.DefaultWebhookBaseURL, cfg.WebhookBaseURL)
 	as.Equal(api.NodeID(config.DefaultNodeID), cfg.NodeID)
 	as.Empty(cfg.Nodes)
 	as.False(cfg.Timebox.TrimEvents)

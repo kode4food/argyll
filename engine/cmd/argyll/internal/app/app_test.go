@@ -46,7 +46,7 @@ func TestSetupLogging(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			app.New(app.Config{
-				Server: app.ServerConfig{LogLevel: tt.logLevel},
+				LogLevel: tt.logLevel,
 			}).SetupLogging()
 
 			handler := slog.Default().Handler()
@@ -66,7 +66,7 @@ func TestStartServesHTTP(t *testing.T) {
 	assert.NoError(t, a.Start())
 	defer a.Shutdown()
 
-	url := fmt.Sprintf("http://127.0.0.1:%d/health", cfg.Server.APIPort)
+	url := fmt.Sprintf("http://127.0.0.1:%d/health", cfg.APIPort)
 	assert.Eventually(t, func() bool {
 		res, err := http.Get(url)
 		if err != nil {
@@ -79,7 +79,7 @@ func TestStartServesHTTP(t *testing.T) {
 
 func TestRun(t *testing.T) {
 	cfg := newRaftTestConfig(t)
-	cfg.Server.ShutdownTimeout = 100 * time.Millisecond
+	cfg.ShutdownTimeout = 100 * time.Millisecond
 	ctx, cancel := context.WithCancel(t.Context())
 
 	done := make(chan error, 1)
@@ -131,15 +131,13 @@ func newRaftTestConfig(t *testing.T) app.Config {
 
 	return app.Config{
 		Engine: cfg,
-		Server: app.ServerConfig{
-			APIPort:         port,
-			ShutdownTimeout: app.DefaultShutdownTimeout,
-		},
 		Raft: raft.DefaultConfig().With(raft.Config{
 			LocalID: nid,
 			Address: addr,
 			DataDir: t.TempDir(),
 			Servers: []raft.Server{{ID: nid, Address: addr}},
 		}),
+		APIPort:         port,
+		ShutdownTimeout: app.DefaultShutdownTimeout,
 	}
 }

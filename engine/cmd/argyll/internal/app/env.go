@@ -13,27 +13,22 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/config"
 )
 
-type (
-	// Config holds everything the App runs with: the engine, the HTTP server
-	// that fronts it, and the raft backend beneath it
-	Config struct {
-		Engine *config.Config
-		Server ServerConfig
-		Raft   raft.Config
-	}
-
-	// ServerConfig holds the HTTP server settings
-	ServerConfig struct {
-		APIHost         string
-		LogLevel        string
-		APIPort         int
-		ShutdownTimeout time.Duration
-	}
-)
+// Config holds everything the App runs with: the engine, the raft backend
+// beneath it, and the HTTP server that fronts it
+type Config struct {
+	Engine          *config.Config
+	Raft            raft.Config
+	APIHost         string
+	WebhookBaseURL  string
+	LogLevel        string
+	APIPort         int
+	ShutdownTimeout time.Duration
+}
 
 const (
 	DefaultAPIHost         = "0.0.0.0"
 	DefaultAPIPort         = 8080
+	DefaultWebhookBaseURL  = "http://localhost:8080"
 	DefaultLogLevel        = "info"
 	DefaultShutdownTimeout = 10 * time.Second
 
@@ -53,25 +48,20 @@ var (
 
 // LoadConfig reads the whole App configuration from the environment
 func LoadConfig() (Config, error) {
-	srv, err := LoadServerConfig()
+	rc, err := loadRaftConfig()
 	if err != nil {
 		return Config{}, err
 	}
-	rc, err := LoadRaftConfig()
+	eng, err := loadEngineConfig(rc)
 	if err != nil {
 		return Config{}, err
 	}
-	cfg, err := LoadEngineConfig(rc)
-	if err != nil {
-		return Config{}, err
-	}
-	return Config{Engine: cfg, Server: srv, Raft: rc}, nil
-}
 
-// LoadServerConfig reads the HTTP server settings from the environment
-func LoadServerConfig() (ServerConfig, error) {
-	cfg := ServerConfig{
+	cfg := Config{
+		Engine:          eng,
+		Raft:            rc,
 		APIHost:         DefaultAPIHost,
+		WebhookBaseURL:  DefaultWebhookBaseURL,
 		LogLevel:        DefaultLogLevel,
 		APIPort:         DefaultAPIPort,
 		ShutdownTimeout: DefaultShutdownTimeout,
@@ -79,23 +69,25 @@ func LoadServerConfig() (ServerConfig, error) {
 	if apiHost := os.Getenv("API_HOST"); apiHost != "" {
 		cfg.APIHost = apiHost
 	}
+	if webhookBaseURL := os.Getenv("WEBHOOK_BASE_URL"); webhookBaseURL != "" {
+		cfg.WebhookBaseURL = webhookBaseURL
+	}
 	if logLevel := os.Getenv("LOG_LEVEL"); logLevel != "" {
 		cfg.LogLevel = logLevel
 	}
-	err := loadEnvInt("API_PORT", &cfg.APIPort, 0, MaxTCPPort)
-	return cfg, err
+	if err := loadEnvInt("API_PORT", &cfg.APIPort, 0, MaxTCPPort); err != nil {
+		return Config{}, err
+	}
+	return cfg, nil
 }
 
-// LoadEngineConfig reads the engine settings from the environment, taking the
+// loadEngineConfig reads the engine settings from the environment, taking the
 // node identity and cluster membership from the raft configuration
-func LoadEngineConfig(rc raft.Config) (*config.Config, error) {
+func loadEngineConfig(rc raft.Config) (*config.Config, error) {
 	cfg := config.NewDefaultConfig()
 	cfg.NodeID = api.NodeID(rc.LocalID)
 	cfg.Nodes = raftNodes(rc.Servers)
 
-	if webhookBaseURL := os.Getenv("WEBHOOK_BASE_URL"); webhookBaseURL != "" {
-		cfg.WebhookBaseURL = webhookBaseURL
-	}
 	if backoffType := os.Getenv("RETRY_BACKOFF_TYPE"); backoffType != "" {
 		cfg.Work.BackoffType = backoffType
 	}

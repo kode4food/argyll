@@ -73,6 +73,10 @@ type (
 	}
 )
 
+// CallbackBaseURL is the base of the webhook URLs test engines hand to async
+// HTTP steps
+const CallbackBaseURL = "http://localhost:8080"
+
 var ErrInvalidSeedFlowStatus = errors.New("invalid seeded flow status")
 
 // WithTestEnv creates a test engine environment, executes the provided
@@ -338,7 +342,7 @@ func (e *TestEngineEnv) engineDeps(
 	scripts := script.NewRegistry()
 	steps := step.NewRegistry(builtins.All(
 		e.MockClient,
-		builtins.BaseCallbackURL(e.Config.WebhookBaseURL),
+		builtins.BaseCallbackURL(CallbackBaseURL),
 	))
 
 	// Every engine publishes what it hears to its own hub, so a second engine

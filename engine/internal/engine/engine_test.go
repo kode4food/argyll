@@ -130,7 +130,7 @@ func TestNewCustomStep(t *testing.T) {
 		deps := env.Dependencies()
 		handlers := builtins.All(
 			env.MockClient,
-			builtins.BaseCallbackURL(env.Config.WebhookBaseURL),
+			builtins.BaseCallbackURL(helpers.CallbackBaseURL),
 		)
 		handlers["custom"] = &step.Handler{
 			Execute: func(step.Runtime, *api.Step, api.Args, api.Token) error {
@@ -155,7 +155,7 @@ func TestNewMockStep(t *testing.T) {
 		deps := env.Dependencies()
 		handlers := builtins.All(
 			env.MockClient,
-			builtins.BaseCallbackURL(env.Config.WebhookBaseURL),
+			builtins.BaseCallbackURL(helpers.CallbackBaseURL),
 		)
 		handlers[api.StepTypeService] = &step.Handler{
 			Validate: func(*api.Step) error { return expected },
