@@ -7,10 +7,10 @@ import (
 	"time"
 	"uuid"
 
-	"github.com/kode4food/argyll/engine/internal/engine/policy"
 	"github.com/kode4food/argyll/engine/internal/engine/script"
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/events"
+	"github.com/kode4food/argyll/engine/pkg/policy"
 	"github.com/kode4food/argyll/engine/pkg/util/call"
 )
 

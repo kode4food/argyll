@@ -5,7 +5,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/kode4food/argyll/engine/internal/engine/policy"
+	"github.com/kode4food/argyll/engine/pkg/policy"
 	"github.com/kode4food/argyll/engine/pkg/util"
 )
 

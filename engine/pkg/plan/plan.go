@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"slices"
 
-	"github.com/kode4food/argyll/engine/internal/engine/policy"
 	"github.com/kode4food/argyll/engine/pkg/api"
+	"github.com/kode4food/argyll/engine/pkg/policy"
 	"github.com/kode4food/argyll/engine/pkg/util"
 )
 
@@ -69,8 +69,8 @@ func Preview(req *Request) (*api.ExecutionPlan, error) {
 		util.Set[api.StepID]{})
 }
 
-// ChildPlanInit derives init args for a child plan from a parent step
-func ChildPlanInit(st *api.Step) api.InitArgs {
+// childPlanInit derives init args for a child plan from a parent step
+func childPlanInit(st *api.Step) api.InitArgs {
 	res := api.InitArgs{}
 	for name, attr := range st.Attributes {
 		if !policy.StepInputGuaranteed(attr) {
@@ -132,7 +132,7 @@ func create(
 			catalog:      args.catalog,
 			match:        args.match,
 			providers:    args.providers,
-			init:         ChildPlanInit(st),
+			init:         childPlanInit(st),
 			goals:        childGoals,
 		}, children, ancestors)
 		ancestors.Remove(sid)

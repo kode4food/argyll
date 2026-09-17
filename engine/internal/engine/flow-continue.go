@@ -3,9 +3,9 @@ package engine
 import (
 	"errors"
 
-	"github.com/kode4food/argyll/engine/internal/engine/policy"
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/events"
+	"github.com/kode4food/argyll/engine/pkg/policy"
 )
 
 // checkUnreachable finds and fails all pending steps that can no longer
