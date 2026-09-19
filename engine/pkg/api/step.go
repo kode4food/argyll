@@ -91,11 +91,6 @@ type (
 	// held as a set of opaque strings
 	Tags []string
 
-	attrPair struct {
-		V *AttributeSpec `json:"v"`
-		K Name           `json:"k"`
-	}
-
 	stepHash struct {
 		Flow       *FlowConfig   `json:"flow,omitempty"`
 		HTTP       *HTTPConfig   `json:"http,omitempty"`
@@ -105,6 +100,11 @@ type (
 		Type       StepType      `json:"type"`
 		Attributes []attrPair    `json:"attributes"`
 		Handling   Handling      `json:"handling"`
+	}
+
+	attrPair struct {
+		V *AttributeSpec `json:"v"`
+		K Name           `json:"k"`
 	}
 )
 
@@ -229,37 +229,6 @@ func (s *Step) Validate() error {
 		s.validateMappingNames,
 		s.validateWorkConfig,
 	)
-}
-
-func (s *Step) validateIdentity() error {
-	if s.ID == "" {
-		return ErrStepIDEmpty
-	}
-	if SanitizeID(s.ID) != s.ID {
-		return ErrStepIDInvalid
-	}
-	if s.Name == "" {
-		return ErrStepNameEmpty
-	}
-	if len(s.Tags) > MaxTagCount {
-		return fmt.Errorf("%w: maximum is %d", ErrTooManyTags, MaxTagCount)
-	}
-	if slices.Contains(s.Tags, "") {
-		return ErrTagEmpty
-	}
-	return nil
-}
-
-func (s *Step) validateTypeConfig() error {
-	switch s.Type {
-	case StepTypeService:
-		return s.validateHTTPConfig()
-	case StepTypeFlow:
-		return s.validateFlowConfig()
-	case StepTypeScript:
-		return s.validateScriptConfig()
-	}
-	return nil
 }
 
 // Copy returns a shallow copy of the step without copying internal cache state
@@ -400,271 +369,6 @@ func (s *Step) HashKey() (string, error) {
 	return s.hashVal, s.hashErr
 }
 
-func (s *Step) validateAttributes() error {
-	for name, attr := range s.Attributes {
-		if name == "" {
-			return ErrArgNameEmpty
-		}
-		if attr == nil {
-			return ErrAttributeNil
-		}
-		if err := attr.Validate(name); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func (s *Step) validateHandling() error {
-	handling := s.DefaultedHandling()
-	if !validHandling.Contains(handling) {
-		return fmt.Errorf("%w: %s", ErrInvalidHandling, handling)
-	}
-
-	for name, attr := range s.Attributes {
-		if attr != nil && attr.Compensated && handling != HandlingCompensated {
-			return fmt.Errorf("%w: %s", ErrAttributeCompensated, name)
-		}
-	}
-	return nil
-}
-
-func (s *Step) validateHTTPConfig() error {
-	if s.HTTP == nil {
-		return ErrHTTPRequired
-	}
-	if s.DefaultedHandling() == HandlingCompensated &&
-		(s.HTTP.Compensate == nil || s.HTTP.Compensate.Endpoint == "") {
-		return ErrCompensateRequired
-	}
-	if s.DefaultedHandling() != HandlingCompensated &&
-		s.HTTP.Compensate != nil {
-		return ErrCompensateHandling
-	}
-	if s.Flow != nil {
-		return ErrFlowNotAllowed
-	}
-	if s.Script != nil {
-		return ErrScriptNotAllowed
-	}
-	if err := validateAction(&s.HTTP.Invoke); err != nil {
-		return err
-	}
-	if s.HTTP.Compensate == nil {
-		return s.validateEndpointParams()
-	}
-	return call.Perform(
-		call.WithArg(validateAction, s.HTTP.Compensate),
-		s.validateEndpointParams,
-		s.validateCompensateParams,
-	)
-}
-
-func (s *Step) validateEndpointParams() error {
-	params := endpointParams(s.HTTP.Invoke.Endpoint)
-	if params.IsEmpty() {
-		return nil
-	}
-
-	required := util.Set[string]{}
-	for name, attr := range s.Attributes {
-		if !attr.IsRequired() {
-			continue
-		}
-		mapped, _ := s.MappedName(name)
-		required.Add(string(mapped))
-	}
-
-	for param := range params {
-		if required.Contains(param) {
-			continue
-		}
-		return fmt.Errorf("%w: %q", ErrUnknownURLParam, param)
-	}
-	return nil
-}
-
-func (s *Step) validateCompensateParams() error {
-	known, err := s.resolveCompensationNames()
-	if err != nil {
-		return err
-	}
-
-	params := endpointParams(s.HTTP.Compensate.Endpoint)
-	for param := range params {
-		if known.Contains(param) {
-			continue
-		}
-		return fmt.Errorf("%w: %q", ErrUnknownURLParam, param)
-	}
-	return nil
-}
-
-func (s *Step) resolveCompensationNames() (util.Set[string], error) {
-	known := util.Set[string]{}
-	for name, attr := range s.Attributes {
-		if attr == nil || !attr.Compensated {
-			continue
-		}
-		mapped, _ := s.MappedName(name)
-		inner := string(mapped)
-		if known.Contains(inner) {
-			return nil, fmt.Errorf(
-				"%w: %s", ErrCompensateArgConflict, inner,
-			)
-		}
-		known.Add(inner)
-	}
-	return known, nil
-}
-
-func (s *Step) validateScriptConfig() error {
-	if s.Script == nil {
-		return ErrScriptRequired
-	}
-	if s.HTTP != nil {
-		return ErrHTTPNotAllowed
-	}
-	if s.Flow != nil {
-		return ErrFlowNotAllowed
-	}
-	if s.Script.Language == "" {
-		return ErrScriptLanguageEmpty
-	}
-	if !validScriptLanguages.Contains(s.Script.Language) {
-		return fmt.Errorf("%w: %s", ErrInvalidScriptLanguage, s.Script.Language)
-	}
-	if s.Script.Script == "" {
-		return ErrScriptEmpty
-	}
-	return nil
-}
-
-func (s *Step) validateFlowConfig() error {
-	if s.Flow == nil {
-		return ErrFlowRequired
-	}
-	if s.HTTP != nil {
-		return ErrHTTPNotAllowed
-	}
-	if s.Script != nil {
-		return ErrScriptNotAllowed
-	}
-	if len(s.Flow.Goals) == 0 {
-		return ErrFlowGoalsRequired
-	}
-	if s.Flow.SpaceID != "" && SanitizeID(s.Flow.SpaceID) != s.Flow.SpaceID {
-		return ErrSpaceIDInvalid
-	}
-	return nil
-}
-
-func (s *Step) validateMappingNames() error {
-	inputInnerNames := map[string]Name{}
-	outputInnerNames := map[string]Name{}
-
-	for name, attr := range s.Attributes {
-		mapped, ok := s.MappedName(name)
-		if !ok {
-			continue
-		}
-
-		if attr.IsRuntimeInput() {
-			if _, ok := inputInnerNames[string(mapped)]; ok {
-				return fmt.Errorf("%w: %q", ErrDuplicateInnerName, mapped)
-			}
-			inputInnerNames[string(mapped)] = name
-		}
-
-		if attr.IsOutput() {
-			if _, ok := outputInnerNames[string(mapped)]; ok {
-				return fmt.Errorf("%w: %q", ErrDuplicateInnerName, mapped)
-			}
-			outputInnerNames[string(mapped)] = name
-		}
-	}
-
-	return nil
-}
-
-func (s *Step) validateWorkConfig() error {
-	if s.WorkConfig == nil {
-		return nil
-	}
-
-	if s.WorkConfig.Parallelism < 0 {
-		return ErrInvalidParallelism
-	}
-
-	if s.WorkConfig.InitBackoff < 0 {
-		return ErrNegativeBackoff
-	}
-
-	if s.WorkConfig.MaxBackoff != 0 &&
-		s.WorkConfig.MaxBackoff < s.WorkConfig.InitBackoff {
-		return ErrMaxBackoffTooSmall
-	}
-
-	if s.WorkConfig.BackoffType != "" &&
-		!validBackoffTypes.Contains(s.WorkConfig.BackoffType) {
-		return ErrInvalidBackoffType
-	}
-
-	return nil
-}
-
-func (s *Step) computeHashKey() (string, error) {
-	names := make([]Name, 0, len(s.Attributes))
-	for n := range s.Attributes {
-		names = append(names, n)
-	}
-	slices.Sort(names)
-
-	attrs := make([]attrPair, len(names))
-	for i, n := range names {
-		attrs[i] = attrPair{K: n, V: s.Attributes[n]}
-	}
-
-	var httpCfg *HTTPConfig
-	if s.HTTP != nil {
-		httpCfg = util.MutableCopy(s.HTTP)
-		httpCfg.Invoke.Method = s.HTTP.Invoke.DefaultedMethod()
-		if s.HTTP.Compensate != nil {
-			comp := util.MutableCopy(s.HTTP.Compensate)
-			comp.Method = s.HTTP.Compensate.DefaultedMethod()
-			httpCfg.Compensate = comp
-		}
-	}
-
-	h := stepHash{
-		Type:       s.Type,
-		Handling:   s.DefaultedHandling(),
-		Attributes: attrs,
-		HTTP:       httpCfg,
-		Script:     s.Script,
-		Flow:       s.Flow,
-		Predicate:  s.Predicate,
-		WorkConfig: s.WorkConfig,
-	}
-
-	data, err := json.Marshal(h)
-	if err != nil {
-		return "", errors.Join(ErrMarshalStep, err)
-	}
-
-	return sha256Hex(string(data)), nil
-}
-
-func (s *Step) filterAttributes(predicate func(*AttributeSpec) bool) []Name {
-	var args []Name
-	for name, attr := range s.Attributes {
-		if predicate(attr) {
-			args = append(args, name)
-		}
-	}
-	return args
-}
-
 // Equal returns true if two HTTP configs are equal
 func (h *HTTPConfig) Equal(other *HTTPConfig) bool {
 	if h == nil || other == nil {
@@ -766,6 +470,302 @@ func (t Tags) Normalize() Tags {
 		return t
 	}
 	return slices.Compact(slices.Sorted(slices.Values(t)))
+}
+
+func (s *Step) validateIdentity() error {
+	if s.ID == "" {
+		return ErrStepIDEmpty
+	}
+	if SanitizeID(s.ID) != s.ID {
+		return ErrStepIDInvalid
+	}
+	if s.Name == "" {
+		return ErrStepNameEmpty
+	}
+	if len(s.Tags) > MaxTagCount {
+		return fmt.Errorf("%w: maximum is %d", ErrTooManyTags, MaxTagCount)
+	}
+	if slices.Contains(s.Tags, "") {
+		return ErrTagEmpty
+	}
+	return nil
+}
+
+func (s *Step) validateHandling() error {
+	handling := s.DefaultedHandling()
+	if !validHandling.Contains(handling) {
+		return fmt.Errorf("%w: %s", ErrInvalidHandling, handling)
+	}
+
+	for name, attr := range s.Attributes {
+		if attr != nil && attr.Compensated && handling != HandlingCompensated {
+			return fmt.Errorf("%w: %s", ErrAttributeCompensated, name)
+		}
+	}
+	return nil
+}
+
+func (s *Step) validateTypeConfig() error {
+	switch s.Type {
+	case StepTypeService:
+		return s.validateHTTPConfig()
+	case StepTypeFlow:
+		return s.validateFlowConfig()
+	case StepTypeScript:
+		return s.validateScriptConfig()
+	}
+	return nil
+}
+
+func (s *Step) validateHTTPConfig() error {
+	if s.HTTP == nil {
+		return ErrHTTPRequired
+	}
+	if s.DefaultedHandling() == HandlingCompensated &&
+		(s.HTTP.Compensate == nil || s.HTTP.Compensate.Endpoint == "") {
+		return ErrCompensateRequired
+	}
+	if s.DefaultedHandling() != HandlingCompensated &&
+		s.HTTP.Compensate != nil {
+		return ErrCompensateHandling
+	}
+	if s.Flow != nil {
+		return ErrFlowNotAllowed
+	}
+	if s.Script != nil {
+		return ErrScriptNotAllowed
+	}
+	if err := validateAction(&s.HTTP.Invoke); err != nil {
+		return err
+	}
+	if s.HTTP.Compensate == nil {
+		return s.validateEndpointParams()
+	}
+	return call.Perform(
+		call.WithArg(validateAction, s.HTTP.Compensate),
+		s.validateEndpointParams,
+		s.validateCompensateParams,
+	)
+}
+
+func (s *Step) validateEndpointParams() error {
+	params := endpointParams(s.HTTP.Invoke.Endpoint)
+	if params.IsEmpty() {
+		return nil
+	}
+
+	required := util.Set[string]{}
+	for name, attr := range s.Attributes {
+		if !attr.IsRequired() {
+			continue
+		}
+		mapped, _ := s.MappedName(name)
+		required.Add(string(mapped))
+	}
+
+	for param := range params {
+		if required.Contains(param) {
+			continue
+		}
+		return fmt.Errorf("%w: %q", ErrUnknownURLParam, param)
+	}
+	return nil
+}
+
+func (s *Step) validateCompensateParams() error {
+	known, err := s.resolveCompensationNames()
+	if err != nil {
+		return err
+	}
+
+	params := endpointParams(s.HTTP.Compensate.Endpoint)
+	for param := range params {
+		if known.Contains(param) {
+			continue
+		}
+		return fmt.Errorf("%w: %q", ErrUnknownURLParam, param)
+	}
+	return nil
+}
+
+func (s *Step) resolveCompensationNames() (util.Set[string], error) {
+	known := util.Set[string]{}
+	for name, attr := range s.Attributes {
+		if attr == nil || !attr.Compensated {
+			continue
+		}
+		mapped, _ := s.MappedName(name)
+		inner := string(mapped)
+		if known.Contains(inner) {
+			return nil, fmt.Errorf(
+				"%w: %s", ErrCompensateArgConflict, inner,
+			)
+		}
+		known.Add(inner)
+	}
+	return known, nil
+}
+
+func (s *Step) validateFlowConfig() error {
+	if s.Flow == nil {
+		return ErrFlowRequired
+	}
+	if s.HTTP != nil {
+		return ErrHTTPNotAllowed
+	}
+	if s.Script != nil {
+		return ErrScriptNotAllowed
+	}
+	if len(s.Flow.Goals) == 0 {
+		return ErrFlowGoalsRequired
+	}
+	if s.Flow.SpaceID != "" && SanitizeID(s.Flow.SpaceID) != s.Flow.SpaceID {
+		return ErrSpaceIDInvalid
+	}
+	return nil
+}
+
+func (s *Step) validateScriptConfig() error {
+	if s.Script == nil {
+		return ErrScriptRequired
+	}
+	if s.HTTP != nil {
+		return ErrHTTPNotAllowed
+	}
+	if s.Flow != nil {
+		return ErrFlowNotAllowed
+	}
+	if s.Script.Language == "" {
+		return ErrScriptLanguageEmpty
+	}
+	if !validScriptLanguages.Contains(s.Script.Language) {
+		return fmt.Errorf("%w: %s", ErrInvalidScriptLanguage, s.Script.Language)
+	}
+	if s.Script.Script == "" {
+		return ErrScriptEmpty
+	}
+	return nil
+}
+
+func (s *Step) validateAttributes() error {
+	for name, attr := range s.Attributes {
+		if name == "" {
+			return ErrArgNameEmpty
+		}
+		if attr == nil {
+			return ErrAttributeNil
+		}
+		if err := attr.Validate(name); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (s *Step) validateMappingNames() error {
+	inputInnerNames := map[string]Name{}
+	outputInnerNames := map[string]Name{}
+
+	for name, attr := range s.Attributes {
+		mapped, ok := s.MappedName(name)
+		if !ok {
+			continue
+		}
+
+		if attr.IsRuntimeInput() {
+			if _, ok := inputInnerNames[string(mapped)]; ok {
+				return fmt.Errorf("%w: %q", ErrDuplicateInnerName, mapped)
+			}
+			inputInnerNames[string(mapped)] = name
+		}
+
+		if attr.IsOutput() {
+			if _, ok := outputInnerNames[string(mapped)]; ok {
+				return fmt.Errorf("%w: %q", ErrDuplicateInnerName, mapped)
+			}
+			outputInnerNames[string(mapped)] = name
+		}
+	}
+
+	return nil
+}
+
+func (s *Step) validateWorkConfig() error {
+	if s.WorkConfig == nil {
+		return nil
+	}
+
+	if s.WorkConfig.Parallelism < 0 {
+		return ErrInvalidParallelism
+	}
+
+	if s.WorkConfig.InitBackoff < 0 {
+		return ErrNegativeBackoff
+	}
+
+	if s.WorkConfig.MaxBackoff != 0 &&
+		s.WorkConfig.MaxBackoff < s.WorkConfig.InitBackoff {
+		return ErrMaxBackoffTooSmall
+	}
+
+	if s.WorkConfig.BackoffType != "" &&
+		!validBackoffTypes.Contains(s.WorkConfig.BackoffType) {
+		return ErrInvalidBackoffType
+	}
+
+	return nil
+}
+
+func (s *Step) filterAttributes(predicate func(*AttributeSpec) bool) []Name {
+	var args []Name
+	for name, attr := range s.Attributes {
+		if predicate(attr) {
+			args = append(args, name)
+		}
+	}
+	return args
+}
+
+func (s *Step) computeHashKey() (string, error) {
+	names := make([]Name, 0, len(s.Attributes))
+	for n := range s.Attributes {
+		names = append(names, n)
+	}
+	slices.Sort(names)
+
+	attrs := make([]attrPair, len(names))
+	for i, n := range names {
+		attrs[i] = attrPair{K: n, V: s.Attributes[n]}
+	}
+
+	var httpCfg *HTTPConfig
+	if s.HTTP != nil {
+		httpCfg = util.MutableCopy(s.HTTP)
+		httpCfg.Invoke.Method = s.HTTP.Invoke.DefaultedMethod()
+		if s.HTTP.Compensate != nil {
+			comp := util.MutableCopy(s.HTTP.Compensate)
+			comp.Method = s.HTTP.Compensate.DefaultedMethod()
+			httpCfg.Compensate = comp
+		}
+	}
+
+	h := stepHash{
+		Type:       s.Type,
+		Handling:   s.DefaultedHandling(),
+		Attributes: attrs,
+		HTTP:       httpCfg,
+		Script:     s.Script,
+		Flow:       s.Flow,
+		Predicate:  s.Predicate,
+		WorkConfig: s.WorkConfig,
+	}
+
+	data, err := json.Marshal(h)
+	if err != nil {
+		return "", errors.Join(ErrMarshalStep, err)
+	}
+
+	return sha256Hex(string(data)), nil
 }
 
 func validateAction(act *HTTPAction) error {

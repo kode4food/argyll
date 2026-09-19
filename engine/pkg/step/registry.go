@@ -10,14 +10,13 @@ import (
 )
 
 type (
-	// Runtime exposes engine services available during work execution
-	Runtime interface {
-		FlowID() api.FlowID
-		StepID() api.StepID
-		Metadata() api.Metadata
-		CompleteWork(api.Token, api.Args) error
-		UpdateHealth(api.HealthStatus, string) error
+	// Registry answers which handler runs a step
+	Registry struct {
+		handlers Handlers
 	}
+
+	// Handlers maps each step type to the implementation that runs it
+	Handlers map[api.StepType]*Handler
 
 	// Handler describes the capabilities supplied by a step implementation
 	Handler struct {
@@ -33,6 +32,15 @@ type (
 
 	// ExecuteFunc runs a step's work item
 	ExecuteFunc func(Runtime, *api.Step, api.Args, api.Token) error
+
+	// Runtime exposes engine services available during work execution
+	Runtime interface {
+		FlowID() api.FlowID
+		StepID() api.StepID
+		Metadata() api.Metadata
+		CompleteWork(api.Token, api.Args) error
+		UpdateHealth(api.HealthStatus, string) error
+	}
 
 	// HealthFunc reports whether a step can currently run
 	HealthFunc func(*api.Step) api.HealthState
@@ -52,14 +60,6 @@ type (
 		Metadata api.Metadata
 		FlowID   api.FlowID
 		Token    api.Token
-	}
-
-	// Handlers maps each step type to the implementation that runs it
-	Handlers map[api.StepType]*Handler
-
-	// Registry answers which handler runs a step
-	Registry struct {
-		handlers Handlers
 	}
 )
 

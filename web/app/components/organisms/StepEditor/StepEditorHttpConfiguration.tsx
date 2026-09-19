@@ -208,7 +208,7 @@ const StepEditorHttpConfiguration: React.FC<
           mode={{ mode: httpMode, onChange: setHttpMode }}
           method={{ method: httpMethod, onChange: setHttpMethod }}
           endpointIcon={IconEndpoint}
-          endpointLabelKey="stepEditor.endpointLabel"
+          endpointLabelKey="stepEditor.invokeLabel"
           endpointPlaceholderKey="stepEditor.endpointPlaceholder"
           endpointValue={endpoint}
           onEndpointChange={setEndpoint}
