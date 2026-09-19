@@ -35,7 +35,7 @@ func TestLocalCompensation(t *testing.T) {
 			eng := newTestEngine(t, argyll.Options{
 				Handlers: step.Handlers{
 					localStepType: {
-						Execute: func(
+						Invoke: func(
 							rt step.Runtime, st *api.Step,
 							_ api.Args, token api.Token,
 						) error {

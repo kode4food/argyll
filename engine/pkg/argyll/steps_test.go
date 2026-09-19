@@ -20,7 +20,7 @@ func TestEmbeddedStepType(t *testing.T) {
 		Handlers: step.Handlers{
 			api.StepTypeScript: builtins.Script(),
 			localStepType: {
-				Execute: func(
+				Invoke: func(
 					rt step.Runtime, st *api.Step,
 					inputs api.Args, tkn api.Token,
 				) error {

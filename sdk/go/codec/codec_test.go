@@ -275,6 +275,14 @@ func (failCodec) Encode(*jsontext.Encoder, string) error {
 	return errCodec
 }
 
+func (failCodec) FromValue(any) (string, error) {
+	return "", errCodec
+}
+
+func (failCodec) ToValue(string) (any, error) {
+	return nil, errCodec
+}
+
 func init() {
 	nodeImpl = codec.Struct(
 		codec.Field("name", codec.String, func(v *node) *string {

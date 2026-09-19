@@ -133,7 +133,7 @@ func TestNewCustomStep(t *testing.T) {
 			builtins.BaseCallbackURL(helpers.CallbackBaseURL),
 		)
 		handlers["custom"] = &step.Handler{
-			Execute: func(step.Runtime, *api.Step, api.Args, api.Token) error {
+			Invoke: func(step.Runtime, *api.Step, api.Args, api.Token) error {
 				return nil
 			},
 		}

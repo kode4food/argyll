@@ -1,4 +1,5 @@
-// Package codec provides composable JSON codecs over encoding/json/jsontext
+// Package codec provides composable JSON codecs over encoding/json/jsontext,
+// which also convert JSON-shaped Go values without serializing them
 package codec
 
 import (
@@ -9,10 +10,14 @@ import (
 )
 
 type (
-	// Codec reads and writes a single Go value as a JSON value
+	// Codec reads and writes a single Go value as a JSON value, or as the
+	// JSON-shaped Go value (string, bool, float64, []any, map[string]any, or
+	// nil) that decoding JSON into an any produces
 	Codec[T any] interface {
 		Decode(*jsontext.Decoder) (T, error)
 		Encode(*jsontext.Encoder, T) error
+		FromValue(any) (T, error)
+		ToValue(T) (any, error)
 	}
 
 	// StructField binds one JSON object member to a field of struct S
@@ -20,6 +25,8 @@ type (
 		Name() string
 		decode(*jsontext.Decoder, *S) error
 		encode(*jsontext.Encoder, *S, *encodeState) error
+		fromValue(any, *S) error
+		toValue(*S, *encodeState) (any, error)
 	}
 
 	// Numeric is any Go type whose JSON representation is a number
@@ -31,6 +38,7 @@ type (
 
 	stateCodec[T any] interface {
 		encode(*jsontext.Encoder, T, *encodeState) error
+		toValue(T, *encodeState) (any, error)
 	}
 
 	textCodec[T ~string]   struct{}
@@ -67,6 +75,7 @@ var (
 	Float64 = Number[float64]()
 
 	ErrUnexpectedToken = errors.New("unexpected JSON token")
+	ErrUnexpectedValue = errors.New("unexpected value")
 	ErrUnexpectedEnd   = errors.New("unexpected end of JSON input")
 	ErrCyclicValue     = errors.New("cyclic value")
 )
@@ -312,14 +321,7 @@ func (c *structCodec[S]) Decode(d *jsontext.Decoder) (S, error) {
 		if err != nil {
 			return res, err
 		}
-		f, ok := c.byName[name.String()]
-		if !ok {
-			if err := d.SkipValue(); err != nil {
-				return res, err
-			}
-			continue
-		}
-		if err := f.decode(d, &res); err != nil {
+		if err := c.decodeMember(d, name.String(), &res); err != nil {
 			return res, err
 		}
 	}
@@ -401,10 +403,22 @@ func (c *structCodec[S]) encode(
 	return e.WriteToken(jsontext.EndObject)
 }
 
+// decodeMember reads one object member into s, skipping a member the struct
+// does not declare
+func (c *structCodec[S]) decodeMember(
+	d *jsontext.Decoder, name string, s *S,
+) error {
+	f, ok := c.byName[name]
+	if !ok {
+		return d.SkipValue()
+	}
+	return f.decode(d, s)
+}
+
 func (f structField[S, T]) decode(d *jsontext.Decoder, s *S) error {
 	v, err := f.codec.Decode(d)
 	if err != nil {
-		return fmt.Errorf("%q: %w", f.name, err)
+		return fmt.Errorf("%w: %q", err, f.name)
 	}
 	*f.ptr(s) = v
 	return nil
@@ -456,10 +470,10 @@ func expect(d *jsontext.Decoder, kind jsontext.Kind) error {
 
 func readToken(d *jsontext.Decoder) (jsontext.Token, error) {
 	tok, err := d.ReadToken()
+	if errors.Is(err, io.EOF) {
+		return tok, ErrUnexpectedEnd
+	}
 	if err != nil {
-		if errors.Is(err, io.EOF) {
-			return tok, ErrUnexpectedEnd
-		}
 		return tok, err
 	}
 	return tok.Clone(), nil

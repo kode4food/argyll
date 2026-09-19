@@ -16,7 +16,7 @@ var (
 func HTTP(client Client, callback CallbackURL) *step.Handler {
 	return &step.Handler{
 		Validate:   validateHTTP(callback),
-		Execute:    executeHTTP(client, callback),
+		Invoke:     invokeHTTP(client, callback),
 		Compensate: compensateHTTP(client, callback),
 	}
 }
@@ -53,7 +53,7 @@ func compensateHTTP(client Client, callback CallbackURL) step.CompensateFunc {
 	}
 }
 
-func executeHTTP(client Client, callback CallbackURL) step.ExecuteFunc {
+func invokeHTTP(client Client, callback CallbackURL) step.InvokeFunc {
 	return func(
 		rt step.Runtime, st *api.Step, inputs api.Args, token api.Token,
 	) error {

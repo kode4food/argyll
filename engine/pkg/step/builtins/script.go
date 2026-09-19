@@ -37,7 +37,7 @@ func Script() *step.Handler {
 			}
 			return api.HealthState{Status: api.HealthHealthy}
 		},
-		Execute: func(
+		Invoke: func(
 			rt step.Runtime, st *api.Step, inputs api.Args, token api.Token,
 		) error {
 			compiled, err := scripts.Compile(st, st.Script)

@@ -123,7 +123,7 @@ func (e *ExecContext) performWork(inputs api.Args, tkn api.Token) error {
 	if err != nil {
 		return errors.Join(ErrUnsupportedStepType, err)
 	}
-	return handler.Execute(e, e.step, inputs, tkn)
+	return handler.Invoke(e, e.step, inputs, tkn)
 }
 
 func (tx *flowTx) startPendingWork(st *api.Step) (api.WorkItems, error) {

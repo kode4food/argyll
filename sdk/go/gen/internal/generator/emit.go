@@ -30,10 +30,13 @@ type (
 	}
 
 	sourceStep struct {
-		ID         string
-		Spec       string
-		Handler    string
-		Compensate string
+		ID                 string
+		Spec               string
+		Handler            string
+		Compensate         string
+		EmbeddedSpec       string
+		EmbeddedHandler    string
+		EmbeddedCompensate string
 	}
 
 	structDeclaration struct {
@@ -80,10 +83,17 @@ const (
 
 	codecPackage   = "github.com/kode4food/argyll/sdk/go/codec"
 	runtimePackage = "github.com/kode4food/argyll/sdk/go/gen"
+	apiPackage     = "github.com/kode4food/argyll/engine/pkg/api"
+	stepPackage    = "github.com/kode4food/argyll/engine/pkg/step"
 	contextPackage = "context"
 	httpPackage    = "net/http"
 	slogPackage    = "log/slog"
 	osPackage      = "os"
+
+	syncAdapter               = "gen.Sync("
+	compensateAdapter         = "gen.Compensate("
+	embeddedSyncAdapter       = "gen.EmbeddedSync("
+	embeddedCompensateAdapter = "gen.EmbeddedCompensate("
 
 	templatePattern = "templates/*.go.tmpl"
 	serverTemplate  = "server.go.tmpl"
@@ -99,10 +109,12 @@ var (
 	ErrSourceTemplate  = errors.New("failed to render source template")
 )
 
-//go:embed templates/*.go.tmpl
-var templates embed.FS
+var (
+	//go:embed templates/*.go.tmpl
+	templates embed.FS
 
-var sources = template.Must(template.ParseFS(templates, templatePattern))
+	sources = template.Must(template.ParseFS(templates, templatePattern))
+)
 
 // Render returns the generated source for a package, or nil when the
 // package contains no Argyll directives. Server adds a minimal main function
@@ -176,22 +188,24 @@ func (g *pkgGen) sourceSteps() ([]sourceStep, error) {
 		if err != nil {
 			return nil, err
 		}
+		embedded, err := embeddedSpec(s.spec)
+		if err != nil {
+			return nil, err
+		}
 		handler := s.handler
 		compensate := s.compensate
 		if g.server {
-			logged := func(h string) string {
-				return fmt.Sprintf("logged(%q, %s)", s.spec.ID, h)
-			}
-			handler = logged(handler)
-			if compensate != "" {
-				compensate = logged(compensate)
-			}
+			handler = logged(s.spec.ID, handler)
+			compensate = logged(s.spec.ID, compensate)
 		}
 		steps = append(steps, sourceStep{
-			ID:         strconv.Quote(string(s.spec.ID)),
-			Spec:       strconv.Quote(string(spec)),
-			Handler:    handler,
-			Compensate: compensate,
+			ID:                 strconv.Quote(string(s.spec.ID)),
+			Spec:               strconv.Quote(string(spec)),
+			Handler:            handler,
+			Compensate:         compensate,
+			EmbeddedSpec:       strconv.Quote(string(embedded)),
+			EmbeddedHandler:    embeddedHandler(s.handler),
+			EmbeddedCompensate: embeddedHandler(s.compensate),
 		})
 	}
 	return steps, nil
@@ -202,12 +216,12 @@ func (g *pkgGen) importBlock() string {
 	for _, p := range []string{runtimePackage, codecPackage} {
 		paths[p] = ""
 	}
+	extra := []string{apiPackage, stepPackage}
 	if g.server {
-		for _, p := range []string{
-			contextPackage, httpPackage, slogPackage, osPackage,
-		} {
-			paths[p] = ""
-		}
+		extra = []string{contextPackage, httpPackage, slogPackage, osPackage}
+	}
+	for _, p := range extra {
+		paths[p] = ""
 	}
 
 	var sb strings.Builder
@@ -231,7 +245,8 @@ func (g *pkgGen) wrapStruct(
 		if err != nil {
 			return "", nil, err
 		}
-		field, typ := ExportedName(n), g.typeOf(types[i])
+		field := ExportedName(n)
+		typ := g.typeOf(types[i])
 		_, _ = fmt.Fprintf(&decl, "%s %s\n", field, typ)
 		fields[i] = codecField{
 			attr:  n,
@@ -317,9 +332,7 @@ func (g *pkgGen) wrapCodec(fn string, elem types.Type) (string, error) {
 func (g *pkgGen) structCodec(t types.Type, u *types.Struct) (string, error) {
 	name := g.typeOf(t)
 	if v, ok := g.codecs[name]; ok {
-		if g.active[name] {
-			g.recursive[name] = true
-		}
+		g.recursive[name] = g.recursive[name] || g.active[name]
 		return v, nil
 	}
 	v := g.codecName(t)
@@ -374,6 +387,24 @@ func (g *pkgGen) qualifier(p *types.Package) string {
 	}
 	g.imports[p.Path()] = p.Name()
 	return p.Name()
+}
+
+// embeddedSpec is the step an embedded engine runs itself: typed by its own ID,
+// which names its handler, and reached without HTTP
+func embeddedSpec(spec *api.Step) ([]byte, error) {
+	embedded := spec.Copy()
+	embedded.Type = api.StepType(spec.ID)
+	embedded.HTTP = nil
+	return json.Marshal(embedded)
+}
+
+// logged wraps a server's handler expression with invocation logging, leaving
+// the absent compensation handler of a step absent
+func logged(id api.StepID, handler string) string {
+	if handler == "" {
+		return ""
+	}
+	return fmt.Sprintf("logged(%q, %s)", id, handler)
 }
 
 func renderStructDeclaration(decl structDeclaration) string {
@@ -451,21 +482,27 @@ func attributeType(t types.Type) api.AttributeType {
 	}
 	switch u := t.Underlying().(type) {
 	case *types.Basic:
-		info := u.Info()
-		switch {
-		case info&types.IsString != 0:
-			return api.TypeString
-		case info&types.IsBoolean != 0:
-			return api.TypeBoolean
-		case info&(types.IsInteger|types.IsFloat) != 0:
-			return api.TypeNumber
-		}
+		return basicType(u.Info())
 	case *types.Slice:
 		return api.TypeArray
 	case *types.Struct, *types.Map:
 		return api.TypeObject
+	default:
+		return api.TypeAny
 	}
-	return api.TypeAny
+}
+
+func basicType(info types.BasicInfo) api.AttributeType {
+	switch {
+	case info&types.IsString != 0:
+		return api.TypeString
+	case info&types.IsBoolean != 0:
+		return api.TypeBoolean
+	case info&(types.IsInteger|types.IsFloat) != 0:
+		return api.TypeNumber
+	default:
+		return api.TypeAny
+	}
 }
 
 func isPointer(t types.Type) bool {
@@ -480,27 +517,29 @@ func structFields(s *types.Struct) ([]fieldSpec, error) {
 		if !f.Exported() {
 			continue
 		}
-		tag := s.Tag(i)
-		if inner, ok := embeddedStruct(f, tag); ok {
-			fields, err := structFields(inner)
-			if err != nil {
-				return nil, err
-			}
-			out = append(out, fields...)
-			continue
-		}
-		spec, ok, err := attrOf(f, tag)
+		fields, err := fieldSpecs(f, s.Tag(i))
 		if err != nil {
 			return nil, err
 		}
-		if ok {
-			out = append(out, spec)
-		}
+		out = append(out, fields...)
 	}
 	if err := checkAmbiguous(out); err != nil {
 		return nil, err
 	}
 	return out, nil
+}
+
+// fieldSpecs returns the attributes one struct field contributes: the fields of
+// an embedded struct it flattens into, or the field itself
+func fieldSpecs(f *types.Var, tag string) ([]fieldSpec, error) {
+	if inner, ok := embeddedStruct(f, tag); ok {
+		return structFields(inner)
+	}
+	spec, ok, err := attrOf(f, tag)
+	if err != nil || !ok {
+		return nil, err
+	}
+	return []fieldSpec{spec}, nil
 }
 
 // embeddedStruct reports the struct an untagged embedded field flattens into,

@@ -173,7 +173,7 @@ func TestMetaInputs(t *testing.T) {
 		},
 	}
 
-	err = handler.Execute(rt, st, api.Args{}, "my-token")
+	err = handler.Invoke(rt, st, api.Args{}, "my-token")
 	assert.NoError(t, err)
 	assert.Equal(t, api.Token("my-token"), cl.inputs[api.Name("token")])
 }
@@ -261,7 +261,7 @@ func TestScriptOutput(t *testing.T) {
 		},
 	}
 
-	err = handler.Execute(rt, st, api.Args{}, "token-1")
+	err = handler.Invoke(rt, st, api.Args{}, "token-1")
 	assert.NoError(t, err)
 	assert.Equal(t, 1, calls.completeCalls)
 	assert.Equal(t, api.Args{"result": 42}, calls.completeOut)
@@ -283,7 +283,7 @@ func TestScriptFailure(t *testing.T) {
 		},
 	}
 
-	err = handler.Execute(rt, st, api.Args{}, "token-1")
+	err = handler.Invoke(rt, st, api.Args{}, "token-1")
 	assert.Error(t, err)
 	assert.ErrorIs(t, err, builtins.ErrScriptCompileFailed)
 	assert.Equal(t, api.HealthUnhealthy, calls.healthStatus)

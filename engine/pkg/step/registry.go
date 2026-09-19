@@ -21,7 +21,7 @@ type (
 	// Handler describes the capabilities supplied by a step implementation
 	Handler struct {
 		Validate   ValidateFunc
-		Execute    ExecuteFunc
+		Invoke     InvokeFunc
 		Health     HealthFunc
 		Children   ChildrenFunc
 		Compensate CompensateFunc
@@ -30,8 +30,8 @@ type (
 	// ValidateFunc validates step-type-specific configuration
 	ValidateFunc func(*api.Step) error
 
-	// ExecuteFunc runs a step's work item
-	ExecuteFunc func(Runtime, *api.Step, api.Args, api.Token) error
+	// InvokeFunc runs a step's work item
+	InvokeFunc func(Runtime, *api.Step, api.Args, api.Token) error
 
 	// Runtime exposes engine services available during work execution
 	Runtime interface {
@@ -124,4 +124,17 @@ func (r *Registry) Compensator(st *api.Step) (CompensateFunc, error) {
 		return nil, err
 	}
 	return handler.Compensate, nil
+}
+
+// With returns a copy of the handlers extended by others, where a later set
+// replaces a step type an earlier one registers
+func (h Handlers) With(others ...Handlers) Handlers {
+	res := maps.Clone(h)
+	if res == nil {
+		res = Handlers{}
+	}
+	for _, o := range others {
+		maps.Copy(res, o)
+	}
+	return res
 }

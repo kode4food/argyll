@@ -22,6 +22,7 @@ The engine is available at `http://localhost:8080` and the UI at `http://localho
 - [Concepts and Guides](https://www.argyll.app/docs/)
 - [Go SDK](https://www.argyll.app/docs/sdks/go/)
 - [Python SDK](https://www.argyll.app/docs/sdks/python/)
+- [Embedding](https://www.argyll.app/docs/guides/embedding/)
 - [Project development and API specifications](docs/)
 
 Argyll is under active development. Core flow execution, retries, async work, memoization, compensation, SDKs, and the web UI are available today.

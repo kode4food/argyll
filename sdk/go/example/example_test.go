@@ -106,8 +106,8 @@ func TestInferredWrappedStep(t *testing.T) {
 	body := `{"customer_id":"c-1","amount":5000}`
 	want := `{"score":50,"approved":true}`
 
-	for _, id := range []string{"rate-customer-v2", "grade-customer"} {
-		t.Run(id, func(t *testing.T) {
+	for _, id := range []api.StepID{"rate-customer-v2", "grade-customer"} {
+		t.Run(string(id), func(t *testing.T) {
 			res := invoke(t, srv, id, body)
 			assert.Equal(t, http.StatusOK, res.StatusCode)
 			assert.JSONEq(t, want, bodyOf(t, res))
@@ -116,7 +116,7 @@ func TestInferredWrappedStep(t *testing.T) {
 }
 
 func TestRegistration(t *testing.T) {
-	byID := registerSteps(t, example.ArgyllSteps()...)
+	byID := registerSteps(t, example.ArgyllServiceSteps()...)
 
 	risk := byID["calculate-risk"]
 	assert.Equal(t, api.StepTypeService, risk.Type)
@@ -136,14 +136,14 @@ func TestSemanticErrorStatus(t *testing.T) {
 }
 
 func TestRegisteredTags(t *testing.T) {
-	byID := registerSteps(t, example.ArgyllSteps()...)
+	byID := registerSteps(t, example.ArgyllServiceSteps()...)
 
 	assert.Equal(t, api.Tags{"domain:risk", "scoring"},
 		byID["calculate-risk"].Tags)
 }
 
 func TestRegisteredAttributeOptions(t *testing.T) {
-	byID := registerSteps(t, example.ArgyllSteps()...)
+	byID := registerSteps(t, example.ArgyllServiceSteps()...)
 
 	st := byID["charge-card-v2"]
 	assert.Equal(t, api.Name("Charge Card (v2)"), st.Name)
@@ -169,16 +169,16 @@ func TestForEachStep(t *testing.T) {
 
 func stepServer(t *testing.T) *httptest.Server {
 	t.Helper()
-	srv := httptest.NewServer(gen.Mux(example.ArgyllSteps()...))
+	srv := httptest.NewServer(gen.Mux(example.ArgyllServiceSteps()...))
 	t.Cleanup(srv.Close)
 	return srv
 }
 
 func invoke(
-	t *testing.T, srv *httptest.Server, id, body string,
+	t *testing.T, srv *httptest.Server, id api.StepID, body string,
 ) *http.Response {
 	t.Helper()
-	req, err := http.NewRequest(http.MethodPost, srv.URL+"/"+id,
+	req, err := http.NewRequest(http.MethodPost, srv.URL+"/"+string(id),
 		strings.NewReader(body))
 	assert.NoError(t, err)
 	req.Header.Set("Content-Type", api.JSONContentType)

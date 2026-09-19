@@ -137,7 +137,7 @@ func TestHTTPHandlerPropagatesMetadata(t *testing.T) {
 		},
 	}
 
-	err = handler.Execute(rt, st, api.Args{"input": "value"}, "token-1")
+	err = handler.Invoke(rt, st, api.Args{"input": "value"}, "token-1")
 	assert.NoError(t, err)
 	assert.Equal(t, 1, cl.invoked)
 	assert.Equal(t, "value", cl.inputs[api.Name("input")])
@@ -170,7 +170,7 @@ func TestHTTPHandlerAsyncAddsWebhookURL(t *testing.T) {
 		},
 	}
 
-	err = handler.Execute(rt, st, api.Args{"input": "value"}, "token-1")
+	err = handler.Invoke(rt, st, api.Args{"input": "value"}, "token-1")
 	assert.NoError(t, err)
 	assert.Equal(t, 1, cl.invoked)
 	assert.Equal(t,
@@ -205,7 +205,7 @@ func TestFlowHandlerHasNoExternalExecution(t *testing.T) {
 	reg := newRegistry(&testClient{})
 	handler, err := reg.Lookup(api.StepTypeFlow)
 	assert.NoError(t, err)
-	assert.Nil(t, handler.Execute)
+	assert.Nil(t, handler.Invoke)
 }
 
 func TestRegistryLookupMissing(t *testing.T) {

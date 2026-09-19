@@ -273,6 +273,22 @@ func TestPanicErrorUnwraps(t *testing.T) {
 	assert.Contains(t, pe.Error(), errRefused.Error())
 }
 
+func (failCodec) Decode(*jsontext.Decoder) (sumResult, error) {
+	return sumResult{}, errRefused
+}
+
+func (failCodec) Encode(*jsontext.Encoder, sumResult) error {
+	return errRefused
+}
+
+func (failCodec) FromValue(any) (sumResult, error) {
+	return sumResult{}, errRefused
+}
+
+func (failCodec) ToValue(sumResult) (any, error) {
+	return nil, errRefused
+}
+
 // sumStep stands in for what argyll-gen writes, the specification in the wire
 // form the engine accepts
 func sumStep() gen.StepDef {
@@ -329,12 +345,4 @@ func invoke(h http.HandlerFunc, body string) *httptest.ResponseRecorder {
 	w := httptest.NewRecorder()
 	h(w, r)
 	return w
-}
-
-func (failCodec) Decode(*jsontext.Decoder) (sumResult, error) {
-	return sumResult{}, errRefused
-}
-
-func (failCodec) Encode(*jsontext.Encoder, sumResult) error {
-	return errRefused
 }

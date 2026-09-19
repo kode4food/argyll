@@ -111,7 +111,20 @@ var (
 	ErrBadDirective = errors.New("invalid argyll directive")
 )
 
-var validStepID = regexp.MustCompile(`^[a-z][a-z0-9]*(-[a-z0-9]+)*$`)
+var (
+	validStepID = regexp.MustCompile(`^[a-z][a-z0-9]*(-[a-z0-9]+)*$`)
+
+	reservedStepIDs = map[api.StepType]bool{
+		api.StepTypeService: true,
+		api.StepTypeScript:  true,
+		api.StepTypeFlow:    true,
+	}
+
+	embeddedAdapters = map[string]string{
+		syncAdapter:       embeddedSyncAdapter,
+		compensateAdapter: embeddedCompensateAdapter,
+	}
+)
 
 func (g *pkgGen) addFunc(fn *ast.FuncDecl) error {
 	directive, ok := directiveOf(fn)
@@ -188,6 +201,12 @@ func (g *pkgGen) stepIDOf(
 	}
 	if !validStepID.MatchString(id) {
 		return "", g.errorAt(fn, "%w: bad step ID %q", ErrBadDirective, id)
+	}
+	// an embedded step's ID is its step type, which must not replace a built-in
+	// handler
+	if reservedStepIDs[api.StepType(id)] {
+		return "", g.errorAt(fn, "%w: step ID %q names a built-in step type",
+			ErrBadDirective, id)
 	}
 	return id, nil
 }
@@ -269,9 +288,8 @@ func (g *pkgGen) model(config *stepModelConfig) (stepModel, error) {
 	if len(decl.work) > 0 {
 		spec.WorkConfig = &api.WorkConfig{}
 	}
-	if err := applyOptions(
-		spec.WorkConfig, decl.work, workSetters,
-	); err != nil {
+	err := applyOptions(spec.WorkConfig, decl.work, workSetters)
+	if err != nil {
 		return stepModel{}, g.errorAt(fn, "%w", err)
 	}
 	if err := spec.Validate(); err != nil {
@@ -360,24 +378,20 @@ func (g *pkgGen) wrapFor(
 		return stepModel{}, g.errorAt(fn, "%w: %s", err, fn.Name.Name)
 	}
 	if names.inputs == nil {
-		n := sig.Params().Len()
-		if names.inputs, err = g.inferNames(
-			fn, sig.Params(), n, "parameter",
-		); err != nil {
-			return stepModel{}, err
-		}
+		names.inputs, err = g.inferNames(
+			fn, sig.Params(), sig.Params().Len(), "parameter",
+		)
+	}
+	if err != nil {
+		return stepModel{}, err
 	}
 	if names.outputs == nil {
-		res := sig.Results()
-		n := res.Len()
-		if n > 0 && isError(res.At(n-1).Type()) {
-			n--
-		}
-		if names.outputs, err = g.inferNames(
-			fn, res, n, "result",
-		); err != nil {
-			return stepModel{}, err
-		}
+		names.outputs, err = g.inferNames(
+			fn, sig.Results(), valueCount(sig.Results()), "result",
+		)
+	}
+	if err != nil {
+		return stepModel{}, err
 	}
 	if sig.Params().Len() != len(names.inputs) {
 		return stepModel{}, g.errorAt(fn,
@@ -401,12 +415,9 @@ func (g *pkgGen) wrapFor(
 	if err != nil {
 		return stepModel{}, g.errorAt(fn, "%w", err)
 	}
-	compFields := namedCompFields(
-		names.inputs, paramTypes(sig), inAttrs,
-	)
-	compFields = append(compFields, namedCompFields(
-		names.outputs, res, outAttrs,
-	)...)
+	compFields := namedCompFields(names.inputs, paramTypes(sig), inAttrs)
+	outFields := namedCompFields(names.outputs, res, outAttrs)
+	compFields = append(compFields, outFields...)
 	compensate, err := g.compHandler(&compHandlerConfig{
 		fn:     fn,
 		decl:   decl,
@@ -682,11 +693,8 @@ func (g *pkgGen) wrapResults(
 	fn *ast.FuncDecl, sig *types.Signature, want int,
 ) ([]types.Type, bool, error) {
 	res := sig.Results()
-	n := res.Len()
-	hasErr := n > 0 && isError(res.At(n-1).Type())
-	if hasErr {
-		n--
-	}
+	n := valueCount(res)
+	hasErr := n < res.Len()
 	if n != want {
 		return nil, false, g.errorAt(fn,
 			"%w: %s declares %d outputs but returns %d",
@@ -737,8 +745,9 @@ type syncHandlerArgs struct {
 
 func syncHandler(args syncHandlerArgs) string {
 	return fmt.Sprintf(
-		"gen.Sync(\n%s, %s,\nfunc(in %s) (%s, error) {\n%s\n})",
-		args.inCodec, args.outCodec, args.inType, args.outType, args.body,
+		"%s\n%s, %s,\nfunc(in %s) (%s, error) {\n%s\n})",
+		syncAdapter, args.inCodec, args.outCodec, args.inType, args.outType,
+		args.body,
 	)
 }
 
@@ -758,8 +767,7 @@ func syncBody(args syncBodyArgs) string {
 	case args.fallible:
 		return fmt.Sprintf("return %s{}, %s", args.outputType, args.call)
 	default:
-		return fmt.Sprintf("%s\nreturn %s{}, nil", args.call,
-			args.outputType)
+		return fmt.Sprintf("%s\nreturn %s{}, nil", args.call, args.outputType)
 	}
 }
 
@@ -788,7 +796,8 @@ func wrapBody(
 	}
 	_, _ = fmt.Fprintf(&sb, "%s(%s)\n", fn, strings.Join(call, ", "))
 	if hasErr {
-		_, _ = fmt.Fprintf(&sb, "if err != nil {\nreturn %s{}, err\n}\n", outType)
+		_, _ = fmt.Fprintf(&sb, "if err != nil {\nreturn %s{}, err\n}\n",
+			outType)
 	}
 	sb.WriteString(res)
 	return sb.String()
@@ -806,6 +815,15 @@ func paramTypes(sig *types.Signature) []types.Type {
 func isError(t types.Type) bool {
 	named, ok := t.(*types.Named)
 	return ok && named.Obj().Pkg() == nil && named.Obj().Name() == "error"
+}
+
+// valueCount is how many results are values, leaving out a trailing error
+func valueCount(res *types.Tuple) int {
+	n := res.Len()
+	if n > 0 && isError(res.At(n-1).Type()) {
+		return n - 1
+	}
+	return n
 }
 
 func taggedCompFields(
@@ -858,7 +876,18 @@ func compAdapter(cfg compAdapterConfig) string {
 		body = "return " + cfg.call
 	}
 	return fmt.Sprintf(
-		"gen.Compensate(\n%s,\nfunc(in %s) error {\n%s\n})",
-		cfg.codec, cfg.typ, body,
+		"%s\n%s,\nfunc(in %s) error {\n%s\n})",
+		compensateAdapter, cfg.codec, cfg.typ, body,
 	)
+}
+
+// embeddedHandler swaps the HTTP adapter a handler expression opens with for
+// its in-process twin, which takes the same codecs and function
+func embeddedHandler(expr string) string {
+	for service, embedded := range embeddedAdapters {
+		if rest, ok := strings.CutPrefix(expr, service); ok {
+			return embedded + rest
+		}
+	}
+	return expr
 }

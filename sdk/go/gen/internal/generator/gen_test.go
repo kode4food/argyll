@@ -101,12 +101,44 @@ func TestGeneratedSurface(t *testing.T) {
 	assert.NoError(t, err)
 	text := string(src)
 
-	assert.Contains(t, text, "func ArgyllSteps() []gen.StepDef")
+	assert.Contains(t, text, "func ArgyllServiceSteps() []gen.StepDef")
 	assert.Contains(t, text, "codecRiskArgs := codec.Struct(")
 	assert.Contains(t, text, "codecRefundCardArgs := codec.Struct(")
 	assert.NotContains(t, text, "var codecRiskArgs")
 	assert.NotContains(t, text, "\nvar codec")
 	assert.NotContains(t, text, "\ntype ScoreCustomerIn")
+}
+
+func TestGeneratedEmbeddedSurface(t *testing.T) {
+	src, err := render(t, "../../../example")
+	assert.NoError(t, err)
+	text := string(src)
+
+	assert.Contains(t, text, "func ArgyllEmbeddedHandlers() step.Handlers")
+	assert.Contains(t, text,
+		"func ArgyllEmbeddedSteps() ([]*api.Step, error)")
+	assert.Contains(t, text, `"calculate-risk": {`)
+	assert.Contains(t, text, "Invoke: gen.EmbeddedSync(")
+	assert.Contains(t, text, "Compensate: gen.EmbeddedCompensate(")
+	assert.Contains(t, text, `\"type\":\"calculate-risk\"`)
+}
+
+func TestGeneratedServerEmbedded(t *testing.T) {
+	src := "package main\n\n//argyll:step\nfunc Run() {}\n"
+	out, err := renderFile(t, src, true)
+	assert.NoError(t, err)
+	text := string(out)
+
+	assert.NotContains(t, text, "ArgyllEmbeddedHandlers")
+	assert.NotContains(t, text, "ArgyllEmbeddedSteps")
+	assert.NotContains(t, text, "gen.EmbeddedSync")
+}
+
+func TestReservedStepID(t *testing.T) {
+	for _, id := range []string{"service", "script", "flow"} {
+		_, err := renderSource(t, "//argyll:step "+id+"\nfunc Run() {}")
+		assert.ErrorIs(t, err, generator.ErrBadDirective)
+	}
 }
 
 func TestGeneratedServer(t *testing.T) {
@@ -120,7 +152,7 @@ func TestGeneratedServer(t *testing.T) {
 	assert.Contains(t, text, `slog.Info("Argyll step invoked",`)
 	assert.Contains(t, text, `Handler: logged("run", gen.Sync(`)
 	assert.Contains(t, text, `slog.Any("error", err)`)
-	assert.NotContains(t, text, "ArgyllSteps")
+	assert.NotContains(t, text, "ArgyllServiceSteps")
 }
 
 func TestGeneratedSurfaceLogging(t *testing.T) {
