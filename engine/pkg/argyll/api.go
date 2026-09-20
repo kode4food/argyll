@@ -71,17 +71,12 @@ type (
 
 	// Flows plans work and starts and reports on the flows that run it
 	Flows interface {
-		// CreatePlan builds an execution plan over the current catalog,
-		// narrowed to a space when one is named
-		CreatePlan(api.ExecutionPlanRequest) (*api.ExecutionPlan, error)
-
-		// PreviewPlan builds a plan to show rather than run. Unlike CreatePlan,
-		// it keeps providers nothing can satisfy, so a caller can show the
-		// chain back to missing init inputs
-		PreviewPlan(api.ExecutionPlanRequest) (*api.ExecutionPlan, error)
-
 		// StartFlow validates a request, plans it, and starts the flow
 		StartFlow(api.CreateFlowRequest) error
+
+		// CreatePlan builds the execution plan StartPlan runs, over the current
+		// catalog, narrowed to a space when one is named
+		CreatePlan(api.ExecutionPlanRequest) (*api.ExecutionPlan, error)
 
 		// StartPlan begins a flow execution from a plan the caller built
 		StartPlan(api.FlowID, *api.ExecutionPlan, ...flow.Applier) error
