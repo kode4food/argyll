@@ -7,18 +7,18 @@ import (
 
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/step"
-	"github.com/kode4food/argyll/sdk/go/codec"
+	"github.com/kode4food/argyll/sdk/go/convert"
 )
 
-// EmbeddedSync adapts a plain Go function to a step handler an embedded engine
-// runs in process, converting its values without serializing them
+// EmbeddedSync adapts a native function to a step handler an embedded engine
+// runs in process, converting its values in memory
 func EmbeddedSync[I, O any](
-	in codec.Codec[I], out codec.Codec[O], fn func(I) (O, error),
+	in convert.Converter[I], out convert.Converter[O], fn func(I) (O, error),
 ) step.InvokeFunc {
 	return func(
 		rt step.Runtime, st *api.Step, inputs api.Args, tkn api.Token,
 	) error {
-		args, err := in.FromValue(embeddedArgs(rt, st, inputs, tkn))
+		args, err := in.From(embeddedArgs(rt, st, inputs, tkn))
 		if err != nil {
 			return errors.Join(ErrInvalidInputs, err)
 		}
@@ -26,7 +26,7 @@ func EmbeddedSync[I, O any](
 		if err != nil {
 			return err
 		}
-		outputs, err := out.ToValue(res)
+		outputs, err := out.To(res)
 		if err != nil {
 			return err
 		}
@@ -37,10 +37,10 @@ func EmbeddedSync[I, O any](
 // EmbeddedCompensate adapts a typed compensation function to a step handler's
 // in-process compensation
 func EmbeddedCompensate[I any](
-	in codec.Codec[I], fn func(I) error,
+	in convert.Converter[I], fn func(I) error,
 ) step.CompensateFunc {
 	return func(req step.CompensateRequest) (bool, error) {
-		args, err := in.FromValue(compensationArgs(req))
+		args, err := in.From(compensationArgs(req))
 		if err != nil {
 			return false, errors.Join(ErrInvalidInputs, err)
 		}

@@ -7,7 +7,7 @@ import (
 
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/step"
-	"github.com/kode4food/argyll/sdk/go/codec"
+	"github.com/kode4food/argyll/sdk/go/convert"
 	"github.com/kode4food/argyll/sdk/go/gen"
 )
 
@@ -23,12 +23,14 @@ type (
 		Flow  string
 		Tier  string
 	}
+
+	failConverter struct{}
 )
 
 var _ step.Runtime = (*testRuntime)(nil)
 
 func TestEmbeddedSyncOutputs(t *testing.T) {
-	exec := gen.EmbeddedSync(sumArgsCodec(), sumResultCodec(),
+	exec := gen.EmbeddedSync(sumArgsConverter(), sumResultConverter(),
 		func(in sumArgs) (sumResult, error) {
 			total := in.Left + in.Right
 			return sumResult{Total: total, Doubled: total * 2}, nil
@@ -43,7 +45,7 @@ func TestEmbeddedSyncOutputs(t *testing.T) {
 
 func TestEmbeddedSyncMeta(t *testing.T) {
 	var got metaArgs
-	exec := gen.EmbeddedSync(metaArgsCodec(), codec.Struct[struct{}](),
+	exec := gen.EmbeddedSync(metaArgsConverter(), convert.Struct[struct{}](),
 		func(in metaArgs) (struct{}, error) {
 			got = in
 			return struct{}{}, nil
@@ -74,34 +76,35 @@ func TestEmbeddedSyncErrors(t *testing.T) {
 	rt := &testRuntime{}
 	st := &api.Step{}
 
-	exec := gen.EmbeddedSync(sumArgsCodec(), sumResultCodec(), ok)
+	exec := gen.EmbeddedSync(sumArgsConverter(), sumResultConverter(), ok)
 	err := exec(rt, st, api.Args{"left": "x"}, "tkn")
 	assert.ErrorIs(t, err, gen.ErrInvalidInputs)
 
-	exec = gen.EmbeddedSync(sumArgsCodec(), sumResultCodec(),
+	exec = gen.EmbeddedSync(sumArgsConverter(), sumResultConverter(),
 		func(sumArgs) (sumResult, error) {
 			return sumResult{}, errRefused
 		})
 	assert.ErrorIs(t, exec(rt, st, api.Args{}, "tkn"), errRefused)
 
-	exec = gen.EmbeddedSync(sumArgsCodec(), sumResultCodec(),
+	exec = gen.EmbeddedSync(sumArgsConverter(), sumResultConverter(),
 		func(sumArgs) (sumResult, error) {
 			panic("boom")
 		})
 	var panicErr *gen.PanicError
 	assert.ErrorAs(t, exec(rt, st, api.Args{}, "tkn"), &panicErr)
 
-	exec = gen.EmbeddedSync(sumArgsCodec(), failCodec{}, ok)
+	exec = gen.EmbeddedSync(sumArgsConverter(), failConverter{}, ok)
 	assert.ErrorIs(t, exec(rt, st, api.Args{}, "tkn"), errRefused)
 	assert.Nil(t, rt.outputs)
 }
 
 func TestEmbeddedCompensate(t *testing.T) {
 	var got compArgs
-	comp := gen.EmbeddedCompensate(compArgsCodec(), func(in compArgs) error {
-		got = in
-		return nil
-	})
+	comp := gen.EmbeddedCompensate(compArgsConverter(),
+		func(in compArgs) error {
+			got = in
+			return nil
+		})
 	st := &api.Step{
 		Attributes: api.AttributeSpecs{
 			"left":  {Role: api.RoleRequired, Compensated: true},
@@ -127,9 +130,10 @@ func TestEmbeddedCompensateErrors(t *testing.T) {
 		},
 	}
 
-	comp := gen.EmbeddedCompensate(compArgsCodec(), func(compArgs) error {
-		return errRefused
-	})
+	comp := gen.EmbeddedCompensate(compArgsConverter(),
+		func(compArgs) error {
+			return errRefused
+		})
 	done, err := comp(step.CompensateRequest{Step: st})
 	assert.ErrorIs(t, err, errRefused)
 	assert.False(t, done)
@@ -174,6 +178,14 @@ func (r *testRuntime) UpdateHealth(api.HealthStatus, string) error {
 	return nil
 }
 
+func (failConverter) From(any) (sumResult, error) {
+	return sumResult{}, errRefused
+}
+
+func (failConverter) To(sumResult) (any, error) {
+	return nil, errRefused
+}
+
 func metaAttr(key string) *api.AttributeSpec {
 	return &api.AttributeSpec{
 		Role: api.RoleMeta,
@@ -181,17 +193,56 @@ func metaAttr(key string) *api.AttributeSpec {
 	}
 }
 
-func metaArgsCodec() codec.Codec[metaArgs] {
-	return codec.Struct(
-		codec.Field("token", codec.Text[api.Token](),
+func metaArgsConverter() convert.Converter[metaArgs] {
+	return convert.Struct(
+		convert.Field("token", convert.Text[api.Token](),
 			func(v *metaArgs) *api.Token {
 				return &v.Token
 			}),
-		codec.Field("flow", codec.String, func(v *metaArgs) *string {
-			return &v.Flow
+		convert.Field("flow", convert.Text[string](),
+			func(v *metaArgs) *string {
+				return &v.Flow
+			}),
+		convert.Field("tier", convert.Text[string](),
+			func(v *metaArgs) *string {
+				return &v.Tier
+			}),
+	)
+}
+
+func sumArgsConverter() convert.Converter[sumArgs] {
+	return convert.Struct(
+		convert.Field("left", convert.Number[int](), func(v *sumArgs) *int {
+			return &v.Left
 		}),
-		codec.Field("tier", codec.String, func(v *metaArgs) *string {
-			return &v.Tier
+		convert.Field("right", convert.Number[int](),
+			func(v *sumArgs) *int {
+				return &v.Right
+			}),
+	)
+}
+
+func sumResultConverter() convert.Converter[sumResult] {
+	return convert.Struct(
+		convert.Field("total", convert.Number[int](),
+			func(v *sumResult) *int {
+				return &v.Total
+			}),
+		convert.Field("doubled", convert.Number[int](),
+			func(v *sumResult) *int {
+				return &v.Doubled
+			}),
+	)
+}
+
+func compArgsConverter() convert.Converter[compArgs] {
+	return convert.Struct(
+		convert.Field("left", convert.Number[int](), func(v *compArgs) *int {
+			return &v.Left
 		}),
+		convert.Field("total", convert.Number[int](),
+			func(v *compArgs) *int {
+				return &v.Total
+			}),
 	)
 }

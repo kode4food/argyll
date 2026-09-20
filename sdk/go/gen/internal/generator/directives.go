@@ -154,6 +154,27 @@ func descriptionIn(fn *ast.FuncDecl) (string, error) {
 	return res, nil
 }
 
+// embedIn is the step type the embed directive names
+func embedIn(fn *ast.FuncDecl) (string, error) {
+	var res string
+	for _, c := range fn.Doc.List {
+		ref, ok := parseDirective(c.Text)
+		if !ok || ref.kind != embedDirective {
+			continue
+		}
+		if res != "" {
+			return "", fmt.Errorf("%w: %s repeats",
+				ErrBadDirective, directivePrefix+embedDirective)
+		}
+		res = strings.TrimSpace(ref.args)
+		if res == "" {
+			return "", fmt.Errorf("%w: %s needs a step type",
+				ErrBadDirective, directivePrefix+embedDirective)
+		}
+	}
+	return res, nil
+}
+
 func parsePredicate(fn *ast.FuncDecl) (*api.ScriptConfig, error) {
 	var res *api.ScriptConfig
 	for _, c := range fn.Doc.List {

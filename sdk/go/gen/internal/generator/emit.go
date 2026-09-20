@@ -23,38 +23,48 @@ import (
 
 type (
 	sourceModel struct {
-		Package      string
-		Imports      string
-		Declarations []string
-		Steps        []sourceStep
+		Package              string
+		Imports              string
+		Declarations         []string
+		Steps                []sourceStep
+		EmbeddedDeclarations []string
+		Embedded             []sourceStep
 	}
 
 	sourceStep struct {
-		ID                 string
-		Spec               string
-		Handler            string
-		Compensate         string
-		EmbeddedSpec       string
-		EmbeddedHandler    string
-		EmbeddedCompensate string
+		ID         string
+		Spec       string
+		Handler    string
+		Compensate string
 	}
 
 	structDeclaration struct {
-		name   string
-		owner  string
-		fields []codecField
-		lazy   bool
+		dialect dialect
+		name    string
+		owner   string
+		fields  []codecField
+		lazy    bool
 	}
 
 	pkgGen struct {
-		pkg       *packages.Package
-		server    bool
-		imports   map[string]string
-		codecs    map[string]string
-		active    map[string]bool
-		recursive map[string]bool
-		decls     []string
-		steps     []stepModel
+		pkg        *packages.Package
+		dialect    dialect
+		imports    map[string]string
+		codecs     map[string]string
+		active     map[string]bool
+		recursive  map[string]bool
+		embedTypes map[string]string
+		decls      []string
+		steps      []stepModel
+	}
+
+	// dialect is the family of value adapters a pass generates: codecs for
+	// served HTTP handlers, converters for in-process embedded handlers
+	dialect struct {
+		pkg        string
+		iface      string
+		sync       string
+		compensate string
 	}
 
 	codecField struct {
@@ -82,6 +92,7 @@ const (
 	skipField  = "-"
 
 	codecPackage   = "github.com/kode4food/argyll/sdk/go/codec"
+	convertPackage = "github.com/kode4food/argyll/sdk/go/convert"
 	runtimePackage = "github.com/kode4food/argyll/sdk/go/gen"
 	apiPackage     = "github.com/kode4food/argyll/engine/pkg/api"
 	stepPackage    = "github.com/kode4food/argyll/engine/pkg/step"
@@ -89,11 +100,6 @@ const (
 	httpPackage    = "net/http"
 	slogPackage    = "log/slog"
 	osPackage      = "os"
-
-	syncAdapter               = "gen.Sync("
-	compensateAdapter         = "gen.Compensate("
-	embeddedSyncAdapter       = "gen.EmbeddedSync("
-	embeddedCompensateAdapter = "gen.EmbeddedCompensate("
 
 	templatePattern = "templates/*.go.tmpl"
 	serverTemplate  = "server.go.tmpl"
@@ -114,21 +120,75 @@ var (
 	templates embed.FS
 
 	sources = template.Must(template.ParseFS(templates, templatePattern))
+
+	serviceDialect = dialect{
+		pkg:        "codec",
+		iface:      "Codec",
+		sync:       "gen.Sync(",
+		compensate: "gen.Compensate(",
+	}
+
+	embeddedDialect = dialect{
+		pkg:        "convert",
+		iface:      "Converter",
+		sync:       "gen.EmbeddedSync(",
+		compensate: "gen.EmbeddedCompensate(",
+	}
+
+	serverPackages = []string{
+		runtimePackage, codecPackage,
+		contextPackage, httpPackage, slogPackage, osPackage,
+	}
+
+	libraryPackages = []string{
+		runtimePackage, codecPackage, convertPackage, apiPackage, stepPackage,
+	}
 )
 
-// Render returns the generated source for a package, or nil when the
-// package contains no Argyll directives. Server adds a minimal main function
+// Render returns the generated source for a package, or nil when the package
+// contains no Argyll directives. Server adds a minimal main function and leaves
+// out the embedded handlers, which only a library offers
 func Render(pkg *packages.Package, server bool) ([]byte, error) {
-	g := &pkgGen{
-		pkg:       pkg,
-		server:    server,
-		imports:   map[string]string{},
-		codecs:    map[string]string{},
-		active:    map[string]bool{},
-		recursive: map[string]bool{},
+	service := newPkgGen(pkg, serviceDialect)
+	mainDeclared, err := service.collect()
+	if err != nil {
+		return nil, err
 	}
+	if len(service.steps) == 0 {
+		return nil, nil
+	}
+	if server && pkg.Name != "main" {
+		return nil, fmt.Errorf("%w: %s", ErrServerPackage, pkg.Name)
+	}
+	if server && mainDeclared {
+		return nil, ErrMainDeclared
+	}
+	if server {
+		return service.serverSource()
+	}
+	embedded := newPkgGen(pkg, embeddedDialect)
+	if _, err := embedded.collect(); err != nil {
+		return nil, err
+	}
+	return librarySource(service, embedded)
+}
+
+func newPkgGen(pkg *packages.Package, d dialect) *pkgGen {
+	return &pkgGen{
+		pkg:        pkg,
+		dialect:    d,
+		imports:    map[string]string{},
+		codecs:     map[string]string{},
+		active:     map[string]bool{},
+		recursive:  map[string]bool{},
+		embedTypes: map[string]string{},
+	}
+}
+
+// collect gathers the package's steps, reporting whether it declares main
+func (g *pkgGen) collect() (bool, error) {
 	mainDeclared := false
-	for _, f := range pkg.Syntax {
+	for _, f := range g.pkg.Syntax {
 		for _, d := range f.Decls {
 			fn, ok := d.(*ast.FuncDecl)
 			if !ok {
@@ -138,99 +198,66 @@ func Render(pkg *packages.Package, server bool) ([]byte, error) {
 				mainDeclared = true
 			}
 			if err := g.addFunc(fn); err != nil {
-				return nil, err
+				return false, err
 			}
 		}
 	}
-	if len(g.steps) == 0 {
-		return nil, nil
-	}
-	if server && pkg.Name != "main" {
-		return nil, fmt.Errorf("%w: %s", ErrServerPackage, pkg.Name)
-	}
-	if server && mainDeclared {
-		return nil, ErrMainDeclared
-	}
-	return g.source()
+	return mainDeclared, nil
 }
 
-func (g *pkgGen) source() ([]byte, error) {
-	steps, err := g.sourceSteps()
+func (g *pkgGen) serverSource() ([]byte, error) {
+	steps, err := g.serviceSteps(true)
 	if err != nil {
 		return nil, err
 	}
-	model := sourceModel{
+	return render(serverTemplate, sourceModel{
 		Package:      g.pkg.Name,
-		Imports:      g.importBlock(),
+		Imports:      importBlock(g.imports, serverPackages),
 		Declarations: g.decls,
 		Steps:        steps,
-	}
-	name := stepsTemplate
-	if g.server {
-		name = serverTemplate
-	}
-	var buf bytes.Buffer
-	if err := sources.ExecuteTemplate(&buf, name, model); err != nil {
-		return nil, errors.Join(ErrSourceTemplate, err)
-	}
-
-	src, err := imports.Process("", buf.Bytes(), nil)
-	if err != nil {
-		return nil, fmt.Errorf("%w:\n%s", err, buf.String())
-	}
-	return src, nil
+	})
 }
 
-func (g *pkgGen) sourceSteps() ([]sourceStep, error) {
-	steps := make([]sourceStep, 0, len(g.steps))
+func (g *pkgGen) serviceSteps(logging bool) ([]sourceStep, error) {
+	res := make([]sourceStep, 0, len(g.steps))
 	for _, s := range g.steps {
 		spec, err := json.Marshal(s.spec)
 		if err != nil {
 			return nil, err
 		}
-		embedded, err := embeddedSpec(s.spec)
-		if err != nil {
-			return nil, err
-		}
 		handler := s.handler
 		compensate := s.compensate
-		if g.server {
+		if logging {
 			handler = logged(s.spec.ID, handler)
 			compensate = logged(s.spec.ID, compensate)
 		}
-		steps = append(steps, sourceStep{
-			ID:                 strconv.Quote(string(s.spec.ID)),
-			Spec:               strconv.Quote(string(spec)),
-			Handler:            handler,
-			Compensate:         compensate,
-			EmbeddedSpec:       strconv.Quote(string(embedded)),
-			EmbeddedHandler:    embeddedHandler(s.handler),
-			EmbeddedCompensate: embeddedHandler(s.compensate),
+		res = append(res, sourceStep{
+			ID:         strconv.Quote(string(s.spec.ID)),
+			Spec:       strconv.Quote(string(spec)),
+			Handler:    handler,
+			Compensate: compensate,
 		})
 	}
-	return steps, nil
+	return res, nil
 }
 
-func (g *pkgGen) importBlock() string {
-	paths := maps.Clone(g.imports)
-	for _, p := range []string{runtimePackage, codecPackage} {
-		paths[p] = ""
+// embeddedSteps are keyed by step type, which is the ID an embedded engine runs
+// the step's handler under
+func (g *pkgGen) embeddedSteps() ([]sourceStep, error) {
+	res := make([]sourceStep, 0, len(g.steps))
+	for _, s := range g.steps {
+		spec, err := embeddedSpec(s)
+		if err != nil {
+			return nil, err
+		}
+		res = append(res, sourceStep{
+			ID:         strconv.Quote(s.embedType),
+			Spec:       strconv.Quote(string(spec)),
+			Handler:    s.handler,
+			Compensate: s.compensate,
+		})
 	}
-	extra := []string{apiPackage, stepPackage}
-	if g.server {
-		extra = []string{contextPackage, httpPackage, slogPackage, osPackage}
-	}
-	for _, p := range extra {
-		paths[p] = ""
-	}
-
-	var sb strings.Builder
-	sb.WriteString("import (\n")
-	for _, p := range slices.Sorted(maps.Keys(paths)) {
-		_, _ = fmt.Fprintf(&sb, "%q\n", p)
-	}
-	sb.WriteString(")\n\n")
-	return sb.String()
+	return res, nil
 }
 
 func (g *pkgGen) wrapStruct(
@@ -239,7 +266,7 @@ func (g *pkgGen) wrapStruct(
 	fields := make([]codecField, len(names))
 	attrs := api.AttributeSpecs{}
 	var decl strings.Builder
-	_, _ = fmt.Fprintf(&decl, "type %s struct {\n", name)
+	_, _ = fmt.Fprintf(&decl, structTypeOpen, name)
 	for i, n := range names {
 		expr, err := g.codecExpr(types[i])
 		if err != nil {
@@ -247,7 +274,7 @@ func (g *pkgGen) wrapStruct(
 		}
 		field := ExportedName(n)
 		typ := g.typeOf(types[i])
-		_, _ = fmt.Fprintf(&decl, "%s %s\n", field, typ)
+		_, _ = fmt.Fprintf(&decl, structTypeField, field, typ)
 		fields[i] = codecField{
 			attr:  n,
 			field: field,
@@ -264,11 +291,12 @@ func (g *pkgGen) wrapStruct(
 	decl.WriteString("}")
 	g.decls = append(g.decls, decl.String())
 
-	codecVar := "codec" + ExportedName(name)
+	codecVar := g.dialect.pkg + ExportedName(name)
 	g.decls = append(g.decls, renderStructDeclaration(structDeclaration{
-		name:   codecVar,
-		owner:  name,
-		fields: fields,
+		dialect: g.dialect,
+		name:    codecVar,
+		owner:   name,
+		fields:  fields,
 	}))
 	return codecVar, attrs, nil
 }
@@ -293,40 +321,44 @@ func (g *pkgGen) basicCodec(t types.Type, u *types.Basic) (string, error) {
 	info := u.Info()
 	switch {
 	case info&types.IsString != 0:
-		return fmt.Sprintf("codec.Text[%s]()", g.typeOf(t)), nil
+		return g.scalarCodec("Text", t), nil
 	case info&types.IsBoolean != 0:
-		return fmt.Sprintf("codec.Boolean[%s]()", g.typeOf(t)), nil
+		return g.scalarCodec("Boolean", t), nil
 	case info&(types.IsInteger|types.IsFloat) != 0:
-		return fmt.Sprintf("codec.Number[%s]()", g.typeOf(t)), nil
+		return g.scalarCodec("Number", t), nil
 	default:
 		return "", fmt.Errorf("%w: %s", ErrUnsupportedType, g.typeOf(t))
 	}
 }
 
+func (g *pkgGen) scalarCodec(kind string, t types.Type) string {
+	return fmt.Sprintf("%s.%s[%s]()", g.dialect.pkg, kind, g.typeOf(t))
+}
+
 func (g *pkgGen) compositeCodec(u types.Type) (string, error) {
 	switch u := u.(type) {
 	case *types.Slice:
-		return g.wrapCodec("codec.Slice", u.Elem())
+		return g.wrapCodec("Slice", u.Elem())
 	case *types.Pointer:
-		return g.wrapCodec("codec.Optional", u.Elem())
+		return g.wrapCodec("Optional", u.Elem())
 	case *types.Map:
 		if b, ok := u.Key().Underlying().(*types.Basic); !ok ||
 			b.Info()&types.IsString == 0 {
 			return "", fmt.Errorf("%w: %s keys", ErrUnsupportedType,
 				g.typeOf(u.Key()))
 		}
-		return g.wrapCodec("codec.Map", u.Elem())
+		return g.wrapCodec("Map", u.Elem())
 	default:
 		return "", fmt.Errorf("%w: %s", ErrUnsupportedType, g.typeOf(u))
 	}
 }
 
-func (g *pkgGen) wrapCodec(fn string, elem types.Type) (string, error) {
+func (g *pkgGen) wrapCodec(kind string, elem types.Type) (string, error) {
 	inner, err := g.codecExpr(elem)
 	if err != nil {
 		return "", err
 	}
-	return fmt.Sprintf("%s(%s)", fn, inner), nil
+	return fmt.Sprintf("%s.%s(%s)", g.dialect.pkg, kind, inner), nil
 }
 
 func (g *pkgGen) structCodec(t types.Type, u *types.Struct) (string, error) {
@@ -359,19 +391,25 @@ func (g *pkgGen) structCodec(t types.Type, u *types.Struct) (string, error) {
 		})
 	}
 	g.decls = append(g.decls, renderStructDeclaration(structDeclaration{
-		name:   v,
-		owner:  name,
-		fields: fields,
-		lazy:   g.recursive[name],
+		dialect: g.dialect,
+		name:    v,
+		owner:   name,
+		fields:  fields,
+		lazy:    g.recursive[name],
 	}))
 	return v, nil
 }
 
+// emptyCodec is the codec of a side a step's function leaves empty
+func (g *pkgGen) emptyCodec() string {
+	return g.dialect.pkg + ".Struct[struct{}]()"
+}
+
 func (g *pkgGen) codecName(t types.Type) string {
 	if named, ok := t.(*types.Named); ok {
-		return "codec" + ExportedName(named.Obj().Name())
+		return g.dialect.pkg + ExportedName(named.Obj().Name())
 	}
-	return fmt.Sprintf("codecAnon%d", len(g.codecs))
+	return fmt.Sprintf("%sAnon%d", g.dialect.pkg, len(g.codecs))
 }
 
 func (g *pkgGen) typeOf(t types.Type) string {
@@ -389,11 +427,60 @@ func (g *pkgGen) qualifier(p *types.Package) string {
 	return p.Name()
 }
 
-// embeddedSpec is the step an embedded engine runs itself: typed by its own ID,
-// which names its handler, and reached without HTTP
-func embeddedSpec(spec *api.Step) ([]byte, error) {
-	embedded := spec.Copy()
-	embedded.Type = api.StepType(spec.ID)
+func librarySource(service, embedded *pkgGen) ([]byte, error) {
+	steps, err := service.serviceSteps(false)
+	if err != nil {
+		return nil, err
+	}
+	embeddedSteps, err := embedded.embeddedSteps()
+	if err != nil {
+		return nil, err
+	}
+	paths := maps.Clone(service.imports)
+	maps.Copy(paths, embedded.imports)
+	return render(stepsTemplate, sourceModel{
+		Package:              service.pkg.Name,
+		Imports:              importBlock(paths, libraryPackages),
+		Declarations:         service.decls,
+		Steps:                steps,
+		EmbeddedDeclarations: embedded.decls,
+		Embedded:             embeddedSteps,
+	})
+}
+
+func render(name string, model sourceModel) ([]byte, error) {
+	var buf bytes.Buffer
+	if err := sources.ExecuteTemplate(&buf, name, model); err != nil {
+		return nil, errors.Join(ErrSourceTemplate, err)
+	}
+
+	src, err := imports.Process("", buf.Bytes(), nil)
+	if err != nil {
+		return nil, fmt.Errorf("%w:\n%s", err, buf.String())
+	}
+	return src, nil
+}
+
+func importBlock(paths map[string]string, extra []string) string {
+	all := maps.Clone(paths)
+	for _, p := range extra {
+		all[p] = ""
+	}
+
+	var sb strings.Builder
+	sb.WriteString("import (\n")
+	for _, p := range slices.Sorted(maps.Keys(all)) {
+		_, _ = fmt.Fprintf(&sb, "%q\n", p)
+	}
+	sb.WriteString(")\n\n")
+	return sb.String()
+}
+
+// embeddedSpec is the step an embedded engine runs itself, typed to name its
+// in-process handler
+func embeddedSpec(s stepModel) ([]byte, error) {
+	embedded := s.spec.Copy()
+	embedded.Type = api.StepType(s.embedType)
 	embedded.HTTP = nil
 	return json.Marshal(embedded)
 }
@@ -404,30 +491,26 @@ func logged(id api.StepID, handler string) string {
 	if handler == "" {
 		return ""
 	}
-	return fmt.Sprintf("logged(%q, %s)", id, handler)
+	return fmt.Sprintf(loggedHandler, id, handler)
 }
 
 func renderStructDeclaration(decl structDeclaration) string {
+	pkg := decl.dialect.pkg
 	if len(decl.fields) == 0 {
-		return fmt.Sprintf("%s := codec.Struct[%s]()", decl.name, decl.owner)
+		return fmt.Sprintf(emptyCodecDecl, decl.name, pkg, decl.owner)
 	}
 	var sb strings.Builder
-	sb.WriteString("codec.Struct(\n")
+	_, _ = fmt.Fprintf(&sb, codecStructOpen, pkg)
 	for _, f := range decl.fields {
-		_, _ = fmt.Fprintf(&sb, "codec.Field(%q, %s,\nfunc(v *%s) *%s {\n"+
-			"return &v.%s\n},\n),\n", f.attr, f.codec, f.owner, f.typ,
-			f.field)
+		_, _ = fmt.Fprintf(&sb, codecFieldDecl,
+			pkg, f.attr, f.codec, f.owner, f.typ, f.field)
 	}
 	sb.WriteString(")")
 	if !decl.lazy {
-		return fmt.Sprintf("%s := %s", decl.name, sb.String())
+		return fmt.Sprintf(codecDecl, decl.name, sb.String())
 	}
-	// a self-referential initializer is an initialization cycle
-	return fmt.Sprintf("var %sImpl codec.Codec[%s]\n\n"+
-		"%s := codec.Ref(&%sImpl)\n\n"+
-		"%sImpl = %s", decl.name, decl.owner, decl.name, decl.name,
-		decl.name,
-		sb.String())
+	return fmt.Sprintf(lazyCodecDecl,
+		decl.name, pkg, decl.dialect.iface, decl.owner, sb.String())
 }
 
 func newAttr(

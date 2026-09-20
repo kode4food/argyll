@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strconv"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -118,13 +119,23 @@ func TestGeneratedEmbeddedSurface(t *testing.T) {
 	assert.Contains(t, text,
 		"func ArgyllEmbeddedSteps() ([]*api.Step, error)")
 	assert.Contains(t, text, `"calculate-risk": {`)
+	assert.Contains(t, text, `"greeter": {`)
 	assert.Contains(t, text, "Invoke: gen.EmbeddedSync(")
 	assert.Contains(t, text, "Compensate: gen.EmbeddedCompensate(")
 	assert.Contains(t, text, `\"type\":\"calculate-risk\"`)
+	assert.Contains(t, text, `\"type\":\"greeter\"`)
+	assert.Contains(t, text, "convertRiskArgs := convert.Struct(")
+	assert.Contains(t, text, "convertNode := convert.Ref(&convertNodeImpl)")
+	assert.Contains(t, text, "var convertNodeImpl convert.Converter[Node]")
+
+	// the embedded handlers convert values and never touch the JSON codecs
+	_, embedded, _ := strings.Cut(text, "func ArgyllEmbeddedHandlers()")
+	assert.NotContains(t, embedded, "codec")
 }
 
 func TestGeneratedServerEmbedded(t *testing.T) {
-	src := "package main\n\n//argyll:step\nfunc Run() {}\n"
+	// the directive only names an embedded type, which a server never has
+	src := "package main\n\n//argyll:step\n//argyll:embed\nfunc Run() {}\n"
 	out, err := renderFile(t, src, true)
 	assert.NoError(t, err)
 	text := string(out)
@@ -132,11 +143,47 @@ func TestGeneratedServerEmbedded(t *testing.T) {
 	assert.NotContains(t, text, "ArgyllEmbeddedHandlers")
 	assert.NotContains(t, text, "ArgyllEmbeddedSteps")
 	assert.NotContains(t, text, "gen.EmbeddedSync")
+	assert.NotContains(t, text, "convert")
 }
 
-func TestReservedStepID(t *testing.T) {
+func TestEmbedType(t *testing.T) {
+	src, err := renderSource(t,
+		"//argyll:step run-v2\n//argyll:embed runner\nfunc Run() {}")
+	assert.NoError(t, err)
+	text := string(src)
+	assert.Contains(t, text, `"run-v2",`)
+	assert.Contains(t, text, `"runner": {`)
+	assert.Contains(t, text, `\"id\":\"run-v2\"`)
+	assert.Contains(t, text, `\"type\":\"runner\"`)
+}
+
+func TestReservedEmbedType(t *testing.T) {
 	for _, id := range []string{"service", "script", "flow"} {
 		_, err := renderSource(t, "//argyll:step "+id+"\nfunc Run() {}")
+		assert.ErrorIs(t, err, generator.ErrBadDirective)
+
+		_, err = renderSource(t, "//argyll:step\n//argyll:embed "+id+
+			"\nfunc Run() {}")
+		assert.ErrorIs(t, err, generator.ErrBadDirective)
+	}
+
+	// a reserved ID is free once the embedded type is named
+	_, err := renderSource(t,
+		"//argyll:step script\n//argyll:embed scripted\nfunc Run() {}")
+	assert.NoError(t, err)
+}
+
+func TestBadEmbedDirective(t *testing.T) {
+	for _, src := range []string{
+		"//argyll:step\n//argyll:embed\nfunc Run() {}",
+		"//argyll:step\n//argyll:embed a\n//argyll:embed b\nfunc Run() {}",
+		"//argyll:step\n//argyll:embed Bad_Type\nfunc Run() {}",
+		"//argyll:step\n//argyll:embed shared\nfunc Run() {}\n\n" +
+			"//argyll:step\n//argyll:embed shared\nfunc Walk() {}",
+		"//argyll:step\nfunc Run() {}\n\n" +
+			"//argyll:step\n//argyll:embed run\nfunc Walk() {}",
+	} {
+		_, err := renderSource(t, src)
 		assert.ErrorIs(t, err, generator.ErrBadDirective)
 	}
 }

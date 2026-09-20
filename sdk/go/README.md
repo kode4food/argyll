@@ -34,7 +34,7 @@ For a standalone `package main`, pass `-server` before the package pattern to ge
 //go:generate go run github.com/kode4food/argyll/sdk/go/gen/cmd/argyll-gen -server .
 ```
 
-Normal generation also runs the same functions inside an embedded engine: install `ArgyllEmbeddedHandlers()` among the engine's handlers and register `ArgyllEmbeddedSteps()`. The generated handlers convert values in process, with no HTTP or JSON between the engine and your function.
+Normal generation also runs the same functions inside an embedded engine: install `ArgyllEmbeddedHandlers()` among the engine's handlers and register `ArgyllEmbeddedSteps()`. The generated handlers pass values straight between the engine and your function, in memory. Each Step's embedded type is its ID unless `//argyll:embed <type>` names one, and every Step registered with that type runs on the same function.
 
 - [Go SDK guide](https://www.argyll.app/docs/sdks/go/)
 - [Go Step Generator](https://www.argyll.app/docs/sdks/go-gen/)

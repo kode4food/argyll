@@ -1,5 +1,4 @@
-// Package codec provides composable JSON codecs over encoding/json/jsontext,
-// which also convert JSON-shaped Go values without serializing them
+// Package codec provides composable JSON codecs over encoding/json/jsontext
 package codec
 
 import (
@@ -10,14 +9,10 @@ import (
 )
 
 type (
-	// Codec reads and writes a single Go value as a JSON value, or as the
-	// JSON-shaped Go value (string, bool, float64, []any, map[string]any, or
-	// nil) that decoding JSON into an any produces
+	// Codec reads and writes a single Go value as a JSON value
 	Codec[T any] interface {
 		Decode(*jsontext.Decoder) (T, error)
 		Encode(*jsontext.Encoder, T) error
-		FromValue(any) (T, error)
-		ToValue(T) (any, error)
 	}
 
 	// StructField binds one JSON object member to a field of struct S
@@ -25,8 +20,6 @@ type (
 		Name() string
 		decode(*jsontext.Decoder, *S) error
 		encode(*jsontext.Encoder, *S, *encodeState) error
-		fromValue(any, *S) error
-		toValue(*S, *encodeState) (any, error)
 	}
 
 	// Numeric is any Go type whose JSON representation is a number
@@ -38,7 +31,6 @@ type (
 
 	stateCodec[T any] interface {
 		encode(*jsontext.Encoder, T, *encodeState) error
-		toValue(T, *encodeState) (any, error)
 	}
 
 	textCodec[T ~string]   struct{}
@@ -75,7 +67,6 @@ var (
 	Float64 = Number[float64]()
 
 	ErrUnexpectedToken = errors.New("unexpected JSON token")
-	ErrUnexpectedValue = errors.New("unexpected value")
 	ErrUnexpectedEnd   = errors.New("unexpected end of JSON input")
 	ErrCyclicValue     = errors.New("cyclic value")
 )

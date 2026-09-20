@@ -78,6 +78,7 @@ func CalculateRisk(args RiskArgs) (RiskResult, error) {
 }
 
 //argyll:step
+//argyll:embed greeter
 func Greet(args struct{ Name string }) struct{ Greeting string } {
 	return struct{ Greeting string }{
 		Greeting: "hello " + args.Name,

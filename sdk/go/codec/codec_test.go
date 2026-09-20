@@ -47,13 +47,7 @@ type (
 const nodeJSON = `{"name":"a","children":[` +
 	`{"name":"b","children":[{"name":"c","children":[]}]}]}`
 
-var (
-	errCodec   = errors.New("codec failed")
-	nodeImpl   codec.Codec[node]
-	nodeCodec  = codec.Ref(&nodeImpl)
-	graphImpl  codec.Codec[graph]
-	graphCodec = codec.Ref(&graphImpl)
-)
+var errCodec = errors.New("codec failed")
 
 func TestScalars(t *testing.T) {
 	s, err := codec.DecodeFrom(codec.String, strings.NewReader(`"hi"`))
@@ -210,39 +204,41 @@ func TestFloatEncoding(t *testing.T) {
 }
 
 func TestRefRecursion(t *testing.T) {
-	v, err := codec.DecodeFrom(nodeCodec, strings.NewReader(nodeJSON))
+	nodes := nodeCodec()
+	v, err := codec.DecodeFrom(nodes, strings.NewReader(nodeJSON))
 	assert.NoError(t, err)
 	assert.Equal(t, "c", v.Children[0].Children[0].Name)
 
 	var out strings.Builder
-	assert.NoError(t, codec.EncodeTo(nodeCodec, &out, v))
+	assert.NoError(t, codec.EncodeTo(nodes, &out, v))
 	assert.JSONEq(t, nodeJSON, out.String())
 }
 
 func TestCycle(t *testing.T) {
+	graphs := graphCodec()
 	root := graph{}
 	root.Left = &root
 
 	var out strings.Builder
-	err := codec.EncodeTo(graphCodec, &out, root)
+	err := codec.EncodeTo(graphs, &out, root)
 	assert.ErrorIs(t, err, codec.ErrCyclicValue)
 
 	root = graph{}
 	root.Children = []*graph{&root}
 	out.Reset()
-	err = codec.EncodeTo(graphCodec, &out, root)
+	err = codec.EncodeTo(graphs, &out, root)
 	assert.ErrorIs(t, err, codec.ErrCyclicValue)
 
 	root = graph{}
 	root.Named = map[string]*graph{"root": &root}
 	out.Reset()
-	err = codec.EncodeTo(graphCodec, &out, root)
+	err = codec.EncodeTo(graphs, &out, root)
 	assert.ErrorIs(t, err, codec.ErrCyclicValue)
 
 	leaf := &graph{}
 	root = graph{Left: leaf, Right: leaf}
 	out.Reset()
-	assert.NoError(t, codec.EncodeTo(graphCodec, &out, root))
+	assert.NoError(t, codec.EncodeTo(graphs, &out, root))
 }
 
 func TestCompositeCodecErrors(t *testing.T) {
@@ -275,44 +271,45 @@ func (failCodec) Encode(*jsontext.Encoder, string) error {
 	return errCodec
 }
 
-func (failCodec) FromValue(any) (string, error) {
-	return "", errCodec
-}
-
-func (failCodec) ToValue(string) (any, error) {
-	return nil, errCodec
-}
-
-func init() {
-	nodeImpl = codec.Struct(
+func nodeCodec() codec.Codec[node] {
+	var impl codec.Codec[node]
+	res := codec.Ref(&impl)
+	impl = codec.Struct(
 		codec.Field("name", codec.String, func(v *node) *string {
 			return &v.Name
 		}),
-		codec.Field("children", codec.Slice(nodeCodec),
+		codec.Field("children", codec.Slice(res),
 			func(v *node) *[]node {
 				return &v.Children
 			}),
 	)
-	graphImpl = codec.Struct(
-		codec.Field("left", codec.Optional(graphCodec),
+	return res
+}
+
+func graphCodec() codec.Codec[graph] {
+	var impl codec.Codec[graph]
+	res := codec.Ref(&impl)
+	impl = codec.Struct(
+		codec.Field("left", codec.Optional(res),
 			func(v *graph) **graph {
 				return &v.Left
 			}),
-		codec.Field("right", codec.Optional(graphCodec),
+		codec.Field("right", codec.Optional(res),
 			func(v *graph) **graph {
 				return &v.Right
 			}),
 		codec.Field("children",
-			codec.Slice(codec.Optional(graphCodec)),
+			codec.Slice(codec.Optional(res)),
 			func(v *graph) *[]*graph {
 				return &v.Children
 			}),
 		codec.Field("named",
-			codec.Map(codec.Optional(graphCodec)),
+			codec.Map(codec.Optional(res)),
 			func(v *graph) *map[string]*graph {
 				return &v.Named
 			}),
 	)
+	return res
 }
 
 func personCodec() codec.Codec[person] {

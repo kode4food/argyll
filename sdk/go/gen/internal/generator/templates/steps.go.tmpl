@@ -16,16 +16,16 @@ return {{template "step-defs" .}}
 // ArgyllEmbeddedHandlers returns in-process handlers for the steps generated
 // for this package, keyed by the step type ArgyllEmbeddedSteps gives each
 func ArgyllEmbeddedHandlers() step.Handlers {
-{{range .Declarations -}}
+{{range .EmbeddedDeclarations -}}
 {{.}}
 {{end -}}
 
 return step.Handlers{
-{{range .Steps -}}
+{{range .Embedded -}}
 {{.ID}}: {
-Invoke: {{.EmbeddedHandler}},
-{{if .EmbeddedCompensate -}}
-Compensate: {{.EmbeddedCompensate}},
+Invoke: {{.Handler}},
+{{if .Compensate -}}
+Compensate: {{.Compensate}},
 {{end -}}
 },
 {{end -}}
@@ -36,8 +36,8 @@ Compensate: {{.EmbeddedCompensate}},
 // run in an embedded engine on the handlers ArgyllEmbeddedHandlers returns
 func ArgyllEmbeddedSteps() ([]*api.Step, error) {
 return gen.EmbeddedSteps(
-{{range .Steps -}}
-{{.EmbeddedSpec}},
+{{range .Embedded -}}
+{{.Spec}},
 {{end -}}
 )
 }

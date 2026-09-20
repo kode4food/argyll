@@ -17,6 +17,7 @@ type (
 		spec       *api.Step
 		handler    string
 		compensate string
+		embedType  string
 	}
 
 	compHandlerConfig struct {
@@ -33,6 +34,7 @@ type (
 	}
 
 	compAdapterConfig struct {
+		adapter  string
 		codec    string
 		typ      string
 		call     string
@@ -101,6 +103,7 @@ const (
 	descDirective      = "description"
 	memoDirective      = "memoize"
 	compDirective      = "compensate"
+	embedDirective     = "embed"
 
 	// registration prepends the host the step server is reachable on
 	healthPath = "/health"
@@ -114,15 +117,10 @@ var (
 var (
 	validStepID = regexp.MustCompile(`^[a-z][a-z0-9]*(-[a-z0-9]+)*$`)
 
-	reservedStepIDs = map[api.StepType]bool{
+	reservedStepTypes = map[api.StepType]bool{
 		api.StepTypeService: true,
 		api.StepTypeScript:  true,
 		api.StepTypeFlow:    true,
-	}
-
-	embeddedAdapters = map[string]string{
-		syncAdapter:       embeddedSyncAdapter,
-		compensateAdapter: embeddedCompensateAdapter,
 	}
 )
 
@@ -146,6 +144,12 @@ func (g *pkgGen) addFunc(fn *ast.FuncDecl) error {
 		step, err = g.wrapFor(fn, sig, decl)
 	} else {
 		step, err = g.stepFor(fn, sig, decl)
+	}
+	if err != nil {
+		return err
+	}
+	if g.dialect == embeddedDialect {
+		step.embedType, err = g.claimEmbedType(fn, decl.id)
 	}
 	if err != nil {
 		return err
@@ -202,13 +206,32 @@ func (g *pkgGen) stepIDOf(
 	if !validStepID.MatchString(id) {
 		return "", g.errorAt(fn, "%w: bad step ID %q", ErrBadDirective, id)
 	}
-	// an embedded step's ID is its step type, which must not replace a built-in
-	// handler
-	if reservedStepIDs[api.StepType(id)] {
-		return "", g.errorAt(fn, "%w: step ID %q names a built-in step type",
-			ErrBadDirective, id)
-	}
 	return id, nil
+}
+
+// claimEmbedType is the step type an embedded engine runs a step as, the embed
+// directive's or the step's ID, and names one function's handler
+func (g *pkgGen) claimEmbedType(fn *ast.FuncDecl, id string) (string, error) {
+	typ, err := embedIn(fn)
+	if err != nil {
+		return "", g.errorAt(fn, "%w", err)
+	}
+	if typ == "" {
+		typ = id
+	}
+	if !validStepID.MatchString(typ) {
+		return "", g.errorAt(fn, "%w: bad step type %q", ErrBadDirective, typ)
+	}
+	if reservedStepTypes[api.StepType(typ)] {
+		return "", g.errorAt(fn, "%w: step type %q is built in",
+			ErrBadDirective, typ)
+	}
+	if other, ok := g.embedTypes[typ]; ok {
+		return "", g.errorAt(fn, "%w: step type %q is already %s's",
+			ErrBadDirective, typ, other)
+	}
+	g.embedTypes[typ] = fn.Name.Name
+	return typ, nil
 }
 
 func (g *pkgGen) directivesOf(fn *ast.FuncDecl) (stepDirectives, error) {
@@ -360,6 +383,7 @@ func (g *pkgGen) stepFor(
 		declaration: decl,
 		attributes:  attrs,
 		handler: syncHandler(syncHandlerArgs{
+			adapter:  g.dialect.sync,
 			inCodec:  inCodec,
 			outCodec: outCodec,
 			inType:   g.typeOf(in),
@@ -434,6 +458,7 @@ func (g *pkgGen) wrapFor(
 		declaration: decl,
 		attributes:  attrs,
 		handler: syncHandler(syncHandlerArgs{
+			adapter:  g.dialect.sync,
 			inCodec:  inCodec,
 			outCodec: outCodec,
 			inType:   inType,
@@ -455,7 +480,8 @@ func (g *pkgGen) compHandler(cfg *compHandlerConfig) (string, error) {
 	}
 	if sig.Params().Len() == 0 {
 		return compAdapter(compAdapterConfig{
-			codec:    "codec.Struct[struct{}]()",
+			adapter:  g.dialect.compensate,
+			codec:    g.emptyCodec(),
 			typ:      "struct{}",
 			call:     name + "()",
 			fallible: sig.Results().Len() == 1,
@@ -548,6 +574,7 @@ func (g *pkgGen) stepCompHandler(
 		return "", g.errorAt(cfg.fn, "%w", err)
 	}
 	return compAdapter(compAdapterConfig{
+		adapter:  g.dialect.compensate,
 		codec:    codec,
 		typ:      g.typeOf(typ),
 		call:     name + "(in)",
@@ -615,6 +642,7 @@ func (g *pkgGen) wrapCompHandler(
 	}
 	call := fmt.Sprintf("%s(%s)", name, strings.Join(args, ", "))
 	return compAdapter(compAdapterConfig{
+		adapter:  g.dialect.compensate,
 		codec:    codec,
 		typ:      inType,
 		call:     call,
@@ -626,7 +654,7 @@ func (g *pkgGen) contract(
 	fn *ast.FuncDecl, t types.Type, output bool,
 ) (string, api.AttributeSpecs, error) {
 	if t == nil {
-		return "codec.Struct[struct{}]()", nil, nil
+		return g.emptyCodec(), nil, nil
 	}
 	st, ok := t.Underlying().(*types.Struct)
 	if !ok {
@@ -736,6 +764,7 @@ func mergeAttributes(attrs attributeSets) api.AttributeSpecs {
 
 // syncHandlerArgs are the pieces of a generated synchronous handler
 type syncHandlerArgs struct {
+	adapter  string
 	inCodec  string
 	outCodec string
 	inType   string
@@ -744,9 +773,8 @@ type syncHandlerArgs struct {
 }
 
 func syncHandler(args syncHandlerArgs) string {
-	return fmt.Sprintf(
-		"%s\n%s, %s,\nfunc(in %s) (%s, error) {\n%s\n})",
-		syncAdapter, args.inCodec, args.outCodec, args.inType, args.outType,
+	return fmt.Sprintf(syncHandlerDecl,
+		args.adapter, args.inCodec, args.outCodec, args.inType, args.outType,
 		args.body,
 	)
 }
@@ -796,8 +824,7 @@ func wrapBody(
 	}
 	_, _ = fmt.Fprintf(&sb, "%s(%s)\n", fn, strings.Join(call, ", "))
 	if hasErr {
-		_, _ = fmt.Fprintf(&sb, "if err != nil {\nreturn %s{}, err\n}\n",
-			outType)
+		_, _ = fmt.Fprintf(&sb, wrapErrCheck, outType)
 	}
 	sb.WriteString(res)
 	return sb.String()
@@ -875,19 +902,5 @@ func compAdapter(cfg compAdapterConfig) string {
 	if cfg.fallible {
 		body = "return " + cfg.call
 	}
-	return fmt.Sprintf(
-		"%s\n%s,\nfunc(in %s) error {\n%s\n})",
-		compensateAdapter, cfg.codec, cfg.typ, body,
-	)
-}
-
-// embeddedHandler swaps the HTTP adapter a handler expression opens with for
-// its in-process twin, which takes the same codecs and function
-func embeddedHandler(expr string) string {
-	for service, embedded := range embeddedAdapters {
-		if rest, ok := strings.CutPrefix(expr, service); ok {
-			return embedded + rest
-		}
-	}
-	return expr
+	return fmt.Sprintf(compHandlerDecl, cfg.adapter, cfg.codec, cfg.typ, body)
 }
