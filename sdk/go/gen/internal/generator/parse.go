@@ -34,11 +34,11 @@ type (
 	}
 
 	compAdapterConfig struct {
-		adapter  string
-		codec    string
-		typ      string
-		call     string
-		fallible bool
+		Adapter           string
+		CompensateAdapter string
+		Type              string
+		Call              string
+		Fallible          bool
 	}
 
 	stepModelConfig struct {
@@ -355,10 +355,10 @@ func (g *pkgGen) stepFor(
 	}
 
 	body := syncBody(syncBodyArgs{
-		call:       call,
-		output:     res != nil,
-		fallible:   hasErr,
-		outputType: g.typeOf(res),
+		Call:       call,
+		Output:     res != nil,
+		Fallible:   hasErr,
+		OutputType: g.typeOf(res),
 	})
 	compFields, err := taggedCompFields(in, inAttrs)
 	if err != nil {
@@ -383,12 +383,12 @@ func (g *pkgGen) stepFor(
 		declaration: decl,
 		attributes:  attrs,
 		handler: syncHandler(syncHandlerArgs{
-			adapter:  g.dialect.sync,
-			inCodec:  inCodec,
-			outCodec: outCodec,
-			inType:   g.typeOf(in),
-			outType:  g.typeOf(res),
-			body:     body,
+			Adapter:    g.dialect.sync,
+			InAdapter:  inCodec,
+			OutAdapter: outCodec,
+			InType:     g.typeOf(in),
+			OutType:    g.typeOf(res),
+			Body:       body,
 		}),
 		compensate: compensate,
 	})
@@ -458,12 +458,12 @@ func (g *pkgGen) wrapFor(
 		declaration: decl,
 		attributes:  attrs,
 		handler: syncHandler(syncHandlerArgs{
-			adapter:  g.dialect.sync,
-			inCodec:  inCodec,
-			outCodec: outCodec,
-			inType:   inType,
-			outType:  outType,
-			body:     wrapBody(fn.Name.Name, names, outType, hasErr),
+			Adapter:    g.dialect.sync,
+			InAdapter:  inCodec,
+			OutAdapter: outCodec,
+			InType:     inType,
+			OutType:    outType,
+			Body:       wrapBody(fn.Name.Name, names, outType, hasErr),
 		}),
 		compensate: compensate,
 	})
@@ -480,11 +480,11 @@ func (g *pkgGen) compHandler(cfg *compHandlerConfig) (string, error) {
 	}
 	if sig.Params().Len() == 0 {
 		return compAdapter(compAdapterConfig{
-			adapter:  g.dialect.compensate,
-			codec:    g.emptyCodec(),
-			typ:      "struct{}",
-			call:     name + "()",
-			fallible: sig.Results().Len() == 1,
+			Adapter:           g.dialect.compensate,
+			CompensateAdapter: g.emptyCodec(),
+			Type:              "struct{}",
+			Call:              name + "()",
+			Fallible:          sig.Results().Len() == 1,
 		}), nil
 	}
 	if cfg.wrap {
@@ -574,11 +574,11 @@ func (g *pkgGen) stepCompHandler(
 		return "", g.errorAt(cfg.fn, "%w", err)
 	}
 	return compAdapter(compAdapterConfig{
-		adapter:  g.dialect.compensate,
-		codec:    codec,
-		typ:      g.typeOf(typ),
-		call:     name + "(in)",
-		fallible: sig.Results().Len() == 1,
+		Adapter:           g.dialect.compensate,
+		CompensateAdapter: codec,
+		Type:              g.typeOf(typ),
+		Call:              name + "(in)",
+		Fallible:          sig.Results().Len() == 1,
 	}), nil
 }
 
@@ -642,11 +642,11 @@ func (g *pkgGen) wrapCompHandler(
 	}
 	call := fmt.Sprintf("%s(%s)", name, strings.Join(args, ", "))
 	return compAdapter(compAdapterConfig{
-		adapter:  g.dialect.compensate,
-		codec:    codec,
-		typ:      inType,
-		call:     call,
-		fallible: sig.Results().Len() == 1,
+		Adapter:           g.dialect.compensate,
+		CompensateAdapter: codec,
+		Type:              inType,
+		Call:              call,
+		Fallible:          sig.Results().Len() == 1,
 	}), nil
 }
 
@@ -762,74 +762,6 @@ func mergeAttributes(attrs attributeSets) api.AttributeSpecs {
 	return res
 }
 
-// syncHandlerArgs are the pieces of a generated synchronous handler
-type syncHandlerArgs struct {
-	adapter  string
-	inCodec  string
-	outCodec string
-	inType   string
-	outType  string
-	body     string
-}
-
-func syncHandler(args syncHandlerArgs) string {
-	return fmt.Sprintf(syncHandlerDecl,
-		args.adapter, args.inCodec, args.outCodec, args.inType, args.outType,
-		args.body,
-	)
-}
-
-type syncBodyArgs struct {
-	call       string
-	output     bool
-	fallible   bool
-	outputType string
-}
-
-func syncBody(args syncBodyArgs) string {
-	switch {
-	case args.output && args.fallible:
-		return "return " + args.call
-	case args.output:
-		return "return " + args.call + ", nil"
-	case args.fallible:
-		return fmt.Sprintf("return %s{}, %s", args.outputType, args.call)
-	default:
-		return fmt.Sprintf("%s\nreturn %s{}, nil", args.call, args.outputType)
-	}
-}
-
-func wrapBody(
-	fn string, names wrapNames, outType string, hasErr bool,
-) string {
-	call := make([]string, len(names.inputs))
-	for i, n := range names.inputs {
-		call[i] = "in." + ExportedName(n)
-	}
-	lhs := make([]string, 0, len(names.outputs)+1)
-	assign := make([]string, len(names.outputs))
-	for i, n := range names.outputs {
-		lhs = append(lhs, fmt.Sprintf("r%d", i))
-		assign[i] = fmt.Sprintf("%s: r%d", ExportedName(n), i)
-	}
-	if hasErr {
-		lhs = append(lhs, "err")
-	}
-	res := fmt.Sprintf("return %s{%s}, nil", outType,
-		strings.Join(assign, ", "))
-
-	var sb strings.Builder
-	if len(lhs) > 0 {
-		_, _ = fmt.Fprintf(&sb, "%s := ", strings.Join(lhs, ", "))
-	}
-	_, _ = fmt.Fprintf(&sb, "%s(%s)\n", fn, strings.Join(call, ", "))
-	if hasErr {
-		_, _ = fmt.Fprintf(&sb, wrapErrCheck, outType)
-	}
-	sb.WriteString(res)
-	return sb.String()
-}
-
 func paramTypes(sig *types.Signature) []types.Type {
 	params := sig.Params()
 	res := make([]types.Type, params.Len())
@@ -895,12 +827,4 @@ func namedCompFields(
 		}
 	}
 	return res
-}
-
-func compAdapter(cfg compAdapterConfig) string {
-	body := cfg.call + "\nreturn nil"
-	if cfg.fallible {
-		body = "return " + cfg.call
-	}
-	return fmt.Sprintf(compHandlerDecl, cfg.adapter, cfg.codec, cfg.typ, body)
 }

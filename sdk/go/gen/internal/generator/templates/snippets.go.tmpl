@@ -1,0 +1,74 @@
+{{/*
+The Go fragments the generator emits, written as they appear in the generated
+file. gofmt formats the assembled source, so these carry no indentation.
+*/}}
+
+{{define "structType"}}type {{.Name}} struct {
+{{range .Fields}}{{.Field}} {{.Type}}
+{{end}}}{{end}}
+
+{{define "adapterStruct"}}
+{{- if not .Fields -}}
+{{.Name}} := {{.Package}}.Struct[{{.Owner}}]()
+{{- else if .Lazy -}}
+{{/* a self-referential initializer is an initialization cycle */}}
+var {{.Name}}Impl {{.Package}}.{{.Interface}}[{{.Owner}}]
+
+{{.Name}} := {{.Package}}.Ref(&{{.Name}}Impl)
+
+{{.Name}}Impl = {{template "adapterFields" .}}
+{{- else -}}
+{{.Name}} := {{template "adapterFields" .}}
+{{- end -}}
+{{end}}
+
+{{define "adapterFields"}}{{.Package}}.Struct(
+{{range .Fields}}{{$.Package}}.Field({{printf "%q" .Attribute}}, {{.Adapter}},
+func(v *{{.Owner}}) *{{.Type}} {
+return &v.{{.Field}}
+},
+),
+{{end}}){{end}}
+
+{{define "loggedHandler"}}logged({{printf "%q" .ID}}, {{.Handler}}){{end}}
+
+{{define "syncHandler"}}{{.Adapter}}
+{{.InAdapter}}, {{.OutAdapter}},
+func(in {{.InType}}) ({{.OutType}}, error) {
+{{.Body}}
+}){{end}}
+
+{{define "syncBody"}}
+{{- if and .Output .Fallible -}}
+return {{.Call}}
+{{- else if .Output -}}
+return {{.Call}}, nil
+{{- else if .Fallible -}}
+return {{.OutputType}}{}, {{.Call}}
+{{- else -}}
+{{.Call}}
+return {{.OutputType}}{}, nil
+{{- end -}}
+{{end}}
+
+{{define "wrapBody"}}
+{{- if or .Outputs .HasError}}
+{{- range $i, $out := .Outputs}}{{if $i}}, {{end}}r{{$i}}{{end}}
+{{- if .HasError}}{{if .Outputs}}, {{end}}err{{end}} :=
+{{- end}} {{.Function}}(
+{{- range $i, $in := .Inputs}}{{if $i}}, {{end}}in.{{$in}}{{end}})
+{{if .HasError}}if err != nil {
+return {{.OutType}}{}, err
+}
+{{end}}return {{.OutType}}{
+{{- range $i, $out := .Outputs}}{{if $i}}, {{end}}{{$out}}: r{{$i}}{{end}}}, nil
+{{- end}}
+
+{{define "compensateHandler"}}{{.Adapter}}
+{{.CompensateAdapter}},
+func(in {{.Type}}) error {
+{{if .Fallible}}return {{.Call}}
+{{- else}}{{.Call}}
+return nil
+{{- end}}
+}){{end}}

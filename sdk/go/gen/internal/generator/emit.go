@@ -80,6 +80,40 @@ type (
 		options Options
 		attr    string
 	}
+
+	// adapterView is the snippet's view of a struct adapter declaration,
+	// which reads the dialect and fields the generator carries unexported
+	adapterView struct {
+		Package   string
+		Interface string
+		Name      string
+		Owner     string
+		Lazy      bool
+		Fields    []adapterFieldView
+	}
+
+	adapterFieldView struct {
+		Attribute string
+		Adapter   string
+		Owner     string
+		Type      string
+		Field     string
+	}
+
+	// wrapBodyView is the snippet's view of a wrapper's call and result
+	// assembly
+	wrapBodyView struct {
+		Function string
+		Inputs   []string
+		Outputs  []string
+		OutType  string
+		HasError bool
+	}
+
+	loggedView struct {
+		ID      api.StepID
+		Handler string
+	}
 )
 
 const (
@@ -104,6 +138,15 @@ const (
 	templatePattern = "templates/*.go.tmpl"
 	serverTemplate  = "server.go.tmpl"
 	stepsTemplate   = "steps.go.tmpl"
+
+	// the fragment templates snippets.go.tmpl defines
+	structTypeSnippet        = "structType"
+	adapterStructSnippet     = "adapterStruct"
+	loggedSnippet            = "loggedHandler"
+	syncHandlerSnippet       = "syncHandler"
+	syncBodySnippet          = "syncBody"
+	wrapBodySnippet          = "wrapBody"
+	compensateHandlerSnippet = "compensateHandler"
 )
 
 var (
@@ -265,8 +308,7 @@ func (g *pkgGen) wrapStruct(
 ) (string, api.AttributeSpecs, error) {
 	fields := make([]codecField, len(names))
 	attrs := api.AttributeSpecs{}
-	var decl strings.Builder
-	_, _ = fmt.Fprintf(&decl, structTypeOpen, name)
+	typeFields := make([]adapterFieldView, len(names))
 	for i, n := range names {
 		expr, err := g.codecExpr(types[i])
 		if err != nil {
@@ -274,7 +316,7 @@ func (g *pkgGen) wrapStruct(
 		}
 		field := ExportedName(n)
 		typ := g.typeOf(types[i])
-		_, _ = fmt.Fprintf(&decl, structTypeField, field, typ)
+		typeFields[i] = adapterFieldView{Field: field, Type: typ}
 		fields[i] = codecField{
 			attr:  n,
 			field: field,
@@ -288,8 +330,10 @@ func (g *pkgGen) wrapStruct(
 		}
 		attrs[api.Name(n)] = spec
 	}
-	decl.WriteString("}")
-	g.decls = append(g.decls, decl.String())
+	g.decls = append(g.decls, snippet(structTypeSnippet, adapterView{
+		Name:   name,
+		Fields: typeFields,
+	}))
 
 	codecVar := g.dialect.pkg + ExportedName(name)
 	g.decls = append(g.decls, renderStructDeclaration(structDeclaration{
@@ -491,26 +535,85 @@ func logged(id api.StepID, handler string) string {
 	if handler == "" {
 		return ""
 	}
-	return fmt.Sprintf(loggedHandler, id, handler)
+	return snippet(loggedSnippet, loggedView{ID: id, Handler: handler})
 }
 
 func renderStructDeclaration(decl structDeclaration) string {
-	pkg := decl.dialect.pkg
-	if len(decl.fields) == 0 {
-		return fmt.Sprintf(emptyCodecDecl, decl.name, pkg, decl.owner)
+	fields := make([]adapterFieldView, len(decl.fields))
+	for i, f := range decl.fields {
+		fields[i] = adapterFieldView{
+			Attribute: f.attr,
+			Adapter:   f.codec,
+			Owner:     f.owner,
+			Type:      f.typ,
+			Field:     f.field,
+		}
 	}
+	return snippet(adapterStructSnippet, adapterView{
+		Package:   decl.dialect.pkg,
+		Interface: decl.dialect.iface,
+		Name:      decl.name,
+		Owner:     decl.owner,
+		Lazy:      decl.lazy,
+		Fields:    fields,
+	})
+}
+
+// syncHandlerArgs are the pieces of a generated synchronous handler
+type syncHandlerArgs struct {
+	Adapter    string
+	InAdapter  string
+	OutAdapter string
+	InType     string
+	OutType    string
+	Body       string
+}
+
+func syncHandler(args syncHandlerArgs) string {
+	return snippet(syncHandlerSnippet, args)
+}
+
+type syncBodyArgs struct {
+	Call       string
+	Output     bool
+	Fallible   bool
+	OutputType string
+}
+
+func syncBody(args syncBodyArgs) string {
+	return snippet(syncBodySnippet, args)
+}
+
+func wrapBody(
+	fn string, names wrapNames, outType string, hasErr bool,
+) string {
+	inputs := make([]string, len(names.inputs))
+	for i, n := range names.inputs {
+		inputs[i] = ExportedName(n)
+	}
+	outputs := make([]string, len(names.outputs))
+	for i, n := range names.outputs {
+		outputs[i] = ExportedName(n)
+	}
+	return snippet(wrapBodySnippet, wrapBodyView{
+		Function: fn,
+		Inputs:   inputs,
+		Outputs:  outputs,
+		OutType:  outType,
+		HasError: hasErr,
+	})
+}
+
+func compAdapter(cfg compAdapterConfig) string {
+	return snippet(compensateHandlerSnippet, cfg)
+}
+
+// a failed fragment renders short, which the gofmt pass in render reports
+// against the whole file
+func snippet(name string, data any) string {
 	var sb strings.Builder
-	_, _ = fmt.Fprintf(&sb, codecStructOpen, pkg)
-	for _, f := range decl.fields {
-		_, _ = fmt.Fprintf(&sb, codecFieldDecl,
-			pkg, f.attr, f.codec, f.owner, f.typ, f.field)
-	}
-	sb.WriteString(")")
-	if !decl.lazy {
-		return fmt.Sprintf(codecDecl, decl.name, sb.String())
-	}
-	return fmt.Sprintf(lazyCodecDecl,
-		decl.name, pkg, decl.dialect.iface, decl.owner, sb.String())
+	_ = sources.ExecuteTemplate(&sb, name, data)
+	return sb.String()
 }
 
 func newAttr(
