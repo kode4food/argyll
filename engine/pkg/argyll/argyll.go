@@ -12,13 +12,12 @@ import (
 )
 
 type (
-	// Options configures an embedded Engine. A nil Config uses the defaults.
-	// A nil Handlers map installs the standard handlers, which reject async
-	// HTTP steps unless Callback is set
+	// Options configures an embedded Engine. A nil Config uses the defaults,
+	// and a nil Handlers map installs the standard handlers, which reject async
+	// HTTP steps
 	Options struct {
 		Backend  OpenBackend
 		Config   *config.Config
-		Callback builtins.CallbackURL
 		Handlers step.Handlers
 	}
 
@@ -58,6 +57,6 @@ func (o Options) handlers(cfg *config.Config) step.Handlers {
 		builtins.NewHTTPClient(
 			time.Duration(cfg.StepTimeout)*time.Millisecond,
 		),
-		o.Callback,
+		nil,
 	)
 }
