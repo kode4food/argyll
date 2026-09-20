@@ -11,8 +11,9 @@ import (
 	"github.com/kode4food/argyll/engine/internal/engine"
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/flow"
-	"github.com/kode4food/argyll/engine/pkg/plan"
 )
+
+type planner func(api.ExecutionPlanRequest) (*api.ExecutionPlan, error)
 
 const (
 	MaxFlowBodyBytes = 1 * 1024 * 1024 // 1 MB
@@ -127,10 +128,7 @@ func (s *Server) startFlow(c *gin.Context) {
 		return
 	}
 
-	pl := s.createPlan(c, &plan.Request{
-		Goals: req.Goals,
-		Init:  req.Init,
-	}, plan.Create, req.SpaceID)
+	pl := s.createPlan(c, req.ExecutionPlanRequest, s.engine.CreatePlan)
 	if pl == nil {
 		return
 	}
@@ -233,28 +231,9 @@ func (s *Server) getFlowStatus(c *gin.Context) {
 }
 
 func (s *Server) createPlan(
-	c *gin.Context, req *plan.Request, planner plan.Planner,
-	spaceID api.SpaceID,
+	c *gin.Context, req api.ExecutionPlanRequest, planner planner,
 ) *api.ExecutionPlan {
-	planReq, err := s.engine.PlanRequest(spaceID)
-	if err != nil {
-		if errors.Is(err, api.ErrSpaceNotFound) {
-			c.JSON(http.StatusNotFound, api.ErrorResponse{
-				Error:  err.Error(),
-				Status: http.StatusNotFound,
-			})
-			return nil
-		}
-		c.JSON(http.StatusInternalServerError, api.ErrorResponse{
-			Error:  fmt.Sprintf("%s: %v", ErrGetCatalogState, err),
-			Status: http.StatusInternalServerError,
-		})
-		return nil
-	}
-	planReq.Goals = req.Goals
-	planReq.Init = req.Init
-
-	pl, err := planner(planReq)
+	pl, err := planner(req)
 	if err == nil {
 		return pl
 	}
@@ -292,10 +271,7 @@ func (s *Server) handlePlanPreview(c *gin.Context) {
 		return
 	}
 
-	pl := s.createPlan(c, &plan.Request{
-		Goals: req.Goals,
-		Init:  req.Init,
-	}, plan.Preview, req.SpaceID)
+	pl := s.createPlan(c, req, s.engine.PreviewPlan)
 	if pl != nil {
 		c.JSON(http.StatusOK, pl)
 	}

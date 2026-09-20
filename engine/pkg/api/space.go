@@ -33,6 +33,9 @@ type (
 	SpaceQueryTerm []string
 )
 
+// NoSpace narrows nothing, leaving the full catalog in scope
+const NoSpace = SpaceID("")
+
 var (
 	ErrSpaceIDEmpty       = errors.New("space ID empty")
 	ErrSpaceIDInvalid     = errors.New("space ID contains invalid characters")

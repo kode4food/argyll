@@ -619,7 +619,8 @@ func (s *Step) validateFlowConfig() error {
 	if len(s.Flow.Goals) == 0 {
 		return ErrFlowGoalsRequired
 	}
-	if s.Flow.SpaceID != "" && SanitizeID(s.Flow.SpaceID) != s.Flow.SpaceID {
+	if s.Flow.SpaceID != NoSpace &&
+		SanitizeID(s.Flow.SpaceID) != s.Flow.SpaceID {
 		return ErrSpaceIDInvalid
 	}
 	return nil

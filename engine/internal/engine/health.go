@@ -307,7 +307,7 @@ func (r *healthResolver) previewFlowPlan(
 
 	steps := r.cat.Steps
 	st := r.steps[sid]
-	if st.Flow != nil && st.Flow.SpaceID != "" {
+	if st.Flow != nil && st.Flow.SpaceID != api.NoSpace {
 		if _, ok := r.cat.Spaces[st.Flow.SpaceID]; !ok {
 			return nil, fmt.Errorf("%w: %s", api.ErrSpaceNotFound,
 				st.Flow.SpaceID)

@@ -20,9 +20,6 @@ type (
 		Init     api.InitArgs
 	}
 
-	// Planner builds an execution plan from a request
-	Planner func(*Request) (*api.ExecutionPlan, error)
-
 	// ChildrenFunc returns the child step IDs a step expands into
 	ChildrenFunc func(*api.Step) ([]api.StepID, error)
 
@@ -116,7 +113,7 @@ func create(
 		}
 		candidates := args.candidates
 		dependencies := args.dependencies
-		if st.Flow != nil && st.Flow.SpaceID != "" {
+		if st.Flow != nil && st.Flow.SpaceID != api.NoSpace {
 			if _, ok := args.catalog.Spaces[st.Flow.SpaceID]; !ok {
 				return nil, fmt.Errorf(
 					"%w: %s", api.ErrSpaceNotFound, st.Flow.SpaceID,

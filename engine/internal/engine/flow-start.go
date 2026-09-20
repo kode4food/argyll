@@ -31,14 +31,7 @@ func (e *Engine) StartFlow(req api.CreateFlowRequest) error {
 	if err := req.Validate(); err != nil {
 		return err
 	}
-	planReq, err := e.PlanRequest(req.SpaceID)
-	if err != nil {
-		return err
-	}
-	planReq.Goals = req.Goals
-	planReq.Init = req.Init
-
-	pl, err := plan.Create(planReq)
+	pl, err := e.CreatePlan(req.ExecutionPlanRequest)
 	if err != nil {
 		return err
 	}
@@ -53,28 +46,29 @@ func (e *Engine) StartFlow(req api.CreateFlowRequest) error {
 	return e.StartPlan(req.ID, pl, apps...)
 }
 
-// PlanRequest builds a planning request over the current catalog, narrowed to a
-// space when one is named. Goals and Init are the caller's to fill in
-func (e *Engine) PlanRequest(spaceID api.SpaceID) (*plan.Request, error) {
-	cat, err := e.GetCatalogState()
+// CreatePlan builds an execution plan over the current catalog, narrowed to a
+// space when one is named
+func (e *Engine) CreatePlan(
+	req api.ExecutionPlanRequest,
+) (*api.ExecutionPlan, error) {
+	planReq, err := e.planRequest(req)
 	if err != nil {
 		return nil, err
 	}
+	return plan.Create(planReq)
+}
 
-	steps := cat.Steps
-	if spaceID != "" {
-		if _, ok := cat.Spaces[spaceID]; !ok {
-			return nil, fmt.Errorf("%w: %s", api.ErrSpaceNotFound, spaceID)
-		}
-		steps = cat.SpaceSteps(spaceID)
+// PreviewPlan builds a plan to show rather than run. Unlike CreatePlan, it
+// keeps providers nothing can satisfy, so a caller can show the chain back to
+// missing init inputs
+func (e *Engine) PreviewPlan(
+	req api.ExecutionPlanRequest,
+) (*api.ExecutionPlan, error) {
+	planReq, err := e.planRequest(req)
+	if err != nil {
+		return nil, err
 	}
-
-	return &plan.Request{
-		Match:    e.Matcher,
-		Children: e.Children,
-		Catalog:  cat,
-		Steps:    steps,
-	}, nil
+	return plan.Preview(planReq)
 }
 
 // StartPlan begins a new flow execution with the given plan and options
@@ -85,6 +79,36 @@ func (e *Engine) StartPlan(
 	return e.flowTx(fid, func(tx *flowTx) error {
 		return tx.startPlan(pl, opts)
 	})
+}
+
+// planRequest builds a planning request over the current catalog, narrowed to a
+// space when one is named
+func (e *Engine) planRequest(
+	req api.ExecutionPlanRequest,
+) (*plan.Request, error) {
+	cat, err := e.GetCatalogState()
+	if err != nil {
+		return nil, err
+	}
+
+	steps := cat.Steps
+	if req.SpaceID != api.NoSpace {
+		if _, ok := cat.Spaces[req.SpaceID]; !ok {
+			return nil, fmt.Errorf(
+				"%w: %s", api.ErrSpaceNotFound, req.SpaceID,
+			)
+		}
+		steps = cat.SpaceSteps(req.SpaceID)
+	}
+
+	return &plan.Request{
+		Match:    e.Matcher,
+		Children: e.Children,
+		Catalog:  cat,
+		Steps:    steps,
+		Goals:    req.Goals,
+		Init:     req.Init,
+	}, nil
 }
 
 func (tx *flowTx) startPlan(pl *api.ExecutionPlan, opts *flow.Options) error {

@@ -12,7 +12,7 @@ func (e *Engine) validateSpaceSubFlows(
 ) error {
 	steps := stepsIncluding(cat, newStep)
 	for _, st := range steps {
-		if st.Flow == nil || st.Flow.SpaceID == "" {
+		if st.Flow == nil || st.Flow.SpaceID == api.NoSpace {
 			continue
 		}
 		sp, ok := cat.Spaces[st.Flow.SpaceID]
@@ -72,7 +72,7 @@ func spaceSubFlowGoal(
 	cat api.CatalogState, goalID api.StepID,
 ) (api.StepID, bool) {
 	for id, st := range cat.Steps {
-		if st.Flow != nil && st.Flow.SpaceID != "" &&
+		if st.Flow != nil && st.Flow.SpaceID != api.NoSpace &&
 			slices.Contains(st.Flow.Goals, goalID) {
 			return id, true
 		}
