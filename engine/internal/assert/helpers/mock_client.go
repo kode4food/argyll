@@ -55,7 +55,9 @@ func (c *MockClient) Invoke(
 		default:
 		}
 	}
-	invoke, err, out := s.invoke, s.err, s.response
+	invoke := s.invoke
+	err := s.err
+	out := s.response
 	c.mu.Unlock()
 
 	if invoke != nil {
@@ -74,7 +76,8 @@ func (c *MockClient) Invoke(
 func (c *MockClient) Compensate(req step.CompensateRequest) error {
 	c.mu.Lock()
 	s := c.stepLocked(req.Step.ID)
-	compensate, err := s.compensate, s.compErr
+	compensate := s.compensate
+	err := s.compErr
 	c.mu.Unlock()
 
 	if compensate != nil {

@@ -116,8 +116,8 @@ func TestGeneratedEmbeddedSurface(t *testing.T) {
 	assert.Contains(t, text, `"greeter": {`)
 	assert.Contains(t, text, "Invoke: gen.EmbeddedSync(")
 	assert.Contains(t, text, "Compensate: gen.EmbeddedCompensate(")
-	assert.Contains(t, text, `api.StepType("calculate-risk")`)
-	assert.Contains(t, text, `api.StepType("greeter")`)
+	assert.Regexp(t, `Type:\s+"calculate-risk",`, text)
+	assert.Regexp(t, `Type:\s+"greeter",`, text)
 	assert.Contains(t, text, "convertRiskArgs := convert.Struct(")
 	assert.Contains(t, text, "convertNode := convert.Ref(&convertNodeImpl)")
 	assert.Contains(t, text, "var convertNodeImpl convert.Converter[Node]")
@@ -146,8 +146,8 @@ func TestEmbedType(t *testing.T) {
 	assert.NoError(t, err)
 	text := string(src)
 	assert.Contains(t, text, `"runner": {`)
-	assert.Contains(t, text, `api.StepID("run-v2")`)
-	assert.Contains(t, text, `api.StepType("runner")`)
+	assert.Regexp(t, `ID:\s+"run-v2",`, text)
+	assert.Regexp(t, `Type:\s+"runner",`, text)
 }
 
 func TestReservedEmbedType(t *testing.T) {

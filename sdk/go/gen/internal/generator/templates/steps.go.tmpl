@@ -6,7 +6,7 @@ package {{.Package}}
 // ArgyllServiceSteps returns the steps generated for this package, served
 // over HTTP
 func ArgyllServiceSteps() []gen.StepDef {
-{{range .Declarations -}}
+{{range .Decls -}}
 {{.}}
 {{end -}}
 
@@ -16,7 +16,7 @@ return {{template "step-defs" .}}
 // ArgyllEmbeddedHandlers returns in-process handlers for the steps generated
 // for this package, keyed by the step type ArgyllEmbeddedSteps gives each
 func ArgyllEmbeddedHandlers() step.Handlers {
-{{range .EmbeddedDeclarations -}}
+{{range .EmbeddedDecls -}}
 {{.}}
 {{end -}}
 
@@ -35,9 +35,5 @@ Compensate: {{.Compensate}},
 // ArgyllEmbeddedSteps returns the steps generated for this package, typed to
 // run in an embedded engine on the handlers ArgyllEmbeddedHandlers returns
 func ArgyllEmbeddedSteps() []*api.Step {
-return []*api.Step{
-{{range .Embedded -}}
-{{.Spec}},
-{{end -}}
-}
+return {{.EmbeddedSpecs}}
 }

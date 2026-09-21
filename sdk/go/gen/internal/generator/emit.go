@@ -22,12 +22,13 @@ import (
 
 type (
 	sourceModel struct {
-		Package              string
-		Imports              string
-		Declarations         []string
-		Steps                []sourceStep
-		EmbeddedDeclarations []string
-		Embedded             []sourceStep
+		Package       string
+		Imports       string
+		Decls         []string
+		Steps         []sourceStep
+		EmbeddedDecls []string
+		Embedded      []sourceStep
+		EmbeddedSpecs string
 	}
 
 	sourceStep struct {
@@ -267,10 +268,10 @@ func (g *pkgGen) serverSource() ([]byte, error) {
 		return nil, err
 	}
 	return render(serverTemplate, sourceModel{
-		Package:      g.pkg.Name,
-		Imports:      importBlock(g.imports, serverPackages),
-		Declarations: g.decls,
-		Steps:        steps,
+		Package: g.pkg.Name,
+		Imports: importBlock(g.imports, serverPackages),
+		Decls:   g.decls,
+		Steps:   steps,
 	})
 }
 
@@ -298,21 +299,25 @@ func (g *pkgGen) serviceSteps(logging bool) ([]sourceStep, error) {
 
 // embeddedSteps are keyed by step type, which is the ID an embedded engine runs
 // the step's handler under
-func (g *pkgGen) embeddedSteps() ([]sourceStep, error) {
+func (g *pkgGen) embeddedSteps() []sourceStep {
 	res := make([]sourceStep, 0, len(g.steps))
 	for _, s := range g.steps {
-		spec, err := GoLiteral(embeddedSpec(s))
-		if err != nil {
-			return nil, err
-		}
 		res = append(res, sourceStep{
 			ID:         strconv.Quote(s.embedType),
-			Spec:       spec,
 			Invoke:     s.invoke,
 			Compensate: s.compensate,
 		})
 	}
-	return res, nil
+	return res
+}
+
+// one slice renders each spec as an element, which states only its braces
+func (g *pkgGen) embeddedSpecs() (string, error) {
+	res := make([]*api.Step, 0, len(g.steps))
+	for _, s := range g.steps {
+		res = append(res, embeddedSpec(s))
+	}
+	return GoLiteral(res)
 }
 
 func (g *pkgGen) wrapStruct(
@@ -488,19 +493,20 @@ func librarySource(service, embedded *pkgGen) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	embeddedSteps, err := embedded.embeddedSteps()
+	specs, err := embedded.embeddedSpecs()
 	if err != nil {
 		return nil, err
 	}
 	paths := maps.Clone(service.imports)
 	maps.Copy(paths, embedded.imports)
 	return render(stepsTemplate, sourceModel{
-		Package:              service.pkg.Name,
-		Imports:              importBlock(paths, libraryPackages),
-		Declarations:         service.decls,
-		Steps:                steps,
-		EmbeddedDeclarations: embedded.decls,
-		Embedded:             embeddedSteps,
+		Package:       service.pkg.Name,
+		Imports:       importBlock(paths, libraryPackages),
+		Decls:         service.decls,
+		Steps:         steps,
+		EmbeddedDecls: embedded.decls,
+		Embedded:      embedded.embeddedSteps(),
+		EmbeddedSpecs: specs,
 	})
 }
 

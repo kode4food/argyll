@@ -31,50 +31,55 @@ func literalOf(v reflect.Value) (string, error) {
 			return "", err
 		}
 		return "&" + inner, nil
-	case reflect.Struct:
-		return structLiteral(v)
-	case reflect.Map:
-		return mapLiteral(v)
-	case reflect.Slice:
-		return sliceLiteral(v)
+	case reflect.Struct, reflect.Map, reflect.Slice, reflect.Array:
+		return namedComposite(v)
 	case reflect.String:
-		return scalarLiteral(v, strconv.Quote(v.String()))
+		return strconv.Quote(v.String()), nil
 	case reflect.Bool:
-		return scalarLiteral(v, strconv.FormatBool(v.Bool()))
+		return strconv.FormatBool(v.Bool()), nil
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32,
 		reflect.Int64:
-		return scalarLiteral(v, strconv.FormatInt(v.Int(), 10))
+		return strconv.FormatInt(v.Int(), 10), nil
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32,
 		reflect.Uint64:
-		return scalarLiteral(v, strconv.FormatUint(v.Uint(), 10))
+		return strconv.FormatUint(v.Uint(), 10), nil
 	case reflect.Float32, reflect.Float64:
-		return scalarLiteral(
-			v, strconv.FormatFloat(v.Float(), 'g', -1, 64),
-		)
+		return strconv.FormatFloat(v.Float(), 'g', -1, 64), nil
 	default:
 		return "", fmt.Errorf("%w: %s", ErrUnsupportedGo, v.Kind())
 	}
 }
 
-// scalarLiteral wraps a basic value in a conversion when its type is named,
-// so a StepID stays a StepID rather than becoming an untyped string
-func scalarLiteral(v reflect.Value, basic string) (string, error) {
-	if isBasicType(v.Type()) {
-		return basic, nil
-	}
-	name, err := typeName(v.Type())
+// an empty name renders the braces alone, for an element whose type the
+// composite around it already states
+func compositeLiteral(name string, v reflect.Value) (string, error) {
+	parts, err := partsOf(v)
 	if err != nil {
 		return "", err
 	}
-	return name + "(" + basic + ")", nil
+	return composite(name, parts), nil
 }
 
-func structLiteral(v reflect.Value) (string, error) {
+func namedComposite(v reflect.Value) (string, error) {
 	name, err := typeName(v.Type())
 	if err != nil {
 		return "", err
 	}
+	return compositeLiteral(name, v)
+}
 
+func partsOf(v reflect.Value) ([]string, error) {
+	switch v.Kind() {
+	case reflect.Struct:
+		return structParts(v)
+	case reflect.Map:
+		return mapParts(v)
+	default:
+		return listParts(v)
+	}
+}
+
+func structParts(v reflect.Value) ([]string, error) {
 	var fields []string
 	for i := range v.NumField() {
 		f := v.Type().Field(i)
@@ -83,50 +88,68 @@ func structLiteral(v reflect.Value) (string, error) {
 		}
 		val, err := literalOf(v.Field(i))
 		if err != nil {
-			return "", err
+			return nil, err
 		}
 		fields = append(fields, f.Name+": "+val+",")
 	}
-	return composite(name, fields), nil
+	return fields, nil
 }
 
-func mapLiteral(v reflect.Value) (string, error) {
-	name, err := typeName(v.Type())
-	if err != nil {
-		return "", err
-	}
-
+func mapParts(v reflect.Value) ([]string, error) {
 	entries := make([]string, 0, v.Len())
 	for i := v.MapRange(); i.Next(); {
-		key, err := literalOf(i.Key())
+		key, err := elementLiteral(i.Key(), v.Type().Key())
 		if err != nil {
-			return "", err
+			return nil, err
 		}
-		val, err := literalOf(i.Value())
+		val, err := elementLiteral(i.Value(), v.Type().Elem())
 		if err != nil {
-			return "", err
+			return nil, err
 		}
 		entries = append(entries, key+": "+val+",")
 	}
 	slices.Sort(entries)
-	return composite(name, entries), nil
+	return entries, nil
 }
 
-func sliceLiteral(v reflect.Value) (string, error) {
-	name, err := typeName(v.Type())
-	if err != nil {
-		return "", err
-	}
-
+func listParts(v reflect.Value) ([]string, error) {
 	items := make([]string, 0, v.Len())
 	for i := range v.Len() {
-		item, err := literalOf(v.Index(i))
+		item, err := elementLiteral(v.Index(i), v.Type().Elem())
 		if err != nil {
-			return "", err
+			return nil, err
 		}
 		items = append(items, item+",")
 	}
-	return composite(name, items), nil
+	return items, nil
+}
+
+// elementLiteral renders an element of a composite, leaving out the type Go
+// infers from the composite around it
+func elementLiteral(v reflect.Value, t reflect.Type) (string, error) {
+	if t.Kind() == reflect.Pointer {
+		if v.IsNil() {
+			return "nil", nil
+		}
+		if elides(t.Elem()) {
+			return compositeLiteral("", v.Elem())
+		}
+	}
+	if elides(t) {
+		return compositeLiteral("", v)
+	}
+	return literalOf(v)
+}
+
+// elides reports whether a composite literal of this type states its own type
+// only when it stands alone
+func elides(t reflect.Type) bool {
+	switch t.Kind() {
+	case reflect.Struct, reflect.Slice, reflect.Array, reflect.Map:
+		return true
+	default:
+		return false
+	}
 }
 
 func composite(name string, parts []string) string {
@@ -136,21 +159,39 @@ func composite(name string, parts []string) string {
 	return name + "{\n" + strings.Join(parts, "\n") + "\n}"
 }
 
-// typeName qualifies a named type by its package, matching the import names
-// goimports resolves for the generated file
+// typeName qualifies a named type by the package goimports resolves for it, and
+// spells an unnamed composite out of the types it composes
 func typeName(t reflect.Type) (string, error) {
-	if t.Name() == "" {
+	if t.Name() != "" {
+		pkg := t.PkgPath()
+		if pkg == "" {
+			return t.Name(), nil
+		}
+		return pkg[strings.LastIndex(pkg, "/")+1:] + "." + t.Name(), nil
+	}
+
+	switch t.Kind() {
+	case reflect.Slice:
+		return elemTypeName("[]", t)
+	case reflect.Array:
+		return elemTypeName("["+strconv.Itoa(t.Len())+"]", t)
+	case reflect.Pointer:
+		return elemTypeName("*", t)
+	case reflect.Map:
+		key, err := typeName(t.Key())
+		if err != nil {
+			return "", err
+		}
+		return elemTypeName("map["+key+"]", t)
+	default:
 		return "", fmt.Errorf("%w: %s", ErrUnnamedType, t)
 	}
-	pkg := t.PkgPath()
-	if pkg == "" {
-		return t.Name(), nil
-	}
-	return pkg[strings.LastIndex(pkg, "/")+1:] + "." + t.Name(), nil
 }
 
-// isBasicType reports whether a type is a predeclared one, which a literal
-// states without a conversion
-func isBasicType(t reflect.Type) bool {
-	return t.PkgPath() == "" && t.Name() == t.Kind().String()
+func elemTypeName(prefix string, t reflect.Type) (string, error) {
+	elem, err := typeName(t.Elem())
+	if err != nil {
+		return "", err
+	}
+	return prefix + elem, nil
 }

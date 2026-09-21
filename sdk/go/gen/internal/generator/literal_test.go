@@ -34,14 +34,16 @@ func TestGoLiteralScalars(t *testing.T) {
 	}
 }
 
+// a named scalar renders as the bare constant the target type converts, the
+// form a Go literal already infers wherever the value sits
 func TestGoLiteralNamedScalars(t *testing.T) {
 	sid, err := generator.GoLiteral(api.StepID("greet"))
 	assert.NoError(t, err)
-	assert.Equal(t, `api.StepID("greet")`, sid)
+	assert.Equal(t, `"greet"`, sid)
 
 	role, err := generator.GoLiteral(api.RoleRequired)
 	assert.NoError(t, err)
-	assert.Equal(t, `api.AttributeRole("required")`, role)
+	assert.Equal(t, `"required"`, role)
 }
 
 func TestGoLiteralStructSkipsZeroFields(t *testing.T) {
@@ -85,12 +87,9 @@ func TestGoLiteralMapIsOrdered(t *testing.T) {
 	first, err := generator.GoLiteral(attrs)
 	assert.NoError(t, err)
 	assert.Equal(t, "api.AttributeSpecs{\n"+
-		"api.Name(\"alpha\"): &api.AttributeSpec{\n"+
-		"Role: api.AttributeRole(\"required\"),\n},\n"+
-		"api.Name(\"mid\"): &api.AttributeSpec{\n"+
-		"Role: api.AttributeRole(\"optional\"),\n},\n"+
-		"api.Name(\"zeta\"): &api.AttributeSpec{\n"+
-		"Role: api.AttributeRole(\"output\"),\n},\n}", first)
+		"\"alpha\": {\nRole: \"required\",\n},\n"+
+		"\"mid\": {\nRole: \"optional\",\n},\n"+
+		"\"zeta\": {\nRole: \"output\",\n},\n}", first)
 
 	for range 8 {
 		again, err := generator.GoLiteral(attrs)
@@ -110,21 +109,70 @@ func TestGoLiteralUnsupportedKind(t *testing.T) {
 	assert.ErrorIs(t, err, generator.ErrUnsupportedGo)
 }
 
-func TestGoLiteralUnnamedType(t *testing.T) {
-	_, err := generator.GoLiteral([]api.StepID{"greet"})
+// an unnamed composite spells itself out of the types it composes, so a field
+// like api.FlowConfig.Goals renders without a named type to reach for
+func TestGoLiteralUnnamedComposite(t *testing.T) {
+	tests := map[string]struct {
+		value any
+		want  string
+	}{
+		"slice": {
+			value: []api.StepID{"greet"},
+			want:  "[]api.StepID{\n\"greet\",\n}",
+		},
+		"array": {
+			value: [2]string{"a", "b"},
+			want:  "[2]string{\n\"a\",\n\"b\",\n}",
+		},
+		"map": {
+			value: map[string]string{"a": "b"},
+			want:  "map[string]string{\n\"a\": \"b\",\n}",
+		},
+		"pointer element": {
+			value: []*api.ScriptConfig{{Language: "lua"}},
+			want:  "[]*api.ScriptConfig{\n{\nLanguage: \"lua\",\n},\n}",
+		},
+		"nil pointer element": {
+			value: []*api.ScriptConfig{nil},
+			want:  "[]*api.ScriptConfig{\nnil,\n}",
+		},
+		"nested": {
+			value: map[api.StepID][]string{"a": {"b"}},
+			want:  "map[api.StepID][]string{\n\"a\": {\n\"b\",\n},\n}",
+		},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			got, err := generator.GoLiteral(test.value)
+			assert.NoError(t, err)
+			assert.Equal(t, test.want, got)
+		})
+	}
+}
+
+func TestGoLiteralUnnamedStruct(t *testing.T) {
+	_, err := generator.GoLiteral(struct{ Name string }{Name: "a"})
 	assert.ErrorIs(t, err, generator.ErrUnnamedType)
 
-	_, err = generator.GoLiteral(struct{ Name string }{Name: "a"})
+	_, err = generator.GoLiteral([]struct{ Name string }{{Name: "a"}})
 	assert.ErrorIs(t, err, generator.ErrUnnamedType)
 
-	_, err = generator.GoLiteral(map[string]string{"a": "b"})
+	_, err = generator.GoLiteral(map[string]struct{ Name string }{
+		"a": {Name: "b"},
+	})
+	assert.ErrorIs(t, err, generator.ErrUnnamedType)
+
+	_, err = generator.GoLiteral(map[struct{ Name string }]string{
+		{Name: "a"}: "b",
+	})
 	assert.ErrorIs(t, err, generator.ErrUnnamedType)
 }
 
-func TestGoLiteralNestedError(t *testing.T) {
-	_, err := generator.GoLiteral(api.Step{
-		Attributes: api.AttributeSpecs{"a": {Role: api.RoleRequired}},
-		Flow:       &api.FlowConfig{Goals: []api.StepID{"greet"}},
+func TestGoLiteralFlowGoals(t *testing.T) {
+	got, err := generator.GoLiteral(api.Step{
+		Flow: &api.FlowConfig{Goals: []api.StepID{"greet"}},
 	})
-	assert.ErrorIs(t, err, generator.ErrUnnamedType)
+	assert.NoError(t, err)
+	assert.Contains(t, got, "Goals: []api.StepID{\n\"greet\",\n},")
 }
