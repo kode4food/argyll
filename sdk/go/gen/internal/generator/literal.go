@@ -14,9 +14,9 @@ var (
 	ErrUnsupportedGo = errors.New("no Go literal for kind")
 )
 
-// goLiteral renders a value as the Go expression that rebuilds it, leaving out
+// GoLiteral renders a value as the Go expression that rebuilds it, leaving out
 // the zero and unexported fields a literal already defaults
-func goLiteral(v any) (string, error) {
+func GoLiteral(v any) (string, error) {
 	return literalOf(reflect.ValueOf(v))
 }
 
@@ -44,6 +44,13 @@ func literalOf(v reflect.Value) (string, error) {
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32,
 		reflect.Int64:
 		return scalarLiteral(v, strconv.FormatInt(v.Int(), 10))
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32,
+		reflect.Uint64:
+		return scalarLiteral(v, strconv.FormatUint(v.Uint(), 10))
+	case reflect.Float32, reflect.Float64:
+		return scalarLiteral(
+			v, strconv.FormatFloat(v.Float(), 'g', -1, 64),
+		)
 	default:
 		return "", fmt.Errorf("%w: %s", ErrUnsupportedGo, v.Kind())
 	}

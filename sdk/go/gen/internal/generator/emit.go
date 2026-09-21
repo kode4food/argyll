@@ -277,7 +277,7 @@ func (g *pkgGen) serverSource() ([]byte, error) {
 func (g *pkgGen) serviceSteps(logging bool) ([]sourceStep, error) {
 	res := make([]sourceStep, 0, len(g.steps))
 	for _, s := range g.steps {
-		spec, err := goLiteral(s.spec)
+		spec, err := GoLiteral(s.spec)
 		if err != nil {
 			return nil, err
 		}
@@ -301,7 +301,7 @@ func (g *pkgGen) serviceSteps(logging bool) ([]sourceStep, error) {
 func (g *pkgGen) embeddedSteps() ([]sourceStep, error) {
 	res := make([]sourceStep, 0, len(g.steps))
 	for _, s := range g.steps {
-		spec, err := goLiteral(embeddedSpec(s))
+		spec, err := GoLiteral(embeddedSpec(s))
 		if err != nil {
 			return nil, err
 		}
