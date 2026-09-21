@@ -145,7 +145,6 @@ func TestEmbedType(t *testing.T) {
 		"//argyll:step run-v2\n//argyll:embed runner\nfunc Run() {}")
 	assert.NoError(t, err)
 	text := string(src)
-	assert.Contains(t, text, `"run-v2",`)
 	assert.Contains(t, text, `"runner": {`)
 	assert.Contains(t, text, `api.StepID("run-v2")`)
 	assert.Contains(t, text, `api.StepType("runner")`)

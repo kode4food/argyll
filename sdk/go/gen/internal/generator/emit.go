@@ -288,7 +288,6 @@ func (g *pkgGen) serviceSteps(logging bool) ([]sourceStep, error) {
 			compensate = logged(s.spec.ID, compensate)
 		}
 		res = append(res, sourceStep{
-			ID:         strconv.Quote(string(s.spec.ID)),
 			Spec:       spec,
 			Invoke:     invoke,
 			Compensate: compensate,

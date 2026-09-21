@@ -44,9 +44,6 @@ func literalOf(v reflect.Value) (string, error) {
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32,
 		reflect.Int64:
 		return scalarLiteral(v, strconv.FormatInt(v.Int(), 10))
-	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32,
-		reflect.Uint64:
-		return scalarLiteral(v, strconv.FormatUint(v.Uint(), 10))
 	default:
 		return "", fmt.Errorf("%w: %s", ErrUnsupportedGo, v.Kind())
 	}
@@ -92,23 +89,19 @@ func mapLiteral(v reflect.Value) (string, error) {
 		return "", err
 	}
 
-	keys := v.MapKeys()
-	slices.SortFunc(keys, func(a, b reflect.Value) int {
-		return strings.Compare(mapKeyOrder(a), mapKeyOrder(b))
-	})
-
-	entries := make([]string, 0, len(keys))
-	for _, k := range keys {
-		key, err := literalOf(k)
+	entries := make([]string, 0, v.Len())
+	for i := v.MapRange(); i.Next(); {
+		key, err := literalOf(i.Key())
 		if err != nil {
 			return "", err
 		}
-		val, err := literalOf(v.MapIndex(k))
+		val, err := literalOf(i.Value())
 		if err != nil {
 			return "", err
 		}
 		entries = append(entries, key+": "+val+",")
 	}
+	slices.Sort(entries)
 	return composite(name, entries), nil
 }
 
@@ -153,11 +146,4 @@ func typeName(t reflect.Type) (string, error) {
 // states without a conversion
 func isBasicType(t reflect.Type) bool {
 	return t.PkgPath() == "" && t.Name() == t.Kind().String()
-}
-
-func mapKeyOrder(k reflect.Value) string {
-	if k.Kind() == reflect.String {
-		return k.String()
-	}
-	return fmt.Sprint(k.Interface())
 }

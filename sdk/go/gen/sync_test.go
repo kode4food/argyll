@@ -277,7 +277,6 @@ func (failCodec) Encode(*jsontext.Encoder, sumResult) error {
 // sumStep stands in for what argyll-gen writes
 func sumStep() gen.StepDef {
 	return gen.StepDef{
-		ID: "sum",
 		Step: &api.Step{
 			ID:   "sum",
 			Name: "Sum",

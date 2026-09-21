@@ -16,7 +16,6 @@ type StepDef struct {
 	Invoke     http.HandlerFunc
 	Compensate http.HandlerFunc
 	Step       *api.Step
-	ID         api.StepID
 }
 
 // DefaultTimeout is the engine client timeout used while registering
@@ -61,9 +60,11 @@ func Mux(steps ...StepDef) *http.ServeMux {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/health", argyll.HealthHandler(""))
 	for _, s := range steps {
-		mux.HandleFunc("/"+string(s.ID), s.Invoke)
+		mux.HandleFunc("/"+string(s.Step.ID), s.Invoke)
 		if s.Compensate != nil {
-			mux.HandleFunc("/"+string(s.ID)+"/compensate", s.Compensate)
+			mux.HandleFunc(
+				"/"+string(s.Step.ID)+"/compensate", s.Compensate,
+			)
 		}
 	}
 	return mux
