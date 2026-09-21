@@ -14,7 +14,7 @@ type (
 		Compensate bool
 	}
 
-	// Applier mutates *FlowOptions during StartFlow setup
+	// Applier mutates the Options a flow starts with
 	Applier = call.Applier[*Options]
 )
 
