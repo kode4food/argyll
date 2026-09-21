@@ -15,7 +15,7 @@ import (
 type (
 	stepModel struct {
 		spec       *api.Step
-		handler    string
+		invoke     string
 		compensate string
 		embedType  string
 	}
@@ -45,7 +45,7 @@ type (
 		function    *ast.FuncDecl
 		declaration stepDecl
 		attributes  api.AttributeSpecs
-		handler     string
+		invoke      string
 		compensate  string
 	}
 
@@ -320,7 +320,7 @@ func (g *pkgGen) model(config *stepModelConfig) (stepModel, error) {
 	}
 	return stepModel{
 		spec:       spec,
-		handler:    config.handler,
+		invoke:     config.invoke,
 		compensate: config.compensate,
 	}, nil
 }
@@ -382,7 +382,7 @@ func (g *pkgGen) stepFor(
 		function:    fn,
 		declaration: decl,
 		attributes:  attrs,
-		handler: syncHandler(syncHandlerArgs{
+		invoke: syncHandler(syncHandlerArgs{
 			Adapter:    g.dialect.sync,
 			InAdapter:  inCodec,
 			OutAdapter: outCodec,
@@ -457,7 +457,7 @@ func (g *pkgGen) wrapFor(
 		function:    fn,
 		declaration: decl,
 		attributes:  attrs,
-		handler: syncHandler(syncHandlerArgs{
+		invoke: syncHandler(syncHandlerArgs{
 			Adapter:    g.dialect.sync,
 			InAdapter:  inCodec,
 			OutAdapter: outCodec,

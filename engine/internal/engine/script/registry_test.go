@@ -23,7 +23,7 @@ func (r registryTestEnv) Compile(
 	return "compiled", nil
 }
 
-func (r registryTestEnv) ExecuteScript(
+func (r registryTestEnv) EvaluateScript(
 	script.Compiled, *api.Step, api.Args,
 ) (api.Args, error) {
 	return api.Args{}, nil
@@ -65,7 +65,7 @@ func TestRegistryCompilation(t *testing.T) {
 		assert.NotNil(t, comp)
 
 		inputs := api.Args{"x": float64(21)}
-		outputs, err := env.ExecuteScript(comp, st, inputs)
+		outputs, err := env.EvaluateScript(comp, st, inputs)
 		assert.NoError(t, err)
 		assert.Equal(t, 42, outputs["result"])
 	})
@@ -97,7 +97,7 @@ func TestLuaCompilation(t *testing.T) {
 		assert.NotNil(t, comp)
 
 		inputs := api.Args{"x": float64(21)}
-		outputs, err := env.ExecuteScript(comp, st, inputs)
+		outputs, err := env.EvaluateScript(comp, st, inputs)
 		assert.NoError(t, err)
 		assert.Equal(t, 42, outputs["result"])
 	})
@@ -298,7 +298,7 @@ func TestJPathInvalidSyntax(t *testing.T) {
 	})
 }
 
-func TestJPathExecuteScript(t *testing.T) {
+func TestJPathEvaluateScript(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
 		registry := script.NewRegistry()
 
@@ -312,7 +312,7 @@ func TestJPathExecuteScript(t *testing.T) {
 		comp, err := env.Compile(st, st.Predicate)
 		assert.NoError(t, err)
 
-		outputs, err := env.ExecuteScript(comp, nil, api.Args{
+		outputs, err := env.EvaluateScript(comp, nil, api.Args{
 			"input": map[string]any{"foo": "bar"},
 		})
 		assert.NoError(t, err)
@@ -397,7 +397,7 @@ func TestRegistryComplexScript(t *testing.T) {
 			"name": "World",
 		}
 
-		outputs, err := env.ExecuteScript(comp, st, inputs)
+		outputs, err := env.EvaluateScript(comp, st, inputs)
 		assert.NoError(t, err)
 		assert.Equal(t, 15, outputs["sum"])
 		assert.Equal(t, 50, outputs["product"])
@@ -445,7 +445,7 @@ func TestLuaComplexScript(t *testing.T) {
 			"name": "World",
 		}
 
-		outputs, err := env.ExecuteScript(comp, st, inputs)
+		outputs, err := env.EvaluateScript(comp, st, inputs)
 		assert.NoError(t, err)
 		assert.Equal(t, 15, outputs["sum"])
 		assert.Equal(t, 50, outputs["product"])

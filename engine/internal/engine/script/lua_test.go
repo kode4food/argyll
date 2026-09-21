@@ -34,7 +34,7 @@ func TestLuaCompile(t *testing.T) {
 	assert.NotNil(t, comp)
 }
 
-func TestLuaExecuteScript(t *testing.T) {
+func TestLuaEvaluateScript(t *testing.T) {
 	env := script.NewLuaEnv()
 
 	st := &api.Step{
@@ -59,7 +59,7 @@ func TestLuaExecuteScript(t *testing.T) {
 		"b": 10,
 	}
 
-	result, err := env.ExecuteScript(comp, st, args)
+	result, err := env.EvaluateScript(comp, st, args)
 	assert.NoError(t, err)
 
 	assert.Contains(t, result, api.Name("result"))
@@ -305,7 +305,7 @@ func TestLuaComplexConversion(t *testing.T) {
 		"price":     99.99,
 	}
 
-	result, err := env.ExecuteScript(comp, st, args)
+	result, err := env.EvaluateScript(comp, st, args)
 	assert.NoError(t, err)
 
 	assert.Equal(t, true, result["bool_val"])
@@ -333,7 +333,7 @@ func TestLuaArrayTableConversion(t *testing.T) {
 	comp, err := env.Compile(st, st.Script)
 	assert.NoError(t, err)
 
-	result, err := env.ExecuteScript(comp, st, api.Args{})
+	result, err := env.EvaluateScript(comp, st, api.Args{})
 	assert.NoError(t, err)
 
 	numbers, ok := result["numbers"].([]any)
@@ -416,7 +416,7 @@ func TestLuaInputTypes(t *testing.T) {
 			comp, err := env.Compile(st, st.Script)
 			assert.NoError(t, err)
 
-			result, err := env.ExecuteScript(comp, st, tt.inputs)
+			result, err := env.EvaluateScript(comp, st, tt.inputs)
 			assert.NoError(t, err)
 
 			for key, expected := range tt.expected {
@@ -444,7 +444,7 @@ func TestLuaEmptyArray(t *testing.T) {
 	comp, err := env.Compile(st, st.Script)
 	assert.NoError(t, err)
 
-	result, err := env.ExecuteScript(comp, st, api.Args{})
+	result, err := env.EvaluateScript(comp, st, api.Args{})
 	assert.NoError(t, err)
 
 	items, ok := result["items"].(map[string]any)
@@ -474,7 +474,7 @@ func TestLuaNestedArrays(t *testing.T) {
 	comp, err := env.Compile(st, st.Script)
 	assert.NoError(t, err)
 
-	result, err := env.ExecuteScript(comp, st, api.Args{})
+	result, err := env.EvaluateScript(comp, st, api.Args{})
 	assert.NoError(t, err)
 
 	matrix, ok := result["matrix"].([]any)
@@ -505,7 +505,7 @@ func TestLuaNilReturn(t *testing.T) {
 	comp, err := env.Compile(st, st.Script)
 	assert.NoError(t, err)
 
-	result, err := env.ExecuteScript(comp, st, api.Args{})
+	result, err := env.EvaluateScript(comp, st, api.Args{})
 	assert.NoError(t, err)
 	assert.Nil(t, result["result"])
 }
@@ -528,7 +528,7 @@ func TestLuaEmptyTable(t *testing.T) {
 	comp, err := env.Compile(st, st.Script)
 	assert.NoError(t, err)
 
-	result, err := env.ExecuteScript(comp, st, api.Args{})
+	result, err := env.EvaluateScript(comp, st, api.Args{})
 	assert.NoError(t, err)
 
 	m, ok := result["result"].(map[string]any)
@@ -565,7 +565,7 @@ func TestLuaNestedMap(t *testing.T) {
 	comp, err := env.Compile(st, st.Script)
 	assert.NoError(t, err)
 
-	result, err := env.ExecuteScript(comp, st, api.Args{})
+	result, err := env.EvaluateScript(comp, st, api.Args{})
 	assert.NoError(t, err)
 
 	m, ok := result["result"].(map[string]any)
@@ -603,7 +603,7 @@ func TestLuaLargeArray(t *testing.T) {
 	comp, err := env.Compile(st, st.Script)
 	assert.NoError(t, err)
 
-	result, err := env.ExecuteScript(comp, st, api.Args{})
+	result, err := env.EvaluateScript(comp, st, api.Args{})
 	assert.NoError(t, err)
 
 	numbers, ok := result["numbers"].([]any)

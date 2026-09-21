@@ -23,7 +23,7 @@ func ArgyllEmbeddedHandlers() step.Handlers {
 return step.Handlers{
 {{range .Embedded -}}
 {{.ID}}: {
-Invoke: {{.Handler}},
+Invoke: {{.Invoke}},
 {{if .Compensate -}}
 Compensate: {{.Compensate}},
 {{end -}}
@@ -34,10 +34,10 @@ Compensate: {{.Compensate}},
 
 // ArgyllEmbeddedSteps returns the steps generated for this package, typed to
 // run in an embedded engine on the handlers ArgyllEmbeddedHandlers returns
-func ArgyllEmbeddedSteps() ([]*api.Step, error) {
-return gen.EmbeddedSteps(
+func ArgyllEmbeddedSteps() []*api.Step {
+return []*api.Step{
 {{range .Embedded -}}
 {{.Spec}},
 {{end -}}
-)
+}
 }

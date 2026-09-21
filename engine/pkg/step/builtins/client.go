@@ -69,8 +69,8 @@ func (c *httpClient) Invoke(
 	return parseResponse(st, respBody)
 }
 
-// InvokeCompensate sends selected work attributes to the compensate endpoint
-func (c *httpClient) InvokeCompensate(req step.CompensateRequest) error {
+// Compensate sends selected work attributes to the compensate endpoint
+func (c *httpClient) Compensate(req step.CompensateRequest) error {
 	st := req.Step
 	if st.HTTP == nil || st.HTTP.Compensate == nil {
 		return fmt.Errorf("%w: %s", ErrNoHTTPConfig, st.ID)

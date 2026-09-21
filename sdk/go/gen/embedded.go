@@ -1,9 +1,7 @@
 package gen
 
 import (
-	"encoding/json"
 	"errors"
-	"fmt"
 
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/step"
@@ -52,19 +50,6 @@ func EmbeddedCompensate[I any](
 		)
 		return err == nil, err
 	}
-}
-
-// EmbeddedSteps decodes the specifications of steps an embedded engine runs
-func EmbeddedSteps(specs ...string) ([]*api.Step, error) {
-	res := make([]*api.Step, len(specs))
-	for i, spec := range specs {
-		var st api.Step
-		if err := json.Unmarshal([]byte(spec), &st); err != nil {
-			return nil, fmt.Errorf("%w: %s", err, spec)
-		}
-		res[i] = &st
-	}
-	return res, nil
 }
 
 // embeddedArgs adds the meta attributes an engine would otherwise put in the

@@ -245,11 +245,11 @@ class StepBuilder:
         """Set how the compensate action reports its result."""
         return self._with_compensate(mode=mode)
 
-    def with_async_execution(self) -> "StepBuilder":
+    def with_async_invoke(self) -> "StepBuilder":
         """Configure the invoke action to complete via webhook callback."""
         return self.with_invoke_mode(ActionMode.ASYNC)
 
-    def with_sync_execution(self) -> "StepBuilder":
+    def with_sync_invoke(self) -> "StepBuilder":
         """Configure the invoke action to complete in the HTTP response."""
         return self.with_invoke_mode(ActionMode.SYNC)
 

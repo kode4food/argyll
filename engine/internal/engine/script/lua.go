@@ -85,9 +85,9 @@ func NewLuaEnv() *LuaEnv {
 	return luaEnv
 }
 
-// ExecuteScript runs a compiled Lua script with the provided inputs and
+// EvaluateScript runs a compiled Lua script with the provided inputs and
 // returns the output arguments
-func (e *LuaEnv) ExecuteScript(
+func (e *LuaEnv) EvaluateScript(
 	c Compiled, _ *api.Step, inputs api.Args,
 ) (api.Args, error) {
 	proc := c.(*CompiledLua)

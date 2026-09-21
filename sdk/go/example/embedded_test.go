@@ -15,9 +15,7 @@ import (
 
 func TestEmbeddedGreet(t *testing.T) {
 	eng := embeddedEngine(t)
-	steps, err := example.ArgyllEmbeddedSteps()
-	assert.NoError(t, err)
-	for _, st := range steps {
+	for _, st := range example.ArgyllEmbeddedSteps() {
 		if st.ID == "greet" {
 			assert.Equal(t, api.StepType("greeter"), st.Type)
 			assert.NoError(t, eng.RegisterStep(st))

@@ -456,7 +456,7 @@ func TestCompensateMethod(t *testing.T) {
 		},
 	}
 
-	err := cl.InvokeCompensate(
+	err := cl.Compensate(
 		step.CompensateRequest{
 			Step:     st,
 			Inputs:   api.Args{"amount": 10, "secret": "private"},
@@ -504,7 +504,7 @@ func TestCompensateConflict(t *testing.T) {
 		},
 	}
 
-	err := cl.InvokeCompensate(
+	err := cl.Compensate(
 		step.CompensateRequest{
 			Step:    st,
 			Inputs:  api.Args{"value": "before"},
@@ -572,7 +572,7 @@ func TestCompensateBody(t *testing.T) {
 				},
 			}
 
-			err := cl.InvokeCompensate(step.CompensateRequest{Step: st})
+			err := cl.Compensate(step.CompensateRequest{Step: st})
 			assert.NoError(t, err)
 			assert.Empty(t, gotBody)
 		})
@@ -601,7 +601,7 @@ func TestCompensateTimeout(t *testing.T) {
 		},
 	}
 
-	err := cl.InvokeCompensate(step.CompensateRequest{Step: st})
+	err := cl.Compensate(step.CompensateRequest{Step: st})
 	assert.Error(t, err)
 }
 
@@ -612,6 +612,6 @@ func TestCompensateMissing(t *testing.T) {
 		HTTP: &api.HTTPConfig{Invoke: api.HTTPAction{Endpoint: "http://x"}},
 	}
 
-	err := cl.InvokeCompensate(step.CompensateRequest{Step: st})
+	err := cl.Compensate(step.CompensateRequest{Step: st})
 	assert.ErrorIs(t, err, builtins.ErrNoHTTPConfig)
 }

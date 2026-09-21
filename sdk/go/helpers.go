@@ -83,7 +83,7 @@ func WriteProblem(w http.ResponseWriter, status int, detail string) {
 	_ = json.NewEncoder(w).Encode(api.NewProblem(status, detail))
 }
 
-func setupStepServer(client *Client, st Step, handle StepHandler) error {
+func setupStepServer(client *Client, st Step, handle InvokeHandler) error {
 	addr := LocalStepAddr()
 	id := st.step.ID
 	endpoint := fmt.Sprintf("%s/%s", addr.BaseURL, id)
@@ -106,7 +106,7 @@ func setupStepServer(client *Client, st Step, handle StepHandler) error {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/health", HealthHandler(api.Name(id)))
 
-	handler := makeStepHandler(client, id, handle)
+	handler := makeInvokeHandler(client, id, handle)
 	mux.HandleFunc("/"+string(id), handler)
 
 	if st.compensate != nil {
@@ -152,7 +152,7 @@ func makeCompensateHandler(
 			Metadata: meta,
 		}
 
-		httpErr := executeCompensateWithRecovery(ctx, handler, body)
+		httpErr := compensateWithRecovery(ctx, handler, body)
 		if httpErr != nil {
 			WriteProblem(w, httpErr.StatusCode, httpErr.Message)
 			return
@@ -162,8 +162,8 @@ func makeCompensateHandler(
 	}
 }
 
-func makeStepHandler(
-	client *Client, id api.StepID, handler StepHandler,
+func makeInvokeHandler(
+	client *Client, id api.StepID, handler InvokeHandler,
 ) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
@@ -186,7 +186,7 @@ func makeStepHandler(
 			StepID:   id,
 			Metadata: meta,
 		}
-		outputs, err := executeStepWithRecovery(ctx, handler, args)
+		outputs, err := invokeWithRecovery(ctx, handler, args)
 		if err != nil {
 			WriteProblem(w, err.StatusCode, err.Message)
 			return
@@ -197,8 +197,8 @@ func makeStepHandler(
 	}
 }
 
-func executeStepWithRecovery(
-	ctx *StepContext, handler StepHandler, args api.Args,
+func invokeWithRecovery(
+	ctx *StepContext, handler InvokeHandler, args api.Args,
 ) (outputs api.Args, httpErr *HTTPError) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -221,7 +221,7 @@ func executeStepWithRecovery(
 	return outputs, nil
 }
 
-func executeCompensateWithRecovery(
+func compensateWithRecovery(
 	ctx *StepContext, handler CompensateHandler, args api.Args,
 ) (httpErr *HTTPError) {
 	defer func() {

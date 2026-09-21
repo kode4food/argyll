@@ -326,7 +326,7 @@ func TestSideEffectRunsOnceUnderConflict(t *testing.T) {
 		assert.NoError(t, env.Engine.RegisterStep(st))
 
 		var invocations atomic.Int32
-		env.MockClient.SetHandler(st.ID,
+		env.MockClient.SetInvoke(st.ID,
 			func(*api.Step, api.Args, api.Metadata) (api.Args, error) {
 				invocations.Add(1)
 				return api.Args{}, nil

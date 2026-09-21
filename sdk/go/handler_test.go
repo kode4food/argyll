@@ -27,7 +27,7 @@ func TestHTTPError(t *testing.T) {
 		},
 	))
 
-	handler := func(_ *argyll.StepContext, _ api.Args) (api.Args, error) {
+	invoke := func(_ *argyll.StepContext, _ api.Args) (api.Args, error) {
 		return nil, argyll.NewHTTPError(http.StatusTeapot, "teapot")
 	}
 
@@ -35,7 +35,7 @@ func TestHTTPError(t *testing.T) {
 		engineURL: engineServer.URL,
 		stepName:  "test-step",
 		stepID:    "test-step",
-		handle:    handler,
+		invoke:    invoke,
 	})
 
 	body, err := json.Marshal(api.Args{"foo": "bar"})
@@ -59,7 +59,7 @@ func TestStepRequests(t *testing.T) {
 		},
 	))
 
-	handler := func(_ *argyll.StepContext, _ api.Args) (api.Args, error) {
+	invoke := func(_ *argyll.StepContext, _ api.Args) (api.Args, error) {
 		return api.Args{}, nil
 	}
 
@@ -67,7 +67,7 @@ func TestStepRequests(t *testing.T) {
 		engineURL: engineServer.URL,
 		stepName:  "bad-step",
 		stepID:    "bad-step",
-		handle:    handler,
+		invoke:    invoke,
 	})
 
 	resp, err := http.Get(stepURL)
@@ -83,7 +83,7 @@ func TestStepRequests(t *testing.T) {
 	assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
 }
 
-func TestStepHandlerPlainError(t *testing.T) {
+func TestInvokeHandlerPlainError(t *testing.T) {
 	engineServer := newHTTPTestServer(t, http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
 			if r.URL.Path == "/engine/steps" && r.Method == http.MethodPost {
@@ -94,7 +94,7 @@ func TestStepHandlerPlainError(t *testing.T) {
 		},
 	))
 
-	handler := func(_ *argyll.StepContext, _ api.Args) (api.Args, error) {
+	invoke := func(_ *argyll.StepContext, _ api.Args) (api.Args, error) {
 		return nil, assert.AnError
 	}
 
@@ -102,7 +102,7 @@ func TestStepHandlerPlainError(t *testing.T) {
 		engineURL: engineServer.URL,
 		stepName:  "error-step",
 		stepID:    "error-step",
-		handle:    handler,
+		invoke:    invoke,
 	})
 
 	body, err := json.Marshal(api.Args{})
@@ -126,7 +126,7 @@ func TestPanic(t *testing.T) {
 		},
 	))
 
-	handler := func(_ *argyll.StepContext, _ api.Args) (api.Args, error) {
+	invoke := func(_ *argyll.StepContext, _ api.Args) (api.Args, error) {
 		panic("boom")
 	}
 
@@ -134,7 +134,7 @@ func TestPanic(t *testing.T) {
 		engineURL: engineServer.URL,
 		stepName:  "panic-step",
 		stepID:    "panic-step",
-		handle:    handler,
+		invoke:    invoke,
 	})
 
 	body, err := json.Marshal(api.Args{})
@@ -171,7 +171,7 @@ func TestStartConflict(t *testing.T) {
 		},
 	))
 
-	handler := func(_ *argyll.StepContext, _ api.Args) (api.Args, error) {
+	invoke := func(_ *argyll.StepContext, _ api.Args) (api.Args, error) {
 		return api.Args{}, nil
 	}
 
@@ -179,7 +179,7 @@ func TestStartConflict(t *testing.T) {
 		engineURL: engineServer.URL,
 		stepName:  "test-step",
 		stepID:    "test-step",
-		handle:    handler,
+		invoke:    invoke,
 	})
 
 	assert.Equal(t, 1, postCount)
@@ -215,7 +215,7 @@ func TestCompensateSuccess(t *testing.T) {
 	))
 
 	var gotArgs api.Args
-	handler := func(_ *argyll.StepContext, _ api.Args) (api.Args, error) {
+	invoke := func(_ *argyll.StepContext, _ api.Args) (api.Args, error) {
 		return api.Args{}, nil
 	}
 	compensate := func(_ *argyll.StepContext, args api.Args) error {
@@ -227,7 +227,7 @@ func TestCompensateSuccess(t *testing.T) {
 		engineURL:  engineServer.URL,
 		stepName:   "comp-step",
 		stepID:     "comp-step",
-		handle:     handler,
+		invoke:     invoke,
 		compensate: compensate,
 	})
 
@@ -264,7 +264,7 @@ func TestCompensateRequests(t *testing.T) {
 		},
 	))
 
-	handler := func(_ *argyll.StepContext, _ api.Args) (api.Args, error) {
+	invoke := func(_ *argyll.StepContext, _ api.Args) (api.Args, error) {
 		return api.Args{}, nil
 	}
 	compensate := func(_ *argyll.StepContext, _ api.Args) error {
@@ -275,7 +275,7 @@ func TestCompensateRequests(t *testing.T) {
 		engineURL:  engineServer.URL,
 		stepName:   "comp-bad",
 		stepID:     "comp-bad",
-		handle:     handler,
+		invoke:     invoke,
 		compensate: compensate,
 	})
 
@@ -294,7 +294,7 @@ func TestCompensateRequests(t *testing.T) {
 }
 
 func TestCompensateErrors(t *testing.T) {
-	handler := func(_ *argyll.StepContext, _ api.Args) (api.Args, error) {
+	invoke := func(_ *argyll.StepContext, _ api.Args) (api.Args, error) {
 		return api.Args{}, nil
 	}
 
@@ -338,7 +338,7 @@ func TestCompensateErrors(t *testing.T) {
 					engineURL:  engineServer.URL,
 					stepName:   api.Name(id),
 					stepID:     api.StepID(id),
-					handle:     handler,
+					invoke:     invoke,
 					compensate: compensate,
 				},
 			)
@@ -368,7 +368,7 @@ func TestCompensatePanic(t *testing.T) {
 		},
 	))
 
-	handler := func(_ *argyll.StepContext, _ api.Args) (api.Args, error) {
+	invoke := func(_ *argyll.StepContext, _ api.Args) (api.Args, error) {
 		return api.Args{}, nil
 	}
 	compensate := func(_ *argyll.StepContext, _ api.Args) error {
@@ -379,7 +379,7 @@ func TestCompensatePanic(t *testing.T) {
 		engineURL:  engineServer.URL,
 		stepName:   "comp-panic",
 		stepID:     "comp-panic",
-		handle:     handler,
+		invoke:     invoke,
 		compensate: compensate,
 	})
 
@@ -415,7 +415,7 @@ type startStepServerArgs struct {
 	engineURL string
 	stepName  api.Name
 	stepID    api.StepID
-	handle    argyll.StepHandler
+	invoke    argyll.InvokeHandler
 }
 
 func startStepServer(t *testing.T, args startStepServerArgs) string {
@@ -437,8 +437,8 @@ func startStepServer(t *testing.T, args startStepServerArgs) string {
 	go func() {
 		_ = client.NewStep().WithName(args.stepName).
 			WithID(string(args.stepID)).
-			WithSyncExecution().
-			Start(args.handle)
+			WithSyncInvoke().
+			Start(args.invoke)
 	}()
 
 	healthURL := fmt.Sprintf("http://%s:%s/health", host, port)
@@ -458,7 +458,7 @@ type startCompensatingServerArgs struct {
 	engineURL  string
 	stepName   api.Name
 	stepID     api.StepID
-	handle     argyll.StepHandler
+	invoke     argyll.InvokeHandler
 	compensate argyll.CompensateHandler
 }
 
@@ -483,13 +483,13 @@ func startCompensatingServer(
 	go func() {
 		_ = client.NewStep().WithName(args.stepName).
 			WithID(string(args.stepID)).
-			WithSyncExecution().
+			WithSyncInvoke().
 			Required("order", api.TypeObject).
 			Output("reservation", api.TypeObject).
 			WithCompensated("order").
 			WithCompensated("reservation").
 			WithCompensateHandler(args.compensate).
-			Start(args.handle)
+			Start(args.invoke)
 	}()
 
 	healthURL := fmt.Sprintf("http://%s:%s/health", host, port)

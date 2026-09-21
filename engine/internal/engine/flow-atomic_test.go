@@ -56,7 +56,7 @@ func TestAtomicFlowLifecycle(t *testing.T) {
 					}
 					leafStarted := make(chan api.Token, 1)
 					siblingStarted := make(chan api.Token, 1)
-					env.MockClient.SetHandler(leaf.ID,
+					env.MockClient.SetInvoke(leaf.ID,
 						func(
 							_ *api.Step, _ api.Args, meta api.Metadata,
 						) (api.Args, error) {
@@ -67,7 +67,7 @@ func TestAtomicFlowLifecycle(t *testing.T) {
 							return api.Args{}, nil
 						},
 					)
-					env.MockClient.SetHandler(sibling.ID,
+					env.MockClient.SetInvoke(sibling.ID,
 						func(
 							_ *api.Step, _ api.Args, meta api.Metadata,
 						) (api.Args, error) {
@@ -185,7 +185,7 @@ func TestNestedFlowSettlement(t *testing.T) {
 				Children: map[api.StepID]*api.ExecutionPlan{sub.ID: pl},
 			}
 		}
-		env.MockClient.SetHandler(leaf.ID,
+		env.MockClient.SetInvoke(leaf.ID,
 			func(*api.Step, api.Args, api.Metadata) (api.Args, error) {
 				env.ConflictOnNextAppend("nested")
 				return api.Args{}, nil

@@ -87,7 +87,7 @@ func TestDefaultTimeoutBeforeProvider(t *testing.T) {
 		assert.NoError(t, env.Engine.RegisterStep(consumer))
 
 		releaseProvider := make(chan struct{})
-		env.MockClient.SetHandler(provider.ID,
+		env.MockClient.SetInvoke(provider.ID,
 			func(*api.Step, api.Args, api.Metadata) (api.Args, error) {
 				<-releaseProvider
 				return api.Args{"opt": "real"}, nil
@@ -197,7 +197,7 @@ func TestTimeoutZeroFallsBackImmediately(t *testing.T) {
 		assert.NoError(t, env.Engine.RegisterStep(consumer))
 
 		releaseProvider := make(chan struct{})
-		env.MockClient.SetHandler(provider.ID,
+		env.MockClient.SetInvoke(provider.ID,
 			func(*api.Step, api.Args, api.Metadata) (api.Args, error) {
 				<-releaseProvider
 				return api.Args{
@@ -323,7 +323,7 @@ func TestTimeoutDefaultIsStepLocal(t *testing.T) {
 		assert.NoError(t, env.Engine.RegisterStep(strict))
 
 		releaseProvider := make(chan struct{})
-		env.MockClient.SetHandler(provider.ID,
+		env.MockClient.SetInvoke(provider.ID,
 			func(*api.Step, api.Args, api.Metadata) (api.Args, error) {
 				<-releaseProvider
 				return api.Args{"opt": "real"}, nil
@@ -446,14 +446,14 @@ func TestTimeoutRequiredsGateFallback(t *testing.T) {
 		releaseProduct := make(chan struct{})
 		userDone := make(chan struct{})
 
-		env.MockClient.SetHandler(userProvider.ID,
+		env.MockClient.SetInvoke(userProvider.ID,
 			func(*api.Step, api.Args, api.Metadata) (api.Args, error) {
 				<-releaseUser
 				close(userDone)
 				return api.Args{"user_info": "real-user"}, nil
 			},
 		)
-		env.MockClient.SetHandler(productProvider.ID,
+		env.MockClient.SetInvoke(productProvider.ID,
 			func(*api.Step, api.Args, api.Metadata) (api.Args, error) {
 				<-releaseProduct
 				return api.Args{"product_info": "real-product"}, nil
@@ -587,13 +587,13 @@ func TestTimeoutWaitsForLaterOptional(t *testing.T) {
 
 		releaseA := make(chan struct{})
 		releaseB := make(chan struct{})
-		env.MockClient.SetHandler(providerA.ID,
+		env.MockClient.SetInvoke(providerA.ID,
 			func(*api.Step, api.Args, api.Metadata) (api.Args, error) {
 				<-releaseA
 				return api.Args{"opt_a": "real-a"}, nil
 			},
 		)
-		env.MockClient.SetHandler(providerB.ID,
+		env.MockClient.SetInvoke(providerB.ID,
 			func(*api.Step, api.Args, api.Metadata) (api.Args, error) {
 				<-releaseB
 				return api.Args{"opt_b": "real-b"}, nil
@@ -711,7 +711,7 @@ func TestTimeoutStepReadyAnchor(t *testing.T) {
 		assert.NoError(t, env.Engine.RegisterStep(orderCreator))
 
 		releaseGate := make(chan struct{})
-		env.MockClient.SetHandler(gate.ID,
+		env.MockClient.SetInvoke(gate.ID,
 			func(*api.Step, api.Args, api.Metadata) (api.Args, error) {
 				<-releaseGate
 				return api.Args{"kickoff": "go"}, nil
@@ -830,13 +830,13 @@ func TestTimeoutAfterRequireds(t *testing.T) {
 
 		releaseReq := make(chan struct{})
 		releaseOpt := make(chan struct{})
-		env.MockClient.SetHandler(reqProvider.ID,
+		env.MockClient.SetInvoke(reqProvider.ID,
 			func(*api.Step, api.Args, api.Metadata) (api.Args, error) {
 				<-releaseReq
 				return api.Args{"req": "real-req"}, nil
 			},
 		)
-		env.MockClient.SetHandler(optProvider.ID,
+		env.MockClient.SetInvoke(optProvider.ID,
 			func(*api.Step, api.Args, api.Metadata) (api.Args, error) {
 				<-releaseOpt
 				return api.Args{"opt": "real-opt"}, nil

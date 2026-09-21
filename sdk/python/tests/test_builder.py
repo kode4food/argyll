@@ -309,12 +309,12 @@ def test_step_builder_with_predicate():
     assert step.predicate.script == "return value > 10"
 
 
-def test_step_builder_with_async_execution():
+def test_step_builder_with_async_invoke():
     client = Client()
     builder = (
         client.new_step()
         .with_name("Test")
-        .with_async_execution()
+        .with_async_invoke()
         .with_endpoint("http://localhost:8081/test")
     )
     step = builder.build()
@@ -322,13 +322,13 @@ def test_step_builder_with_async_execution():
     assert step.http.invoke.mode == ActionMode.ASYNC
 
 
-def test_step_builder_with_sync_execution():
+def test_step_builder_with_sync_invoke():
     client = Client()
     builder = (
         client.new_step()
         .with_name("Test")
-        .with_async_execution()
-        .with_sync_execution()
+        .with_async_invoke()
+        .with_sync_invoke()
         .with_endpoint("http://localhost:8081/test")
     )
     step = builder.build()

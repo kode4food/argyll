@@ -218,13 +218,6 @@ func TestRegisterConflict(t *testing.T) {
 	assert.Equal(t, 1, puts)
 }
 
-func TestRegisterBadSpec(t *testing.T) {
-	client := argyll.NewClient("http://127.0.0.1:1", time.Second)
-	err := gen.Register(context.Background(), client, "http://host:1",
-		gen.StepDef{ID: "sum", Spec: "{"})
-	assert.Error(t, err)
-}
-
 func TestServeFailure(t *testing.T) {
 	t.Setenv("ARGYLL_ENGINE_URL", "http://127.0.0.1:1")
 	t.Setenv("STEP_PORT", "0")
@@ -281,17 +274,30 @@ func (failCodec) Encode(*jsontext.Encoder, sumResult) error {
 	return errRefused
 }
 
-// sumStep stands in for what argyll-gen writes, the specification in the wire
-// form the engine accepts
+// sumStep stands in for what argyll-gen writes
 func sumStep() gen.StepDef {
 	return gen.StepDef{
 		ID: "sum",
-		Spec: `{"id":"sum","name":"Sum","type":"service",` +
-			`"http":{"invoke":{"endpoint":"/sum"},"health":"/health"},` +
-			`"attributes":{` +
-			`"left":{"role":"required","type":"number"},` +
-			`"total":{"role":"output","type":"number"}}}`,
-		Handler: gen.Sync(sumArgsCodec(), sumResultCodec(),
+		Step: &api.Step{
+			ID:   "sum",
+			Name: "Sum",
+			Type: api.StepTypeService,
+			HTTP: &api.HTTPConfig{
+				Invoke: api.HTTPAction{Endpoint: "/sum"},
+				Health: "/health",
+			},
+			Attributes: api.AttributeSpecs{
+				"left": {
+					Role: api.RoleRequired,
+					Type: api.TypeNumber,
+				},
+				"total": {
+					Role: api.RoleOutput,
+					Type: api.TypeNumber,
+				},
+			},
+		},
+		Invoke: gen.Sync(sumArgsCodec(), sumResultCodec(),
 			func(in sumArgs) (sumResult, error) {
 				return sumResult{Total: in.Left + in.Right}, nil
 			}),

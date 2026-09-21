@@ -32,8 +32,8 @@ func NewJPathEnv() *JPathEnv {
 	return env
 }
 
-// ExecuteScript evaluates a compiled JPath expression against mapping inputs
-func (*JPathEnv) ExecuteScript(
+// EvaluateScript evaluates a compiled JPath expression against mapping inputs
+func (*JPathEnv) EvaluateScript(
 	c Compiled, _ *api.Step, inputs api.Args,
 ) (api.Args, error) {
 	doc := marshalJPathValue(inputs)

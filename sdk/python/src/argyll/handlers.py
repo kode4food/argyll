@@ -85,14 +85,14 @@ class AsyncContext:
             ) from e
 
 
-StepHandler = Callable[[StepContext, Args], Args]
+InvokeHandler = Callable[[StepContext, Args], Args]
 CompensateHandler = Callable[[StepContext, Args], None]
 
 
 def create_step_server(
     client: "Client",
     builder: "StepBuilder",
-    handler: StepHandler,
+    invoke_handler: InvokeHandler,
     compensate_handler: Optional[CompensateHandler] = None,
 ) -> None:
     """Create and start Flask server for step execution."""
@@ -123,7 +123,7 @@ def create_step_server(
         return jsonify({"status": "healthy", "service": step_id})
 
     @app.route(f"/{step_id}", methods=["POST"])
-    def handle_step() -> Any:
+    def invoke_step() -> Any:
         try:
             arguments = request.get_json()
             if arguments is None:
@@ -138,7 +138,7 @@ def create_step_server(
                 client=flow_client, step_id=step_id, metadata=metadata
             )
 
-            outputs = _execute_with_recovery(ctx, handler, arguments)
+            outputs = _invoke_with_recovery(ctx, invoke_handler, arguments)
 
             return jsonify(outputs)
 
@@ -153,7 +153,7 @@ def create_step_server(
         _ch = compensate_handler
 
         @app.route(f"/{step_id}/compensate", methods=["POST"])
-        def handle_compensate() -> Any:
+        def compensate_step() -> Any:
             try:
                 body = request.get_json()
                 if body is None:
@@ -186,10 +186,10 @@ def create_step_server(
     app.run(host="0.0.0.0", port=port)
 
 
-def _execute_with_recovery(
-    ctx: StepContext, handler: StepHandler, args: Args
+def _invoke_with_recovery(
+    ctx: StepContext, handler: InvokeHandler, args: Args
 ) -> Args:
-    """Execute handler with panic recovery."""
+    """Invoke the handler with error recovery."""
     try:
         return handler(ctx, args)
     except HTTPError:

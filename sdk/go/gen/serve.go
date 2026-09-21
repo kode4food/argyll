@@ -6,8 +6,18 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/kode4food/argyll/engine/pkg/api"
+	"github.com/kode4food/argyll/engine/pkg/util"
 	argyll "github.com/kode4food/argyll/sdk/go"
 )
+
+// StepDef is a generated step: its specification and the handlers serving it
+type StepDef struct {
+	Invoke     http.HandlerFunc
+	Compensate http.HandlerFunc
+	Step       *api.Step
+	ID         api.StepID
+}
 
 // DefaultTimeout is the engine client timeout used while registering
 const DefaultTimeout = 30 * time.Second
@@ -51,7 +61,7 @@ func Mux(steps ...StepDef) *http.ServeMux {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/health", argyll.HealthHandler(""))
 	for _, s := range steps {
-		mux.HandleFunc("/"+string(s.ID), s.Handler)
+		mux.HandleFunc("/"+string(s.ID), s.Invoke)
 		if s.Compensate != nil {
 			mux.HandleFunc("/"+string(s.ID)+"/compensate", s.Compensate)
 		}
@@ -63,13 +73,12 @@ func Mux(steps ...StepDef) *http.ServeMux {
 func registerStep(
 	ctx context.Context, client *argyll.Client, base string, s StepDef,
 ) error {
-	st, err := s.Step()
-	if err != nil {
-		return err
-	}
+	st := s.Step.Copy()
+	st.HTTP = util.MutableCopy(s.Step.HTTP)
 	st.HTTP.Invoke.Endpoint = base + st.HTTP.Invoke.Endpoint
 	st.HTTP.Health = base + st.HTTP.Health
 	if st.HTTP.Compensate != nil {
+		st.HTTP.Compensate = util.MutableCopy(st.HTTP.Compensate)
 		st.HTTP.Compensate.Endpoint = base + st.HTTP.Compensate.Endpoint
 	}
 	return client.RegisterStep(ctx, st)

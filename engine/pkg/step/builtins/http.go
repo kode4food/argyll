@@ -46,7 +46,7 @@ func compensateHTTP(client Client, callback CallbackURL) step.CompensateFunc {
 				}, req.Token, api.ActionCompensate),
 			})
 		}
-		if err := client.InvokeCompensate(req); err != nil {
+		if err := client.Compensate(req); err != nil {
 			return false, err
 		}
 		return !st.HTTP.Compensate.Async(), nil

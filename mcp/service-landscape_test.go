@@ -182,7 +182,7 @@ func TestGenerateStepImplHTTPConfiguredStepPreservesType(t *testing.T) {
 
 	code := payload["code"].(string)
 	assert.Contains(t, code, "WithMethod(\"GET\")")
-	assert.Contains(t, code, "WithAsyncExecution")
+	assert.Contains(t, code, "WithAsyncInvoke")
 	assert.Contains(t, code, "Register")
 }
 

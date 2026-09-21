@@ -146,16 +146,6 @@ func TestEmbeddedCompensateErrors(t *testing.T) {
 	assert.False(t, done)
 }
 
-func TestEmbeddedSteps(t *testing.T) {
-	steps, err := gen.EmbeddedSteps(`{"id":"sum","name":"Sum","type":"sum"}`)
-	assert.NoError(t, err)
-	assert.Equal(t, api.StepID("sum"), steps[0].ID)
-	assert.Equal(t, api.StepType("sum"), steps[0].Type)
-
-	_, err = gen.EmbeddedSteps(`{`)
-	assert.Error(t, err)
-}
-
 func (r *testRuntime) FlowID() api.FlowID {
 	return "flow-1"
 }

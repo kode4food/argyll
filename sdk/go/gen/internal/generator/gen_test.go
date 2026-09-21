@@ -1,12 +1,9 @@
 package generator_test
 
 import (
-	"encoding/json"
 	"errors"
 	"os"
 	"path/filepath"
-	"regexp"
-	"strconv"
 	"strings"
 	"testing"
 
@@ -15,8 +12,6 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/sdk/go/gen/internal/generator"
 )
-
-var specPattern = regexp.MustCompile(`(?m)^\s*Spec:\s+(".*"),$`)
 
 func TestNames(t *testing.T) {
 	assert.Equal(t, "customer_id", generator.SnakeCase("CustomerID"))
@@ -116,14 +111,13 @@ func TestGeneratedEmbeddedSurface(t *testing.T) {
 	text := string(src)
 
 	assert.Contains(t, text, "func ArgyllEmbeddedHandlers() step.Handlers")
-	assert.Contains(t, text,
-		"func ArgyllEmbeddedSteps() ([]*api.Step, error)")
+	assert.Contains(t, text, "func ArgyllEmbeddedSteps() []*api.Step")
 	assert.Contains(t, text, `"calculate-risk": {`)
 	assert.Contains(t, text, `"greeter": {`)
 	assert.Contains(t, text, "Invoke: gen.EmbeddedSync(")
 	assert.Contains(t, text, "Compensate: gen.EmbeddedCompensate(")
-	assert.Contains(t, text, `\"type\":\"calculate-risk\"`)
-	assert.Contains(t, text, `\"type\":\"greeter\"`)
+	assert.Contains(t, text, `api.StepType("calculate-risk")`)
+	assert.Contains(t, text, `api.StepType("greeter")`)
 	assert.Contains(t, text, "convertRiskArgs := convert.Struct(")
 	assert.Contains(t, text, "convertNode := convert.Ref(&convertNodeImpl)")
 	assert.Contains(t, text, "var convertNodeImpl convert.Converter[Node]")
@@ -153,8 +147,8 @@ func TestEmbedType(t *testing.T) {
 	text := string(src)
 	assert.Contains(t, text, `"run-v2",`)
 	assert.Contains(t, text, `"runner": {`)
-	assert.Contains(t, text, `\"id\":\"run-v2\"`)
-	assert.Contains(t, text, `\"type\":\"runner\"`)
+	assert.Contains(t, text, `api.StepID("run-v2")`)
+	assert.Contains(t, text, `api.StepType("runner")`)
 }
 
 func TestReservedEmbedType(t *testing.T) {
@@ -197,7 +191,7 @@ func TestGeneratedServer(t *testing.T) {
 	assert.Contains(t, text, "func main()")
 	assert.Contains(t, text, "gen.Serve(context.Background(), steps...)")
 	assert.Contains(t, text, `slog.Info("Argyll step invoked",`)
-	assert.Contains(t, text, `Handler: logged("run", gen.Sync(`)
+	assert.Contains(t, text, `Invoke: logged("run", gen.Sync(`)
 	assert.Contains(t, text, `slog.Any("error", err)`)
 	assert.NotContains(t, text, "ArgyllServiceSteps")
 }
@@ -334,19 +328,25 @@ func TestAttributeScripts(t *testing.T) {
 		"type Out struct { Value string " +
 		"`argyll-mapping:\"jpath:$\"` }\n" +
 		"//argyll:step\nfunc Run(in In) Out { return Out{} }\n"
-	out, err := renderSource(t, src)
-	assert.NoError(t, err)
-	text := string(out)
-	assert.Contains(t, text, `\"match\":{`+
-		`\"language\":\"jpath\",\"script\":\"$.ready\"}`)
-	assert.Contains(t, text, `\"script\":{`+
-		`\"language\":\"lua\",`+
-		`\"script\":\"value = value; return value\"}`)
-	assert.Contains(t, text, `\"match\":{`+
-		`\"language\":\"lua\",`+
-		`\"script\":\"value = true; return value\"}`)
-	assert.Contains(t, text, `\"script\":{`+
-		`\"language\":\"jpath\",\"script\":\"$\"}`)
+	attrs := sourceSteps(t, src)["run"].Attributes
+	assert.Equal(t,
+		&api.ScriptConfig{Language: "jpath", Script: "$.ready"},
+		attrs["default"].Required.Match)
+	assert.Equal(t,
+		&api.ScriptConfig{
+			Language: "lua",
+			Script:   "value = value; return value",
+		},
+		attrs["default"].Required.Mapping.Script)
+	assert.Equal(t,
+		&api.ScriptConfig{
+			Language: "lua",
+			Script:   "value = true; return value",
+		},
+		attrs["lua"].Required.Match)
+	assert.Equal(t,
+		&api.ScriptConfig{Language: "jpath", Script: "$"},
+		attrs["value"].Output.Mapping.Script)
 }
 
 func TestAttributeProps(t *testing.T) {
@@ -396,15 +396,19 @@ func TestPredicate(t *testing.T) {
 		"//argyll:step three\n" +
 		"//argyll:predicate custom:ready()\n" +
 		"func Three() {}\n"
-	out, err := renderSource(t, src)
-	assert.NoError(t, err)
-	assert.Contains(t, string(out), `\"predicate\":{`+
-		`\"language\":\"jpath\",\"script\":\"$.active\"}`)
-	assert.Contains(t, string(out), `\"predicate\":{`+
-		`\"language\":\"lua\",`+
-		`\"script\":\"ready = true; return ready\"}`)
-	assert.Contains(t, string(out), `\"predicate\":{`+
-		`\"language\":\"lua\",\"script\":\"custom:ready()\"}`)
+	byID := sourceSteps(t, src)
+	assert.Equal(t,
+		&api.ScriptConfig{Language: "jpath", Script: "$.active"},
+		byID["one"].Predicate)
+	assert.Equal(t,
+		&api.ScriptConfig{
+			Language: "lua",
+			Script:   "ready = true; return ready",
+		},
+		byID["two"].Predicate)
+	assert.Equal(t,
+		&api.ScriptConfig{Language: "lua", Script: "custom:ready()"},
+		byID["three"].Predicate)
 }
 
 func TestWorkConfig(t *testing.T) {
@@ -412,11 +416,13 @@ func TestWorkConfig(t *testing.T) {
 		"//argyll:work backoff_type:exponential;max_retries:3\n" +
 		"//argyll:work init_backoff:100;max_backoff:5000;parallelism:4\n" +
 		"func Run() {}\n"
-	out, err := renderSource(t, src)
-	assert.NoError(t, err)
-	assert.Contains(t, string(out), `\"work_config\":{`+
-		`\"backoff_type\":\"exponential\",\"max_retries\":3,`+
-		`\"init_backoff\":100,\"max_backoff\":5000,\"parallelism\":4}`)
+	assert.Equal(t, &api.WorkConfig{
+		BackoffType: "exponential",
+		MaxRetries:  3,
+		InitBackoff: 100,
+		MaxBackoff:  5000,
+		Parallelism: 4,
+	}, sourceSteps(t, src)["run"].WorkConfig)
 }
 
 func TestRecursiveCodec(t *testing.T) {
@@ -851,12 +857,20 @@ func TestCompensate(t *testing.T) {
 	assert.NoError(t, err)
 	text := string(out)
 	assert.Contains(t, text, "/run/compensate")
-	assert.Contains(t, text, `\"compensate\":{`+
-		`\"endpoint\":\"/run/compensate\",\"timeout\":2500}`)
-	assert.Contains(t, text, `\"handling\":\"compensated\"`)
-	assert.Contains(t, text, `\"compensated\":true`)
-	assert.Contains(t, text, `\"result\":{\"output\":{},\"role\":`+
-		`\"output\",\"type\":\"number\",\"compensated\":true}`)
+
+	byID := sourceSteps(t, src)
+	assert.Equal(t, &api.HTTPAction{
+		Endpoint: "/run/compensate",
+		Timeout:  2500,
+	}, byID["run"].HTTP.Compensate)
+	assert.Equal(t, api.HandlingCompensated, byID["run"].Handling)
+	assert.True(t, byID["run"].Attributes["value"].Compensated)
+	assert.Equal(t, &api.AttributeSpec{
+		Output:      &api.OutputConfig{},
+		Role:        api.RoleOutput,
+		Type:        api.TypeNumber,
+		Compensated: true,
+	}, byID["wrapped"].Attributes["result"])
 	assert.Contains(t, text, "type WrappedCompIn struct")
 	assert.NotContains(t, text, "CompensateIn")
 	assert.Contains(t, text, "return Undo(in)")
@@ -885,11 +899,9 @@ func TestEmbeddedFields(t *testing.T) {
 }
 
 func TestMemoization(t *testing.T) {
-	out, err := renderSource(
-		t, "//argyll:step\n//argyll:memoize\nfunc Run() {}",
-	)
-	assert.NoError(t, err)
-	assert.Contains(t, string(out), `\"handling\":\"memoized\"`)
+	src := "//argyll:step\n//argyll:memoize\nfunc Run() {}"
+	assert.Equal(t,
+		api.HandlingMemoized, sourceSteps(t, src)["run"].Handling)
 }
 
 func TestGenerateIsIdempotent(t *testing.T) {
@@ -972,10 +984,9 @@ func TestTagsRepeatedAndSorted(t *testing.T) {
 		"//argyll:tags domain:risk; example\n" +
 		"//argyll:tags domain:payments; example\n" +
 		"func Run() {}"
-	out, err := renderSource(t, src)
-	assert.NoError(t, err)
-	assert.Contains(t, string(out),
-		`\"tags\":[\"domain:payments\",\"domain:risk\",\"example\"]`)
+	assert.Equal(t,
+		api.Tags{"domain:payments", "domain:risk", "example"},
+		sourceSteps(t, src)["run"].Tags)
 }
 
 func render(t *testing.T, pattern string) ([]byte, error) {
@@ -1019,22 +1030,28 @@ func writeSource(t *testing.T, src string) string {
 	return path
 }
 
-// steps decodes the specifications the generator emitted, which are the same
-// bytes it validated and the same bytes the engine will receive
+// sourceSteps returns the specifications the generator infers from an ad-hoc
+// source, keyed by step ID
+func sourceSteps(t *testing.T, src string) map[api.StepID]*api.Step {
+	t.Helper()
+	return steps(t, "file="+writeSource(t, src))
+}
+
+// steps returns the specifications the generator emits as literals, keyed by
+// step ID
 func steps(t *testing.T, pattern string) map[api.StepID]*api.Step {
 	t.Helper()
-	src, err := render(t, pattern)
+	pkgs, err := generator.Load(".", pattern)
+	assert.NoError(t, err)
+	assert.Len(t, pkgs, 1)
+
+	specs, err := generator.Steps(pkgs[0])
 	assert.NoError(t, err)
 
 	res := map[api.StepID]*api.Step{}
-	for _, m := range specPattern.FindAllStringSubmatch(string(src), -1) {
-		spec, err := strconv.Unquote(m[1])
-		assert.NoError(t, err)
-
-		var st api.Step
-		assert.NoError(t, json.Unmarshal([]byte(spec), &st))
+	for _, st := range specs {
 		assert.NoError(t, st.Validate())
-		res[st.ID] = &st
+		res[st.ID] = st
 	}
 	return res
 }

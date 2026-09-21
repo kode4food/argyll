@@ -57,7 +57,7 @@ func TestCommittedEventFilter(t *testing.T) {
 		st := helpers.NewSimpleStep("reconcile-filter-step")
 		assert.NoError(t, env.Engine.RegisterStep(st))
 		invoked := make(chan struct{}, 1)
-		env.MockClient.SetHandler(st.ID,
+		env.MockClient.SetInvoke(st.ID,
 			func(*api.Step, api.Args, api.Metadata) (api.Args, error) {
 				invoked <- struct{}{}
 				return api.Args{}, nil
@@ -125,7 +125,7 @@ func TestDuplicateCommittedBatchStartsWorkOnce(t *testing.T) {
 		assert.NoError(t, env.Engine.RegisterStep(st))
 
 		invocations := make(chan api.StepID, 4)
-		env.MockClient.SetHandler(st.ID,
+		env.MockClient.SetInvoke(st.ID,
 			func(*api.Step, api.Args, api.Metadata) (api.Args, error) {
 				invocations <- st.ID
 				return api.Args{}, nil
@@ -164,7 +164,7 @@ func TestBatchUsesFinalState(t *testing.T) {
 		assert.NoError(t, env.Engine.RegisterStep(st))
 
 		invocations := make(chan api.StepID, 4)
-		env.MockClient.SetHandler(st.ID,
+		env.MockClient.SetInvoke(st.ID,
 			func(*api.Step, api.Args, api.Metadata) (api.Args, error) {
 				invocations <- st.ID
 				return api.Args{}, nil
@@ -268,7 +268,7 @@ func TestTransientFailureRearms(t *testing.T) {
 		assert.NoError(t, env.Engine.RegisterStep(st))
 
 		var attempts atomic.Int32
-		env.MockClient.SetHandler(st.ID,
+		env.MockClient.SetInvoke(st.ID,
 			func(*api.Step, api.Args, api.Metadata) (api.Args, error) {
 				if attempts.Add(1) < 3 {
 					return nil, errTransient

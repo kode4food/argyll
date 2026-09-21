@@ -47,7 +47,7 @@ func TestSetupStepWithMockEngine(t *testing.T) {
 	go func() {
 		client := argyll.NewClient(mockEngine.URL, 5*time.Second)
 		err := client.NewStep().WithName("Test Step").
-			WithSyncExecution().
+			WithSyncInvoke().
 			Start(handler)
 		errChan <- err
 	}()

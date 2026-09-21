@@ -19,6 +19,6 @@ client.NewStep().WithName("Lookup User").
     Register(ctx)
 
 Async step:
-- Add WithAsyncExecution().
+- Add WithAsyncInvoke().
 - In the handler, create argyll.NewAsyncContext(ctx), start background work, and call Success or Fail.
 - Return api.Args{} immediately from the handler.

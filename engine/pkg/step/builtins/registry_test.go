@@ -33,7 +33,7 @@ func (c *testClient) Invoke(
 	return c.outputs, nil
 }
 
-func (c *testClient) InvokeCompensate(req step.CompensateRequest) error {
+func (c *testClient) Compensate(req step.CompensateRequest) error {
 	c.compens++
 	c.meta = req.Metadata
 	return c.err

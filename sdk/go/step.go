@@ -258,15 +258,15 @@ func (s Step) WithType(stepType api.StepType) Step {
 	return s
 }
 
-// WithAsyncExecution configures the step's invoke call to complete via
-// webhook rather than in the HTTP response
-func (s Step) WithAsyncExecution() Step {
+// WithAsyncInvoke configures the step's invoke call to complete via webhook
+// rather than in the HTTP response
+func (s Step) WithAsyncInvoke() Step {
 	return s.WithInvokeMode(api.ActionModeAsync)
 }
 
-// WithSyncExecution configures the step's invoke call to complete in the
-// HTTP response
-func (s Step) WithSyncExecution() Step {
+// WithSyncInvoke configures the step's invoke call to complete in the HTTP
+// response
+func (s Step) WithSyncInvoke() Step {
 	return s.WithInvokeMode(api.ActionModeSync)
 }
 
@@ -282,11 +282,6 @@ func (s Step) WithCompensateMode(mode api.ActionMode) Step {
 	return s.withCompensate(func(comp *api.HTTPAction) {
 		comp.Mode = mode
 	})
-}
-
-// WithScriptExecution configures the step to execute via a script
-func (s Step) WithScriptExecution() Step {
-	return s.WithType(api.StepTypeScript)
 }
 
 // WithHandling sets how completed work is retained or reversed
@@ -342,7 +337,7 @@ func (s Step) Register(ctx context.Context) error {
 
 // Start builds and registers the step, creates an HTTP server, and starts
 // handling requests
-func (s Step) Start(handler StepHandler) error {
+func (s Step) Start(handler InvokeHandler) error {
 	if s.client == nil {
 		return ErrDetachedStep
 	}

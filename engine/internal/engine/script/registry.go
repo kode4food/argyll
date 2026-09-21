@@ -24,8 +24,8 @@ type (
 		// Compile compiles a script and returns the compiled form
 		Compile(*api.Step, *api.ScriptConfig) (Compiled, error)
 
-		// ExecuteScript executes a compiled script with the given inputs
-		ExecuteScript(Compiled, *api.Step, api.Args) (api.Args, error)
+		// EvaluateScript executes a compiled script with the given inputs
+		EvaluateScript(Compiled, *api.Step, api.Args) (api.Args, error)
 
 		// EvaluatePredicate evaluates a compiled predicate with given inputs
 		EvaluatePredicate(Compiled, *api.Step, api.Args) (bool, error)

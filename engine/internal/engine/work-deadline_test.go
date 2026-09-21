@@ -151,7 +151,7 @@ func TestCompensationDeadlineRetries(t *testing.T) {
 			BackoffType: api.BackoffTypeFixed,
 		}
 		assert.NoError(t, env.Engine.RegisterStep(st))
-		env.MockClient.SetCompHandler(st.ID,
+		env.MockClient.SetCompensate(st.ID,
 			func(step.CompensateRequest) error {
 				return nil
 			},

@@ -138,7 +138,7 @@ func TestJPathEvaluateMatchNullMatch(t *testing.T) {
 	assert.True(t, matched)
 }
 
-func TestJPathExecuteScriptSingleMatch(t *testing.T) {
+func TestJPathEvaluateScriptSingleMatch(t *testing.T) {
 	env := script.NewJPathEnv()
 
 	compiled, err := env.Compile(nil, &api.ScriptConfig{
@@ -147,14 +147,14 @@ func TestJPathExecuteScriptSingleMatch(t *testing.T) {
 	})
 	assert.NoError(t, err)
 
-	outputs, err := env.ExecuteScript(compiled, nil, api.Args{
+	outputs, err := env.EvaluateScript(compiled, nil, api.Args{
 		"input": map[string]any{"foo": "bar"},
 	})
 	assert.NoError(t, err)
 	assert.Equal(t, "bar", outputs["value"])
 }
 
-func TestJPathExecuteScriptMultiMatch(t *testing.T) {
+func TestJPathEvaluateScriptMultiMatch(t *testing.T) {
 	env := script.NewJPathEnv()
 
 	compiled, err := env.Compile(nil, &api.ScriptConfig{
@@ -163,7 +163,7 @@ func TestJPathExecuteScriptMultiMatch(t *testing.T) {
 	})
 	assert.NoError(t, err)
 
-	outputs, err := env.ExecuteScript(compiled, nil, api.Args{
+	outputs, err := env.EvaluateScript(compiled, nil, api.Args{
 		"output": map[string]any{
 			"books": []any{
 				map[string]any{"book": "A"},
@@ -175,7 +175,7 @@ func TestJPathExecuteScriptMultiMatch(t *testing.T) {
 	assert.Equal(t, []any{"A", "B"}, outputs["value"])
 }
 
-func TestJPathExecuteScriptNoMatch(t *testing.T) {
+func TestJPathEvaluateScriptNoMatch(t *testing.T) {
 	env := script.NewJPathEnv()
 
 	compiled, err := env.Compile(nil, &api.ScriptConfig{
@@ -184,7 +184,7 @@ func TestJPathExecuteScriptNoMatch(t *testing.T) {
 	})
 	assert.NoError(t, err)
 
-	outputs, err := env.ExecuteScript(compiled, nil, api.Args{
+	outputs, err := env.EvaluateScript(compiled, nil, api.Args{
 		"input": map[string]any{"foo": "bar"},
 	})
 	assert.ErrorIs(t, err, script.ErrJPathNoMatch)

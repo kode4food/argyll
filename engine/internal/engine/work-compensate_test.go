@@ -50,7 +50,7 @@ func TestCompensationSucceeds(t *testing.T) {
 		fs := api.FlowStep{FlowID: id, StepID: st.ID}
 		tkn := api.Token("work-a")
 		invoked := make(chan api.Metadata, 1)
-		env.MockClient.SetCompHandler(st.ID,
+		env.MockClient.SetCompensate(st.ID,
 			func(req step.CompensateRequest) error {
 				invoked <- req.Metadata
 				return nil
@@ -101,7 +101,7 @@ func TestCompensationAsyncAwaitsCallback(t *testing.T) {
 		tkn := api.Token("work-a")
 
 		invoked := make(chan api.Metadata, 1)
-		env.MockClient.SetCompHandler(st.ID,
+		env.MockClient.SetCompensate(st.ID,
 			func(req step.CompensateRequest) error {
 				invoked <- req.Metadata
 				return nil
@@ -197,7 +197,7 @@ func TestCompRetryOnTransient(t *testing.T) {
 		assert.NoError(t, env.Engine.RegisterStep(st))
 
 		compCount := 0
-		env.MockClient.SetCompHandler(st.ID,
+		env.MockClient.SetCompensate(st.ID,
 			func(step.CompensateRequest) error {
 				compCount++
 				if compCount < 2 {
@@ -289,7 +289,7 @@ func TestActiveCompensationDoesNotRestart(t *testing.T) {
 		st := newCompensatingStep("comp-recover-step")
 		assert.NoError(t, env.Engine.RegisterStep(st))
 		invoked := make(chan struct{}, 1)
-		env.MockClient.SetCompHandler(st.ID,
+		env.MockClient.SetCompensate(st.ID,
 			func(step.CompensateRequest) error {
 				invoked <- struct{}{}
 				return nil
@@ -390,7 +390,7 @@ func TestCompRetryRunsOnHealthyPeer(t *testing.T) {
 		}()
 
 		st := newCompensatingStep("comp-deferred-step")
-		env.MockClient.SetCompHandler(st.ID,
+		env.MockClient.SetCompensate(st.ID,
 			func(step.CompensateRequest) error {
 				return nil
 			},
@@ -583,7 +583,7 @@ func TestCompRetryDeferredUntilPeerRecovers(t *testing.T) {
 		}()
 
 		st := newCompensatingStep("comp-deferred-recovery-step")
-		env.MockClient.SetCompHandler(st.ID,
+		env.MockClient.SetCompensate(st.ID,
 			func(step.CompensateRequest) error {
 				return nil
 			},
@@ -637,7 +637,7 @@ func TestLateCompCallbackSettlesPending(t *testing.T) {
 		st := newCompensatingStep("comp-late-callback-step")
 		assert.NoError(t, env.Engine.RegisterStep(st))
 		invoked := make(chan struct{}, 1)
-		env.MockClient.SetCompHandler(st.ID,
+		env.MockClient.SetCompensate(st.ID,
 			func(step.CompensateRequest) error {
 				invoked <- struct{}{}
 				return nil
@@ -689,7 +689,7 @@ func TestLateCompFailureSettlesPending(t *testing.T) {
 		st := newCompensatingStep("comp-late-fail-step")
 		assert.NoError(t, env.Engine.RegisterStep(st))
 		invoked := make(chan struct{}, 1)
-		env.MockClient.SetCompHandler(st.ID,
+		env.MockClient.SetCompensate(st.ID,
 			func(step.CompensateRequest) error {
 				invoked <- struct{}{}
 				return nil
@@ -748,7 +748,7 @@ func TestCompDispatchRecovery(t *testing.T) {
 		assert.NoError(t, env.Engine.RegisterStep(st))
 
 		compCount := 0
-		env.MockClient.SetCompHandler(st.ID,
+		env.MockClient.SetCompensate(st.ID,
 			func(step.CompensateRequest) error {
 				compCount++
 				return nil
@@ -879,8 +879,8 @@ func TestFlowCompensation(t *testing.T) {
 				order = append(order, req.Step.ID)
 				return nil
 			}
-			env.MockClient.SetCompHandler(first.ID, record)
-			env.MockClient.SetCompHandler(second.ID, record)
+			env.MockClient.SetCompensate(first.ID, record)
+			env.MockClient.SetCompensate(second.ID, record)
 
 			id := api.FlowID("wf-saga-order")
 			pl := &api.ExecutionPlan{
@@ -947,8 +947,8 @@ func TestFlowCompensation(t *testing.T) {
 				wg.Wait()
 				return nil
 			}
-			env.MockClient.SetCompHandler(left.ID, together)
-			env.MockClient.SetCompHandler(right.ID, together)
+			env.MockClient.SetCompensate(left.ID, together)
+			env.MockClient.SetCompensate(right.ID, together)
 
 			id := api.FlowID("wf-saga-parallel")
 			pl := &api.ExecutionPlan{

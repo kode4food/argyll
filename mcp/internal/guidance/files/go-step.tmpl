@@ -32,7 +32,7 @@ func main() {
 		WithName({{ quote .StepName }}){{ range .Inputs }}.
 		Required({{ quote . }}, api.TypeString){{ end }}{{ range .Outputs }}.
 		Output({{ quote . }}, api.TypeString){{ end }}{{ if .IsAsync }}.
-		WithAsyncExecution(){{ end }}{{ if .IsExternal }}.
+		WithAsyncInvoke(){{ end }}{{ if .IsExternal }}.
 {{ if .HasNonPostMethod }}		WithMethod({{ quote .Method }}).
 {{ end }}		WithEndpoint("http://localhost:8081/step"){{ end }}
 {{ if .IsScript }}.

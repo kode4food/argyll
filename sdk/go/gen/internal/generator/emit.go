@@ -3,7 +3,6 @@ package generator
 import (
 	"bytes"
 	"embed"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"go/ast"
@@ -34,7 +33,7 @@ type (
 	sourceStep struct {
 		ID         string
 		Spec       string
-		Handler    string
+		Invoke     string
 		Compensate string
 	}
 
@@ -216,6 +215,20 @@ func Render(pkg *packages.Package, server bool) ([]byte, error) {
 	return librarySource(service, embedded)
 }
 
+// Steps returns the step specifications a package declares, the values Render
+// writes as literals into its generated source
+func Steps(pkg *packages.Package) ([]*api.Step, error) {
+	g := newPkgGen(pkg, serviceDialect)
+	if _, err := g.collect(); err != nil {
+		return nil, err
+	}
+	res := make([]*api.Step, 0, len(g.steps))
+	for _, s := range g.steps {
+		res = append(res, s.spec)
+	}
+	return res, nil
+}
+
 func newPkgGen(pkg *packages.Package, d dialect) *pkgGen {
 	return &pkgGen{
 		pkg:        pkg,
@@ -264,20 +277,20 @@ func (g *pkgGen) serverSource() ([]byte, error) {
 func (g *pkgGen) serviceSteps(logging bool) ([]sourceStep, error) {
 	res := make([]sourceStep, 0, len(g.steps))
 	for _, s := range g.steps {
-		spec, err := json.Marshal(s.spec)
+		spec, err := goLiteral(s.spec)
 		if err != nil {
 			return nil, err
 		}
-		handler := s.handler
+		invoke := s.invoke
 		compensate := s.compensate
 		if logging {
-			handler = logged(s.spec.ID, handler)
+			invoke = logged(s.spec.ID, invoke)
 			compensate = logged(s.spec.ID, compensate)
 		}
 		res = append(res, sourceStep{
 			ID:         strconv.Quote(string(s.spec.ID)),
-			Spec:       strconv.Quote(string(spec)),
-			Handler:    handler,
+			Spec:       spec,
+			Invoke:     invoke,
 			Compensate: compensate,
 		})
 	}
@@ -289,14 +302,14 @@ func (g *pkgGen) serviceSteps(logging bool) ([]sourceStep, error) {
 func (g *pkgGen) embeddedSteps() ([]sourceStep, error) {
 	res := make([]sourceStep, 0, len(g.steps))
 	for _, s := range g.steps {
-		spec, err := embeddedSpec(s)
+		spec, err := goLiteral(embeddedSpec(s))
 		if err != nil {
 			return nil, err
 		}
 		res = append(res, sourceStep{
 			ID:         strconv.Quote(s.embedType),
-			Spec:       strconv.Quote(string(spec)),
-			Handler:    s.handler,
+			Spec:       spec,
+			Invoke:     s.invoke,
 			Compensate: s.compensate,
 		})
 	}
@@ -522,11 +535,11 @@ func importBlock(paths map[string]string, extra []string) string {
 
 // embeddedSpec is the step an embedded engine runs itself, typed to name its
 // in-process handler
-func embeddedSpec(s stepModel) ([]byte, error) {
+func embeddedSpec(s stepModel) *api.Step {
 	embedded := s.spec.Copy()
 	embedded.Type = api.StepType(s.embedType)
 	embedded.HTTP = nil
-	return json.Marshal(embedded)
+	return embedded
 }
 
 // logged wraps a server's handler expression with invocation logging, leaving

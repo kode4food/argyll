@@ -18,6 +18,6 @@ client.new_step().with_name("Lookup User") \
     .register()
 
 Async step:
-- Add with_async_execution().
+- Add with_async_invoke().
 - In the handler, create AsyncContext from the webhook URL in ctx.metadata, which is populated from the Argyll-Webhook-URL header, start background work, and call success or fail.
 - Return {} immediately from the handler.

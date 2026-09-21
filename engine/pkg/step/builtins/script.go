@@ -52,7 +52,7 @@ func Script() *step.Handler {
 			if err != nil {
 				return err
 			}
-			outputs, err := env.ExecuteScript(compiled, st, inputs)
+			outputs, err := env.EvaluateScript(compiled, st, inputs)
 			if err != nil {
 				return errors.Join(
 					err, rt.UpdateHealth(api.HealthUnhealthy, err.Error()),

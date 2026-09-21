@@ -11,7 +11,12 @@ from .errors import (
     StepValidationError,
     WebhookError,
 )
-from .handlers import AsyncContext, StepContext, StepHandler
+from .handlers import (
+    AsyncContext,
+    CompensateHandler,
+    InvokeHandler,
+    StepContext,
+)
 from .types import (
     ActionMode,
     Args,
@@ -55,7 +60,8 @@ __all__ = [
     # Handlers
     "StepContext",
     "AsyncContext",
-    "StepHandler",
+    "InvokeHandler",
+    "CompensateHandler",
     # Types
     "Step",
     "ProblemDetails",

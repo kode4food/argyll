@@ -6,7 +6,7 @@ import responses
 from argyll import Client, StepContext, handlers
 from argyll.builder import StepBuilder
 from argyll.errors import HTTPError, WebhookError
-from argyll.handlers import AsyncContext, _execute_with_recovery
+from argyll.handlers import AsyncContext, _invoke_with_recovery
 from argyll.types import AttributeType
 
 
@@ -189,7 +189,7 @@ def test_async_context_webhook_error():
         async_ctx.success({"result": "done"})
 
 
-def test_execute_with_recovery_success():
+def test_invoke_with_recovery_success():
     client = Client()
     ctx = StepContext(
         client=client.flow("flow-123"),
@@ -200,11 +200,11 @@ def test_execute_with_recovery_success():
     def handler(step_ctx, args):
         return {"value": args["value"]}
 
-    result = _execute_with_recovery(ctx, handler, {"value": 1})
+    result = _invoke_with_recovery(ctx, handler, {"value": 1})
     assert result["value"] == 1
 
 
-def test_execute_with_recovery_http_error():
+def test_invoke_with_recovery_http_error():
     client = Client()
     ctx = StepContext(
         client=client.flow("flow-123"),
@@ -216,10 +216,10 @@ def test_execute_with_recovery_http_error():
         raise HTTPError(422, "bad input")
 
     with pytest.raises(HTTPError):
-        _execute_with_recovery(ctx, handler, {})
+        _invoke_with_recovery(ctx, handler, {})
 
 
-def test_execute_with_recovery_exception_returns_failure():
+def test_invoke_with_recovery_exception_returns_failure():
     client = Client()
     ctx = StepContext(
         client=client.flow("flow-123"),
@@ -231,7 +231,7 @@ def test_execute_with_recovery_exception_returns_failure():
         raise ValueError("boom")
 
     with pytest.raises(HTTPError) as exc:
-        _execute_with_recovery(ctx, handler, {})
+        _invoke_with_recovery(ctx, handler, {})
     assert "panicked" in str(exc.value)
 
 

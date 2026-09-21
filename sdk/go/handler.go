@@ -9,9 +9,9 @@ import (
 )
 
 type (
-	// StepHandler is the function signature for step implementations and
+	// InvokeHandler is the function signature for step implementations and
 	// receives a StepContext which includes both context and flow client
-	StepHandler func(*StepContext, api.Args) (api.Args, error)
+	InvokeHandler func(*StepContext, api.Args) (api.Args, error)
 
 	// CompensateHandler undoes a completed work item
 	CompensateHandler func(*StepContext, api.Args) error

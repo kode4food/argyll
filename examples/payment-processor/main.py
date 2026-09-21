@@ -103,6 +103,6 @@ if __name__ == "__main__":
         ) \
         .required("order", AttributeType.OBJECT) \
         .output("payment_result", AttributeType.OBJECT) \
-        .with_async_execution() \
+        .with_async_invoke() \
         .with_timeout(300000) \
         .start(handle_payment)

@@ -85,7 +85,7 @@ func TestCollectFirst(t *testing.T) {
 		}
 
 		assert.NoError(t, env.Engine.RegisterStep(st))
-		env.MockClient.SetHandler(st.ID,
+		env.MockClient.SetInvoke(st.ID,
 			func(_ *api.Step, args api.Args, _ api.Metadata) (api.Args, error) {
 				assert.Equal(t, "a", args["input"])
 				return api.Args{"result": "ok"}, nil
@@ -123,19 +123,19 @@ func TestCollectLast(t *testing.T) {
 
 		releaseA := make(chan struct{})
 		releaseB := make(chan struct{})
-		env.MockClient.SetHandler(providerA.ID,
+		env.MockClient.SetInvoke(providerA.ID,
 			func(*api.Step, api.Args, api.Metadata) (api.Args, error) {
 				<-releaseA
 				return api.Args{"data": "a"}, nil
 			},
 		)
-		env.MockClient.SetHandler(providerB.ID,
+		env.MockClient.SetInvoke(providerB.ID,
 			func(*api.Step, api.Args, api.Metadata) (api.Args, error) {
 				<-releaseB
 				return api.Args{"data": "b"}, nil
 			},
 		)
-		env.MockClient.SetHandler(consumer.ID,
+		env.MockClient.SetInvoke(consumer.ID,
 			func(_ *api.Step, args api.Args, _ api.Metadata) (api.Args, error) {
 				assert.Equal(t, "b", args["data"])
 				return api.Args{"result": "ok"}, nil
@@ -196,7 +196,7 @@ func TestCollectLists(t *testing.T) {
 
 				env.MockClient.SetResponse(providerA.ID, api.Args{"data": "a"})
 				env.MockClient.SetResponse(providerB.ID, api.Args{"data": "b"})
-				env.MockClient.SetHandler(consumer.ID,
+				env.MockClient.SetInvoke(consumer.ID,
 					func(
 						_ *api.Step, args api.Args, _ api.Metadata,
 					) (api.Args, error) {
@@ -261,7 +261,7 @@ func TestCollectNone(t *testing.T) {
 		assert.NoError(t, env.Engine.RegisterStep(provider))
 		assert.NoError(t, env.Engine.RegisterStep(consumer))
 		env.MockClient.SetResponse(provider.ID, api.Args{})
-		env.MockClient.SetHandler(consumer.ID,
+		env.MockClient.SetInvoke(consumer.ID,
 			func(_ *api.Step, args api.Args, _ api.Metadata) (api.Args, error) {
 				assert.Equal(t, "fallback", args["data"])
 				return api.Args{"result": "ok"}, nil
@@ -305,7 +305,7 @@ func TestCollectNoneNoProvider(t *testing.T) {
 		}
 
 		assert.NoError(t, env.Engine.RegisterStep(st))
-		env.MockClient.SetHandler(st.ID,
+		env.MockClient.SetInvoke(st.ID,
 			func(_ *api.Step, args api.Args, _ api.Metadata) (api.Args, error) {
 				assert.NotContains(t, args, "data")
 				return api.Args{"result": "ok"}, nil
@@ -349,7 +349,7 @@ func TestCollectSomeInit(t *testing.T) {
 		}
 
 		assert.NoError(t, env.Engine.RegisterStep(st))
-		env.MockClient.SetHandler(st.ID,
+		env.MockClient.SetInvoke(st.ID,
 			func(_ *api.Step, args api.Args, _ api.Metadata) (api.Args, error) {
 				assert.Equal(t, []any{"ready"}, args["data"])
 				return api.Args{"result": "ok"}, nil
@@ -426,7 +426,7 @@ func TestConstNullDefault(t *testing.T) {
 		}
 
 		assert.NoError(t, env.Engine.RegisterStep(st))
-		env.MockClient.SetHandler(st.ID,
+		env.MockClient.SetInvoke(st.ID,
 			func(_ *api.Step, args api.Args, _ api.Metadata) (api.Args, error) {
 				assert.Nil(t, args["config"])
 				return api.Args{"result": "ok"}, nil
@@ -466,7 +466,7 @@ func TestOptionalNullDefault(t *testing.T) {
 		}
 
 		assert.NoError(t, env.Engine.RegisterStep(st))
-		env.MockClient.SetHandler(st.ID,
+		env.MockClient.SetInvoke(st.ID,
 			func(_ *api.Step, args api.Args, _ api.Metadata) (api.Args, error) {
 				assert.Nil(t, args["opt"])
 				return api.Args{"result": "ok"}, nil
@@ -748,7 +748,7 @@ func TestMatchFilters(t *testing.T) {
 
 		env.MockClient.SetResponse(providerA.ID, api.Args{"data": "a"})
 		env.MockClient.SetResponse(providerB.ID, api.Args{"data": "b"})
-		env.MockClient.SetHandler(consumer.ID,
+		env.MockClient.SetInvoke(consumer.ID,
 			func(_ *api.Step, args api.Args, _ api.Metadata) (api.Args, error) {
 				assert.Equal(t, []any{"a"}, args["data"])
 				return api.Args{"result": "ok"}, nil
@@ -783,7 +783,7 @@ func TestMatchFirstPending(t *testing.T) {
 
 		env.MockClient.SetResponse(providerA.ID, api.Args{"data": "b"})
 		env.MockClient.SetResponse(providerB.ID, api.Args{"data": "a"})
-		env.MockClient.SetHandler(consumer.ID,
+		env.MockClient.SetInvoke(consumer.ID,
 			func(_ *api.Step, args api.Args, _ api.Metadata) (api.Args, error) {
 				assert.Equal(t, "a", args["data"])
 				return api.Args{"result": "ok"}, nil

@@ -3,8 +3,8 @@
 {{range .Steps -}}
 {
 ID: {{.ID}},
-Spec: {{.Spec}},
-Handler: {{.Handler}},
+Step: {{.Spec}},
+Invoke: {{.Invoke}},
 {{if .Compensate -}}
 Compensate: {{.Compensate}},
 {{end -}}

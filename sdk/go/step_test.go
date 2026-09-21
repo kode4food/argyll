@@ -263,10 +263,10 @@ func TestWithType(t *testing.T) {
 	assert.Equal(t, api.StepTypeService, st.Type)
 }
 
-func TestWithAsyncExecution(t *testing.T) {
+func TestWithAsyncInvoke(t *testing.T) {
 	st, err := testClient().NewStep().WithName("Test").
 		WithEndpoint("http://example.com").
-		WithAsyncExecution().
+		WithAsyncInvoke().
 		Build()
 
 	assert.NoError(t, err)
@@ -274,28 +274,15 @@ func TestWithAsyncExecution(t *testing.T) {
 	assert.Equal(t, api.ActionModeAsync, st.HTTP.Invoke.DefaultedMode())
 }
 
-func TestWithSyncExecution(t *testing.T) {
+func TestWithSyncInvoke(t *testing.T) {
 	st, err := testClient().NewStep().WithName("Test").
 		WithEndpoint("http://example.com").
-		WithSyncExecution().
+		WithSyncInvoke().
 		Build()
 
 	assert.NoError(t, err)
 	assert.Equal(t, api.StepTypeService, st.Type)
 	assert.Equal(t, api.ActionModeSync, st.HTTP.Invoke.DefaultedMode())
-}
-
-func TestWithScriptExecution(t *testing.T) {
-	st, err := testClient().NewStep().WithName("Test").
-		WithScript(api.ScriptConfig{
-			Language: api.ScriptLangLua,
-			Script:   "return {result = 42}",
-		}).
-		WithScriptExecution().
-		Build()
-
-	assert.NoError(t, err)
-	assert.Equal(t, api.StepTypeScript, st.Type)
 }
 
 func TestWithFlowGoals(t *testing.T) {
@@ -388,7 +375,7 @@ func TestChaining(t *testing.T) {
 		Optional("opt1", api.TypeBoolean, "").
 		Output("out1", api.TypeString).
 		Output("out2", api.TypeNumber).
-		WithAsyncExecution().
+		WithAsyncInvoke().
 		Build()
 
 	assert.NoError(t, err)
@@ -474,7 +461,7 @@ func TestBuildValidationErrors(t *testing.T) {
 
 	t.Run("missing_script_for_script_step", func(t *testing.T) {
 		_, err := testClient().NewStep().WithName("Test").
-			WithScriptExecution().
+			WithType(api.StepTypeScript).
 			Build()
 		assert.ErrorIs(t, err, api.ErrScriptRequired)
 	})
@@ -525,7 +512,7 @@ func TestStepBuilderChaining(t *testing.T) {
 			Optional("metadata", api.TypeObject, "{}").
 			Output("result", api.TypeString).
 			Output("status", api.TypeNumber).
-			WithAsyncExecution().
+			WithAsyncInvoke().
 			Build()
 
 		assert.NoError(t, err)
@@ -544,7 +531,7 @@ func TestStepBuilderChaining(t *testing.T) {
 
 		syncStep, err := build.
 			WithEndpoint("http://example.com").
-			WithSyncExecution().
+			WithSyncInvoke().
 			Build()
 		assert.NoError(t, err)
 		assert.Equal(t, api.StepTypeService, syncStep.Type)
@@ -553,7 +540,7 @@ func TestStepBuilderChaining(t *testing.T) {
 
 		asyncStep, err := build.
 			WithEndpoint("http://example.com").
-			WithAsyncExecution().
+			WithAsyncInvoke().
 			Build()
 		assert.NoError(t, err)
 		assert.Equal(t, api.StepTypeService, asyncStep.Type)
@@ -565,7 +552,6 @@ func TestStepBuilderChaining(t *testing.T) {
 				Language: api.ScriptLangLua,
 				Script:   "return {result = 1 + 2}",
 			}).
-			WithScriptExecution().
 			Build()
 		assert.NoError(t, err)
 		assert.Equal(t, api.StepTypeScript, scriptStep.Type)

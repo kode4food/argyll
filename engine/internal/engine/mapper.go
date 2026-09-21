@@ -59,7 +59,7 @@ func (m *Mapper) MapValue(
 		return nil, false
 	}
 
-	result, err := env.ExecuteScript(compiled, st, api.Args{name: value})
+	result, err := env.EvaluateScript(compiled, st, api.Args{name: value})
 	if err != nil {
 		return nil, false
 	}
