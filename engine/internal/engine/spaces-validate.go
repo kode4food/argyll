@@ -15,7 +15,7 @@ func (e *Engine) validateSpaceSubFlows(
 		if st.Flow == nil || st.Flow.SpaceID == api.NoSpace {
 			continue
 		}
-		sp, ok := cat.Spaces[st.Flow.SpaceID]
+		sp, ok := cat.Spaces.Defined[st.Flow.SpaceID]
 		if !ok {
 			return fmt.Errorf("%w: %s", api.ErrSpaceNotFound, st.Flow.SpaceID)
 		}

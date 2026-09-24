@@ -269,13 +269,15 @@ describe("WebSocketProvider", () => {
           data: {
             steps: { "step-1": { id: "step-1" } },
             spaces: {
-              risk: {
-                id: "risk",
-                name: "Risk",
-                selector: { language: "lua", script: "return true" },
+              defined: {
+                risk: {
+                  id: "risk",
+                  name: "Risk",
+                  selector: { language: "lua", script: "return true" },
+                },
               },
+              selected: { risk: ["step-1"] },
             },
-            selection: { risk: ["step-1"] },
           },
         },
       ],
@@ -285,13 +287,15 @@ describe("WebSocketProvider", () => {
     expect(flowStore.__storeState.setCatalogState).toHaveBeenCalledWith(
       { "step-1": { id: "step-1" } },
       {
-        risk: {
-          id: "risk",
-          name: "Risk",
-          selector: { language: "lua", script: "return true" },
+        defined: {
+          risk: {
+            id: "risk",
+            name: "Risk",
+            selector: { language: "lua", script: "return true" },
+          },
         },
-      },
-      { risk: ["step-1"] }
+        selected: { risk: ["step-1"] },
+      }
     );
   });
 

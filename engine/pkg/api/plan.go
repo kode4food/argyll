@@ -41,8 +41,8 @@ type (
 
 	// AttributeEdges tracks which steps provide and consume an attribute
 	AttributeEdges struct {
-		Providers []StepID `json:"providers"`
-		Consumers []StepID `json:"consumers"`
+		Providers Slice[StepID] `json:"providers"`
+		Consumers Slice[StepID] `json:"consumers"`
 	}
 )
 
@@ -129,7 +129,7 @@ func (e *AttributeEdges) addProvider(stepID StepID) *AttributeEdges {
 	}
 
 	return &AttributeEdges{
-		Providers: append(slices.Clone(e.Providers), stepID),
+		Providers: e.Providers.Append(stepID),
 		Consumers: e.Consumers,
 	}
 }
@@ -141,7 +141,7 @@ func (e *AttributeEdges) addConsumer(stepID StepID) *AttributeEdges {
 
 	return &AttributeEdges{
 		Providers: e.Providers,
-		Consumers: append(slices.Clone(e.Consumers), stepID),
+		Consumers: e.Consumers.Append(stepID),
 	}
 }
 
@@ -151,8 +151,7 @@ func (e *AttributeEdges) removeProvider(stepID StepID) *AttributeEdges {
 	}
 
 	return &AttributeEdges{
-		Providers: slices.DeleteFunc(
-			slices.Clone(e.Providers),
+		Providers: e.Providers.Remove(
 			func(id StepID) bool { return id == stepID },
 		),
 		Consumers: e.Consumers,
@@ -166,8 +165,7 @@ func (e *AttributeEdges) removeConsumer(stepID StepID) *AttributeEdges {
 
 	return &AttributeEdges{
 		Providers: e.Providers,
-		Consumers: slices.DeleteFunc(
-			slices.Clone(e.Consumers),
+		Consumers: e.Consumers.Remove(
 			func(id StepID) bool { return id == stepID },
 		),
 	}

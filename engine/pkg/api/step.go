@@ -85,7 +85,7 @@ type (
 	ActionMode string
 
 	// Steps contains a map of Steps by their ID
-	Steps map[StepID]*Step
+	Steps = Map[StepID, *Step]
 
 	// Tags contains optional step metadata used for discovery and grouping,
 	// held as a set of opaque strings

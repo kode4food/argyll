@@ -1224,9 +1224,23 @@ components:
             $ref: "#/components/schemas/StepRegistration"
         spaces:
           type: object
-          description: Map of space ID to dynamic planning space
-          additionalProperties:
-            $ref: "#/components/schemas/Space"
+          description: Defined planning spaces and the steps they select
+          required:
+            - defined
+            - selected
+          properties:
+            defined:
+              type: object
+              description: Map of space ID to dynamic planning space
+              additionalProperties:
+                $ref: "#/components/schemas/Space"
+            selected:
+              type: object
+              description: Map of space ID to the step IDs its selector selected
+              additionalProperties:
+                type: array
+                items:
+                  type: string
         attributes:
           type: object
           description: Engine-level attribute dependency graph

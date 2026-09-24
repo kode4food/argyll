@@ -187,7 +187,7 @@ func TestRecoverDispatchPeer(t *testing.T) {
 
 		fl := helpers.WaitForFlowState(t, env.Engine, helpers.FlowStateQuery{
 			FlowID:  id,
-			Timeout: time.Second,
+			Timeout: wait.DefaultTimeout,
 			Accept: func(fl api.FlowState) bool {
 				ex, ok := fl.Executions[st.ID]
 				if !ok {
@@ -280,24 +280,28 @@ func TestConcurrentRecoveryState(t *testing.T) {
 }
 
 func TestTerminalFlow(t *testing.T) {
-	helpers.WithEngine(t, func(eng *engine.Engine) {
-		id := api.FlowID("terminal-flow")
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		assert.NoError(t, env.Engine.Start())
 
 		st := helpers.NewSimpleStep("step-1")
+		assert.NoError(t, env.Engine.RegisterStep(st))
+		env.MockClient.SetResponse(st.ID, api.Args{})
+
+		id := api.FlowID("terminal-flow")
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{"step-1"},
+			Goals: []api.StepID{st.ID},
 			Steps: api.Steps{st.ID: st},
 		}
+		assert.NoError(t, env.Engine.StartPlan(id, pl))
 
-		err := eng.StartPlan(id, pl)
-		assert.NoError(t, err)
+		fl := helpers.WaitForTerminalFlowState(t, env.Engine, id)
+		assert.Equal(t, api.FlowCompleted, fl.Status)
 
-		fl, err := eng.GetFlowState(id)
-		assert.NoError(t, err)
-		fl.Status = api.FlowCompleted
+		assert.NoError(t, env.Engine.RecoverFlow(id))
 
-		err = eng.RecoverFlow(id)
+		after, err := env.Engine.GetFlowState(id)
 		assert.NoError(t, err)
+		assert.Equal(t, api.FlowCompleted, after.Status)
 	})
 }
 

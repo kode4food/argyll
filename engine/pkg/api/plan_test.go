@@ -379,6 +379,6 @@ func TestRemoveStepNotInEdges(t *testing.T) {
 
 	graph = graph.RemoveStep(stepB)
 
-	assert.Equal(t, []api.StepID{"step-a"}, graph["input"].Consumers)
-	assert.Equal(t, []api.StepID{"step-a"}, graph["output"].Providers)
+	assert.Equal(t, api.Slice[api.StepID]{"step-a"}, graph["input"].Consumers)
+	assert.Equal(t, api.Slice[api.StepID]{"step-a"}, graph["output"].Providers)
 }

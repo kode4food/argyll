@@ -93,7 +93,7 @@ func (e *Engine) planRequest(
 
 	steps := cat.Steps
 	if req.SpaceID != api.NoSpace {
-		if _, ok := cat.Spaces[req.SpaceID]; !ok {
+		if _, ok := cat.Spaces.Defined[req.SpaceID]; !ok {
 			return nil, fmt.Errorf(
 				"%w: %s", api.ErrSpaceNotFound, req.SpaceID,
 			)

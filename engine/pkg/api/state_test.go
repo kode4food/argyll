@@ -48,7 +48,7 @@ func TestUpdateStep(t *testing.T) {
 
 	assert.NotContains(t, result.Attributes, api.Name("old"))
 	assert.Equal(t,
-		[]api.StepID{"step"}, result.Attributes["new"].Providers,
+		api.Slice[api.StepID]{"step"}, result.Attributes["new"].Providers,
 	)
 	assert.Contains(t, original.Attributes, api.Name("old"))
 	assert.NotContains(t, original.Attributes, api.Name("new"))
@@ -76,16 +76,18 @@ func TestSetSpace(t *testing.T) {
 		Name: "Payments",
 		QBE:  api.SpaceQuery{{"domain:payments"}},
 	}
-	original := api.CatalogState{Spaces: api.Spaces{}}
+	original := api.CatalogState{
+		Spaces: api.Spaces{Defined: map[api.SpaceID]api.Space{}},
+	}
 
 	result := original.SetSpace(sp.ID, sp)
 
-	assert.Empty(t, original.Spaces)
-	assert.Equal(t, sp, result.Spaces[sp.ID])
+	assert.Empty(t, original.Spaces.Defined)
+	assert.Equal(t, sp, result.Spaces.Defined[sp.ID])
 
 	deleted := result.DeleteSpace(sp.ID)
-	assert.Contains(t, result.Spaces, sp.ID)
-	assert.NotContains(t, deleted.Spaces, sp.ID)
+	assert.Contains(t, result.Spaces.Defined, sp.ID)
+	assert.NotContains(t, deleted.Spaces.Defined, sp.ID)
 }
 
 func TestSetHealth(t *testing.T) {

@@ -22,7 +22,7 @@ func TestSpaces(t *testing.T) {
 
 		cat, err := eng.GetCatalogState()
 		assert.NoError(t, err)
-		stored := cat.Spaces[sp.ID]
+		stored := cat.Spaces.Defined[sp.ID]
 		assert.Equal(t, sp.QBE, stored.QBE)
 		assert.Equal(t, &api.ScriptConfig{
 			Language: api.ScriptLangJPath,
@@ -50,14 +50,14 @@ func TestSpaces(t *testing.T) {
 
 		cat, err = eng.GetCatalogState()
 		assert.NoError(t, err)
-		assert.Equal(t, updated.QBE, cat.Spaces[sp.ID].QBE)
+		assert.Equal(t, updated.QBE, cat.Spaces.Defined[sp.ID].QBE)
 		assert.Equal(t, updated.Description,
-			cat.Spaces[sp.ID].Description)
+			cat.Spaces.Defined[sp.ID].Description)
 
 		assert.NoError(t, eng.UnregisterSpace(sp.ID))
 		cat, err = eng.GetCatalogState()
 		assert.NoError(t, err)
-		assert.NotContains(t, cat.Spaces, sp.ID)
+		assert.NotContains(t, cat.Spaces.Defined, sp.ID)
 	})
 }
 

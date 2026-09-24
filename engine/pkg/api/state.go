@@ -1,7 +1,6 @@
 package api
 
 import (
-	"maps"
 	"slices"
 	"time"
 
@@ -29,20 +28,25 @@ type (
 		LastUpdated time.Time      `json:"last_updated"`
 		Steps       Steps          `json:"steps"`
 		Spaces      Spaces         `json:"spaces"`
-		Selection   SpaceSelection `json:"selection"`
 		Attributes  AttributeGraph `json:"attributes"`
+	}
+
+	// Spaces contains the defined Spaces and the Steps they select
+	Spaces struct {
+		Defined  Map[SpaceID, Space]         `json:"defined"`
+		Selected Map[SpaceID, Slice[StepID]] `json:"selected"`
 	}
 
 	// ClusterState contains the operational state of all nodes in the cluster
 	ClusterState struct {
-		LastUpdated time.Time            `json:"last_updated"`
-		Nodes       map[NodeID]NodeState `json:"nodes"`
+		LastUpdated time.Time              `json:"last_updated"`
+		Nodes       Map[NodeID, NodeState] `json:"nodes"`
 	}
 
 	// NodeState contains a node's operational state
 	NodeState struct {
-		LastSeen time.Time              `json:"last_seen"`
-		Health   map[StepID]HealthState `json:"health"`
+		LastSeen time.Time                `json:"last_seen"`
+		Health   Map[StepID, HealthState] `json:"health"`
 	}
 
 	// FlowState contains the complete state of a flow execution
@@ -63,10 +67,10 @@ type (
 	}
 
 	// Executions contains the execution progress of multiple steps
-	Executions map[StepID]ExecutionState
+	Executions = Map[StepID, ExecutionState]
 
 	// AttributeValues contains fulfilled attribute values and their sources
-	AttributeValues map[Name][]*AttributeValue
+	AttributeValues = Map[Name, Slice[*AttributeValue]]
 
 	// AttributeValue stores an attribute value and which step produced it
 	AttributeValue struct {
@@ -89,7 +93,7 @@ type (
 	}
 
 	// WorkItems contains the state of multiple work items
-	WorkItems map[Token]WorkState
+	WorkItems = Map[Token, WorkState]
 
 	// WorkState contains the state of a single work item
 	WorkState struct {
@@ -145,8 +149,7 @@ const (
 // SetStep returns a new CatalogState with the specified step registered
 func (c CatalogState) SetStep(id StepID, st *Step) CatalogState {
 	oldStep, exists := c.Steps[id]
-	c.Steps = maps.Clone(c.Steps)
-	c.Steps[id] = st
+	c.Steps = c.Steps.Set(id, st)
 
 	if exists {
 		c.Attributes = c.Attributes.RemoveStep(oldStep)
@@ -163,15 +166,14 @@ func (c CatalogState) DeleteStep(id StepID) CatalogState {
 		return c
 	}
 
-	c.Steps = maps.Clone(c.Steps)
-	delete(c.Steps, id)
+	c.Steps = c.Steps.Delete(id)
 	c.Attributes = c.Attributes.RemoveStep(step)
 	return c
 }
 
 // SpaceSteps returns the steps the specified space selects
 func (c CatalogState) SpaceSteps(id SpaceID) Steps {
-	selected := c.Selection[id]
+	selected := c.Spaces.Selected[id]
 	res := make(Steps, len(selected))
 	for _, sid := range selected {
 		if step, ok := c.Steps[sid]; ok {
@@ -186,22 +188,14 @@ func (c CatalogState) SpaceSteps(id SpaceID) Steps {
 func (c CatalogState) SetSpaceSelection(
 	id SpaceID, steps []StepID,
 ) CatalogState {
-	c.Selection = maps.Clone(c.Selection)
-	if c.Selection == nil {
-		c.Selection = SpaceSelection{}
-	}
-	c.Selection[id] = steps
+	c.Spaces.Selected = c.Spaces.Selected.Set(id, steps)
 	return c
 }
 
 // DeleteSpaceSelection returns a new CatalogState with the space's selected
 // steps removed
 func (c CatalogState) DeleteSpaceSelection(id SpaceID) CatalogState {
-	if _, ok := c.Selection[id]; !ok {
-		return c
-	}
-	c.Selection = maps.Clone(c.Selection)
-	delete(c.Selection, id)
+	c.Spaces.Selected = c.Spaces.Selected.Delete(id)
 	return c
 }
 
@@ -209,18 +203,18 @@ func (c CatalogState) DeleteSpaceSelection(id SpaceID) CatalogState {
 // exactly the supplied spaces
 func (c CatalogState) SetStepSpaces(id StepID, spaces []SpaceID) CatalogState {
 	next := util.SetOf(spaces...)
-	selection := SpaceSelection{}
-	for spaceID, steps := range c.Selection {
+	selection := Map[SpaceID, Slice[StepID]]{}
+	for spaceID, steps := range c.Spaces.Selected {
 		selects := next.Contains(spaceID)
 		if selects == slices.Contains(steps, id) {
 			selection[spaceID] = steps
 			continue
 		}
 		if selects {
-			selection[spaceID] = append(slices.Clone(steps), id)
+			selection[spaceID] = steps.Append(id)
 			continue
 		}
-		selection[spaceID] = slices.DeleteFunc(slices.Clone(steps),
+		selection[spaceID] = steps.Remove(
 			func(stepID StepID) bool { return stepID == id },
 		)
 	}
@@ -229,24 +223,19 @@ func (c CatalogState) SetStepSpaces(id StepID, spaces []SpaceID) CatalogState {
 			selection[spaceID] = []StepID{id}
 		}
 	}
-	c.Selection = selection
+	c.Spaces.Selected = selection
 	return c
 }
 
 // SetSpace returns a new CatalogState with the specified space registered
 func (c CatalogState) SetSpace(id SpaceID, space Space) CatalogState {
-	c.Spaces = maps.Clone(c.Spaces)
-	if c.Spaces == nil {
-		c.Spaces = Spaces{}
-	}
-	c.Spaces[id] = space
+	c.Spaces.Defined = c.Spaces.Defined.Set(id, space)
 	return c
 }
 
 // DeleteSpace returns a new CatalogState with the specified space removed
 func (c CatalogState) DeleteSpace(id SpaceID) CatalogState {
-	c.Spaces = maps.Clone(c.Spaces)
-	delete(c.Spaces, id)
+	c.Spaces.Defined = c.Spaces.Defined.Delete(id)
 	return c
 }
 
@@ -258,11 +247,7 @@ func (c CatalogState) SetLastUpdated(t time.Time) CatalogState {
 
 // SetNode returns a new ClusterState with the specified node updated
 func (c ClusterState) SetNode(id NodeID, n NodeState) ClusterState {
-	c.Nodes = maps.Clone(c.Nodes)
-	if c.Nodes == nil {
-		c.Nodes = map[NodeID]NodeState{}
-	}
-	c.Nodes[id] = n
+	c.Nodes = c.Nodes.Set(id, n)
 	return c
 }
 
@@ -284,11 +269,7 @@ func (c ClusterState) SetLastUpdated(t time.Time) ClusterState {
 
 // SetHealth returns a new NodeState with updated health for a given step
 func (n NodeState) SetHealth(id StepID, h HealthState) NodeState {
-	n.Health = maps.Clone(n.Health)
-	if n.Health == nil {
-		n.Health = map[StepID]HealthState{}
-	}
-	n.Health[id] = h
+	n.Health = n.Health.Set(id, h)
 	return n
 }
 
@@ -317,8 +298,7 @@ func (f FlowState) SetStatus(s FlowStatus) FlowState {
 
 // SetAttribute returns a new FlowState with the specified attribute appended
 func (f FlowState) SetAttribute(name Name, attr *AttributeValue) FlowState {
-	f.Attributes = maps.Clone(f.Attributes)
-	f.Attributes[name] = append(f.Attributes[name], attr)
+	f.Attributes = f.Attributes.Set(name, f.Attributes[name].Append(attr))
 	return f
 }
 
@@ -343,8 +323,7 @@ func (f FlowState) AttributeValues(name Name) []*AttributeValue {
 }
 
 func (f FlowState) SetExecution(id StepID, ex ExecutionState) FlowState {
-	f.Executions = maps.Clone(f.Executions)
-	f.Executions[id] = ex
+	f.Executions = f.Executions.Set(id, ex)
 	return f
 }
 
@@ -422,15 +401,13 @@ func (e ExecutionState) SetError(err string) ExecutionState {
 
 // SetWorkItem returns a new ExecutionState with the work item state updated
 func (e ExecutionState) SetWorkItem(tkn Token, item WorkState) ExecutionState {
-	e.WorkItems = maps.Clone(e.WorkItems)
-	e.WorkItems[tkn] = item
+	e.WorkItems = e.WorkItems.Set(tkn, item)
 	return e
 }
 
 // RemoveWorkItem returns a new ExecutionState with the work item removed
 func (e ExecutionState) RemoveWorkItem(tkn Token) ExecutionState {
-	e.WorkItems = maps.Clone(e.WorkItems)
-	delete(e.WorkItems, tkn)
+	e.WorkItems = e.WorkItems.Delete(tkn)
 	return e
 }
 

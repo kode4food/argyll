@@ -23,7 +23,7 @@ func (e *Engine) RegisterSpace(sp api.Space) error {
 	}
 	return e.catalogTx(func(tx *catalogTx) error {
 		cat := tx.ag.Value()
-		old, ok := cat.Spaces[sp.ID]
+		old, ok := cat.Spaces.Defined[sp.ID]
 		if !ok {
 			ids, err := e.selectSpaceSteps(cat.Steps, sp)
 			if err != nil {
@@ -66,8 +66,8 @@ func (e *Engine) ListSpaces() ([]api.Space, error) {
 	if err != nil {
 		return nil, err
 	}
-	res := make([]api.Space, 0, len(cat.Spaces))
-	for _, sp := range cat.Spaces {
+	res := make([]api.Space, 0, len(cat.Spaces.Defined))
+	for _, sp := range cat.Spaces.Defined {
 		res = append(res, sp)
 	}
 	return res, nil
@@ -81,7 +81,7 @@ func (e *Engine) UpdateSpace(sp api.Space) error {
 	}
 	return e.catalogTx(func(tx *catalogTx) error {
 		cat := tx.ag.Value()
-		old, ok := cat.Spaces[sp.ID]
+		old, ok := cat.Spaces.Defined[sp.ID]
 		if !ok {
 			return fmt.Errorf("%w: %s", api.ErrSpaceNotFound, sp.ID)
 		}
@@ -108,7 +108,7 @@ func (e *Engine) UpdateSpace(sp api.Space) error {
 func (e *Engine) UnregisterSpace(spaceID api.SpaceID) error {
 	return e.catalogTx(func(tx *catalogTx) error {
 		cat := tx.ag.Value()
-		if _, ok := cat.Spaces[spaceID]; !ok {
+		if _, ok := cat.Spaces.Defined[spaceID]; !ok {
 			return fmt.Errorf("%w: %s", api.ErrSpaceNotFound, spaceID)
 		}
 		if ref, ok := spaceSubFlow(cat, spaceID); ok {
@@ -124,7 +124,7 @@ func (e *Engine) matchingSpaceIDs(
 	cat api.CatalogState, st *api.Step,
 ) ([]api.SpaceID, error) {
 	var res []api.SpaceID
-	for id, sp := range cat.Spaces {
+	for id, sp := range cat.Spaces.Defined {
 		matches, err := e.spaceMatches(sp, st)
 		if err != nil {
 			return nil, errors.Join(api.ErrInvalidSpace, err)

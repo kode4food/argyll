@@ -127,7 +127,10 @@ describe("flowStore", () => {
   describe("Space selection", () => {
     test("setStepSpaces moves a step between spaces", () => {
       const store = useFlowStore.getState();
-      store.setCatalogState({}, {}, { risk: ["step-1"], trading: [] });
+      store.setCatalogState(
+        {},
+        { selected: { risk: ["step-1"], trading: [] } }
+      );
 
       useFlowStore.getState().setStepSpaces("step-1", ["trading"]);
 
@@ -138,7 +141,10 @@ describe("flowStore", () => {
 
     test("setStepSpaces drops a step from every space", () => {
       const store = useFlowStore.getState();
-      store.setCatalogState({}, {}, { risk: ["step-1"], trading: ["step-1"] });
+      store.setCatalogState(
+        {},
+        { selected: { risk: ["step-1"], trading: ["step-1"] } }
+      );
 
       useFlowStore.getState().setStepSpaces("step-1", []);
 
@@ -149,7 +155,7 @@ describe("flowStore", () => {
 
     test("setStepSpaces adds a space it has not seen", () => {
       const store = useFlowStore.getState();
-      store.setCatalogState({}, {}, {});
+      store.setCatalogState({}, {});
 
       useFlowStore.getState().setStepSpaces("step-1", ["risk"]);
 

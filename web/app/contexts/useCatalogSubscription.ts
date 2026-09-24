@@ -1,13 +1,12 @@
 import { useCallback, useEffect } from "react";
-import { Space, Step } from "@/app/api";
-import { useFlowStore } from "@/app/store/flowStore";
+import { Step } from "@/app/api";
+import { CatalogSpaces, useFlowStore } from "@/app/store/flowStore";
 import { WebSocketEvent, WebSocketSubscribed } from "@/app/types/websocket";
 import type { useWebSocketClient } from "@/app/hooks/useWebSocketClient";
 
 type CatalogPayload = {
   steps?: Record<string, Step>;
-  spaces?: Record<string, Space>;
-  selection?: Record<string, string[]>;
+  spaces?: CatalogSpaces;
 };
 
 type SocketClient = ReturnType<typeof useWebSocketClient>;
@@ -35,11 +34,7 @@ export function useCatalogSubscription(socketClient: SocketClient) {
         const { setCatalogState } = useFlowStore.getState();
         const payload = (event as WebSocketSubscribed).items[0]?.data as
           CatalogPayload | undefined;
-        setCatalogState(
-          payload?.steps ?? {},
-          payload?.spaces ?? {},
-          payload?.selection ?? {}
-        );
+        setCatalogState(payload?.steps ?? {}, payload?.spaces ?? {});
         return;
       }
 

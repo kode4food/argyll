@@ -1096,13 +1096,17 @@ func TestSubFlowSpace(t *testing.T) {
 			st.ID:      st,
 		})
 		cat.Spaces = api.Spaces{
-			"payments": {
-				ID:   "payments",
-				Name: "Payments",
-				QBE:  api.SpaceQuery{{"domain:payments"}},
+			Defined: api.Map[api.SpaceID, api.Space]{
+				"payments": {
+					ID:   "payments",
+					Name: "Payments",
+					QBE:  api.SpaceQuery{{"domain:payments"}},
+				},
+			},
+			Selected: api.Map[api.SpaceID, api.Slice[api.StepID]]{
+				"payments": {goal.ID},
 			},
 		}
-		cat.Selection = api.SpaceSelection{"payments": {goal.ID}}
 
 		pl, err := createSubFlowPlan(cat, st.ID)
 		assert.NoError(t, err)

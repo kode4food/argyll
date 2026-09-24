@@ -40,6 +40,11 @@ export interface StepRef {
   stepId: string;
 }
 
+export interface CatalogSpaces {
+  defined?: Record<string, Space>;
+  selected?: Record<string, string[]>;
+}
+
 declare global {
   interface Window {
     flowStore?: typeof useFlowStore;
@@ -99,8 +104,7 @@ interface FlowState {
   removeSpace: (spaceId: string) => void;
   setCatalogState: (
     steps: Record<string, Step>,
-    spaces?: Record<string, Space>,
-    selection?: Record<string, string[]>
+    spaces?: CatalogSpaces
   ) => void;
   setHealthState: (
     healthByNode: Record<string, Record<string, StepHealthInfo>>
@@ -397,18 +401,19 @@ export const useFlowStore = create<FlowState>()(
         set({ visibleFlowIDs: flowIDs });
       },
 
-      setCatalogState: (steps, spaces, selection) => {
+      setCatalogState: (steps, spaces) => {
         const nextSteps = Object.values(steps).sort(compareSteps);
         set({
           steps: nextSteps,
           ...(spaces && {
-            spaces: Object.values(spaces).sort((a, b) =>
+            spaces: Object.values(spaces.defined ?? {}).sort((a, b) =>
               a.name.localeCompare(b.name)
             ),
-          }),
-          ...(selection && {
             spaceSelection: Object.fromEntries(
-              Object.entries(selection).map(([id, ids]) => [id, new Set(ids)])
+              Object.entries(spaces.selected ?? {}).map(([id, ids]) => [
+                id,
+                new Set(ids),
+              ])
             ),
           }),
           stepHealth: toStepHealthMap(get().healthByNode, toStepMap(nextSteps)),

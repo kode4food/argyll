@@ -17,9 +17,11 @@ var (
 // NewCatalogState creates an empty catalog state with initialized maps
 func NewCatalogState() api.CatalogState {
 	return api.CatalogState{
-		Steps:      api.Steps{},
-		Spaces:     api.Spaces{},
-		Selection:  api.SpaceSelection{},
+		Steps: api.Steps{},
+		Spaces: api.Spaces{
+			Defined:  api.Map[api.SpaceID, api.Space]{},
+			Selected: api.Map[api.SpaceID, api.Slice[api.StepID]]{},
+		},
 		Attributes: api.AttributeGraph{},
 	}
 }

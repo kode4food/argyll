@@ -114,7 +114,7 @@ func create(
 		candidates := args.candidates
 		dependencies := args.dependencies
 		if st.Flow != nil && st.Flow.SpaceID != api.NoSpace {
-			if _, ok := args.catalog.Spaces[st.Flow.SpaceID]; !ok {
+			if _, ok := args.catalog.Spaces.Defined[st.Flow.SpaceID]; !ok {
 				return nil, fmt.Errorf(
 					"%w: %s", api.ErrSpaceNotFound, st.Flow.SpaceID,
 				)

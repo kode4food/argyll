@@ -19,12 +19,6 @@ type (
 	// SpaceID uniquely identifies a planning space
 	SpaceID string
 
-	// Spaces contains Spaces by their ID
-	Spaces map[SpaceID]Space
-
-	// SpaceSelection contains the Step IDs each Space's selector selected
-	SpaceSelection map[SpaceID][]StepID
-
 	// SpaceQuery matches steps against alternative tag sets, selecting a step
 	// that carries every tag of any one of them
 	SpaceQuery []SpaceQueryTerm

@@ -87,7 +87,7 @@ func (s *Server) getSpace(c *gin.Context) {
 		return
 	}
 	id := api.SpaceID(c.Param("space_id"))
-	if sp, ok := cat.Spaces[id]; ok {
+	if sp, ok := cat.Spaces.Defined[id]; ok {
 		c.JSON(http.StatusOK, sp)
 		return
 	}
@@ -103,7 +103,7 @@ func (s *Server) listSpaceSteps(c *gin.Context) {
 		return
 	}
 	id := api.SpaceID(c.Param("space_id"))
-	if _, ok := cat.Spaces[id]; !ok {
+	if _, ok := cat.Spaces.Defined[id]; !ok {
 		c.JSON(http.StatusNotFound, api.ErrorResponse{
 			Error:  fmt.Sprintf("%s: %s", api.ErrSpaceNotFound, id),
 			Status: http.StatusNotFound,

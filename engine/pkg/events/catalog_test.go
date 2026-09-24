@@ -17,10 +17,12 @@ func TestNewCatalogState(t *testing.T) {
 
 	assert.NotNil(t, cat)
 	assert.NotNil(t, cat.Steps)
-	assert.NotNil(t, cat.Spaces)
+	assert.NotNil(t, cat.Spaces.Defined)
+	assert.NotNil(t, cat.Spaces.Selected)
 	assert.NotNil(t, cat.Attributes)
 	assert.Empty(t, cat.Steps)
-	assert.Empty(t, cat.Spaces)
+	assert.Empty(t, cat.Spaces.Defined)
+	assert.Empty(t, cat.Spaces.Selected)
 	assert.Empty(t, cat.Attributes)
 }
 
@@ -160,7 +162,7 @@ func TestSpaceEvents(t *testing.T) {
 
 	cat = applyCatalogEvent(t, cat, api.EventTypeSpaceRegistered,
 		api.SpaceRegisteredEvent{Space: sp})
-	assert.Equal(t, sp, cat.Spaces[sp.ID])
+	assert.Equal(t, sp, cat.Spaces.Defined[sp.ID])
 
 	updated := api.Space{
 		ID:          sp.ID,
@@ -169,11 +171,11 @@ func TestSpaceEvents(t *testing.T) {
 	}
 	cat = applyCatalogEvent(t, cat, api.EventTypeSpaceUpdated,
 		api.SpaceUpdatedEvent{Space: updated})
-	assert.Equal(t, updated, cat.Spaces[sp.ID])
+	assert.Equal(t, updated, cat.Spaces.Defined[sp.ID])
 
 	cat = applyCatalogEvent(t, cat, api.EventTypeSpaceUnregistered,
 		api.SpaceUnregisteredEvent{SpaceID: sp.ID})
-	assert.NotContains(t, cat.Spaces, sp.ID)
+	assert.NotContains(t, cat.Spaces.Defined, sp.ID)
 }
 
 func TestSpaceSelectionProjection(t *testing.T) {
@@ -218,7 +220,7 @@ func TestSpaceSelectionProjection(t *testing.T) {
 
 	cat = applyCatalogEvent(t, cat, api.EventTypeSpaceUnregistered,
 		api.SpaceUnregisteredEvent{SpaceID: sp.ID})
-	assert.NotContains(t, cat.Selection, sp.ID)
+	assert.NotContains(t, cat.Spaces.Selected, sp.ID)
 }
 
 func applyCatalogEvent(
