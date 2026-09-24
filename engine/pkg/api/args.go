@@ -5,16 +5,15 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
-	"maps"
 	"slices"
 )
 
 type (
 	// Args represents a map of named arguments passed to or from steps
-	Args map[Name]any
+	Args Map[Name, any]
 
 	// InitArgs represents initial flow attribute values
-	InitArgs map[Name][]any
+	InitArgs = Map[Name, []any]
 
 	// Name is a string identifier for arguments and attributes
 	Name string
@@ -31,12 +30,7 @@ var (
 
 // Set creates a new Args with the specified name-value pair added
 func (a Args) Set(name Name, value any) Args {
-	if len(a) == 0 {
-		return Args{name: value}
-	}
-	res := maps.Clone(a)
-	res[name] = value
-	return res
+	return Set(a, name, value)
 }
 
 // GetString retrieves a string value from args, returning defaultValue if not
@@ -86,7 +80,7 @@ func (a Args) GetInt(name Name, defaultValue int) int {
 
 // Apply will merge the keys/values of the other arg set into this one
 func (a Args) Apply(other Args) Args {
-	return applyMap(a, other)
+	return Apply(a, other)
 }
 
 // HashKey computes a deterministic SHA256 hash key of the Args. Keys are
@@ -119,16 +113,4 @@ func (a Args) HashKey() (string, error) {
 func sha256Hex(s string) string {
 	hash := sha256.Sum256([]byte(s))
 	return hex.EncodeToString(hash[:])
-}
-
-func applyMap[M ~map[K]V, K comparable, V any](base, other M) M {
-	if len(other) == 0 {
-		return base
-	}
-	if len(base) == 0 {
-		return other
-	}
-	res := maps.Clone(base)
-	maps.Copy(res, other)
-	return res
 }

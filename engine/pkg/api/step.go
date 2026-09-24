@@ -89,7 +89,7 @@ type (
 
 	// Tags contains optional step metadata used for discovery and grouping,
 	// held as a set of opaque strings
-	Tags []string
+	Tags Slice[string]
 
 	stepHash struct {
 		Flow       *FlowConfig   `json:"flow,omitempty"`

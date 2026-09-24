@@ -3,7 +3,6 @@ package engine
 import (
 	"errors"
 	"fmt"
-	"maps"
 
 	"github.com/kode4food/timebox"
 
@@ -250,7 +249,5 @@ func checkAttributeConflicts(
 }
 
 func stepsIncluding(cat api.CatalogState, newStep *api.Step) api.Steps {
-	steps := maps.Clone(cat.Steps)
-	steps[newStep.ID] = newStep
-	return steps
+	return cat.Steps.Set(newStep.ID, newStep)
 }

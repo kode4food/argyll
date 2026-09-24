@@ -2,7 +2,6 @@ package argyll
 
 import (
 	"context"
-	"slices"
 
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
@@ -52,7 +51,7 @@ func (f Flow) WithTags(tags ...string) Flow {
 	if len(tags) == 0 {
 		return f
 	}
-	f.tags = append(slices.Clone(f.tags), tags...).Normalize()
+	f.tags = api.Append(f.tags, tags...).Normalize()
 	return f
 }
 

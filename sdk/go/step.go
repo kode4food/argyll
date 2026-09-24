@@ -3,9 +3,7 @@ package argyll
 import (
 	"context"
 	"errors"
-	"maps"
 	"regexp"
-	"slices"
 	"strings"
 
 	"github.com/kode4food/argyll/engine/pkg/api"
@@ -142,7 +140,7 @@ func (s Step) WithTags(tags ...string) Step {
 		return s
 	}
 	s.step = s.step.Copy()
-	s.step.Tags = append(slices.Clone(s.step.Tags), tags...).Normalize()
+	s.step.Tags = api.Append(s.step.Tags, tags...).Normalize()
 	return s
 }
 
@@ -347,8 +345,7 @@ func (s Step) Start(handler InvokeHandler) error {
 
 func (s Step) withAttribute(name api.Name, attr *api.AttributeSpec) Step {
 	s.step = s.step.Copy()
-	s.step.Attributes = maps.Clone(s.step.Attributes)
-	s.step.Attributes[name] = attr
+	s.step.Attributes = api.Set(s.step.Attributes, name, attr)
 	return s
 }
 

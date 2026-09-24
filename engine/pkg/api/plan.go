@@ -37,7 +37,7 @@ type (
 	}
 
 	// AttributeGraph is a dependency graph of attribute producers/consumers
-	AttributeGraph map[Name]*AttributeEdges
+	AttributeGraph Map[Name, *AttributeEdges]
 
 	// AttributeEdges tracks which steps provide and consume an attribute
 	AttributeEdges struct {

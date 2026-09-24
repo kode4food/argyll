@@ -16,7 +16,7 @@ type (
 	}
 
 	// Handlers maps each step type to the implementation that runs it
-	Handlers map[api.StepType]*Handler
+	Handlers api.Map[api.StepType, *Handler]
 
 	// Handler describes the capabilities supplied by a step implementation
 	Handler struct {
@@ -129,12 +129,5 @@ func (r *Registry) Compensator(st *api.Step) (CompensateFunc, error) {
 // With returns a copy of the handlers extended by others, where a later set
 // replaces a step type an earlier one registers
 func (h Handlers) With(others ...Handlers) Handlers {
-	res := maps.Clone(h)
-	if res == nil {
-		res = Handlers{}
-	}
-	for _, o := range others {
-		maps.Copy(res, o)
-	}
-	return res
+	return api.Apply(h, others...)
 }

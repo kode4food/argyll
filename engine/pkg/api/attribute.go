@@ -60,10 +60,10 @@ type (
 	}
 
 	// AttributeSpecs is a map of attribute names to their specifications
-	AttributeSpecs map[Name]*AttributeSpec
+	AttributeSpecs Map[Name, *AttributeSpec]
 
 	// AttributeTypes is a map of attribute names to their data types
-	AttributeTypes map[Name]AttributeType
+	AttributeTypes = Map[Name, AttributeType]
 
 	// AttributeRole defines whether an attribute is required, optional, const,
 	// or an output

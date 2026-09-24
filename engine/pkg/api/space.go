@@ -21,10 +21,10 @@ type (
 
 	// SpaceQuery matches steps against alternative tag sets, selecting a step
 	// that carries every tag of any one of them
-	SpaceQuery []SpaceQueryTerm
+	SpaceQuery Slice[SpaceQueryTerm]
 
 	// SpaceQueryTerm matches steps carrying every one of its tags
-	SpaceQueryTerm []string
+	SpaceQueryTerm = Slice[string]
 )
 
 // NoSpace narrows nothing, leaving the full catalog in scope

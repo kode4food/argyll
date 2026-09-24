@@ -1,7 +1,7 @@
 package api
 
 // Metadata contains additional context passed to step handlers
-type Metadata map[string]any
+type Metadata Map[string, any]
 
 const (
 	MetaFlowID       = "flow_id"
@@ -16,7 +16,7 @@ const (
 
 // Apply will merge the keys/values of the other metadata set into this one
 func (m Metadata) Apply(other Metadata) Metadata {
-	return applyMap(m, other)
+	return Apply(m, other)
 }
 
 // GetString retrieves a string value from the metadata as the requested string

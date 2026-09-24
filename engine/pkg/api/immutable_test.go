@@ -9,6 +9,28 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
+type (
+	testMap   map[string]int
+	testSlice []string
+)
+
+func TestGenericImmutableFunctionsPreserveNamedTypes(t *testing.T) {
+	m := testMap{"a": 1}
+	set := api.Set(m, "b", 2)
+	deleted := api.Delete(set, "a")
+	applied := api.Apply(deleted, testMap{"c": 3})
+
+	assert.Equal(t, testMap{"a": 1}, m)
+	assert.Equal(t, testMap{"b": 2, "c": 3}, applied)
+
+	s := testSlice{"a"}
+	appended := api.Append(s, "b")
+	removed := api.Remove(appended, func(v string) bool { return v == "a" })
+
+	assert.Equal(t, testSlice{"a"}, s)
+	assert.Equal(t, testSlice{"b"}, removed)
+}
+
 func TestMapSet(t *testing.T) {
 	t.Run("creates the map when nil", func(t *testing.T) {
 		var original api.Map[string, int]
