@@ -196,10 +196,7 @@ const configuration = load();  // Just use config
 
 ### Parameter Objects
 
-qlty flags a function at **4 or more parameters** as a smell. Bundle them
-into a single request/options object instead — this also self-documents the
-call site, since positional args of the same type (two `string`s, two
-`boolean`s) are otherwise easy to swap silently.
+qlty flags a function at **4 or more parameters** as a smell. Bundle them into a single request/options object instead. This also self-documents the call site, since positional args of the same type (two `string`s, two `boolean`s) are otherwise easy to swap silently.
 
 ```typescript
 // Good
@@ -215,7 +212,7 @@ async startFlow(request: StartFlowRequest): Promise<unknown> {
   ...
 }
 
-// Bad — four positional params, two of them booleans/strings a caller
+// Bad: four positional params, two of them booleans/strings a caller
 // can transpose without a type error
 async startFlow(
   id: string,
@@ -225,19 +222,14 @@ async startFlow(
 ): Promise<any> { ... }
 ```
 
-Name the type after the function with a `Request`/`Options`/`Params` suffix
-(not `Args`, which is a Go convention — see `go-style.md`). Export it if
-callers need to construct or reference the shape; otherwise keep it local
-to the file.
+Name the type after the function with a `Request`/`Options`/`Params` suffix (not `Args`, which is a Go convention covered in `go-style.md`). Export it if callers need to construct or reference the shape; otherwise keep it local to the file.
 
 ### Keep Return Chains Short
 
-qlty flags a function with **8 or more `return` statements** (a `switch`
-with a `return` in every case is the usual cause). Replace the switch with
-a lookup table plus a single dispatch/return:
+qlty flags a function with **8 or more `return` statements** (a `switch` with a `return` in every case is the usual cause). Replace the switch with a lookup table plus a single dispatch/return:
 
 ```typescript
-// Good — one table, one return
+// Good: one table, one return
 const PROGRESS_ICONS: Record<StepProgressStatus, IconType> = {
   pending: IconProgressPending,
   active: IconProgressActive,
@@ -248,7 +240,7 @@ const PROGRESS_ICONS: Record<StepProgressStatus, IconType> = {
 export const getProgressIcon = (status: StepProgressStatus) =>
   PROGRESS_ICONS[status] ?? IconProgressPending;
 
-// Bad — one return per case
+// Bad: one return per case
 export const getProgressIcon = (status: StepProgressStatus) => {
   switch (status) {
     case "pending": return IconProgressPending;
@@ -260,9 +252,7 @@ export const getProgressIcon = (status: StepProgressStatus) => {
 };
 ```
 
-When each case needs to call something (not just look up a value), map
-event/status keys to small per-case functions instead, then invoke the one
-that matched:
+When each case needs to call something (not just look up a value), map event/status keys to small per-case functions instead, then invoke the one that matched:
 
 ```typescript
 const PATCHERS: Partial<Record<EventType, (data: Data, ts: string) => Patch>> = {
@@ -281,9 +271,7 @@ const apply = (event: Event): boolean => {
 
 ### Complex Boolean Expressions
 
-Extract a multi-clause `&&`/`||` expression into a named `const` when it
-mixes more than two distinct conditions, so the reader gets a label instead
-of re-deriving intent from the clauses:
+Extract a multi-clause `&&`/`||` expression into a named `const` when it mixes more than two distinct conditions, so the reader gets a label instead of re-deriving intent from the clauses:
 
 ```typescript
 // Good
@@ -296,7 +284,7 @@ const optionalUsedDefault =
   executionProvidedInput &&
   defaultMatchesExecutionInput(arg.spec.optional?.default, executionInputValue);
 
-// Bad — four unrelated-looking clauses inlined at the use site
+// Bad: four unrelated-looking clauses inlined at the use site
 const optionalUsedDefault =
   hasExecutionDecision &&
   arg.argType === "optional" &&
@@ -351,8 +339,7 @@ const HealthDot: React.FC<{ step: Step }> = ({ step }) => {
 
 ### Component Return Style
 
-For arrow-function components that only render JSX, use implicit returns:
-the JSX is the body.
+For arrow-function components that only render JSX, use implicit returns: the JSX is the body.
 
 ```typescript
 // Good
@@ -655,22 +642,18 @@ useEffect(() => {
 
 ### Domain Concepts
 
-Domain concepts (Attribute, Step, Flow, Space, Goal, etc.) stay untranslated
-and capitalized in every locale file, including mid-sentence — not just at
-the start of a sentence or in a title:
+Domain concepts (Attribute, Step, Flow, Space, Goal, etc.) stay untranslated and capitalized in every locale file, including mid-sentence, not just at the start of a sentence or in a title:
 
 ```json
 // en-US.json
 "stepEditor.flowGoalsRequired": "Goal Steps are required",
 "spaceManager.saveFailed": "Failed to save Space",
 
-// de-CH.json — Step is an inserted English term, still capitalized
+// de-CH.json: Step is an inserted English term, still capitalized
 "overview.stepsRegistered": { "one": "1 Step registriert" }
 ```
 
-ICU plural blocks (`zero`/`one`/`other`) must agree with each other and with
-sibling keys using the same concept word. Only the surrounding natural
-language gets translated and lowercased.
+ICU plural blocks (`zero`/`one`/`other`) must agree with each other and with sibling keys using the same concept word. Only the surrounding natural language gets translated and lowercased.
 
 ## Formatting (Prettier)
 

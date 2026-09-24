@@ -8,7 +8,7 @@ Start with `analyze_openapi_contract` to extract neutral OpenAPI facts. The MCP 
 
 The schema used to validate registrations is in `engine-api.yaml` (embedded alongside this file). The definitions that matter most for ingestion are `StepRegistration`, `AttributeSpec`, `RequiredConfig`, `OptionalConfig`, `OutputConfig`, `MappingConfig`, `ScriptConfig`, and `HttpConfig`.
 
-Key structural rules — get these wrong and the engine either rejects the step or silently drops the field:
+Get these structural rules wrong and the engine either rejects the step or silently drops the field:
 
 - Every step **must** have `id`. Steps missing `id` are silently skipped by `diff_proposed_steps` and `apply_proposed_steps` with no error.
 - Valid `type` values: `service`, `script`, `flow`.
@@ -43,7 +43,7 @@ Key structural rules — get these wrong and the engine either rejects the step 
 
 `attributes` is a JSON **object** (map keyed by attribute name), not an array. Valid roles: `required`, `optional`, `const`, `output`.
 
-Mapping and match configuration nest **inside a sub-object keyed by the role name** on the attribute — not at the top level of the attribute. Both `mapping` and `match` are objects, not strings:
+Mapping and match configuration nest **inside a sub-object keyed by the role name** on the attribute, not at the top level of the attribute. Both `mapping` and `match` are objects, not strings:
 
 - `mapping` → `{ "name": "service_field_name" }` (or add `"script"` for a transform)
 - `match` → `{ "language": "lua", "script": "..." }` - a `ScriptConfig` object, never a bare string

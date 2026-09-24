@@ -54,16 +54,20 @@ type (
 // dependencies and required inputs. Children discovered through
 // Request.Children are planned recursively into ExecutionPlan.Children
 func Create(req *Request) (*api.ExecutionPlan, error) {
-	return create(newPlanArgs(req, strictProviders), req.Children,
-		util.Set[api.StepID]{})
+	return create(
+		newPlanArgs(req, strictProviders), req.Children,
+		util.Set[api.StepID]{},
+	)
 }
 
 // Preview builds an execution plan for preview purposes. Unlike Create, it
 // falls back to unsatisfied provider chains when no satisfiable provider exists
 // so the UI can show the full dependency path back to missing init inputs
 func Preview(req *Request) (*api.ExecutionPlan, error) {
-	return create(newPlanArgs(req, previewProviders), req.Children,
-		util.Set[api.StepID]{})
+	return create(
+		newPlanArgs(req, previewProviders), req.Children,
+		util.Set[api.StepID]{},
+	)
 }
 
 // childPlanInit derives init args for a child plan from a parent step

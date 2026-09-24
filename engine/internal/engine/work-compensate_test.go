@@ -491,7 +491,7 @@ func TestCompCompleteIdempotent(t *testing.T) {
 			api.WorkCompensated, fl.Executions[st.ID].WorkItems[tkn].Status,
 		)
 
-		// Second call is a no-op — work is no longer comp-active
+		// Second call is a no-op because work is no longer comp-active
 		assert.NoError(t, env.Engine.CompleteCompensation(fs, tkn))
 
 		fl, err = env.Engine.GetFlowState(id)
@@ -525,7 +525,7 @@ func TestCompFailIdempotent(t *testing.T) {
 			api.WorkCompFailed, fl.Executions[st.ID].WorkItems[tkn].Status,
 		)
 
-		// Second call is a no-op — work is no longer comp-active
+		// Second call is a no-op because work is no longer comp-active
 		assert.NoError(t, env.Engine.FailCompensation(fs, tkn, "boom again"))
 
 		fl, err = env.Engine.GetFlowState(id)

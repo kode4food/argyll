@@ -31,7 +31,7 @@ const useDropdown = <T extends DropdownItem>(
     } else {
       setHighlightedIndex(-1);
     }
-    // intentionally omitting options/value — only reset on open/close transition
+    // intentionally omitting options/value: only reset on open/close transition
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
