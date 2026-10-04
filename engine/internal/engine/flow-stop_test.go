@@ -491,7 +491,6 @@ func TestFlowStepMissingOutput(t *testing.T) {
 func TestParentNotificationRetries(t *testing.T) {
 	var fail atomic.Bool
 	checked := make(chan struct{}, 1)
-	var envRef *helpers.TestEngineEnv
 	parentID := api.FlowID("notification-parent")
 	childID := api.FlowID("notification-parent:sub:token")
 	backend := &parentWriteBackend{
@@ -501,16 +500,12 @@ func TestParentNotificationRetries(t *testing.T) {
 				len(req.Events) == 0 {
 				return nil
 			}
-			envRef.Engine.ScheduleTask(
-				[]string{"notification-checked"}, time.Now(),
-				func() error { checked <- struct{}{}; return nil },
-			)
+			checked <- struct{}{}
 			return ErrParentWrite
 		},
 	}
 	helpers.WithTestBackend(t, backend,
 		func(env *helpers.TestEngineEnv) {
-			envRef = env
 			sub := &api.Step{ID: "sub", Type: api.StepTypeFlow}
 			testify.NoError(t,
 				env.SeedStartedWork(
@@ -547,13 +542,6 @@ func TestParentNotificationRetries(t *testing.T) {
 			testify.True(t, child.DeactivatedAt.IsZero())
 			testify.NoError(t, env.Engine.Start())
 			<-checked
-			// Drain startup reconciliation before allowing writes again
-			barrier := make(chan struct{})
-			env.Engine.ScheduleTask(
-				[]string{"startup-checked"}, time.Now(),
-				func() error { close(barrier); return nil },
-			)
-			<-barrier
 			fail.Store(false)
 			fl := env.WaitForTerminalFlow(parentID)
 			testify.Equal(t, api.FlowCompleted, fl.Status)

@@ -294,10 +294,7 @@ func TestDeadlineConflict(t *testing.T) {
 							fs.FlowID,
 							makeRetryAttemptEvents(fs, compensating)...,
 						))
-					envRef.Engine.ScheduleTask(
-						[]string{"deadline-checked"}, time.Now(),
-						func() error { close(checked); return nil },
-					)
+					close(checked)
 					return nil
 				},
 			}

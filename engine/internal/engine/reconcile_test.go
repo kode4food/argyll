@@ -14,6 +14,7 @@ import (
 	"github.com/kode4food/argyll/engine/internal/assert/helpers"
 	"github.com/kode4food/argyll/engine/internal/assert/wait"
 	"github.com/kode4food/argyll/engine/internal/engine"
+	"github.com/kode4food/argyll/engine/internal/engine/scheduler"
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/events"
 	"github.com/kode4food/argyll/engine/pkg/util"
@@ -56,60 +57,31 @@ func TestCommittedEventFilter(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		st := helpers.NewSimpleStep("reconcile-filter-step")
 		assert.NoError(t, env.Engine.RegisterStep(st))
-		invoked := make(chan struct{}, 1)
-		env.MockClient.SetInvoke(st.ID,
-			func(*api.Step, api.Args, api.Metadata) (api.Args, error) {
-				invoked <- struct{}{}
-				return api.Args{}, nil
-			},
-		)
-
-		// Start before seeding, without subscribing this engine to commits
-		eng, unsub, err := env.NewEngineWithConfig(
-			env.Config, env.Dependencies(),
-		)
-		assert.NoError(t, err)
-		unsub()
-		defer func() { assert.NoError(t, eng.Stop()) }()
-		assert.NoError(t, eng.Start())
 
 		for _, typ := range types {
 			t.Run(string(typ), func(t *testing.T) {
 				fid := api.FlowID("wf-filter-" + typ)
 				fs := api.FlowStep{FlowID: fid, StepID: st.ID}
 				seedRetryScheduledFlow(env, fs, "work-a")
+				before := scheduleVersions(t, env)
 				ev := &timebox.Event{
 					AggregateID: events.FlowKey(fid),
 					Type:        timebox.EventType(typ),
 				}
 
-				// Notifications only select a flow; recovery uses its state
-				eng.HandleCommitted(&timebox.Event{
+				env.Engine.HandleCommitted(&timebox.Event{
 					AggregateID: events.FlowKey(fid),
 					Type:        timebox.EventType(api.EventTypeAttributeSet),
 				})
-				select {
-				case <-invoked:
-					t.Fatal("attribute update reconciled the flow")
-				case <-time.After(50 * time.Millisecond):
-				}
+				afterAttribute := scheduleVersions(t, env)
+				assert.Equal(t, before, afterAttribute)
 
-				eng.HandleCommitted(ev, &timebox.Event{
+				env.Engine.HandleCommitted(ev, &timebox.Event{
 					AggregateID: events.FlowKey(fid),
 					Type:        timebox.EventType(api.EventTypeAttributeSet),
 				})
-				if typ == api.EventTypeDispatchDeferred {
-					select {
-					case <-invoked:
-						t.Fatal("ignored event bypassed dispatch backoff")
-					case <-time.After(300 * time.Millisecond):
-					}
-				}
-				select {
-				case <-invoked:
-				case <-time.After(wait.DefaultTimeout):
-					t.Fatal("flow event did not reconcile the flow")
-				}
+				afterEvent := scheduleVersions(t, env)
+				assert.NotEqual(t, before, afterEvent)
 			})
 		}
 	})
@@ -408,7 +380,7 @@ func seedRetryScheduledFlow(
 				StepID:      fs.StepID,
 				Token:       tkn,
 				RetryCount:  1,
-				NextRetryAt: time.Now().Add(-time.Second),
+				NextRetryAt: scheduler.Now().Add(-time.Second),
 				Error:       "retry",
 			},
 		},
@@ -421,4 +393,13 @@ func mustStep(env *helpers.TestEngineEnv, sid api.StepID) *api.Step {
 	cat, err := env.Engine.GetCatalogState()
 	assert.NoError(env.T, err)
 	return cat.Steps[sid]
+}
+
+func scheduleVersions(
+	t *testing.T, env *helpers.TestEngineEnv,
+) map[timebox.ScheduleKey]timebox.ScheduleVersion {
+	t.Helper()
+	versions, err := env.ScheduleVersions()
+	assert.NoError(t, err)
+	return versions
 }

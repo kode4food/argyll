@@ -146,10 +146,7 @@ func (tx *flowTx) startPlan(pl *api.ExecutionPlan, opts *flow.Options) error {
 			return err
 		}
 	}
-	tx.OnSuccess(func(fl api.FlowState, _ []*timebox.Event) {
-		tx.scheduleTimeouts(fl, tx.Now())
-	})
-	return nil
+	return tx.scheduleTimeouts(tx.Value(), tx.Now())
 }
 
 func (tx *flowTx) startChildFlow(

@@ -1,516 +1,143 @@
 package scheduler_test
 
 import (
-	"sync"
-	"sync/atomic"
+	"context"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/kode4food/argyll/engine/internal/assert/helpers"
-	"github.com/kode4food/argyll/engine/internal/engine"
+	"github.com/kode4food/timebox"
+	"github.com/kode4food/timebox/memory"
+
 	"github.com/kode4food/argyll/engine/internal/engine/scheduler"
-	"github.com/kode4food/argyll/engine/pkg/api"
-	"github.com/kode4food/argyll/engine/pkg/flow"
 )
 
-type (
-	testTimerConstructor struct {
-		created chan *fakeTimer
-		advance func(time.Time)
-	}
-
-	fakeTimer struct {
-		ch      chan time.Time
-		resets  chan time.Duration
-		stops   chan struct{}
-		advance func(time.Time)
-		stopped atomic.Bool
-	}
-)
-
-const schedulerWaitTimeout = time.Second
-
-func TestScheduleTask(t *testing.T) {
-	withFakeScheduler(t,
-		func(eng *engine.Engine, timer *fakeTimer, when time.Time) {
-			done := make(chan struct{}, 1)
-
-			eng.ScheduleTask(
-				[]string{"sched", "run"},
-				when.Add(40*time.Millisecond),
-				func() error {
-					done <- struct{}{}
-					return nil
-				},
-			)
-			delay := timer.WaitReset(t)
-			assert.Equal(t, 40*time.Millisecond, delay)
-			timer.Fire(when.Add(40 * time.Millisecond))
-
-			select {
-			case <-done:
-			case <-time.After(schedulerWaitTimeout):
-				t.Fatal("scheduled task did not run")
-			}
-		},
-	)
-}
-
-func TestRunAfterSchedule(t *testing.T) {
-	now := time.Date(2026, 2, 27, 12, 0, 0, 0, time.UTC)
-	var nowMu sync.Mutex
-	tc := newTestTimerConstructor(func(at time.Time) {
-		nowMu.Lock()
-		defer nowMu.Unlock()
-		now = at
-	})
-	clock := func() time.Time {
-		nowMu.Lock()
-		defer nowMu.Unlock()
-		return now
-	}
-	s := scheduler.New(clock, tc.NewTimer)
-	timer := tc.WaitTimer(t)
-	timer.DrainResets()
-	timer.DrainStops()
-
-	done := make(chan struct{}, 1)
-	runAt := now.Add(40 * time.Millisecond)
-	s.Schedule([]string{"sched", "late-run"}, runAt,
-		func() error {
-			done <- struct{}{}
+func TestPaths(t *testing.T) {
+	store := newStore(t)
+	runner, err := scheduler.New(scheduler.Config{
+		Store: store,
+		Emitter: func(context.Context, *scheduler.Delivery) error {
 			return nil
 		},
+		Clock: scheduler.Now,
+	})
+	assert.NoError(t, err)
+	event := newEvent()
+	at := scheduler.Now().Add(time.Hour)
+
+	assert.NoError(t, store.Transact(func(tx *timebox.Transaction) error {
+		for _, path := range [][]string{
+			{"flow", "one"},
+			{"flow", "two"},
+			{"flow", "one/two"},
+			{"flowish"},
+			{"other"},
+		} {
+			if err := runner.Schedule(tx, path, at, event); err != nil {
+				return err
+			}
+		}
+		return tx.Schedule("foreign", at, event)
+	}))
+
+	assert.NoError(t, store.Transact(func(tx *timebox.Transaction) error {
+		return runner.CancelPrefix(tx, []string{"flow"})
+	}))
+	assert.Equal(t, 3, activeScheduleCount(t, store))
+
+	assert.NoError(t, store.Transact(func(tx *timebox.Transaction) error {
+		return runner.Cancel(tx, []string{"other"})
+	}))
+	assert.Equal(t, 2, activeScheduleCount(t, store))
+	foreign, err := store.GetEvents(
+		timebox.NewAggregateID(timebox.ScheduleAggregateType, "foreign"), 0,
 	)
-	assert.Equal(t, 40*time.Millisecond, timer.WaitReset(t))
-	timer.Fire(runAt)
-
-	ctx := t.Context()
-	go s.Run(ctx)
-
-	select {
-	case <-done:
-	case <-time.After(schedulerWaitTimeout):
-		t.Fatal("scheduled task did not run")
+	assert.NoError(t, err)
+	if assert.NotEmpty(t, foreign) {
+		assert.Equal(t, timebox.ScheduleChanged, foreign[len(foreign)-1].Type)
 	}
 }
 
-func TestScheduleTaskReplacesSamePath(t *testing.T) {
-	withFakeScheduler(t,
-		func(eng *engine.Engine, timer *fakeTimer, when time.Time) {
-			var firstRuns atomic.Int32
-			var secondRuns atomic.Int32
-			secondDone := make(chan struct{}, 1)
-			path := []string{"sched", "replace"}
-
-			eng.ScheduleTask(path, when.Add(300*time.Millisecond),
-				func() error {
-					firstRuns.Add(1)
-					return nil
-				},
-			)
-			assert.Equal(t, 300*time.Millisecond, timer.WaitReset(t))
-
-			eng.ScheduleTask(path, when.Add(40*time.Millisecond),
-				func() error {
-					secondRuns.Add(1)
-					secondDone <- struct{}{}
-					return nil
-				},
-			)
-			assertEventuallyEqual(t, 40*time.Millisecond, timer.WaitReset)
-			timer.Fire(when.Add(40 * time.Millisecond))
-
-			select {
-			case <-secondDone:
-			case <-time.After(schedulerWaitTimeout):
-				t.Fatal("replacement task did not run")
+func TestDelivery(t *testing.T) {
+	store := newStore(t)
+	delivered := make(chan *timebox.Event, 1)
+	runner, err := scheduler.New(scheduler.Config{
+		Store: store,
+		Emitter: func(
+			_ context.Context, delivery *scheduler.Delivery,
+		) error {
+			err := store.Transact(func(tx *timebox.Transaction) error {
+				return delivery.Consume(tx)
+			})
+			if err == nil {
+				delivered <- delivery.Event()
 			}
-			assert.Equal(t, int32(0), firstRuns.Load())
-			assert.Equal(t, int32(1), secondRuns.Load())
+			return err
 		},
-	)
+		Clock: scheduler.Now,
+	})
+	assert.NoError(t, err)
+	event := newEvent()
+	assert.NoError(t, store.Transact(func(tx *timebox.Transaction) error {
+		return runner.Schedule(
+			tx, []string{"due"}, scheduler.Now().Add(-time.Second), event,
+		)
+	}))
+
+	ctx, cancel := context.WithCancel(t.Context())
+	done := make(chan error, 1)
+	go func() {
+		done <- runner.Run(ctx)
+	}()
+
+	var got *timebox.Event
+	assert.Eventually(t, func() bool {
+		select {
+		case got = <-delivered:
+			return true
+		default:
+			return false
+		}
+	}, time.Second, time.Millisecond)
+	assert.Equal(t, event, got)
+	cancel()
+	assert.ErrorIs(t, <-done, context.Canceled)
 }
 
-func TestSameTimeTasksBothRun(t *testing.T) {
-	withFakeScheduler(t,
-		func(eng *engine.Engine, timer *fakeTimer, when time.Time) {
-			runAt := when.Add(40 * time.Millisecond)
-			done := make(chan string, 2)
-
-			eng.ScheduleTask([]string{"sched", "same-time", "a"}, runAt,
-				func() error {
-					done <- "a"
-					return nil
-				},
-			)
-			assert.Equal(t, 40*time.Millisecond, timer.WaitReset(t))
-
-			eng.ScheduleTask([]string{"sched", "same-time", "b"}, runAt,
-				func() error {
-					done <- "b"
-					return nil
-				},
-			)
-			assertNoSchedulerResets(t, timer)
-
-			timer.Fire(runAt)
-			seen := map[string]bool{}
-			for range 2 {
-				select {
-				case id := <-done:
-					seen[id] = true
-				case <-time.After(schedulerWaitTimeout):
-					t.Fatal("same-time task did not run")
-				}
-			}
-			assert.True(t, seen["a"])
-			assert.True(t, seen["b"])
-		},
-	)
-}
-
-func TestCancelTask(t *testing.T) {
-	withFakeScheduler(t,
-		func(eng *engine.Engine, timer *fakeTimer, when time.Time) {
-			var ran atomic.Bool
-			done := make(chan struct{}, 1)
-
-			path := []string{"sched", "cancel", "one"}
-			eng.ScheduleTask(path, when.Add(100*time.Millisecond),
-				func() error {
-					ran.Store(true)
-					done <- struct{}{}
-					return nil
-				},
-			)
-			assert.Equal(t, 100*time.Millisecond, timer.WaitReset(t))
-			eng.CancelTask(path)
-			timer.WaitStop(t)
-			timer.Fire(when.Add(100 * time.Millisecond))
-
-			select {
-			case <-done:
-				t.Fatal("cancelled task ran")
-			case <-time.After(100 * time.Millisecond):
-			}
-			assert.False(t, ran.Load())
-		},
-	)
-}
-
-func TestCancelPrefixedTasks(t *testing.T) {
-	withFakeScheduler(t,
-		func(eng *engine.Engine, timer *fakeTimer, when time.Time) {
-			var cancelledRuns atomic.Int32
-			var activeRuns atomic.Int32
-			activeDone := make(chan struct{}, 1)
-
-			cancelledPrefix := []string{"sched", "prefix", "cancelled"}
-			eng.ScheduleTask(
-				[]string{"sched", "prefix", "cancelled", "a"},
-				when.Add(100*time.Millisecond),
-				func() error {
-					cancelledRuns.Add(1)
-					return nil
-				},
-			)
-			eng.ScheduleTask(
-				[]string{"sched", "prefix", "cancelled", "b"},
-				when.Add(100*time.Millisecond),
-				func() error {
-					cancelledRuns.Add(1)
-					return nil
-				},
-			)
-			eng.ScheduleTask(
-				[]string{"sched", "prefix", "active", "c"},
-				when.Add(100*time.Millisecond),
-				func() error {
-					activeRuns.Add(1)
-					activeDone <- struct{}{}
-					return nil
-				},
-			)
-			assert.Equal(t, 100*time.Millisecond, timer.WaitReset(t))
-			timer.DrainResets()
-
-			eng.CancelPrefixedTasks(cancelledPrefix)
-			assertEventuallyEqual(t, 100*time.Millisecond, timer.WaitReset)
-			timer.Fire(when.Add(100 * time.Millisecond))
-
-			select {
-			case <-activeDone:
-			case <-time.After(schedulerWaitTimeout):
-				t.Fatal("active task did not run")
-			}
-			assert.Equal(t, int32(0), cancelledRuns.Load())
-			assert.Equal(t, int32(1), activeRuns.Load())
-		},
-	)
-}
-
-func TestTimerSignalDoesNotRunFutureTask(t *testing.T) {
-	withFakeScheduler(t,
-		func(eng *engine.Engine, timer *fakeTimer, when time.Time) {
-			var ran atomic.Bool
-			done := make(chan struct{}, 1)
-			runAt := when.Add(100 * time.Millisecond)
-
-			eng.ScheduleTask([]string{"sched", "future"}, runAt,
-				func() error {
-					ran.Store(true)
-					done <- struct{}{}
-					return nil
-				},
-			)
-			assert.Equal(t, 100*time.Millisecond, timer.WaitReset(t))
-
-			timer.Fire(when.Add(50 * time.Millisecond))
-			select {
-			case <-done:
-				t.Fatal("future task ran before its scheduled time")
-			case <-time.After(100 * time.Millisecond):
-			}
-			assert.False(t, ran.Load())
-
-			timer.Fire(runAt)
-			select {
-			case <-done:
-			case <-time.After(schedulerWaitTimeout):
-				t.Fatal("future task did not run at its scheduled time")
-			}
-			assert.True(t, ran.Load())
-		},
-	)
-}
-
-// TestScriptFlowCompletes covers a step with no optional inputs, whose only
-// scheduled tasks are the reconciliations each committed batch requests and
-// the recovery deadline of the attempt itself
-func TestScriptFlowCompletes(t *testing.T) {
-	withFakeScheduler(t,
-		func(eng *engine.Engine, timer *fakeTimer, _ time.Time) {
-			st := &api.Step{
-				ID:   "script-step",
-				Name: "Script Step",
-				Type: api.StepTypeScript,
-				Script: &api.ScriptConfig{
-					Language: api.ScriptLangLua,
-					Script:   "return { result = input }",
-				},
-				Attributes: api.AttributeSpecs{
-					"input": {
-						Role: api.RoleRequired,
-						Type: api.TypeString,
-					},
-					"result": {
-						Role: api.RoleOutput,
-						Type: api.TypeString,
-					},
-				},
-			}
-			assert.NoError(t, eng.RegisterStep(st))
-
-			pl := &api.ExecutionPlan{
-				Goals: []api.StepID{st.ID},
-				Steps: api.Steps{st.ID: st},
-			}
-
-			id := api.FlowID("wf-no-timeouts")
-			assert.NoError(t, eng.StartPlan(id, pl,
-				flow.WithInit(api.InitArgs{"input": {"ok"}}),
-			))
-
-			assert.Equal(t, time.Duration(0), timer.WaitReset(t))
-			assertFlowEventuallyCompleted(t, eng, id)
-		},
-	)
-}
-
-func (c *testTimerConstructor) NewTimer(delay time.Duration) scheduler.Timer {
-	timer := newFakeTimer(delay)
-	timer.advance = c.advance
-	select {
-	case c.created <- timer:
-	default:
-	}
-	return timer
-}
-
-func (c *testTimerConstructor) WaitTimer(t *testing.T) *fakeTimer {
+func newStore(t *testing.T) *timebox.Store {
 	t.Helper()
-	select {
-	case timer := <-c.created:
-		return timer
-	case <-time.After(schedulerWaitTimeout):
-		t.Fatal("scheduler timer was not created")
-		return nil
+	backend := memory.Open()
+	t.Cleanup(func() {
+		assert.NoError(t, backend.Close())
+	})
+	store, err := backend.NewStore(timebox.Config{})
+	assert.NoError(t, err)
+	return store
+}
+
+func newEvent() *timebox.Event {
+	return &timebox.Event{
+		AggregateID: timebox.AggregateID{Type: "flow", Key: "test"},
+		Type:        "test",
 	}
 }
 
-func (t *fakeTimer) Channel() <-chan time.Time {
-	return t.ch
-}
-
-func (t *fakeTimer) Reset(delay time.Duration) bool {
-	t.stopped.Store(false)
-	drainTimeChan(t.ch)
-	t.resets <- delay
-	return true
-}
-
-func (t *fakeTimer) Stop() bool {
-	alreadyStopped := t.stopped.Load()
-	t.stopped.Store(true)
-	drainTimeChan(t.ch)
-	t.stops <- struct{}{}
-	return !alreadyStopped
-}
-
-func (t *fakeTimer) Fire(at time.Time) {
-	if t.stopped.Load() {
-		return
-	}
-	if t.advance != nil {
-		t.advance(at)
-	}
-	select {
-	case t.ch <- at:
-	default:
-	}
-}
-
-func (t *fakeTimer) WaitReset(test *testing.T) time.Duration {
-	test.Helper()
-	select {
-	case delay := <-t.resets:
-		return delay
-	case <-time.After(schedulerWaitTimeout):
-		test.Fatal("scheduler timer reset not observed")
+func activeScheduleCount(t *testing.T, store *timebox.Store) int {
+	t.Helper()
+	ids, err := store.ListAggregates(timebox.ScheduleAggregateType)
+	if !assert.NoError(t, err) {
 		return 0
 	}
-}
-
-func (t *fakeTimer) WaitStop(test *testing.T) {
-	test.Helper()
-	select {
-	case <-t.stops:
-	case <-time.After(schedulerWaitTimeout):
-		test.Fatal("scheduler timer stop not observed")
-	}
-}
-
-func (t *fakeTimer) DrainResets() {
-	for {
-		select {
-		case <-t.resets:
-		default:
-			return
+	res := 0
+	for _, id := range ids {
+		evs, err := store.GetEvents(id, 0)
+		if !assert.NoError(t, err) {
+			return 0
+		}
+		if len(evs) > 0 && evs[len(evs)-1].Type == timebox.ScheduleChanged {
+			res++
 		}
 	}
-}
-
-func (t *fakeTimer) DrainStops() {
-	for {
-		select {
-		case <-t.stops:
-		default:
-			return
-		}
-	}
-}
-
-func assertNoSchedulerResets(t *testing.T, timer *fakeTimer) {
-	t.Helper()
-
-	deadline := time.After(100 * time.Millisecond)
-
-	for {
-		select {
-		case delay := <-timer.resets:
-			t.Fatalf("unexpected scheduler reset: %s", delay)
-		case <-timer.stops:
-			// Empty-queue and shutdown paths legitimately stop the timer
-		case <-deadline:
-			return
-		}
-	}
-}
-
-func assertEventuallyEqual(
-	t *testing.T, expected time.Duration, wait func(*testing.T) time.Duration,
-) {
-	t.Helper()
-	assert.Equal(t, expected, wait(t))
-}
-
-func assertFlowEventuallyCompleted(
-	t *testing.T, eng *engine.Engine, fid api.FlowID,
-) {
-	t.Helper()
-	helpers.WaitForFlowState(t, eng, helpers.FlowStateQuery{
-		FlowID:  fid,
-		Timeout: schedulerWaitTimeout,
-		Accept: func(fl api.FlowState) bool {
-			return fl.Status == api.FlowCompleted
-		},
-	})
-}
-
-func withFakeScheduler(
-	t *testing.T, fn func(*engine.Engine, *fakeTimer, time.Time),
-) {
-	t.Helper()
-	now := time.Date(2026, 2, 27, 12, 0, 0, 0, time.UTC)
-	var nowMu sync.Mutex
-	tc := newTestTimerConstructor(func(at time.Time) {
-		nowMu.Lock()
-		defer nowMu.Unlock()
-		now = at
-	})
-	helpers.WithEngineDeps(t, engine.Dependencies{
-		Clock: func() time.Time {
-			nowMu.Lock()
-			defer nowMu.Unlock()
-			return now
-		},
-		TimerConstructor: tc.NewTimer,
-	}, func(eng *engine.Engine) {
-		assert.NoError(t, eng.Start())
-		timer := tc.WaitTimer(t)
-		timer.DrainResets()
-		timer.DrainStops()
-		fn(eng, timer, now)
-	})
-}
-
-func newTestTimerConstructor(advance ...func(time.Time)) *testTimerConstructor {
-	var fn func(time.Time)
-	if len(advance) > 0 {
-		fn = advance[0]
-	}
-	return &testTimerConstructor{
-		created: make(chan *fakeTimer, 1),
-		advance: fn,
-	}
-}
-
-func newFakeTimer(delay time.Duration) *fakeTimer {
-	timer := &fakeTimer{
-		ch:     make(chan time.Time, 1),
-		resets: make(chan time.Duration, 16),
-		stops:  make(chan struct{}, 16),
-	}
-	_ = delay
-	return timer
-}
-
-func drainTimeChan(ch <-chan time.Time) {
-	select {
-	case <-ch:
-	default:
-	}
+	return res
 }

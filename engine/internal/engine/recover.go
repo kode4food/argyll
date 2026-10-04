@@ -33,23 +33,21 @@ func (e *Engine) RecoverFlows() error {
 		slog.Int("candidate_count", len(ids)),
 	)
 
-	e.recoverFlows(ids)
-
-	return nil
+	return e.recoverFlows(ids)
 }
 
-func (e *Engine) recoverRetries(fl api.FlowState) {
-	now := e.Now()
+func (tx *flowTx) recoverRetries(fl api.FlowState) error {
+	now := tx.Now()
 	for sid, ex := range fl.Executions {
 		for tkn, work := range ex.WorkItems {
 			if retryAt, ok := policy.RecoverableDeadline(ex, work, now); ok {
-				e.scheduleRetryTask(api.FlowStep{
-					FlowID: fl.ID,
-					StepID: sid,
-				}, tkn, retryAt)
+				if err := tx.scheduleRetryTask(sid, tkn, retryAt); err != nil {
+					return err
+				}
 			}
 		}
 	}
+	return nil
 }
 
 func (e *Engine) listIndexedFlows(status string) ([]api.FlowID, error) {
@@ -80,9 +78,12 @@ func (e *Engine) listIndexedFlows(status string) ([]api.FlowID, error) {
 
 // recoverFlows reconciles the indexed flows through the same tasks the
 // committed-event wake-ups use, so a transient failure is retried
-func (e *Engine) recoverFlows(ids []api.FlowID) {
+func (e *Engine) recoverFlows(ids []api.FlowID) error {
 	now := e.Now()
 	for _, id := range ids {
-		e.scheduleFlowReconcile(id, now)
+		if err := e.scheduleFlowReconcile(id, now); err != nil {
+			return err
+		}
 	}
+	return nil
 }

@@ -2,166 +2,114 @@ package scheduler
 
 import (
 	"context"
-	"log/slog"
-	"sync"
+	"encoding/base64"
+	"strings"
 	"time"
 
-	"github.com/kode4food/argyll/engine/pkg/log"
+	"github.com/kode4food/timebox"
+	"github.com/kode4food/timebox/scheduler"
 )
 
 type (
-	// Scheduler runs delayed tasks and supports replacement and prefix cancel
+	// Scheduler stores and emits Argyll's deferred events
 	Scheduler struct {
-		timerAt time.Time
-		timer   Timer
-		cond    *sync.Cond
-		now     Clock
-		tasks   *TaskHeap
-		mu      sync.Mutex
+		runner *scheduler.Scheduler
 	}
 
-	// TaskFunc is called when its run time arrives
-	TaskFunc func() error
-
-	taskHead struct {
-		at time.Time
-		id string
-		ok bool
+	// Delivery is one due deferred event
+	Delivery struct {
+		schedule *timebox.Schedule
 	}
+
+	// Config configures Argyll's deferred event scheduler
+	Config struct {
+		Store            *timebox.Store
+		Emitter          func(context.Context, *Delivery) error
+		Clock            Clock
+		TimerConstructor TimerConstructor
+	}
+
+	// Clock provides the current scheduler time
+	Clock = scheduler.Clock
+
+	// Timer provides the scheduler wakeup
+	Timer = scheduler.Timer
+
+	// TimerConstructor creates a scheduler Timer
+	TimerConstructor = scheduler.TimerConstructor
 )
 
-// New creates a scheduler using the provided clock and timer constructor
-func New(now Clock, makeTimer TimerConstructor) *Scheduler {
-	s := &Scheduler{
-		now:   now,
-		timer: makeTimer(0),
-		tasks: NewTaskHeap(),
+const keyPrefix = "argyll:"
+
+// New creates an Argyll scheduler over a Timebox store
+func New(cfg Config) (*Scheduler, error) {
+	runnerCfg := scheduler.Config{
+		Store: cfg.Store,
+		Emitter: func(
+			ctx context.Context, item *timebox.Schedule,
+		) error {
+			return cfg.Emitter(ctx, &Delivery{schedule: item})
+		},
+		Clock:            cfg.Clock,
+		TimerConstructor: cfg.TimerConstructor,
 	}
-	s.timer.Stop()
-	s.cond = sync.NewCond(&s.mu)
-	return s
-}
-
-// Schedule enqueues a task to run at the requested time
-func (s *Scheduler) Schedule(path []string, at time.Time, fn TaskFunc) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	prev := s.currentHead()
-	s.tasks.Insert(&Task{Func: fn, At: at, Path: path})
-	s.notifyIfHeadChanged(prev)
-}
-
-// Cancel removes the task registered for the exact path
-func (s *Scheduler) Cancel(path []string) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	prev := s.currentHead()
-	s.tasks.Cancel(path)
-	s.notifyIfHeadChanged(prev)
-}
-
-// CancelPrefix removes all tasks under the provided path prefix
-func (s *Scheduler) CancelPrefix(prefix []string) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	prev := s.currentHead()
-	s.tasks.CancelPrefix(prefix)
-	s.notifyIfHeadChanged(prev)
-}
-
-// Run processes scheduler requests until the context is cancelled
-func (s *Scheduler) Run(ctx context.Context) {
-	s.mu.Lock()
-	go s.signalTimer(ctx)
-	s.mu.Unlock()
-
-	for {
-		s.mu.Lock()
-		for {
-			if ctx.Err() != nil {
-				s.timer.Stop()
-				s.mu.Unlock()
-				return
-			}
-
-			if s.tasks.Peek() == nil {
-				s.cond.Wait()
-				continue
-			}
-			task := s.tasks.Peek()
-			if task.At.After(s.now()) {
-				if !s.timerAt.Equal(task.At) {
-					s.resetTimer()
-				}
-				s.cond.Wait()
-				continue
-			}
-
-			task = s.tasks.PopTask()
-			s.resetTimer()
-			s.mu.Unlock()
-			if err := task.Func(); err != nil {
-				slog.Error("Scheduled task failed", log.Error(err))
-			}
-			break
-		}
+	runner, err := scheduler.New(runnerCfg)
+	if err != nil {
+		return nil, err
 	}
+	return &Scheduler{runner: runner}, nil
 }
 
-func (s *Scheduler) resetTimer() {
-	next := s.nextRunAt()
-	if next.IsZero() {
-		s.timerAt = time.Time{}
-		s.timer.Stop()
-		return
+// Now returns the current scheduler time
+func Now() time.Time {
+	return time.Now()
+}
+
+// Run emits due events until ctx ends or durable recovery fails
+func (s *Scheduler) Run(ctx context.Context) error {
+	return s.runner.Run(ctx)
+}
+
+// Wake requests prompt recovery of durable schedules
+func (s *Scheduler) Wake() {
+	s.runner.Wake()
+}
+
+// Schedule creates or replaces a durable deferred event
+func (s *Scheduler) Schedule(
+	tx *timebox.Transaction, path []string, at time.Time, event *timebox.Event,
+) error {
+	return tx.Schedule(encodePath(path), at, event)
+}
+
+// Cancel removes the durable event at path
+func (s *Scheduler) Cancel(tx *timebox.Transaction, path []string) error {
+	return tx.CancelSchedule(encodePath(path))
+}
+
+// CancelPrefix removes every Argyll event below prefix
+func (s *Scheduler) CancelPrefix(
+	tx *timebox.Transaction, prefix []string,
+) error {
+	return tx.CancelSchedulePrefix(encodePath(prefix))
+}
+
+// Event returns the ordinary Timebox event due for delivery
+func (d *Delivery) Event() *timebox.Event {
+	return d.schedule.Event
+}
+
+// Consume conditionally consumes this delivery in tx
+func (d *Delivery) Consume(tx *timebox.Transaction) error {
+	return tx.ConsumeSchedule(d.schedule.Key, d.schedule.Version)
+}
+
+func encodePath(path []string) timebox.ScheduleKey {
+	var b strings.Builder
+	b.WriteString(keyPrefix)
+	for _, part := range path {
+		b.WriteString(base64.RawURLEncoding.EncodeToString([]byte(part)))
+		b.WriteByte('/')
 	}
-
-	s.timerAt = next
-	delay := max(next.Sub(s.now()), 0)
-	s.timer.Reset(delay)
-}
-
-func (s *Scheduler) notifyIfHeadChanged(prev taskHead) {
-	if !headChanged(prev, s.currentHead()) {
-		return
-	}
-	s.resetTimer()
-	s.cond.Signal()
-}
-
-func (s *Scheduler) currentHead() taskHead {
-	t := s.tasks.Peek()
-	if t == nil {
-		return taskHead{}
-	}
-	return taskHead{id: t.id, at: t.At, ok: true}
-}
-
-func (s *Scheduler) nextRunAt() time.Time {
-	if t := s.tasks.Peek(); t != nil {
-		return t.At
-	}
-	return time.Time{}
-}
-
-func (s *Scheduler) signalTimer(ctx context.Context) {
-	ch := s.timer.Channel()
-	for {
-		select {
-		case <-ctx.Done():
-			s.mu.Lock()
-			s.cond.Broadcast()
-			s.mu.Unlock()
-			return
-		case <-ch:
-			s.mu.Lock()
-			s.timerAt = time.Time{}
-			s.cond.Signal()
-			s.mu.Unlock()
-		}
-	}
-}
-
-func headChanged(prev, next taskHead) bool {
-	return prev.ok != next.ok || prev.id != next.id || !prev.at.Equal(next.at)
+	return timebox.ScheduleKey(b.String())
 }

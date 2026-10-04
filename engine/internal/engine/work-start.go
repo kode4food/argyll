@@ -293,6 +293,11 @@ func (tx *flowTx) raiseWorkStarted(
 	); err != nil {
 		return err
 	}
+	if at, ok := tx.workDeadline(tx.Value(), sid, tkn); ok {
+		if err := tx.scheduleWorkDeadlineAt(sid, tkn, at); err != nil {
+			return err
+		}
+	}
 	if tx.Value().Plan.Steps[sid].Type == api.StepTypeFlow {
 		return tx.startChildFlow(sid, tkn, inputs)
 	}

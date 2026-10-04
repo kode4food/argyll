@@ -152,6 +152,9 @@ func (tx *flowTx) completeCompensation(sid api.StepID, tkn api.Token) error {
 	if err := tx.raiseCompSucceeded(sid, tkn); err != nil {
 		return err
 	}
+	if err := tx.clearWorkDeadline(sid, tkn); err != nil {
+		return err
+	}
 	return tx.maybeDeactivate()
 }
 
@@ -163,6 +166,9 @@ func (tx *flowTx) failCompensation(
 		return nil
 	}
 	if err := tx.raiseCompFailed(sid, tkn, errMsg); err != nil {
+		return err
+	}
+	if err := tx.clearWorkDeadline(sid, tkn); err != nil {
 		return err
 	}
 	return tx.maybeDeactivate()
@@ -192,7 +198,7 @@ func (tx *flowTx) scheduleCompensationRetry(
 		if err != nil {
 			return err
 		}
-		return nil
+		return tx.scheduleCompensationTask(sid, tkn, nextRetryAt)
 	}
 
 	return tx.failCompensation(sid, tkn, errMsg)
@@ -250,60 +256,51 @@ func (tx *flowTx) performCompensation(
 	}
 }
 
-func (e *Engine) scheduleCompensationTask(
-	fs api.FlowStep, tkn api.Token, retryAt time.Time,
-) {
-	e.ScheduleTask(compensateKey(fs, tkn), retryAt, func() error {
-		err := e.runCompensationTask(fs, tkn)
-		if err != nil {
-			e.scheduleCompensationTask(fs, tkn,
-				e.Now().Add(localDispatchBackoff))
-		}
-		return err
-	})
+func (tx *flowTx) scheduleCompensationTask(
+	sid api.StepID, tkn api.Token, retryAt time.Time,
+) error {
+	fs := api.FlowStep{FlowID: tx.flowID, StepID: sid}
+	return tx.scheduleEvent(compensateKey(fs, tkn), retryAt,
+		compensationRetryReady,
+		scheduledWork{StepID: sid, Token: tkn})
 }
 
-func (e *Engine) runCompensationTask(fs api.FlowStep, tkn api.Token) error {
-	return e.flowTx(fs.FlowID, func(tx *flowTx) error {
-		fl := tx.Value()
-		if fl.ID == "" {
-			return nil
-		}
-
-		ex := fl.Executions[fs.StepID]
-		work, ok := ex.WorkItems[tkn]
-		if !ok || !policy.WorkCompPending(work.Status) {
-			return nil
-		}
-		if work.NextRetryAt.After(tx.Now()) {
-			tx.OnSuccess(func(api.FlowState, []*timebox.Event) {
-				tx.scheduleCompensationTask(fs, tkn, work.NextRetryAt)
-			})
-			return nil
-		}
-
-		st := fl.Plan.Steps[fs.StepID]
-		if !e.canDispatchLocally(st.ID) {
-			return tx.raiseDispatchDeferred(fs.StepID)
-		}
-
-		if err := tx.raiseCompStarted(fs.StepID, tkn); err != nil {
-			return err
-		}
-		req := step.CompensateRequest{
-			Step:     st,
-			Inputs:   ex.Inputs.Apply(work.Inputs),
-			Outputs:  work.Outputs,
-			Metadata: tx.compensateMetadata(fl.Metadata, st, tkn),
-			FlowID:   fl.ID,
-			Token:    tkn,
-		}
-
-		tx.OnSuccess(func(api.FlowState, []*timebox.Event) {
-			go tx.performCompensation(tkn, req)
-		})
+func (tx *flowTx) handleCompensationRetry(sid api.StepID, tkn api.Token) error {
+	fl := tx.Value()
+	if fl.ID == "" {
 		return nil
+	}
+
+	ex := fl.Executions[sid]
+	work, ok := ex.WorkItems[tkn]
+	if !ok || !policy.WorkCompPending(work.Status) {
+		return nil
+	}
+	if work.NextRetryAt.After(tx.Now()) {
+		return tx.scheduleCompensationTask(sid, tkn, work.NextRetryAt)
+	}
+
+	st := fl.Plan.Steps[sid]
+	if !tx.canDispatchLocally(st.ID) {
+		return ErrDispatchUnavailable
+	}
+
+	if err := tx.raiseCompStarted(sid, tkn); err != nil {
+		return err
+	}
+	req := step.CompensateRequest{
+		Step:     st,
+		Inputs:   ex.Inputs.Apply(work.Inputs),
+		Outputs:  work.Outputs,
+		Metadata: tx.compensateMetadata(fl.Metadata, st, tkn),
+		FlowID:   fl.ID,
+		Token:    tkn,
+	}
+
+	tx.OnSuccess(func(api.FlowState, []*timebox.Event) {
+		go tx.performCompensation(tkn, req)
 	})
+	return nil
 }
 
 func (tx *flowTx) recoverCompensations() error {
@@ -335,10 +332,11 @@ func (tx *flowTx) recoverStepCompensations(sid api.StepID) error {
 	now := tx.Now()
 	for tkn, work := range ex.WorkItems {
 		if retryAt, ok := policy.CompRetryAt(work, now); ok {
-			fs := api.FlowStep{FlowID: fl.ID, StepID: sid}
-			tx.OnSuccess(func(api.FlowState, []*timebox.Event) {
-				tx.scheduleCompensationTask(fs, tkn, retryAt)
-			})
+			if err := tx.scheduleCompensationTask(
+				sid, tkn, retryAt,
+			); err != nil {
+				return err
+			}
 			continue
 		}
 		if policy.WorkSucceeded(work.Status) &&
@@ -362,13 +360,19 @@ func (tx *flowTx) raiseCompStarted(sid api.StepID, tkn api.Token) error {
 	); err != nil {
 		return err
 	}
-	return events.Raise(tx.FlowAggregator, api.EventTypeCompStarted,
+	if err := events.Raise(tx.FlowAggregator, api.EventTypeCompStarted,
 		api.CompStartedEvent{
 			FlowID: tx.flowID,
 			StepID: sid,
 			Token:  tkn,
 		},
-	)
+	); err != nil {
+		return err
+	}
+	if at, ok := tx.workDeadline(tx.Value(), sid, tkn); ok {
+		return tx.scheduleWorkDeadlineAt(sid, tkn, at)
+	}
+	return nil
 }
 
 func (tx *flowTx) raiseCompSucceeded(sid api.StepID, tkn api.Token) error {

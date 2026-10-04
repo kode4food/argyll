@@ -1,9 +1,8 @@
 package engine
 
 import (
+	"errors"
 	"time"
-
-	"github.com/kode4food/timebox"
 
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/events"
@@ -13,19 +12,23 @@ import (
 
 const localDispatchBackoff = 1 * time.Second
 
-func (e *Engine) recoverWorkDispatch(fl api.FlowState) {
-	steps := e.findWorkDispatchSteps(fl)
+var (
+	ErrDispatchUnavailable = errors.New("dispatch unavailable")
+)
+
+func (tx *flowTx) recoverWorkDispatch(fl api.FlowState) error {
+	steps := tx.findWorkDispatchSteps(fl)
 	if steps.IsEmpty() {
-		return
+		return nil
 	}
 
-	now := e.Now()
+	now := tx.Now()
 	for sid := range steps {
-		e.scheduleWorkDispatch(api.FlowStep{
-			FlowID: fl.ID,
-			StepID: sid,
-		}, now)
+		if err := tx.scheduleWorkDispatch(sid, now); err != nil {
+			return err
+		}
 	}
+	return nil
 }
 
 func (e *Engine) findWorkDispatchSteps(fl api.FlowState) util.Set[api.StepID] {
@@ -48,54 +51,42 @@ func (e *Engine) findWorkDispatchSteps(fl api.FlowState) util.Set[api.StepID] {
 	return steps
 }
 
-func (e *Engine) scheduleWorkDispatch(fs api.FlowStep, at time.Time) {
-	e.ScheduleTask(workDispatchKey(fs), at, func() error {
-		err := e.dispatchWork(fs)
-		if err != nil {
-			e.scheduleWorkDispatch(fs, e.Now().Add(localDispatchBackoff))
-		}
-		return err
-	})
+func (tx *flowTx) scheduleWorkDispatch(sid api.StepID, at time.Time) error {
+	fs := api.FlowStep{FlowID: tx.flowID, StepID: sid}
+	return tx.scheduleEvent(workDispatchKey(fs), at,
+		workDispatchRequested, sid)
 }
 
-func (e *Engine) dispatchWork(fs api.FlowStep) error {
-	return e.flowTx(fs.FlowID, func(tx *flowTx) error {
-		fl := tx.Value()
-		if fl.ID == "" || policy.FlowTerminal(fl.Status) {
-			return nil
-		}
-		if !fl.DeactivatedAt.IsZero() {
-			return nil
-		}
+func (tx *flowTx) handleWorkDispatch(sid api.StepID) error {
+	fl := tx.Value()
+	if fl.ID == "" || policy.FlowTerminal(fl.Status) {
+		return nil
+	}
+	if !fl.DeactivatedAt.IsZero() {
+		return nil
+	}
 
-		ex := fl.Executions[fs.StepID]
-		if !policy.StepActive(ex.Status) {
-			return nil
-		}
+	ex := fl.Executions[sid]
+	if !policy.StepActive(ex.Status) {
+		return nil
+	}
 
-		st := fl.Plan.Steps[fs.StepID]
+	st := fl.Plan.Steps[sid]
 
-		if policy.WorkReadyToDispatch(st, ex, tx.Now()) &&
-			!tx.canDispatchLocally(st.ID) {
-			// An event per poll would never settle, so keep this local
-			tx.OnSuccess(func(api.FlowState, []*timebox.Event) {
-				tx.scheduleWorkDispatch(fs, tx.Now().Add(
-					localDispatchBackoff,
-				))
-			})
-			return nil
-		}
+	if policy.WorkReadyToDispatch(st, ex, tx.Now()) &&
+		!tx.canDispatchLocally(st.ID) {
+		return ErrDispatchUnavailable
+	}
 
-		started, err := tx.startPendingWork(st)
-		if err != nil {
-			return err
-		}
-		if len(started) == 0 {
-			return nil
-		}
+	started, err := tx.startPendingWork(st)
+	if err != nil {
+		return err
+	}
+	if len(started) == 0 {
+		return nil
+	}
 
-		return tx.startContinuedWork(fs.StepID, st, started)
-	})
+	return tx.startContinuedWork(sid, st, started)
 }
 
 func (tx *flowTx) raiseDispatchDeferred(sid api.StepID) error {

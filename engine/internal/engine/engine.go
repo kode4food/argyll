@@ -40,6 +40,7 @@ type (
 		eventHub    *event.Hub
 		health      map[api.StepID]api.HealthState
 		healthMu    sync.RWMutex
+		schedulerWG sync.WaitGroup
 	}
 
 	// Dependencies groups the external dependencies required by Engine
@@ -80,6 +81,7 @@ var (
 	ErrInvalidConfig     = errors.New("invalid config")
 	ErrMissingDependency = errors.New("missing dependency")
 	ErrOpenBackend       = errors.New("failed to open backend")
+	ErrOpenScheduler     = errors.New("failed to open scheduler")
 )
 
 // New creates an engine from its configuration and dependencies, then opens
@@ -108,7 +110,6 @@ func New(
 		ctx:       ctx,
 		cancel:    cancel,
 		memoCache: memo.NewCache(cfg.MemoCacheSize),
-		scheduler: scheduler.New(deps.Clock, deps.TimerConstructor),
 		clock:     deps.Clock,
 		eventHub:  deps.EventHub,
 		health:    map[api.StepID]api.HealthState{},
@@ -119,6 +120,17 @@ func New(
 		cancel()
 		return nil, errors.Join(ErrOpenBackend, err)
 	}
+	runner, err := scheduler.New(scheduler.Config{
+		Store:            e.flowStore,
+		Emitter:          e.emitScheduled,
+		Clock:            deps.Clock,
+		TimerConstructor: deps.TimerConstructor,
+	})
+	if err != nil {
+		cancel()
+		return nil, errors.Join(ErrOpenScheduler, err, e.backend.Close())
+	}
+	e.scheduler = runner
 	return e, nil
 }
 
@@ -182,10 +194,7 @@ func normalizeDependencies(deps *Dependencies) error {
 		return fmt.Errorf("%w: event hub", ErrMissingDependency)
 	}
 	if deps.Clock == nil {
-		deps.Clock = time.Now
-	}
-	if deps.TimerConstructor == nil {
-		deps.TimerConstructor = scheduler.NewTimer
+		deps.Clock = scheduler.Now
 	}
 	return nil
 }

@@ -107,35 +107,32 @@ func TestRetryDeferredOnUnhealthyNode(t *testing.T) {
 			Steps: api.Steps{st.ID: st},
 		}
 
-		// Every replica remembers the committed retry even while unhealthy, so
-		// a returning one needs no explicit recovery scan
-		env.WithConsumer(func(consumer *event.Consumer) {
-			w := wait.On(t, consumer)
-			assert.NoError(t, env.SeedStartedWork(fs, pl, tkn))
-			assert.NoError(t, env.RaiseFlowEvents(id,
-				helpers.FlowEvent{
-					Type: api.EventTypeWorkNotCompleted,
-					Data: api.WorkNotCompletedEvent{
-						FlowID: id,
-						StepID: st.ID,
-						Token:  tkn,
-						Error:  "transient",
-					},
+		assert.NoError(t, env.SeedStartedWork(fs, pl, tkn))
+		assert.NoError(t, env.RaiseFlowEvents(id,
+			helpers.FlowEvent{
+				Type: api.EventTypeWorkNotCompleted,
+				Data: api.WorkNotCompletedEvent{
+					FlowID: id,
+					StepID: st.ID,
+					Token:  tkn,
+					Error:  "transient",
 				},
-				helpers.FlowEvent{
-					Type: api.EventTypeWorkRetryScheduled,
-					Data: api.WorkRetryScheduledEvent{
-						FlowID:      id,
-						StepID:      st.ID,
-						Token:       tkn,
-						RetryCount:  1,
-						NextRetryAt: scheduler.Now().Add(20 * time.Millisecond),
-						Error:       "transient",
-					},
+			},
+			helpers.FlowEvent{
+				Type: api.EventTypeWorkRetryScheduled,
+				Data: api.WorkRetryScheduledEvent{
+					FlowID:      id,
+					StepID:      st.ID,
+					Token:       tkn,
+					RetryCount:  1,
+					NextRetryAt: scheduler.Now().Add(20 * time.Millisecond),
+					Error:       "transient",
 				},
-			))
-			w.ForEvent(wait.DispatchDeferred(fs))
-		})
+			},
+		))
+		assert.False(t,
+			env.MockClient.WaitForInvocation(st.ID, 100*time.Millisecond),
+		)
 
 		assert.NoError(t, peer.UpdateStepHealth(st.ID, api.HealthHealthy, ""))
 

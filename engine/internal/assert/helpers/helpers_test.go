@@ -130,7 +130,7 @@ func TestEngineDependenciesTimerOverride(t *testing.T) {
 		assert.NoError(t, eng.Start())
 		select {
 		case delay := <-called:
-			assert.Equal(t, time.Duration(0), delay)
+			assert.Zero(t, delay)
 		case <-time.After(time.Second):
 			t.Fatal("timer constructor not called")
 		}

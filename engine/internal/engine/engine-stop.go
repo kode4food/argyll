@@ -10,6 +10,7 @@ import (
 // Stop gracefully shuts down the engine and closes the backend it opened
 func (e *Engine) Stop() error {
 	e.cancel()
+	e.schedulerWG.Wait()
 	e.saveEngineSnapshot()
 	slog.Info("Engine stopped")
 	return e.backend.Close()

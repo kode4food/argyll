@@ -19,7 +19,7 @@ import (
 )
 
 type earlyDelayedTimer struct {
-	scheduler.Timer
+	*time.Timer
 	firedEarly bool
 }
 
@@ -943,20 +943,6 @@ func TestRecoverFlowsSkipsDeactivated(t *testing.T) {
 	})
 }
 
-func newEarlyDelayedTimer(delay time.Duration) scheduler.Timer {
-	return &earlyDelayedTimer{
-		Timer: scheduler.NewTimer(delay),
-	}
-}
-
-func (t *earlyDelayedTimer) Reset(delay time.Duration) bool {
-	if delay > 0 && !t.firedEarly {
-		t.firedEarly = true
-		return t.Timer.Reset(0)
-	}
-	return t.Timer.Reset(delay)
-}
-
 func TestFailedWorkNotRestarted(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		assert.NoError(t, env.Engine.Start())
@@ -1000,4 +986,22 @@ func TestFailedWorkNotRestarted(t *testing.T) {
 			api.WorkFailed, fl.Executions[st.ID].WorkItems[tkn].Status,
 		)
 	})
+}
+
+func (t *earlyDelayedTimer) Channel() <-chan time.Time {
+	return t.C
+}
+
+func (t *earlyDelayedTimer) Reset(delay time.Duration) bool {
+	if delay > 0 && !t.firedEarly {
+		t.firedEarly = true
+		return t.Timer.Reset(0)
+	}
+	return t.Timer.Reset(delay)
+}
+
+func newEarlyDelayedTimer(delay time.Duration) scheduler.Timer {
+	return &earlyDelayedTimer{
+		Timer: time.NewTimer(delay),
+	}
 }

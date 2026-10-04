@@ -4,40 +4,43 @@ import (
 	"errors"
 	"time"
 
-	"github.com/kode4food/timebox"
-
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/policy"
 	"github.com/kode4food/argyll/engine/pkg/util"
 )
 
-func (e *Engine) scheduleTimeouts(fl api.FlowState, when time.Time) {
+func (tx *flowTx) scheduleTimeouts(fl api.FlowState, when time.Time) error {
 	if !flowHasTimeouts(fl) {
-		return
+		return nil
 	}
-	e.CancelPrefixedTasks(timeoutFlowPrefix(fl.ID))
+	if err := tx.cancelEventPrefix(timeoutFlowPrefix(fl.ID)); err != nil {
+		return err
+	}
 	if policy.FlowTerminal(fl.Status) {
-		return
+		return nil
 	}
 
 	for sid := range fl.Executions {
-		e.scheduleStepTimeouts(fl, sid, when, false)
+		if err := tx.scheduleStepTimeouts(fl, sid, when, false); err != nil {
+			return err
+		}
 	}
+	return nil
 }
 
-func (e *Engine) scheduleConsumerTimeouts(
+func (tx *flowTx) scheduleConsumerTimeouts(
 	fl api.FlowState, producerID api.StepID, when time.Time,
-) {
+) error {
 	if policy.FlowTerminal(fl.Status) {
 		if flowHasTimeouts(fl) {
-			e.CancelPrefixedTasks(timeoutFlowPrefix(fl.ID))
+			return tx.cancelEventPrefix(timeoutFlowPrefix(fl.ID))
 		}
-		return
+		return nil
 	}
 
 	producer, ok := fl.Plan.Steps[producerID]
 	if !ok {
-		return
+		return nil
 	}
 
 	seen := util.Set[api.StepID]{}
@@ -54,39 +57,46 @@ func (e *Engine) scheduleConsumerTimeouts(
 				continue
 			}
 			seen.Add(sid)
-			e.scheduleStepTimeouts(fl, sid, when, true)
+			if err := tx.scheduleStepTimeouts(
+				fl, sid, when, true,
+			); err != nil {
+				return err
+			}
 		}
 	}
+	return nil
 }
 
-func (e *Engine) scheduleStepTimeouts(
+func (tx *flowTx) scheduleStepTimeouts(
 	fl api.FlowState, sid api.StepID, when time.Time, clearExisting bool,
-) {
+) error {
 	st, ok := fl.Plan.Steps[sid]
 	if !ok || !stepHasTimeouts(st) {
-		return
+		return nil
 	}
 
 	fs := api.FlowStep{FlowID: fl.ID, StepID: sid}
 	if clearExisting {
-		e.CancelPrefixedTasks(timeoutStepPrefix(fs))
+		if err := tx.cancelEventPrefix(timeoutStepPrefix(fs)); err != nil {
+			return err
+		}
 	}
 
 	if policy.FlowTerminal(fl.Status) {
-		return
+		return nil
 	}
 	ex, ok := fl.Executions[sid]
 	if !ok || !policy.StepPending(ex.Status) {
-		return
+		return nil
 	}
 
-	s := e.newStepEval(sid, fl, when)
+	s := tx.newStepEval(sid, fl, when)
 	anchor, err := s.requiredReadyAt()
 	if err != nil {
-		return
+		return nil
 	}
 	if anchor.IsZero() {
-		return
+		return nil
 	}
 
 	for name, attr := range s.step.Attributes {
@@ -95,57 +105,58 @@ func (e *Engine) scheduleStepTimeouts(
 		}
 		dec := s.optionalDecisionAt(name, attr, anchor)
 		if dec.ready {
-			e.scheduleTimeoutTask(fs, name, when)
+			if err := tx.scheduleTimeoutTask(sid, name, when); err != nil {
+				return err
+			}
 			continue
 		}
 		if dec.nextAt.IsZero() {
 			continue
 		}
-		e.scheduleTimeoutTask(fs, name, dec.nextAt)
-	}
-}
-
-func (e *Engine) scheduleTimeoutTask(
-	fs api.FlowStep, name api.Name, at time.Time,
-) {
-	e.ScheduleTask(timeoutKey(fs, name), at, func() error {
-		return e.runTimeoutTaskAt(fs, name, e.Now())
-	})
-}
-
-func (e *Engine) runTimeoutTaskAt(
-	fs api.FlowStep, name api.Name, when time.Time,
-) error {
-	return e.flowTx(fs.FlowID, func(tx *flowTx) error {
-		fl := tx.Value()
-		if policy.FlowTerminal(fl.Status) {
-			return nil
-		}
-
-		ex, ok := fl.Executions[fs.StepID]
-		if !ok || !policy.StepPending(ex.Status) {
-			return nil
-		}
-
-		ready, nextAt := tx.canStartStepAt(fs.StepID, fl, when)
-		if !ready {
-			if !nextAt.IsZero() {
-				tx.OnSuccess(func(api.FlowState, []*timebox.Event) {
-					tx.scheduleTimeoutTask(fs, name, nextAt)
-				})
-			}
-			return nil
-		}
-
-		err := tx.prepareStep(fs.StepID)
-		if err != nil {
-			if errors.Is(err, ErrStepAlreadyPending) {
-				return nil
-			}
+		if err := tx.scheduleTimeoutTask(sid, name, dec.nextAt); err != nil {
 			return err
 		}
-		return tx.skipPendingUnused()
-	})
+	}
+	return nil
+}
+
+func (tx *flowTx) scheduleTimeoutTask(
+	sid api.StepID, name api.Name, at time.Time,
+) error {
+	fs := api.FlowStep{FlowID: tx.flowID, StepID: sid}
+	return tx.scheduleEvent(timeoutKey(fs, name), at, stepTimeoutElapsed,
+		scheduledTimeout{StepID: sid, Name: name})
+}
+
+func (tx *flowTx) handleStepTimeout(
+	sid api.StepID, name api.Name, when time.Time,
+) error {
+	fl := tx.Value()
+	if policy.FlowTerminal(fl.Status) {
+		return nil
+	}
+
+	ex, ok := fl.Executions[sid]
+	if !ok || !policy.StepPending(ex.Status) {
+		return nil
+	}
+
+	ready, nextAt := tx.canStartStepAt(sid, fl, when)
+	if !ready {
+		if !nextAt.IsZero() {
+			return tx.scheduleTimeoutTask(sid, name, nextAt)
+		}
+		return nil
+	}
+
+	err := tx.prepareStep(sid)
+	if err != nil {
+		if errors.Is(err, ErrStepAlreadyPending) {
+			return nil
+		}
+		return err
+	}
+	return tx.skipPendingUnused()
 }
 
 func flowHasTimeouts(fl api.FlowState) bool {

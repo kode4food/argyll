@@ -30,8 +30,7 @@ github.com/kode4food/jpath v0.0.0-20260906125407-9cba525a6f65 h1:bcDTbjLAl2IG/OD
 github.com/kode4food/jpath v0.0.0-20260906125407-9cba525a6f65/go.mod h1:gYY1OfgNwxDs30LLA1moTAQtzapUvEpMO+zX6GI2Fpg=
 github.com/kode4food/lru v0.0.0-20260821124822-50bd9a308b71 h1:xqHrCb85JXvWEWCHRM3zsuNUWEJSNktvs7ROFEnKhIo=
 github.com/kode4food/lru v0.0.0-20260821124822-50bd9a308b71/go.mod h1:qxHo1+SIRuVcQ5s3HaZYMWw5v1B6W4kJIJ4KP/gg67c=
-github.com/kode4food/timebox v0.2.0 h1:zxd141gxpW5ga8/nucsemXwecQAVGxDS/RwJZ+VqbS0=
-github.com/kode4food/timebox v0.2.0/go.mod h1:t+XVpRqQXvn9+ilBot4RPA8xalYHOoWDHJ1Jn5VKugc=
+github.com/kode4food/timebox v0.2.1-0.20261004070645-ce405be8b769 h1:ddyuEpKslQ07aDfDW/JHZ8dQcxlUTLzCgONy9Drlyr8=
 github.com/stretchr/testify v1.12.1 h1:EuwCh5fleGS7H32xRwO3wRGT7DxrDhLAT6FF8MpWDWE=
 github.com/stretchr/testify v1.12.1/go.mod h1:MDEgiDPPsNp5cuIrHPPCyornHKgEVbtFUmoNlxoYthg=
 go.etcd.io/raft/v3 v3.7.0 h1:BGzlwx07bLv8PW6OU5HObuz1y4hlPZUXA07pM1mPUh4=
@@ -58,6 +57,7 @@ golang.org/x/telemetry v0.0.0-20260824150023-1f5465a7b7fb h1:u2wx6smkicd2/as9Dfd
 golang.org/x/telemetry v0.0.0-20260824150023-1f5465a7b7fb/go.mod h1:/KSYFnLndIrA1A+Rs5r6vSifQhuFz75BPNN3J/hvzN0=
 golang.org/x/tools v0.49.0 h1:3NI7VXzL9+1WZD52Dx2ttoPwD5DWrFGpl9mFZDlmisI=
 golang.org/x/tools v0.49.0/go.mod h1:SJNXV9DBKT0UbdttsQjbfJlAE/q+y36++zo3uL3N0Oo=
+golang.org/x/tools/go/expect v0.1.1-deprecated h1:jpBZDwmgPhXsKZC6WhL20P4b/wmnpsEAGHaNy0n/rJM=
 google.golang.org/protobuf v1.36.12 h1:pJOKDDOyeXErUroCihFAd5LQuwXBSpVnKGrj5o/fwxc=
 google.golang.org/protobuf v1.36.12/go.mod h1:HTf+CrKn2C3g5S8VImy6tdcUvCska2kB7j23XfzDpco=
 honnef.co/go/tools v0.8.1 h1:+JKf3xJ1ni4CwrhVg4/pqsfPGP6vNAXcKbMXJodYx3w=

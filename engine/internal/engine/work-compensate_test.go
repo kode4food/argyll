@@ -583,8 +583,10 @@ func TestCompRetryDeferredUntilPeerRecovers(t *testing.T) {
 		}()
 
 		st := newCompensatingStep("comp-deferred-recovery-step")
+		compensated := make(chan struct{}, 1)
 		env.MockClient.SetCompensate(st.ID,
 			func(step.CompensateRequest) error {
+				compensated <- struct{}{}
 				return nil
 			},
 		)
@@ -600,21 +602,21 @@ func TestCompRetryDeferredUntilPeerRecovers(t *testing.T) {
 		assert.NoError(t, peer.Start())
 
 		id := api.FlowID("wf-comp-deferred-recovery")
-		fs := api.FlowStep{FlowID: id, StepID: st.ID}
 		tkn := api.Token("work-deferred-recovery")
 
-		env.WithConsumer(func(consumer *event.Consumer) {
-			w := wait.On(t, consumer)
-			setupCompensatingFlow(setupCompensatingFlowArgs{
-				env:     env,
-				id:      id,
-				step:    st,
-				token:   tkn,
-				started: true,
-				pending: true,
-			})
-			w.ForEvent(wait.DispatchDeferred(fs))
+		setupCompensatingFlow(setupCompensatingFlowArgs{
+			env:     env,
+			id:      id,
+			step:    st,
+			token:   tkn,
+			started: true,
+			pending: true,
 		})
+		select {
+		case <-compensated:
+			t.Fatal("compensation ran while both replicas were unhealthy")
+		case <-time.After(100 * time.Millisecond):
+		}
 
 		assert.NoError(t, peer.UpdateStepHealth(st.ID, api.HealthHealthy, ""))
 

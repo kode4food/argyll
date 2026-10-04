@@ -4,7 +4,6 @@ import (
 	"errors"
 	"sync"
 	"testing"
-	"time"
 
 	"github.com/kode4food/timebox"
 	"github.com/kode4food/timebox/memory"
@@ -202,7 +201,7 @@ func (e *TestEngineEnv) NewEngineInstance() (*engine.Engine, error) {
 
 // Dependencies returns a valid dependency bundle for constructing an engine
 func (e *TestEngineEnv) Dependencies() engine.Dependencies {
-	return e.engineDeps(time.Now, scheduler.NewTimer)
+	return e.engineDeps(scheduler.Now)
 }
 
 // RaiseFlowEvents appends flow events via the executor
@@ -312,6 +311,29 @@ func (e *TestEngineEnv) AppendEvents(
 	return e.flowStore.AppendEvents(id, atSeq, evs)
 }
 
+// ScheduleVersions loads active schedule versions from their aggregate streams
+func (e *TestEngineEnv) ScheduleVersions() (
+	map[timebox.ScheduleKey]timebox.ScheduleVersion, error,
+) {
+	ids, err := e.flowStore.ListAggregates(timebox.ScheduleAggregateType)
+	if err != nil {
+		return nil, err
+	}
+	res := make(map[timebox.ScheduleKey]timebox.ScheduleVersion, len(ids))
+	for _, id := range ids {
+		evs, err := e.flowStore.GetEvents(id, 0)
+		if err != nil {
+			return nil, err
+		}
+		if len(evs) > 0 && evs[len(evs)-1].Type == timebox.ScheduleChanged {
+			res[timebox.ScheduleKey(id.Key)] = timebox.ScheduleVersion(
+				evs[len(evs)-1].Sequence,
+			)
+		}
+	}
+	return res, nil
+}
+
 // ListFlowsByTag returns the flow aggregate IDs currently indexed for the tag
 func (e *TestEngineEnv) ListFlowsByTag(
 	tag string,
@@ -336,9 +358,7 @@ func (e *TestEngineEnv) unsubscribeAll() {
 	}
 }
 
-func (e *TestEngineEnv) engineDeps(
-	clock scheduler.Clock, makeTimer scheduler.TimerConstructor,
-) engine.Dependencies {
+func (e *TestEngineEnv) engineDeps(clock scheduler.Clock) engine.Dependencies {
 	scripts := script.NewRegistry()
 	steps := step.NewRegistry(builtins.All(
 		e.MockClient,
@@ -348,11 +368,10 @@ func (e *TestEngineEnv) engineDeps(
 	// Every engine publishes what it hears to its own hub, so a second engine
 	// on the test's hub would deliver each event twice
 	return engine.Dependencies{
-		Scripts:          scripts,
-		Steps:            steps,
-		Clock:            clock,
-		TimerConstructor: makeTimer,
-		EventHub:         event.NewHub(),
+		Scripts:  scripts,
+		Steps:    steps,
+		Clock:    clock,
+		EventHub: event.NewHub(),
 	}
 }
 
@@ -480,7 +499,7 @@ func newTestEngine(
 	}
 
 	deps := mergeDependencies(
-		testEnv.engineDeps(scheduler.Now, scheduler.NewTimer), overrides,
+		testEnv.engineDeps(scheduler.Now), overrides,
 	)
 	deps.EventHub = hub
 	testEnv.Engine, err = engine.New(cfg, deps, testEnv.OpenBackend)

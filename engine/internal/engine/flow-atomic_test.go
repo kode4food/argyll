@@ -142,9 +142,15 @@ func TestAtomicFlowLifecycle(t *testing.T) {
 					} {
 						assert.True(t, backend.conflicts[phase])
 						batch := backend.commits[phase]
-						assert.Len(t, batch, 2)
 						kinds := map[api.FlowID][]api.EventType{}
+						flowRequests := 0
+						scheduleRequests := 0
 						for _, req := range batch {
+							if req.ID.Type == timebox.ScheduleAggregateType {
+								scheduleRequests++
+								continue
+							}
+							flowRequests++
 							id, ok := events.ParseFlowID(req.ID)
 							assert.True(t, ok)
 							for _, ev := range req.Events {
@@ -152,6 +158,8 @@ func TestAtomicFlowLifecycle(t *testing.T) {
 								kinds[id] = append(kinds[id], typ)
 							}
 						}
+						assert.Equal(t, 2, flowRequests)
+						assert.NotZero(t, scheduleRequests)
 						assert.Contains(t, kinds[fid], phase)
 						switch phase {
 						case api.EventTypeFlowStarted:

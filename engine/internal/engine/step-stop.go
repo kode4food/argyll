@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"slices"
 
-	"github.com/kode4food/timebox"
-
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/events"
 	"github.com/kode4food/argyll/engine/pkg/policy"
@@ -75,9 +73,9 @@ func (tx *flowTx) checkStepCompletion(sid api.StepID) (bool, error) {
 		return true, err
 	}
 	if tx.Value().Status == api.FlowActive {
-		tx.OnSuccess(func(fl api.FlowState, _ []*timebox.Event) {
-			tx.scheduleConsumerTimeouts(fl, sid, tx.Now())
-		})
+		return true, tx.scheduleConsumerTimeouts(
+			tx.Value(), sid, tx.Now(),
+		)
 	}
 	return true, nil
 }

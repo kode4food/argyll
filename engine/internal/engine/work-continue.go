@@ -85,7 +85,7 @@ func (tx *flowTx) scheduleRetry(sid api.StepID, tkn api.Token) error {
 		if err != nil {
 			return err
 		}
-		return nil
+		return tx.scheduleRetryTask(sid, tkn, nextRetryAt)
 	}
 
 	return tx.raiseWorkFailed(sid, tkn, work.Error)
@@ -103,13 +103,20 @@ func (tx *flowTx) continueStepWork(sid api.StepID, clearRetry bool) error {
 		if err := tx.raiseDispatchDeferred(sid); err != nil {
 			return err
 		}
+		if err := tx.scheduleWorkDispatch(
+			sid, tx.Now().Add(localDispatchBackoff),
+		); err != nil {
+			return err
+		}
 	}
 	if len(started) == 0 {
 		return nil
 	}
 	if clearRetry {
 		for tkn := range started {
-			tx.clearRetryTask(sid, tkn)
+			if err := tx.clearRetryTask(sid, tkn); err != nil {
+				return err
+			}
 		}
 	}
 	return tx.startContinuedWork(sid, st, started)
@@ -132,64 +139,55 @@ func (tx *flowTx) startContinuedWork(
 	return nil
 }
 
-func (e *Engine) scheduleRetryTask(
-	fs api.FlowStep, tkn api.Token, retryAt time.Time,
-) {
-	e.ScheduleTask(retryKey(fs, tkn), retryAt, func() error {
-		err := e.runRetryTask(fs, tkn)
-		if err != nil {
-			e.scheduleRetryTask(fs, tkn,
-				e.Now().Add(localDispatchBackoff),
-			)
-		}
-		return err
-	})
+func (tx *flowTx) scheduleRetryTask(
+	sid api.StepID, tkn api.Token, retryAt time.Time,
+) error {
+	fs := api.FlowStep{FlowID: tx.flowID, StepID: sid}
+	return tx.scheduleEvent(retryKey(fs, tkn), retryAt, workRetryReady,
+		scheduledWork{StepID: sid, Token: tkn})
 }
 
-func (e *Engine) runRetryTask(fs api.FlowStep, tkn api.Token) error {
+func (tx *flowTx) handleRetry(sid api.StepID, tkn api.Token) error {
 	var inputs api.Args
 	var st *api.Step
 	var meta api.Metadata
 
-	return e.flowTx(fs.FlowID, func(tx *flowTx) error {
-		fl := tx.Value()
-		if fl.ID == "" || policy.FlowTerminal(fl.Status) {
-			return nil
-		}
-
-		ex := fl.Executions[fs.StepID]
-		if _, ok := ex.WorkItems[tkn]; !ok {
-			return nil
-		}
-
-		st = fl.Plan.Steps[fs.StepID]
-
-		work := ex.WorkItems[tkn]
-		if policy.WorkClaimableForRetry(work.Status) &&
-			!tx.canDispatchLocally(st.ID) {
-			return tx.raiseDispatchDeferred(fs.StepID)
-		}
-
-		inputs = ex.Inputs
-		meta = fl.Metadata
-
-		started, retryAt, err := tx.startRetryWorkItem(st, tkn)
-		if err != nil {
-			return err
-		}
-		if retryAt.IsZero() && len(started) == 0 {
-			return nil
-		}
-
-		tx.OnSuccess(func(api.FlowState, []*timebox.Event) {
-			if !retryAt.IsZero() {
-				tx.scheduleRetryTask(fs, tkn, retryAt)
-				return
-			}
-			tx.executeStartedWork(st, inputs, meta, started)
-		})
+	fl := tx.Value()
+	if fl.ID == "" || policy.FlowTerminal(fl.Status) {
 		return nil
+	}
+
+	ex := fl.Executions[sid]
+	if _, ok := ex.WorkItems[tkn]; !ok {
+		return nil
+	}
+
+	st = fl.Plan.Steps[sid]
+
+	work := ex.WorkItems[tkn]
+	if policy.WorkClaimableForRetry(work.Status) &&
+		!tx.canDispatchLocally(st.ID) {
+		return ErrDispatchUnavailable
+	}
+
+	inputs = ex.Inputs
+	meta = fl.Metadata
+
+	started, retryAt, err := tx.startRetryWorkItem(st, tkn)
+	if err != nil {
+		return err
+	}
+	if !retryAt.IsZero() {
+		return tx.scheduleRetryTask(sid, tkn, retryAt)
+	}
+	if len(started) == 0 {
+		return nil
+	}
+
+	tx.OnSuccess(func(api.FlowState, []*timebox.Event) {
+		tx.executeStartedWork(st, inputs, meta, started)
 	})
+	return nil
 }
 
 func (e *Engine) resolveRetryConfig(config *api.WorkConfig) *api.WorkConfig {

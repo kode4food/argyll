@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"maps"
 
-	"github.com/kode4food/timebox"
-
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/events"
 	"github.com/kode4food/argyll/engine/pkg/policy"
@@ -39,7 +37,9 @@ func (tx *flowTx) checkTerminal() error {
 		); err != nil {
 			return err
 		}
-		tx.cancelObsoleteTasks()
+		if err := tx.cancelObsoleteTasks(); err != nil {
+			return err
+		}
 		return tx.maybeDeactivate()
 	}
 	if tx.IsFlowFailed(fl) {
@@ -52,7 +52,9 @@ func (tx *flowTx) checkTerminal() error {
 		); err != nil {
 			return err
 		}
-		tx.cancelObsoleteTasks()
+		if err := tx.cancelObsoleteTasks(); err != nil {
+			return err
+		}
 		return tx.maybeDeactivate()
 	}
 	return nil
@@ -60,15 +62,17 @@ func (tx *flowTx) checkTerminal() error {
 
 // cancelObsoleteTasks drops the retry and timeout tasks a terminal flow can
 // no longer act on
-func (tx *flowTx) cancelObsoleteTasks() {
-	tx.OnSuccess(func(fl api.FlowState, _ []*timebox.Event) {
-		if flowHasRetryTasks(fl) {
-			tx.CancelPrefixedTasks(retryPrefix(tx.flowID))
+func (tx *flowTx) cancelObsoleteTasks() error {
+	fl := tx.Value()
+	if flowHasRetryTasks(fl) {
+		if err := tx.cancelEventPrefix(retryPrefix(tx.flowID)); err != nil {
+			return err
 		}
-		if flowHasTimeouts(fl) {
-			tx.CancelPrefixedTasks(timeoutFlowPrefix(tx.flowID))
-		}
-	})
+	}
+	if flowHasTimeouts(fl) {
+		return tx.cancelEventPrefix(timeoutFlowPrefix(tx.flowID))
+	}
+	return nil
 }
 
 // maybeDeactivate reports the outcome to the parent, then deactivates once
@@ -113,10 +117,9 @@ func (tx *flowTx) deactivate(parent api.FlowState) error {
 	); err != nil {
 		return err
 	}
-	tx.OnSuccess(func(fl api.FlowState, _ []*timebox.Event) {
-		// Deactivation, not failure: compensation deadlines outlive the latter
-		tx.CancelPrefixedTasks(deadlinePrefix(tx.flowID))
-	})
+	if err := tx.cancelEventPrefix(deadlinePrefix(tx.flowID)); err != nil {
+		return err
+	}
 	return tx.releaseChildFlows()
 }
 

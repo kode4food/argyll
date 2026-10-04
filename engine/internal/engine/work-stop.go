@@ -5,8 +5,6 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/kode4food/timebox"
-
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/events"
 	"github.com/kode4food/argyll/engine/pkg/log"
@@ -65,20 +63,19 @@ func (tx *flowTx) completeWork(
 		return err
 	}
 
-	tx.clearRetryTask(sid, tkn)
+	if err := tx.clearRetryTask(sid, tkn); err != nil {
+		return err
+	}
+	if err := tx.clearWorkDeadline(sid, tkn); err != nil {
+		return err
+	}
 
 	return tx.handleWorkSucceeded(sid)
 }
 
-func (tx *flowTx) clearRetryTask(sid api.StepID, tkn api.Token) {
-	tx.OnSuccess(func(fl api.FlowState, _ []*timebox.Event) {
-		if !hasRetryTask(fl, sid, tkn) {
-			return
-		}
-		tx.CancelTask(
-			retryKey(api.FlowStep{FlowID: tx.flowID, StepID: sid}, tkn),
-		)
-	})
+func (tx *flowTx) clearRetryTask(sid api.StepID, tkn api.Token) error {
+	fs := api.FlowStep{FlowID: tx.flowID, StepID: sid}
+	return tx.cancelEvent(retryKey(fs, tkn))
 }
 
 func (tx *flowTx) memoizeWorkOutput(
@@ -104,6 +101,9 @@ func (tx *flowTx) failWork(
 	sid api.StepID, tkn api.Token, errMsg string,
 ) error {
 	if err := tx.raiseWorkFailed(sid, tkn, errMsg); err != nil {
+		return err
+	}
+	if err := tx.clearWorkDeadline(sid, tkn); err != nil {
 		return err
 	}
 	return tx.handleWorkFailed(sid)
@@ -193,7 +193,9 @@ func (tx *flowTx) handleMemoCacheHit(
 	); err != nil {
 		return err
 	}
-	tx.clearRetryTask(sid, tkn)
+	if err := tx.clearRetryTask(sid, tkn); err != nil {
+		return err
+	}
 	return tx.handleWorkSucceeded(sid)
 }
 
@@ -239,24 +241,15 @@ func (tx *flowTx) raiseWorkNotCompleted(
 	); err != nil {
 		return err
 	}
-	return events.Raise(tx.FlowAggregator, api.EventTypeWorkNotCompleted,
+	if err := events.Raise(tx.FlowAggregator, api.EventTypeWorkNotCompleted,
 		api.WorkNotCompletedEvent{
 			FlowID: tx.flowID,
 			StepID: sid,
 			Token:  tkn,
 			Error:  errMsg,
 		},
-	)
-}
-
-func hasRetryTask(fl api.FlowState, sid api.StepID, tkn api.Token) bool {
-	ex, ok := fl.Executions[sid]
-	if !ok {
-		return false
+	); err != nil {
+		return err
 	}
-	work, ok := ex.WorkItems[tkn]
-	if !ok {
-		return false
-	}
-	return !work.NextRetryAt.IsZero()
+	return tx.clearWorkDeadline(sid, tkn)
 }

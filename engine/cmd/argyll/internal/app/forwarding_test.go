@@ -18,7 +18,6 @@ import (
 	"github.com/kode4food/argyll/engine/cmd/argyll/internal/server"
 	"github.com/kode4food/argyll/engine/internal/assert/helpers"
 	"github.com/kode4food/argyll/engine/internal/engine"
-	"github.com/kode4food/argyll/engine/internal/engine/scheduler"
 	"github.com/kode4food/argyll/engine/internal/engine/script"
 	"github.com/kode4food/argyll/engine/internal/event"
 	"github.com/kode4food/argyll/engine/pkg/api"
@@ -209,11 +208,10 @@ func bootRaftNode(init *raftInit) (*raftNode, error) {
 		),
 	)
 	eng, err := engine.New(init.cfg, engine.Dependencies{
-		Scripts:          scripts,
-		Steps:            steps,
-		Clock:            time.Now,
-		TimerConstructor: scheduler.NewTimer,
-		EventHub:         init.hub,
+		Scripts:  scripts,
+		Steps:    steps,
+		Clock:    time.Now,
+		EventHub: init.hub,
 	}, open)
 	if err != nil {
 		return nil, err

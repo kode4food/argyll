@@ -4,8 +4,6 @@ import (
 	"errors"
 	"time"
 
-	"github.com/kode4food/timebox"
-
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/policy"
 )
@@ -14,49 +12,41 @@ var (
 	ErrWorkDeadlineExceeded = errors.New("work item deadline exceeded")
 )
 
-// scheduleWorkDeadlineAt arms the expiry check for an in-flight attempt. Every
-// replica arms it, so the attempt outlives the node that started it
-func (e *Engine) scheduleWorkDeadlineAt(
-	fs api.FlowStep, tkn api.Token, at time.Time,
-) {
-	e.ScheduleTask(deadlineKey(fs, tkn), at, func() error {
-		err := e.runWorkDeadline(fs, tkn)
-		if err != nil {
-			e.scheduleWorkDeadlineAt(fs, tkn, e.Now().Add(
-				localDispatchBackoff,
-			))
-		}
-		return err
-	})
+func (tx *flowTx) scheduleWorkDeadlineAt(
+	sid api.StepID, tkn api.Token, at time.Time,
+) error {
+	fs := api.FlowStep{FlowID: tx.flowID, StepID: sid}
+	return tx.scheduleEvent(deadlineKey(fs, tkn), at, workDeadlineElapsed,
+		scheduledWork{StepID: sid, Token: tkn})
 }
 
-func (e *Engine) runWorkDeadline(fs api.FlowStep, tkn api.Token) error {
-	return e.flowTx(fs.FlowID, func(tx *flowTx) error {
-		fl := tx.Value()
-		at, ok := tx.workDeadline(fl, fs.StepID, tkn)
-		if !ok {
-			return nil
-		}
-		if at.After(tx.Now()) {
-			tx.OnSuccess(func(api.FlowState, []*timebox.Event) {
-				tx.scheduleWorkDeadlineAt(fs, tkn, at)
-			})
-			return nil
-		}
+func (tx *flowTx) clearWorkDeadline(sid api.StepID, tkn api.Token) error {
+	fs := api.FlowStep{FlowID: tx.flowID, StepID: sid}
+	return tx.cancelEvent(deadlineKey(fs, tkn))
+}
 
-		work := fl.Executions[fs.StepID].WorkItems[tkn]
-		if policy.WorkCompActive(work.Status) {
-			return tx.scheduleCompensationRetry(
-				fs.StepID, tkn, ErrWorkDeadlineExceeded.Error(),
-			)
-		}
-		if err := tx.raiseWorkNotCompleted(
-			fs.StepID, tkn, ErrWorkDeadlineExceeded.Error(),
-		); err != nil {
-			return err
-		}
-		return tx.handleWorkNotCompleted(fs.StepID, tkn)
-	})
+func (tx *flowTx) handleWorkDeadline(sid api.StepID, tkn api.Token) error {
+	fl := tx.Value()
+	at, ok := tx.workDeadline(fl, sid, tkn)
+	if !ok {
+		return nil
+	}
+	if at.After(tx.Now()) {
+		return tx.scheduleWorkDeadlineAt(sid, tkn, at)
+	}
+
+	work := fl.Executions[sid].WorkItems[tkn]
+	if policy.WorkCompActive(work.Status) {
+		return tx.scheduleCompensationRetry(
+			sid, tkn, ErrWorkDeadlineExceeded.Error(),
+		)
+	}
+	if err := tx.raiseWorkNotCompleted(
+		sid, tkn, ErrWorkDeadlineExceeded.Error(),
+	); err != nil {
+		return err
+	}
+	return tx.handleWorkNotCompleted(sid, tkn)
 }
 
 func (e *Engine) workDeadline(
@@ -77,15 +67,17 @@ func (e *Engine) defaultWorkTimeout() time.Duration {
 
 // recoverInFlightWork bounds every in-flight attempt with the deadline its
 // step implies, so an attempt outlives the node that claimed it
-func (e *Engine) recoverInFlightWork(fl api.FlowState) {
+func (tx *flowTx) recoverInFlightWork(fl api.FlowState) error {
 	for sid, ex := range fl.Executions {
-		fs := api.FlowStep{FlowID: fl.ID, StepID: sid}
 		for tkn := range ex.WorkItems {
-			if at, ok := e.workDeadline(fl, sid, tkn); ok {
-				e.scheduleWorkDeadlineAt(fs, tkn, at)
+			if at, ok := tx.workDeadline(fl, sid, tkn); ok {
+				if err := tx.scheduleWorkDeadlineAt(sid, tkn, at); err != nil {
+					return err
+				}
 			}
 		}
 	}
+	return nil
 }
 
 func deadlineKey(fs api.FlowStep, tkn api.Token) []string {

@@ -4,8 +4,6 @@ import (
 	"errors"
 	"log/slog"
 	"time"
-
-	"github.com/kode4food/argyll/engine/internal/engine/scheduler"
 )
 
 var (
@@ -21,30 +19,18 @@ func (e *Engine) Start() error {
 		return errors.Join(ErrLoadLocalHealth, err)
 	}
 
-	go e.scheduler.Run(e.ctx)
+	e.schedulerWG.Go(func() {
+		err := e.scheduler.Run(e.ctx)
+		if err != nil && !errors.Is(err, e.ctx.Err()) {
+			slog.Error("Scheduler stopped", slog.Any("error", err))
+		}
+	})
 
 	if err := e.RecoverFlows(); err != nil {
 		return errors.Join(ErrRecoverFlows, err)
 	}
 
 	return nil
-}
-
-// ScheduleTask schedules a function to run at the given time
-func (e *Engine) ScheduleTask(
-	path []string, at time.Time, fn scheduler.TaskFunc,
-) {
-	e.scheduler.Schedule(path, at, fn)
-}
-
-// CancelTask removes a scheduled task for the exact path
-func (e *Engine) CancelTask(path []string) {
-	e.scheduler.Cancel(path)
-}
-
-// CancelPrefixedTasks removes all scheduled tasks under the given prefix
-func (e *Engine) CancelPrefixedTasks(prefix []string) {
-	e.scheduler.CancelPrefix(prefix)
 }
 
 // Now returns the current wall time from Engine's configured clock
