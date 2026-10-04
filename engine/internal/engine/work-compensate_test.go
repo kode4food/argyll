@@ -56,15 +56,14 @@ func TestCompensationSucceeds(t *testing.T) {
 				return nil
 			})
 
-		setupCompensatingFlow(setupCompensatingFlowArgs{
-			env:   env,
-			id:    id,
-			step:  st,
-			token: tkn,
-		})
-
 		env.WithConsumer(func(consumer *event.Consumer) {
 			w := wait.On(t, consumer)
+			setupCompensatingFlow(setupCompensatingFlowArgs{
+				env:   env,
+				id:    id,
+				step:  st,
+				token: tkn,
+			})
 			assert.NoError(t, env.Engine.RecoverFlow(id))
 			w.ForAll(
 				wait.CompStarted(fs),
@@ -107,15 +106,14 @@ func TestCompensationAsyncAwaitsCallback(t *testing.T) {
 				return nil
 			})
 
-		setupCompensatingFlow(setupCompensatingFlowArgs{
-			env:   env,
-			id:    id,
-			step:  st,
-			token: tkn,
-		})
-
 		env.WithConsumer(func(consumer *event.Consumer) {
 			w := wait.On(t, consumer)
+			setupCompensatingFlow(setupCompensatingFlowArgs{
+				env:   env,
+				id:    id,
+				step:  st,
+				token: tkn,
+			})
 			assert.NoError(t, env.Engine.RecoverFlow(id))
 			w.ForAll(wait.CompStarted(fs))
 		})
@@ -211,15 +209,14 @@ func TestCompRetryOnTransient(t *testing.T) {
 		fs := api.FlowStep{FlowID: id, StepID: st.ID}
 		tkn := api.Token("work-b")
 
-		setupCompensatingFlow(setupCompensatingFlowArgs{
-			env:   env,
-			id:    id,
-			step:  st,
-			token: tkn,
-		})
-
 		env.WithConsumer(func(consumer *event.Consumer) {
 			w := wait.On(t, consumer)
+			setupCompensatingFlow(setupCompensatingFlowArgs{
+				env:   env,
+				id:    id,
+				step:  st,
+				token: tkn,
+			})
 			assert.NoError(t, env.Engine.RecoverFlow(id))
 			w.ForAll(
 				wait.CompRetryScheduled(fs),
@@ -256,15 +253,14 @@ func TestCompRetriesExhausted(t *testing.T) {
 		fs := api.FlowStep{FlowID: id, StepID: st.ID}
 		tkn := api.Token("work-c")
 
-		setupCompensatingFlow(setupCompensatingFlowArgs{
-			env:   env,
-			id:    id,
-			step:  st,
-			token: tkn,
-		})
-
 		env.WithConsumer(func(consumer *event.Consumer) {
 			w := wait.On(t, consumer)
+			setupCompensatingFlow(setupCompensatingFlowArgs{
+				env:   env,
+				id:    id,
+				step:  st,
+				token: tkn,
+			})
 			assert.NoError(t, env.Engine.RecoverFlow(id))
 			w.ForAll(
 				wait.CompFailed(fs),
@@ -444,15 +440,14 @@ func TestCompPermanentFailure(t *testing.T) {
 		fs := api.FlowStep{FlowID: id, StepID: st.ID}
 		tkn := api.Token("work-hard")
 
-		setupCompensatingFlow(setupCompensatingFlowArgs{
-			env:   env,
-			id:    id,
-			step:  st,
-			token: tkn,
-		})
-
 		env.WithConsumer(func(consumer *event.Consumer) {
 			w := wait.On(t, consumer)
+			setupCompensatingFlow(setupCompensatingFlowArgs{
+				env:   env,
+				id:    id,
+				step:  st,
+				token: tkn,
+			})
 			assert.NoError(t, env.Engine.RecoverFlow(id))
 			w.ForAll(
 				wait.CompFailed(fs),
@@ -770,10 +765,10 @@ func TestCompDispatchRecovery(t *testing.T) {
 			started: true,
 			pending: true,
 		})
-		assert.NoError(t, env.Engine.Start())
 
 		env.WithConsumer(func(consumer *event.Consumer) {
 			w := wait.On(t, consumer)
+			assert.NoError(t, env.Engine.Start())
 			assert.NoError(t, env.Engine.RecoverFlow(id))
 			w.ForAll(
 				wait.CompSucceeded(fs),

@@ -7,6 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/kode4food/argyll/engine/internal/assert/helpers"
+	"github.com/kode4food/argyll/engine/internal/assert/wait"
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
@@ -61,7 +62,15 @@ func TestPartialFlowFailure(t *testing.T) {
 			"valueB": "b-val",
 			"valueC": "c-val",
 		})
-		env.MockClient.SetError("step-b", api.ErrWorkNotCompleted)
+		// C's output is only published while D still needs it, and B failing
+		// fails D, so B holds its failure until C has completed
+		releaseB := make(chan struct{})
+		env.MockClient.SetInvoke("step-b",
+			func(*api.Step, api.Args, api.Metadata) (api.Args, error) {
+				<-releaseB
+				return nil, api.ErrWorkNotCompleted
+			},
+		)
 		env.MockClient.SetResponse("step-c", api.Args{"outputC": "C-result"})
 		env.MockClient.SetResponse("step-d", api.Args{"result": "done"})
 
@@ -95,9 +104,13 @@ func TestPartialFlowFailure(t *testing.T) {
 		}
 
 		id := api.FlowID("test-partial-failure")
-		fl := env.WaitForFlowStatus(id, func() {
+		fsC := api.FlowStep{FlowID: id, StepID: "step-c"}
+		env.WaitFor(wait.StepTerminal(fsC), func() {
 			err := env.Engine.StartPlan(id, pl)
 			assert.NoError(t, err)
+		})
+		fl := env.WaitForFlowStatus(id, func() {
+			close(releaseB)
 		})
 
 		assert.Equal(t, api.FlowFailed, fl.Status)

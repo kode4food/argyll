@@ -432,9 +432,9 @@ func TestPendingRetryRecovers(t *testing.T) {
 				},
 			},
 		))
-		assert.NoError(t, env.Engine.Start())
 
 		env.WaitFor(wait.WorkStarted(fs), func() {
+			assert.NoError(t, env.Engine.Start())
 			assert.NoError(t, env.Engine.RecoverFlow(id))
 		})
 
