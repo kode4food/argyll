@@ -254,7 +254,7 @@ func TestScriptWorkExecutes(t *testing.T) {
 
 		ex := fl.Executions[st.ID]
 		assert.Equal(t, api.StepCompleted, ex.Status)
-		assert.Equal(t, 6, ex.Outputs["result"])
+		assert.EqualValues(t, 6, ex.Outputs["result"])
 	})
 }
 
@@ -305,7 +305,7 @@ func TestScriptMapping(t *testing.T) {
 		_, hasOuter := ex.Inputs["amount"]
 		assert.False(t, hasOuter)
 		assert.Equal(t, float64(2), ex.Inputs["inner_amount"])
-		assert.Equal(t, 6, ex.Outputs["result"])
+		assert.EqualValues(t, 6, ex.Outputs["result"])
 	})
 }
 

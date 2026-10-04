@@ -87,7 +87,7 @@ func TestInitialFlowInputs(t *testing.T) {
 
 		// Verify final attributes contain initial values plus step A's output
 		assert.Equal(t, "user-provided", fl.Attributes["initialValue"][0].Value)
-		assert.Equal(t, 42, fl.Attributes["configValue"][0].Value)
+		assert.EqualValues(t, 42, fl.Attributes["configValue"][0].Value)
 		assert.Equal(t,
 			"computed from initial inputs", fl.Attributes["result"][0].Value,
 		)

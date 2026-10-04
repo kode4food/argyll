@@ -923,7 +923,7 @@ func TestInputLua(t *testing.T) {
 		assert.Equal(t, api.FlowCompleted, fl.Status)
 
 		ex := fl.Executions[st.ID]
-		assert.Equal(t, 10, ex.Inputs["amount"])
+		assert.EqualValues(t, 10, ex.Inputs["amount"])
 	})
 }
 
