@@ -102,13 +102,13 @@ func (tx *flowTx) scheduleEvent(
 	if err != nil {
 		return err
 	}
-	err = tx.scheduler.Schedule(tx.storeTx.Transaction, path, at,
+	if err = tx.scheduler.Schedule(tx.storeTx.Transaction, path, at,
 		&timebox.Event{
 			AggregateID: events.FlowKey(tx.flowID),
 			Type:        eventType,
 			Data:        b,
-		})
-	if err != nil {
+		},
+	); err != nil {
 		return err
 	}
 	tx.OnSuccess(func(api.FlowState, []*timebox.Event) {
@@ -118,9 +118,7 @@ func (tx *flowTx) scheduleEvent(
 }
 
 func (tx *flowTx) cancelEvent(path []string) error {
-	if err := tx.scheduler.Cancel(
-		tx.storeTx.Transaction, path,
-	); err != nil {
+	if err := tx.scheduler.Cancel(tx.storeTx.Transaction, path); err != nil {
 		return err
 	}
 	tx.OnSuccess(func(api.FlowState, []*timebox.Event) {
@@ -130,9 +128,8 @@ func (tx *flowTx) cancelEvent(path []string) error {
 }
 
 func (tx *flowTx) cancelEventPrefix(prefix []string) error {
-	if err := tx.scheduler.CancelPrefix(
-		tx.storeTx.Transaction, prefix,
-	); err != nil {
+	err := tx.scheduler.CancelPrefix(tx.storeTx.Transaction, prefix)
+	if err != nil {
 		return err
 	}
 	tx.OnSuccess(func(api.FlowState, []*timebox.Event) {
