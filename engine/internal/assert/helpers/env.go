@@ -4,6 +4,7 @@ import (
 	"errors"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/kode4food/timebox"
 	"github.com/kode4food/timebox/memory"
@@ -315,21 +316,13 @@ func (e *TestEngineEnv) AppendEvents(
 func (e *TestEngineEnv) ScheduleVersions() (
 	map[timebox.ScheduleKey]timebox.ScheduleVersion, error,
 ) {
-	ids, err := e.flowStore.ListAggregates(timebox.ScheduleAggregateType)
+	schedules, err := e.flowStore.ListSchedules(time.Time{})
 	if err != nil {
 		return nil, err
 	}
-	res := make(map[timebox.ScheduleKey]timebox.ScheduleVersion, len(ids))
-	for _, id := range ids {
-		evs, err := e.flowStore.GetEvents(id, 0)
-		if err != nil {
-			return nil, err
-		}
-		if len(evs) > 0 && evs[len(evs)-1].Type == timebox.ScheduleChanged {
-			res[timebox.ScheduleKey(id.Key)] = timebox.ScheduleVersion(
-				evs[len(evs)-1].Sequence,
-			)
-		}
+	res := make(map[timebox.ScheduleKey]timebox.ScheduleVersion, len(schedules))
+	for _, schedule := range schedules {
+		res[schedule.Key] = schedule.Version
 	}
 	return res, nil
 }

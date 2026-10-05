@@ -146,16 +146,14 @@ func TestAtomicFlowLifecycle(t *testing.T) {
 						flowRequests := 0
 						scheduleRequests := 0
 						for _, req := range batch {
-							if req.ID.Type == timebox.ScheduleAggregateType {
+							if id, ok := events.ParseFlowID(req.ID); !ok {
 								scheduleRequests++
-								continue
-							}
-							flowRequests++
-							id, ok := events.ParseFlowID(req.ID)
-							assert.True(t, ok)
-							for _, ev := range req.Events {
-								typ := api.EventType(ev.Type)
-								kinds[id] = append(kinds[id], typ)
+							} else {
+								flowRequests++
+								for _, ev := range req.Events {
+									typ := api.EventType(ev.Type)
+									kinds[id] = append(kinds[id], typ)
+								}
 							}
 						}
 						assert.Equal(t, 2, flowRequests)

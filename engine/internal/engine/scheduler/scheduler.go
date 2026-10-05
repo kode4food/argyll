@@ -11,20 +11,15 @@ import (
 )
 
 type (
-	// Scheduler stores and emits Argyll's deferred events
+	// Scheduler stores and emits Argyll's deferred messages
 	Scheduler struct {
 		runner *scheduler.Scheduler
 	}
 
-	// Delivery is one due deferred event
-	Delivery struct {
-		schedule *timebox.Schedule
-	}
-
-	// Config configures Argyll's deferred event scheduler
+	// Config configures Argyll's deferred message scheduler
 	Config struct {
 		Store            *timebox.Store
-		Emitter          func(context.Context, *Delivery) error
+		Emitter          scheduler.Emitter
 		Clock            Clock
 		TimerConstructor TimerConstructor
 	}
@@ -44,12 +39,8 @@ const keyPrefix = "argyll:"
 // New creates an Argyll scheduler over a Timebox store
 func New(cfg Config) (*Scheduler, error) {
 	runnerCfg := scheduler.Config{
-		Store: cfg.Store,
-		Emitter: func(
-			ctx context.Context, item *timebox.Schedule,
-		) error {
-			return cfg.Emitter(ctx, &Delivery{schedule: item})
-		},
+		Store:            cfg.Store,
+		Emitter:          cfg.Emitter,
 		Clock:            cfg.Clock,
 		TimerConstructor: cfg.TimerConstructor,
 	}
@@ -65,43 +56,28 @@ func Now() time.Time {
 	return time.Now()
 }
 
-// Run emits due events until ctx ends or durable recovery fails
+// Run emits due messages until ctx ends
 func (s *Scheduler) Run(ctx context.Context) error {
 	return s.runner.Run(ctx)
 }
 
-// Wake requests prompt recovery of durable schedules
-func (s *Scheduler) Wake() {
-	s.runner.Wake()
-}
-
-// Schedule creates or replaces a durable deferred event
+// Schedule creates or replaces a durable deferred message
 func (s *Scheduler) Schedule(
-	tx *timebox.Transaction, path []string, at time.Time, event *timebox.Event,
+	tx *timebox.Transaction, path []string, at time.Time, msg *timebox.Message,
 ) error {
-	return tx.Schedule(encodePath(path), at, event)
+	return tx.Schedule(encodePath(path), at, msg)
 }
 
-// Cancel removes the durable event at path
+// Cancel removes the durable message at path
 func (s *Scheduler) Cancel(tx *timebox.Transaction, path []string) error {
 	return tx.CancelSchedule(encodePath(path))
 }
 
-// CancelPrefix removes every Argyll event below prefix
+// CancelPrefix removes every Argyll message below prefix
 func (s *Scheduler) CancelPrefix(
 	tx *timebox.Transaction, prefix []string,
 ) error {
 	return tx.CancelSchedulePrefix(encodePath(prefix))
-}
-
-// Event returns the ordinary Timebox event due for delivery
-func (d *Delivery) Event() *timebox.Event {
-	return d.schedule.Event
-}
-
-// Consume conditionally consumes this delivery in tx
-func (d *Delivery) Consume(tx *timebox.Transaction) error {
-	return tx.ConsumeSchedule(d.schedule.Key, d.schedule.Version)
 }
 
 func encodePath(path []string) timebox.ScheduleKey {

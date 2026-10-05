@@ -9,6 +9,7 @@ import (
 
 	"github.com/kode4food/timebox"
 	"github.com/kode4food/timebox/memory"
+	tbsched "github.com/kode4food/timebox/scheduler"
 
 	"github.com/kode4food/argyll/engine/internal/engine/scheduler"
 )
@@ -17,13 +18,13 @@ func TestPaths(t *testing.T) {
 	store := newStore(t)
 	runner, err := scheduler.New(scheduler.Config{
 		Store: store,
-		Emitter: func(context.Context, *scheduler.Delivery) error {
+		Emitter: func(context.Context, *tbsched.Delivery) error {
 			return nil
 		},
 		Clock: scheduler.Now,
 	})
 	assert.NoError(t, err)
-	event := newEvent()
+	message := newMessage()
 	at := scheduler.Now().Add(time.Hour)
 
 	assert.NoError(t, store.Transact(func(tx *timebox.Transaction) error {
@@ -34,11 +35,11 @@ func TestPaths(t *testing.T) {
 			{"flowish"},
 			{"other"},
 		} {
-			if err := runner.Schedule(tx, path, at, event); err != nil {
+			if err := runner.Schedule(tx, path, at, message); err != nil {
 				return err
 			}
 		}
-		return tx.Schedule("foreign", at, event)
+		return tx.Schedule("foreign", at, message)
 	}))
 
 	assert.NoError(t, store.Transact(func(tx *timebox.Transaction) error {
@@ -50,38 +51,34 @@ func TestPaths(t *testing.T) {
 		return runner.Cancel(tx, []string{"other"})
 	}))
 	assert.Equal(t, 2, activeScheduleCount(t, store))
-	foreign, err := store.GetEvents(
-		timebox.NewAggregateID(timebox.ScheduleAggregateType, "foreign"), 0,
-	)
+	foreign, err := store.LoadSchedule("foreign")
 	assert.NoError(t, err)
-	if assert.NotEmpty(t, foreign) {
-		assert.Equal(t, timebox.ScheduleChanged, foreign[len(foreign)-1].Type)
-	}
+	assert.NotNil(t, foreign)
 }
 
 func TestDelivery(t *testing.T) {
 	store := newStore(t)
-	delivered := make(chan *timebox.Event, 1)
+	delivered := make(chan *timebox.Message, 1)
 	runner, err := scheduler.New(scheduler.Config{
 		Store: store,
 		Emitter: func(
-			_ context.Context, delivery *scheduler.Delivery,
+			_ context.Context, delivery *tbsched.Delivery,
 		) error {
 			err := store.Transact(func(tx *timebox.Transaction) error {
 				return delivery.Consume(tx)
 			})
 			if err == nil {
-				delivered <- delivery.Event()
+				delivered <- delivery.Message()
 			}
 			return err
 		},
 		Clock: scheduler.Now,
 	})
 	assert.NoError(t, err)
-	event := newEvent()
+	message := newMessage()
 	assert.NoError(t, store.Transact(func(tx *timebox.Transaction) error {
 		return runner.Schedule(
-			tx, []string{"due"}, scheduler.Now().Add(-time.Second), event,
+			tx, []string{"due"}, scheduler.Now().Add(-time.Second), message,
 		)
 	}))
 
@@ -91,7 +88,7 @@ func TestDelivery(t *testing.T) {
 		done <- runner.Run(ctx)
 	}()
 
-	var got *timebox.Event
+	var got *timebox.Message
 	assert.Eventually(t, func() bool {
 		select {
 		case got = <-delivered:
@@ -100,7 +97,7 @@ func TestDelivery(t *testing.T) {
 			return false
 		}
 	}, time.Second, time.Millisecond)
-	assert.Equal(t, event, got)
+	assert.Equal(t, message, got)
 	cancel()
 	assert.ErrorIs(t, <-done, context.Canceled)
 }
@@ -116,8 +113,8 @@ func newStore(t *testing.T) *timebox.Store {
 	return store
 }
 
-func newEvent() *timebox.Event {
-	return &timebox.Event{
+func newMessage() *timebox.Message {
+	return &timebox.Message{
 		AggregateID: timebox.AggregateID{Type: "flow", Key: "test"},
 		Type:        "test",
 	}
@@ -125,19 +122,9 @@ func newEvent() *timebox.Event {
 
 func activeScheduleCount(t *testing.T, store *timebox.Store) int {
 	t.Helper()
-	ids, err := store.ListAggregates(timebox.ScheduleAggregateType)
+	schedules, err := store.ListSchedules(time.Time{})
 	if !assert.NoError(t, err) {
 		return 0
 	}
-	res := 0
-	for _, id := range ids {
-		evs, err := store.GetEvents(id, 0)
-		if !assert.NoError(t, err) {
-			return 0
-		}
-		if len(evs) > 0 && evs[len(evs)-1].Type == timebox.ScheduleChanged {
-			res++
-		}
-	}
-	return res
+	return len(schedules)
 }

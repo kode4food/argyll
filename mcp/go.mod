@@ -21,7 +21,7 @@ require (
 	github.com/kode4food/caravan v0.0.0-20260905062940-5af4c3674974 // indirect
 	github.com/kode4food/jpath v0.0.0-20260906125407-9cba525a6f65 // indirect
 	github.com/kode4food/lru v0.0.0-20260821124822-50bd9a308b71 // indirect
-	github.com/kode4food/timebox v0.2.1-0.20261004145217-fe7acca57066 // indirect
+	github.com/kode4food/timebox v0.2.1-0.20261005142518-d2a215dc9a87 // indirect
 	github.com/kr/pretty v0.3.1 // indirect
 	github.com/localrivet/wilduri v0.0.0-20250504021349-6ce732e97cca // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect

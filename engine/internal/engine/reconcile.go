@@ -92,17 +92,13 @@ func (tx *flowTx) recoverFlow() error {
 // scheduleFlowReconcile arms the reconciliation of a single flow, keyed so that
 // duplicate requests collapse into one task
 func (e *Engine) scheduleFlowReconcile(fid api.FlowID, at time.Time) error {
-	err := e.flowStore.Transact(func(tx *timebox.Transaction) error {
+	return e.flowStore.Transact(func(tx *timebox.Transaction) error {
 		return e.scheduler.Schedule(tx, reconcileKey(fid), at,
-			&timebox.Event{
+			&timebox.Message{
 				AggregateID: events.FlowKey(fid),
 				Type:        flowReconcileRequested,
 			})
 	})
-	if err == nil {
-		e.scheduler.Wake()
-	}
-	return err
 }
 
 // flowTaskPrefix covers every task derived from a flow's state, which the
