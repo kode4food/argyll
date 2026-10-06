@@ -122,7 +122,7 @@ func New(
 	}
 	runner, err := scheduler.New(scheduler.Config{
 		Store:            e.flowStore,
-		Emitter:          e.emitScheduled,
+		Processor:        e.processScheduled,
 		Clock:            deps.Clock,
 		TimerConstructor: deps.TimerConstructor,
 	})

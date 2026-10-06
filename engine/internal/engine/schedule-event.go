@@ -1,7 +1,6 @@
 package engine
 
 import (
-	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -39,23 +38,20 @@ var (
 	ErrScheduledMessageTarget = errors.New("invalid scheduled message target")
 )
 
-func (e *Engine) emitScheduled(
-	_ context.Context, delivery *scheduler.Delivery,
+func (e *Engine) processScheduled(
+	t *timebox.Transaction, msg *timebox.Message,
 ) error {
-	msg := delivery.Message()
 	fid, ok := events.ParseFlowID(msg.AggregateID)
 	if !ok {
 		return fmt.Errorf("%w: %s", ErrScheduledMessageTarget,
 			msg.AggregateID.String())
 	}
-	err := e.flowTx(fid, func(tx *flowTx) error {
-		if err := delivery.Consume(tx.storeTx.Transaction); err != nil {
-			return err
-		}
+	st := storeTx{Engine: e, Transaction: t}
+	_, err := st.flowTx(fid, func(tx *flowTx) error {
 		return tx.handleScheduled(msg)
 	})
 	if errors.Is(err, ErrDispatchUnavailable) {
-		return nil
+		return scheduler.ErrRetry
 	}
 	return err
 }

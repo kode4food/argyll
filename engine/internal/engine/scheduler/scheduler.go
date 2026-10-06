@@ -11,7 +11,7 @@ import (
 )
 
 type (
-	// Scheduler stores and emits Argyll's deferred messages
+	// Scheduler stores and processes Argyll's deferred messages
 	Scheduler struct {
 		runner *scheduler.Scheduler
 	}
@@ -19,7 +19,7 @@ type (
 	// Config configures Argyll's deferred message scheduler
 	Config struct {
 		Store            *timebox.Store
-		Emitter          scheduler.Emitter
+		Processor        scheduler.Processor
 		Clock            Clock
 		TimerConstructor TimerConstructor
 	}
@@ -40,7 +40,7 @@ const keyPrefix = "argyll:"
 func New(cfg Config) (*Scheduler, error) {
 	runnerCfg := scheduler.Config{
 		Store:            cfg.Store,
-		Emitter:          cfg.Emitter,
+		Processor:        cfg.Processor,
 		Clock:            cfg.Clock,
 		TimerConstructor: cfg.TimerConstructor,
 	}
@@ -56,7 +56,7 @@ func Now() time.Time {
 	return time.Now()
 }
 
-// Run emits due messages until ctx ends
+// Run processes due messages until ctx ends
 func (s *Scheduler) Run(ctx context.Context) error {
 	return s.runner.Run(ctx)
 }

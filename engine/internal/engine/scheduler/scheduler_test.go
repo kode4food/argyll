@@ -9,7 +9,6 @@ import (
 
 	"github.com/kode4food/timebox"
 	"github.com/kode4food/timebox/memory"
-	tbsched "github.com/kode4food/timebox/scheduler"
 
 	"github.com/kode4food/argyll/engine/internal/engine/scheduler"
 )
@@ -18,7 +17,7 @@ func TestPaths(t *testing.T) {
 	store := newStore(t)
 	runner, err := scheduler.New(scheduler.Config{
 		Store: store,
-		Emitter: func(context.Context, *tbsched.Delivery) error {
+		Processor: func(*timebox.Transaction, *timebox.Message) error {
 			return nil
 		},
 		Clock: scheduler.Now,
@@ -61,16 +60,9 @@ func TestDelivery(t *testing.T) {
 	delivered := make(chan *timebox.Message, 1)
 	runner, err := scheduler.New(scheduler.Config{
 		Store: store,
-		Emitter: func(
-			_ context.Context, delivery *tbsched.Delivery,
-		) error {
-			err := store.Transact(func(tx *timebox.Transaction) error {
-				return delivery.Consume(tx)
-			})
-			if err == nil {
-				delivered <- delivery.Message()
-			}
-			return err
+		Processor: func(_ *timebox.Transaction, msg *timebox.Message) error {
+			delivered <- msg
+			return nil
 		},
 		Clock: scheduler.Now,
 	})
