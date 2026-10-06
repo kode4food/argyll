@@ -9,6 +9,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/kode4food/timebox"
+
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/events"
 	"github.com/kode4food/argyll/engine/pkg/util"
@@ -98,13 +100,15 @@ func (e *Engine) QueryFlows(
 
 // collectRootFlowEntries returns indexed root flow entries
 func (e *Engine) collectRootFlowEntries(
-	statuses []api.FlowStatus,
+	statuses []api.FlowStatus, idPrefix string,
 ) ([]flowStatusEntry, error) {
 	var entries []flowStatusEntry
 	seen := util.Set[api.FlowID]{}
 
 	for _, item := range queryStatuses(statuses) {
-		group, err := e.listIndexedEntries(item.indexStatus, item.flowStatus)
+		group, err := e.listIndexedEntries(
+			item.indexStatus, item.flowStatus, idPrefix,
+		)
 		if err != nil {
 			return nil, err
 		}
@@ -120,9 +124,13 @@ func (e *Engine) collectRootFlowEntries(
 }
 
 func (e *Engine) listIndexedEntries(
-	status string, flowStatus api.FlowStatus,
+	status string, flowStatus api.FlowStatus, idPrefix string,
 ) ([]flowStatusEntry, error) {
-	entries, err := e.flowStore.ListAggregatesByStatus(status)
+	entries, err := e.flowStore.ListAggregatesByStatus(timebox.StatusQuery{
+		Status:    status,
+		Type:      events.FlowPrefix,
+		KeyPrefix: timebox.ID(idPrefix),
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -150,7 +158,7 @@ func (e *Engine) listIndexedEntries(
 func (e *Engine) buildFlowQueryItems(
 	req *api.QueryFlowsRequest,
 ) ([]flowItem, error) {
-	entries, err := e.collectRootFlowEntries(req.Statuses)
+	entries, err := e.collectRootFlowEntries(req.Statuses, req.IDPrefix)
 	if err != nil {
 		return nil, err
 	}
@@ -162,10 +170,6 @@ func (e *Engine) buildFlowQueryItems(
 
 	items := make([]flowItem, 0, len(entries))
 	for _, entry := range entries {
-		if req.IDPrefix != "" &&
-			!strings.HasPrefix(string(entry.id), req.IDPrefix) {
-			continue
-		}
 		if tagIDs != nil && !tagIDs.Contains(entry.id) {
 			continue
 		}

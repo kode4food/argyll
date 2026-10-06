@@ -43,8 +43,8 @@ func TestListFlowsIgnoresBadStatusEntry(t *testing.T) {
 		addStatusEntry(t, addStatusEntryArgs{
 			env:    env,
 			status: events.FlowStatusActive,
-			prefix: "bad",
-			id:     "flow-id",
+			prefix: events.FlowPrefix,
+			id:     "",
 			at:     scheduler.Now(),
 		})
 
@@ -240,8 +240,8 @@ func TestQueryFlowsIgnoresBadStatusEntry(t *testing.T) {
 		addStatusEntry(t, addStatusEntryArgs{
 			env:    env,
 			status: events.FlowStatusActive,
-			prefix: "bad",
-			id:     "flow-id",
+			prefix: events.FlowPrefix,
+			id:     "",
 			at:     scheduler.Now(),
 		})
 

@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"log/slog"
 
+	"github.com/kode4food/timebox"
+
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/events"
 	"github.com/kode4food/argyll/engine/pkg/policy"
@@ -51,7 +53,10 @@ func (tx *flowTx) recoverRetries(fl api.FlowState) error {
 }
 
 func (e *Engine) listIndexedFlows(status string) ([]api.FlowID, error) {
-	entries, err := e.flowStore.ListAggregatesByStatus(status)
+	entries, err := e.flowStore.ListAggregatesByStatus(timebox.StatusQuery{
+		Status: status,
+		Type:   events.FlowPrefix,
+	})
 	if err != nil {
 		return nil, err
 	}
