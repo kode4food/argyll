@@ -3,18 +3,18 @@ module github.com/kode4food/argyll/sdk/go
 go 1.27.0
 
 require (
-	github.com/kode4food/argyll/engine v0.0.0-20260827045536-9ade6fec529a
-	github.com/kode4food/timebox v0.2.1-0.20261006181105-453365f755aa
+	github.com/kode4food/argyll/engine v0.0.0-20261006183024-9da8a30b5613
+	github.com/kode4food/timebox v0.3.0
 	github.com/stretchr/testify v1.12.1
 	golang.org/x/tools v0.49.0
 )
 
 require (
 	github.com/BurntSushi/toml v1.6.0 // indirect
+	github.com/Shopify/go-lua v0.0.0-20250718183320-1e37f32ad7d0 // indirect
 	github.com/kode4food/caravan v0.0.0-20260905062940-5af4c3674974 // indirect
 	github.com/kode4food/jpath v0.0.0-20260906125407-9cba525a6f65 // indirect
 	github.com/kode4food/lru v0.0.0-20260821124822-50bd9a308b71 // indirect
-	go.opentelemetry.io/otel v1.46.0 // indirect
 	go.yaml.in/yaml/v3 v3.0.5 // indirect
 	golang.org/x/exp/typeparams v0.0.0-20260824195058-e88cd73687aa // indirect
 	golang.org/x/mod v0.40.0 // indirect
