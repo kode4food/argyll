@@ -1,7 +1,7 @@
 github.com/BurntSushi/toml v1.6.0 h1:dRaEfpa2VI55EwlIW72hMRHdWouJeRF7TPYhI+AUQjk=
 github.com/BurntSushi/toml v1.6.0/go.mod h1:ukJfTF/6rtPPRCnwkur4qwRxa8vTRFBF0uk2lLoLwho=
-github.com/Shopify/go-lua v0.0.0-20250718183320-1e37f32ad7d0 h1:oGlw/+ndlFMn8KWLjEX5nULcDwOC4tJy3Kk1Pm84Cys=
-github.com/Shopify/go-lua v0.0.0-20250718183320-1e37f32ad7d0/go.mod h1:M4CxjVc/1Nwka5atBv7G/sb7Ac2BDe3+FxbiT9iVNIQ=
+github.com/Shopify/go-lua v0.0.0-20261007132305-3f823f845ff9 h1:nDnaOSOdmx0wvtPUH1SwGxqQO3FWXhdCRoShE3ctwPc=
+github.com/Shopify/go-lua v0.0.0-20261007132305-3f823f845ff9/go.mod h1:M4CxjVc/1Nwka5atBv7G/sb7Ac2BDe3+FxbiT9iVNIQ=
 github.com/bytedance/gopkg v0.1.4 h1:oZnQwnX82KAIWb7033bEwtxvTqXcYMxDBaQxo5JJHWM=
 github.com/bytedance/gopkg v0.1.4/go.mod h1:v1zWfPm21Fb+OsyXN2VAHdL6TBb2L88anLQgdyje6R4=
 github.com/bytedance/sonic v1.15.3 h1:P3akjLPBtV/i6bHC6LbcLjY3KuoOvfiqF8wFHeP5IhY=
@@ -28,8 +28,8 @@ github.com/dustin/go-humanize v1.0.1 h1:GzkhY7T5VNhEkwH0PVJgjz+fX1rhBrR7pRT3mDkp
 github.com/dustin/go-humanize v1.0.1/go.mod h1:Mu1zIs6XwVuF/gI1OepvI0qD18qycQx+mFykh5fBlto=
 github.com/gabriel-vasile/mimetype v1.4.15 h1:05iP/CYtZ/w455R/KZM6rZ5ieAdh99UPtd+d3YzLmaI=
 github.com/gabriel-vasile/mimetype v1.4.15/go.mod h1:azpTcoLcDZRNgFou5j+APrqQx9HqVPWa6ijYQIIVswQ=
-github.com/gin-contrib/slog v1.2.1 h1:tQbsmllW/PNgtvHRdVlI38jLfpN4IFLS7Pb4HgTeiYw=
-github.com/gin-contrib/slog v1.2.1/go.mod h1:f/Ke0A3h4DUh0cQnjR2b/l+i0EmVJ+6VY6GIw3RKtxA=
+github.com/gin-contrib/slog v1.2.3 h1:lTTPqZENURDHFXs9V1rfYWo3zJteryClDZJAppMovzE=
+github.com/gin-contrib/slog v1.2.3/go.mod h1:kHUAHrvyd65WrT2p5IykUe4dH51enJoClwagGgAGqAw=
 github.com/gin-contrib/sse v1.1.1 h1:uGYpNwTacv5R68bSGMapo62iLTRa9l5zxGCps4hK6ko=
 github.com/gin-contrib/sse v1.1.1/go.mod h1:QXzuVkA0YO7o/gun03UI1Q+FTI8ZV/n5t03kIQAI89s=
 github.com/gin-gonic/gin v1.12.0 h1:b3YAbrZtnf8N//yjKeU2+MQsh2mY5htkZidOM7O0wG8=
@@ -70,8 +70,8 @@ github.com/kode4food/jpath v0.0.0-20260906125407-9cba525a6f65 h1:bcDTbjLAl2IG/OD
 github.com/kode4food/jpath v0.0.0-20260906125407-9cba525a6f65/go.mod h1:gYY1OfgNwxDs30LLA1moTAQtzapUvEpMO+zX6GI2Fpg=
 github.com/kode4food/lru v0.0.0-20260821124822-50bd9a308b71 h1:xqHrCb85JXvWEWCHRM3zsuNUWEJSNktvs7ROFEnKhIo=
 github.com/kode4food/lru v0.0.0-20260821124822-50bd9a308b71/go.mod h1:qxHo1+SIRuVcQ5s3HaZYMWw5v1B6W4kJIJ4KP/gg67c=
-github.com/kode4food/timebox v0.3.0 h1:IViCupsJQbDYfudn+Tok09vFBvvN0N+bhvdxOM8e38o=
-github.com/kode4food/timebox v0.3.0/go.mod h1:t+XVpRqQXvn9+ilBot4RPA8xalYHOoWDHJ1Jn5VKugc=
+github.com/kode4food/timebox v0.3.1-0.20261009161103-4e90098c4a63 h1:xxZMv7kpZC7n6hO0fgFoYBvO8Mfzpcg/vG4i+WitqrI=
+github.com/kode4food/timebox v0.3.1-0.20261009161103-4e90098c4a63/go.mod h1:VKZR+tW3mHMqcGklfazEzhVlqlnOy8SdD7PlB6I+vNk=
 github.com/leodido/go-urn v1.5.0 h1:pLqT2kq1zpHW/1D18QMjMpdtX7cekxqtJJjg5ANyWw0=
 github.com/leodido/go-urn v1.5.0/go.mod h1:9BORnCDhdPBJNDEX+w1bJisa8yOKYi116VeO96s4ifE=
 github.com/mattn/go-isatty v0.0.24 h1:tGZZoVgT/KiqK1c8ocVLeDS8BSWMRd47J3Lbz7vsReI=

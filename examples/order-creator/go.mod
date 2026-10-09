@@ -8,12 +8,10 @@ require (
 )
 
 require (
+	github.com/Shopify/go-lua v0.0.0-20261007132305-3f823f845ff9 // indirect
 	github.com/kode4food/caravan v0.0.0-20260905062940-5af4c3674974 // indirect
 	github.com/kode4food/jpath v0.0.0-20260906125407-9cba525a6f65 // indirect
-	github.com/kode4food/lru v0.0.0-20260821124822-50bd9a308b71 // indirect
-	github.com/kode4food/timebox v0.3.0 // indirect
+	github.com/kode4food/timebox v0.3.1-0.20261009161103-4e90098c4a63 // indirect
 	go.opentelemetry.io/otel v1.46.0 // indirect
 	golang.org/x/exp/typeparams v0.0.0-20260824195058-e88cd73687aa // indirect
-	golang.org/x/tools v0.51.0 // indirect
-	honnef.co/go/tools v0.8.1 // indirect
 )
