@@ -31,7 +31,7 @@ describe("useStepVisibility", () => {
     const steps = [step1, step2];
 
     const previewPlan: ExecutionPlan = {
-      goals: ["step1"],
+      goals: { steps: ["step1"] },
       required: [],
       steps: {
         step1: step1,

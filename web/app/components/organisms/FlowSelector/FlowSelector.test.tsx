@@ -9,7 +9,6 @@ type UIStateMock = {
   setPreviewPlan: jest.Mock;
   updatePreviewPlan: jest.Mock;
   clearPreviewPlan: jest.Mock;
-  toggleGoalStep: jest.Mock;
   goalSteps: string[];
   setGoalSteps: jest.Mock;
   diagramContainerRef: { current: null };
@@ -22,7 +21,6 @@ const uiState: UIStateMock = {
   setPreviewPlan: jest.fn(),
   updatePreviewPlan: jest.fn(),
   clearPreviewPlan: jest.fn(),
-  toggleGoalStep: jest.fn(),
   goalSteps: [],
   setGoalSteps: jest.fn(),
   diagramContainerRef: { current: null },

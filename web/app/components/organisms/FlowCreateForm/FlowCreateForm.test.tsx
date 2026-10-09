@@ -72,7 +72,6 @@ describe("FlowCreateForm", () => {
     previewPlan: null,
     setPreviewPlan: jest.fn(),
     goalSteps: [],
-    toggleGoalStep: jest.fn(),
     updatePreviewPlan: jest.fn(),
     clearPreviewPlan: jest.fn(),
     setGoalSteps: jest.fn(),
@@ -224,7 +223,7 @@ describe("FlowCreateForm", () => {
   test("calls handleCreateFlow when Start button is clicked", () => {
     mockUseUI.mockReturnValue({
       ...defaultUIContext,
-      goalSteps: ["step-1"],
+      goalSteps: [["step-1"]],
     });
 
     renderWithProvider({ newID: "test-id" });
@@ -240,7 +239,7 @@ describe("FlowCreateForm", () => {
   test("disables Start button when creating", () => {
     mockUseUI.mockReturnValue({
       ...defaultUIContext,
-      goalSteps: ["step-1"],
+      goalSteps: [["step-1"]],
     });
 
     renderWithProvider({ newID: "test-id", creating: true });
@@ -254,7 +253,7 @@ describe("FlowCreateForm", () => {
   test("disables Start button when ID is empty", () => {
     mockUseUI.mockReturnValue({
       ...defaultUIContext,
-      goalSteps: ["step-1"],
+      goalSteps: [["step-1"]],
     });
 
     renderWithProvider({ newID: "" });
@@ -282,7 +281,7 @@ describe("FlowCreateForm", () => {
   test("disables Start button when JSON is invalid", () => {
     mockUseUI.mockReturnValue({
       ...defaultUIContext,
-      goalSteps: ["step-1"],
+      goalSteps: [["step-1"]],
     });
 
     renderWithProvider({ newID: "test-id", initialState: "{invalid" });
@@ -299,7 +298,7 @@ describe("FlowCreateForm", () => {
   test("does not show Play icon when creating", () => {
     mockUseUI.mockReturnValue({
       ...defaultUIContext,
-      goalSteps: ["step-1"],
+      goalSteps: [["step-1"]],
     });
 
     renderWithProvider({
@@ -371,12 +370,12 @@ describe("FlowCreateForm", () => {
   test("shows no-potential-inputs message when goals are selected but no inputs exist", () => {
     mockUseUI.mockReturnValue({
       ...defaultUIContext,
-      goalSteps: ["step-1"],
+      goalSteps: [["step-1"]],
       previewPlan: {
         steps: {},
         required: [],
         attributes: {},
-        goals: ["step-1"],
+        goals: { steps: ["step-1"] },
       },
     });
 
@@ -392,7 +391,7 @@ describe("FlowCreateForm", () => {
 
   test("shows per-type default placeholders in value inputs", () => {
     const previewPlan = {
-      goals: ["goal-step"],
+      goals: { steps: ["goal-step"] },
       required: [],
       attributes: {},
       steps: {
@@ -435,7 +434,7 @@ describe("FlowCreateForm", () => {
     mockUseUI.mockReturnValue({
       ...defaultUIContext,
       previewPlan,
-      goalSteps: ["goal-step"],
+      goalSteps: [["goal-step"]],
     });
 
     renderWithProvider({ initialState: "{}" });
@@ -482,7 +481,7 @@ describe("FlowCreateForm", () => {
 
   test("shows defaulted values as placeholders in basic mode while keeping JSON defaults", () => {
     const previewPlan = {
-      goals: ["goal-step"],
+      goals: { steps: ["goal-step"] },
       required: ["quantity"],
       attributes: {},
       steps: {
@@ -504,7 +503,7 @@ describe("FlowCreateForm", () => {
     mockUseUI.mockReturnValue({
       ...defaultUIContext,
       previewPlan,
-      goalSteps: ["goal-step"],
+      goalSteps: [["goal-step"]],
     });
 
     renderWithProvider({ initialState: '{"quantity":0}' });
@@ -529,7 +528,7 @@ describe("FlowCreateForm", () => {
 
   test("serializes basic editor values as init arg arrays", () => {
     const previewPlan = {
-      goals: ["goal-step"],
+      goals: { steps: ["goal-step"] },
       required: ["quantity", "note"],
       attributes: {},
       steps: {
@@ -555,7 +554,7 @@ describe("FlowCreateForm", () => {
     mockUseUI.mockReturnValue({
       ...defaultUIContext,
       previewPlan,
-      goalSteps: ["goal-step"],
+      goalSteps: [["goal-step"]],
     });
 
     render(<StatefulForm initialState='{"quantity":[],"note":[]}' />);
@@ -587,7 +586,7 @@ describe("FlowCreateForm", () => {
 
   test("preserves comma while typing a multi-value basic editor input", () => {
     const previewPlan = {
-      goals: ["goal-step"],
+      goals: { steps: ["goal-step"] },
       required: ["unit_price"],
       attributes: {},
       steps: {
@@ -609,7 +608,7 @@ describe("FlowCreateForm", () => {
     mockUseUI.mockReturnValue({
       ...defaultUIContext,
       previewPlan,
-      goalSteps: ["goal-step"],
+      goalSteps: [["goal-step"]],
     });
 
     render(<StatefulForm initialState='{"unit_price":[]}' />);
@@ -631,7 +630,7 @@ describe("FlowCreateForm", () => {
 
   test("parses single-quoted basic editor strings without preserving delimiters", () => {
     const previewPlan = {
-      goals: ["goal-step"],
+      goals: { steps: ["goal-step"] },
       required: ["note"],
       attributes: {},
       steps: {
@@ -653,7 +652,7 @@ describe("FlowCreateForm", () => {
     mockUseUI.mockReturnValue({
       ...defaultUIContext,
       previewPlan,
-      goalSteps: ["goal-step"],
+      goalSteps: [["goal-step"]],
     });
 
     render(<StatefulForm initialState='{"note":[]}' />);
@@ -671,7 +670,7 @@ describe("FlowCreateForm", () => {
 
   test("serializes cleared basic editor values as empty init arg arrays", () => {
     const previewPlan = {
-      goals: ["goal-step"],
+      goals: { steps: ["goal-step"] },
       required: ["quantity"],
       attributes: {},
       steps: {
@@ -693,7 +692,7 @@ describe("FlowCreateForm", () => {
     mockUseUI.mockReturnValue({
       ...defaultUIContext,
       previewPlan,
-      goalSteps: ["goal-step"],
+      goalSteps: [["goal-step"]],
     });
 
     render(<StatefulForm initialState='{"quantity":[1]}' />);
@@ -709,7 +708,7 @@ describe("FlowCreateForm", () => {
 
   test("formats init args with normal JSON stringify output", () => {
     const previewPlan = {
-      goals: ["goal-step"],
+      goals: { steps: ["goal-step"] },
       required: ["quantity"],
       attributes: {},
       steps: {
@@ -731,7 +730,7 @@ describe("FlowCreateForm", () => {
     mockUseUI.mockReturnValue({
       ...defaultUIContext,
       previewPlan,
-      goalSteps: ["goal-step"],
+      goalSteps: [["goal-step"]],
     });
 
     render(<StatefulForm initialState='{"quantity":[]}' />);
@@ -749,7 +748,7 @@ describe("FlowCreateForm", () => {
 
   test("tracks focused input attribute for preview highlighting", () => {
     const previewPlan = {
-      goals: ["goal-step"],
+      goals: { steps: ["goal-step"] },
       required: ["quantity"],
       attributes: {},
       steps: {
@@ -772,7 +771,7 @@ describe("FlowCreateForm", () => {
     mockUseUI.mockReturnValue({
       ...defaultUIContext,
       previewPlan,
-      goalSteps: ["goal-step"],
+      goalSteps: [["goal-step"]],
       setFocusedPreviewAttribute,
     });
 
@@ -801,9 +800,9 @@ describe("FlowCreateForm", () => {
       ...defaultUIContext,
       focusedPreviewAttribute: "quantity",
       setFocusedPreviewAttribute,
-      goalSteps: ["goal-step"],
+      goalSteps: [["goal-step"]],
       previewPlan: {
-        goals: ["goal-step"],
+        goals: { steps: ["goal-step"] },
         required: ["quantity"],
         attributes: {},
         steps: {
@@ -842,14 +841,14 @@ describe("FlowCreateForm", () => {
     fireEvent.click(stepItem!);
 
     await waitFor(() => {
-      expect(defaultProps.handleStepChange).toHaveBeenCalledWith(["step-1"]);
+      expect(defaultProps.handleStepChange).toHaveBeenCalledWith([["step-1"]]);
     });
   });
 
   test("deselects step when already selected", async () => {
     mockUseUI.mockReturnValue({
       ...defaultUIContext,
-      goalSteps: ["step-1"],
+      goalSteps: [["step-1"]],
     });
 
     renderWithProvider();
@@ -858,14 +857,14 @@ describe("FlowCreateForm", () => {
     fireEvent.click(stepItem!);
 
     await waitFor(() => {
-      expect(defaultProps.handleStepChange).toHaveBeenCalledWith([]);
+      expect(defaultProps.handleStepChange).toHaveBeenCalledWith([[]]);
     });
   });
 
   test("marks step as selected with correct styling", () => {
     mockUseUI.mockReturnValue({
       ...defaultUIContext,
-      goalSteps: ["step-1"],
+      goalSteps: [["step-1"]],
     });
 
     const { container } = renderWithProvider();
@@ -874,24 +873,30 @@ describe("FlowCreateForm", () => {
     expect(stepItem).toBeInTheDocument();
   });
 
-  test("shows tooltip when step included in preview plan", () => {
+  test("never disables Steps because of the aggregate preview plan", async () => {
     mockUseUI.mockReturnValue({
       ...defaultUIContext,
       previewPlan: {
         steps: { "step-1": mockStep },
         attributes: {},
-        goals: [],
+        goals: { steps: ["other"] },
         required: [],
       },
-      goalSteps: [],
+      goalSteps: [["other"], []],
     });
 
     const { container } = renderWithProvider();
 
-    const stepItem = container.querySelector(
-      '[title="Already included in execution plan"]'
-    );
-    expect(stepItem).toBeInTheDocument();
+    expect(
+      container.querySelector('[title="Already included in execution plan"]')
+    ).not.toBeInTheDocument();
+    fireEvent.click(screen.getByText("Test Step").closest("div")!);
+    await waitFor(() => {
+      expect(defaultProps.handleStepChange).toHaveBeenCalledWith([
+        ["other"],
+        ["step-1"],
+      ]);
+    });
   });
 
   test("shows tooltip when outputs satisfied by initial state", () => {
@@ -909,7 +914,7 @@ describe("FlowCreateForm", () => {
       previewPlan: {
         steps: {},
         attributes: {},
-        goals: [],
+        goals: { steps: [] },
         required: [],
         excluded: {
           missing: {
@@ -929,17 +934,7 @@ describe("FlowCreateForm", () => {
   });
 
   test("does not trigger step change when disabled step clicked", async () => {
-    mockUseUI.mockReturnValue({
-      ...defaultUIContext,
-      previewPlan: {
-        steps: { "step-1": mockStep },
-        attributes: {},
-        goals: [],
-        required: [],
-      },
-    });
-
-    renderWithProvider();
+    renderWithProvider({ initialState: '{"output1": "value"}' });
 
     const stepItem = screen.getByText("Test Step").closest("div");
     fireEvent.click(stepItem!);
@@ -951,7 +946,7 @@ describe("FlowCreateForm", () => {
 
   test("marks required badge only for plan-required launch inputs", () => {
     const previewPlan = {
-      goals: ["goal-step"],
+      goals: { steps: ["goal-step"] },
       required: ["order_id"],
       attributes: {},
       steps: {
@@ -989,7 +984,7 @@ describe("FlowCreateForm", () => {
     mockUseUI.mockReturnValue({
       ...defaultUIContext,
       previewPlan,
-      goalSteps: ["goal-step"],
+      goalSteps: [["goal-step"]],
     });
 
     renderWithProvider();
@@ -1017,7 +1012,7 @@ describe("FlowCreateForm", () => {
 
   test("shows red/green/gray status dots for required and optional inputs", () => {
     const previewPlan = {
-      goals: ["goal-step"],
+      goals: { steps: ["goal-step"] },
       required: ["order_id"],
       attributes: {},
       steps: {
@@ -1055,7 +1050,7 @@ describe("FlowCreateForm", () => {
     mockUseUI.mockReturnValue({
       ...defaultUIContext,
       previewPlan,
-      goalSteps: ["goal-step"],
+      goalSteps: [["goal-step"]],
     });
 
     renderWithProvider({ initialState: '{"order_id":"123"}' });
@@ -1084,7 +1079,7 @@ describe("FlowCreateForm", () => {
 
   test("marks required dot as satisfied when provided value equals default", () => {
     const previewPlan = {
-      goals: ["goal-step"],
+      goals: { steps: ["goal-step"] },
       required: ["order_id"],
       attributes: {},
       steps: {
@@ -1107,7 +1102,7 @@ describe("FlowCreateForm", () => {
     mockUseUI.mockReturnValue({
       ...defaultUIContext,
       previewPlan,
-      goalSteps: ["goal-step"],
+      goalSteps: [["goal-step"]],
     });
 
     renderWithProvider({ initialState: '{"order_id":"guest"}' });
@@ -1125,7 +1120,7 @@ describe("FlowCreateForm", () => {
 
   test("clearing a required input with a default removes the satisfied state", () => {
     const previewPlan = {
-      goals: ["goal-step"],
+      goals: { steps: ["goal-step"] },
       required: ["order_id"],
       attributes: {},
       steps: {
@@ -1148,7 +1143,7 @@ describe("FlowCreateForm", () => {
     mockUseUI.mockReturnValue({
       ...defaultUIContext,
       previewPlan,
-      goalSteps: ["goal-step"],
+      goalSteps: [["goal-step"]],
     });
 
     render(<StatefulForm initialState='{"order_id":"guest"}' />);
@@ -1171,7 +1166,7 @@ describe("FlowCreateForm", () => {
 
   test("marks numeric zero value as satisfied when it equals default", () => {
     const previewPlan = {
-      goals: ["goal-step"],
+      goals: { steps: ["goal-step"] },
       required: ["quantity"],
       attributes: {},
       steps: {
@@ -1193,7 +1188,7 @@ describe("FlowCreateForm", () => {
     mockUseUI.mockReturnValue({
       ...defaultUIContext,
       previewPlan,
-      goalSteps: ["goal-step"],
+      goalSteps: [["goal-step"]],
     });
 
     renderWithProvider({ initialState: '{"quantity":0}' });

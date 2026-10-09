@@ -32,6 +32,7 @@ import { useDiagramViewport } from "@/app/hooks/useDiagramViewport";
 import { useFitView } from "@/app/hooks/useFitView";
 import useFocusWithin from "@/app/hooks/useFocusWithin";
 import { useLayoutPlan } from "./useLayoutPlan";
+import { activeGoalSet } from "@/utils/goalSets";
 import styles from "./OverviewDiagramView.module.css";
 
 interface OverviewDiagramViewProps {
@@ -47,8 +48,8 @@ const OverviewDiagramViewInner: React.FC<OverviewDiagramViewProps> = ({
 }) => {
   const t = useT();
   const { goalSteps, setGoalSteps } = useDiagramSelection();
-  const activeGoalStepId =
-    goalSteps.length > 0 ? goalSteps[goalSteps.length - 1] : null;
+  const goalStepIds = React.useMemo(() => goalSteps.flat(), [goalSteps]);
+  const activeGoalStepId = activeGoalSet(goalSteps).at(-1) ?? null;
   const reactFlowInstance = useReactFlow();
   const {
     diagramContainerRef,
@@ -65,7 +66,7 @@ const OverviewDiagramViewInner: React.FC<OverviewDiagramViewProps> = ({
   );
   const fitView = useFitView();
   const { previewPlan, handleStepClick, clearPreview } =
-    useExecutionPlanPreview(goalSteps, setGoalSteps);
+    useExecutionPlanPreview(steps, goalSteps, setGoalSteps);
 
   const goalStepsRef = React.useRef(goalSteps);
   const previewPlanRef = React.useRef(previewPlan);
@@ -75,7 +76,7 @@ const OverviewDiagramViewInner: React.FC<OverviewDiagramViewProps> = ({
   });
 
   React.useEffect(() => {
-    if (goalStepsRef.current.length > 0 && previewPlanRef.current) {
+    if (goalStepsRef.current.flat().length > 0 && previewPlanRef.current) {
       void updatePreviewPlan(goalStepsRef.current, {});
     }
   }, [steps, updatePreviewPlan]);
@@ -88,7 +89,7 @@ const OverviewDiagramViewInner: React.FC<OverviewDiagramViewProps> = ({
 
   const initialNodes = useNodeCalculation(
     visibleSteps,
-    goalSteps,
+    goalStepIds,
     previewPlan,
     previewStepIds,
     handleStepClick,
@@ -106,7 +107,7 @@ const OverviewDiagramViewInner: React.FC<OverviewDiagramViewProps> = ({
   const previewStepCount = previewPlan
     ? Object.keys(previewPlan.steps).length
     : 0;
-  const showPreviewHud = !!previewPlan && goalSteps.length > 0;
+  const showPreviewHud = !!previewPlan && goalStepIds.length > 0;
 
   const arrangedNodes = useAutoLayout(initialNodes, initialEdges, plan);
 
@@ -296,7 +297,7 @@ const OverviewDiagramViewInner: React.FC<OverviewDiagramViewProps> = ({
             </DiagramHudText>,
             <DiagramHudText>
               {t("overview.previewGoals", {
-                count: goalSteps.length,
+                count: goalStepIds.length,
               })}
             </DiagramHudText>,
             <DiagramHudText>

@@ -56,10 +56,10 @@ describe("UIContext", () => {
     const { result } = renderHook(() => useUI(), { wrapper });
 
     act(() => {
-      result.current.setGoalSteps(["step-1", "step-2"]);
+      result.current.setGoalSteps([["step-1", "step-2"]]);
     });
 
-    expect(result.current.goalSteps).toEqual(["step-1", "step-2"]);
+    expect(result.current.goalSteps).toEqual([["step-1", "step-2"]]);
   });
 
   test("setFocusedPreviewAttribute updates state", () => {
@@ -76,30 +76,11 @@ describe("UIContext", () => {
     expect(result.current.focusedPreviewAttribute).toBeNull();
   });
 
-  test("toggleGoalStep adds and removes ids", () => {
-    const { result } = renderHook(() => useUI(), { wrapper });
-
-    act(() => {
-      result.current.toggleGoalStep("step-1");
-    });
-    expect(result.current.goalSteps).toEqual(["step-1"]);
-
-    act(() => {
-      result.current.toggleGoalStep("step-2");
-    });
-    expect(result.current.goalSteps).toEqual(["step-1", "step-2"]);
-
-    act(() => {
-      result.current.toggleGoalStep("step-2");
-    });
-    expect(result.current.goalSteps).toEqual(["step-1"]);
-  });
-
   test("updatePreviewPlan calls API and updates state", async () => {
     const mockPlan = {
       steps: {},
       attributes: {},
-      goals: ["step-1"],
+      goals: { steps: ["step-1"] },
       required: [],
     };
 
@@ -108,11 +89,13 @@ describe("UIContext", () => {
     const { result } = renderHook(() => useUI(), { wrapper });
 
     await act(async () => {
-      await result.current.updatePreviewPlan(["step-1"], { foo: "bar" });
+      await result.current.updatePreviewPlan([["step-1"], []], {
+        foo: "bar",
+      });
     });
 
     expect(mockApi.getExecutionPlan).toHaveBeenCalledWith({
-      goalSteps: ["step-1"],
+      goalSteps: [["step-1"]],
       initialState: { foo: "bar" },
       spaceId: undefined,
       signal: expect.any(AbortSignal),
@@ -138,7 +121,7 @@ describe("UIContext", () => {
     const { result } = renderHook(() => useUI(), { wrapper });
 
     await act(async () => {
-      await result.current.updatePreviewPlan(["step-1"], {});
+      await result.current.updatePreviewPlan([["step-1"]], {});
     });
 
     expect(consoleErrorSpy).toHaveBeenCalledWith(
@@ -159,7 +142,7 @@ describe("UIContext", () => {
     const { result } = renderHook(() => useUI(), { wrapper });
 
     await act(async () => {
-      await result.current.updatePreviewPlan(["step-1"], {});
+      await result.current.updatePreviewPlan([["step-1"]], {});
     });
 
     expect(consoleErrorSpy).not.toHaveBeenCalled();
@@ -177,7 +160,7 @@ describe("UIContext", () => {
     const { result } = renderHook(() => useUI(), { wrapper });
 
     await act(async () => {
-      await result.current.updatePreviewPlan(["step-1"], {});
+      await result.current.updatePreviewPlan([["step-1"]], {});
     });
 
     expect(consoleErrorSpy).not.toHaveBeenCalled();
@@ -197,27 +180,27 @@ describe("UIContext", () => {
 
     // Start first request
     act(() => {
-      result.current.updatePreviewPlan(["step-1"], {});
+      result.current.updatePreviewPlan([["step-1"]], {});
     });
 
     const mockPlan2 = {
       steps: {},
       attributes: {},
-      goals: ["step-2"],
+      goals: { steps: ["step-2"] },
       required: [],
     } as ExecutionPlan;
 
     // Start second request (should abort first)
     mockApi.getExecutionPlan.mockResolvedValue(mockPlan2);
     await act(async () => {
-      await result.current.updatePreviewPlan(["step-2"], {});
+      await result.current.updatePreviewPlan([["step-2"]], {});
     });
 
     // Complete first request
     resolveFirst({
       steps: {},
       attributes: {},
-      goals: ["step-1"],
+      goals: { steps: ["step-1"] },
       required: [],
     });
 
@@ -230,7 +213,7 @@ describe("UIContext", () => {
     const mockPlan = {
       steps: {},
       attributes: {},
-      goals: ["step-1"],
+      goals: { steps: ["step-1"] },
       required: [],
     };
 
@@ -239,7 +222,7 @@ describe("UIContext", () => {
     const { result } = renderHook(() => useUI(), { wrapper });
 
     await act(async () => {
-      await result.current.updatePreviewPlan(["step-1"], {});
+      await result.current.updatePreviewPlan([["step-1"]], {});
     });
 
     expect(result.current.previewPlan).toEqual(mockPlan);
@@ -270,7 +253,7 @@ describe("UIContext", () => {
     const { result, unmount } = renderHook(() => useUI(), { wrapper });
 
     act(() => {
-      result.current.updatePreviewPlan(["step-1"], {});
+      result.current.updatePreviewPlan([["step-1"]], {});
     });
 
     unmount();

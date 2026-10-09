@@ -1,8 +1,12 @@
 package guidance_test
 
 import (
+	"encoding/json"
 	"strings"
 	"testing"
+
+	"github.com/getkin/kin-openapi/openapi3"
+	"github.com/stretchr/testify/assert"
 
 	"github.com/kode4food/argyll/mcp/internal/guidance"
 )
@@ -41,4 +45,42 @@ func TestRenderTemplate(t *testing.T) {
 	if !strings.Contains(code, "example-step") {
 		t.Fatalf("expected rendered template to include step name")
 	}
+}
+
+func TestEngineAPIGoalsSchema(t *testing.T) {
+	raw, err := guidance.Read("engine-api.yaml")
+	if !assert.NoError(t, err) {
+		return
+	}
+	doc, err := openapi3.NewLoader().LoadFromData([]byte(raw))
+	if !assert.NoError(t, err) {
+		return
+	}
+
+	for _, name := range []string{
+		"CreateFlowRequest", "ExecutionPlanRequest", "ExecutionPlan",
+		"FlowConfig",
+	} {
+		t.Run(name, func(t *testing.T) {
+			schema := doc.Components.Schemas[name].Value
+			goals := schema.Properties["goals"].Value
+
+			assert.NoError(t, goals.VisitJSON(decode(t,
+				`{"steps":["a","b"],"else":{"steps":["c"]}}`,
+			)))
+			for _, bad := range []string{
+				`{}`, `{"steps":[]}`, `{"steps":["a"],"else":{"steps":[]}}`,
+				`{"steps":["a"],"else":{}}`, `["a"]`, `[["a"]]`,
+			} {
+				assert.Error(t, goals.VisitJSON(decode(t, bad)))
+			}
+		})
+	}
+}
+
+func decode(t *testing.T, raw string) any {
+	t.Helper()
+	var res any
+	assert.NoError(t, json.Unmarshal([]byte(raw), &res))
+	return res
 }

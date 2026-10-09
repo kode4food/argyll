@@ -22,7 +22,6 @@ jest.mock("@/app/contexts/UIContext", () => ({
   UIProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
   useUI: () => ({
     goalSteps: [],
-    toggleGoalStep: jest.fn(),
     setGoalSteps: jest.fn(),
     diagramContainerRef: { current: null },
   }),
@@ -108,7 +107,6 @@ describe("Node", () => {
         <DiagramSelectionProvider
           value={{
             goalSteps: [],
-            toggleGoalStep: jest.fn(),
             setGoalSteps: jest.fn(),
             ...selectionOverrides,
           }}

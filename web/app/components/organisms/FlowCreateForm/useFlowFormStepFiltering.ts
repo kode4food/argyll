@@ -8,10 +8,6 @@ export function useFlowFormStepFiltering(
   previewPlan: ExecutionPlan | null
 ) {
   const excluded = previewPlan?.excluded;
-  const included = useMemo(() => {
-    if (!previewPlan?.steps) return new Set<string>();
-    return new Set(Object.keys(previewPlan.steps));
-  }, [previewPlan?.steps]);
 
   const parsedState = useMemo(
     () => safeParseState(initialState),
@@ -67,5 +63,5 @@ export function useFlowFormStepFiltering(
     };
   }, [parsedState, excluded, steps]);
 
-  return { included, satisfied, blockedByStep, missingByStep, parsedState };
+  return { satisfied, blockedByStep, missingByStep, parsedState };
 }

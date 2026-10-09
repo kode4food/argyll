@@ -45,7 +45,7 @@ func TestCompleteFlow(t *testing.T) {
 		env.MockClient.SetResponse("complete-step", api.Args{"result": "final"})
 
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{"complete-step"},
+			Goals: api.Goals{Steps: []api.StepID{"complete-step"}},
 			Steps: api.Steps{st.ID: st},
 		}
 
@@ -71,7 +71,7 @@ func TestFailFlow(t *testing.T) {
 		env.MockClient.SetError("fail-step", errors.New("test error"))
 
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{"fail-step"},
+			Goals: api.Goals{Steps: []api.StepID{"fail-step"}},
 			Steps: api.Steps{st.ID: st},
 		}
 
@@ -108,7 +108,7 @@ func TestFlowStepChildSuccess(t *testing.T) {
 			Name: "Subflow Step",
 			Type: api.StepTypeFlow,
 			Flow: &api.FlowConfig{
-				Goals: []api.StepID{child.ID},
+				Goals: api.Goals{Steps: []api.StepID{child.ID}},
 			},
 			Attributes: api.AttributeSpecs{},
 		}
@@ -122,7 +122,7 @@ func TestFlowStepChildSuccess(t *testing.T) {
 			Match:    env.Engine.Matcher,
 			Children: env.Engine.Children,
 			Steps:    cat.Steps,
-			Goals:    []api.StepID{parent.ID},
+			Goals:    api.Goals{Steps: []api.StepID{parent.ID}},
 			Init:     api.InitArgs{},
 		})
 		testify.NoError(t, err)
@@ -177,7 +177,7 @@ func TestChildFlowLease(t *testing.T) {
 			Name: "Held Subflow Step",
 			Type: api.StepTypeFlow,
 			Flow: &api.FlowConfig{
-				Goals: []api.StepID{child.ID},
+				Goals: api.Goals{Steps: []api.StepID{child.ID}},
 			},
 			Attributes: api.AttributeSpecs{},
 		}
@@ -191,7 +191,7 @@ func TestChildFlowLease(t *testing.T) {
 			Match:    env.Engine.Matcher,
 			Children: env.Engine.Children,
 			Steps:    cat.Steps,
-			Goals:    []api.StepID{parent.ID},
+			Goals:    api.Goals{Steps: []api.StepID{parent.ID}},
 			Init:     api.InitArgs{},
 		})
 		testify.NoError(t, err)
@@ -230,7 +230,7 @@ func TestChildFlowReleaseRecovery(t *testing.T) {
 		childID := api.FlowID("orphan-parent:sub:work-a")
 
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{st.ID},
+			Goals: api.Goals{Steps: []api.StepID{st.ID}},
 			Steps: api.Steps{st.ID: st},
 		}
 
@@ -306,7 +306,7 @@ func TestFlowStepChildFailureParentFails(t *testing.T) {
 			Name: "Subflow Fail",
 			Type: api.StepTypeFlow,
 			Flow: &api.FlowConfig{
-				Goals: []api.StepID{child.ID},
+				Goals: api.Goals{Steps: []api.StepID{child.ID}},
 			},
 			Attributes: api.AttributeSpecs{},
 		}
@@ -320,7 +320,7 @@ func TestFlowStepChildFailureParentFails(t *testing.T) {
 			Match:    env.Engine.Matcher,
 			Children: env.Engine.Children,
 			Steps:    cat.Steps,
-			Goals:    []api.StepID{parent.ID},
+			Goals:    api.Goals{Steps: []api.StepID{parent.ID}},
 			Init:     api.InitArgs{},
 		})
 		testify.NoError(t, err)
@@ -342,7 +342,7 @@ func TestFlowStepMissingGoalParentFails(t *testing.T) {
 			Name: "Subflow Missing",
 			Type: api.StepTypeFlow,
 			Flow: &api.FlowConfig{
-				Goals: []api.StepID{"missing-goal"},
+				Goals: api.Goals{Steps: []api.StepID{"missing-goal"}},
 			},
 			Attributes: api.AttributeSpecs{},
 		}
@@ -355,7 +355,7 @@ func TestFlowStepMissingGoalParentFails(t *testing.T) {
 			Match:    env.Engine.Matcher,
 			Children: env.Engine.Children,
 			Steps:    cat.Steps,
-			Goals:    []api.StepID{parent.ID},
+			Goals:    api.Goals{Steps: []api.StepID{parent.ID}},
 			Init:     api.InitArgs{},
 		})
 		testify.Error(t, err)
@@ -385,7 +385,7 @@ func TestFlowStepMapping(t *testing.T) {
 			Name: "Subflow Mapped",
 			Type: api.StepTypeFlow,
 			Flow: &api.FlowConfig{
-				Goals: []api.StepID{child.ID},
+				Goals: api.Goals{Steps: []api.StepID{child.ID}},
 			},
 			Attributes: api.AttributeSpecs{
 				"input": {
@@ -412,7 +412,7 @@ func TestFlowStepMapping(t *testing.T) {
 			Match:    env.Engine.Matcher,
 			Children: env.Engine.Children,
 			Steps:    cat.Steps,
-			Goals:    []api.StepID{parent.ID},
+			Goals:    api.Goals{Steps: []api.StepID{parent.ID}},
 			Init:     api.InitArgs{},
 		})
 		testify.NoError(t, err)
@@ -454,7 +454,7 @@ func TestFlowStepMissingOutput(t *testing.T) {
 			Name: "Subflow Missing Output",
 			Type: api.StepTypeFlow,
 			Flow: &api.FlowConfig{
-				Goals: []api.StepID{child.ID},
+				Goals: api.Goals{Steps: []api.StepID{child.ID}},
 			},
 			Attributes: api.AttributeSpecs{
 				"output": {
@@ -475,7 +475,7 @@ func TestFlowStepMissingOutput(t *testing.T) {
 			Match:    env.Engine.Matcher,
 			Children: env.Engine.Children,
 			Steps:    cat.Steps,
-			Goals:    []api.StepID{parent.ID},
+			Goals:    api.Goals{Steps: []api.StepID{parent.ID}},
 			Init:     api.InitArgs{},
 		})
 		testify.NoError(t, err)
@@ -511,7 +511,7 @@ func TestParentNotificationRetries(t *testing.T) {
 				env.SeedStartedWork(
 					api.FlowStep{FlowID: parentID, StepID: sub.ID},
 					&api.ExecutionPlan{
-						Goals: []api.StepID{sub.ID},
+						Goals: api.Goals{Steps: []api.StepID{sub.ID}},
 						Steps: api.Steps{sub.ID: sub},
 					}, "token",
 				))
@@ -618,7 +618,7 @@ func TestParentSettledAtomically(t *testing.T) {
 			testify.NoError(t, env.SeedStartedWork(
 				api.FlowStep{FlowID: parentID, StepID: sub.ID},
 				&api.ExecutionPlan{
-					Goals: []api.StepID{sub.ID},
+					Goals: api.Goals{Steps: []api.StepID{sub.ID}},
 					Steps: api.Steps{sub.ID: sub},
 				}, "token",
 			))
@@ -630,7 +630,7 @@ func TestParentSettledAtomically(t *testing.T) {
 					Data: api.FlowStartedEvent{
 						FlowID: childID,
 						Plan: &api.ExecutionPlan{
-							Goals: []api.StepID{leaf.ID},
+							Goals: api.Goals{Steps: []api.StepID{leaf.ID}},
 							Steps: api.Steps{leaf.ID: leaf},
 						},
 						Init: api.InitArgs{},

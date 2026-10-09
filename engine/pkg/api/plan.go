@@ -14,8 +14,15 @@ type (
 		Steps      Steps                     `json:"steps"`
 		Children   map[StepID]*ExecutionPlan `json:"children,omitempty"`
 		Attributes AttributeGraph            `json:"attributes"`
-		Goals      []StepID                  `json:"goals"`
+		Goals      Goals                     `json:"goals"`
 		Required   []Name                    `json:"required"`
+	}
+
+	// Goals is a chain of fallback goal sets. Every one of Steps must succeed,
+	// and Else is attempted only when Steps becomes impossible
+	Goals struct {
+		Else  *Goals   `json:"else,omitempty"`
+		Steps []StepID `json:"steps"`
 	}
 
 	// ExcludedSteps contains steps encountered during dependency traversal
@@ -65,6 +72,55 @@ func (p *ExecutionPlan) ValidateInputs(args InitArgs) error {
 	}
 
 	return nil
+}
+
+// Copy returns a deep copy of the goal chain and its step slices
+func (g *Goals) Copy() *Goals {
+	if g == nil {
+		return nil
+	}
+	res := &Goals{}
+	for src, dst := g, res; src != nil; src = src.Else {
+		dst.Steps = slices.Clone(src.Steps)
+		if src.Else != nil {
+			dst.Else = &Goals{}
+			dst = dst.Else
+		}
+	}
+	return res
+}
+
+// Sets returns the chain's goal sets in the order they are attempted
+func (g *Goals) Sets() [][]StepID {
+	var res [][]StepID
+	for next := g; next != nil; next = next.Else {
+		res = append(res, next.Steps)
+	}
+	return res
+}
+
+// AllSteps returns every goal step in the chain once, in the order the chain
+// names them
+func (g *Goals) AllSteps() []StepID {
+	var res []StepID
+	for _, set := range g.Sets() {
+		for _, sid := range set {
+			if !slices.Contains(res, sid) {
+				res = append(res, sid)
+			}
+		}
+	}
+	return res
+}
+
+// Valid reports whether every goal set in the chain names at least one step
+func (g *Goals) Valid() bool {
+	return len(g.Steps) > 0 && (g.Else == nil || g.Else.Valid())
+}
+
+// Equal reports whether two chains name the same goal sets in the same order
+func (g *Goals) Equal(other *Goals) bool {
+	return slices.EqualFunc(g.Sets(), other.Sets(), slices.Equal)
 }
 
 // AddStep adds a step's contributions to the graph

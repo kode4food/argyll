@@ -55,7 +55,7 @@ describe("StepTypeLabel", () => {
       type: "flow",
       attributes: {},
       flow: {
-        goals: ["goal-a"],
+        goals: { steps: ["goal-a"] },
       },
     };
 

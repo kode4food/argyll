@@ -33,7 +33,7 @@ func TestInitialFlowInputs(t *testing.T) {
 		assert.NoError(t, env.Engine.RegisterStep(stepA))
 
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{"step-a"},
+			Goals: api.Goals{Steps: []api.StepID{"step-a"}},
 			Steps: api.Steps{
 				"step-a": stepA,
 			},
@@ -113,7 +113,7 @@ func TestRequiredInputsMissing(t *testing.T) {
 		assert.NoError(t, eng.RegisterStep(st))
 
 		pl := &api.ExecutionPlan{
-			Goals:    []api.StepID{st.ID},
+			Goals:    api.Goals{Steps: []api.StepID{st.ID}},
 			Steps:    api.Steps{st.ID: st},
 			Required: []api.Name{"customer_id"},
 		}

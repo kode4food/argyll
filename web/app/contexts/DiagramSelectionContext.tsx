@@ -1,10 +1,10 @@
 import React, { createContext, useContext } from "react";
+import { GoalSets } from "@/app/api";
 import { useUI } from "./UIContext";
 
 export interface DiagramSelectionContextValue {
-  goalSteps: string[];
-  toggleGoalStep: (id: string) => void;
-  setGoalSteps: (ids: string[]) => void;
+  goalSteps: GoalSets;
+  setGoalSteps: (goals: GoalSets) => void;
 }
 
 const DiagramSelectionContext =
@@ -22,7 +22,6 @@ export const DiagramSelectionProvider = ({
     value ||
     ({
       goalSteps: ui.goalSteps,
-      toggleGoalStep: ui.toggleGoalStep,
       setGoalSteps: ui.setGoalSteps,
     } satisfies DiagramSelectionContextValue);
 

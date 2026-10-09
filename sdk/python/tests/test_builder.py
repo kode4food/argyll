@@ -14,6 +14,7 @@ from argyll.types import (
     AttributeType,
     ConstConfig,
     FlowConfig,
+    Goals,
     Handling,
     HTTPAction,
     HTTPConfig,
@@ -481,19 +482,24 @@ def test_flow_builder_initialization():
     client = Client()
     builder = client.new_flow("flow-123")
     assert builder._flow_id == "flow-123"
-    assert builder._goals == []
+    assert builder._goals == Goals(steps=[])
 
 
 def test_flow_builder_with_goal():
     client = Client()
     builder = client.new_flow("flow-123").with_goal("step-1")
-    assert builder._goals == ["step-1"]
+    assert builder._goals == Goals(steps=["step-1"])
 
 
 def test_flow_builder_with_goals():
     client = Client()
-    builder = client.new_flow("flow-123").with_goals("step-1", "step-2")
-    assert builder._goals == ["step-1", "step-2"]
+    goals = Goals(steps=["step-1", "step-2"], else_=Goals(steps=["step-3"]))
+    builder = client.new_flow("flow-123").with_goals(goals)
+    assert builder._goals == goals
+    assert builder.with_goal("step-4")._goals == Goals(
+        steps=["step-1", "step-2"], else_=Goals(steps=["step-3", "step-4"])
+    )
+    assert builder._goals == goals
 
 
 def test_flow_builder_with_initial_state():
@@ -516,7 +522,7 @@ def test_flow_builder_start():
     client = Client()
     builder = (
         client.new_flow("flow-123")
-        .with_goals("step-1")
+        .with_goals(Goals(steps=["step-1"], else_=Goals(steps=["step-2"])))
         .with_initial_state({"name": ["Alice"]})
     )
     builder.start()
@@ -527,7 +533,7 @@ def test_flow_builder_start():
 
     data = json.loads(req_body)
     assert data["id"] == "flow-123"
-    assert data["goals"] == ["step-1"]
+    assert data["goals"] == {"steps": ["step-1"], "else": {"steps": ["step-2"]}}
     assert data["init"] == {"name": ["Alice"]}
 
 
@@ -593,23 +599,32 @@ def test_flow_builder_chaining():
         .with_goal("step-2")
         .with_initial_state({"name": ["Alice"]})
     )
-    assert builder._goals == ["step-1", "step-2"]
+    assert builder._goals == Goals(steps=["step-1", "step-2"])
     assert builder._initial_state == {"name": ["Alice"]}
 
 
 def test_step_builder_with_flow_goals():
     client = Client()
+    goals = Goals(steps=["step-1", "step-2"], else_=Goals(steps=["step-3"]))
     builder = (
         client.new_step()
         .with_name("FlowStep")
         .with_flow_space("payments")
-        .with_flow_goals("step-1", "step-2")
+        .with_flow_goals(goals)
     )
     step = builder.build()
     assert step.type == StepType.FLOW
     assert step.flow is not None
-    assert step.flow.goals == ["step-1", "step-2"]
+    assert step.flow.goals == goals
     assert step.flow.space_id == "payments"
+
+
+def test_step_builder_rejects_empty_flow_goal_set():
+    builder = Client().new_step().with_name("FlowStep")
+    with pytest.raises(StepValidationError):
+        builder.with_flow_goals(
+            Goals(steps=["step-1"], else_=Goals(steps=[]))
+        ).build()
 
 
 @responses.activate
@@ -624,7 +639,7 @@ def test_flow_builder_start_error():
     )
 
     client = Client()
-    builder = client.new_flow("flow-123").with_goals("step-1")
+    builder = client.new_flow("flow-123").with_goals(Goals(steps=["step-1"]))
 
     try:
         builder.start()
@@ -660,7 +675,7 @@ def _make_step(**overrides):
         _make_step(name=""),
         _make_step(type="invalid"),
         _make_step(http=None),
-        _make_step(flow=FlowConfig(goals=["g1"])),
+        _make_step(flow=FlowConfig(goals=Goals(steps=["g1"]))),
         _make_step(
             script=ScriptConfig(language=ScriptLanguage.LUA, script="x")
         ),
@@ -679,20 +694,20 @@ def _make_step(**overrides):
         _make_step(
             type=StepType.SCRIPT,
             script=ScriptConfig(language=ScriptLanguage.LUA, script="x"),
-            flow=FlowConfig(goals=["g1"]),
+            flow=FlowConfig(goals=Goals(steps=["g1"])),
             http=None,
         ),
         _make_step(type=StepType.FLOW, flow=None),
         _make_step(
             type=StepType.FLOW,
-            flow=FlowConfig(goals=["g1"]),
+            flow=FlowConfig(goals=Goals(steps=["g1"])),
             http=HTTPConfig(
                 invoke=HTTPAction(endpoint="http://localhost:8081/test")
             ),
         ),
         _make_step(
             type=StepType.FLOW,
-            flow=FlowConfig(goals=["g1"]),
+            flow=FlowConfig(goals=Goals(steps=["g1"])),
             script=ScriptConfig(language=ScriptLanguage.LUA, script="x"),
         ),
         _make_step(
@@ -741,7 +756,7 @@ def _make_step(**overrides):
         ),
         _make_step(
             type=StepType.FLOW,
-            flow=FlowConfig(goals=["g1"]),
+            flow=FlowConfig(goals=Goals(steps=["g1"])),
             script=ScriptConfig(language=ScriptLanguage.LUA, script="x"),
             http=None,
         ),

@@ -1,5 +1,5 @@
-import { Handling, HTTPMethod, StepType } from "@/app/api";
-import { getValidationError, parseFlowGoals } from "./stepValidationUtils";
+import { GoalSets, Handling, HTTPMethod, StepType } from "@/app/api";
+import { getValidationError } from "./stepValidationUtils";
 import { Attribute } from "./stepEditorTypes";
 
 const BASE_ARGS = {
@@ -11,18 +11,20 @@ const BASE_ARGS = {
   endpoint: "http://example.com",
   httpMethod: "POST" as HTTPMethod,
   httpTimeout: 1000,
-  flowGoals: "",
+  flowGoals: [] as GoalSets,
   handling: "standard" as Handling,
   compensateEndpoint: "",
 };
 
 describe("stepValidationUtils", () => {
-  test("parses flow goals", () => {
-    expect(parseFlowGoals("step-a, step-b\n\nstep-c")).toEqual([
-      "step-a",
-      "step-b",
-      "step-c",
-    ]);
+  test("accepts nested flow goals", () => {
+    expect(
+      getValidationError({
+        ...BASE_ARGS,
+        stepType: "flow",
+        flowGoals: [["step-a", "step-b"], ["step-c"]],
+      })
+    ).toBeNull();
   });
 
   test("requires step id in create mode", () => {
@@ -40,7 +42,7 @@ describe("stepValidationUtils", () => {
       getValidationError({
         ...BASE_ARGS,
         stepType: "flow",
-        flowGoals: " ",
+        flowGoals: [[]],
       })
     ).toEqual({ key: "stepEditor.flowGoalsRequired" });
   });

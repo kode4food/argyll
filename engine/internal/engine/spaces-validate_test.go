@@ -22,7 +22,7 @@ func TestSpaceSubFlowReferences(t *testing.T) {
 			Type:       api.StepTypeFlow,
 			Attributes: api.AttributeSpecs{},
 			Flow: &api.FlowConfig{
-				Goals:   []api.StepID{goal.ID},
+				Goals:   api.Goals{Steps: []api.StepID{goal.ID}},
 				SpaceID: "payments",
 			},
 		}

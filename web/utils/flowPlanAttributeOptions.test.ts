@@ -11,7 +11,7 @@ describe("flowPlanAttributeOptions", () => {
 
   it("marks required only when input is externally required by the plan", () => {
     const plan: ExecutionPlan = {
-      goals: ["goal-step"],
+      goals: { steps: ["goal-step"] },
       required: ["order_id"],
       attributes: {},
       steps: {
@@ -72,7 +72,7 @@ describe("flowPlanAttributeOptions", () => {
 
   it("keeps required true when the same input appears in multiple steps", () => {
     const plan: ExecutionPlan = {
-      goals: ["goal-a"],
+      goals: { steps: ["goal-a"] },
       required: ["user_id"],
       attributes: {},
       steps: {
@@ -110,7 +110,7 @@ describe("flowPlanAttributeOptions", () => {
 
   it("normalizes and carries default values for flow inputs", () => {
     const plan: ExecutionPlan = {
-      goals: ["goal-a"],
+      goals: { steps: ["goal-a"] },
       required: ["required_with_default"],
       attributes: {},
       steps: {
@@ -160,7 +160,7 @@ describe("flowPlanAttributeOptions", () => {
 
   it("places upstream-fulfilled inputs after local optional groups", () => {
     const plan: ExecutionPlan = {
-      goals: ["goal-step"],
+      goals: { steps: ["goal-step"] },
       required: ["order_id"],
       attributes: {},
       steps: {
@@ -214,7 +214,7 @@ describe("flowPlanAttributeOptions", () => {
 
   it("treats type-based defaults as optional-without-spec-default for sorting", () => {
     const plan: ExecutionPlan = {
-      goals: ["goal-step"],
+      goals: { steps: ["goal-step"] },
       required: [],
       attributes: {},
       steps: {
@@ -256,7 +256,7 @@ describe("flowPlanAttributeOptions", () => {
 
   it("prefers explicit spec defaults over type-derived defaults", () => {
     const plan: ExecutionPlan = {
-      goals: ["price-calculator", "order-creator"],
+      goals: { steps: ["price-calculator", "order-creator"] },
       required: ["quantity"],
       attributes: {},
       steps: {
@@ -300,7 +300,7 @@ describe("flowPlanAttributeOptions", () => {
 
   it("uses required as merged status when any step requires the input", () => {
     const plan: ExecutionPlan = {
-      goals: ["goal-step"],
+      goals: { steps: ["goal-step"] },
       required: [],
       attributes: {},
       steps: {
@@ -345,7 +345,7 @@ describe("flowPlanAttributeOptions", () => {
 
   it("includes unreachable attributes from excluded.missing", () => {
     const plan: ExecutionPlan = {
-      goals: ["goal-step"],
+      goals: { steps: ["goal-step"] },
       required: ["order_id"],
       attributes: {},
       steps: {
@@ -422,7 +422,7 @@ describe("flowPlanAttributeOptions", () => {
 
   it("skips unreachable attributes already available in plan", () => {
     const plan: ExecutionPlan = {
-      goals: ["goal-step"],
+      goals: { steps: ["goal-step"] },
       required: ["shared"],
       attributes: {},
       steps: {
@@ -483,7 +483,7 @@ describe("flowPlanAttributeOptions", () => {
 
   it("returns no unreachable attributes without catalog steps", () => {
     const plan: ExecutionPlan = {
-      goals: ["goal-step"],
+      goals: { steps: ["goal-step"] },
       required: [],
       attributes: {},
       steps: {

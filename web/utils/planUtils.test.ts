@@ -28,7 +28,7 @@ describe("planUtils", () => {
       const plan: ExecutionPlan = {
         steps: {},
         attributes: {},
-        goals: [],
+        goals: { steps: [] },
         required: [],
       };
       expect(getStepsFromPlan(plan)).toEqual([]);
@@ -41,7 +41,7 @@ describe("planUtils", () => {
           "step-2": { ...mockStep, id: "step-2", name: "Step 2" },
         },
         attributes: {},
-        goals: [],
+        goals: { steps: [] },
         required: [],
       };
 
@@ -58,7 +58,7 @@ describe("planUtils", () => {
           "step-1": mockStep,
         },
         attributes: {},
-        goals: [],
+        goals: { steps: [] },
         required: [],
       };
 

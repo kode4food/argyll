@@ -195,7 +195,7 @@ func (tx *catalogTx) prepareStep(st *api.Step) (*api.Step, error) {
 
 func (e *Engine) validateStepUpsert(
 	cat api.CatalogState, newStep *api.Step,
-	children func(*api.Step) ([]api.StepID, error),
+	children func(*api.Step) (*api.Goals, error),
 ) error {
 	if err := call.Perform(
 		call.WithArgs(validateAttributeTypes, cat, newStep),

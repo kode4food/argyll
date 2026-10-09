@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"slices"
 
 	"github.com/kode4food/timebox"
 
@@ -186,8 +185,7 @@ func (e *Engine) matchesStartedFlow(
 		if err != nil {
 			return false, err
 		}
-		return data.FlowID == fid &&
-			slices.Equal(data.Plan.Goals, pl.Goals) &&
+		return data.FlowID == fid && data.Plan.Goals.Equal(&pl.Goals) &&
 			initArgsEqual(data.Init, init), nil
 	}
 	return false, nil

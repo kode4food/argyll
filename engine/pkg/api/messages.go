@@ -37,7 +37,7 @@ type (
 	ExecutionPlanRequest struct {
 		Init    InitArgs `json:"init"`
 		SpaceID SpaceID  `json:"space_id,omitempty"`
-		Goals   []StepID `json:"goals"`
+		Goals   Goals    `json:"goals"`
 	}
 
 	// FlowStartedResponse is returned when a flow start succeeds
@@ -142,10 +142,10 @@ func (r *CreateFlowRequest) Validate() error {
 	if err := r.validateID(); err != nil {
 		return err
 	}
-	if len(r.Goals) == 0 {
+	if !r.Goals.Valid() {
 		return ErrGoalsRequired
 	}
-	if len(r.Goals) > MaxGoalCount {
+	if len(r.Goals.AllSteps()) > MaxGoalCount {
 		return fmt.Errorf("%w: maximum is %d", ErrTooManyGoals, MaxGoalCount)
 	}
 	if len(r.Init) > MaxInitKeys {

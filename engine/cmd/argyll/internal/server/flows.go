@@ -263,9 +263,9 @@ func (s *Server) handlePlanPreview(c *gin.Context) {
 		return
 	}
 
-	if len(req.Goals) == 0 {
+	if !req.Goals.Valid() {
 		c.JSON(http.StatusBadRequest, api.ErrorResponse{
-			Error:  "At least one goal step ID is required",
+			Error:  "Every goal set requires at least one goal step ID",
 			Status: http.StatusBadRequest,
 		})
 		return

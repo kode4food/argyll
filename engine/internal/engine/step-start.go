@@ -274,7 +274,7 @@ func (s *stepEval) canStart() (bool, time.Time) {
 	if !policy.StepPending(ex.Status) {
 		return false, time.Time{}
 	}
-	if !s.e.areOutputsNeeded(s.stepID, s.flow) {
+	if !s.e.areOutputsNeeded(s.stepID, s.flow, startGoals(s.flow)) {
 		return false, time.Time{}
 	}
 

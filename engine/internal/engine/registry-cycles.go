@@ -18,7 +18,7 @@ type (
 	// flowCycleWalker walks sub-flow goals, depth first
 	flowCycleWalker struct {
 		steps    api.Steps
-		children func(*api.Step) ([]api.StepID, error)
+		children func(*api.Step) (*api.Goals, error)
 		stack    stepSet
 	}
 
@@ -61,14 +61,14 @@ func (w *flowCycleWalker) check(sid api.StepID) error {
 	if err != nil {
 		return err
 	}
-	if len(childIDs) == 0 {
+	if childIDs == nil {
 		return nil
 	}
 
 	w.stack.Add(sid)
 	defer w.stack.Remove(sid)
 
-	for _, goalID := range childIDs {
+	for _, goalID := range childIDs.AllSteps() {
 		if err := w.check(goalID); err != nil {
 			return err
 		}
@@ -79,7 +79,7 @@ func (w *flowCycleWalker) check(sid api.StepID) error {
 
 func detectStepCycles(
 	cat api.CatalogState, newStep *api.Step,
-	children func(*api.Step) ([]api.StepID, error),
+	children func(*api.Step) (*api.Goals, error),
 ) error {
 	if err := detectAttributeCycles(cat, newStep); err != nil {
 		return err
@@ -102,7 +102,7 @@ func detectAttributeCycles(cat api.CatalogState, newStep *api.Step) error {
 
 func detectFlowCycles(
 	cat api.CatalogState, newStep *api.Step,
-	children func(*api.Step) ([]api.StepID, error),
+	children func(*api.Step) (*api.Goals, error),
 ) error {
 	steps := stepsIncluding(cat, newStep)
 	for sid := range steps {

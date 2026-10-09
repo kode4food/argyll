@@ -9,6 +9,7 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/events"
 	"github.com/kode4food/argyll/engine/pkg/policy"
+	"github.com/kode4food/argyll/engine/pkg/util"
 )
 
 var (
@@ -85,24 +86,15 @@ func (e *Engine) GetAttribute(
 	return nil, false, nil
 }
 
-// IsFlowFailed determines if a flow has failed by checking whether any of its
-// goal steps cannot be completed
+// IsFlowFailed determines if a flow has failed by checking whether every one of
+// its goal sets has become impossible
 func (e *Engine) IsFlowFailed(fl api.FlowState) bool {
-	viableGoal := false
-	for _, goalID := range fl.Plan.Goals {
-		ex := fl.Executions[goalID]
-		if policy.StepFailed(ex.Status) {
-			return true
+	for _, goals := range fl.Plan.Goals.Sets() {
+		if !e.goalSetImpossible(goals, fl) {
+			return false
 		}
-		if policy.StepPrunedByRequiredMatch(ex.Status, ex.Error) {
-			continue
-		}
-		if !e.canStepComplete(goalID, fl) {
-			return true
-		}
-		viableGoal = true
 	}
-	return !viableGoal
+	return true
 }
 
 // HasInputProvider checks if a required attribute has at least one step that
@@ -125,12 +117,23 @@ func (e *Engine) HasInputProvider(name api.Name, fl api.FlowState) bool {
 	return false
 }
 
-func (e *Engine) areOutputsNeeded(sid api.StepID, fl api.FlowState) bool {
-	pl := fl.Plan
-	if slices.Contains(pl.Goals, sid) {
+func (e *Engine) goalSetImpossible(goals []api.StepID, fl api.FlowState) bool {
+	return goalSetFailed(goals, fl) || slices.ContainsFunc(goals,
+		func(sid api.StepID) bool {
+			ex := fl.Executions[sid]
+			return !policy.StepPrunedByRequiredMatch(ex.Status, ex.Error) &&
+				!e.canStepComplete(sid, fl)
+		},
+	)
+}
+
+func (e *Engine) areOutputsNeeded(
+	sid api.StepID, fl api.FlowState, goals []api.StepID,
+) bool {
+	if slices.Contains(goals, sid) {
 		return true
 	}
-	return e.needsOutputs(pl.Steps[sid], fl)
+	return e.needsOutputs(fl.Plan.Steps[sid], fl, goalScope(fl.Plan, goals))
 }
 
 func (e *Engine) canStepComplete(sid api.StepID, fl api.FlowState) bool {
@@ -201,17 +204,22 @@ func (e *Engine) matchGateUnsatisfiedInputs(
 	return unsatisfied, nil
 }
 
-func (e *Engine) needsOutputs(st *api.Step, fl api.FlowState) bool {
+func (e *Engine) needsOutputs(
+	st *api.Step, fl api.FlowState, scope util.Set[api.StepID],
+) bool {
 	for name, attr := range st.Attributes {
-		if e.needsOutput(name, attr, fl) {
+		if e.needsOutput(name, attr, fl, scope) {
 			return true
 		}
 	}
 	return false
 }
 
+// needsOutput reports whether a pending consumer within scope still needs
+// the named output
 func (e *Engine) needsOutput(
 	name api.Name, attr *api.AttributeSpec, fl api.FlowState,
+	scope util.Set[api.StepID],
 ) bool {
 	if !attr.IsOutput() {
 		return false
@@ -224,7 +232,7 @@ func (e *Engine) needsOutput(
 
 	for _, sid := range deps.Consumers {
 		ex, ok := fl.Executions[sid]
-		if !ok || !policy.StepPending(ex.Status) {
+		if !ok || !policy.StepPending(ex.Status) || !scope.Contains(sid) {
 			continue
 		}
 		consumer := fl.Plan.Steps[sid]
@@ -256,14 +264,51 @@ func (e *Engine) inputHasValue(
 	return len(matched) > 0
 }
 
+// isFlowComplete reports whether the active goal set has succeeded and no step
+// is still pending or running
 func isFlowComplete(fl api.FlowState) bool {
+	active := activeGoals(fl)
+	if active == nil || !goalsComplete(active.Steps, fl) {
+		return false
+	}
 	for sid := range fl.Plan.Steps {
-		ex := fl.Executions[sid]
-		if !policy.StepComplete(ex.Status) {
+		if !policy.StepTerminal(fl.Executions[sid].Status) {
 			return false
 		}
 	}
-	return !allGoalsPruned(fl)
+	return true
+}
+
+// activeGoals returns the first link in the goal chain that has not failed,
+// since checkUnreachable fails impossible pending goals before any start
+func activeGoals(fl api.FlowState) *api.Goals {
+	for g := &fl.Plan.Goals; g != nil; g = g.Else {
+		if !goalSetFailed(g.Steps, fl) {
+			return g
+		}
+	}
+	return nil
+}
+
+// startGoals returns the goals whose work may start: the active set only
+func startGoals(fl api.FlowState) []api.StepID {
+	if active := activeGoals(fl); active != nil {
+		return active.Steps
+	}
+	return nil
+}
+
+// keptGoals returns the goals whose outputs must be kept: the active set once
+// it succeeds, otherwise the active set and every later fallback set
+func keptGoals(fl api.FlowState) []api.StepID {
+	active := activeGoals(fl)
+	if active == nil {
+		return fl.Plan.Goals.AllSteps()
+	}
+	if goalsComplete(active.Steps, fl) {
+		return active.Steps
+	}
+	return active.AllSteps()
 }
 
 func hasPendingMatchGate(st *api.Step, fl api.FlowState) bool {
@@ -279,17 +324,47 @@ func hasPendingMatchGate(st *api.Step, fl api.FlowState) bool {
 	return false
 }
 
-func allGoalsPruned(fl api.FlowState) bool {
-	if len(fl.Plan.Goals) == 0 {
-		return false
-	}
-	for _, sid := range fl.Plan.Goals {
+// goalSetFailed reports whether a goal in the set failed, or every goal in it
+// was pruned by a required match
+func goalSetFailed(goals []api.StepID, fl api.FlowState) bool {
+	viableGoal := false
+	for _, sid := range goals {
 		ex := fl.Executions[sid]
+		if policy.StepFailed(ex.Status) {
+			return true
+		}
 		if !policy.StepPrunedByRequiredMatch(ex.Status, ex.Error) {
-			return false
+			viableGoal = true
 		}
 	}
-	return true
+	return !viableGoal
+}
+
+func goalsComplete(goals []api.StepID, fl api.FlowState) bool {
+	return !slices.ContainsFunc(goals, func(sid api.StepID) bool {
+		return !policy.StepComplete(fl.Executions[sid].Status)
+	})
+}
+
+// goalScope returns the goals plus every plan step that can feed them
+func goalScope(pl *api.ExecutionPlan, goals []api.StepID) util.Set[api.StepID] {
+	res := util.Set[api.StepID]{}
+	todo := slices.Clone(goals)
+	for len(todo) > 0 {
+		sid := todo[len(todo)-1]
+		todo = todo[:len(todo)-1]
+		st, ok := pl.Steps[sid]
+		if !ok || res.Contains(sid) {
+			continue
+		}
+		res.Add(sid)
+		for name, attr := range st.Attributes {
+			if deps, ok := pl.Attributes[name]; ok && attr.IsInput() {
+				todo = append(todo, deps.Providers...)
+			}
+		}
+	}
+	return res
 }
 
 func canCollectAll(name api.Name, fl api.FlowState) bool {

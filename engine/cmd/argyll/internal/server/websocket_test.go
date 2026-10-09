@@ -811,7 +811,7 @@ func wsPlan(sid api.StepID) *api.ExecutionPlan {
 		},
 	}
 	return &api.ExecutionPlan{
-		Goals: []api.StepID{sid},
+		Goals: api.Goals{Steps: []api.StepID{sid}},
 		Steps: api.Steps{sid: st},
 	}
 }

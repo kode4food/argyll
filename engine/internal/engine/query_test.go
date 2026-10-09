@@ -346,7 +346,7 @@ func TestSkipChildFlows(t *testing.T) {
 			Name: "Subflow List",
 			Type: api.StepTypeFlow,
 			Flow: &api.FlowConfig{
-				Goals: []api.StepID{child.ID},
+				Goals: api.Goals{Steps: []api.StepID{child.ID}},
 			},
 			Attributes: api.AttributeSpecs{},
 		}
@@ -360,7 +360,7 @@ func TestSkipChildFlows(t *testing.T) {
 			Match:    env.Engine.Matcher,
 			Children: env.Engine.Children,
 			Steps:    cat.Steps,
-			Goals:    []api.StepID{parent.ID},
+			Goals:    api.Goals{Steps: []api.StepID{parent.ID}},
 			Init:     api.InitArgs{},
 		})
 		assert.NoError(t, err)

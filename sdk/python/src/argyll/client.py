@@ -149,6 +149,7 @@ class Client:
             BackoffType,
             ConstConfig,
             FlowConfig,
+            Goals,
             Handling,
             HTTPAction,
             HTTPConfig,
@@ -293,7 +294,7 @@ class Client:
         if "flow" in data:
             flow_data = data["flow"]
             flow = FlowConfig(
-                goals=flow_data["goals"],
+                goals=Goals.from_dict(flow_data["goals"]),
                 space_id=flow_data.get("space_id", ""),
             )
 

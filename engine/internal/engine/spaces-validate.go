@@ -41,7 +41,7 @@ func (e *Engine) validateSpaceGoals(cat api.CatalogState, sp api.Space) error {
 func (e *Engine) validateSubFlowGoals(
 	steps api.Steps, st *api.Step, sp api.Space,
 ) error {
-	for _, goalID := range st.Flow.Goals {
+	for _, goalID := range st.Flow.Goals.AllSteps() {
 		goal, ok := steps[goalID]
 		if !ok {
 			return fmt.Errorf("%w: %s", api.ErrStepNotFound, goalID)
@@ -73,7 +73,7 @@ func spaceSubFlowGoal(
 ) (api.StepID, bool) {
 	for id, st := range cat.Steps {
 		if st.Flow != nil && st.Flow.SpaceID != api.NoSpace &&
-			slices.Contains(st.Flow.Goals, goalID) {
+			slices.Contains(st.Flow.Goals.AllSteps(), goalID) {
 			return id, true
 		}
 	}

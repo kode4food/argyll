@@ -410,7 +410,10 @@ def test_parse_step_with_all_fields():
                         "parallelism": 2,
                     },
                     "flow": {
-                        "goals": ["step-1", "step-2"],
+                        "goals": {
+                            "steps": ["step-1", "step-2"],
+                            "else": {"steps": ["step-3"]},
+                        },
                     },
                     "handling": "compensated",
                 }
@@ -439,4 +442,5 @@ def test_parse_step_with_all_fields():
     assert step.predicate is not None
     assert step.work_config is not None
     assert step.flow is not None
+    assert step.flow.goals.sets() == [["step-1", "step-2"], ["step-3"]]
     assert step.handling == Handling.COMPENSATED

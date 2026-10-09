@@ -43,7 +43,7 @@ func TestOptionalInputsWithDefaults(t *testing.T) {
 		env.MockClient.SetResponse("step-b", api.Args{"result": "done"})
 
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{"step-b"},
+			Goals: api.Goals{Steps: []api.StepID{"step-b"}},
 			Steps: api.Steps{
 				"step-a": stepA,
 				"step-b": stepB,

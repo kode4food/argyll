@@ -56,7 +56,6 @@ jest.mock("@/app/contexts/UIContext", () => ({
   UIProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
   useUI: () => ({
     goalSteps: [],
-    toggleGoalStep: jest.fn(),
     setGoalSteps: jest.fn(),
     focusedPreviewAttribute: null,
     setFocusedPreviewAttribute: jest.fn(),
@@ -143,7 +142,6 @@ describe("OverviewDiagramView", () => {
       <DiagramSelectionProvider
         value={{
           goalSteps: [],
-          toggleGoalStep: jest.fn(),
           setGoalSteps: jest.fn(),
         }}
       >
@@ -163,7 +161,6 @@ describe("OverviewDiagramView", () => {
       <DiagramSelectionProvider
         value={{
           goalSteps: [],
-          toggleGoalStep: jest.fn(),
           setGoalSteps: jest.fn(),
         }}
       >
@@ -178,8 +175,7 @@ describe("OverviewDiagramView", () => {
     const { getByTestId } = render(
       <DiagramSelectionProvider
         value={{
-          goalSteps: ["s1"],
-          toggleGoalStep: jest.fn(),
+          goalSteps: [["s1"]],
           setGoalSteps: jest.fn(),
         }}
       >
@@ -196,7 +192,7 @@ describe("OverviewDiagramView", () => {
 
   it("renders floating preview hud when preview is active", () => {
     previewHookState.previewPlan = {
-      goals: ["s1"],
+      goals: { steps: ["s1"] },
       steps: {
         s1: {
           step: { id: "s1", name: "Step 1", type: "service", attributes: {} },
@@ -213,8 +209,7 @@ describe("OverviewDiagramView", () => {
     render(
       <DiagramSelectionProvider
         value={{
-          goalSteps: ["s1"],
-          toggleGoalStep: jest.fn(),
+          goalSteps: [["s1"]],
           setGoalSteps: jest.fn(),
         }}
       >
@@ -243,7 +238,6 @@ describe("OverviewDiagramView", () => {
       <DiagramSelectionProvider
         value={{
           goalSteps: [],
-          toggleGoalStep: jest.fn(),
           setGoalSteps: jest.fn(),
         }}
       >
@@ -265,7 +259,6 @@ describe("OverviewDiagramView", () => {
       <DiagramSelectionProvider
         value={{
           goalSteps: [],
-          toggleGoalStep: jest.fn(),
           setGoalSteps: jest.fn(),
         }}
       >

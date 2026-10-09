@@ -258,11 +258,17 @@ def test_work_config_to_dict():
 
 
 def test_flow_config_to_dict():
-    from argyll.types import FlowConfig
+    from argyll.types import FlowConfig, Goals
 
-    config = FlowConfig(goals=["step-1", "step-2"], space_id="payments")
+    config = FlowConfig(
+        goals=Goals(steps=["step-1", "step-2"], else_=Goals(steps=["step-3"])),
+        space_id="payments",
+    )
     result = config.to_dict()
-    assert result["goals"] == ["step-1", "step-2"]
+    assert result["goals"] == {
+        "steps": ["step-1", "step-2"],
+        "else": {"steps": ["step-3"]},
+    }
     assert result["space_id"] == "payments"
 
 
@@ -270,6 +276,7 @@ def test_step_with_all_fields():
     from argyll.types import (
         BackoffType,
         FlowConfig,
+        Goals,
         WorkConfig,
     )
 
@@ -302,7 +309,7 @@ def test_step_with_all_fields():
             backoff=1000,
             max_backoff=10000,
         ),
-        flow=FlowConfig(goals=["step-1"]),
+        flow=FlowConfig(goals=Goals(steps=["step-1"])),
         handling=Handling.MEMOIZED,
     )
 
@@ -315,7 +322,7 @@ def test_step_with_all_fields():
     assert result["script"]["script"] == "return 1 + 2"
     assert result["predicate"]["script"] == "return true"
     assert result["work_config"]["max_retries"] == 3
-    assert result["flow"]["goals"] == ["step-1"]
+    assert result["flow"]["goals"] == {"steps": ["step-1"]}
     assert result["handling"] == "memoized"
 
 

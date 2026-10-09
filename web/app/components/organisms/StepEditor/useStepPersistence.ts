@@ -1,5 +1,5 @@
 import { useCallback, useState } from "react";
-import { ArgyllApi, Step } from "@/app/api";
+import { ArgyllApi, toGoalSets, Step } from "@/app/api";
 import {
   buildAttributesFromStep,
   getValidationError,
@@ -77,7 +77,7 @@ export function useStepPersistence({
         endpoint: stepData.http?.invoke?.endpoint || "",
         httpMethod: normalizeHttpMethod(stepData.http?.invoke?.method),
         httpTimeout: stepData.http?.invoke?.timeout || 0,
-        flowGoals: stepData.flow?.goals?.join(", ") || "",
+        flowGoals: toGoalSets(stepData.flow?.goals),
         handling: stepData.handling || "standard",
         compensateEndpoint: stepData.http?.compensate?.endpoint || "",
       });

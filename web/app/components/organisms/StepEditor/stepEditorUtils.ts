@@ -1,12 +1,14 @@
 import {
   ActionMode,
   AttributeSpec,
+  fromGoalSets,
+  GoalSets,
   Handling,
   HTTPMethod,
   Step,
   StepType,
 } from "@/app/api";
-import { parseFlowGoals } from "./stepValidationUtils";
+import { nonEmptyGoalSets } from "@/utils/goalSets";
 
 export type {
   AttributeRoleType,
@@ -19,7 +21,6 @@ export {
 } from "./stepAttributeUtils";
 export {
   getValidationError,
-  parseFlowGoals,
   validateAttributesList,
 } from "./stepValidationUtils";
 
@@ -75,7 +76,7 @@ export function buildStepPayload({
   compensateTimeout: number;
   compensateMode: ActionMode;
   httpTimeout: number;
-  flowGoals: string;
+  flowGoals: GoalSets;
   flowCompensate: boolean;
   flowSpaceId: string;
   handling: Handling;
@@ -98,7 +99,7 @@ export function buildStepPayload({
 
   if (stepType === "flow") {
     stepData.flow = {
-      goals: parseFlowGoals(flowGoals),
+      goals: fromGoalSets(nonEmptyGoalSets(flowGoals)),
       compensate: flowCompensate,
       space_id: flowSpaceId || undefined,
     };

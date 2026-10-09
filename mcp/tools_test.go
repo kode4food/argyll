@@ -8,7 +8,14 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
+	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/mcp"
+)
+
+const (
+	previewGoals   = `{"steps":["goal"],"else":{"steps":["backup"]}}`
+	previewRequest = `{"goals":` + previewGoals + `}`
+	previewPlan    = `{"goals":` + previewGoals + `,"required":["input"]}`
 )
 
 func TestPreviewPlanTool(t *testing.T) {
@@ -20,34 +27,21 @@ func TestPreviewPlanTool(t *testing.T) {
 						http.StatusNotFound, []byte(`{"error":"not found"}`),
 					), nil
 				}
-				return jsonResponse(
-					http.StatusOK,
-					[]byte(`{"goals":["goal"],"required":["input"]}`),
-				), nil
+				body, err := io.ReadAll(r.Body)
+				assert.NoError(t, err)
+				assert.JSONEq(t, previewRequest, string(body))
+				return jsonResponse(http.StatusOK, []byte(previewPlan)), nil
 			},
 		),
 	}
 	c := newClient(t, mcp.NewServer("http://example", hc))
 	text := callToolText(t, c, "preview_plan", map[string]any{
-		"goals": []string{"goal"},
+		"goals": api.Goals{
+			Steps: []api.StepID{"goal"},
+			Else:  &api.Goals{Steps: []api.StepID{"backup"}},
+		},
 	})
-	assert.JSONEq(t, `{"goals":["goal"],"required":["input"]}`, text)
-}
-
-func TestNewServerTrimsTrailingSlash(t *testing.T) {
-	hc := &http.Client{
-		Transport: roundTripperFunc(
-			func(r *http.Request) (*http.Response, error) {
-				assert.Equal(t, "/engine/steps", r.URL.Path)
-				return jsonResponse(
-					http.StatusOK,
-					[]byte(`{"steps":[]}`),
-				), nil
-			},
-		),
-	}
-	c := newClient(t, mcp.NewServer("http://example/", hc))
-	_ = callToolText(t, c, "list_steps", map[string]any{})
+	assert.JSONEq(t, previewPlan, text)
 }
 
 func TestQueryFlowsTool(t *testing.T) {

@@ -24,7 +24,7 @@ func TestWaitForFlowCompletedEvent(t *testing.T) {
 		env.MockClient.SetResponse(st.ID, api.Args{})
 
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{st.ID},
+			Goals: api.Goals{Steps: []api.StepID{st.ID}},
 			Steps: api.Steps{st.ID: st},
 		}
 
@@ -54,7 +54,7 @@ func TestWaitForFlowFailedEvent(t *testing.T) {
 		env.MockClient.SetError(st.ID, assert.AnError)
 
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{st.ID},
+			Goals: api.Goals{Steps: []api.StepID{st.ID}},
 			Steps: api.Steps{st.ID: st},
 		}
 
@@ -84,7 +84,7 @@ func TestWaitForStepStartedEvent(t *testing.T) {
 		env.MockClient.SetResponse(st.ID, api.Args{})
 
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{st.ID},
+			Goals: api.Goals{Steps: []api.StepID{st.ID}},
 			Steps: api.Steps{st.ID: st},
 		}
 
@@ -113,7 +113,7 @@ func TestWaitForStepTerminalEvent(t *testing.T) {
 		env.MockClient.SetResponse(st.ID, api.Args{})
 
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{st.ID},
+			Goals: api.Goals{Steps: []api.StepID{st.ID}},
 			Steps: api.Steps{st.ID: st},
 		}
 
@@ -148,7 +148,7 @@ func TestWaitForWorkSucceededEvent(t *testing.T) {
 		env.MockClient.SetResponse(st.ID, api.Args{})
 
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{st.ID},
+			Goals: api.Goals{Steps: []api.StepID{st.ID}},
 			Steps: api.Steps{st.ID: st},
 		}
 
@@ -177,7 +177,7 @@ func TestWaitForWorkFailedEvent(t *testing.T) {
 		env.MockClient.SetError(st.ID, assert.AnError)
 
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{st.ID},
+			Goals: api.Goals{Steps: []api.StepID{st.ID}},
 			Steps: api.Steps{st.ID: st},
 		}
 
@@ -212,7 +212,7 @@ func TestWaitForWorkRetryScheduledEvent(t *testing.T) {
 		env.MockClient.SetError(st.ID, api.ErrWorkNotCompleted)
 
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{st.ID},
+			Goals: api.Goals{Steps: []api.StepID{st.ID}},
 			Steps: api.Steps{st.ID: st},
 		}
 
@@ -258,7 +258,7 @@ func TestWaitFlowCompleted(t *testing.T) {
 		env.MockClient.SetResponse(st.ID, api.Args{})
 
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{st.ID},
+			Goals: api.Goals{Steps: []api.StepID{st.ID}},
 			Steps: api.Steps{st.ID: st},
 		}
 
@@ -284,7 +284,7 @@ func TestWaitFlowFailed(t *testing.T) {
 		env.MockClient.SetError(st.ID, assert.AnError)
 
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{st.ID},
+			Goals: api.Goals{Steps: []api.StepID{st.ID}},
 			Steps: api.Steps{st.ID: st},
 		}
 
@@ -316,7 +316,7 @@ func TestWaitFlowStatusTerminal(t *testing.T) {
 		env.MockClient.SetError(st.ID, api.ErrWorkNotCompleted)
 
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{st.ID},
+			Goals: api.Goals{Steps: []api.StepID{st.ID}},
 			Steps: api.Steps{st.ID: st},
 		}
 
@@ -348,7 +348,7 @@ func TestWaitStepCompleted(t *testing.T) {
 		env.MockClient.SetResponse(st.ID, api.Args{"result": "done"})
 
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{st.ID},
+			Goals: api.Goals{Steps: []api.StepID{st.ID}},
 			Steps: api.Steps{st.ID: st},
 		}
 
@@ -374,7 +374,7 @@ func TestWaitStepFailed(t *testing.T) {
 		env.MockClient.SetError(st.ID, assert.AnError)
 
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{st.ID},
+			Goals: api.Goals{Steps: []api.StepID{st.ID}},
 			Steps: api.Steps{st.ID: st},
 		}
 
@@ -400,7 +400,7 @@ func TestWaitStepSkipped(t *testing.T) {
 		assert.NoError(t, err)
 
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{st.ID},
+			Goals: api.Goals{Steps: []api.StepID{st.ID}},
 			Steps: api.Steps{st.ID: st},
 		}
 
@@ -425,7 +425,7 @@ func TestWaitForHelper(t *testing.T) {
 		env.MockClient.SetResponse(st.ID, api.Args{})
 
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{st.ID},
+			Goals: api.Goals{Steps: []api.StepID{st.ID}},
 			Steps: api.Steps{st.ID: st},
 		}
 		id := api.FlowID("waitfor-flow")
@@ -468,7 +468,7 @@ func TestWaitAfterAllHelper(t *testing.T) {
 		env.MockClient.SetResponse(st.ID, api.Args{})
 
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{st.ID},
+			Goals: api.Goals{Steps: []api.StepID{st.ID}},
 			Steps: api.Steps{st.ID: st},
 		}
 		id := api.FlowID("waitafterall-flow")

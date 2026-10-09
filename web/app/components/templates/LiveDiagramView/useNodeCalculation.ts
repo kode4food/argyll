@@ -1,6 +1,6 @@
 import React, { useMemo } from "react";
 import { Node } from "@xyflow/react";
-import { Step, FlowContext, ExecutionResult } from "@/app/api";
+import { toGoalSets, Step, FlowContext, ExecutionResult } from "@/app/api";
 import { stepLayout } from "@/constants/layout";
 import { loadNodePositions } from "@/utils/nodePositioning";
 import {
@@ -76,7 +76,9 @@ export const useNodeCalculation = (
           flowData,
           executions,
           resolvedAttributes,
-          isGoalStep: flowData?.plan?.goals?.includes(step.id),
+          isGoalStep: toGoalSets(flowData?.plan?.goals)
+            .flat()
+            .includes(step.id),
           isStartingPoint: startingPoints.has(step.id),
           diagramContainerRef,
         },

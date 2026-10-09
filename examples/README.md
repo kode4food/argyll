@@ -25,7 +25,7 @@ curl -X POST http://localhost:8080/engine/flows \
   -H "Content-Type: application/json" \
   -d '{
     "id": "complete-order-flow",
-    "goals": ["notification-sender"],
+    "goals": {"steps": ["notification-sender"]},
     "init": {
       "user_id": ["user-123"],
       "product_id": ["prod-laptop"],
@@ -34,7 +34,7 @@ curl -X POST http://localhost:8080/engine/flows \
   }'
 ```
 
-The Goal pulls in customer resolution, inventory lookup, order creation, stock reservation, and async payment processing through their Attribute dependencies. Payment completion takes approximately 5–15 seconds.
+`goals` is a chain of fallback goal sets: every one of `steps` must succeed, and the set in `else` is attempted only when `steps` becomes impossible, reusing the work already done. The Goal pulls in customer resolution, inventory lookup, order creation, stock reservation, and async payment processing through their Attribute dependencies. Payment completion takes approximately 5–15 seconds.
 
 Inspect the Flow through the UI at `http://localhost:3001` or the API:
 

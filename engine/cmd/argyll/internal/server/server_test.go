@@ -223,7 +223,7 @@ func TestStartFlow(t *testing.T) {
 
 		reqBody := api.CreateFlowRequest{
 			ID:    "test-flow",
-			Goals: []api.StepID{"wf-step"},
+			Goals: api.Goals{Steps: []api.StepID{"wf-step"}},
 		}
 
 		body, _ := json.Marshal(reqBody)
@@ -306,7 +306,7 @@ func TestSuccess(t *testing.T) {
 			},
 			func() {
 				err = testEnv.Engine.StartPlan("webhook-wf", &api.ExecutionPlan{
-					Goals: []api.StepID{"async-step"},
+					Goals: api.Goals{Steps: []api.StepID{"async-step"}},
 					Steps: api.Steps{
 						"async-step": st,
 					},
@@ -381,7 +381,7 @@ func TestHookStepNotFound(t *testing.T) {
 		assert.NoError(t, err)
 
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{"async-step"},
+			Goals: api.Goals{Steps: []api.StepID{"async-step"}},
 			Steps: api.Steps{
 				"async-step": st,
 			},
@@ -437,7 +437,7 @@ func TestHookInvalidToken(t *testing.T) {
 			},
 			func() {
 				err = testEnv.Engine.StartPlan("webhook-wf", &api.ExecutionPlan{
-					Goals: []api.StepID{"async-step"},
+					Goals: api.Goals{Steps: []api.StepID{"async-step"}},
 					Steps: api.Steps{
 						"async-step": st,
 					},
@@ -490,7 +490,7 @@ func TestHookInvalidJSONRoute(t *testing.T) {
 			},
 			func() {
 				err = testEnv.Engine.StartPlan("webhook-wf", &api.ExecutionPlan{
-					Goals: []api.StepID{"async-step"},
+					Goals: api.Goals{Steps: []api.StepID{"async-step"}},
 					Steps: api.Steps{
 						"async-step": st,
 					},
@@ -559,7 +559,7 @@ func TestHookFailurePath(t *testing.T) {
 			func() {
 				err = testEnv.Engine.StartPlan(
 					"wf-fail-path", &api.ExecutionPlan{
-						Goals: []api.StepID{"async-step"},
+						Goals: api.Goals{Steps: []api.StepID{"async-step"}},
 						Steps: api.Steps{
 							"async-step": st,
 						},
@@ -609,7 +609,7 @@ func TestGetFlow(t *testing.T) {
 		assert.NoError(t, err)
 
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{"get-wf-step"},
+			Goals: api.Goals{Steps: []api.StepID{"get-wf-step"}},
 			Steps: api.Steps{
 				"get-wf-step": st,
 			},
@@ -644,7 +644,7 @@ func TestGetFlowStatus(t *testing.T) {
 		assert.NoError(t, err)
 
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{"status-wf-step"},
+			Goals: api.Goals{Steps: []api.StepID{"status-wf-step"}},
 			Steps: api.Steps{
 				"status-wf-step": st,
 			},
@@ -990,7 +990,7 @@ func TestEngineHealthByIDFlow(t *testing.T) {
 			Name: "Flow Step",
 			Type: api.StepTypeFlow,
 			Flow: &api.FlowConfig{
-				Goals: []api.StepID{goalA.ID, goalB.ID},
+				Goals: api.Goals{Steps: []api.StepID{goalA.ID, goalB.ID}},
 			},
 			Attributes: api.AttributeSpecs{
 				"out": {Role: api.RoleOutput},
@@ -1047,7 +1047,7 @@ func TestStartFlowEmptyID(t *testing.T) {
 
 		reqData := map[string]any{
 			"id":    "",
-			"goals": []string{"test-step"},
+			"goals": api.Goals{Steps: []api.StepID{"test-step"}},
 			"init":  map[string]any{},
 		}
 
@@ -1087,6 +1087,27 @@ func TestStartFlowNoGoals(t *testing.T) {
 	})
 }
 
+func TestStartFlowFlatGoals(t *testing.T) {
+	withTestServerEnv(t, func(testEnv *testServerEnv) {
+		st := helpers.NewSimpleStep("test-step")
+		assert.NoError(t, testEnv.Engine.RegisterStep(st))
+
+		body := `{"id":"flat-goals","goals":["test-step"]}`
+		req := httptest.NewRequest(
+			"POST", "/engine/flows", strings.NewReader(body),
+		)
+		req.Header.Set("Content-Type", api.JSONContentType)
+		w := httptest.NewRecorder()
+
+		router := testEnv.Server.SetupRoutes()
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+		_, err := testEnv.Engine.GetFlowState("flat-goals")
+		assert.ErrorIs(t, err, api.ErrFlowNotFound)
+	})
+}
+
 func TestStartFlowMissingRequiredInputs(t *testing.T) {
 	withTestServerEnv(t, func(testEnv *testServerEnv) {
 		st := &api.Step{
@@ -1107,7 +1128,7 @@ func TestStartFlowMissingRequiredInputs(t *testing.T) {
 
 		reqBody := api.CreateFlowRequest{
 			ID:    "wf-missing-input",
-			Goals: []api.StepID{"required-input-step"},
+			Goals: api.Goals{Steps: []api.StepID{"required-input-step"}},
 		}
 
 		body, _ := json.Marshal(reqBody)
@@ -1155,7 +1176,7 @@ func TestListFlowsEndpoint(t *testing.T) {
 		assert.NoError(t, err)
 
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{st.ID},
+			Goals: api.Goals{Steps: []api.StepID{st.ID}},
 			Steps: api.Steps{st.ID: st},
 		}
 
@@ -1259,7 +1280,7 @@ func TestPlanPreview(t *testing.T) {
 		assert.NoError(t, err)
 
 		reqData := map[string]any{
-			"goals": []string{"step-b"},
+			"goals": api.Goals{Steps: []api.StepID{"step-b"}},
 			"init":  map[string]any{},
 		}
 
@@ -1280,8 +1301,8 @@ func TestPlanPreview(t *testing.T) {
 		var response api.ExecutionPlan
 		err = json.Unmarshal(w.Body.Bytes(), &response)
 		assert.NoError(t, err)
-		assert.Len(t, response.Goals, 1)
-		assert.Equal(t, api.StepID("step-b"), response.Goals[0])
+		assert.Equal(t,
+			api.Goals{Steps: []api.StepID{"step-b"}}, response.Goals)
 		assert.Contains(t, response.Steps, api.StepID("step-a"))
 		assert.Contains(t, response.Steps, api.StepID("step-b"))
 		assert.Equal(t, []api.Name{"seed"}, response.Required)
@@ -1325,7 +1346,7 @@ func TestPlanPreviewNoGoals(t *testing.T) {
 func TestPlanPreviewStepNotFound(t *testing.T) {
 	withTestServerEnv(t, func(testEnv *testServerEnv) {
 		reqData := map[string]any{
-			"goals": []string{"nonexistent-step"},
+			"goals": api.Goals{Steps: []api.StepID{"nonexistent-step"}},
 			"init":  map[string]any{},
 		}
 
@@ -1353,7 +1374,7 @@ func TestStartFlowDuplicate(t *testing.T) {
 			assert.NoError(t, err)
 
 			pl := &api.ExecutionPlan{
-				Goals: []api.StepID{"dup-wf-step"},
+				Goals: api.Goals{Steps: []api.StepID{"dup-wf-step"}},
 				Steps: api.Steps{
 					"dup-wf-step": st,
 				},
@@ -1364,7 +1385,7 @@ func TestStartFlowDuplicate(t *testing.T) {
 
 			reqBody := api.CreateFlowRequest{
 				ID:    "duplicate-flow",
-				Goals: []api.StepID{"dup-wf-step"},
+				Goals: api.Goals{Steps: []api.StepID{"dup-wf-step"}},
 			}
 
 			body, _ := json.Marshal(reqBody)
@@ -1391,7 +1412,7 @@ func TestStartFlowDuplicate(t *testing.T) {
 			assert.NoError(t, testEnv.Engine.RegisterStep(st2))
 
 			pl := &api.ExecutionPlan{
-				Goals: []api.StepID{"dup-wf-step"},
+				Goals: api.Goals{Steps: []api.StepID{"dup-wf-step"}},
 				Steps: api.Steps{
 					"dup-wf-step": st1,
 				},
@@ -1402,7 +1423,7 @@ func TestStartFlowDuplicate(t *testing.T) {
 
 			reqBody := api.CreateFlowRequest{
 				ID:    "duplicate-flow",
-				Goals: []api.StepID{"other-wf-step"},
+				Goals: api.Goals{Steps: []api.StepID{"other-wf-step"}},
 			}
 
 			body, _ := json.Marshal(reqBody)
@@ -1425,7 +1446,7 @@ func TestStartFlowStepNotFound(t *testing.T) {
 	withTestServerEnv(t, func(testEnv *testServerEnv) {
 		reqBody := api.CreateFlowRequest{
 			ID:    "wf-no-step",
-			Goals: []api.StepID{"nonexistent-step"},
+			Goals: api.Goals{Steps: []api.StepID{"nonexistent-step"}},
 		}
 
 		body, _ := json.Marshal(reqBody)
@@ -1504,7 +1525,7 @@ func TestSanitizeFlowID(t *testing.T) {
 			t.Run(tt.name, func(t *testing.T) {
 				reqBody := api.CreateFlowRequest{
 					ID:    tt.flowID,
-					Goals: []api.StepID{"test-step"},
+					Goals: api.Goals{Steps: []api.StepID{"test-step"}},
 				}
 
 				body, _ := json.Marshal(reqBody)
@@ -1538,7 +1559,7 @@ func TestQueryFlowsMultiple(t *testing.T) {
 		})
 
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{"test-step"},
+			Goals: api.Goals{Steps: []api.StepID{"test-step"}},
 			Steps: api.Steps{"test-step": st},
 		}
 
@@ -1645,7 +1666,7 @@ func TestHookSuccessRoute(t *testing.T) {
 		testEnv.MockClient.SetResponse(st.ID, api.Args{})
 
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{st.ID},
+			Goals: api.Goals{Steps: []api.StepID{st.ID}},
 			Steps: api.Steps{st.ID: st},
 		}
 
@@ -1813,7 +1834,7 @@ func TestStartFlowIDTooLong(t *testing.T) {
 		longID := api.FlowID(strings.Repeat("a", api.MaxFlowIDLen+1))
 		reqBody := api.CreateFlowRequest{
 			ID:    longID,
-			Goals: []api.StepID{"test-step-long-id"},
+			Goals: api.Goals{Steps: []api.StepID{"test-step-long-id"}},
 		}
 		body, _ := json.Marshal(reqBody)
 		req := httptest.NewRequest(
@@ -1838,7 +1859,7 @@ func TestStartFlowTooManyGoals(t *testing.T) {
 		}
 		reqBody := api.CreateFlowRequest{
 			ID:    "too-many-goals",
-			Goals: goals,
+			Goals: api.Goals{Steps: goals},
 		}
 		body, _ := json.Marshal(reqBody)
 		req := httptest.NewRequest(
@@ -1867,7 +1888,7 @@ func TestStartFlowTooManyInitKeys(t *testing.T) {
 		}
 		reqBody := api.CreateFlowRequest{
 			ID:    "too-many-init-keys",
-			Goals: []api.StepID{"test-step-init-keys"},
+			Goals: api.Goals{Steps: []api.StepID{"test-step-init-keys"}},
 			Init:  init,
 		}
 		body, _ := json.Marshal(reqBody)
@@ -1897,7 +1918,7 @@ func TestStartFlowTooManyTags(t *testing.T) {
 		}
 		reqBody := api.CreateFlowRequest{
 			ID:    "too-many-tags",
-			Goals: []api.StepID{"test-step-labels"},
+			Goals: api.Goals{Steps: []api.StepID{"test-step-labels"}},
 			Tags:  tags,
 		}
 		body, _ := json.Marshal(reqBody)

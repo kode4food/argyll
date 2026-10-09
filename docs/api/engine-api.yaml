@@ -681,7 +681,8 @@ paths:
             schema:
               $ref: "#/components/schemas/ExecutionPlanRequest"
             example:
-              goals: ["text-processor"]
+              goals:
+                steps: ["text-processor"]
               init:
                 user_id: ["john.doe"]
       responses:
@@ -746,7 +747,9 @@ paths:
         1. Create an execution plan containing only necessary steps
         2. Validate that all required inputs are provided
         3. Start the flow in `active` state
-        4. Execute steps in dependency order until the goal is reached
+        4. Execute steps in dependency order until a goal set is reached
+
+        `goals` is a chain of fallback goal sets. Every one of `steps` must succeed. The set in `else` is attempted only when `steps` becomes impossible, and it reuses every completed step and attribute from earlier attempts. Required inputs are the union across all sets, so every set is startable.
       operationId: createFlow
       tags:
         - Flows
@@ -758,7 +761,8 @@ paths:
               $ref: "#/components/schemas/CreateFlowRequest"
             example:
               id: "wf-text-processing-001"
-              goals: ["text-processor"]
+              goals:
+                steps: ["text-processor"]
               init:
                 input_text: ["Hello, Argyll!"]
       responses:
@@ -1793,6 +1797,29 @@ components:
           description: The script code to execute
           example: 'return {greeting = "Hello, " .. name}'
 
+    Goals:
+      type: object
+      description: |
+        A chain of fallback goal sets. Every one of `steps` must succeed. The set
+        in `else` is attempted only when `steps` becomes impossible, and it
+        reuses every completed step and attribute from earlier attempts.
+      required:
+        - steps
+      additionalProperties: false
+      properties:
+        steps:
+          type: array
+          description: Goal step IDs that must all succeed
+          minItems: 1
+          items:
+            type: string
+        else:
+          $ref: "#/components/schemas/Goals"
+      example:
+        steps: ["text-processor"]
+        else:
+          steps: ["backup-processor"]
+
     FlowConfig:
       type: object
       description: Configuration for flow-based steps (sub-flows)
@@ -1800,12 +1827,7 @@ components:
         - goals
       properties:
         goals:
-          type: array
-          description: Goal step IDs for the child flow
-          items:
-            type: string
-          minItems: 1
-          example: ["child-goal"]
+          $ref: "#/components/schemas/Goals"
         space_id:
           type: string
           description: |
@@ -1816,8 +1838,10 @@ components:
           type: boolean
           description: |
             Enable Rollback on Failure for the child flow. Every completed
-            work item is compensated if the child flow fails. Not inherited
-            from the parent flow.
+            work item is compensated if the child flow fails. When it
+            completes through a fallback goal set, completed work that the
+            winning set does not use is compensated. Not inherited from the
+            parent flow.
           example: true
 
     WorkConfig:
@@ -1991,12 +2015,7 @@ components:
         - goals
       properties:
         goals:
-          type: array
-          description: Array of goal step IDs (typically one, but multiple supported)
-          items:
-            type: string
-          minItems: 1
-          example: ["text-processor"]
+          $ref: "#/components/schemas/Goals"
         space_id:
           type: string
           description: Restricts planning to the steps matched by this Space
@@ -2019,14 +2038,10 @@ components:
         - attributes
       properties:
         goals:
-          type: array
-          description: Goal step IDs for this plan
-          items:
-            type: string
-          example: ["text-processor"]
+          $ref: "#/components/schemas/Goals"
         required:
           type: array
-          description: Required inputs that must be provided in init
+          description: Inputs that must be provided in init, the union of what every goal set requires
           items:
             type: string
           example: ["input_text"]
@@ -2121,12 +2136,7 @@ components:
             replacing spaces with `-`, and removing unsupported characters.
           example: "wf-text-processing-001"
         goals:
-          type: array
-          description: Goal step IDs (typically one, but multiple supported)
-          items:
-            type: string
-          minItems: 1
-          example: ["text-processor"]
+          $ref: "#/components/schemas/Goals"
         init:
           type: object
           description: Initial flow attribute values providing required inputs
@@ -2149,7 +2159,9 @@ components:
           description: |
             Enable Rollback on Failure. Every completed work item in the flow
             is compensated if the flow fails, rather than only those of the
-            step that failed.
+            step that failed. When the flow completes through a fallback goal
+            set, completed work that the winning set does not use is
+            compensated.
           example: true
 
     FlowStartedResponse:

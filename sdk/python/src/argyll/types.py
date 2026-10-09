@@ -298,15 +298,54 @@ class WorkConfig:
 
 
 @dataclass(frozen=True)
+class Goals:
+    """Chain of fallback goal sets.
+
+    Every one of steps must succeed. The set in else_ is attempted only when
+    steps becomes impossible.
+    """
+
+    steps: List[StepID]
+    else_: Optional["Goals"] = None
+
+    def with_goal(self, step_id: StepID) -> "Goals":
+        """Return a copy with step_id added to the last goal set."""
+        if self.else_ is None:
+            return Goals(steps=[*self.steps, step_id])
+        return Goals(steps=self.steps, else_=self.else_.with_goal(step_id))
+
+    def sets(self) -> List[List[StepID]]:
+        """Return the goal sets in the order they are attempted."""
+        rest = self.else_.sets() if self.else_ else []
+        return [self.steps, *rest]
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to API dictionary format."""
+        result: Dict[str, Any] = {"steps": list(self.steps)}
+        if self.else_:
+            result["else"] = self.else_.to_dict()
+        return result
+
+    @staticmethod
+    def from_dict(data: Dict[str, Any]) -> "Goals":
+        """Build a goal chain from its API dictionary format."""
+        rest = data.get("else")
+        return Goals(
+            steps=list(data["steps"]),
+            else_=Goals.from_dict(rest) if rest else None,
+        )
+
+
+@dataclass(frozen=True)
 class FlowConfig:
     """Flow configuration for flow steps."""
 
-    goals: List[StepID]
+    goals: Goals
     space_id: str = ""
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert to API dictionary format."""
-        result: Dict[str, Any] = {"goals": self.goals}
+        result: Dict[str, Any] = {"goals": self.goals.to_dict()}
         if self.space_id:
             result["space_id"] = self.space_id
         return result

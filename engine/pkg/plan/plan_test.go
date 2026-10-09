@@ -48,8 +48,7 @@ func TestSimpleResolver(t *testing.T) {
 	pl, err := createPlan(cat, []api.StepID{"resolver"}, api.InitArgs{})
 	assert.NoError(t, err)
 
-	assert.Len(t, pl.Goals, 1)
-	assert.Equal(t, api.StepID("resolver"), pl.Goals[0])
+	assert.Equal(t, api.Goals{Steps: []api.StepID{"resolver"}}, pl.Goals)
 
 	assert.Len(t, pl.Steps, 1)
 	assert.Contains(t, pl.Steps, api.StepID("resolver"))
@@ -416,7 +415,7 @@ func TestMultipleGoals(t *testing.T) {
 	)
 	assert.NoError(t, err)
 
-	assert.Len(t, pl.Goals, 2)
+	assert.Equal(t, api.Goals{Steps: []api.StepID{"step1", "step2"}}, pl.Goals)
 	assert.Len(t, pl.Steps, 2)
 }
 
@@ -1008,7 +1007,7 @@ func createPlan(
 	return plan.Create(&plan.Request{
 		Match: testEval,
 		Steps: cat.Steps,
-		Goals: goals,
+		Goals: api.Goals{Steps: goals},
 		Init:  init,
 	})
 }
@@ -1019,7 +1018,7 @@ func previewPlan(
 	return plan.Preview(&plan.Request{
 		Match: testEval,
 		Steps: cat.Steps,
-		Goals: goals,
+		Goals: api.Goals{Steps: goals},
 		Init:  init,
 	})
 }
@@ -1086,7 +1085,7 @@ func TestSubFlowSpace(t *testing.T) {
 
 		st := planProvider("sub-flow", "expanded")
 		st.Flow = &api.FlowConfig{
-			Goals:   []api.StepID{goal.ID},
+			Goals:   api.Goals{Steps: []api.StepID{goal.ID}},
 			SpaceID: "payments",
 		}
 
@@ -1120,7 +1119,7 @@ func TestSubFlowSpace(t *testing.T) {
 		goal := planProvider("orphan-goal", "orphan")
 		st := planProvider("orphan-sub-flow", "expanded")
 		st.Flow = &api.FlowConfig{
-			Goals:   []api.StepID{goal.ID},
+			Goals:   api.Goals{Steps: []api.StepID{goal.ID}},
 			SpaceID: "gone",
 		}
 
@@ -1138,15 +1137,15 @@ func createSubFlowPlan(
 		Match:    testEval,
 		Catalog:  cat,
 		Steps:    cat.Steps,
-		Goals:    []api.StepID{sid},
+		Goals:    api.Goals{Steps: []api.StepID{sid}},
 		Init:     api.InitArgs{},
 		Children: subFlowChildren,
 	})
 }
 
-func subFlowChildren(st *api.Step) ([]api.StepID, error) {
+func subFlowChildren(st *api.Step) (*api.Goals, error) {
 	if st.Flow == nil {
 		return nil, nil
 	}
-	return st.Flow.Goals, nil
+	return &st.Flow.Goals, nil
 }

@@ -31,7 +31,7 @@ export function generateOverviewPlan(
   return {
     attributes,
     steps: Object.fromEntries(visibleSteps.map((s) => [s.id, s])),
-    goals: [],
+    goals: { steps: [] },
     required: [],
   };
 }

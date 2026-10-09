@@ -74,7 +74,7 @@ func (tx *flowTx) nextCompensationWave(fl api.FlowState) ([]api.StepID, error) {
 	pending := util.Set[api.StepID]{}
 	for sid, ex := range fl.Executions {
 		st, ok := fl.Plan.Steps[sid]
-		if !ok || !hasSucceededWork(ex) {
+		if !ok || !hasSucceededWork(ex) || !flowRollsBack(fl, sid) {
 			continue
 		}
 		comp, err := tx.Engine.steps.Compensator(st)
@@ -340,10 +340,10 @@ func (tx *flowTx) recoverStepCompensations(sid api.StepID) error {
 			continue
 		}
 		if policy.WorkSucceeded(work.Status) &&
-			(policy.StepFailed(ex.Status) || flowCompensating(fl)) {
+			(policy.StepFailed(ex.Status) || flowRollsBack(fl, sid)) {
 			// Compensation never started, so it joins this transaction rather
 			// than a task rereading the state
-			if flowCompensating(fl) {
+			if flowRollsBack(fl, sid) {
 				// Covers the whole flow, so sibling steps are redundant
 				return tx.compensateFlow()
 			}
@@ -444,7 +444,7 @@ func (e *Engine) compensationPending(fl api.FlowState) bool {
 		if !ok || !hasSucceededWork(ex) {
 			continue
 		}
-		if !policy.StepFailed(ex.Status) && !flowCompensating(fl) {
+		if !policy.StepFailed(ex.Status) && !flowRollsBack(fl, sid) {
 			continue
 		}
 		if comp, err := e.steps.Compensator(st); err == nil && comp != nil {
@@ -482,7 +482,21 @@ func (tx *flowTx) compensateMetadata(
 }
 
 func flowCompensating(fl api.FlowState) bool {
-	return fl.Status == api.FlowFailed && fl.Compensate
+	return fl.Compensate && policy.FlowTerminal(fl.Status)
+}
+
+// flowRollsBack reports whether a terminal flow undoes the step's work: every
+// step when the flow failed, but only steps the winning goal set does not use
+// when it completed
+func flowRollsBack(fl api.FlowState, sid api.StepID) bool {
+	if !flowCompensating(fl) {
+		return false
+	}
+	if fl.Status == api.FlowFailed {
+		return true
+	}
+	// A completed flow always has its winning goal set active
+	return !goalScope(fl.Plan, activeGoals(fl).Steps).Contains(sid)
 }
 
 func compensationActive(fl api.FlowState) bool {

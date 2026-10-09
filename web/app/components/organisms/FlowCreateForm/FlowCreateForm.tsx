@@ -1,6 +1,6 @@
 import React from "react";
 import { useUI } from "@/app/contexts/UIContext";
-import { AttributeType, Step } from "@/app/api";
+import { AttributeType, fromGoalSets, Step } from "@/app/api";
 import { useFlowCreation } from "@/app/hooks/useFlowCreation";
 import { useScrollFade } from "@/app/hooks/useScrollFade";
 import { useFlowFormStepFiltering } from "./useFlowFormStepFiltering";
@@ -17,6 +17,7 @@ import {
 } from "@/utils/flowPlanAttributeOptions";
 import { generateFlowId } from "@/utils/flowUtils";
 import { sortStepsByType } from "@/utils/stepUtils";
+import { nonEmptyGoalSets } from "@/utils/goalSets";
 import { IconManage, IconSpace } from "@/utils/iconRegistry";
 import SpaceManager from "@/app/components/organisms/SpaceManager";
 import { useSpaces, useSpaceSelection } from "@/app/store/flowStore";
@@ -129,14 +130,21 @@ const FlowCreateForm: React.FC<FlowCreateFormProps> = ({ onCreateStep }) => {
     showBottomFade,
   } = useScrollFade();
 
-  const { included, satisfied, blockedByStep, missingByStep } =
-    useFlowFormStepFiltering(steps, initialState, previewPlan);
+  const { satisfied, blockedByStep, missingByStep } = useFlowFormStepFiltering(
+    steps,
+    initialState,
+    previewPlan
+  );
+  const planGoals = React.useMemo(
+    () => nonEmptyGoalSets(goalSteps),
+    [goalSteps]
+  );
   const { flowInputOptions } = React.useMemo(
     () => getFlowPlanAttributeOptions(previewPlan, steps),
     [previewPlan, steps]
   );
   const emptyAttributesLabel =
-    goalSteps.length === 0
+    planGoals.length === 0
       ? t("flowCreate.noGoalsSelected")
       : t("flowCreate.noPotentialInputs");
   const flowInputNames = React.useMemo(
@@ -221,7 +229,7 @@ const FlowCreateForm: React.FC<FlowCreateFormProps> = ({ onCreateStep }) => {
   // ID impossible to type
   const isStartSectionDisabled =
     creating ||
-    goalSteps.length === 0 ||
+    planGoals.length === 0 ||
     (editorMode === "json" && jsonError !== null);
 
   const handleCreateStep = React.useCallback(
@@ -234,7 +242,7 @@ const FlowCreateForm: React.FC<FlowCreateFormProps> = ({ onCreateStep }) => {
               type: "flow",
               attributes: {},
               flow: {
-                goals: goalSteps,
+                goals: fromGoalSets(planGoals),
                 compensate,
                 ...(spaceId && { space_id: spaceId }),
               },
@@ -242,7 +250,7 @@ const FlowCreateForm: React.FC<FlowCreateFormProps> = ({ onCreateStep }) => {
           : undefined
       );
     },
-    [compensate, goalSteps, onCreateStep, spaceId]
+    [compensate, planGoals, onCreateStep, spaceId]
   );
 
   const handleEditorModeChange = React.useCallback(
@@ -287,7 +295,6 @@ const FlowCreateForm: React.FC<FlowCreateFormProps> = ({ onCreateStep }) => {
             <FlowGoalsSection
               goalSteps={goalSteps}
               blockedByStep={blockedByStep}
-              included={included}
               missingByStep={missingByStep}
               onCreateStep={handleCreateStep}
               onGoalStepsChange={handleStepChange}

@@ -78,7 +78,7 @@ func seedCompensatingWebhook(
 	tkn := api.Token("work")
 	st := &api.Step{ID: api.StepID(name + "-step")}
 	pl := &api.ExecutionPlan{
-		Goals: []api.StepID{st.ID},
+		Goals: api.Goals{Steps: []api.StepID{st.ID}},
 		Steps: api.Steps{st.ID: st},
 	}
 	events := []helpers.FlowEvent{
@@ -130,7 +130,7 @@ func TestHookInvalidWorkItem(t *testing.T) {
 		assert.NoError(t, err)
 
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{st.ID},
+			Goals: api.Goals{Steps: []api.StepID{st.ID}},
 			Steps: api.Steps{st.ID: st},
 		}
 
@@ -184,7 +184,7 @@ func TestHookExecutionMissing(t *testing.T) {
 		assert.NoError(t, err)
 
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{st.ID},
+			Goals: api.Goals{Steps: []api.StepID{st.ID}},
 			Steps: api.Steps{st.ID: st},
 		}
 
@@ -230,7 +230,7 @@ func TestHookCompleteTwice(t *testing.T) {
 		env.MockClient.SetResponse(st.ID, api.Args{})
 
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{st.ID},
+			Goals: api.Goals{Steps: []api.StepID{st.ID}},
 			Steps: api.Steps{st.ID: st},
 		}
 
@@ -307,7 +307,7 @@ func TestHookFailTwice(t *testing.T) {
 		env.MockClient.SetResponse(st.ID, api.Args{})
 
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{st.ID},
+			Goals: api.Goals{Steps: []api.StepID{st.ID}},
 			Steps: api.Steps{st.ID: st},
 		}
 
@@ -388,7 +388,7 @@ func TestHookSuccess(t *testing.T) {
 		env.MockClient.SetResponse(st.ID, api.Args{})
 
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{st.ID},
+			Goals: api.Goals{Steps: []api.StepID{st.ID}},
 			Steps: api.Steps{st.ID: st},
 		}
 
@@ -469,7 +469,7 @@ func TestHookWorkFailure(t *testing.T) {
 		env.MockClient.SetResponse(st.ID, api.Args{})
 
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{st.ID},
+			Goals: api.Goals{Steps: []api.StepID{st.ID}},
 			Steps: api.Steps{st.ID: st},
 		}
 
@@ -530,7 +530,7 @@ func TestHookInvalidJSON(t *testing.T) {
 		env.MockClient.SetResponse(st.ID, api.Args{})
 
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{st.ID},
+			Goals: api.Goals{Steps: []api.StepID{st.ID}},
 			Steps: api.Steps{st.ID: st},
 		}
 

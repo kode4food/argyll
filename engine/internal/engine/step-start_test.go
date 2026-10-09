@@ -40,7 +40,7 @@ func TestOptionalDefaults(t *testing.T) {
 		env.MockClient.SetResponse(st.ID, api.Args{"result": "ok"})
 
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{st.ID},
+			Goals: api.Goals{Steps: []api.StepID{st.ID}},
 			Steps: api.Steps{st.ID: st},
 		}
 
@@ -93,7 +93,7 @@ func TestCollectFirst(t *testing.T) {
 		)
 
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{st.ID},
+			Goals: api.Goals{Steps: []api.StepID{st.ID}},
 			Steps: api.Steps{st.ID: st},
 		}
 
@@ -241,7 +241,7 @@ func TestCollectNone(t *testing.T) {
 			},
 		}
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{consumer.ID},
+			Goals: api.Goals{Steps: []api.StepID{consumer.ID}},
 			Steps: api.Steps{
 				provider.ID: provider,
 				consumer.ID: consumer,
@@ -300,7 +300,7 @@ func TestCollectNoneNoProvider(t *testing.T) {
 			},
 		}
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{st.ID},
+			Goals: api.Goals{Steps: []api.StepID{st.ID}},
 			Steps: api.Steps{st.ID: st},
 		}
 
@@ -344,7 +344,7 @@ func TestCollectSomeInit(t *testing.T) {
 			},
 		}
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{st.ID},
+			Goals: api.Goals{Steps: []api.StepID{st.ID}},
 			Steps: api.Steps{st.ID: st},
 		}
 
@@ -387,7 +387,7 @@ func TestConstObject(t *testing.T) {
 		env.MockClient.SetResponse(st.ID, api.Args{"result": "ok"})
 
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{st.ID},
+			Goals: api.Goals{Steps: []api.StepID{st.ID}},
 			Steps: api.Steps{st.ID: st},
 		}
 
@@ -434,7 +434,7 @@ func TestConstNullDefault(t *testing.T) {
 		)
 
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{st.ID},
+			Goals: api.Goals{Steps: []api.StepID{st.ID}},
 			Steps: api.Steps{st.ID: st},
 		}
 
@@ -474,7 +474,7 @@ func TestOptionalNullDefault(t *testing.T) {
 		)
 
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{st.ID},
+			Goals: api.Goals{Steps: []api.StepID{st.ID}},
 			Steps: api.Steps{st.ID: st},
 		}
 
@@ -514,7 +514,7 @@ func TestInputMapping(t *testing.T) {
 		env.MockClient.SetResponse(st.ID, api.Args{"result": "ok"})
 
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{st.ID},
+			Goals: api.Goals{Steps: []api.StepID{st.ID}},
 			Steps: api.Steps{st.ID: st},
 		}
 
@@ -556,7 +556,7 @@ func TestInputRename(t *testing.T) {
 		env.MockClient.SetResponse(st.ID, api.Args{"result": "ok"})
 
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{st.ID},
+			Goals: api.Goals{Steps: []api.StepID{st.ID}},
 			Steps: api.Steps{st.ID: st},
 		}
 
@@ -581,7 +581,7 @@ func TestPredicateFailure(t *testing.T) {
 		assert.NoError(t, env.Engine.RegisterStep(st))
 
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{st.ID},
+			Goals: api.Goals{Steps: []api.StepID{st.ID}},
 			Steps: api.Steps{st.ID: st},
 		}
 
@@ -610,7 +610,7 @@ func TestJPathNullMatch(t *testing.T) {
 		env.MockClient.SetResponse(st.ID, api.Args{"result": "ok"})
 
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{st.ID},
+			Goals: api.Goals{Steps: []api.StepID{st.ID}},
 			Steps: api.Steps{st.ID: st},
 		}
 
@@ -701,8 +701,10 @@ func TestMatchRoutes(t *testing.T) {
 					Match:    env.Engine.Matcher,
 					Children: env.Engine.Children,
 					Steps:    cat.Steps,
-					Goals:    []api.StepID{email.ID, postal.ID},
-					Init:     tt.init,
+					Goals: api.Goals{
+						Steps: []api.StepID{email.ID, postal.ID},
+					},
+					Init: tt.init,
 				})
 				assert.NoError(t, err)
 
@@ -858,7 +860,7 @@ func TestMatchSkipInputs(t *testing.T) {
 		assert.NoError(t, env.Engine.RegisterStep(consumer))
 
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{consumer.ID},
+			Goals: api.Goals{Steps: []api.StepID{consumer.ID}},
 			Steps: api.Steps{consumer.ID: consumer},
 		}
 
@@ -909,7 +911,7 @@ func TestInputLua(t *testing.T) {
 		env.MockClient.SetResponse(st.ID, api.Args{"result": float64(10)})
 
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{st.ID},
+			Goals: api.Goals{Steps: []api.StepID{st.ID}},
 			Steps: api.Steps{st.ID: st},
 		}
 
@@ -943,7 +945,7 @@ func TestPredicateExecution(t *testing.T) {
 		)
 
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{"predicate-step"},
+			Goals: api.Goals{Steps: []api.StepID{"predicate-step"}},
 			Steps: api.Steps{st.ID: st},
 		}
 
@@ -969,7 +971,7 @@ func TestPredicateFalse(t *testing.T) {
 		)
 
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{"predicate-false-step"},
+			Goals: api.Goals{Steps: []api.StepID{"predicate-false-step"}},
 			Steps: api.Steps{st.ID: st},
 		}
 
@@ -996,7 +998,7 @@ func TestLuaPredicate(t *testing.T) {
 		)
 
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{"lua-pred-step"},
+			Goals: api.Goals{Steps: []api.StepID{"lua-pred-step"}},
 			Steps: api.Steps{st.ID: st},
 		}
 
@@ -1022,7 +1024,7 @@ func TestPredicateError(t *testing.T) {
 		)
 
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{"pred-err-step"},
+			Goals: api.Goals{Steps: []api.StepID{"pred-err-step"}},
 			Steps: api.Steps{st.ID: st},
 		}
 
@@ -1169,7 +1171,7 @@ func collectPlan(
 		},
 	}
 	pl := &api.ExecutionPlan{
-		Goals: []api.StepID{consumer.ID},
+		Goals: api.Goals{Steps: []api.StepID{consumer.ID}},
 		Steps: api.Steps{
 			providerA.ID: providerA,
 			providerB.ID: providerB,

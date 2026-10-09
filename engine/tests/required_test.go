@@ -46,7 +46,7 @@ func TestForEachWorkItems(t *testing.T) {
 		})
 
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{"step-b"},
+			Goals: api.Goals{Steps: []api.StepID{"step-b"}},
 			Steps: api.Steps{
 				"step-a": stepA,
 				"step-b": stepB,

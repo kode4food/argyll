@@ -1,31 +1,55 @@
 import { renderHook, act } from "@testing-library/react";
 import { useExecutionPlanPreview } from "./useExecutionPlanPreview";
 import { useUI } from "@/app/contexts/UIContext";
+import { AttributeRole, AttributeType } from "@/app/api";
 import type { ExecutionPlan, Step } from "@/app/api";
 
 jest.mock("@/app/contexts/UIContext");
 const mockUseUI = useUI as jest.MockedFunction<typeof useUI>;
 
+const catalog: Step[] = [
+  {
+    id: "upstream",
+    name: "Upstream",
+    type: "service",
+    attributes: {
+      value: { role: AttributeRole.Output, type: AttributeType.String },
+    },
+  },
+  {
+    id: "goal",
+    name: "Goal",
+    type: "service",
+    attributes: {
+      value: { role: AttributeRole.Required, type: AttributeType.String },
+    },
+  },
+];
+
 describe("useExecutionPlanPreview", () => {
   let mockUpdatePreviewPlan: jest.Mock;
   let mockClearPreviewPlan: jest.Mock;
 
-  beforeEach(() => {
-    mockUpdatePreviewPlan = jest.fn();
-    mockClearPreviewPlan = jest.fn();
-
+  const mockUI = (previewPlan: ExecutionPlan | null = null) =>
     mockUseUI.mockReturnValue({
-      previewPlan: null,
+      previewPlan,
       setPreviewPlan: jest.fn(),
       updatePreviewPlan: mockUpdatePreviewPlan,
       clearPreviewPlan: mockClearPreviewPlan,
       focusedPreviewAttribute: null,
       setFocusedPreviewAttribute: jest.fn(),
       diagramContainerRef: { current: null },
+      panelRef: { current: null },
       goalSteps: [],
-      toggleGoalStep: jest.fn(),
       setGoalSteps: jest.fn(),
+      spaceId: null,
+      setSpaceId: jest.fn(),
     });
+
+  beforeEach(() => {
+    mockUpdatePreviewPlan = jest.fn();
+    mockClearPreviewPlan = jest.fn();
+    mockUI();
   });
 
   afterEach(() => {
@@ -33,9 +57,8 @@ describe("useExecutionPlanPreview", () => {
   });
 
   test("returns initial state with null preview plan", () => {
-    const setGoalSteps = jest.fn();
     const { result } = renderHook(() =>
-      useExecutionPlanPreview([], setGoalSteps)
+      useExecutionPlanPreview(catalog, [], jest.fn())
     );
 
     expect(result.current.previewPlan).toBeNull();
@@ -46,21 +69,21 @@ describe("useExecutionPlanPreview", () => {
   test("handleStepClick updates preview when no flow", async () => {
     const setGoalSteps = jest.fn();
     const { result } = renderHook(() =>
-      useExecutionPlanPreview([], setGoalSteps)
+      useExecutionPlanPreview(catalog, [], setGoalSteps)
     );
 
     await act(async () => {
       await result.current.handleStepClick("step-1");
     });
 
-    expect(setGoalSteps).toHaveBeenCalledWith(["step-1"]);
-    expect(mockUpdatePreviewPlan).toHaveBeenCalledWith(["step-1"], {});
+    expect(setGoalSteps).toHaveBeenCalledWith([["step-1"]]);
+    expect(mockUpdatePreviewPlan).toHaveBeenCalledWith([["step-1"]], {});
   });
 
   test("handleStepClick clears preview when clicking same step", async () => {
     const setGoalSteps = jest.fn();
     const { result } = renderHook(() =>
-      useExecutionPlanPreview(["step-1"], setGoalSteps)
+      useExecutionPlanPreview(catalog, [["step-1"]], setGoalSteps)
     );
 
     await act(async () => {
@@ -72,93 +95,66 @@ describe("useExecutionPlanPreview", () => {
     expect(mockUpdatePreviewPlan).not.toHaveBeenCalled();
   });
 
-  test("additive click toggles selection", async () => {
+  test("additive click toggles selection in the active set", async () => {
     const setGoalSteps = jest.fn();
     const { result } = renderHook(() =>
-      useExecutionPlanPreview(["step-1"], setGoalSteps)
+      useExecutionPlanPreview(catalog, [["step-0"], ["step-1"]], setGoalSteps)
     );
 
     await act(async () => {
       await result.current.handleStepClick("step-2", { additive: true });
     });
 
-    expect(setGoalSteps).toHaveBeenCalledWith(["step-1", "step-2"]);
-    expect(mockUpdatePreviewPlan).toHaveBeenCalledWith(
-      ["step-1", "step-2"],
-      {}
-    );
+    const next = [["step-0"], ["step-1", "step-2"]];
+    expect(setGoalSteps).toHaveBeenCalledWith(next);
+    expect(mockUpdatePreviewPlan).toHaveBeenCalledWith(next, {});
   });
 
-  test("additive click ignores steps already in preview plan", async () => {
+  test("additive click ignores steps upstream of the active set", async () => {
     const setGoalSteps = jest.fn();
-
-    mockUseUI.mockReturnValueOnce({
-      previewPlan: {
-        steps: { "in-plan": {} as Step },
-        goals: ["goal"],
-        required: [],
-        attributes: {},
-      } as ExecutionPlan,
-      setPreviewPlan: jest.fn(),
-      updatePreviewPlan: mockUpdatePreviewPlan,
-      clearPreviewPlan: mockClearPreviewPlan,
-      focusedPreviewAttribute: null,
-      setFocusedPreviewAttribute: jest.fn(),
-      diagramContainerRef: { current: null },
-      goalSteps: ["goal"],
-      toggleGoalStep: jest.fn(),
-      setGoalSteps: jest.fn(),
-    });
-
     const { result } = renderHook(() =>
-      useExecutionPlanPreview(["goal"], setGoalSteps)
+      useExecutionPlanPreview(catalog, [["goal"]], setGoalSteps)
     );
 
     await act(async () => {
-      await result.current.handleStepClick("in-plan", { additive: true });
+      await result.current.handleStepClick("upstream", { additive: true });
     });
 
     expect(setGoalSteps).not.toHaveBeenCalled();
     expect(mockUpdatePreviewPlan).not.toHaveBeenCalled();
   });
 
-  test("normal click still replaces selection when step already in plan", async () => {
+  test("upstream of an earlier OR set stays selectable", async () => {
     const setGoalSteps = jest.fn();
-
-    mockUseUI.mockReturnValueOnce({
-      previewPlan: {
-        steps: { "blocked-step": {} as Step },
-        goals: ["goal"],
-        attributes: {},
-        required: [],
-      } as ExecutionPlan,
-      setPreviewPlan: jest.fn(),
-      updatePreviewPlan: mockUpdatePreviewPlan,
-      clearPreviewPlan: mockClearPreviewPlan,
-      focusedPreviewAttribute: null,
-      setFocusedPreviewAttribute: jest.fn(),
-      diagramContainerRef: { current: null },
-      goalSteps: ["goal"],
-      toggleGoalStep: jest.fn(),
-      setGoalSteps: jest.fn(),
-    });
-
     const { result } = renderHook(() =>
-      useExecutionPlanPreview(["goal"], setGoalSteps)
+      useExecutionPlanPreview(catalog, [["goal"], []], setGoalSteps)
     );
 
     await act(async () => {
-      await result.current.handleStepClick("blocked-step");
+      await result.current.handleStepClick("upstream", { additive: true });
     });
 
-    expect(setGoalSteps).toHaveBeenCalledWith(["blocked-step"]);
-    expect(mockUpdatePreviewPlan).toHaveBeenCalledWith(["blocked-step"], {});
+    expect(setGoalSteps).toHaveBeenCalledWith([["goal"], ["upstream"]]);
+  });
+
+  test("normal click replaces selection", async () => {
+    const setGoalSteps = jest.fn();
+    const { result } = renderHook(() =>
+      useExecutionPlanPreview(catalog, [["goal"]], setGoalSteps)
+    );
+
+    await act(async () => {
+      await result.current.handleStepClick("upstream");
+    });
+
+    expect(setGoalSteps).toHaveBeenCalledWith([["upstream"]]);
+    expect(mockUpdatePreviewPlan).toHaveBeenCalledWith([["upstream"]], {});
   });
 
   test("clearPreview clears plan and selection", () => {
     const setGoalSteps = jest.fn();
     const { result } = renderHook(() =>
-      useExecutionPlanPreview(["step-1"], setGoalSteps)
+      useExecutionPlanPreview(catalog, [["step-1"]], setGoalSteps)
     );
 
     act(() => {
@@ -171,28 +167,15 @@ describe("useExecutionPlanPreview", () => {
 
   test("returns preview plan from context", () => {
     const mockPlan: ExecutionPlan = {
-      goals: ["step-1"],
+      goals: { steps: ["step-1"] },
       required: [],
       steps: {},
       attributes: {},
     };
+    mockUI(mockPlan);
 
-    mockUseUI.mockReturnValue({
-      previewPlan: mockPlan,
-      setPreviewPlan: jest.fn(),
-      updatePreviewPlan: mockUpdatePreviewPlan,
-      clearPreviewPlan: mockClearPreviewPlan,
-      focusedPreviewAttribute: null,
-      setFocusedPreviewAttribute: jest.fn(),
-      diagramContainerRef: { current: null },
-      goalSteps: [],
-      toggleGoalStep: jest.fn(),
-      setGoalSteps: jest.fn(),
-    });
-
-    const setGoalSteps = jest.fn();
     const { result } = renderHook(() =>
-      useExecutionPlanPreview([], setGoalSteps)
+      useExecutionPlanPreview(catalog, [], jest.fn())
     );
 
     expect(result.current.previewPlan).toEqual(mockPlan);

@@ -2,6 +2,7 @@ package argyll
 
 import (
 	"context"
+	"slices"
 
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
@@ -10,7 +11,7 @@ import (
 type Flow struct {
 	client *Client
 	id     api.FlowID
-	goals  []api.StepID
+	goals  api.Goals
 	init   api.InitArgs
 	tags   api.Tags
 }
@@ -20,23 +21,19 @@ func (c *Client) NewFlow(id api.FlowID) Flow {
 	return Flow{
 		client: c,
 		id:     id,
-		goals:  []api.StepID{},
+		goals:  api.Goals{},
 	}
 }
 
-// WithGoals sets the goal step IDs for the flow
-func (f Flow) WithGoals(goals ...api.StepID) Flow {
-	f.goals = make([]api.StepID, len(goals))
-	copy(f.goals, goals)
+// WithGoals sets the chain of fallback goal sets for the flow
+func (f Flow) WithGoals(goals api.Goals) Flow {
+	f.goals = *goals.Copy()
 	return f
 }
 
-// WithGoal adds a single goal step ID to the flow
+// WithGoal adds a single goal step ID to the flow's last goal set
 func (f Flow) WithGoal(goal api.StepID) Flow {
-	goals := make([]api.StepID, len(f.goals)+1)
-	copy(goals, f.goals)
-	goals[len(f.goals)] = goal
-	f.goals = goals
+	f.goals = withLastGoal(f.goals, goal)
 	return f
 }
 
@@ -63,4 +60,12 @@ func (f Flow) Start(ctx context.Context) error {
 		Init:  f.init,
 		Tags:  f.tags,
 	})
+}
+
+func withLastGoal(g api.Goals, goal api.StepID) api.Goals {
+	if g.Else == nil {
+		return api.Goals{Steps: append(slices.Clone(g.Steps), goal)}
+	}
+	rest := withLastGoal(*g.Else, goal)
+	return api.Goals{Steps: g.Steps, Else: &rest}
 }

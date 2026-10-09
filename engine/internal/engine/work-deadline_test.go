@@ -51,7 +51,7 @@ func TestAsyncCallbackDeadlineExpires(t *testing.T) {
 		id := api.FlowID("wf-async-deadline")
 		fs := api.FlowStep{FlowID: id, StepID: st.ID}
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{st.ID},
+			Goals: api.Goals{Steps: []api.StepID{st.ID}},
 			Steps: api.Steps{st.ID: st},
 		}
 
@@ -87,7 +87,7 @@ func TestCallbackBeforeDeadlineSurvives(t *testing.T) {
 		id := api.FlowID("wf-in-time")
 		fs := api.FlowStep{FlowID: id, StepID: st.ID}
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{st.ID},
+			Goals: api.Goals{Steps: []api.StepID{st.ID}},
 			Steps: api.Steps{st.ID: st},
 		}
 
@@ -124,7 +124,7 @@ func TestOrphanedWorkExpiresOnAnotherNode(t *testing.T) {
 		assert.NoError(t, env.SeedStartedWork(
 			api.FlowStep{FlowID: id, StepID: st.ID},
 			&api.ExecutionPlan{
-				Goals: []api.StepID{st.ID},
+				Goals: api.Goals{Steps: []api.StepID{st.ID}},
 				Steps: api.Steps{st.ID: st},
 			},
 			tkn,
@@ -203,10 +203,12 @@ func TestLiveChildFlowSurvivesDeadline(t *testing.T) {
 			Attributes: api.AttributeSpecs{},
 		}
 		parent := &api.Step{
-			ID:         "live-parent-step",
-			Name:       "Parent Step",
-			Type:       api.StepTypeFlow,
-			Flow:       &api.FlowConfig{Goals: []api.StepID{child.ID}},
+			ID:   "live-parent-step",
+			Name: "Parent Step",
+			Type: api.StepTypeFlow,
+			Flow: &api.FlowConfig{
+				Goals: api.Goals{Steps: []api.StepID{child.ID}},
+			},
 			Attributes: api.AttributeSpecs{},
 		}
 		assert.NoError(t, env.Engine.RegisterStep(child))
@@ -218,7 +220,7 @@ func TestLiveChildFlowSurvivesDeadline(t *testing.T) {
 			Match:    env.Engine.Matcher,
 			Children: env.Engine.Children,
 			Steps:    cat.Steps,
-			Goals:    []api.StepID{parent.ID},
+			Goals:    api.Goals{Steps: []api.StepID{parent.ID}},
 			Init:     api.InitArgs{},
 		})
 		assert.NoError(t, err)
@@ -312,7 +314,7 @@ func TestDeadlineConflict(t *testing.T) {
 					assert.NoError(t,
 						env.SeedStartedWork(
 							fs, &api.ExecutionPlan{
-								Goals: []api.StepID{st.ID},
+								Goals: api.Goals{Steps: []api.StepID{st.ID}},
 								Steps: api.Steps{st.ID: st},
 							}, tkn,
 						))

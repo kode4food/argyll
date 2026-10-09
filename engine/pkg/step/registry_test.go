@@ -29,3 +29,12 @@ func TestHandlersWith(t *testing.T) {
 		step.Handlers{"first": first},
 		step.Handlers(nil).With(step.Handlers{"first": first}))
 }
+
+func TestRegistryIncludesBootstrappedHandler(t *testing.T) {
+	handler := &step.Handler{}
+	reg := step.NewRegistry(step.Handlers{"custom": handler})
+
+	got, err := reg.Lookup("custom")
+	assert.NoError(t, err)
+	assert.Same(t, handler, got)
+}

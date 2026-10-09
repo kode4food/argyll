@@ -27,6 +27,7 @@ from .types import (
     ConstConfig,
     FlowConfig,
     FlowID,
+    Goals,
     Handling,
     HTTPAction,
     HTTPConfig,
@@ -90,6 +91,7 @@ __all__ = [
     "InitArgs",
     "StepID",
     "FlowID",
+    "Goals",
     "Tags",
     "Metadata",
     # Errors

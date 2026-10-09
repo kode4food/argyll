@@ -1,24 +1,33 @@
 import React from "react";
-import { Step } from "@/app/api";
+import { GoalSets, Step } from "@/app/api";
 import {
+  getStepActionIcon,
   IconAddStep,
+  IconClose,
   IconFlowGoals,
+  IconGoalFallback,
   IconStepTypeFlow,
 } from "@/utils/iconRegistry";
+import { getStepType } from "@/utils/stepUtils";
 import StepTypeLabel from "@/app/components/atoms/StepTypeLabel";
 import useArrowFocus from "@/app/hooks/useArrowFocus";
 import { useT } from "@/app/i18n";
 import { buildItemClassName } from "./flowFormUtils";
 import { deriveStepGoalState, getGoalTooltip } from "@/utils/flowGoalStepState";
+import {
+  activeGoalSet,
+  toggleGoal,
+  upstreamSteps,
+  withActiveGoalSet,
+} from "@/utils/goalSets";
 import styles from "./FlowGoalsSection.module.css";
 
 interface FlowGoalsSectionProps {
-  goalSteps: string[];
+  goalSteps: GoalSets;
   blockedByStep: Map<string, string[]>;
-  included: Set<string>;
   missingByStep: Map<string, string[]>;
   onCreateStep?: (fromGoals: boolean) => void;
-  onGoalStepsChange: (nextGoalStepIds: string[]) => void | Promise<void>;
+  onGoalStepsChange: (nextGoals: GoalSets) => void | Promise<void>;
   satisfied: Set<string>;
   showBottomFade: boolean;
   showTopFade: boolean;
@@ -31,7 +40,6 @@ interface FlowGoalsSectionProps {
 const FlowGoalsSection: React.FC<FlowGoalsSectionProps> = ({
   goalSteps,
   blockedByStep,
-  included,
   missingByStep,
   onCreateStep,
   onGoalStepsChange,
@@ -46,14 +54,20 @@ const FlowGoalsSection: React.FC<FlowGoalsSectionProps> = ({
   const t = useT();
   const handleArrowFocus = useArrowFocus();
   const [shiftHeld, setShiftHeld] = React.useState(false);
-  const seedsFromGoals = shiftHeld && goalSteps.length > 0;
+  const activeSet = activeGoalSet(goalSteps);
+  const committedSets = goalSteps.slice(0, -1);
+  // Disabling is scoped to the AND-set being edited, never the whole preview
+  const included = React.useMemo(
+    () => upstreamSteps(sortedSteps, activeSet),
+    [sortedSteps, activeSet]
+  );
+  const hasGoals = goalSteps.some((set) => set.length > 0);
+  const seedsFromGoals = shiftHeld && hasGoals;
   const actionLabel = seedsFromGoals
     ? t("overview.addFlowStepFromGoals")
     : t("overview.addStep");
   const actionTitle =
-    seedsFromGoals || goalSteps.length === 0
-      ? actionLabel
-      : t("overview.addStepShiftHint");
+    seedsFromGoals || !hasGoals ? actionLabel : t("overview.addStepShiftHint");
 
   React.useEffect(() => {
     const track = (e: KeyboardEvent) => setShiftHeld(e.shiftKey);
@@ -104,6 +118,41 @@ const FlowGoalsSection: React.FC<FlowGoalsSectionProps> = ({
           )}
         </div>
       </div>
+      {committedSets.map((set, idx) => (
+        <div key={idx} className={styles.goalSetPanel}>
+          <div className={styles.goalSetSummary} data-testid="goal-set-summary">
+            {set.map((id) => {
+              const step = sortedSteps.find((s) => s.id === id);
+              const TypeIcon = step ? getStepActionIcon(step) : null;
+              return (
+                <span key={id} className={styles.goalPill}>
+                  {TypeIcon && step && (
+                    <TypeIcon
+                      className={`step-type-icon ${getStepType(step)}`}
+                    />
+                  )}
+                  {id}
+                </span>
+              );
+            })}
+            <button
+              type="button"
+              className={styles.goalSetRemove}
+              aria-label={t("goals.removeSet")}
+              title={t("goals.removeSet")}
+              onClick={() =>
+                void onGoalStepsChange(goalSteps.filter((_, i) => i !== idx))
+              }
+            >
+              <IconClose aria-hidden="true" />
+            </button>
+          </div>
+          <div className={styles.orDivider}>
+            {t("goals.fallbackTo")}
+            <IconGoalFallback size={16} aria-hidden="true" />
+          </div>
+        </div>
+      ))}
       <div className={styles.goalListShell}>
         <div
           ref={sidebarListRef}
@@ -113,7 +162,7 @@ const FlowGoalsSection: React.FC<FlowGoalsSectionProps> = ({
           } ${showBottomFade ? styles.fadeBottom : ""}`}
         >
           {sortedSteps.map((step) => {
-            const state = deriveStepGoalState(step.id, goalSteps, {
+            const state = deriveStepGoalState(step.id, activeSet, {
               included,
               satisfied,
               blockedByStep,
@@ -134,10 +183,12 @@ const FlowGoalsSection: React.FC<FlowGoalsSectionProps> = ({
               : "";
             const handleSelect = () => {
               if (state.isDisabled) return;
-              const nextGoalStepIds = state.isSelected
-                ? goalSteps.filter((id) => id !== step.id)
-                : [...goalSteps, step.id];
-              void onGoalStepsChange(nextGoalStepIds);
+              void onGoalStepsChange(
+                withActiveGoalSet(
+                  goalSteps,
+                  toggleGoal(sortedSteps, activeSet, step.id)
+                )
+              );
             };
 
             return (
@@ -173,6 +224,16 @@ const FlowGoalsSection: React.FC<FlowGoalsSectionProps> = ({
             );
           })}
         </div>
+        <button
+          type="button"
+          className={styles.orButton}
+          disabled={activeSet.length === 0}
+          aria-label={t("goals.addFallback")}
+          title={t("goals.addFallback")}
+          onClick={() => void onGoalStepsChange([...goalSteps, []])}
+        >
+          <IconGoalFallback size={16} aria-hidden="true" />
+        </button>
       </div>
     </section>
   );

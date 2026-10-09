@@ -1,6 +1,6 @@
 import React, { useMemo } from "react";
 import { Node } from "@xyflow/react";
-import { Step, ExecutionPlan } from "@/app/api";
+import { toGoalSets, Step, ExecutionPlan } from "@/app/api";
 import { stepLayout } from "@/constants/layout";
 import { loadNodePositions, NodePositionScope } from "@/utils/nodePositioning";
 import {
@@ -79,7 +79,7 @@ export const useNodeCalculation = (
           step,
           selected: selectedStepIds.includes(step.id),
           onStepClick,
-          isGoalStep: previewPlan?.goals?.includes(step.id),
+          isGoalStep: toGoalSets(previewPlan?.goals).flat().includes(step.id),
           isInPreviewPlan,
           isPreviewMode,
           isStartingPoint: startingPoints.has(step.id),

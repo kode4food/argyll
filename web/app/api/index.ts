@@ -17,6 +17,7 @@ export type {
   HTTPConfig,
   ScriptConfig,
   FlowConfig,
+  Goals,
   WorkConfig,
   Step,
   Space,
@@ -42,6 +43,9 @@ export {
   AttributeRole,
   META_KEYS,
 } from "./types";
+
+export type { GoalSets } from "./goals";
+export { fromGoalSets, toGoalSets } from "./goals";
 
 export { ArgyllApi } from "./client";
 import { ArgyllApi } from "./client";

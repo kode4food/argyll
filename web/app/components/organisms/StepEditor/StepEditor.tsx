@@ -1,6 +1,6 @@
 import React from "react";
 import Modal from "@/app/components/molecules/Modal";
-import { Step, ExecutionPlan } from "@/app/api";
+import { Step, ExecutionPlan, GoalSets } from "@/app/api";
 import ScriptConfigEditor from "./ScriptConfigEditor";
 import ScriptEditor from "@/app/components/molecules/ScriptEditor";
 import styles from "./StepEditor.module.css";
@@ -124,7 +124,7 @@ const StepEditor: React.FC<StepEditorProps> = ({
 
   const updateFlowPreviewPlan = React.useCallback(
     async (
-      goalSteps: string[],
+      goalSteps: GoalSets,
       initialState: Record<string, any>,
       previewSpaceId?: string
     ) => {

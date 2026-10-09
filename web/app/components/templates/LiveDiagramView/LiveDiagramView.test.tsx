@@ -83,7 +83,7 @@ const makeFlowData = (overrides?: Partial<FlowContext>): FlowContext => ({
   status: "active",
   state: {},
   plan: {
-    goals: ["a"],
+    goals: { steps: ["a"] },
     required: [],
     steps: {
       a: baseStep,

@@ -45,7 +45,7 @@ func TestLinearFlowCompletes(t *testing.T) {
 		env.MockClient.SetResponse(consumer.ID, api.Args{"result": "ok"})
 
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{consumer.ID},
+			Goals: api.Goals{Steps: []api.StepID{consumer.ID}},
 			Steps: api.Steps{
 				producer.ID: producer,
 				consumer.ID: consumer,
@@ -121,7 +121,7 @@ func TestPendingUnusedSkip(t *testing.T) {
 		env.MockClient.SetResponse(consumer.ID, api.Args{"result": "done"})
 
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{consumer.ID},
+			Goals: api.Goals{Steps: []api.StepID{consumer.ID}},
 			Steps: api.Steps{
 				providerA.ID: providerA,
 				providerB.ID: providerB,
@@ -205,7 +205,7 @@ func TestSkipFailedAllProvider(t *testing.T) {
 		env.MockClient.SetResponse(providerB.ID, api.Args{})
 
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{consumer.ID},
+			Goals: api.Goals{Steps: []api.StepID{consumer.ID}},
 			Steps: api.Steps{
 				providerA.ID: providerA,
 				providerB.ID: providerB,
@@ -255,7 +255,7 @@ func TestSkipStep(t *testing.T) {
 		assert.NoError(t, err)
 
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{"step-skip"},
+			Goals: api.Goals{Steps: []api.StepID{"step-skip"}},
 			Steps: api.Steps{st.ID: st},
 		}
 

@@ -32,7 +32,7 @@ func TestIncompleteWorkFails(t *testing.T) {
 		env.MockClient.SetError(st.ID, api.ErrWorkNotCompleted)
 
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{st.ID},
+			Goals: api.Goals{Steps: []api.StepID{st.ID}},
 			Steps: api.Steps{st.ID: st},
 		}
 
@@ -72,7 +72,7 @@ func TestWorkFailure(t *testing.T) {
 		env.MockClient.SetError(st.ID, errors.New("boom"))
 
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{st.ID},
+			Goals: api.Goals{Steps: []api.StepID{st.ID}},
 			Steps: api.Steps{st.ID: st},
 		}
 
@@ -102,7 +102,7 @@ func TestPendingRetryCanComplete(t *testing.T) {
 		id := api.FlowID("wf-pending-complete")
 		tkn := api.Token("logical-work")
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{st.ID},
+			Goals: api.Goals{Steps: []api.StepID{st.ID}},
 			Steps: api.Steps{st.ID: st},
 		}
 
@@ -161,7 +161,7 @@ func TestPendingRetryCanFail(t *testing.T) {
 		id := api.FlowID("wf-pending-fail")
 		tkn := api.Token("logical-work")
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{st.ID},
+			Goals: api.Goals{Steps: []api.StepID{st.ID}},
 			Steps: api.Steps{st.ID: st},
 		}
 
@@ -233,7 +233,7 @@ func TestWorkFailed(t *testing.T) {
 		env.MockClient.SetError("fail-step", assert.AnError)
 
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{"fail-step"},
+			Goals: api.Goals{Steps: []api.StepID{"fail-step"}},
 			Steps: api.Steps{st.ID: st},
 		}
 
@@ -267,7 +267,7 @@ func TestLateResultsAfterFlowFails(t *testing.T) {
 		id := api.FlowID("wf-late-results")
 		fs := api.FlowStep{FlowID: id, StepID: st.ID}
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{st.ID},
+			Goals: api.Goals{Steps: []api.StepID{st.ID}},
 			Steps: api.Steps{st.ID: st},
 		}
 
@@ -336,7 +336,7 @@ func TestSideEffectRunsOnceUnderConflict(t *testing.T) {
 		id := api.FlowID("wf-conflict-once")
 		fs := api.FlowStep{FlowID: id, StepID: st.ID}
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{st.ID},
+			Goals: api.Goals{Steps: []api.StepID{st.ID}},
 			Steps: api.Steps{st.ID: st},
 		}
 

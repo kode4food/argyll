@@ -83,7 +83,7 @@ describe("useAutoLayout", () => {
     const plan: ExecutionPlan = {
       steps: {},
       attributes: {},
-      goals: [],
+      goals: { steps: [] },
       required: [],
     };
 
@@ -98,7 +98,7 @@ describe("useAutoLayout", () => {
     const plan: ExecutionPlan = {
       steps: {},
       attributes: {},
-      goals: [],
+      goals: { steps: [] },
       required: [],
     };
 
@@ -119,7 +119,7 @@ describe("useAutoLayout", () => {
     const plan: ExecutionPlan = {
       steps: {},
       attributes: {},
-      goals: [],
+      goals: { steps: [] },
       required: [],
     };
     const config = {
@@ -144,7 +144,7 @@ describe("useAutoLayout", () => {
     const plan: ExecutionPlan = {
       steps: {},
       attributes: {},
-      goals: [],
+      goals: { steps: [] },
       required: [],
     };
 
@@ -164,7 +164,7 @@ describe("useAutoLayout", () => {
     const plan: ExecutionPlan = {
       steps: {},
       attributes: {},
-      goals: [],
+      goals: { steps: [] },
       required: [],
     };
 
@@ -188,7 +188,7 @@ describe("useAutoLayout", () => {
     const plan: ExecutionPlan = {
       steps: {},
       attributes: {},
-      goals: [],
+      goals: { steps: [] },
       required: [],
     };
 
@@ -214,7 +214,7 @@ describe("useAutoLayout", () => {
     const plan: ExecutionPlan = {
       steps: {},
       attributes: {},
-      goals: [],
+      goals: { steps: [] },
       required: [],
     };
 
@@ -240,7 +240,7 @@ describe("useAutoLayout", () => {
     const plan: ExecutionPlan = {
       steps: {},
       attributes: {},
-      goals: [],
+      goals: { steps: [] },
       required: [],
     };
 
@@ -267,7 +267,7 @@ describe("useAutoLayout", () => {
           consumers: ["step-2"],
         },
       },
-      goals: [],
+      goals: { steps: [] },
       required: [],
     };
 
@@ -290,7 +290,7 @@ describe("useAutoLayout", () => {
           consumers: ["step-2", "step-3"],
         },
       },
-      goals: [],
+      goals: { steps: [] },
       required: [],
     };
 
@@ -314,7 +314,7 @@ describe("useAutoLayout", () => {
           consumers: ["step-3"],
         },
       },
-      goals: [],
+      goals: { steps: [] },
       required: [],
     };
 
@@ -334,7 +334,7 @@ describe("useAutoLayout", () => {
           consumers: ["step-2"],
         },
       },
-      goals: [],
+      goals: { steps: [] },
       required: [],
     };
 
@@ -353,7 +353,7 @@ describe("useAutoLayout", () => {
           consumers: ["step-2"],
         },
       },
-      goals: [],
+      goals: { steps: [] },
       required: [],
     };
 
@@ -372,7 +372,7 @@ describe("useAutoLayout", () => {
           consumers: ["step-1"],
         },
       },
-      goals: [],
+      goals: { steps: [] },
       required: [],
     };
 
@@ -391,7 +391,7 @@ describe("useAutoLayout", () => {
           consumers: [],
         },
       },
-      goals: [],
+      goals: { steps: [] },
       required: [],
     };
 
@@ -407,7 +407,7 @@ describe("useAutoLayout", () => {
       attributes: {
         attr1: null as unknown as ExecutionPlan["attributes"][string],
       },
-      goals: [],
+      goals: { steps: [] },
       required: [],
     };
 
@@ -421,7 +421,7 @@ describe("useAutoLayout", () => {
     const plan: ExecutionPlan = {
       steps: {},
       attributes: {},
-      goals: [],
+      goals: { steps: [] },
       required: [],
     };
 
@@ -437,7 +437,7 @@ describe("useAutoLayout", () => {
     const plan: ExecutionPlan = {
       steps: {},
       attributes: {},
-      goals: [],
+      goals: { steps: [] },
       required: [],
     };
 
@@ -456,7 +456,7 @@ describe("useAutoLayout", () => {
     const plan: ExecutionPlan = {
       steps: {},
       attributes: {},
-      goals: [],
+      goals: { steps: [] },
       required: [],
     };
 
@@ -470,7 +470,7 @@ describe("useAutoLayout", () => {
     const plan: ExecutionPlan = {
       steps: {},
       attributes: {},
-      goals: [],
+      goals: { steps: [] },
       required: [],
     };
     const config = { nodeWidth: 400 };
@@ -488,7 +488,7 @@ describe("useAutoLayout", () => {
     const plan: ExecutionPlan = {
       steps: {},
       attributes: {},
-      goals: [],
+      goals: { steps: [] },
       required: [],
     };
     const config = {};
@@ -515,7 +515,7 @@ describe("useAutoLayout", () => {
     const plan: ExecutionPlan = {
       steps: {},
       attributes: {},
-      goals: [],
+      goals: { steps: [] },
       required: [],
     };
 

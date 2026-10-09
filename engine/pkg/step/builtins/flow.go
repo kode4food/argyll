@@ -8,11 +8,11 @@ import (
 // Flow returns the standard nested-flow handler
 func Flow() *step.Handler {
 	return &step.Handler{
-		Children: func(st *api.Step) []api.StepID {
+		Children: func(st *api.Step) *api.Goals {
 			if st.Flow == nil {
 				return nil
 			}
-			return st.Flow.Goals
+			return &st.Flow.Goals
 		},
 	}
 }

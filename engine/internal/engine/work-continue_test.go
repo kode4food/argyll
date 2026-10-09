@@ -1,6 +1,11 @@
 package engine_test
 
 import (
+	"encoding/json"
+	"errors"
+	"net/http"
+	"net/http/httptest"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -8,10 +13,14 @@ import (
 
 	"github.com/kode4food/argyll/engine/internal/assert/helpers"
 	"github.com/kode4food/argyll/engine/internal/assert/wait"
+	"github.com/kode4food/argyll/engine/internal/engine"
 	"github.com/kode4food/argyll/engine/internal/engine/scheduler"
+	"github.com/kode4food/argyll/engine/internal/engine/script"
 	"github.com/kode4food/argyll/engine/internal/event"
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/flow"
+	"github.com/kode4food/argyll/engine/pkg/step"
+	"github.com/kode4food/argyll/engine/pkg/step/builtins"
 	"github.com/kode4food/argyll/engine/pkg/util"
 )
 
@@ -39,7 +48,7 @@ func TestRetryPendingParallelism(t *testing.T) {
 		env.MockClient.SetError(st.ID, api.ErrWorkNotCompleted)
 
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{st.ID},
+			Goals: api.Goals{Steps: []api.StepID{st.ID}},
 			Steps: api.Steps{st.ID: st},
 		}
 
@@ -103,7 +112,7 @@ func TestRetryDeferredOnUnhealthyNode(t *testing.T) {
 		fs := api.FlowStep{FlowID: id, StepID: st.ID}
 		tkn := api.Token("work-retry-unhealthy")
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{st.ID},
+			Goals: api.Goals{Steps: []api.StepID{st.ID}},
 			Steps: api.Steps{st.ID: st},
 		}
 
@@ -176,7 +185,7 @@ func TestRetryOnHealthyPeer(t *testing.T) {
 		id := api.FlowID("wf-retry-shared")
 		tkn := api.Token("retry-token")
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{st.ID},
+			Goals: api.Goals{Steps: []api.StepID{st.ID}},
 			Steps: api.Steps{st.ID: st},
 		}
 
@@ -223,5 +232,348 @@ func TestRetryOnHealthyPeer(t *testing.T) {
 		assert.NoError(t, err)
 		work := fl.Executions[st.ID].WorkItems[tkn]
 		assert.Equal(t, api.WorkSucceeded, work.Status)
+	})
+}
+
+func TestShouldRetryStep(t *testing.T) {
+	scenarios := []struct {
+		name     string
+		config   *api.WorkConfig
+		retries  int
+		error    string
+		expected bool
+	}{
+		{
+			name:     "no config",
+			config:   nil,
+			retries:  0,
+			error:    "network timeout",
+			expected: true,
+		},
+		{
+			name: "parallelism only uses global retry defaults",
+			config: &api.WorkConfig{
+				Parallelism: 4,
+			},
+			retries:  0,
+			error:    "network timeout",
+			expected: true,
+		},
+		{
+			name: "zero max retries uses global defaults",
+			config: &api.WorkConfig{
+				MaxRetries:  0,
+				InitBackoff: 1000,
+				MaxBackoff:  10000,
+				BackoffType: api.BackoffTypeFixed,
+			},
+			retries:  0,
+			error:    "network timeout",
+			expected: true,
+		},
+		{
+			name: "within limit",
+			config: &api.WorkConfig{
+				MaxRetries:  3,
+				InitBackoff: 1000,
+				MaxBackoff:  10000,
+				BackoffType: api.BackoffTypeFixed,
+			},
+			retries:  2,
+			error:    "network timeout",
+			expected: true,
+		},
+		{
+			name: "at limit",
+			config: &api.WorkConfig{
+				MaxRetries:  3,
+				InitBackoff: 1000,
+				MaxBackoff:  10000,
+				BackoffType: api.BackoffTypeFixed,
+			},
+			retries:  3,
+			error:    "network timeout",
+			expected: false,
+		},
+		{
+			name: "unlimited retries",
+			config: &api.WorkConfig{
+				MaxRetries:  -1,
+				InitBackoff: 1000,
+				MaxBackoff:  10000,
+				BackoffType: api.BackoffTypeFixed,
+			},
+			retries:  100,
+			error:    "network timeout",
+			expected: true,
+		},
+	}
+
+	helpers.WithEngine(t, func(eng *engine.Engine) {
+		for _, sc := range scenarios {
+			t.Run(sc.name, func(t *testing.T) {
+				st := &api.Step{
+					ID:         "test-step",
+					WorkConfig: sc.config,
+				}
+
+				work := api.WorkState{
+					RetryCount: sc.retries,
+					Error:      sc.error,
+				}
+
+				result := eng.ShouldRetry(st, work)
+				assert.Equal(t, sc.expected, result)
+			})
+		}
+	})
+}
+
+func TestCalculateNextRetry(t *testing.T) {
+	scenarios := []struct {
+		name        string
+		backoffType string
+		backoff     int64
+		maxBackoff  int64
+		retryCount  int
+		expected    int64
+	}{
+		{
+			name:        "fixed backoff",
+			backoffType: api.BackoffTypeFixed,
+			backoff:     1000,
+			maxBackoff:  10000,
+			retryCount:  0,
+			expected:    1000,
+		},
+		{
+			name:        "fixed backoff retry 5",
+			backoffType: api.BackoffTypeFixed,
+			backoff:     1000,
+			maxBackoff:  10000,
+			retryCount:  5,
+			expected:    1000,
+		},
+		{
+			name:        "linear backoff retry 0",
+			backoffType: api.BackoffTypeLinear,
+			backoff:     1000,
+			maxBackoff:  10000,
+			retryCount:  0,
+			expected:    1000,
+		},
+		{
+			name:        "linear backoff retry 3",
+			backoffType: api.BackoffTypeLinear,
+			backoff:     1000,
+			maxBackoff:  10000,
+			retryCount:  3,
+			expected:    4000,
+		},
+		{
+			name:        "exponential backoff retry 0",
+			backoffType: api.BackoffTypeExponential,
+			backoff:     1000,
+			maxBackoff:  10000,
+			retryCount:  0,
+			expected:    1000,
+		},
+		{
+			name:        "exponential backoff retry 3",
+			backoffType: api.BackoffTypeExponential,
+			backoff:     1000,
+			maxBackoff:  10000,
+			retryCount:  3,
+			expected:    8000,
+		},
+		{
+			name:        "exponential backoff capped",
+			backoffType: api.BackoffTypeExponential,
+			backoff:     1000,
+			maxBackoff:  10000,
+			retryCount:  10,
+			expected:    10000,
+		},
+	}
+
+	base := time.Date(2026, 2, 27, 12, 0, 0, 0, time.UTC)
+	helpers.WithEngineDeps(t, engine.Dependencies{
+		Clock: func() time.Time { return base },
+	}, func(eng *engine.Engine) {
+		for _, sc := range scenarios {
+			t.Run(sc.name, func(t *testing.T) {
+				config := &api.WorkConfig{
+					InitBackoff: sc.backoff,
+					MaxBackoff:  sc.maxBackoff,
+					BackoffType: sc.backoffType,
+				}
+
+				nextRetry := eng.CalculateNextRetry(config, sc.retryCount)
+				expected := base.Add(
+					time.Duration(sc.expected) * time.Millisecond,
+				)
+				assert.Equal(t, expected, nextRetry)
+			})
+		}
+	})
+}
+
+func TestRetryDefaults(t *testing.T) {
+	base := time.Date(2026, 2, 27, 12, 0, 0, 0, time.UTC)
+	helpers.WithEngineDeps(t, engine.Dependencies{
+		Clock: func() time.Time { return base },
+	}, func(eng *engine.Engine) {
+		config := &api.WorkConfig{
+			InitBackoff: 750,
+			MaxBackoff:  1200,
+			BackoffType: "unknown",
+		}
+
+		nextRetry := eng.CalculateNextRetry(config, 5)
+		assert.Equal(t,
+			base.Add(750*time.Millisecond),
+			nextRetry,
+		)
+	})
+}
+
+func TestRetryExhaustion(t *testing.T) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		assert.NoError(t, env.Engine.Start())
+
+		st := helpers.NewSimpleStep("failing-step")
+		st.WorkConfig = &api.WorkConfig{
+			MaxRetries:  2,
+			InitBackoff: 200,
+			MaxBackoff:  1000,
+			BackoffType: api.BackoffTypeFixed,
+		}
+
+		env.MockClient.SetError("failing-step",
+			errors.Join(api.ErrWorkNotCompleted, assert.AnError))
+
+		err := env.Engine.RegisterStep(st)
+		assert.NoError(t, err)
+
+		pl := &api.ExecutionPlan{
+			Goals: api.Goals{Steps: []api.StepID{"failing-step"}},
+			Steps: api.Steps{st.ID: st},
+		}
+
+		id := api.FlowID("exhaustion-flow")
+		env.WaitFor(wait.WorkRetryScheduled(api.FlowStep{
+			FlowID: id,
+			StepID: "failing-step",
+		}), func() {
+			err = env.Engine.StartPlan(id, pl)
+			assert.NoError(t, err)
+		})
+
+		fl, err := env.Engine.GetFlowState(id)
+		assert.NoError(t, err)
+		ex := fl.Executions["failing-step"]
+		if assert.NotNil(t, ex.WorkItems) {
+			found := false
+			for _, work := range ex.WorkItems {
+				if work.RetryCount >= 1 {
+					found = true
+					break
+				}
+			}
+			assert.True(t, found)
+		}
+	})
+}
+
+func TestHTTPRetryRecovers(t *testing.T) {
+	var calls atomic.Int32
+	stepServer := httptest.NewServer(http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			if calls.Add(1) <= 2 {
+				w.Header().Set("Content-Type", api.ProblemJSONContentType)
+				w.WriteHeader(http.StatusServiceUnavailable)
+				_ = json.NewEncoder(w).Encode(api.NewProblem(
+					http.StatusServiceUnavailable, "temporary outage",
+				))
+				return
+			}
+
+			w.Header().Set("Content-Type", api.JSONContentType)
+			_ = json.NewEncoder(w).Encode(api.Args{"result": "ok"})
+		},
+	))
+	defer stepServer.Close()
+
+	scripts := script.NewRegistry()
+	deps := engine.Dependencies{
+		Scripts: scripts,
+		Steps: step.NewRegistry(builtins.All(
+			builtins.NewHTTPClient(5*time.Second), nil,
+		)),
+	}
+	helpers.WithTestEnvDeps(t, deps, func(env *helpers.TestEngineEnv) {
+		cfg := util.MutableCopy(env.Config)
+		cfg.Work = api.WorkConfig{
+			MaxRetries:  3,
+			InitBackoff: 1,
+			MaxBackoff:  1,
+			BackoffType: api.BackoffTypeFixed,
+		}
+		deps := env.Dependencies()
+		scripts := script.NewRegistry()
+		deps.Scripts = scripts
+		deps.Steps = step.NewRegistry(builtins.All(
+			builtins.NewHTTPClient(5*time.Second), nil,
+		))
+		eng, unsubscribe, err := env.NewEngineWithConfig(cfg, deps)
+		assert.NoError(t, err)
+		if !assert.NotNil(t, eng) {
+			return
+		}
+		defer unsubscribe()
+		defer func() { assert.NoError(t, eng.Stop()) }()
+
+		assert.NoError(t, eng.Start())
+
+		st := helpers.NewStepWithOutputs("http-retry", "result")
+		st.HTTP.Invoke.Endpoint = stepServer.URL
+		assert.NoError(t, eng.RegisterStep(st))
+
+		pl := &api.ExecutionPlan{
+			Goals: api.Goals{Steps: []api.StepID{st.ID}},
+			Steps: api.Steps{st.ID: st},
+		}
+
+		id := api.FlowID("wf-http-retry")
+		err = eng.StartPlan(id, pl)
+		assert.NoError(t, err)
+		fl := helpers.WaitForTerminalFlowState(t, eng, id)
+
+		assert.Equal(t, api.FlowCompleted, fl.Status)
+		assert.Equal(t, int32(3), calls.Load())
+		assert.Equal(t, "ok", fl.Attributes["result"][0].Value)
+	})
+}
+
+func TestNextRetryNilConfig(t *testing.T) {
+	base := time.Date(2026, 2, 27, 12, 0, 0, 0, time.UTC)
+	helpers.WithEngineDeps(t, engine.Dependencies{
+		Clock: func() time.Time { return base },
+	}, func(eng *engine.Engine) {
+		nextRetry := eng.CalculateNextRetry(nil, 0)
+		assert.Equal(t, base.Add(time.Second), nextRetry)
+	})
+}
+
+func TestNextRetryParallelismOnlyConfig(t *testing.T) {
+	base := time.Date(2026, 2, 27, 12, 0, 0, 0, time.UTC)
+	helpers.WithEngineDeps(t, engine.Dependencies{
+		Clock: func() time.Time { return base },
+	}, func(eng *engine.Engine) {
+		cfg := &api.WorkConfig{
+			Parallelism: 2,
+		}
+		nextRetry := eng.CalculateNextRetry(cfg, 0)
+		assert.Equal(t, base.Add(time.Second), nextRetry)
 	})
 }

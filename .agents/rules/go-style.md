@@ -89,7 +89,7 @@ Use longer names only when the broader scope really needs them, such as struct f
 ```go
 // Good - clear at API boundaries
 func (e *Engine) StartFlow(
-    flowID api.FlowID, goalSteps []api.StepID, initState api.Args,
+    flowID api.FlowID, goals api.Goals, initState api.Args,
 ) (api.FlowState, error)
 
 // Good - descriptive struct fields
@@ -145,7 +145,10 @@ Examples:
 ```go
 st := helpers.NewSimpleStep("test-step")
 sp := api.Space{ID: "payments", Name: "Payments"}
-pl := &api.ExecutionPlan{Goals: []api.StepID{st.ID}, Steps: api.Steps{st.ID: st}}
+pl := &api.ExecutionPlan{
+    Goals: api.Goals{Steps: []api.StepID{st.ID}},
+    Steps: api.Steps{st.ID: st},
+}
 fl := env.WaitForFlowStatus("wf-test", func() {
     err := env.Engine.StartFlow("wf-test", pl)
     assert.NoError(t, err)

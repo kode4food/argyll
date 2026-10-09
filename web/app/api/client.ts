@@ -7,19 +7,20 @@ import {
   SpacePreviewResponse,
   Step,
 } from "./types";
+import { fromGoalSets, GoalSets } from "./goals";
 
 const REQUEST_TIMEOUT_MS = 30000;
 
 export interface StartFlowRequest {
   id: string;
-  goalSteps: string[];
+  goalSteps: GoalSets;
   initialState: Record<string, unknown[]>;
   compensate?: boolean;
   spaceId?: string;
 }
 
 export interface ExecutionPlanOptions {
-  goalSteps: string[];
+  goalSteps: GoalSets;
   initialState?: Record<string, any[]>;
   spaceId?: string;
   signal?: AbortSignal;
@@ -119,7 +120,7 @@ export class ArgyllApi {
       method: "POST",
       body: JSON.stringify({
         id,
-        goals: goalSteps,
+        goals: fromGoalSets(goalSteps),
         init: initialState,
         compensate,
         ...(spaceId && { space_id: spaceId }),
@@ -152,7 +153,7 @@ export class ArgyllApi {
     return this.request("/engine/plan", {
       method: "POST",
       body: JSON.stringify({
-        goals: goalSteps,
+        goals: fromGoalSets(goalSteps),
         init: initialState,
         ...(spaceId && { space_id: spaceId }),
       }),

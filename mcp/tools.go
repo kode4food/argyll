@@ -5,6 +5,7 @@ import (
 
 	"github.com/localrivet/gomcp/server"
 
+	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/mcp/openapi"
 )
 
@@ -46,12 +47,12 @@ type (
 
 	previewPlanArgs struct {
 		Init  map[string]any `json:"init,omitempty"`
-		Goals []string       `json:"goals"`
+		Goals api.Goals      `json:"goals"`
 	}
 
 	previewPlanInput struct {
 		Init  *map[string]any `json:"init,omitempty"`
-		Goals []string        `json:"goals"`
+		Goals api.Goals       `json:"goals"`
 	}
 
 	startFlowInput struct {
@@ -246,10 +247,12 @@ func (s *Server) registerFlowWriteTools(srv server.Server) {
 	)
 	srv.Tool(
 		"preview_plan",
-		"Preview execution plan for goal steps and init state",
+		"Preview execution plan for ordered fallback goal sets and init state",
 		func(_ *server.Context, args previewPlanInput) (any, error) {
-			if len(args.Goals) == 0 {
-				return nil, errInvalidParams("goals is required")
+			if !args.Goals.Valid() {
+				return nil, errInvalidParams(
+					"goals requires at least one non-empty goal set",
+				)
 			}
 			init := map[string]any{}
 			if args.Init != nil {

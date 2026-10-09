@@ -68,7 +68,7 @@ func TestFlowHealth(t *testing.T) {
 			Name: "Flow Step",
 			Type: api.StepTypeFlow,
 			Flow: &api.FlowConfig{
-				Goals: []api.StepID{goalA.ID, goalB.ID},
+				Goals: api.Goals{Steps: []api.StepID{goalA.ID, goalB.ID}},
 			},
 			Attributes: api.AttributeSpecs{
 				"out": {Role: api.RoleOutput, Type: api.TypeString},
@@ -111,7 +111,7 @@ func TestFlowHealthUnknownGoalError(t *testing.T) {
 			Name: "Flow Unknown",
 			Type: api.StepTypeFlow,
 			Flow: &api.FlowConfig{
-				Goals: []api.StepID{goal.ID},
+				Goals: api.Goals{Steps: []api.StepID{goal.ID}},
 			},
 			Attributes: api.AttributeSpecs{
 				"out": {Role: api.RoleOutput, Type: api.TypeString},
@@ -141,7 +141,7 @@ func TestGetHealthFlowWorstGoal(t *testing.T) {
 			Name: "Flow Health Step",
 			Type: api.StepTypeFlow,
 			Flow: &api.FlowConfig{
-				Goals: []api.StepID{goalA.ID, goalB.ID},
+				Goals: api.Goals{Steps: []api.StepID{goalA.ID, goalB.ID}},
 			},
 			Attributes: api.AttributeSpecs{
 				"out": {Role: api.RoleOutput, Type: api.TypeString},
@@ -180,7 +180,7 @@ func TestFlowHealthIncludesPreviewSteps(t *testing.T) {
 			Name: "Flow Step",
 			Type: api.StepTypeFlow,
 			Flow: &api.FlowConfig{
-				Goals: []api.StepID{goal.ID},
+				Goals: api.Goals{Steps: []api.StepID{goal.ID}},
 			},
 			Attributes: api.AttributeSpecs{
 				"out": {Role: api.RoleOutput, Type: api.TypeString},
@@ -337,7 +337,7 @@ func TestResolveHealthPreviewFail(t *testing.T) {
 					Name: "Flow Step",
 					Type: api.StepTypeFlow,
 					Flow: &api.FlowConfig{
-						Goals: []api.StepID{"missing-goal"},
+						Goals: api.Goals{Steps: []api.StepID{"missing-goal"}},
 					},
 					Attributes: api.AttributeSpecs{
 						"out": {Role: api.RoleOutput, Type: api.TypeString},
@@ -418,7 +418,7 @@ func TestResolveHealthFlowUnknown(t *testing.T) {
 			Name: "Flow Step",
 			Type: api.StepTypeFlow,
 			Flow: &api.FlowConfig{
-				Goals: []api.StepID{goal.ID},
+				Goals: api.Goals{Steps: []api.StepID{goal.ID}},
 			},
 			Attributes: api.AttributeSpecs{
 				"out": {Role: api.RoleOutput, Type: api.TypeString},
@@ -473,7 +473,7 @@ func TestResolveHealthFlowUnhealthyChild(t *testing.T) {
 			Name: "Flow Step",
 			Type: api.StepTypeFlow,
 			Flow: &api.FlowConfig{
-				Goals: []api.StepID{goal.ID},
+				Goals: api.Goals{Steps: []api.StepID{goal.ID}},
 			},
 			Attributes: api.AttributeSpecs{
 				"out": {Role: api.RoleOutput, Type: api.TypeString},
@@ -507,7 +507,7 @@ func TestResolveHealthUnhealthyWithoutReason(t *testing.T) {
 			Name: "Flow Step",
 			Type: api.StepTypeFlow,
 			Flow: &api.FlowConfig{
-				Goals: []api.StepID{goal.ID},
+				Goals: api.Goals{Steps: []api.StepID{goal.ID}},
 			},
 			Attributes: api.AttributeSpecs{
 				"out": {Role: api.RoleOutput, Type: api.TypeString},

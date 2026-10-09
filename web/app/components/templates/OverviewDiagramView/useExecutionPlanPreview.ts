@@ -1,6 +1,12 @@
 import { useCallback } from "react";
-import { ExecutionPlan } from "@/app/api";
+import { ExecutionPlan, GoalSets, Step } from "@/app/api";
 import { useUI } from "@/app/contexts/UIContext";
+import {
+  activeGoalSet,
+  toggleGoal,
+  upstreamSteps,
+  withActiveGoalSet,
+} from "@/utils/goalSets";
 
 export interface UseExecutionPlanPreviewReturn {
   previewPlan: ExecutionPlan | null;
@@ -12,37 +18,37 @@ export interface UseExecutionPlanPreviewReturn {
 }
 
 export function useExecutionPlanPreview(
-  goalSteps: string[],
-  setGoalSteps: (stepIds: string[]) => void
+  steps: Step[],
+  goalSteps: GoalSets,
+  setGoalSteps: (goals: GoalSets) => void
 ): UseExecutionPlanPreviewReturn {
   const { previewPlan, updatePreviewPlan, clearPreviewPlan } = useUI();
 
   const handleStepClick = useCallback(
     async (stepId: string, options?: { additive?: boolean }) => {
       const isAdditive = options?.additive ?? false;
+      const active = activeGoalSet(goalSteps);
 
       if (isAdditive) {
-        const isIncludedByPlan =
-          !!previewPlan?.steps?.[stepId] && !goalSteps.includes(stepId);
-        if (isIncludedByPlan) {
+        // Only the active AND-set's own upstream Steps are already included
+        const isIncludedByActiveSet =
+          upstreamSteps(steps, active).has(stepId) && !active.includes(stepId);
+        if (isIncludedByActiveSet) {
           return;
         }
 
-        const nextGoals = goalSteps.includes(stepId)
-          ? goalSteps.filter((id) => id !== stepId)
-          : [...goalSteps, stepId];
+        const nextGoals = withActiveGoalSet(
+          goalSteps,
+          toggleGoal(steps, active, stepId)
+        );
 
         setGoalSteps(nextGoals);
-        if (nextGoals.length === 0) {
-          clearPreviewPlan();
-        } else {
-          await updatePreviewPlan(nextGoals, {});
-        }
+        await updatePreviewPlan(nextGoals, {});
         return;
       }
 
       const isCurrentlySingleSelection =
-        goalSteps.length === 1 && goalSteps[0] === stepId;
+        goalSteps.length === 1 && active.length === 1 && active[0] === stepId;
 
       if (isCurrentlySingleSelection) {
         setGoalSteps([]);
@@ -50,11 +56,11 @@ export function useExecutionPlanPreview(
         return;
       }
 
-      const nextGoals = [stepId];
+      const nextGoals = [[stepId]];
       setGoalSteps(nextGoals);
       await updatePreviewPlan(nextGoals, {});
     },
-    [goalSteps, setGoalSteps, updatePreviewPlan, clearPreviewPlan, previewPlan]
+    [goalSteps, setGoalSteps, updatePreviewPlan, clearPreviewPlan, steps]
   );
 
   const clearPreview = useCallback(() => {

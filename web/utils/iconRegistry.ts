@@ -39,6 +39,7 @@ import {
   RefreshCw,
   Search,
   Server,
+  Split,
   Square,
   Sun,
   Tag,
@@ -118,6 +119,7 @@ export const IconManage = Ellipsis;
 /* Step editor section headers */
 export const IconAttributes = Braces;
 export const IconFlowGoals = Target;
+export const IconGoalFallback = Split;
 export const IconPredicate = GitBranch;
 
 export const IconAttributeStatusSatisfied = CheckCircle2;

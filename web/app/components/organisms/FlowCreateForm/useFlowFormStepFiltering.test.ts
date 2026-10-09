@@ -25,7 +25,7 @@ describe("useFlowFormStepFiltering", () => {
   ];
 
   const previewPlan: ExecutionPlan = {
-    goals: [],
+    goals: { steps: [] },
     required: [],
     steps: {
       "step-1": steps[0],
@@ -34,7 +34,7 @@ describe("useFlowFormStepFiltering", () => {
     attributes: {},
   };
 
-  it("builds included/satisfied sets from plan", () => {
+  it("builds satisfied sets from state", () => {
     const initialState = '{"outputA":"value","outputB":"value","extra":"data"}';
     const { result } = renderHook(() =>
       useFlowFormStepFiltering(steps, initialState, previewPlan)
@@ -45,9 +45,6 @@ describe("useFlowFormStepFiltering", () => {
       outputB: "value",
       extra: "data",
     });
-    expect(result.current.included.has("step-1")).toBe(true);
-    expect(result.current.included.has("step-2")).toBe(true);
-
     expect(result.current.satisfied.has("step-1")).toBe(true);
     expect(result.current.satisfied.has("step-2")).toBe(false);
     expect(result.current.satisfied.has("step-3")).toBe(false);
@@ -55,7 +52,7 @@ describe("useFlowFormStepFiltering", () => {
 
   it("uses excluded steps when available", () => {
     const resolvedPlan: ExecutionPlan = {
-      goals: [],
+      goals: { steps: [] },
       required: [],
       steps: {
         "step-1": steps[0],
@@ -88,7 +85,6 @@ describe("useFlowFormStepFiltering", () => {
       useFlowFormStepFiltering(steps, "{}", null)
     );
 
-    expect(result.current.included.size).toBe(0);
     expect(result.current.satisfied.size).toBe(0);
     expect(result.current.blockedByStep.size).toBe(0);
     expect(result.current.missingByStep.size).toBe(0);

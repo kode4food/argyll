@@ -15,7 +15,7 @@ This MCP server exposes both the Argyll runtime surface and an OpenAPI-driven de
 - `get_step` - fetch a single step by ID.
 - `update_step` - update a step by ID.
 - `unregister_step` - remove a step by ID.
-- `preview_plan` - preview an execution plan from goal steps and init state.
+- `preview_plan` - preview an execution plan from ordered fallback goal sets and init state.
 - `list_flows` - list flows.
 - `query_flows` - query flows by status, labels, ID prefix, sort, and pagination.
 - `get_flow` - fetch a single flow by ID.
@@ -93,5 +93,5 @@ Messages are newline-delimited JSON (one JSON-RPC object per line).
 ```json
 {"jsonrpc":"2.0","id":1,"method":"initialize"}
 {"jsonrpc":"2.0","id":2,"method":"tools/list"}
-{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"preview_plan","arguments":{"goals":["step-a","step-b"],"init":{"input":"value"}}}}
+{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"preview_plan","arguments":{"goals":{"steps":["step-a","step-b"],"else":{"steps":["step-c"]}},"init":{"input":"value"}}}}
 ```

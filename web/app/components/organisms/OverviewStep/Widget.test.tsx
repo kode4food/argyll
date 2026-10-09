@@ -80,7 +80,7 @@ describe("Widget", () => {
       : type === "flow"
         ? {
             flow: {
-              goals: ["goal-a"],
+              goals: { steps: ["goal-a"] },
             },
           }
         : {

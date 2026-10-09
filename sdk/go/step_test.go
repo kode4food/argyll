@@ -288,12 +288,13 @@ func TestWithSyncInvoke(t *testing.T) {
 func TestWithFlowGoals(t *testing.T) {
 	st, err := testClient().NewStep().WithName("Flow Step").
 		WithFlowSpace("payments").
-		WithFlowGoals("goal-a", "goal-b").
+		WithFlowGoals(api.Goals{Steps: []api.StepID{"goal-a", "goal-b"}}).
 		Build()
 
 	assert.NoError(t, err)
 	assert.Equal(t, api.StepTypeFlow, st.Type)
-	assert.Equal(t, []api.StepID{"goal-a", "goal-b"}, st.Flow.Goals)
+	assert.Equal(t,
+		api.Goals{Steps: []api.StepID{"goal-a", "goal-b"}}, st.Flow.Goals)
 	assert.Equal(t, api.SpaceID("payments"), st.Flow.SpaceID)
 }
 
@@ -557,7 +558,7 @@ func TestStepBuilderChaining(t *testing.T) {
 		assert.Equal(t, api.StepTypeScript, scriptStep.Type)
 
 		flowStep, err := build.
-			WithFlowGoals("goal-a").
+			WithFlowGoals(api.Goals{Steps: []api.StepID{"goal-a"}}).
 			Build()
 		assert.NoError(t, err)
 		assert.Equal(t, api.StepTypeFlow, flowStep.Type)

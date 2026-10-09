@@ -3,7 +3,7 @@
 import copy
 import re
 from dataclasses import replace
-from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Callable, Dict, Optional
 
 from ._validation import validate_step
 from .errors import StepRegistrationError, StepValidationError
@@ -16,6 +16,7 @@ from .types import (
     ConstConfig,
     FlowConfig,
     FlowID,
+    Goals,
     Handling,
     HTTPAction,
     HTTPConfig,
@@ -221,17 +222,17 @@ class StepBuilder:
         """Set the predicate gating the step."""
         return self._copy(_predicate=predicate)
 
-    def with_flow_goals(self, *goal_ids: StepID) -> "StepBuilder":
-        """Configure flow step with goal IDs."""
-        flow = self._flow or FlowConfig(goals=[])
+    def with_flow_goals(self, goals: Goals) -> "StepBuilder":
+        """Configure flow step with a chain of fallback goal sets."""
+        flow = self._flow or FlowConfig(goals=Goals(steps=[]))
         return self._copy(
-            _flow=replace(flow, goals=list(goal_ids)),
+            _flow=replace(flow, goals=goals),
             _type=StepType.FLOW,
         )
 
     def with_flow_space(self, space_id: str) -> "StepBuilder":
         """Restrict a child flow to a planning space."""
-        flow = self._flow or FlowConfig(goals=[])
+        flow = self._flow or FlowConfig(goals=Goals(steps=[]))
         return self._copy(
             _flow=replace(flow, space_id=space_id),
             _type=StepType.FLOW,
@@ -320,7 +321,7 @@ class FlowBuilder:
     def __init__(self, client: "Client", flow_id: FlowID) -> None:
         self._client = client
         self._flow_id = flow_id
-        self._goals: List[StepID] = []
+        self._goals = Goals(steps=[])
         self._initial_state: InitArgs = {}
 
     def _copy(self, **kwargs: Any) -> "FlowBuilder":
@@ -331,14 +332,12 @@ class FlowBuilder:
         return result
 
     def with_goal(self, step_id: StepID) -> "FlowBuilder":
-        """Add single goal step."""
-        new_goals = list(self._goals)
-        new_goals.append(step_id)
-        return self._copy(_goals=new_goals)
+        """Add single goal step to the last goal set."""
+        return self._copy(_goals=self._goals.with_goal(step_id))
 
-    def with_goals(self, *step_ids: StepID) -> "FlowBuilder":
-        """Set all goal steps."""
-        return self._copy(_goals=list(step_ids))
+    def with_goals(self, goals: Goals) -> "FlowBuilder":
+        """Set the chain of fallback goal sets."""
+        return self._copy(_goals=goals)
 
     def with_initial_state(self, args: InitArgs) -> "FlowBuilder":
         """Set initial state."""
@@ -351,7 +350,7 @@ class FlowBuilder:
         url = f"{self._client.base_url}/engine/flows"
         payload = {
             "id": self._flow_id,
-            "goals": self._goals,
+            "goals": self._goals.to_dict(),
             "init": self._initial_state,
         }
 

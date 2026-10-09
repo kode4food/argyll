@@ -101,7 +101,7 @@ func TestStepValidation(t *testing.T) {
 					},
 				},
 				Flow: &api.FlowConfig{
-					Goals: []api.StepID{"goal"},
+					Goals: api.Goals{Steps: []api.StepID{"goal"}},
 				},
 			},
 			expectError:   true,
@@ -202,7 +202,7 @@ func TestStepValidation(t *testing.T) {
 					Script:   "return {}",
 				},
 				Flow: &api.FlowConfig{
-					Goals: []api.StepID{"goal"},
+					Goals: api.Goals{Steps: []api.StepID{"goal"}},
 				},
 			},
 			expectError:   true,
@@ -230,13 +230,27 @@ func TestStepValidation(t *testing.T) {
 			errorContains: "flow goals required",
 		},
 		{
+			name: "empty_flow_goal_set",
+			step: &api.Step{
+				ID:   "test-id",
+				Name: "Test Flow",
+				Type: api.StepTypeFlow,
+				Flow: &api.FlowConfig{Goals: api.Goals{
+					Steps: []api.StepID{"goal"},
+					Else:  &api.Goals{},
+				}},
+			},
+			expectError:   true,
+			errorContains: "flow goals required",
+		},
+		{
 			name: "invalid_flow_space_id",
 			step: &api.Step{
 				ID:   "test-id",
 				Name: "Test Flow",
 				Type: api.StepTypeFlow,
 				Flow: &api.FlowConfig{
-					Goals:   []api.StepID{"goal"},
+					Goals:   api.Goals{Steps: []api.StepID{"goal"}},
 					SpaceID: "invalid:space",
 				},
 			},
@@ -250,7 +264,7 @@ func TestStepValidation(t *testing.T) {
 				Name: "Test Flow",
 				Type: api.StepTypeFlow,
 				Flow: &api.FlowConfig{
-					Goals: []api.StepID{"goal"},
+					Goals: api.Goals{Steps: []api.StepID{"goal"}},
 				},
 				HTTP: &api.HTTPConfig{
 					Invoke: api.HTTPAction{
@@ -268,7 +282,7 @@ func TestStepValidation(t *testing.T) {
 				Name: "Test Flow",
 				Type: api.StepTypeFlow,
 				Flow: &api.FlowConfig{
-					Goals: []api.StepID{"goal"},
+					Goals: api.Goals{Steps: []api.StepID{"goal"}},
 				},
 				Script: &api.ScriptConfig{
 					Language: api.ScriptLangLua,
@@ -771,18 +785,18 @@ func TestEqualFlowConfig(t *testing.T) {
 	as := assert.New(t)
 
 	config1 := &api.FlowConfig{
-		Goals: []api.StepID{"goal-1"},
+		Goals: api.Goals{Steps: []api.StepID{"goal-1"}},
 	}
 
 	config2 := &api.FlowConfig{
-		Goals: []api.StepID{"goal-1"},
+		Goals: api.Goals{Steps: []api.StepID{"goal-1"}},
 	}
 
 	config3 := &api.FlowConfig{
-		Goals: []api.StepID{"goal-2"},
+		Goals: api.Goals{Steps: []api.StepID{"goal-2"}},
 	}
 	config4 := &api.FlowConfig{
-		Goals:   []api.StepID{"goal-1"},
+		Goals:   api.Goals{Steps: []api.StepID{"goal-1"}},
 		SpaceID: "restricted",
 	}
 
@@ -797,12 +811,16 @@ func TestFlowConfigWithGoals(t *testing.T) {
 	as := assert.New(t)
 
 	base := &api.FlowConfig{
-		Goals: []api.StepID{"goal-1"},
+		Goals: api.Goals{Steps: []api.StepID{"goal-1"}},
 	}
 
-	updated := base.WithGoals("goal-2", "goal-3")
-	as.Equal([]api.StepID{"goal-1"}, base.Goals)
-	as.Equal([]api.StepID{"goal-2", "goal-3"}, updated.Goals)
+	goals := api.Goals{
+		Steps: []api.StepID{"goal-2", "goal-3"},
+		Else:  &api.Goals{Steps: []api.StepID{"goal-4"}},
+	}
+	updated := base.WithGoals(goals)
+	as.Equal(api.Goals{Steps: []api.StepID{"goal-1"}}, base.Goals)
+	as.Equal(goals, updated.Goals)
 }
 
 func TestEqualWorkConfig(t *testing.T) {
@@ -911,7 +929,9 @@ func TestEqualFields(t *testing.T) {
 			st.Handling = api.HandlingMemoized
 		}},
 		{name: "flow", change: func(st *api.Step) {
-			st.Flow = &api.FlowConfig{Goals: []api.StepID{"goal"}}
+			st.Flow = &api.FlowConfig{
+				Goals: api.Goals{Steps: []api.StepID{"goal"}},
+			}
 		}},
 		{name: "script", change: func(st *api.Step) {
 			st.Script = &api.ScriptConfig{
@@ -1265,7 +1285,7 @@ func TestStepCopy(t *testing.T) {
 				},
 			},
 			Flow: &api.FlowConfig{
-				Goals: []api.StepID{"goal-a"},
+				Goals: api.Goals{Steps: []api.StepID{"goal-a"}},
 			},
 			Script: &api.ScriptConfig{
 				Language: api.ScriptLangLua,
@@ -1306,7 +1326,7 @@ func TestStepCopy(t *testing.T) {
 		as.Equal(api.Name("Copy Step"), st.Name)
 
 		cpy.HTTP.Invoke.Endpoint = "http://localhost:8081"
-		cpy.Flow.Goals[0] = "goal-b"
+		cpy.Flow.Goals.Steps[0] = "goal-b"
 		cpy.Script.Script = "(* 2 3)"
 		cpy.Predicate.Script = "return false"
 		cpy.WorkConfig.MaxRetries = 9
@@ -1316,7 +1336,7 @@ func TestStepCopy(t *testing.T) {
 		cpy.Attributes["input"].Required.Mapping.Script.Script = "$.changed"
 
 		as.Equal("http://localhost:8081", st.HTTP.Invoke.Endpoint)
-		as.Equal(api.StepID("goal-b"), st.Flow.Goals[0])
+		as.Equal(api.StepID("goal-b"), st.Flow.Goals.Steps[0])
 		as.Equal("(* 2 3)", st.Script.Script)
 		as.Equal("return false", st.Predicate.Script)
 		as.Equal(9, st.WorkConfig.MaxRetries)
@@ -1732,7 +1752,7 @@ func TestStepHashKey(t *testing.T) {
 		s := &api.Step{
 			Type: api.StepTypeFlow,
 			Flow: &api.FlowConfig{
-				Goals: []api.StepID{"goal1", "goal2"},
+				Goals: api.Goals{Steps: []api.StepID{"goal1", "goal2"}},
 			},
 		}
 		h, err := s.HashKey()

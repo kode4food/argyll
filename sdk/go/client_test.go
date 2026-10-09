@@ -104,7 +104,7 @@ func TestStartSuccess(t *testing.T) {
 	client := argyll.NewClient(server.URL, 5*time.Second)
 	ctx := context.Background()
 	err := client.NewFlow("wf-1").
-		WithGoals("goal-step").
+		WithGoals(api.Goals{Steps: []api.StepID{"goal-step"}}).
 		WithInitialState(api.InitArgs{"input": {"value"}}).
 		Start(ctx)
 	assert.NoError(t, err)
@@ -121,7 +121,7 @@ func TestStartError(t *testing.T) {
 
 	client := argyll.NewClient(server.URL, 5*time.Second)
 	err := client.NewFlow("wf-1").
-		WithGoals("goal-step").
+		WithGoals(api.Goals{Steps: []api.StepID{"goal-step"}}).
 		Start(context.Background())
 	assert.Error(t, err)
 }

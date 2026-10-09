@@ -18,7 +18,7 @@ describe("useNodeCalculation", () => {
     state: {},
     started_at: "2024-01-01T00:00:00Z",
     plan: {
-      goals: ["step-2"],
+      goals: { steps: ["step-2"] },
       required: [],
       steps: {},
       attributes: {},

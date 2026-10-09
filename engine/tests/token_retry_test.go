@@ -33,7 +33,7 @@ func TestMemoStepReusesToken(t *testing.T) {
 		env.MockClient.SetError(st.ID, api.ErrWorkNotCompleted)
 
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{st.ID},
+			Goals: api.Goals{Steps: []api.StepID{st.ID}},
 			Steps: api.Steps{st.ID: st},
 		}
 
@@ -79,7 +79,7 @@ func TestNonMemoStepReusesToken(t *testing.T) {
 		env.MockClient.SetError(st.ID, api.ErrWorkNotCompleted)
 
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{st.ID},
+			Goals: api.Goals{Steps: []api.StepID{st.ID}},
 			Steps: api.Steps{st.ID: st},
 		}
 
@@ -124,7 +124,7 @@ func TestRetriesReuseToken(t *testing.T) {
 		env.MockClient.SetError(st.ID, api.ErrWorkNotCompleted)
 
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{st.ID},
+			Goals: api.Goals{Steps: []api.StepID{st.ID}},
 			Steps: api.Steps{st.ID: st},
 		}
 

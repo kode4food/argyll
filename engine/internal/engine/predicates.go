@@ -15,7 +15,7 @@ func (e *Engine) StepHealth(st *api.Step) (api.HealthState, error) {
 	return e.steps.Health(st)
 }
 
-// Children returns the child step IDs a step expands into
-func (e *Engine) Children(st *api.Step) ([]api.StepID, error) {
+// Children returns the child goal sets a step expands into
+func (e *Engine) Children(st *api.Step) (*api.Goals, error) {
 	return e.steps.Children(st)
 }

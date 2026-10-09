@@ -1,4 +1,10 @@
-import React, { useState, useRef, useCallback, useEffect } from "react";
+import React, {
+  useState,
+  useRef,
+  useCallback,
+  useEffect,
+  useMemo,
+} from "react";
 import { useNavigate } from "react-router-dom";
 import {
   useSteps,
@@ -8,7 +14,8 @@ import {
 } from "../store/flowStore";
 import { useUI } from "../contexts/UIContext";
 import { useThrottledValue } from "@/app/contexts/useThrottledValue";
-import { api } from "../api";
+import { api, GoalSets } from "../api";
+import { nonEmptyGoalSets } from "@/utils/goalSets";
 import { parseState, filterDefaultValues } from "@/utils/stateUtils";
 import { snapshotFlowPositions } from "@/utils/nodePositioning";
 import toast from "react-hot-toast";
@@ -49,10 +56,10 @@ export const useFlowCreation = () => {
   }, [clearPreviewPlan, setGoalSteps]);
 
   const handleStepChange = useCallback(
-    async (stepIds: string[]) => {
+    async (goals: GoalSets) => {
       initializedGoalsRef.current = true;
       await applyFlowGoalSelectionChange({
-        stepIds,
+        goals,
         initialState,
         steps,
         idManuallyEdited,
@@ -79,20 +86,21 @@ export const useFlowCreation = () => {
   );
 
   const throttledInitialState = useThrottledValue(initialState, 500);
+  const planGoals = useMemo(() => nonEmptyGoalSets(goalSteps), [goalSteps]);
 
   useEffect(() => {
-    if (goalSteps.length === 0) {
+    if (planGoals.length === 0) {
       return;
     }
 
     const currentState = parseState(throttledInitialState);
     const nonDefaultState = filterDefaultValues(currentState, steps);
 
-    updatePreviewPlan(goalSteps, nonDefaultState).catch(() => {});
-  }, [throttledInitialState, goalSteps, steps, updatePreviewPlan]);
+    updatePreviewPlan(planGoals, nonDefaultState).catch(() => {});
+  }, [throttledInitialState, planGoals, steps, updatePreviewPlan]);
 
   useEffect(() => {
-    if (goalSteps.length === 0) {
+    if (planGoals.length === 0) {
       return;
     }
 
@@ -100,10 +108,10 @@ export const useFlowCreation = () => {
       initializedGoalsRef.current = true;
       handleStepChange(goalSteps);
     }
-  }, [goalSteps, handleStepChange]);
+  }, [goalSteps, planGoals, handleStepChange]);
 
   const handleCreateFlow = useCallback(async () => {
-    if (!newID.trim() || goalSteps.length === 0) return;
+    if (!newID.trim() || planGoals.length === 0) return;
 
     const flowId = newID.trim();
     let parsedState: {};
@@ -128,7 +136,7 @@ export const useFlowCreation = () => {
     try {
       await api.startFlow({
         id: flowId,
-        goalSteps,
+        goalSteps: planGoals,
         initialState: parsedState,
         compensate,
         spaceId: spaceId ?? undefined,
@@ -147,7 +155,7 @@ export const useFlowCreation = () => {
     }
   }, [
     newID,
-    goalSteps,
+    planGoals,
     addFlow,
     navigate,
     loadFlows,

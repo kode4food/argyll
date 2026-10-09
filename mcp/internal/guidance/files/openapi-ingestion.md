@@ -119,6 +119,6 @@ Do not apply the raw OpenAPI extraction when service field names appear in requi
 
 After applying registrations, inspect the `verification` block returned by `apply_proposed_steps`. If it reports missing or changed `mapping` or `match` paths, treat the registration as semantically failed even if the engine accepted the request.
 
-After verification of the saved registration passes, use `preview_plan` with representative goal step IDs (not attribute names). The `goals` field takes step IDs. If service-specific request fields appear as missing initial inputs, refine the step attributes and mappings before running the flow.
+After verification of the saved registration passes, use `preview_plan` with representative goal step IDs (not attribute names). The `goals` field takes a chain of fallback goal sets of step IDs, such as `{"steps": ["step-a", "step-b"], "else": {"steps": ["step-c"]}}`. If service-specific request fields appear as missing initial inputs, refine the step attributes and mappings before running the flow.
 
 {{payload}}

@@ -26,7 +26,7 @@ func TestMemoizedWork(t *testing.T) {
 		env.MockClient.SetResponse(st.ID, api.Args{"output": "cached"})
 
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{st.ID},
+			Goals: api.Goals{Steps: []api.StepID{st.ID}},
 			Steps: api.Steps{st.ID: st},
 		}
 
@@ -66,7 +66,7 @@ func TestHTTPMetadata(t *testing.T) {
 		env.MockClient.SetResponse(st.ID, api.Args{})
 
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{st.ID},
+			Goals: api.Goals{Steps: []api.StepID{st.ID}},
 			Steps: api.Steps{st.ID: st},
 		}
 
@@ -122,7 +122,7 @@ func TestDispatchOnHealthyPeer(t *testing.T) {
 		)
 
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{st.ID},
+			Goals: api.Goals{Steps: []api.StepID{st.ID}},
 			Steps: api.Steps{st.ID: st},
 		}
 
@@ -152,7 +152,7 @@ func TestDispatchRecovery(t *testing.T) {
 		id := api.FlowID("wf-health-recovers")
 		fs := api.FlowStep{FlowID: id, StepID: st.ID}
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{st.ID},
+			Goals: api.Goals{Steps: []api.StepID{st.ID}},
 			Steps: api.Steps{st.ID: st},
 		}
 
@@ -190,7 +190,7 @@ func TestAsyncMetadata(t *testing.T) {
 		env.MockClient.SetResponse(st.ID, api.Args{})
 
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{st.ID},
+			Goals: api.Goals{Steps: []api.StepID{st.ID}},
 			Steps: api.Steps{st.ID: st},
 		}
 
@@ -240,7 +240,7 @@ func TestScriptWorkExecutes(t *testing.T) {
 		assert.NoError(t, env.Engine.RegisterStep(st))
 
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{st.ID},
+			Goals: api.Goals{Steps: []api.StepID{st.ID}},
 			Steps: api.Steps{st.ID: st},
 		}
 
@@ -288,7 +288,7 @@ func TestScriptMapping(t *testing.T) {
 		assert.NoError(t, env.Engine.RegisterStep(st))
 
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{st.ID},
+			Goals: api.Goals{Steps: []api.StepID{st.ID}},
 			Steps: api.Steps{st.ID: st},
 		}
 
@@ -320,7 +320,7 @@ func TestUnsupportedStep(t *testing.T) {
 			Attributes: api.AttributeSpecs{},
 		}
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{st.ID},
+			Goals: api.Goals{Steps: []api.StepID{st.ID}},
 			Steps: api.Steps{st.ID: st},
 		}
 		id := api.FlowID("wf-bad-step-type")
@@ -354,7 +354,7 @@ func TestParallelWorkItems(t *testing.T) {
 		env.MockClient.SetResponse(st.ID, api.Args{"result": "ok"})
 
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{st.ID},
+			Goals: api.Goals{Steps: []api.StepID{st.ID}},
 			Steps: api.Steps{st.ID: st},
 		}
 
@@ -395,7 +395,7 @@ func TestWorkPredicate(t *testing.T) {
 		env.MockClient.SetResponse(st.ID, api.Args{"result": "ok"})
 
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{st.ID},
+			Goals: api.Goals{Steps: []api.StepID{st.ID}},
 			Steps: api.Steps{st.ID: st},
 		}
 
@@ -425,7 +425,7 @@ func TestHTTPExecution(t *testing.T) {
 		env.MockClient.SetResponse("http-step", api.Args{"output": "success"})
 
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{"http-step"},
+			Goals: api.Goals{Steps: []api.StepID{"http-step"}},
 			Steps: api.Steps{st.ID: st},
 		}
 
@@ -444,7 +444,7 @@ func TestScriptExecution(t *testing.T) {
 		assert.NoError(t, err)
 
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{"script-step"},
+			Goals: api.Goals{Steps: []api.StepID{"script-step"}},
 			Steps: api.Steps{st.ID: st},
 		}
 
@@ -463,7 +463,7 @@ func TestLuaScriptExecution(t *testing.T) {
 		assert.NoError(t, err)
 
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{"lua-script-step"},
+			Goals: api.Goals{Steps: []api.StepID{"lua-script-step"}},
 			Steps: api.Steps{st.ID: st},
 		}
 
@@ -484,7 +484,7 @@ func TestLuaScriptWithInputs(t *testing.T) {
 		assert.NoError(t, err)
 
 		pl := &api.ExecutionPlan{
-			Goals:    []api.StepID{"lua-input-step"},
+			Goals:    api.Goals{Steps: []api.StepID{"lua-input-step"}},
 			Steps:    api.Steps{st.ID: st},
 			Required: []api.Name{"x"},
 		}
@@ -526,7 +526,7 @@ func TestCompetingNodesStartOnce(t *testing.T) {
 
 		id := api.FlowID("wf-compete")
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{st.ID},
+			Goals: api.Goals{Steps: []api.StepID{st.ID}},
 			Steps: api.Steps{st.ID: st},
 		}
 

@@ -2,6 +2,7 @@ package plan
 
 import (
 	"fmt"
+	"maps"
 	"slices"
 
 	"github.com/kode4food/argyll/engine/pkg/api"
@@ -16,12 +17,12 @@ type (
 		Children ChildrenFunc
 		Catalog  api.CatalogState
 		Steps    api.Steps
-		Goals    []api.StepID
+		Goals    api.Goals
 		Init     api.InitArgs
 	}
 
-	// ChildrenFunc returns the child step IDs a step expands into
-	ChildrenFunc func(*api.Step) ([]api.StepID, error)
+	// ChildrenFunc returns the child goal sets a step expands into
+	ChildrenFunc func(*api.Step) (*api.Goals, error)
 
 	builder struct {
 		satisfied   util.Set[api.Name]
@@ -44,7 +45,7 @@ type (
 		match        api.Matcher
 		providers    selectProviders
 		init         api.InitArgs
-		goals        []api.StepID
+		goals        api.Goals
 	}
 
 	selectProviders func(*builder, []api.StepID) []api.StepID
@@ -107,7 +108,7 @@ func create(
 		if err != nil {
 			return nil, err
 		}
-		if len(childGoals) == 0 {
+		if childGoals == nil {
 			continue
 		}
 		if ancestors.Contains(sid) {
@@ -134,7 +135,7 @@ func create(
 			match:        args.match,
 			providers:    args.providers,
 			init:         childPlanInit(st),
-			goals:        childGoals,
+			goals:        *childGoals,
 		}, children, ancestors)
 		ancestors.Remove(sid)
 		if err != nil {
@@ -149,7 +150,7 @@ func create(
 }
 
 func build(args planArgs) (*api.ExecutionPlan, error) {
-	if len(args.goals) == 0 {
+	if !args.goals.Valid() {
 		return nil, api.ErrGoalsRequired
 	}
 
@@ -230,13 +231,20 @@ func (b *builder) computeSatisfiable() {
 	}
 }
 
-// Pass 2: collect steps and build plan from goal traversal
-func (b *builder) collectSteps(goals []api.StepID) error {
-	for _, goalID := range goals {
-		if err := b.collectStep(goalID); err != nil {
-			return err
+// Pass 2: collect steps and build plan from goal traversal. Each goal set is
+// traversed independently, so the plan and its required inputs are the union
+func (b *builder) collectSteps(goals api.Goals) error {
+	seen := util.Set[api.StepID]{}
+	for _, set := range goals.Sets() {
+		b.visited = util.Set[api.StepID]{}
+		for _, goalID := range set {
+			if err := b.collectStep(goalID); err != nil {
+				return err
+			}
 		}
+		maps.Copy(seen, b.visited)
 	}
+	b.visited = seen
 	return nil
 }
 
@@ -495,8 +503,8 @@ func (b *builder) getRequiredInputs() []api.Name {
 	return required
 }
 
-func validateGoals(steps api.Steps, goals []api.StepID) error {
-	for _, goalID := range goals {
+func validateGoals(steps api.Steps, goals api.Goals) error {
+	for _, goalID := range goals.AllSteps() {
 		if _, ok := steps[goalID]; !ok {
 			return api.ErrGoalNotFound
 		}

@@ -26,7 +26,7 @@ describe("useStepVisibility", () => {
       state: {},
       started_at: "2024-01-01T00:00:00Z",
       plan: {
-        goals: ["step1"],
+        goals: { steps: ["step1"] },
         required: [],
         steps: {
           step1: step1,
@@ -72,7 +72,7 @@ describe("useStepVisibility", () => {
     const initialFlow = {
       ...baseFlow,
       plan: {
-        goals: ["step1"],
+        goals: { steps: ["step1"] },
         required: [],
         steps: {
           step1,
@@ -84,7 +84,7 @@ describe("useStepVisibility", () => {
     const updatedFlow = {
       ...baseFlow,
       plan: {
-        goals: ["step2"],
+        goals: { steps: ["step2"] },
         required: [],
         steps: {
           step1,
@@ -121,7 +121,7 @@ describe("useStepVisibility", () => {
     const withPlan: FlowContext = {
       ...baseFlow,
       plan: {
-        goals: ["step1"],
+        goals: { steps: ["step1"] },
         required: [],
         steps: {
           step1,
@@ -158,7 +158,7 @@ describe("useStepVisibility", () => {
       state: {},
       started_at: "2024-01-01T00:00:00Z",
       plan: {
-        goals: ["step1"],
+        goals: { steps: ["step1"] },
         required: [],
         steps: {
           step1,

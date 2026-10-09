@@ -162,7 +162,7 @@ func TestNoCompForFailedWork(t *testing.T) {
 
 		id := api.FlowID("wf-no-comp")
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{st.ID},
+			Goals: api.Goals{Steps: []api.StepID{st.ID}},
 			Steps: api.Steps{st.ID: st},
 		}
 
@@ -799,7 +799,7 @@ func TestFlowCompensation(t *testing.T) {
 
 	newFlowCompPlan := func(steps flowCompSteps) *api.ExecutionPlan {
 		return &api.ExecutionPlan{
-			Goals: []api.StepID{steps.consumer.ID},
+			Goals: api.Goals{Steps: []api.StepID{steps.consumer.ID}},
 			Steps: api.Steps{
 				steps.producer.ID: steps.producer,
 				steps.consumer.ID: steps.consumer,
@@ -881,7 +881,7 @@ func TestFlowCompensation(t *testing.T) {
 
 			id := api.FlowID("wf-saga-order")
 			pl := &api.ExecutionPlan{
-				Goals: []api.StepID{last.ID},
+				Goals: api.Goals{Steps: []api.StepID{last.ID}},
 				Steps: api.Steps{
 					first.ID:  first,
 					second.ID: second,
@@ -949,7 +949,7 @@ func TestFlowCompensation(t *testing.T) {
 
 			id := api.FlowID("wf-saga-parallel")
 			pl := &api.ExecutionPlan{
-				Goals: []api.StepID{last.ID},
+				Goals: api.Goals{Steps: []api.StepID{last.ID}},
 				Steps: api.Steps{
 					left.ID:  left,
 					right.ID: right,
@@ -1047,7 +1047,7 @@ func TestFlowCompensation(t *testing.T) {
 
 			id := api.FlowID("wf-no-comp-endpoint")
 			pl := &api.ExecutionPlan{
-				Goals: []api.StepID{consumer.ID},
+				Goals: api.Goals{Steps: []api.StepID{consumer.ID}},
 				Steps: api.Steps{
 					producer.ID: producer,
 					consumer.ID: consumer,
@@ -1117,7 +1117,7 @@ func setupPartlyUnwoundFlow(args setupPartlyUnwoundFlowArgs) {
 	downstream := api.Token("work-second")
 
 	pl := &api.ExecutionPlan{
-		Goals: []api.StepID{second.ID},
+		Goals: api.Goals{Steps: []api.StepID{second.ID}},
 		Steps: api.Steps{first.ID: first, second.ID: second},
 		Attributes: api.AttributeGraph{
 			"one": {
@@ -1235,7 +1235,7 @@ type setupCompensatingFlowArgs struct {
 
 func setupCompensatingFlow(args setupCompensatingFlowArgs) {
 	pl := &api.ExecutionPlan{
-		Goals: []api.StepID{args.step.ID},
+		Goals: api.Goals{Steps: []api.StepID{args.step.ID}},
 		Steps: api.Steps{args.step.ID: args.step},
 	}
 

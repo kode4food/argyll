@@ -63,7 +63,7 @@ describe("ArgyllApi", () => {
     await expect(
       api.startFlow({
         id: "wf-1",
-        goalSteps: ["step-1"],
+        goalSteps: [["step-1"], ["step-2"]],
         initialState: { input: ["value"] },
         compensate: true,
       })
@@ -74,7 +74,7 @@ describe("ArgyllApi", () => {
         method: "POST",
         body: JSON.stringify({
           id: "wf-1",
-          goals: ["step-1"],
+          goals: { steps: ["step-1"], else: { steps: ["step-2"] } },
           init: { input: ["value"] },
           compensate: true,
         }),
@@ -107,7 +107,7 @@ describe("ArgyllApi", () => {
 
   test("fetches an execution plan with the caller signal", async () => {
     const plan = {
-      goals: ["step-2"],
+      goals: { steps: ["step-2"] },
       required: ["input1"],
       steps: {
         "step-1": {
@@ -129,7 +129,7 @@ describe("ArgyllApi", () => {
 
     await expect(
       api.getExecutionPlan({
-        goalSteps: ["step-2"],
+        goalSteps: [["step-2"]],
         initialState: { input: ["value"] },
         spaceId: "payments",
         signal: controller.signal,
@@ -138,7 +138,7 @@ describe("ArgyllApi", () => {
     const init = fetchMock.mock.calls[0][1] as RequestInit;
     expect(init.body).toBe(
       JSON.stringify({
-        goals: ["step-2"],
+        goals: { steps: ["step-2"] },
         init: { input: ["value"] },
         space_id: "payments",
       })
@@ -153,7 +153,7 @@ describe("ArgyllApi", () => {
     );
 
     await expect(
-      api.getExecutionPlan({ goalSteps: ["step-1"] })
+      api.getExecutionPlan({ goalSteps: [["step-1"]] })
     ).rejects.toThrow("Server error");
   });
 });

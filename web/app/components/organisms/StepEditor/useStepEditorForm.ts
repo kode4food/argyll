@@ -1,6 +1,8 @@
 import { useCallback, useMemo, useState } from "react";
 import {
   ActionMode,
+  toGoalSets,
+  GoalSets,
   Handling,
   HTTPMethod,
   SCRIPT_LANGUAGE_JPATH,
@@ -75,8 +77,8 @@ export function useStepEditorForm({
   const [scriptLanguage, setScriptLanguage] = useState(
     step?.script?.language || SCRIPT_LANGUAGE_LUA
   );
-  const [flowGoals, setFlowGoals] = useState(
-    seed?.flow?.goals?.join(", ") || ""
+  const [flowGoals, setFlowGoals] = useState<GoalSets>(
+    toGoalSets(seed?.flow?.goals)
   );
   const [flowCompensate, setFlowCompensate] = useState(
     seed?.flow?.compensate || false
@@ -182,7 +184,7 @@ export function useStepEditorForm({
       );
       setScript(stepData.script?.script || "");
       setScriptLanguage(stepData.script?.language || SCRIPT_LANGUAGE_LUA);
-      setFlowGoals(stepData.flow?.goals?.join(", ") || "");
+      setFlowGoals(toGoalSets(stepData.flow?.goals));
       setFlowCompensate(Boolean(stepData.flow?.compensate));
       setFlowSpaceId(stepData.flow?.space_id || "");
       setEndpoint(stepData.http?.invoke?.endpoint || "");

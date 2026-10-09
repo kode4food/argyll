@@ -50,7 +50,7 @@ func TestScriptStepError(t *testing.T) {
 		env.MockClient.SetResponse("step-c", api.Args{"result": "done"})
 
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{"step-c"},
+			Goals: api.Goals{Steps: []api.StepID{"step-c"}},
 			Steps: api.Steps{
 				"step-a": stepA,
 				"step-b": stepB,
@@ -139,7 +139,7 @@ func TestScriptStepErrorLua(t *testing.T) {
 		env.MockClient.SetResponse("step-c", api.Args{"result": "done"})
 
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{"step-c"},
+			Goals: api.Goals{Steps: []api.StepID{"step-c"}},
 			Steps: api.Steps{
 				"step-a": stepA,
 				"step-b": stepB,

@@ -30,7 +30,7 @@ jest.mock("@/app/api", () => ({
       steps: {},
       required: [],
       attributes: {},
-      goals: [],
+      goals: { steps: [] },
     }),
   },
 }));
@@ -139,7 +139,7 @@ describe("StepEditor", () => {
       output1: { role: AttributeRole.Output, type: AttributeType.String },
     },
     flow: {
-      goals: [],
+      goals: { steps: [] },
     },
   });
 
@@ -486,7 +486,7 @@ describe("StepEditor", () => {
       },
       required: [],
       attributes: {},
-      goals: ["child-step"],
+      goals: { steps: ["child-step"] },
     };
     api.getExecutionPlan.mockResolvedValue(plan);
 
@@ -503,8 +503,9 @@ describe("StepEditor", () => {
     });
 
     await waitFor(() => {
-      const goalChip = screen.getByText("child-step");
-      fireEvent.click(goalChip);
+      fireEvent.change(screen.getByLabelText(t("goals.addGoal")), {
+        target: { value: "child-step" },
+      });
     });
 
     const expandInputMappingButton = await screen.findByRole("button", {
@@ -563,7 +564,7 @@ describe("StepEditor", () => {
       },
       required: [],
       attributes: {},
-      goals: ["child-step"],
+      goals: { steps: ["child-step"] },
     };
     api.getExecutionPlan.mockResolvedValue(plan);
 
@@ -580,8 +581,9 @@ describe("StepEditor", () => {
     });
 
     await waitFor(() => {
-      const goalChip = screen.getByText("child-step");
-      fireEvent.click(goalChip);
+      fireEvent.change(screen.getByLabelText(t("goals.addGoal")), {
+        target: { value: "child-step" },
+      });
     });
 
     const expandInputMappingButton = await screen.findByRole("button", {

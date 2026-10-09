@@ -49,7 +49,7 @@ func TestRegisterStepRejectsFlowGoalCycles(t *testing.T) {
 			Name: "Flow A",
 			Type: api.StepTypeFlow,
 			Flow: &api.FlowConfig{
-				Goals: []api.StepID{"flow-b"},
+				Goals: api.Goals{Steps: []api.StepID{"flow-b"}},
 			},
 			Attributes: api.AttributeSpecs{},
 		}
@@ -58,7 +58,7 @@ func TestRegisterStepRejectsFlowGoalCycles(t *testing.T) {
 			Name: "Flow B",
 			Type: api.StepTypeFlow,
 			Flow: &api.FlowConfig{
-				Goals: []api.StepID{"flow-a"},
+				Goals: api.Goals{Steps: []api.StepID{"flow-a"}},
 			},
 			Attributes: api.AttributeSpecs{},
 		}
@@ -78,7 +78,7 @@ func TestRegisterStepsRejectsGoalCycle(t *testing.T) {
 			Name: "Flow A",
 			Type: api.StepTypeFlow,
 			Flow: &api.FlowConfig{
-				Goals: []api.StepID{"flow-b"},
+				Goals: api.Goals{Steps: []api.StepID{"flow-b"}},
 			},
 			Attributes: api.AttributeSpecs{},
 		}
@@ -87,7 +87,7 @@ func TestRegisterStepsRejectsGoalCycle(t *testing.T) {
 			Name: "Flow B",
 			Type: api.StepTypeFlow,
 			Flow: &api.FlowConfig{
-				Goals: []api.StepID{"flow-a"},
+				Goals: api.Goals{Steps: []api.StepID{"flow-a"}},
 			},
 			Attributes: api.AttributeSpecs{},
 		}
@@ -109,7 +109,7 @@ func TestUpdateStepRejectsGoalCycles(t *testing.T) {
 			Name: "Flow A",
 			Type: api.StepTypeFlow,
 			Flow: &api.FlowConfig{
-				Goals: []api.StepID{"flow-b"},
+				Goals: api.Goals{Steps: []api.StepID{"flow-b"}},
 			},
 			Attributes: api.AttributeSpecs{},
 		}
@@ -118,7 +118,7 @@ func TestUpdateStepRejectsGoalCycles(t *testing.T) {
 			Name: "Flow B",
 			Type: api.StepTypeFlow,
 			Flow: &api.FlowConfig{
-				Goals: []api.StepID{"leaf"},
+				Goals: api.Goals{Steps: []api.StepID{"leaf"}},
 			},
 			Attributes: api.AttributeSpecs{},
 		}
@@ -133,7 +133,7 @@ func TestUpdateStepRejectsGoalCycles(t *testing.T) {
 			Name: "Leaf",
 			Type: api.StepTypeFlow,
 			Flow: &api.FlowConfig{
-				Goals: []api.StepID{"flow-a"},
+				Goals: api.Goals{Steps: []api.StepID{"flow-a"}},
 			},
 			Attributes: api.AttributeSpecs{},
 		}

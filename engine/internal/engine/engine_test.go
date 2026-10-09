@@ -308,7 +308,7 @@ func TestExecPublishesEvents(t *testing.T) {
 		w.ForEvent(wait.EngineEvent(api.EventTypeStepHealthChanged))
 
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{st.ID},
+			Goals: api.Goals{Steps: []api.StepID{st.ID}},
 			Steps: api.Steps{st.ID: st},
 		}
 		assert.NoError(t, env.Engine.StartPlan("wrapper-flow", pl))

@@ -50,7 +50,7 @@ describe("Footer", () => {
       : type === "flow"
         ? {
             flow: {
-              goals: config?.goals || ["goal-a", "goal-b"],
+              goals: config?.goals || { steps: ["goal-a", "goal-b"] },
             },
           }
         : {
@@ -142,16 +142,18 @@ describe("Footer", () => {
   });
 
   test("renders flow goals for flow step", () => {
-    const step = createStep("flow", { goals: ["goal-a", "goal-b"] });
+    const step = createStep("flow", {
+      goals: { steps: ["goal-a", "goal-b"], else: { steps: ["goal-c"] } },
+    });
 
     const { container } = render(<Footer step={step} healthStatus="healthy" />);
 
     const endpoint = container.querySelector(".step-endpoint");
-    expect(endpoint?.textContent).toBe("goal-a, goal-b");
+    expect(endpoint?.textContent).toBe("goal-a, goal-b ELSE goal-c");
     expect(screen.getByText(t("stepFooter.flowGoals"))).toBeInTheDocument();
     const tooltipSections = screen.getAllByTestId("tooltip-section");
     const hasGoalsSection = tooltipSections.some((section) =>
-      section.textContent?.includes("goal-a, goal-b")
+      section.textContent?.includes("goal-a, goal-b ELSE goal-c")
     );
     expect(hasGoalsSection).toBe(true);
   });

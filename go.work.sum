@@ -781,6 +781,7 @@ github.com/kisielk/errcheck v1.5.0 h1:e8esj/e4R+SAOwFwN+n3zr0nYeCyeweozKfO23MvHz
 github.com/kisielk/gotool v1.0.0 h1:AV2c/EiW3KqPNT9ZKl07ehoAGi4C5/01Cfbblndcapg=
 github.com/klauspost/compress v1.18.0/go.mod h1:2Pp+KzxcywXVXMr50+X0Q/Lsb43OQHYWRCY2AiWywWQ=
 github.com/klauspost/cpuid/v2 v2.3.0/go.mod h1:hqwkgyIinND0mEev00jJYCxPNVRVXFQeu1XKlok6oO0=
+github.com/kode4food/argyll/sdk/go v0.0.0-20260827045536-9ade6fec529a/go.mod h1:secTwb3SdUgq6X3hvY2nMHZAKWk0lMafImRHoITx2WQ=
 github.com/kode4food/jpath v0.0.0-20260905083916-75398b35d8c1/go.mod h1:gYY1OfgNwxDs30LLA1moTAQtzapUvEpMO+zX6GI2Fpg=
 github.com/kode4food/jpath v0.0.0-20260906122037-f29e67fdab37/go.mod h1:gYY1OfgNwxDs30LLA1moTAQtzapUvEpMO+zX6GI2Fpg=
 github.com/kode4food/lru v0.0.0-20260718151352-0ac133042e5e/go.mod h1:sTzhcYU0AAXpB+uEWdUEukwNQAhc64BefD3eNmcw6Ug=
@@ -1133,6 +1134,7 @@ golang.org/x/telemetry v0.0.0-20260311193753-579e4da9a98c/go.mod h1:TpUTTEp9frx7
 golang.org/x/telemetry v0.0.0-20260423152414-329d219564b0/go.mod h1:kHjTxDEnAu6/Nl9lDkzjWpR+bmKfxeiRuSDlsMb70gE=
 golang.org/x/telemetry v0.0.0-20260811182544-a038080d80e5/go.mod h1:LVehoXe41cL5SCVQilsV7Gg6BNG+Js6P9PhSbYTIUkQ=
 golang.org/x/telemetry v0.0.0-20260820143203-7221e139e8d6/go.mod h1:/KSYFnLndIrA1A+Rs5r6vSifQhuFz75BPNN3J/hvzN0=
+golang.org/x/telemetry v0.0.0-20260824150023-1f5465a7b7fb/go.mod h1:/KSYFnLndIrA1A+Rs5r6vSifQhuFz75BPNN3J/hvzN0=
 golang.org/x/term v0.29.0 h1:L6pJp37ocefwRRtYPKSWOWzOtWSxVajvz2ldH/xi3iU=
 golang.org/x/term v0.29.0/go.mod h1:6bl4lRlvVuDgSf3179VpIxBF0o10JUpXWOnI7nErv7s=
 golang.org/x/term v0.34.0 h1:O/2T7POpk0ZZ7MAzMeWFSg6S5IpWd/RXDlM9hgM3DR4=
@@ -1156,6 +1158,7 @@ golang.org/x/term v0.43.0 h1:S4RLU2sB31O/NCl+zFN9Aru9A/Cq2aqKpTZJ6B+DwT4=
 golang.org/x/term v0.43.0/go.mod h1:lrhlHNdQJHO+1qVYiHfFKVuVioJIheAc3fBSMFYEIsk=
 golang.org/x/term v0.45.0 h1:NwWyBmoJCbfTHpxrWoZ9C6/VxOf7ic219I8xZZFdrf0=
 golang.org/x/term v0.45.0/go.mod h1:9aqxs0blBcrm/n0L9QW0aRVD+ktan8ssZromtqJC43w=
+golang.org/x/term v0.46.0/go.mod h1:+K02xbkittuwc0Am4abfA3Fc+XRGXkvBXNO88NCXPoc=
 golang.org/x/text v0.23.0/go.mod h1:/BLNzu4aZCJ1+kcD0DNRotWKage4q2rGVAg4o22unh4=
 golang.org/x/text v0.25.0/go.mod h1:WEdwpYrmk1qmdHvhkSTNPm3app7v4rsT8F2UD6+VHIA=
 golang.org/x/text v0.26.0/go.mod h1:QK15LZJUUQVJxhz7wXgxSy/CJaTFjd0G+YLonydOVQA=

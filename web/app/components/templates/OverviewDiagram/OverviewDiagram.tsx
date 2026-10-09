@@ -25,7 +25,7 @@ const OverviewDiagramContent: React.FC<OverviewDiagramContentProps> = ({
   const steps = useSteps();
   const upsertStep = useFlowStore((state) => state.upsertStep);
   const diagramContainerRef = React.useRef<HTMLDivElement>(null);
-  const { goalSteps, toggleGoalStep, setGoalSteps, panelRef } = useUI();
+  const { goalSteps, setGoalSteps, panelRef } = useUI();
   const t = useT();
 
   const applyStepUpdate = React.useCallback(
@@ -70,7 +70,6 @@ const OverviewDiagramContent: React.FC<OverviewDiagramContentProps> = ({
         <DiagramSelectionProvider
           value={{
             goalSteps,
-            toggleGoalStep,
             setGoalSteps,
           }}
         >

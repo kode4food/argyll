@@ -1,11 +1,12 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Step, ExecutionResult, WorkState } from "@/app/api";
+import { toGoalSets, Step, ExecutionResult, WorkState } from "@/app/api";
 import { getProgressIcon } from "@/utils/progressUtils";
 import { useStepProgress } from "@/app/hooks/useStepProgress";
 import TooltipSection from "@/app/components/atoms/TooltipSection";
 import Tooltip from "@/app/components/atoms/Tooltip";
 import styles from "../StepShared/StepFooter.module.css";
 import { formatScriptPreview } from "@/utils/stepFooterUtils";
+import { formatGoals } from "@/utils/goalSets";
 import { getStepActionIcon } from "@/utils/iconRegistry";
 import StepInfoDisplay, {
   type DisplayInfo,
@@ -102,8 +103,8 @@ const computeDisplayInfo = (step: Step): DisplayInfo => {
       className: "endpoint-script",
     };
   }
-  if (step.type === "flow" && step.flow?.goals?.length) {
-    return { icon: TypeIcon, text: step.flow.goals.join(", ") };
+  if (step.type === "flow" && step.flow?.goals?.steps.length) {
+    return { icon: TypeIcon, text: formatGoals(toGoalSets(step.flow.goals)) };
   }
   if (step.http) {
     const method = step.http.invoke?.method || "POST";
@@ -146,10 +147,10 @@ const buildTooltipSections = (
   const { execution, flowId, progressState } = ctx;
   const sections: React.ReactElement[] = [];
 
-  if (step.type === "flow" && step.flow?.goals?.length) {
+  if (step.type === "flow" && step.flow?.goals?.steps.length) {
     sections.push(
       <TooltipSection key="goals" title={t("stepFooter.flowGoals")}>
-        {step.flow.goals.join(", ")}
+        {formatGoals(toGoalSets(step.flow.goals))}
       </TooltipSection>
     );
   }

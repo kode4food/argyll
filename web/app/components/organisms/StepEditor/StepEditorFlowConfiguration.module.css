@@ -32,12 +32,39 @@
   composes: flowGoalChipSelected from "./StepEditorControls.module.css";
 }
 
-.flowGoalChipIncluded {
-  composes: flowGoalChipIncluded from "./StepEditorControls.module.css";
+.flowGoalRemove {
+  composes: flowGoalRemove from "./StepEditorControls.module.css";
 }
 
-.flowGoalChipDisabled {
-  composes: flowGoalChipDisabled from "./StepEditorControls.module.css";
+.flowGoalInput {
+  flex: 1 1 8rem;
+  min-width: 8rem;
+}
+
+.flowGoalSet {
+  composes: flowGoalSet from "./StepEditorControls.module.css";
+}
+
+.flowGoalSet .flowGoalList {
+  padding-right: var(--spacing-lg);
+}
+
+.flowGoalSetRemove {
+  composes: flowGoalSetRemove from "./StepEditorControls.module.css";
+}
+
+.flowGoalOr {
+  composes: flowGoalFallback from "./StepEditorControls.module.css";
+}
+
+.flowGoalOrButton {
+  composes: flowGoalChip from "./StepEditorControls.module.css";
+  align-self: flex-start;
+}
+
+.flowGoalOrButton:disabled {
+  opacity: var(--opacity-disabled);
+  cursor: not-allowed;
 }
 
 .flowSpaceColumn {

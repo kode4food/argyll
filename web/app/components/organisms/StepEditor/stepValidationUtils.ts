@@ -1,4 +1,5 @@
-import { Handling, HTTPMethod, StepType } from "@/app/api";
+import { GoalSets, Handling, HTTPMethod, StepType } from "@/app/api";
+import { nonEmptyGoalSets } from "@/utils/goalSets";
 import { Attribute, ValidationError } from "./stepEditorTypes";
 import {
   validateAttributesList,
@@ -6,13 +7,6 @@ import {
 } from "./stepAttrValidationUtils";
 
 export { validateAttributesList } from "./stepAttrValidationUtils";
-
-export function parseFlowGoals(value: string): string[] {
-  return value
-    .split(/[\n,]+/)
-    .map((goal) => goal.trim())
-    .filter((goal) => goal.length > 0);
-}
 
 const ENDPOINT_PARAM_PATTERN = /\{([^{}]+)\}/g;
 
@@ -44,8 +38,8 @@ function validateGetEndpointParams(
   return null;
 }
 
-function validateFlowStepConfig(flowGoals: string): ValidationError | null {
-  if (parseFlowGoals(flowGoals).length === 0) {
+function validateFlowStepConfig(flowGoals: GoalSets): ValidationError | null {
+  if (nonEmptyGoalSets(flowGoals).length === 0) {
     return { key: "stepEditor.flowGoalsRequired" };
   }
   return null;
@@ -123,7 +117,7 @@ export function getValidationError({
   endpoint: string;
   httpMethod: HTTPMethod;
   httpTimeout: number;
-  flowGoals: string;
+  flowGoals: GoalSets;
   handling: Handling;
   compensateEndpoint: string;
 }): ValidationError | null {

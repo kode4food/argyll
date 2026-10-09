@@ -76,7 +76,7 @@ func TestPartialFlowFailure(t *testing.T) {
 
 		// Create execution pl
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{"step-d"},
+			Goals: api.Goals{Steps: []api.StepID{"step-d"}},
 			Steps: api.Steps{
 				"step-a": stepA,
 				"step-b": stepB,
@@ -169,7 +169,7 @@ func TestWorkItemFailFast(t *testing.T) {
 		env.MockClient.SetError(consumer.ID, errors.New("boom"))
 
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{consumer.ID},
+			Goals: api.Goals{Steps: []api.StepID{consumer.ID}},
 			Steps: api.Steps{
 				provider.ID: provider,
 				consumer.ID: consumer,
@@ -220,7 +220,7 @@ func TestUnreachableStep(t *testing.T) {
 		env.MockClient.SetError(stepA.ID, errors.New("boom"))
 
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{stepB.ID},
+			Goals: api.Goals{Steps: []api.StepID{stepB.ID}},
 			Steps: api.Steps{
 				stepA.ID: stepA,
 				stepB.ID: stepB,
@@ -295,7 +295,7 @@ func TestSkippedProviderCascade(t *testing.T) {
 		assert.NoError(t, env.Engine.RegisterStep(notificationSender))
 
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{notificationSender.ID},
+			Goals: api.Goals{Steps: []api.StepID{notificationSender.ID}},
 			Steps: api.Steps{
 				orderCreator.ID:       orderCreator,
 				paymentProcessor.ID:   paymentProcessor,

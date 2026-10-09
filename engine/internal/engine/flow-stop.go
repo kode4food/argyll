@@ -25,7 +25,7 @@ func (tx *flowTx) checkTerminal() error {
 	fl := tx.Value()
 	if isFlowComplete(fl) {
 		result := api.Args{}
-		for _, goalID := range fl.Plan.Goals {
+		for _, goalID := range startGoals(fl) {
 			goal := fl.Executions[goalID]
 			maps.Copy(result, goal.Outputs)
 		}

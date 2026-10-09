@@ -48,7 +48,7 @@ export default function (data) {
     `${ENGINE_URL}/engine/flows`,
     JSON.stringify({
       id: flowId,
-      goals: [data.stepId],
+      goals: { and: [data.stepId] },
       init: { input: ['test'] },
     }),
     {

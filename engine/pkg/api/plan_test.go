@@ -8,6 +8,80 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
+func TestGoals(t *testing.T) {
+	goals := api.Goals{
+		Steps: []api.StepID{"a", "b"},
+		Else:  &api.Goals{Steps: []api.StepID{"b", "c"}},
+	}
+
+	t.Run("sets", func(t *testing.T) {
+		assert.Equal(t,
+			[][]api.StepID{{"a", "b"}, {"b", "c"}}, goals.Sets())
+	})
+
+	t.Run("nil sets", func(t *testing.T) {
+		var goals *api.Goals
+		assert.Nil(t, goals.Sets())
+	})
+
+	t.Run("long chain allocation growth", func(t *testing.T) {
+		const chainLength = 1024
+		const maxAllocations = 64
+		var chain *api.Goals
+		for range chainLength {
+			chain = &api.Goals{Steps: []api.StepID{"a"}, Else: chain}
+		}
+		assert.Len(t, chain.Sets(), chainLength)
+		allocations := testing.AllocsPerRun(1, func() {
+			assert.Len(t, chain.Sets(), chainLength)
+		})
+		assert.Less(t, allocations, float64(maxAllocations))
+	})
+
+	t.Run("all steps once", func(t *testing.T) {
+		assert.Equal(t, []api.StepID{"a", "b", "c"}, goals.AllSteps())
+	})
+
+	t.Run("valid", func(t *testing.T) {
+		assert.True(t, goals.Valid())
+		assert.False(t, (&api.Goals{}).Valid())
+		assert.False(t, (&api.Goals{
+			Steps: []api.StepID{"a"},
+			Else:  &api.Goals{},
+		}).Valid())
+	})
+
+	t.Run("equal", func(t *testing.T) {
+		same := api.Goals{
+			Steps: []api.StepID{"a", "b"},
+			Else:  &api.Goals{Steps: []api.StepID{"b", "c"}},
+		}
+		assert.True(t, goals.Equal(&same))
+		assert.False(t, goals.Equal(&api.Goals{Steps: []api.StepID{"a", "b"}}))
+	})
+}
+
+func TestGoalsCopy(t *testing.T) {
+	t.Run("nil", func(t *testing.T) {
+		var goals *api.Goals
+		assert.Nil(t, goals.Copy())
+	})
+
+	t.Run("independent chain", func(t *testing.T) {
+		goals := &api.Goals{
+			Steps: []api.StepID{"a"},
+			Else:  &api.Goals{Steps: []api.StepID{"b"}},
+		}
+		copied := goals.Copy()
+		assert.Equal(t, goals, copied)
+
+		copied.Steps[0] = "changed-a"
+		copied.Else.Steps[0] = "changed-b"
+		copied.Else.Else = &api.Goals{Steps: []api.StepID{"c"}}
+		assert.Equal(t, [][]api.StepID{{"a"}, {"b"}}, goals.Sets())
+	})
+}
+
 func TestValidateSuccess(t *testing.T) {
 	pl := &api.ExecutionPlan{
 		Required: []api.Name{"input1", "input2", "input3"},

@@ -209,7 +209,7 @@ func TestGetFlowEvents(t *testing.T) {
 		assert.NoError(t, testEnv.Engine.RegisterStep(st))
 
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{"flow-events-step"},
+			Goals: api.Goals{Steps: []api.StepID{"flow-events-step"}},
 			Steps: api.Steps{"flow-events-step": st},
 		}
 		assert.NoError(t, testEnv.Engine.StartPlan("flow-events-id", pl))

@@ -42,7 +42,10 @@ describe("useNodeCalculation", () => {
   test("sets preview flags", () => {
     const step = createStep("step1");
     const previewStepIds = new Set(["step1"]);
-    const previewPlan: any = { goals: ["step1"], steps: { step1: step } };
+    const previewPlan: any = {
+      goals: { steps: ["step1"] },
+      steps: { step1: step },
+    };
 
     const { result } = renderHook(() =>
       useNodeCalculation([step], [], previewPlan, previewStepIds, jest.fn())

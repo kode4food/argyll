@@ -117,7 +117,7 @@ describe("useStepEditorForm", () => {
       http: undefined,
       script: undefined,
       flow: {
-        goals: ["goal-1", "goal-2"],
+        goals: { steps: ["goal-1", "goal-2"], else: { steps: ["goal-3"] } },
       },
     });
     registerStep.mockResolvedValue(createdStep);
@@ -130,7 +130,7 @@ describe("useStepEditorForm", () => {
       result.current.setStepId("flow-step");
       result.current.setName("Flow Step");
       result.current.setStepType("flow");
-      result.current.setFlowGoals("goal-1, goal-2");
+      result.current.setFlowGoals([["goal-1", "goal-2"], ["goal-3"], []]);
       result.current.addAttribute();
       result.current.addAttribute();
     });
@@ -159,7 +159,7 @@ describe("useStepEditorForm", () => {
       expect.objectContaining({
         type: "flow",
         flow: {
-          goals: ["goal-1", "goal-2"],
+          goals: { steps: ["goal-1", "goal-2"], else: { steps: ["goal-3"] } },
           compensate: false,
         },
         attributes: expect.objectContaining({

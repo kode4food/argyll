@@ -43,7 +43,7 @@ func TestForEachAggregatesOutputs(t *testing.T) {
 		env.MockClient.SetResponse(st.ID, api.Args{"result": "ok"})
 
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{st.ID},
+			Goals: api.Goals{Steps: []api.StepID{st.ID}},
 			Steps: api.Steps{st.ID: st},
 		}
 
@@ -102,7 +102,7 @@ func TestForEachTypedSlice(t *testing.T) {
 		env.MockClient.SetResponse(st.ID, api.Args{"result": "ok"})
 
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{st.ID},
+			Goals: api.Goals{Steps: []api.StepID{st.ID}},
 			Steps: api.Steps{st.ID: st},
 		}
 
@@ -161,7 +161,7 @@ func TestForEachTypedNumbers(t *testing.T) {
 		env.MockClient.SetResponse(st.ID, api.Args{"result": "ok"})
 
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{st.ID},
+			Goals: api.Goals{Steps: []api.StepID{st.ID}},
 			Steps: api.Steps{st.ID: st},
 		}
 
@@ -234,7 +234,7 @@ func TestOutputMappingDescendants(t *testing.T) {
 		})
 
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{st.ID},
+			Goals: api.Goals{Steps: []api.StepID{st.ID}},
 			Steps: api.Steps{st.ID: st},
 		}
 
@@ -286,7 +286,7 @@ func TestTooManyWorkItems(t *testing.T) {
 		}
 
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{st.ID},
+			Goals: api.Goals{Steps: []api.StepID{st.ID}},
 			Steps: api.Steps{st.ID: st},
 		}
 		err := env.Engine.StartPlan("wf-too-many", pl,

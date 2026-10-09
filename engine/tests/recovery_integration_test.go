@@ -35,7 +35,7 @@ func TestBasicFlowRecovery(t *testing.T) {
 		env.MockClient.SetError(st.ID, api.ErrWorkNotCompleted)
 
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{st.ID},
+			Goals: api.Goals{Steps: []api.StepID{st.ID}},
 			Steps: api.Steps{st.ID: st},
 		}
 
@@ -120,15 +120,15 @@ func TestMultipleFlowRecovery(t *testing.T) {
 		env.MockClient.SetError(step3.ID, api.ErrWorkNotCompleted)
 
 		plan1 := &api.ExecutionPlan{
-			Goals: []api.StepID{step1.ID},
+			Goals: api.Goals{Steps: []api.StepID{step1.ID}},
 			Steps: api.Steps{step1.ID: step1},
 		}
 		plan2 := &api.ExecutionPlan{
-			Goals: []api.StepID{step2.ID},
+			Goals: api.Goals{Steps: []api.StepID{step2.ID}},
 			Steps: api.Steps{step2.ID: step2},
 		}
 		plan3 := &api.ExecutionPlan{
-			Goals: []api.StepID{step3.ID},
+			Goals: api.Goals{Steps: []api.StepID{step3.ID}},
 			Steps: api.Steps{step3.ID: step3},
 		}
 
@@ -232,15 +232,15 @@ func TestRecoveryWorkStates(t *testing.T) {
 		env.MockClient.SetResponse(retry.ID, api.Args{})
 
 		plan1 := &api.ExecutionPlan{
-			Goals: []api.StepID{pending.ID},
+			Goals: api.Goals{Steps: []api.StepID{pending.ID}},
 			Steps: api.Steps{pending.ID: pending},
 		}
 		plan2 := &api.ExecutionPlan{
-			Goals: []api.StepID{retry.ID},
+			Goals: api.Goals{Steps: []api.StepID{retry.ID}},
 			Steps: api.Steps{retry.ID: retry},
 		}
 		plan3 := &api.ExecutionPlan{
-			Goals: []api.StepID{failed.ID},
+			Goals: api.Goals{Steps: []api.StepID{failed.ID}},
 			Steps: api.Steps{failed.ID: failed},
 		}
 
@@ -426,7 +426,7 @@ func TestRecoveryPreservesState(t *testing.T) {
 		env.MockClient.SetError(st.ID, api.ErrWorkNotCompleted)
 
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{st.ID},
+			Goals: api.Goals{Steps: []api.StepID{st.ID}},
 			Steps: api.Steps{st.ID: st},
 		}
 

@@ -180,13 +180,13 @@ func (s Step) WithMethod(method string) Step {
 	})
 }
 
-// WithFlowGoals configures a flow step with child flow goal IDs
-func (s Step) WithFlowGoals(goals ...api.StepID) Step {
+// WithFlowGoals configures a flow step with child flow goal sets
+func (s Step) WithFlowGoals(goals api.Goals) Step {
 	s.step = s.step.Copy()
 	if s.step.Flow == nil {
 		s.step.Flow = &api.FlowConfig{}
 	}
-	s.step.Flow = s.step.Flow.WithGoals(goals...)
+	s.step.Flow = s.step.Flow.WithGoals(goals)
 	s.step.Type = api.StepTypeFlow
 	return s
 }

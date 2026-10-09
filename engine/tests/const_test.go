@@ -31,7 +31,7 @@ func TestConstAttribute(t *testing.T) {
 		assert.NoError(t, env.Engine.RegisterStep(st))
 
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{st.ID},
+			Goals: api.Goals{Steps: []api.StepID{st.ID}},
 			Steps: api.Steps{st.ID: st},
 			Attributes: api.AttributeGraph{
 				"result": {

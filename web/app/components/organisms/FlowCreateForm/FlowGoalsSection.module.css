@@ -56,6 +56,7 @@
 }
 
 .goalListShell {
+  position: relative;
   flex: 1 1 auto;
   width: 100%;
   min-height: 0;
@@ -68,6 +69,8 @@
 
 .sidebarList {
   height: 100%;
+  padding-bottom: var(--spacing-3xl);
+  box-sizing: border-box;
   overflow-y: auto;
   scrollbar-width: none;
   -ms-overflow-style: none;
@@ -169,4 +172,40 @@
 .stepId {
   font-size: var(--text-xs);
   opacity: var(--opacity-soft);
+}
+
+.goalSetPanel {
+  composes: flowGoalSet from "../StepEditor/StepEditorControls.module.css";
+}
+
+.goalSetSummary {
+  composes: flowGoalList from "../StepEditor/StepEditorControls.module.css";
+  align-items: center;
+  padding-right: var(--spacing-lg);
+}
+
+.goalPill {
+  composes: flowGoalTag flowGoalChipSelected from "../StepEditor/StepEditorControls.module.css";
+}
+
+.goalSetRemove {
+  composes: flowGoalSetRemove from "../StepEditor/StepEditorControls.module.css";
+}
+
+.orDivider {
+  composes: flowGoalFallback from "../StepEditor/StepEditorControls.module.css";
+}
+
+/* Floats outside the list so the list's bottom fade mask never hides it */
+.orButton {
+  composes: flowGoalChip from "../StepEditor/StepEditorControls.module.css";
+  position: absolute;
+  right: var(--spacing-sm);
+  bottom: var(--spacing-sm);
+  background-color: var(--panel-surface);
+}
+
+.orButton:disabled {
+  opacity: var(--opacity-disabled);
+  cursor: not-allowed;
 }

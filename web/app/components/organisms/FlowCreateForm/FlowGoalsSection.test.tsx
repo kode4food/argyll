@@ -30,7 +30,6 @@ describe("FlowGoalsSection", () => {
       <FlowGoalsSection
         goalSteps={[]}
         blockedByStep={new Map()}
-        included={new Set()}
         missingByStep={new Map()}
         onCreateStep={onCreateStep}
         onGoalStepsChange={jest.fn()}
@@ -59,9 +58,8 @@ describe("FlowGoalsSection", () => {
 
     render(
       <FlowGoalsSection
-        goalSteps={["step-1"]}
+        goalSteps={[["step-1"]]}
         blockedByStep={new Map()}
-        included={new Set()}
         missingByStep={new Map()}
         onCreateStep={onCreateStep}
         onGoalStepsChange={jest.fn()}
@@ -98,7 +96,6 @@ describe("FlowGoalsSection", () => {
       <FlowGoalsSection
         goalSteps={[]}
         blockedByStep={new Map()}
-        included={new Set()}
         missingByStep={new Map()}
         onGoalStepsChange={onGoalStepsChange}
         satisfied={new Set()}
@@ -112,7 +109,7 @@ describe("FlowGoalsSection", () => {
     );
 
     fireEvent.click(screen.getByText("Step One"));
-    expect(onGoalStepsChange).toHaveBeenCalledWith(["step-1"]);
+    expect(onGoalStepsChange).toHaveBeenCalledWith([["step-1"]]);
   });
 
   test("disables a step blocked by initial state", () => {
@@ -122,7 +119,6 @@ describe("FlowGoalsSection", () => {
       <FlowGoalsSection
         goalSteps={[]}
         blockedByStep={new Map([["step-1", ["input1"]]])}
-        included={new Set()}
         missingByStep={new Map()}
         onGoalStepsChange={onGoalStepsChange}
         satisfied={new Set()}
@@ -149,7 +145,6 @@ describe("FlowGoalsSection", () => {
       <FlowGoalsSection
         goalSteps={[]}
         blockedByStep={new Map()}
-        included={new Set()}
         missingByStep={new Map()}
         onGoalStepsChange={jest.fn()}
         satisfied={new Set()}
@@ -171,5 +166,144 @@ describe("FlowGoalsSection", () => {
 
     fireEvent.keyDown(second, { key: "ArrowUp" });
     expect(first).toHaveFocus();
+  });
+
+  describe("fallback goal sets", () => {
+    const catalog: Step[] = [
+      {
+        id: "stock-reservation",
+        name: "Stock Reservation",
+        type: "service",
+        attributes: {
+          reservation: {
+            role: AttributeRole.Output,
+            type: AttributeType.String,
+          },
+        },
+      },
+      {
+        id: "notification-sender",
+        name: "Notification Sender",
+        type: "service",
+        attributes: {
+          reservation: {
+            role: AttributeRole.Required,
+            type: AttributeType.String,
+          },
+        },
+      },
+      {
+        id: "eligibility-checker",
+        name: "Eligibility Checker",
+        type: "service",
+        attributes: {},
+      },
+    ];
+
+    const renderGoals = (
+      goalSteps: string[][],
+      onGoalStepsChange = jest.fn()
+    ) =>
+      render(
+        <FlowGoalsSection
+          goalSteps={goalSteps}
+          blockedByStep={new Map()}
+          missingByStep={new Map()}
+          onGoalStepsChange={onGoalStepsChange}
+          satisfied={new Set()}
+          showBottomFade={false}
+          showTopFade={false}
+          sidebarListRef={{ current: null }}
+          sortedSteps={catalog}
+          spaceScoped={false}
+          stepsCount={catalog.length}
+        />
+      );
+
+    const stockItem = () =>
+      screen.getByText("Stock Reservation").closest('[role="button"]');
+
+    test("disables upstream Steps within the same AND-set", () => {
+      const onGoalStepsChange = jest.fn();
+      renderGoals([["notification-sender"]], onGoalStepsChange);
+
+      expect(stockItem()).toHaveAttribute("aria-disabled", "true");
+      fireEvent.click(screen.getByText("Stock Reservation"));
+      expect(onGoalStepsChange).not.toHaveBeenCalled();
+    });
+
+    test("prunes an upstream goal when its downstream goal is added", () => {
+      const onGoalStepsChange = jest.fn();
+      renderGoals([["stock-reservation"]], onGoalStepsChange);
+
+      fireEvent.click(screen.getByText("Notification Sender"));
+      expect(onGoalStepsChange).toHaveBeenCalledWith([["notification-sender"]]);
+    });
+
+    test("does not leak upstream exclusions across OR sets", () => {
+      const onGoalStepsChange = jest.fn();
+      renderGoals(
+        [["notification-sender"], ["eligibility-checker"]],
+        onGoalStepsChange
+      );
+
+      expect(screen.getByTestId("goal-set-summary")).toHaveTextContent(
+        "notification-sender"
+      );
+      expect(
+        screen.getByTestId("goal-set-summary").parentElement
+      ).toContainElement(screen.getByText(t("goals.fallbackTo")));
+      expect(stockItem()).toHaveAttribute("aria-disabled", "false");
+      fireEvent.click(screen.getByText("Stock Reservation"));
+      expect(onGoalStepsChange).toHaveBeenCalledWith([
+        ["notification-sender"],
+        ["eligibility-checker", "stock-reservation"],
+      ]);
+    });
+
+    test("removes a frozen goal set", () => {
+      const onGoalStepsChange = jest.fn();
+      renderGoals(
+        [["notification-sender"], ["stock-reservation"], []],
+        onGoalStepsChange
+      );
+
+      fireEvent.click(
+        screen.getAllByRole("button", { name: t("goals.removeSet") })[0]
+      );
+      expect(onGoalStepsChange).toHaveBeenCalledWith([
+        ["stock-reservation"],
+        [],
+      ]);
+    });
+
+    test("OR starts a new set only when the active set has goals", () => {
+      const onGoalStepsChange = jest.fn();
+      const { rerender } = renderGoals([[]], onGoalStepsChange);
+      const orButton = () =>
+        screen.getByRole("button", { name: t("goals.addFallback") });
+      expect(orButton()).toBeDisabled();
+
+      rerender(
+        <FlowGoalsSection
+          goalSteps={[["notification-sender"]]}
+          blockedByStep={new Map()}
+          missingByStep={new Map()}
+          onGoalStepsChange={onGoalStepsChange}
+          satisfied={new Set()}
+          showBottomFade={false}
+          showTopFade={false}
+          sidebarListRef={{ current: null }}
+          sortedSteps={catalog}
+          spaceScoped={false}
+          stepsCount={catalog.length}
+        />
+      );
+      fireEvent.click(orButton());
+      expect(onGoalStepsChange).toHaveBeenCalledWith([
+        ["notification-sender"],
+        [],
+      ]);
+    });
   });
 });

@@ -37,30 +37,39 @@ describe("StepEditorFlowConfiguration", () => {
       name: "Current Step",
       type: "flow",
       attributes: {},
-      flow: { goals: [] },
+      flow: { goals: { steps: [] } },
     },
     {
-      id: "alpha",
-      name: "Alpha",
+      id: "stock-reservation",
+      name: "Stock Reservation",
       type: "service",
       attributes: {
-        input1: { role: AttributeRole.Required, type: AttributeType.String },
+        reservation: { role: AttributeRole.Output, type: AttributeType.String },
       },
-      http: { endpoint: "http://localhost/a", timeout: 5000 },
     },
     {
-      id: "beta",
-      name: "Beta",
+      id: "notification-sender",
+      name: "Notification Sender",
+      type: "service",
+      attributes: {
+        reservation: {
+          role: AttributeRole.Required,
+          type: AttributeType.String,
+        },
+      },
+    },
+    {
+      id: "eligibility-checker",
+      name: "Eligibility Checker",
       type: "service",
       attributes: {},
-      http: { endpoint: "http://localhost/b", timeout: 5000 },
     },
   ];
 
   const baseProps = {
     clearPreviewPlan: jest.fn(),
     flowCompensate: false,
-    flowGoals: "",
+    flowGoals: [] as string[][],
     flowInitialState: "{}",
     previewPlan: null,
     setFlowCompensate: jest.fn(),
@@ -73,42 +82,78 @@ describe("StepEditorFlowConfiguration", () => {
     updatePreviewPlan: jest.fn().mockResolvedValue(undefined),
   };
 
+  // Opens the suggestion list of one OR line and returns its option names
+  const lineSuggestions = (lineIdx: number): string[] => {
+    const line = screen.getAllByTestId("flow-goal-line")[lineIdx];
+    const trigger = line.querySelector(
+      'button[aria-label="Show suggestions"]'
+    ) as HTMLButtonElement;
+    if (trigger.disabled) return [];
+    fireEvent.click(trigger);
+    const names = screen
+      .getAllByRole("option")
+      .map((option) => option.textContent || "");
+    fireEvent.click(trigger);
+    return names;
+  };
+
   beforeEach(() => {
     jest.clearAllMocks();
     mockSpaces = [];
     mockSpaceSelection = {};
     mockApplyFlowGoalSelectionChange.mockResolvedValue(undefined);
     mockUseFlowFormStepFiltering.mockReturnValue({
-      included: new Set(),
       satisfied: new Set(),
       blockedByStep: new Map(),
       missingByStep: new Map(),
     });
   });
 
-  test("renders selectable goal chips except the current step", () => {
+  test("suggests every Step except the current one", () => {
     render(<StepEditorFlowConfiguration {...baseProps} />);
 
     expect(
       screen.getByText(t("stepEditor.flowGoalsLabel"))
     ).toBeInTheDocument();
-    expect(
-      screen.queryByRole("button", { name: "current-step" })
-    ).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "alpha" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "beta" })).toBeInTheDocument();
+    expect(lineSuggestions(0)).toEqual([
+      "eligibility-checker",
+      "notification-sender",
+      "stock-reservation",
+    ]);
   });
 
-  test("toggles a goal by delegating selection change", async () => {
+  test("adds a goal by delegating selection change", async () => {
     render(<StepEditorFlowConfiguration {...baseProps} />);
 
-    fireEvent.click(screen.getByRole("button", { name: "alpha" }));
+    fireEvent.change(screen.getByLabelText(t("goals.addGoal")), {
+      target: { value: "eligibility-checker" },
+    });
 
     await waitFor(() => {
       expect(mockApplyFlowGoalSelectionChange).toHaveBeenCalledWith(
-        expect.objectContaining({
-          stepIds: ["alpha"],
-        })
+        expect.objectContaining({ goals: [["eligibility-checker"]] })
+      );
+    });
+  });
+
+  test("removes a goal from its line", async () => {
+    render(
+      <StepEditorFlowConfiguration
+        {...baseProps}
+        flowGoals={[["eligibility-checker"], ["stock-reservation"]]}
+      />
+    );
+    mockApplyFlowGoalSelectionChange.mockClear();
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: t("goals.removeGoal", { id: "eligibility-checker" }),
+      })
+    );
+
+    await waitFor(() => {
+      expect(mockApplyFlowGoalSelectionChange).toHaveBeenCalledWith(
+        expect.objectContaining({ goals: [["stock-reservation"]] })
       );
     });
   });
@@ -121,24 +166,99 @@ describe("StepEditorFlowConfiguration", () => {
     expect(baseProps.setFlowCompensate).toHaveBeenCalledWith(true);
   });
 
-  test("disables chips already included by the preview plan", () => {
-    mockUseFlowFormStepFiltering.mockReturnValue({
-      included: new Set(["alpha"]),
-      satisfied: new Set(),
-      blockedByStep: new Map(),
-      missingByStep: new Map(),
+  test("excludes upstream Steps of goals on the same line", () => {
+    render(
+      <StepEditorFlowConfiguration
+        {...baseProps}
+        flowGoals={[["notification-sender"]]}
+      />
+    );
+
+    expect(lineSuggestions(0)).toEqual(["eligibility-checker"]);
+  });
+
+  test("upstream exclusions do not leak across OR lines", () => {
+    render(
+      <StepEditorFlowConfiguration
+        {...baseProps}
+        flowGoals={[["notification-sender"], ["eligibility-checker"]]}
+      />
+    );
+
+    expect(screen.getByText(t("goals.fallbackTo"))).toBeVisible();
+    expect(screen.getByText(t("goals.fallbackTo"))).not.toHaveAttribute(
+      "title"
+    );
+    expect(lineSuggestions(0)).toEqual(["eligibility-checker"]);
+    expect(lineSuggestions(1)).toEqual([
+      "notification-sender",
+      "stock-reservation",
+    ]);
+  });
+
+  test("prunes an upstream goal when its downstream goal is added", async () => {
+    render(
+      <StepEditorFlowConfiguration
+        {...baseProps}
+        flowGoals={[["eligibility-checker"], ["stock-reservation"]]}
+      />
+    );
+    mockApplyFlowGoalSelectionChange.mockClear();
+
+    fireEvent.change(screen.getAllByLabelText(t("goals.addGoal"))[1], {
+      target: { value: "notification-sender" },
     });
 
-    render(<StepEditorFlowConfiguration {...baseProps} />);
-
-    expect(screen.getByRole("button", { name: "alpha" })).toBeDisabled();
-    expect(
-      screen
-        .getByRole("button", {
-          name: "alpha",
+    await waitFor(() => {
+      expect(mockApplyFlowGoalSelectionChange).toHaveBeenCalledWith(
+        expect.objectContaining({
+          goals: [["eligibility-checker"], ["notification-sender"]],
         })
-        .getAttribute("title")
-    ).toBe(t("flowCreate.tooltipAlreadyIncluded"));
+      );
+    });
+  });
+
+  test("removing a goal set refreshes the plan for the remaining set", () => {
+    render(
+      <StepEditorFlowConfiguration
+        {...baseProps}
+        flowGoals={[["notification-sender"], ["eligibility-checker"]]}
+      />
+    );
+
+    expect(
+      screen.getAllByTestId("flow-goal-line")[0].parentElement
+    ).toContainElement(screen.getByText(t("goals.fallbackTo")));
+    mockApplyFlowGoalSelectionChange.mockClear();
+    fireEvent.click(
+      screen.getAllByRole("button", { name: t("goals.removeSet") })[0]
+    );
+    expect(mockApplyFlowGoalSelectionChange).toHaveBeenCalledWith(
+      expect.objectContaining({
+        goals: [["eligibility-checker"]],
+        setInitialState: baseProps.setFlowInitialState,
+        updatePreviewPlan: baseProps.updatePreviewPlan,
+      })
+    );
+  });
+
+  test("OR adds a line only when the last line has goals", () => {
+    const { rerender } = render(<StepEditorFlowConfiguration {...baseProps} />);
+    const orButton = () =>
+      screen.getByRole("button", { name: t("goals.addFallback") });
+    expect(orButton()).toBeDisabled();
+
+    rerender(
+      <StepEditorFlowConfiguration
+        {...baseProps}
+        flowGoals={[["eligibility-checker"]]}
+      />
+    );
+    fireEvent.click(orButton());
+    expect(baseProps.setFlowGoals).toHaveBeenCalledWith([
+      ["eligibility-checker"],
+      [],
+    ]);
   });
 
   test("prunes goals immediately when Space changes", async () => {
@@ -149,10 +269,15 @@ describe("StepEditorFlowConfiguration", () => {
         selector: { language: "lua", script: "return true" },
       },
     ];
-    mockSpaceSelection = { "alpha-space": new Set(["alpha"]) };
+    mockSpaceSelection = {
+      "alpha-space": new Set(["eligibility-checker"]),
+    };
 
     render(
-      <StepEditorFlowConfiguration {...baseProps} flowGoals="alpha, beta" />
+      <StepEditorFlowConfiguration
+        {...baseProps}
+        flowGoals={[["eligibility-checker", "stock-reservation"]]}
+      />
     );
 
     await waitFor(() => {
@@ -166,11 +291,13 @@ describe("StepEditorFlowConfiguration", () => {
     fireEvent.click(screen.getByRole("option", { name: "Alpha Space" }));
 
     expect(baseProps.setFlowSpaceId).toHaveBeenCalledWith("alpha-space");
-    expect(baseProps.setFlowGoals).toHaveBeenCalledWith("alpha");
+    expect(baseProps.setFlowGoals).toHaveBeenCalledWith([
+      ["eligibility-checker"],
+    ]);
     expect(baseProps.clearPreviewPlan).toHaveBeenCalled();
     expect(mockApplyFlowGoalSelectionChange).toHaveBeenCalledWith(
       expect.objectContaining({
-        stepIds: ["alpha"],
+        goals: [["eligibility-checker"]],
         spaceId: "alpha-space",
       })
     );

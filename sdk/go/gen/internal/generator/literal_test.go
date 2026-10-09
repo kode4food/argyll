@@ -73,10 +73,12 @@ func TestGoLiteral(t *testing.T) {
 		},
 		"step reaching an unnamed field type": {
 			value: api.Step{
-				Flow: &api.FlowConfig{Goals: []api.StepID{"greet"}},
+				Flow: &api.FlowConfig{
+					Goals: api.Goals{Steps: []api.StepID{"greet"}},
+				},
 			},
-			want: "api.Step{\nFlow: &api.FlowConfig{\n" +
-				"Goals: []api.StepID{\n\"greet\",\n},\n},\n}",
+			want: "api.Step{\nFlow: &api.FlowConfig{\nGoals: api.Goals{\n" +
+				"Steps: []api.StepID{\n\"greet\",\n},\n},\n},\n}",
 		},
 	}
 

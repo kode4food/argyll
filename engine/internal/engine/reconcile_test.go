@@ -251,7 +251,7 @@ func TestTransientFailureRearms(t *testing.T) {
 
 		id := api.FlowID("wf-reconcile-transient")
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{st.ID},
+			Goals: api.Goals{Steps: []api.StepID{st.ID}},
 			Steps: api.Steps{st.ID: st},
 		}
 		assert.NoError(t, env.Engine.StartPlan(id, pl))
@@ -294,7 +294,7 @@ func TestScriptCannotStayActive(t *testing.T) {
 		fs := api.FlowStep{FlowID: id, StepID: st.ID}
 		tkn := api.Token("work-a")
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{st.ID},
+			Goals: api.Goals{Steps: []api.StepID{st.ID}},
 			Steps: api.Steps{st.ID: st},
 		}
 
@@ -329,7 +329,7 @@ func TestDeferredDispatchResumesWhenHealthy(t *testing.T) {
 
 		id := api.FlowID("wf-reconcile-deferred")
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{st.ID},
+			Goals: api.Goals{Steps: []api.StepID{st.ID}},
 			Steps: api.Steps{st.ID: st},
 		}
 		assert.NoError(t, env.Engine.StartPlan(id, pl))
@@ -352,7 +352,7 @@ func seedRetryScheduledFlow(
 	extra ...helpers.FlowEvent,
 ) {
 	pl := &api.ExecutionPlan{
-		Goals: []api.StepID{fs.StepID},
+		Goals: api.Goals{Steps: []api.StepID{fs.StepID}},
 		Steps: api.Steps{fs.StepID: mustStep(env, fs.StepID)},
 	}
 	evs := []helpers.FlowEvent{

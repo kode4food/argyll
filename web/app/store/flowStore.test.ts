@@ -643,7 +643,7 @@ describe("flowStore", () => {
           name: "Flow Step",
           type: "flow",
           attributes: {},
-          flow: { goals: ["goal-a"] },
+          flow: { goals: { steps: ["goal-a"] } },
         },
       });
 

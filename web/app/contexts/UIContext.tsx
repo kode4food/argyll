@@ -7,8 +7,9 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { api, ExecutionPlan } from "../api";
+import { api, ExecutionPlan, GoalSets } from "../api";
 import { useSpaces } from "../store/flowStore";
+import { nonEmptyGoalSets } from "@/utils/goalSets";
 
 interface UIContextType {
   diagramContainerRef: React.RefObject<HTMLDivElement | null>;
@@ -17,13 +18,12 @@ interface UIContextType {
   setFocusedPreviewAttribute: (attribute: string | null) => void;
   previewPlan: ExecutionPlan | null;
   setPreviewPlan: (plan: ExecutionPlan | null) => void;
-  goalSteps: string[];
-  toggleGoalStep: (stepId: string) => void;
-  setGoalSteps: (stepIds: string[]) => void;
+  goalSteps: GoalSets;
+  setGoalSteps: (goals: GoalSets) => void;
   spaceId: string | null;
   setSpaceId: (spaceId: string | null) => void;
   updatePreviewPlan: (
-    goalSteps: string[],
+    goalSteps: GoalSets,
     initialState: Record<string, any>
   ) => Promise<void>;
   clearPreviewPlan: () => void;
@@ -40,7 +40,7 @@ export const UIProvider: React.FC<{ children: React.ReactNode }> = ({
   const [focusedPreviewAttribute, setFocusedPreviewAttributeState] = useState<
     string | null
   >(null);
-  const [goalSteps, setGoalStepsState] = useState<string[]>([]);
+  const [goalSteps, setGoalStepsState] = useState<GoalSets>([]);
   const [spaceId, setSpaceIdState] = useState<string | null>(null);
   const spaces = useSpaces();
   const diagramContainerRef = useRef<HTMLDivElement>(null);
@@ -58,27 +58,18 @@ export const UIProvider: React.FC<{ children: React.ReactNode }> = ({
     setFocusedPreviewAttributeState(attribute);
   }, []);
 
-  const setGoalSteps = useCallback((stepIds: string[]) => {
-    setGoalStepsState(stepIds);
-  }, []);
-
-  const toggleGoalStep = useCallback((stepId: string) => {
-    setGoalStepsState((prev) => {
-      if (prev.includes(stepId)) {
-        return prev.filter((id) => id !== stepId);
-      }
-
-      return [...prev, stepId];
-    });
+  const setGoalSteps = useCallback((goals: GoalSets) => {
+    setGoalStepsState(goals);
   }, []);
 
   const updatePreviewPlan = useCallback(
-    async (goalSteps: string[], initialState: Record<string, any>) => {
+    async (goals: GoalSets, initialState: Record<string, any>) => {
       // Cancel any pending request
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
       }
 
+      const goalSteps = nonEmptyGoalSets(goals);
       if (goalSteps.length === 0) {
         setPreviewPlanState(null);
         setFocusedPreviewAttributeState(null);
@@ -165,7 +156,6 @@ export const UIProvider: React.FC<{ children: React.ReactNode }> = ({
       previewPlan,
       setPreviewPlan,
       goalSteps,
-      toggleGoalStep,
       updatePreviewPlan,
       clearPreviewPlan,
       setGoalSteps,
@@ -178,7 +168,6 @@ export const UIProvider: React.FC<{ children: React.ReactNode }> = ({
       previewPlan,
       setPreviewPlan,
       goalSteps,
-      toggleGoalStep,
       updatePreviewPlan,
       clearPreviewPlan,
       setGoalSteps,

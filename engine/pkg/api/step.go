@@ -60,9 +60,9 @@ type (
 
 	// FlowConfig configures flow-based step execution
 	FlowConfig struct {
-		Goals      []StepID `json:"goals"`
-		SpaceID    SpaceID  `json:"space_id,omitempty"`
-		Compensate bool     `json:"compensate,omitempty"`
+		Goals      Goals   `json:"goals"`
+		SpaceID    SpaceID `json:"space_id,omitempty"`
+		Compensate bool    `json:"compensate,omitempty"`
 	}
 
 	// WorkConfig configures retry and parallelism behavior for steps with
@@ -429,7 +429,7 @@ func (c *ScriptConfig) Equal(other *ScriptConfig) bool {
 }
 
 // WithGoals returns a copy of the flow config with the provided goals
-func (c *FlowConfig) WithGoals(goals ...StepID) *FlowConfig {
+func (c *FlowConfig) WithGoals(goals Goals) *FlowConfig {
 	res := util.MutableCopy(c)
 	res.Goals = goals
 	return res
@@ -442,7 +442,7 @@ func (c *FlowConfig) Equal(other *FlowConfig) bool {
 	}
 	return c.SpaceID == other.SpaceID &&
 		c.Compensate == other.Compensate &&
-		slices.Equal(c.Goals, other.Goals)
+		c.Goals.Equal(&other.Goals)
 }
 
 // Equal returns true if two work configs are equal
@@ -616,7 +616,7 @@ func (s *Step) validateFlowConfig() error {
 	if s.Script != nil {
 		return ErrScriptNotAllowed
 	}
-	if len(s.Flow.Goals) == 0 {
+	if !s.Flow.Goals.Valid() {
 		return ErrFlowGoalsRequired
 	}
 	if s.Flow.SpaceID != NoSpace &&

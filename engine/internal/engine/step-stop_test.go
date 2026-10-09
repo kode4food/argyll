@@ -28,7 +28,7 @@ func TestSetAttribute(t *testing.T) {
 		})
 
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{"output-step"},
+			Goals: api.Goals{Steps: []api.StepID{"output-step"}},
 			Steps: api.Steps{st.ID: st},
 		}
 
@@ -63,7 +63,7 @@ func TestDuplicateFirstWins(t *testing.T) {
 
 		// Both steps are goals so both will execute
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{"step-a", "step-b"},
+			Goals: api.Goals{Steps: []api.StepID{"step-a", "step-b"}},
 			Steps: api.Steps{
 				stepA.ID: stepA,
 				stepB.ID: stepB,
@@ -122,7 +122,7 @@ func TestUndeclaredOutputsIgnored(t *testing.T) {
 		})
 
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{consumer.ID},
+			Goals: api.Goals{Steps: []api.StepID{consumer.ID}},
 			Steps: api.Steps{
 				producer.ID: producer,
 				consumer.ID: consumer,
@@ -172,7 +172,7 @@ func TestUnconsumedOutputsDiscarded(t *testing.T) {
 		env.MockClient.SetResponse(consumer.ID, api.Args{"result": "done"})
 
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{consumer.ID},
+			Goals: api.Goals{Steps: []api.StepID{consumer.ID}},
 			Steps: api.Steps{
 				producer.ID: producer,
 				consumer.ID: consumer,
@@ -234,7 +234,7 @@ func TestOutputMapping(t *testing.T) {
 		})
 
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{st.ID},
+			Goals: api.Goals{Steps: []api.StepID{st.ID}},
 			Steps: api.Steps{st.ID: st},
 		}
 
@@ -275,7 +275,7 @@ func TestOutputMappingWithRename(t *testing.T) {
 		env.MockClient.SetResponse(st.ID, api.Args{"success": "ok"})
 
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{st.ID},
+			Goals: api.Goals{Steps: []api.StepID{st.ID}},
 			Steps: api.Steps{st.ID: st},
 		}
 

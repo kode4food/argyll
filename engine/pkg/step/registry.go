@@ -45,8 +45,8 @@ type (
 	// HealthFunc reports whether a step can currently run
 	HealthFunc func(*api.Step) api.HealthState
 
-	// ChildrenFunc reports the step IDs a step expands into
-	ChildrenFunc func(*api.Step) []api.StepID
+	// ChildrenFunc reports the goal sets a step expands into
+	ChildrenFunc func(*api.Step) *api.Goals
 
 	// CompensateFunc reverses a completed work item. True reports completion;
 	// false with no error leaves it awaiting an asynchronous callback
@@ -108,8 +108,8 @@ func (r *Registry) Health(st *api.Step) (api.HealthState, error) {
 	return handler.Health(st), nil
 }
 
-// Children returns the step IDs a step expands into
-func (r *Registry) Children(st *api.Step) ([]api.StepID, error) {
+// Children returns the goal sets a step expands into
+func (r *Registry) Children(st *api.Step) (*api.Goals, error) {
 	handler, err := r.Lookup(st.Type)
 	if err != nil || handler.Children == nil {
 		return nil, err

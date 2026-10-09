@@ -35,7 +35,12 @@ describe("useLayoutPlan", () => {
   });
 
   test("saves node positions when plan exists and nodes are arranged", async () => {
-    const plan = { goals: [], required: [], steps: {}, attributes: {} };
+    const plan = {
+      goals: { steps: [] },
+      required: [],
+      steps: {},
+      attributes: {},
+    };
     shouldApplyAutoLayoutMock.mockReturnValue(true);
     generateOverviewPlanMock.mockReturnValue(plan);
     const arrangedNodes = [

@@ -18,7 +18,7 @@ describe("flowGoalSelectionModel", () => {
     getExecutionPlan.mockReset();
   });
 
-  test("prunes upstream goals when included by last goal", async () => {
+  test("plans every non-empty goal set", async () => {
     const orderCreator: Step = {
       id: "order-creator",
       name: "Order Creator",
@@ -32,8 +32,11 @@ describe("flowGoalSelectionModel", () => {
       attributes: {},
     };
 
-    const combinedPlan: ExecutionPlan = {
-      goals: ["order-creator", "notification-sender"],
+    const plan: ExecutionPlan = {
+      goals: {
+        steps: ["order-creator"],
+        else: { steps: ["notification-sender"] },
+      },
       required: [],
       steps: {
         "order-creator": orderCreator,
@@ -41,23 +44,7 @@ describe("flowGoalSelectionModel", () => {
       },
       attributes: {},
     };
-
-    const lastGoalPlan: ExecutionPlan = {
-      goals: ["notification-sender"],
-      required: [],
-      steps: {
-        "order-creator": orderCreator,
-        "notification-sender": notificationSender,
-      },
-      attributes: {},
-    };
-
-    getExecutionPlan.mockImplementation(async (stepIds: string[]) => {
-      if (stepIds.length === 1 && stepIds[0] === "notification-sender") {
-        return lastGoalPlan;
-      }
-      return combinedPlan;
-    });
+    getExecutionPlan.mockResolvedValue(plan);
 
     const setInitialState = jest.fn();
     const setGoalSteps = jest.fn();
@@ -65,9 +52,10 @@ describe("flowGoalSelectionModel", () => {
     const updatePreviewPlan = jest.fn().mockResolvedValue(undefined);
     const clearPreviewPlan = jest.fn();
     const setNewID = jest.fn();
+    const goals = [["order-creator"], ["notification-sender"], []];
 
     await applyFlowGoalSelectionChange({
-      stepIds: ["order-creator", "notification-sender"],
+      goals,
       initialState: "{}",
       steps: [orderCreator, notificationSender],
       idManuallyEdited: false,
@@ -79,10 +67,15 @@ describe("flowGoalSelectionModel", () => {
       clearPreviewPlan,
     });
 
-    expect(setGoalSteps).toHaveBeenCalledWith(["notification-sender"]);
-    expect(setPreviewPlan).toHaveBeenCalledWith(combinedPlan);
+    expect(getExecutionPlan).toHaveBeenCalledWith({
+      goalSteps: [["order-creator"], ["notification-sender"]],
+      initialState: {},
+      spaceId: undefined,
+    });
+    expect(setGoalSteps).toHaveBeenCalledWith(goals);
+    expect(setPreviewPlan).toHaveBeenCalledWith(plan);
     expect(updatePreviewPlan).toHaveBeenCalledWith(
-      ["notification-sender"],
+      [["order-creator"], ["notification-sender"]],
       {},
       undefined
     );
@@ -90,7 +83,7 @@ describe("flowGoalSelectionModel", () => {
     expect(setNewID).toHaveBeenCalledWith("notification-sender-0001");
   });
 
-  test("clears selection and preview when stepIds is empty", async () => {
+  test("clears preview when every goal set is empty", async () => {
     const setInitialState = jest.fn();
     const setGoalSteps = jest.fn();
     const setPreviewPlan = jest.fn();
@@ -98,7 +91,7 @@ describe("flowGoalSelectionModel", () => {
     const clearPreviewPlan = jest.fn();
 
     await applyFlowGoalSelectionChange({
-      stepIds: [],
+      goals: [[]],
       initialState: "{}",
       steps: [],
       setInitialState,
@@ -110,7 +103,7 @@ describe("flowGoalSelectionModel", () => {
 
     expect(clearPreviewPlan).toHaveBeenCalled();
     expect(setPreviewPlan).toHaveBeenCalledWith(null);
-    expect(setGoalSteps).toHaveBeenCalledWith([]);
+    expect(setGoalSteps).toHaveBeenCalledWith([[]]);
     expect(updatePreviewPlan).not.toHaveBeenCalled();
   });
 });

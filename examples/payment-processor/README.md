@@ -52,13 +52,13 @@ python main.py
 The payment processor is designed to work in a flow with order creation:
 
 ```python
-from argyll import Client
+from argyll import Client, Goals
 
 client = Client("http://localhost:8080")
 
 # Start a flow that processes an order and payment
 client.new_flow("order-flow-123") \
-    .with_goals("payment-processor") \
+    .with_goals(Goals(steps=["payment-processor"])) \
     .with_initial_state({
         "order": {
             "id": "ORD-123",

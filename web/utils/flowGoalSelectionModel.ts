@@ -1,23 +1,24 @@
-import { api, ExecutionPlan, Step } from "@/app/api";
+import { api, ExecutionPlan, GoalSets, Step } from "@/app/api";
 import {
   addRequiredDefaults,
   filterDefaultValues,
   parseState,
 } from "@/utils/stateUtils";
 import { generatePadded } from "@/utils/flowUtils";
+import { nonEmptyGoalSets } from "@/utils/goalSets";
 
 const JSON_INDENT_SPACES = 2;
 
 export interface ApplyFlowGoalSelectionChangeParams {
-  stepIds: string[];
+  goals: GoalSets;
   initialState: string;
   steps: Step[];
   idManuallyEdited?: boolean;
   setNewID?: (id: string) => void;
   setInitialState: (state: string) => void;
-  setGoalSteps: (stepIds: string[]) => void;
+  setGoalSteps: (goals: GoalSets) => void;
   updatePreviewPlan: (
-    goalSteps: string[],
+    goalSteps: GoalSets,
     initialState: Record<string, any>,
     spaceId?: string
   ) => Promise<void>;
@@ -27,7 +28,7 @@ export interface ApplyFlowGoalSelectionChangeParams {
 }
 
 export async function applyFlowGoalSelectionChange({
-  stepIds,
+  goals,
   initialState,
   steps,
   idManuallyEdited,
@@ -41,18 +42,19 @@ export async function applyFlowGoalSelectionChange({
 }: ApplyFlowGoalSelectionChangeParams): Promise<void> {
   const currentState = parseState(initialState);
   const nonDefaultState = filterDefaultValues(currentState, steps);
+  const planGoals = nonEmptyGoalSets(goals);
 
-  if (stepIds.length === 0) {
+  if (planGoals.length === 0) {
     setInitialState(JSON.stringify(nonDefaultState, null, JSON_INDENT_SPACES));
     setPreviewPlan?.(null);
     clearPreviewPlan();
-    setGoalSteps([]);
+    setGoalSteps(goals);
     return;
   }
 
   try {
     const executionPlan = await api.getExecutionPlan({
-      goalSteps: stepIds,
+      goalSteps: planGoals,
       initialState: nonDefaultState,
       spaceId,
     });
@@ -68,7 +70,7 @@ export async function applyFlowGoalSelectionChange({
     );
 
     if (!idManuallyEdited && setNewID) {
-      const lastGoalId = stepIds[stepIds.length - 1];
+      const lastGoalId = planGoals.flat().at(-1)!;
       const goalStep = steps.find((s) => s.id === lastGoalId);
       const goalName = goalStep?.name || lastGoalId;
       const kebabName = goalName
@@ -78,36 +80,11 @@ export async function applyFlowGoalSelectionChange({
       setNewID(`${kebabName}-${generatePadded()}`);
     }
 
-    if (stepIds.length > 1) {
-      const lastGoal = stepIds[stepIds.length - 1];
-      const previousGoals = stepIds.slice(0, -1);
-
-      try {
-        const lastGoalPlan = await api.getExecutionPlan({
-          goalSteps: [lastGoal],
-          spaceId,
-        });
-        const lastGoalStepIds = new Set(Object.keys(lastGoalPlan.steps || {}));
-
-        const remainingGoals = previousGoals.filter(
-          (id) => !lastGoalStepIds.has(id)
-        );
-
-        const finalGoals = [...remainingGoals, lastGoal];
-
-        if (finalGoals.length !== stepIds.length) {
-          setGoalSteps(finalGoals);
-          await updatePreviewPlan(finalGoals, nonDefaultState, spaceId);
-          return;
-        }
-      } catch {}
-    }
-
-    setGoalSteps(stepIds);
-    await updatePreviewPlan(stepIds, nonDefaultState, spaceId);
+    setGoalSteps(goals);
+    await updatePreviewPlan(planGoals, nonDefaultState, spaceId);
   } catch {
     setPreviewPlan?.(null);
     clearPreviewPlan();
-    setGoalSteps(stepIds);
+    setGoalSteps(goals);
   }
 }

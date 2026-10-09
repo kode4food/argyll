@@ -35,7 +35,7 @@ func TestPredicateSkipping(t *testing.T) {
 
 		// Create execution plan with step-b as goal (it will be skipped)
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{"step-b"},
+			Goals: api.Goals{Steps: []api.StepID{"step-b"}},
 			Steps: api.Steps{
 				"step-a": stepA,
 				"step-b": stepB,

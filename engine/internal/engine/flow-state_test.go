@@ -93,7 +93,7 @@ func TestGoalBlocked(t *testing.T) {
 
 	fl := api.FlowState{
 		Plan: &api.ExecutionPlan{
-			Goals: []api.StepID{"goal"},
+			Goals: api.Goals{Steps: []api.StepID{"goal"}},
 			Steps: api.Steps{
 				"goal": {
 					ID:   "goal",
@@ -137,7 +137,7 @@ func TestGoalCompleted(t *testing.T) {
 
 	fl := api.FlowState{
 		Plan: &api.ExecutionPlan{
-			Goals: []api.StepID{"goal"},
+			Goals: api.Goals{Steps: []api.StepID{"goal"}},
 			Steps: api.Steps{
 				"goal": {
 					ID:   "goal",
@@ -168,7 +168,7 @@ func TestIsFlowFailed(t *testing.T) {
 		}
 
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{"step-b"},
+			Goals: api.Goals{Steps: []api.StepID{"step-b"}},
 			Steps: api.Steps{
 				stepA.ID: stepA,
 				stepB.ID: stepB,
@@ -201,7 +201,7 @@ func TestIsFlowNotFailed(t *testing.T) {
 		st := helpers.NewSimpleStep("step-ok")
 
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{"step-ok"},
+			Goals: api.Goals{Steps: []api.StepID{"step-ok"}},
 			Steps: api.Steps{st.ID: st},
 		}
 
@@ -228,7 +228,7 @@ func TestHasInputProvider(t *testing.T) {
 		}
 
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{"step-b"},
+			Goals: api.Goals{Steps: []api.StepID{"step-b"}},
 			Steps: api.Steps{
 				stepA.ID: stepA,
 				stepB.ID: stepB,
@@ -264,7 +264,7 @@ func TestHasInputProviderNone(t *testing.T) {
 		}
 
 		pl := &api.ExecutionPlan{
-			Goals:      []api.StepID{"step-alone"},
+			Goals:      api.Goals{Steps: []api.StepID{"step-alone"}},
 			Steps:      api.Steps{st.ID: st},
 			Attributes: api.AttributeGraph{},
 		}
@@ -296,7 +296,7 @@ func TestGetFlowState(t *testing.T) {
 		assert.NoError(t, err)
 
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{"state-step"},
+			Goals: api.Goals{Steps: []api.StepID{"state-step"}},
 			Steps: api.Steps{st.ID: st},
 		}
 
@@ -383,7 +383,7 @@ func TestGetAttributes(t *testing.T) {
 		})
 
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{"step-attrs"},
+			Goals: api.Goals{Steps: []api.StepID{"step-attrs"}},
 			Steps: api.Steps{st.ID: st},
 		}
 
@@ -411,7 +411,7 @@ func TestGetAttribute(t *testing.T) {
 		env.MockClient.SetResponse(st.ID, api.Args{"result": "ok"})
 
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{st.ID},
+			Goals: api.Goals{Steps: []api.StepID{st.ID}},
 			Steps: api.Steps{st.ID: st},
 			Attributes: api.AttributeGraph{
 				"result": {

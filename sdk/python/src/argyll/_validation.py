@@ -72,7 +72,7 @@ def _check_type_config(step: Step) -> None:
             )
 
     elif step.type == StepType.FLOW:
-        if not step.flow or not step.flow.goals:
+        if not step.flow or not all(step.flow.goals.sets()):
             raise StepValidationError("Flow goals required for flow step")
         if step.http is not None:
             raise StepValidationError("HTTP config not allowed for flow steps")

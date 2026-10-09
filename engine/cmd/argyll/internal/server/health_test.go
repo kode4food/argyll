@@ -187,7 +187,7 @@ func TestHealthCheckFlowHealthy(t *testing.T) {
 			Name: "Flow Step",
 			Type: api.StepTypeFlow,
 			Flow: &api.FlowConfig{
-				Goals: []api.StepID{goal.ID},
+				Goals: api.Goals{Steps: []api.StepID{goal.ID}},
 			},
 			Attributes: api.AttributeSpecs{
 				"result": {Role: api.RoleOutput},
@@ -242,7 +242,7 @@ func TestHealthCheckFlowUnhealthy(t *testing.T) {
 			Name: "Bad Flow Step",
 			Type: api.StepTypeFlow,
 			Flow: &api.FlowConfig{
-				Goals: []api.StepID{goal.ID},
+				Goals: api.Goals{Steps: []api.StepID{goal.ID}},
 			},
 			Attributes: api.AttributeSpecs{
 				"result": {Role: api.RoleOutput},

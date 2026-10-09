@@ -71,7 +71,7 @@ func TestLazyEvaluation(t *testing.T) {
 		// Create execution plan with ONLY the steps needed to reach goal. This
 		// simulates the lazy evaluation - plan only includes A→B→C
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{"step-c"},
+			Goals: api.Goals{Steps: []api.StepID{"step-c"}},
 			Steps: api.Steps{
 				"step-a": stepA,
 				"step-b": stepB,

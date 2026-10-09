@@ -262,10 +262,10 @@ func TestCacheHashFlowConfig(t *testing.T) {
 	cache := memo.NewCache(100)
 
 	flowConfig1 := &api.FlowConfig{
-		Goals: []api.StepID{"goal1"},
+		Goals: api.Goals{Steps: []api.StepID{"goal1"}},
 	}
 	flowConfig2 := &api.FlowConfig{
-		Goals: []api.StepID{"goal1"},
+		Goals: api.Goals{Steps: []api.StepID{"goal1"}},
 	}
 
 	step1 := &api.Step{

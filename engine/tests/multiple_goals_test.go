@@ -61,7 +61,7 @@ func TestMultipleGoals(t *testing.T) {
 		env.MockClient.SetResponse("step-e", api.Args{"valueE": "from-E"})
 
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{"step-c", "step-d"},
+			Goals: api.Goals{Steps: []api.StepID{"step-c", "step-d"}},
 			Steps: api.Steps{
 				"step-a": stepA,
 				"step-b": stepB,

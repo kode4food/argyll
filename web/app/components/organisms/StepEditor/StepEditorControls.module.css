@@ -4,12 +4,7 @@
   gap: var(--spacing-xs);
 }
 
-.flowGoalChip {
-  composes: interactive hoverFill focusFill focusRing from "@/app/styles/components/interaction.module.css";
-  --control-hover-bg: var(--overlay-dark-40);
-  --control-hover-border: var(--color-info);
-  --control-focus-bg: var(--overlay-dark-40);
-  --control-focus-border: var(--color-info);
+.flowGoalTag {
   flex: 0 0 auto;
   height: 32px;
   padding: 0 var(--spacing-md);
@@ -25,7 +20,16 @@
   gap: var(--spacing-sm);
 }
 
-.flowGoalChip :global(.step-type-icon) {
+.flowGoalChip {
+  composes: flowGoalTag;
+  composes: interactive hoverFill focusFill focusRing from "@/app/styles/components/interaction.module.css";
+  --control-hover-bg: var(--overlay-dark-40);
+  --control-hover-border: var(--color-info);
+  --control-focus-bg: var(--overlay-dark-40);
+  --control-focus-border: var(--color-info);
+}
+
+.flowGoalTag :global(.step-type-icon) {
   /* same box as the form's label icons */
   height: 1rem;
   width: 1rem;
@@ -51,6 +55,43 @@
   border-color: var(--color-info);
   background-color: color-mix(in srgb, var(--color-info) 55%, transparent);
   color: var(--color-white);
+}
+
+.flowGoalRemove {
+  display: inline-flex;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.flowGoalRemove svg {
+  width: var(--text-xs);
+  height: var(--text-xs);
+}
+
+.flowGoalSet {
+  composes: section from "@/app/styles/components/form.module.css";
+  position: relative;
+  background-color: transparent;
+}
+
+.flowGoalSetRemove {
+  composes: flowGoalRemove;
+  position: absolute;
+  top: var(--spacing-xs);
+  right: var(--spacing-xs);
+  color: var(--panel-text-muted);
+}
+
+.flowGoalFallback {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--spacing-xs);
+  color: var(--panel-text-muted);
+  font-size: var(--text-xs);
 }
 
 .flowGoalChipDisabled {

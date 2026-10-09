@@ -245,7 +245,7 @@ describe("stateUtils", () => {
       const state = {};
 
       const executionPlan: ExecutionPlan = {
-        goals: ["step1"],
+        goals: { steps: ["step1"] },
         required: ["boolProp", "numberProp", "stringProp"],
         steps: {
           step1: {
@@ -287,7 +287,7 @@ describe("stateUtils", () => {
       };
 
       const executionPlan: ExecutionPlan = {
-        goals: ["step1"],
+        goals: { steps: ["step1"] },
         required: ["boolProp", "numberProp", "stringProp"],
         steps: {
           step1: {

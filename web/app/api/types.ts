@@ -118,8 +118,15 @@ export interface ScriptConfig {
   script: string;
 }
 
+// A chain of fallback goal sets: every one of `steps` must succeed, and `else`
+// is attempted only when `steps` becomes impossible
+export interface Goals {
+  steps: string[];
+  else?: Goals;
+}
+
 export interface FlowConfig {
-  goals: string[];
+  goals: Goals;
   compensate?: boolean;
   space_id?: string;
 }
@@ -161,7 +168,7 @@ export interface ExcludedSteps {
 }
 
 export interface ExecutionPlan {
-  goals: string[];
+  goals: Goals;
   required: string[];
   steps: Record<string, Step>;
   attributes: Record<string, Dependencies>;

@@ -234,7 +234,7 @@ func (r *healthResolver) resolve(sid api.StepID) api.HealthState {
 		r.cache[sid] = h
 		return h
 	}
-	if len(children) == 0 {
+	if children == nil {
 		h := r.resolveStepHealth(step, sid)
 		r.cache[sid] = h
 		return h
@@ -296,7 +296,7 @@ func (r *healthResolver) resolveStepHealth(
 }
 
 func (r *healthResolver) previewFlowPlan(
-	sid api.StepID, children []api.StepID,
+	sid api.StepID, children *api.Goals,
 ) (*api.ExecutionPlan, error) {
 	if pl, ok := r.plans[sid]; ok {
 		return pl, nil
@@ -318,7 +318,7 @@ func (r *healthResolver) previewFlowPlan(
 		Match:   r.match,
 		Catalog: r.cat,
 		Steps:   steps,
-		Goals:   children,
+		Goals:   *children,
 		Init:    api.InitArgs{},
 	})
 	if err != nil {

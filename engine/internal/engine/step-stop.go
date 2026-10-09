@@ -83,14 +83,16 @@ func (tx *flowTx) checkStepCompletion(sid api.StepID) (bool, error) {
 func (tx *flowTx) consumedOutputs(
 	st *api.Step, outputs api.Args, fl api.FlowState,
 ) api.Args {
-	if slices.Contains(fl.Plan.Goals, st.ID) {
+	goals := keptGoals(fl)
+	if slices.Contains(goals, st.ID) {
 		return outputs
 	}
 
+	scope := goalScope(fl.Plan, goals)
 	res := api.Args{}
 	for name, value := range outputs {
 		attr := st.Attributes[name]
-		if tx.needsOutput(name, attr, fl) {
+		if tx.needsOutput(name, attr, fl, scope) {
 			res[name] = value
 		}
 	}
@@ -113,6 +115,7 @@ func (tx *flowTx) handlePredicateFailure(
 
 	return call.Perform(
 		tx.checkUnreachable,
+		tx.skipPendingUnused,
 		tx.checkTerminal,
 	)
 }
@@ -137,6 +140,7 @@ func (tx *flowTx) handleStepFailure(sid api.StepID) error {
 
 	return call.Perform(
 		tx.checkUnreachable,
+		tx.skipPendingUnused,
 		tx.checkTerminal,
 		tx.startReadyPendingSteps,
 	)

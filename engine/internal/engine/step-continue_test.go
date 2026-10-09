@@ -96,7 +96,7 @@ func TestDefaultTimeoutBeforeProvider(t *testing.T) {
 		env.MockClient.SetResponse(consumer.ID, api.Args{"result": "ok"})
 
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{consumer.ID},
+			Goals: api.Goals{Steps: []api.StepID{consumer.ID}},
 			Steps: api.Steps{
 				provider.ID: provider,
 				consumer.ID: consumer,
@@ -209,7 +209,7 @@ func TestTimeoutZeroFallsBackImmediately(t *testing.T) {
 		env.MockClient.SetResponse(consumer.ID, api.Args{"result": "ok"})
 
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{consumer.ID},
+			Goals: api.Goals{Steps: []api.StepID{consumer.ID}},
 			Steps: api.Steps{
 				provider.ID: provider,
 				consumer.ID: consumer,
@@ -333,7 +333,7 @@ func TestTimeoutDefaultIsStepLocal(t *testing.T) {
 		env.MockClient.SetResponse(strict.ID, api.Args{"strict_done": "ok"})
 
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{fast.ID, strict.ID},
+			Goals: api.Goals{Steps: []api.StepID{fast.ID, strict.ID}},
 			Steps: api.Steps{
 				provider.ID: provider,
 				fast.ID:     fast,
@@ -462,7 +462,7 @@ func TestTimeoutRequiredsGateFallback(t *testing.T) {
 		env.MockClient.SetResponse(orderCreator.ID, api.Args{"result": "ok"})
 
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{orderCreator.ID},
+			Goals: api.Goals{Steps: []api.StepID{orderCreator.ID}},
 			Steps: api.Steps{
 				userProvider.ID:    userProvider,
 				productProvider.ID: productProvider,
@@ -602,7 +602,7 @@ func TestTimeoutWaitsForLaterOptional(t *testing.T) {
 		env.MockClient.SetResponse(consumer.ID, api.Args{"result": "ok"})
 
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{consumer.ID},
+			Goals: api.Goals{Steps: []api.StepID{consumer.ID}},
 			Steps: api.Steps{
 				providerA.ID: providerA,
 				providerB.ID: providerB,
@@ -723,7 +723,7 @@ func TestTimeoutStepReadyAnchor(t *testing.T) {
 		env.MockClient.SetResponse(orderCreator.ID, api.Args{"result": "ok"})
 
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{orderCreator.ID},
+			Goals: api.Goals{Steps: []api.StepID{orderCreator.ID}},
 			Steps: api.Steps{
 				gate.ID:         gate,
 				userProvider.ID: userProvider,
@@ -845,7 +845,7 @@ func TestTimeoutAfterRequireds(t *testing.T) {
 		env.MockClient.SetResponse(consumer.ID, api.Args{"result": "ok"})
 
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{consumer.ID},
+			Goals: api.Goals{Steps: []api.StepID{consumer.ID}},
 			Steps: api.Steps{
 				reqProvider.ID: reqProvider,
 				optProvider.ID: optProvider,
@@ -1034,7 +1034,7 @@ func collectTimeoutPlan(collect api.InputCollect) collectTimeoutPlanRes {
 		},
 	}
 	pl := &api.ExecutionPlan{
-		Goals: []api.StepID{consumer.ID},
+		Goals: api.Goals{Steps: []api.StepID{consumer.ID}},
 		Steps: api.Steps{
 			providerA.ID: providerA,
 			providerB.ID: providerB,

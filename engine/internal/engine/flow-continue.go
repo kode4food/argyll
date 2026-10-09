@@ -58,7 +58,7 @@ func (tx *flowTx) skipPendingUnused() error {
 			if !policy.StepPending(ex.Status) {
 				continue
 			}
-			if tx.areOutputsNeeded(sid, fl) {
+			if tx.areOutputsNeeded(sid, fl, keptGoals(fl)) {
 				continue
 			}
 

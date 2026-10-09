@@ -186,7 +186,7 @@ func TestStartFlowSpace(t *testing.T) {
 
 		w := startSpaceFlow(t, router, api.CreateFlowRequest{
 			ID:    "global-flow",
-			Goals: []api.StepID{goal.ID},
+			Goals: api.Goals{Steps: []api.StepID{goal.ID}},
 		})
 		assert.Equal(t, http.StatusCreated, w.Code)
 		global, err := env.Engine.GetFlowState("global-flow")
@@ -195,7 +195,7 @@ func TestStartFlowSpace(t *testing.T) {
 
 		w = startSpaceFlow(t, router, api.CreateFlowRequest{
 			ID:      "space-flow",
-			Goals:   []api.StepID{goal.ID},
+			Goals:   api.Goals{Steps: []api.StepID{goal.ID}},
 			SpaceID: "payments",
 		})
 		assert.Equal(t, http.StatusCreated, w.Code)
@@ -218,7 +218,7 @@ func TestStartFlowSpaceExcluded(t *testing.T) {
 
 		w := startSpaceFlow(t, router, api.CreateFlowRequest{
 			ID:      "excluded-flow",
-			Goals:   []api.StepID{goal.ID},
+			Goals:   api.Goals{Steps: []api.StepID{goal.ID}},
 			SpaceID: "payments",
 		})
 
@@ -233,7 +233,7 @@ func TestStartFlowUnknownSpace(t *testing.T) {
 		w := startSpaceFlow(t, env.Server.SetupRoutes(),
 			api.CreateFlowRequest{
 				ID:      "unknown-space",
-				Goals:   []api.StepID{st.ID},
+				Goals:   api.Goals{Steps: []api.StepID{st.ID}},
 				SpaceID: "missing",
 			})
 
@@ -255,7 +255,7 @@ func TestSpaceDynamicPlanning(t *testing.T) {
 
 		w := startSpaceFlow(t, router, api.CreateFlowRequest{
 			ID:      "before-step",
-			Goals:   []api.StepID{goal.ID},
+			Goals:   api.Goals{Steps: []api.StepID{goal.ID}},
 			SpaceID: sp.ID,
 		})
 		assert.Equal(t, http.StatusBadRequest, w.Code)
@@ -263,7 +263,7 @@ func TestSpaceDynamicPlanning(t *testing.T) {
 		assert.NoError(t, env.Engine.RegisterStep(provider))
 		w = startSpaceFlow(t, router, api.CreateFlowRequest{
 			ID:      "after-step",
-			Goals:   []api.StepID{goal.ID},
+			Goals:   api.Goals{Steps: []api.StepID{goal.ID}},
 			SpaceID: sp.ID,
 		})
 		assert.Equal(t, http.StatusCreated, w.Code)
@@ -279,7 +279,7 @@ func TestSpaceDynamicPlanning(t *testing.T) {
 		assert.NoError(t, env.Engine.UpdateSpace(updated))
 		w = startSpaceFlow(t, router, api.CreateFlowRequest{
 			ID:      "after-update",
-			Goals:   []api.StepID{goal.ID},
+			Goals:   api.Goals{Steps: []api.StepID{goal.ID}},
 			SpaceID: sp.ID,
 		})
 		assert.Equal(t, http.StatusBadRequest, w.Code)
@@ -305,7 +305,7 @@ func TestPlanPreviewSpace(t *testing.T) {
 		router := env.Server.SetupRoutes()
 
 		w := previewSpacePlan(t, router, api.ExecutionPlanRequest{
-			Goals:   []api.StepID{steps.goal.ID},
+			Goals:   api.Goals{Steps: []api.StepID{steps.goal.ID}},
 			SpaceID: "payments",
 		})
 		assert.Equal(t, http.StatusOK, w.Code)
@@ -315,7 +315,7 @@ func TestPlanPreviewSpace(t *testing.T) {
 		assert.NotContains(t, scoped.Steps, outside.ID)
 
 		w = previewSpacePlan(t, router, api.ExecutionPlanRequest{
-			Goals: []api.StepID{steps.goal.ID},
+			Goals: api.Goals{Steps: []api.StepID{steps.goal.ID}},
 		})
 		assert.Equal(t, http.StatusOK, w.Code)
 		var global api.ExecutionPlan
@@ -323,7 +323,7 @@ func TestPlanPreviewSpace(t *testing.T) {
 		assert.Contains(t, global.Steps, outside.ID)
 
 		w = previewSpacePlan(t, router, api.ExecutionPlanRequest{
-			Goals:   []api.StepID{steps.goal.ID},
+			Goals:   api.Goals{Steps: []api.StepID{steps.goal.ID}},
 			SpaceID: "missing",
 		})
 		assert.Equal(t, http.StatusNotFound, w.Code)

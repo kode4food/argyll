@@ -26,7 +26,7 @@ func TestMemoizationHit(t *testing.T) {
 		env.MockClient.SetResponse("memo", api.Args{"out": "v1"})
 
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{"memo"},
+			Goals: api.Goals{Steps: []api.StepID{"memo"}},
 			Steps: api.Steps{"memo": s},
 		}
 
@@ -65,7 +65,7 @@ func TestMemoizationMiss(t *testing.T) {
 		assert.NoError(t, env.Engine.RegisterStep(s))
 
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{"memo"},
+			Goals: api.Goals{Steps: []api.StepID{"memo"}},
 			Steps: api.Steps{"memo": s},
 		}
 

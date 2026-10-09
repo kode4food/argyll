@@ -31,7 +31,7 @@ const Node: React.FC<NodeProps> = ({ id, data }) => {
       if (onStepClick) {
         onStepClick(step.id, { additive });
       } else if (!additive) {
-        setGoalSteps([step.id]);
+        setGoalSteps([[step.id]]);
       }
     },
     [onStepClick, setGoalSteps, step.id]

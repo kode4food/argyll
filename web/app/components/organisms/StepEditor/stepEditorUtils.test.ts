@@ -56,7 +56,7 @@ describe("stepEditorUtils", () => {
           output: { mapping: { name: "child_out" } },
         },
       },
-      flow: { goals: ["goal-1"] },
+      flow: { goals: { steps: ["goal-1"] } },
     };
 
     const result = Object.fromEntries(
@@ -251,7 +251,7 @@ describe("stepEditorUtils", () => {
     endpoint: "https://example.com",
     httpMethod: "POST",
     httpTimeout: 5000,
-    flowGoals: "",
+    flowGoals: [],
     handling: "standard",
     compensateEndpoint: "",
   };
@@ -276,14 +276,14 @@ describe("stepEditorUtils", () => {
     ],
     [
       "missing flow goals",
-      { stepType: "flow", flowGoals: " ", endpoint: "", httpTimeout: 0 },
+      { stepType: "flow", flowGoals: [[]], endpoint: "", httpTimeout: 0 },
       { key: "stepEditor.flowGoalsRequired" },
     ],
     [
       "valid flow",
       {
         stepType: "flow",
-        flowGoals: "goal-a, goal-b",
+        flowGoals: [["goal-a", "goal-b"], ["goal-c"]],
         endpoint: "",
         httpTimeout: 0,
       },

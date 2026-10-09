@@ -202,7 +202,7 @@ qlty flags a function at **4 or more parameters** as a smell. Bundle them into a
 // Good
 export interface StartFlowRequest {
   id: string;
-  goalSteps: string[];
+  goalSteps: string[][];
   initialState: Record<string, unknown[]>;
   compensate?: boolean;
 }
@@ -216,7 +216,7 @@ async startFlow(request: StartFlowRequest): Promise<unknown> {
 // can transpose without a type error
 async startFlow(
   id: string,
-  goalSteps: string[],
+  goalSteps: string[][],
   initialState: Record<string, any[]>,
   compensate = false
 ): Promise<any> { ... }

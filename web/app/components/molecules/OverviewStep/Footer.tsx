@@ -1,6 +1,7 @@
 import React, { useMemo } from "react";
-import { Step, HealthStatus, NodeStepHealth } from "@/app/api";
+import { toGoalSets, Step, HealthStatus, NodeStepHealth } from "@/app/api";
 import { getHealthIconClass } from "@/utils/healthUtils";
+import { formatGoals } from "@/utils/goalSets";
 import Tooltip from "@/app/components/atoms/Tooltip";
 import HealthDot from "@/app/components/atoms/HealthDot";
 import TooltipSection from "@/app/components/atoms/TooltipSection";
@@ -70,10 +71,10 @@ const Footer: React.FC<FooterProps> = ({
         text: scriptPreview,
         className: "endpoint-script",
       };
-    } else if (step.type === "flow" && step.flow?.goals?.length) {
+    } else if (step.type === "flow" && step.flow?.goals?.steps.length) {
       displayInfo = {
         icon: TypeIcon,
-        text: step.flow.goals.join(", "),
+        text: formatGoals(toGoalSets(step.flow.goals)),
       };
     } else if (step.http) {
       const method = step.http.invoke?.method || "POST";
@@ -108,10 +109,10 @@ const Footer: React.FC<FooterProps> = ({
           </div>
         </TooltipSection>
       );
-    } else if (step.type === "flow" && step.flow?.goals?.length) {
+    } else if (step.type === "flow" && step.flow?.goals?.steps.length) {
       sections.push(
         <TooltipSection key="goals" title={t("stepFooter.flowGoals")}>
-          {step.flow.goals.join(", ")}
+          {formatGoals(toGoalSets(step.flow.goals))}
         </TooltipSection>
       );
     } else if (step.http) {
