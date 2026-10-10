@@ -1,7 +1,6 @@
 package engine
 
 import (
-	"errors"
 	"log/slog"
 	"time"
 
@@ -11,14 +10,20 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/events"
 	"github.com/kode4food/argyll/engine/pkg/log"
 	"github.com/kode4food/argyll/engine/pkg/policy"
-	"github.com/kode4food/argyll/engine/pkg/step"
 	"github.com/kode4food/argyll/engine/pkg/util"
 )
 
-type compensationWaveWalk struct {
-	pending util.Set[api.StepID]
-	seen    util.Set[api.StepID]
-}
+type (
+	// compRuntime is the Runtime a compensator receives, settling compensation
+	compRuntime struct {
+		*ExecContext
+	}
+
+	compensationWaveWalk struct {
+		pending util.Set[api.StepID]
+		seen    util.Set[api.StepID]
+	}
+)
 
 // CompleteCompensation marks a compensation as successfully completed
 func (e *Engine) CompleteCompensation(fs api.FlowStep, tkn api.Token) error {
@@ -112,8 +117,7 @@ func (tx *flowTx) startPendingCompensations(
 		return nil
 	}
 
-	meta := tx.Value().Metadata
-	toCompensate := map[api.Token]step.CompensateRequest{}
+	toCompensate := map[api.Token]api.Args{}
 
 	for tkn, work := range ex.WorkItems {
 		if !policy.WorkSucceeded(work.Status) {
@@ -122,23 +126,17 @@ func (tx *flowTx) startPendingCompensations(
 		if err := tx.raiseCompStarted(st.ID, tkn); err != nil {
 			return err
 		}
-		toCompensate[tkn] = step.CompensateRequest{
-			Step:     st,
-			Inputs:   ex.Inputs.Apply(work.Inputs),
-			Outputs:  work.Outputs,
-			Metadata: tx.compensateMetadata(meta, st, tkn),
-			FlowID:   tx.flowID,
-			Token:    tkn,
-		}
+		toCompensate[tkn] = compensationArgs(st, ex, work)
 	}
 
 	if len(toCompensate) == 0 {
 		return nil
 	}
 
+	exec := tx.compensationContext(st)
 	tx.OnSuccess(func(_ api.FlowState, _ []*timebox.Event) {
-		for tkn, req := range toCompensate {
-			go tx.performCompensation(tkn, req)
+		for tkn, args := range toCompensate {
+			go exec.performCompensation(args, tkn)
 		}
 	})
 	return nil
@@ -204,55 +202,44 @@ func (tx *flowTx) scheduleCompensationRetry(
 	return tx.failCompensation(sid, tkn, errMsg)
 }
 
-func (tx *flowTx) performCompensation(
-	tkn api.Token, req step.CompensateRequest,
-) {
-	sid := req.Step.ID
-	fs := api.FlowStep{FlowID: tx.flowID, StepID: sid}
-	comp, err := tx.Engine.steps.Compensator(req.Step)
+// CompleteWork records compensation success, so a compensator settles the same
+// way an invocation does
+func (r compRuntime) CompleteWork(tkn api.Token, _ api.Args) error {
+	return r.engine.CompleteCompensation(r.flowStep(), tkn)
+}
+
+func (r compRuntime) notCompleteWork(tkn api.Token, errMsg string) error {
+	return r.engine.NotCompleteCompensation(r.flowStep(), tkn, errMsg)
+}
+
+func (r compRuntime) failWork(tkn api.Token, errMsg string) error {
+	return r.engine.FailCompensation(r.flowStep(), tkn, errMsg)
+}
+
+func (e *ExecContext) performCompensation(args api.Args, tkn api.Token) {
+	comp, err := e.engine.steps.Compensator(e.step)
 	if err != nil {
 		slog.Error("Failed to resolve step compensator",
-			log.StepID(sid),
+			log.StepID(e.stepID),
 			log.Error(err))
 		return
 	}
 	if comp == nil {
 		return
 	}
-
-	completed, err := comp(req)
-	if err == nil {
-		if !completed {
-			return
-		}
-		if recErr := tx.Engine.CompleteCompensation(fs, tkn); recErr != nil {
-			slog.Error("Failed to record compensation success",
-				log.FlowID(tx.flowID),
-				log.StepID(sid),
-				log.Error(recErr))
-		}
-		return
+	rt := compRuntime{e}
+	if err := comp(rt, e.step, args, tkn); err != nil {
+		settleFailure(rt, tkn, err)
 	}
+}
 
-	if errors.Is(err, api.ErrWorkNotCompleted) {
-		if recErr := tx.Engine.NotCompleteCompensation(
-			fs, tkn, err.Error(),
-		); recErr != nil {
-			slog.Error("Failed to record compensation not completed",
-				log.FlowID(tx.flowID),
-				log.StepID(sid),
-				log.Error(recErr))
-		}
-		return
-	}
-
-	if recErr := tx.Engine.FailCompensation(
-		fs, tkn, err.Error(),
-	); recErr != nil {
-		slog.Error("Failed to record compensation failure",
-			log.FlowID(tx.flowID),
-			log.StepID(sid),
-			log.Error(recErr))
+func (tx *flowTx) compensationContext(st *api.Step) *ExecContext {
+	return &ExecContext{
+		engine: tx.Engine,
+		step:   st,
+		meta:   tx.Value().Metadata,
+		flowID: tx.flowID,
+		stepID: st.ID,
 	}
 }
 
@@ -288,17 +275,11 @@ func (tx *flowTx) handleCompensationRetry(sid api.StepID, tkn api.Token) error {
 	if err := tx.raiseCompStarted(sid, tkn); err != nil {
 		return err
 	}
-	req := step.CompensateRequest{
-		Step:     st,
-		Inputs:   ex.Inputs.Apply(work.Inputs),
-		Outputs:  work.Outputs,
-		Metadata: tx.compensateMetadata(fl.Metadata, st, tkn),
-		FlowID:   fl.ID,
-		Token:    tkn,
-	}
+	args := compensationArgs(st, ex, work)
 
+	exec := tx.compensationContext(st)
 	tx.OnSuccess(func(api.FlowState, []*timebox.Event) {
-		go tx.performCompensation(tkn, req)
+		go exec.performCompensation(args, tkn)
 	})
 	return nil
 }
@@ -471,16 +452,6 @@ func (w *compensationWaveWalk) dependentPending(
 	return false
 }
 
-func (tx *flowTx) compensateMetadata(
-	meta api.Metadata, st *api.Step, tkn api.Token,
-) api.Metadata {
-	return meta.Apply(api.Metadata{
-		api.MetaFlowID:       tx.flowID,
-		api.MetaStepID:       st.ID,
-		api.MetaReceiptToken: tkn,
-	})
-}
-
 func flowCompensating(fl api.FlowState) bool {
 	return fl.Compensate && policy.FlowTerminal(fl.Status)
 }
@@ -508,6 +479,29 @@ func compensationActive(fl api.FlowState) bool {
 		}
 	}
 	return false
+}
+
+// compensationArgs selects the compensated attributes, from the inputs or the
+// outputs they belong to, so a compensator never receives the rest
+func compensationArgs(
+	st *api.Step, ex api.ExecutionState, work api.WorkState,
+) api.Args {
+	inputs := ex.Inputs.Apply(work.Inputs)
+	res := api.Args{}
+	for name, attr := range st.Attributes {
+		if attr == nil || !attr.Compensated {
+			continue
+		}
+		mapped, _ := st.MappedName(name)
+		src := inputs
+		if attr.IsOutput() {
+			src = work.Outputs
+		}
+		if v, ok := src[mapped]; ok {
+			res[mapped] = v
+		}
+	}
+	return res
 }
 
 func hasSucceededWork(ex api.ExecutionState) bool {

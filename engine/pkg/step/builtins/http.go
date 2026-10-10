@@ -36,20 +36,24 @@ func validateHTTP(callback CallbackURL) step.ValidateFunc {
 }
 
 func compensateHTTP(client Client, callback CallbackURL) step.CompensateFunc {
-	return func(req step.CompensateRequest) (bool, error) {
-		st := req.Step
-		if callback != nil && st.HTTP.Compensate.Async() {
-			req.Metadata = req.Metadata.Apply(api.Metadata{
-				api.MetaWebhookURL: callback(api.FlowStep{
-					FlowID: req.FlowID,
-					StepID: st.ID,
-				}, req.Token, api.ActionCompensate),
-			})
+	return func(
+		rt step.Runtime, st *api.Step, args api.Args, token api.Token,
+	) error {
+		async := st.HTTP.Compensate.Async()
+		meta := metadata(rt, token)
+		if async && callback != nil {
+			meta[api.MetaWebhookURL] = callback(api.FlowStep{
+				FlowID: rt.FlowID(),
+				StepID: rt.StepID(),
+			}, token, api.ActionCompensate)
 		}
-		if err := client.Compensate(req); err != nil {
-			return false, err
+		if err := client.Compensate(st, args, meta); err != nil {
+			return err
 		}
-		return !st.HTTP.Compensate.Async(), nil
+		if async {
+			return nil
+		}
+		return rt.CompleteWork(token, nil)
 	}
 }
 

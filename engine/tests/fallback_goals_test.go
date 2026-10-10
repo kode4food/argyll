@@ -11,7 +11,6 @@ import (
 	"github.com/kode4food/argyll/engine/internal/assert/helpers"
 	"github.com/kode4food/argyll/engine/internal/assert/wait"
 	"github.com/kode4food/argyll/engine/pkg/api"
-	"github.com/kode4food/argyll/engine/pkg/step"
 )
 
 func TestFallbackGoals(t *testing.T) {
@@ -140,10 +139,10 @@ func TestFallbackGoals(t *testing.T) {
 
 				var mu sync.Mutex
 				var undone []api.StepID
-				record := func(req step.CompensateRequest) error {
+				record := func(s *api.Step, _ api.Args, _ api.Metadata) error {
 					mu.Lock()
 					defer mu.Unlock()
-					undone = append(undone, req.Step.ID)
+					undone = append(undone, s.ID)
 					return nil
 				}
 				env.MockClient.SetCompensate("shared", record)

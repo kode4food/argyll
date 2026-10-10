@@ -16,7 +16,6 @@ import (
 	"github.com/kode4food/argyll/engine/internal/event"
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/plan"
-	"github.com/kode4food/argyll/engine/pkg/step"
 	"github.com/kode4food/argyll/engine/pkg/util"
 )
 
@@ -152,7 +151,7 @@ func TestCompensationDeadlineRetries(t *testing.T) {
 		}
 		assert.NoError(t, env.Engine.RegisterStep(st))
 		env.MockClient.SetCompensate(st.ID,
-			func(step.CompensateRequest) error {
+			func(*api.Step, api.Args, api.Metadata) error {
 				return nil
 			},
 		)

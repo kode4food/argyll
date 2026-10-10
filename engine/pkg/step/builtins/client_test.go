@@ -12,7 +12,6 @@ import (
 
 	"github.com/kode4food/argyll/engine"
 	"github.com/kode4food/argyll/engine/pkg/api"
-	"github.com/kode4food/argyll/engine/pkg/step"
 	"github.com/kode4food/argyll/engine/pkg/step/builtins"
 )
 
@@ -451,19 +450,12 @@ func TestCompensateMethod(t *testing.T) {
 		},
 		Attributes: api.AttributeSpecs{
 			"amount":    {Role: api.RoleRequired, Compensated: true},
-			"secret":    {Role: api.RoleRequired},
 			"charge_id": {Role: api.RoleOutput, Compensated: true},
 		},
 	}
 
-	err := cl.Compensate(
-		step.CompensateRequest{
-			Step:     st,
-			Inputs:   api.Args{"amount": 10, "secret": "private"},
-			Outputs:  api.Args{"charge_id": "ch_1"},
-			Metadata: api.Metadata{},
-		},
-	)
+	args := api.Args{"amount": 10, "charge_id": "ch_1"}
+	err := cl.Compensate(st, args, api.Metadata{})
 	assert.NoError(t, err)
 	assert.Equal(t, "PUT", gotMethod)
 	assert.Equal(t, "/refund/ch_1", gotPath)
@@ -472,46 +464,6 @@ func TestCompensateMethod(t *testing.T) {
 	assert.NoError(t, json.Unmarshal(gotBody, &body))
 	assert.Equal(t, float64(10), body["amount"])
 	assert.Equal(t, "ch_1", body["charge_id"])
-	assert.NotContains(t, body, api.Name("secret"))
-}
-
-func TestCompensateConflict(t *testing.T) {
-	cl := builtins.NewHTTPClient(5 * time.Second)
-	st := &api.Step{
-		ID:       "replace",
-		Handling: api.HandlingCompensated,
-		HTTP: &api.HTTPConfig{
-			Invoke: api.HTTPAction{Endpoint: "http://example.com"},
-			Compensate: &api.HTTPAction{
-				Endpoint: "http://example.com/undo",
-			},
-		},
-		Attributes: api.AttributeSpecs{
-			"request": {
-				Role:        api.RoleRequired,
-				Compensated: true,
-				Required: &api.RequiredConfig{
-					Mapping: &api.MappingConfig{Name: "value"},
-				},
-			},
-			"result": {
-				Role:        api.RoleOutput,
-				Compensated: true,
-				Output: &api.OutputConfig{
-					Mapping: &api.MappingConfig{Name: "value"},
-				},
-			},
-		},
-	}
-
-	err := cl.Compensate(
-		step.CompensateRequest{
-			Step:    st,
-			Inputs:  api.Args{"value": "before"},
-			Outputs: api.Args{"value": "after"},
-		},
-	)
-	assert.ErrorIs(t, err, api.ErrCompensateArgConflict)
 }
 
 func TestInvokeBody(t *testing.T) {
@@ -572,7 +524,7 @@ func TestCompensateBody(t *testing.T) {
 				},
 			}
 
-			err := cl.Compensate(step.CompensateRequest{Step: st})
+			err := cl.Compensate(st, nil, nil)
 			assert.NoError(t, err)
 			assert.Empty(t, gotBody)
 		})
@@ -601,7 +553,7 @@ func TestCompensateTimeout(t *testing.T) {
 		},
 	}
 
-	err := cl.Compensate(step.CompensateRequest{Step: st})
+	err := cl.Compensate(st, nil, nil)
 	assert.Error(t, err)
 }
 
@@ -612,6 +564,6 @@ func TestCompensateMissing(t *testing.T) {
 		HTTP: &api.HTTPConfig{Invoke: api.HTTPAction{Endpoint: "http://x"}},
 	}
 
-	err := cl.Compensate(step.CompensateRequest{Step: st})
+	err := cl.Compensate(st, nil, nil)
 	assert.ErrorIs(t, err, builtins.ErrNoHTTPConfig)
 }

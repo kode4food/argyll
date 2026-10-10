@@ -17,7 +17,6 @@ import (
 	"github.com/kode4food/argyll/engine/internal/engine/scheduler"
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/log"
-	"github.com/kode4food/argyll/engine/pkg/step"
 )
 
 // httpClient invokes step handlers over HTTP
@@ -70,23 +69,19 @@ func (c *httpClient) Invoke(
 }
 
 // Compensate sends selected work attributes to the compensate endpoint
-func (c *httpClient) Compensate(req step.CompensateRequest) error {
-	st := req.Step
+func (c *httpClient) Compensate(
+	st *api.Step, args api.Args, meta api.Metadata,
+) error {
 	if st.HTTP == nil || st.HTTP.Compensate == nil {
 		return fmt.Errorf("%w: %s", ErrNoHTTPConfig, st.ID)
 	}
 
-	args, err := buildCompensationArgs(req)
-	if err != nil {
-		return err
-	}
-
-	_, err = c.sendAction(sendActionArgs{
+	_, err := c.sendAction(sendActionArgs{
 		step:    st,
 		action:  st.HTTP.Compensate,
 		name:    "compensate",
 		args:    args,
-		meta:    req.Metadata,
+		meta:    meta,
 		timeout: st.HTTP.CompensateTimeout(),
 	})
 	return err
@@ -255,31 +250,6 @@ func parseResponse(st *api.Step, respBody []byte) (api.Args, error) {
 	}
 
 	return outputs, nil
-}
-
-func buildCompensationArgs(req step.CompensateRequest) (api.Args, error) {
-	res := api.Args{}
-	for name, attr := range req.Step.Attributes {
-		if attr == nil || !attr.Compensated {
-			continue
-		}
-		mapped, _ := req.Step.MappedName(name)
-		source := req.Inputs
-		if attr.IsOutput() {
-			source = req.Outputs
-		}
-		value, ok := source[mapped]
-		if !ok {
-			continue
-		}
-		if _, ok := res[mapped]; ok {
-			return nil, fmt.Errorf(
-				"%w: %s", api.ErrCompensateArgConflict, mapped,
-			)
-		}
-		res[mapped] = value
-	}
-	return res, nil
 }
 
 func httpError(status int, contentType string, body []byte) error {

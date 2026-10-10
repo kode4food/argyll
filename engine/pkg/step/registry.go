@@ -33,6 +33,10 @@ type (
 	// InvokeFunc runs a step's work item
 	InvokeFunc func(Runtime, *api.Step, api.Args, api.Token) error
 
+	// CompensateFunc reverses a completed work item, receiving only its
+	// compensated attributes. It settles the way an InvokeFunc does
+	CompensateFunc func(Runtime, *api.Step, api.Args, api.Token) error
+
 	// Runtime exposes engine services available during work execution
 	Runtime interface {
 		FlowID() api.FlowID
@@ -47,20 +51,6 @@ type (
 
 	// ChildrenFunc reports the goal sets a step expands into
 	ChildrenFunc func(*api.Step) *api.Goals
-
-	// CompensateFunc reverses a completed work item. True reports completion;
-	// false with no error leaves it awaiting an asynchronous callback
-	CompensateFunc func(CompensateRequest) (bool, error)
-
-	// CompensateRequest carries the work item being reversed
-	CompensateRequest struct {
-		Step     *api.Step
-		Inputs   api.Args
-		Outputs  api.Args
-		Metadata api.Metadata
-		FlowID   api.FlowID
-		Token    api.Token
-	}
 )
 
 var (

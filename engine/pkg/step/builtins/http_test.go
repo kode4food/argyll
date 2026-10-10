@@ -104,15 +104,14 @@ func TestHTTPCompensatorInvokes(t *testing.T) {
 	comp, err := reg.Compensator(st)
 	assert.NoError(t, err)
 	assert.NotNil(t, comp)
-	completed, err := comp(step.CompensateRequest{
-		Step:     st,
-		Inputs:   api.Args{"in": "v"},
-		Outputs:  api.Args{"out": "v"},
-		Metadata: api.Metadata{},
-	})
+	rt, _ := newRuntime("flow", "step", api.Metadata{})
+	err = comp(rt, st, api.Args{"out": "v"}, "token")
 	assert.NoError(t, err)
 	assert.Equal(t, 1, cl.compens)
-	assert.True(t, completed)
+	assert.Equal(t, api.Args{"out": "v"}, cl.inputs)
+	assert.Equal(t, api.Token("token"), cl.meta[api.MetaReceiptToken])
+	assert.Equal(t, 1, rt.completeCalls)
+	assert.Equal(t, api.Token("token"), rt.completeToken)
 }
 
 func TestCompensatorEndpoint(t *testing.T) {
@@ -141,22 +140,18 @@ func TestCompensationCallback(t *testing.T) {
 	}
 	h := builtins.HTTP(cl, callback)
 	meta := api.Metadata{api.MetaFlowID: fs.FlowID}
-	completed, err := h.Compensate(step.CompensateRequest{
-		Step: &api.Step{
-			ID: fs.StepID,
-			HTTP: &api.HTTPConfig{
-				Compensate: &api.HTTPAction{
-					Endpoint: "https://step.test/undo",
-					Mode:     api.ActionModeAsync,
-				},
+	rt, _ := newRuntime(fs.FlowID, fs.StepID, meta)
+	err := h.Compensate(rt, &api.Step{
+		ID: fs.StepID,
+		HTTP: &api.HTTPConfig{
+			Compensate: &api.HTTPAction{
+				Endpoint: "https://step.test/undo",
+				Mode:     api.ActionModeAsync,
 			},
 		},
-		FlowID:   fs.FlowID,
-		Token:    token,
-		Metadata: meta,
-	})
+	}, nil, token)
 	assert.NoError(t, err)
-	assert.False(t, completed)
+	assert.Zero(t, rt.completeCalls)
 	assert.Equal(t, "https://host.test/custom/undo",
 		cl.meta[api.MetaWebhookURL])
 	assert.NotContains(t, meta, api.MetaWebhookURL)

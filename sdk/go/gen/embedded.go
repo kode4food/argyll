@@ -37,18 +37,23 @@ func EmbeddedSync[I, O any](
 func EmbeddedCompensate[I any](
 	in convert.Converter[I], fn func(I) error,
 ) step.CompensateFunc {
-	return func(req step.CompensateRequest) (bool, error) {
-		args, err := in.From(compensationArgs(req))
+	return func(
+		rt step.Runtime, _ *api.Step, args api.Args, tkn api.Token,
+	) error {
+		typed, err := in.From(membersOf(args))
 		if err != nil {
-			return false, errors.Join(ErrInvalidInputs, err)
+			return errors.Join(ErrInvalidInputs, err)
 		}
 		_, err = invoke(
 			func(in I) (struct{}, error) {
 				return struct{}{}, fn(in)
 			},
-			args,
+			typed,
 		)
-		return err == nil, err
+		if err != nil {
+			return err
+		}
+		return rt.CompleteWork(tkn, nil)
 	}
 }
 
@@ -62,10 +67,7 @@ func embeddedArgs(
 		api.MetaStepID:       rt.StepID(),
 		api.MetaReceiptToken: tkn,
 	})
-	res := make(map[string]any, len(inputs))
-	for name, v := range inputs {
-		res[string(name)] = v
-	}
+	res := membersOf(inputs)
 	for name, attr := range st.Attributes {
 		if !attr.IsMeta() {
 			continue
@@ -78,22 +80,10 @@ func embeddedArgs(
 	return res
 }
 
-// compensationArgs selects the compensated attributes, from the inputs or the
-// outputs they belong to, that a compensation request carries
-func compensationArgs(req step.CompensateRequest) map[string]any {
-	res := map[string]any{}
-	for name, attr := range req.Step.Attributes {
-		if attr == nil || !attr.Compensated {
-			continue
-		}
-		mapped, _ := req.Step.MappedName(name)
-		src := req.Inputs
-		if attr.IsOutput() {
-			src = req.Outputs
-		}
-		if v, ok := src[mapped]; ok {
-			res[string(mapped)] = v
-		}
+func membersOf(args api.Args) map[string]any {
+	res := make(map[string]any, len(args))
+	for name, v := range args {
+		res[string(name)] = v
 	}
 	return res
 }

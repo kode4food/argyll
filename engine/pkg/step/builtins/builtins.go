@@ -10,7 +10,7 @@ type (
 	// Client invokes HTTP-backed steps
 	Client interface {
 		Invoke(*api.Step, api.Args, api.Metadata) (api.Args, error)
-		Compensate(step.CompensateRequest) error
+		Compensate(*api.Step, api.Args, api.Metadata) error
 	}
 
 	// CallbackURL returns the callback endpoint for asynchronous HTTP work

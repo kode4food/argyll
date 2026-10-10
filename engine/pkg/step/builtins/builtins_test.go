@@ -130,9 +130,12 @@ func (c *testClient) Invoke(
 	return c.outputs, nil
 }
 
-func (c *testClient) Compensate(req step.CompensateRequest) error {
+func (c *testClient) Compensate(
+	_ *api.Step, args api.Args, meta api.Metadata,
+) error {
 	c.compens++
-	c.meta = req.Metadata
+	c.inputs = args
+	c.meta = meta
 	return c.err
 }
 

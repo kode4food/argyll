@@ -26,9 +26,19 @@ type (
 
 	// MultiArgs maps attribute names to value arrays for parallel execution
 	MultiArgs map[api.Name][]any
-)
 
-var _ step.Runtime = (*ExecContext)(nil)
+	// workSettler records how dispatched work or its compensation ended
+	workSettler interface {
+		step.Runtime
+		notCompleteWork(api.Token, string) error
+		failWork(api.Token, string) error
+	}
+
+	// workRuntime is the Runtime an invocation receives, settling work items
+	workRuntime struct {
+		*ExecContext
+	}
+)
 
 var (
 	ErrStepAlreadyPending     = errors.New("step not pending")
@@ -51,13 +61,20 @@ func (e *ExecContext) Metadata() api.Metadata {
 	return e.meta
 }
 
-func (e *ExecContext) CompleteWork(tkn api.Token, outputs api.Args) error {
-	fs := api.FlowStep{FlowID: e.flowID, StepID: e.stepID}
-	return e.engine.CompleteWork(fs, tkn, outputs)
-}
-
 func (e *ExecContext) UpdateHealth(s api.HealthStatus, msg string) error {
 	return e.engine.UpdateStepHealth(e.stepID, s, msg)
+}
+
+func (r workRuntime) CompleteWork(tkn api.Token, outputs api.Args) error {
+	return r.engine.CompleteWork(r.flowStep(), tkn, outputs)
+}
+
+func (r workRuntime) notCompleteWork(tkn api.Token, errMsg string) error {
+	return r.engine.NotCompleteWork(r.flowStep(), tkn, errMsg)
+}
+
+func (r workRuntime) failWork(tkn api.Token, errMsg string) error {
+	return r.engine.FailWork(r.flowStep(), tkn, errMsg)
 }
 
 func (tx *flowTx) executeStartedWork(
@@ -87,35 +104,12 @@ func (e *ExecContext) executeWorkItems(items api.WorkItems) {
 func (e *ExecContext) performWorkItem(tkn api.Token, work api.WorkState) {
 	inputs := e.inputs.Apply(work.Inputs)
 	if err := e.performWork(inputs, tkn); err != nil {
-		e.handleWorkItemFailure(tkn, err)
+		settleFailure(workRuntime{e}, tkn, err)
 	}
 }
 
-func (e *ExecContext) handleWorkItemFailure(tkn api.Token, err error) {
-	fs := api.FlowStep{FlowID: e.flowID, StepID: e.stepID}
-
-	if errors.Is(err, api.ErrInvalidWorkTransition) {
-		return
-	}
-
-	if errors.Is(err, api.ErrWorkNotCompleted) {
-		recErr := e.engine.NotCompleteWork(fs, tkn, err.Error())
-		if recErr != nil {
-			slog.Error("Failed to record work not completed",
-				log.FlowID(e.flowID),
-				log.StepID(e.stepID),
-				log.Error(recErr))
-		}
-		return
-	}
-
-	recErr := e.engine.FailWork(fs, tkn, err.Error())
-	if recErr != nil {
-		slog.Error("Failed to record work failure",
-			log.FlowID(e.flowID),
-			log.StepID(e.stepID),
-			log.Error(recErr))
-	}
+func (e *ExecContext) flowStep() api.FlowStep {
+	return api.FlowStep{FlowID: e.flowID, StepID: e.stepID}
 }
 
 func (e *ExecContext) performWork(inputs api.Args, tkn api.Token) error {
@@ -123,7 +117,7 @@ func (e *ExecContext) performWork(inputs api.Args, tkn api.Token) error {
 	if err != nil {
 		return errors.Join(ErrUnsupportedStepType, err)
 	}
-	return handler.Invoke(e, e.step, inputs, tkn)
+	return handler.Invoke(workRuntime{e}, e.step, inputs, tkn)
 }
 
 func (tx *flowTx) startPendingWork(st *api.Step) (api.WorkItems, error) {
@@ -302,4 +296,29 @@ func (tx *flowTx) raiseWorkStarted(
 		return tx.startChildFlow(sid, tkn, inputs)
 	}
 	return nil
+}
+
+// settleFailure records a handler error as a retry when the handler reports the
+// work not completed, and as a permanent failure otherwise
+func settleFailure(s workSettler, tkn api.Token, err error) {
+	if errors.Is(err, api.ErrInvalidWorkTransition) {
+		return
+	}
+
+	if errors.Is(err, api.ErrWorkNotCompleted) {
+		if recErr := s.notCompleteWork(tkn, err.Error()); recErr != nil {
+			slog.Error("Failed to record work not completed",
+				log.FlowID(s.FlowID()),
+				log.StepID(s.StepID()),
+				log.Error(recErr))
+		}
+		return
+	}
+
+	if recErr := s.failWork(tkn, err.Error()); recErr != nil {
+		slog.Error("Failed to record work failure",
+			log.FlowID(s.FlowID()),
+			log.StepID(s.StepID()),
+			log.Error(recErr))
+	}
 }

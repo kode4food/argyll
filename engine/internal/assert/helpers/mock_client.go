@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/kode4food/argyll/engine/pkg/api"
-	"github.com/kode4food/argyll/engine/pkg/step"
 )
 
 type (
@@ -29,7 +28,7 @@ type (
 	}
 
 	MockInvoke     func(*api.Step, api.Args, api.Metadata) (api.Args, error)
-	MockCompensate func(step.CompensateRequest) error
+	MockCompensate func(*api.Step, api.Args, api.Metadata) error
 )
 
 // NewMockClient creates a mock HTTP client that allows setting responses and
@@ -73,15 +72,17 @@ func (c *MockClient) Invoke(
 }
 
 // Compensate records the compensate invocation and returns any configured error
-func (c *MockClient) Compensate(req step.CompensateRequest) error {
+func (c *MockClient) Compensate(
+	st *api.Step, args api.Args, md api.Metadata,
+) error {
 	c.mu.Lock()
-	s := c.stepLocked(req.Step.ID)
+	s := c.stepLocked(st.ID)
 	compensate := s.compensate
 	err := s.compErr
 	c.mu.Unlock()
 
 	if compensate != nil {
-		return compensate(req)
+		return compensate(st, args, md)
 	}
 	return err
 }

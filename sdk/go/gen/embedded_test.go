@@ -105,45 +105,26 @@ func TestEmbeddedCompensate(t *testing.T) {
 			got = in
 			return nil
 		})
-	st := &api.Step{
-		Attributes: api.AttributeSpecs{
-			"left":  {Role: api.RoleRequired, Compensated: true},
-			"right": {Role: api.RoleRequired},
-			"total": {Role: api.RoleOutput, Compensated: true},
-		},
-	}
-
-	done, err := comp(step.CompensateRequest{
-		Step:    st,
-		Inputs:  api.Args{"left": 2.0, "right": 3.0},
-		Outputs: api.Args{"total": 5.0},
-	})
-	assert.NoError(t, err)
-	assert.True(t, done)
+	rt := &testRuntime{}
+	args := api.Args{"left": 2.0, "total": 5.0}
+	assert.NoError(t, comp(rt, &api.Step{}, args, "tkn"))
+	assert.Equal(t, api.Token("tkn"), rt.token)
 	assert.Equal(t, compArgs{Left: 2, Total: 5}, got)
 }
 
 func TestEmbeddedCompensateErrors(t *testing.T) {
-	st := &api.Step{
-		Attributes: api.AttributeSpecs{
-			"left": {Role: api.RoleRequired, Compensated: true},
-		},
-	}
-
 	comp := gen.EmbeddedCompensate(compArgsConverter(),
 		func(compArgs) error {
 			return errRefused
 		})
-	done, err := comp(step.CompensateRequest{Step: st})
+	rt := &testRuntime{}
+	err := comp(rt, &api.Step{}, api.Args{}, "tkn")
 	assert.ErrorIs(t, err, errRefused)
-	assert.False(t, done)
+	assert.Empty(t, rt.token)
 
-	done, err = comp(step.CompensateRequest{
-		Step:   st,
-		Inputs: api.Args{"left": "x"},
-	})
+	err = comp(rt, &api.Step{}, api.Args{"left": "x"}, "tkn")
 	assert.ErrorIs(t, err, gen.ErrInvalidInputs)
-	assert.False(t, done)
+	assert.Empty(t, rt.token)
 }
 
 func (r *testRuntime) FlowID() api.FlowID {

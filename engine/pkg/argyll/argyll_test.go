@@ -16,6 +16,12 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/step/builtins"
 )
 
+type compensateCall struct {
+	flowStep api.FlowStep
+	args     api.Args
+	token    api.Token
+}
+
 const (
 	localStepType api.StepType = "local"
 
@@ -155,7 +161,7 @@ func TestLocalCompensation(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			requests := make(chan step.CompensateRequest, 1)
+			calls := make(chan compensateCall, 1)
 			var attempts atomic.Int32
 			eng := newTestEngine(t, argyll.Options{
 				Handlers: step.Handlers{
@@ -169,16 +175,29 @@ func TestLocalCompensation(t *testing.T) {
 							}
 							return rt.CompleteWork(token, api.Args{
 								"value": "done",
+								"extra": "withheld",
 							})
 						},
 						Compensate: func(
-							req step.CompensateRequest,
-						) (bool, error) {
+							rt step.Runtime, st *api.Step,
+							args api.Args, token api.Token,
+						) error {
 							if attempts.Add(1) == 1 && test.retry {
-								return false, api.ErrWorkNotCompleted
+								return api.ErrWorkNotCompleted
 							}
-							requests <- req
-							return !test.async, nil
+							assert.Nil(t, st.HTTP)
+							calls <- compensateCall{
+								flowStep: api.FlowStep{
+									FlowID: rt.FlowID(),
+									StepID: rt.StepID(),
+								},
+								args:  args,
+								token: token,
+							}
+							if test.async {
+								return nil
+							}
+							return rt.CompleteWork(token, nil)
 						},
 					},
 				},
@@ -191,6 +210,7 @@ func TestLocalCompensation(t *testing.T) {
 				Handling: api.HandlingCompensated,
 				Attributes: api.AttributeSpecs{
 					"value": {Role: api.RoleOutput, Compensated: true},
+					"extra": {Role: api.RoleOutput},
 				},
 			}))
 			assert.NoError(t, eng.RegisterStep(&api.Step{
@@ -206,30 +226,29 @@ func TestLocalCompensation(t *testing.T) {
 				Goals:      api.Goals{Steps: []api.StepID{"fail"}},
 				Compensate: true,
 			}))
-			var req step.CompensateRequest
+			var call compensateCall
 			select {
-			case req = <-requests:
+			case call = <-calls:
 			case <-time.After(compensationWait):
 				t.Fatal("compensation was never executed")
 			}
-			assert.Equal(t, api.FlowID("rollback"), req.FlowID)
-			assert.Equal(t, api.Args{"value": "done"}, req.Outputs)
-			assert.Nil(t, req.Step.HTTP)
-			assert.Equal(t, req.Token, req.Metadata[api.MetaReceiptToken])
+			fs := call.flowStep
+			assert.Equal(t, api.FlowStep{
+				FlowID: "rollback",
+				StepID: "local",
+			}, fs)
+			assert.Equal(t, api.Args{"value": "done"}, call.args)
 			if test.async {
-				fl, err := eng.GetFlowState(req.FlowID)
+				fl, err := eng.GetFlowState(fs.FlowID)
 				assert.NoError(t, err)
 				assert.Equal(t, api.WorkCompensating,
-					fl.Executions[req.Step.ID].WorkItems[req.Token].Status)
-				assert.NoError(t, eng.CompleteCompensation(api.FlowStep{
-					FlowID: req.FlowID,
-					StepID: req.Step.ID,
-				}, req.Token))
+					fl.Executions[fs.StepID].WorkItems[call.token].Status)
+				assert.NoError(t, eng.CompleteCompensation(fs, call.token))
 			}
 			assert.Eventually(t, func() bool {
-				fl, err := eng.GetFlowState(req.FlowID)
+				fl, err := eng.GetFlowState(fs.FlowID)
 				return err == nil &&
-					fl.Executions[req.Step.ID].WorkItems[req.Token].Status ==
+					fl.Executions[fs.StepID].WorkItems[call.token].Status ==
 						api.WorkCompensated
 			}, compensationWait, compensationPoll)
 			if test.retry {

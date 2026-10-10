@@ -13,7 +13,6 @@ import (
 	"github.com/kode4food/argyll/engine/internal/event"
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/flow"
-	"github.com/kode4food/argyll/engine/pkg/step"
 	"github.com/kode4food/argyll/engine/pkg/util"
 )
 
@@ -51,8 +50,8 @@ func TestCompensationSucceeds(t *testing.T) {
 		tkn := api.Token("work-a")
 		invoked := make(chan api.Metadata, 1)
 		env.MockClient.SetCompensate(st.ID,
-			func(req step.CompensateRequest) error {
-				invoked <- req.Metadata
+			func(_ *api.Step, _ api.Args, md api.Metadata) error {
+				invoked <- md
 				return nil
 			})
 
@@ -101,8 +100,8 @@ func TestCompensationAsyncAwaitsCallback(t *testing.T) {
 
 		invoked := make(chan api.Metadata, 1)
 		env.MockClient.SetCompensate(st.ID,
-			func(req step.CompensateRequest) error {
-				invoked <- req.Metadata
+			func(_ *api.Step, _ api.Args, md api.Metadata) error {
+				invoked <- md
 				return nil
 			})
 
@@ -196,7 +195,7 @@ func TestCompRetryOnTransient(t *testing.T) {
 
 		compCount := 0
 		env.MockClient.SetCompensate(st.ID,
-			func(step.CompensateRequest) error {
+			func(*api.Step, api.Args, api.Metadata) error {
 				compCount++
 				if compCount < 2 {
 					return api.ErrWorkNotCompleted
@@ -286,7 +285,7 @@ func TestActiveCompensationDoesNotRestart(t *testing.T) {
 		assert.NoError(t, env.Engine.RegisterStep(st))
 		invoked := make(chan struct{}, 1)
 		env.MockClient.SetCompensate(st.ID,
-			func(step.CompensateRequest) error {
+			func(*api.Step, api.Args, api.Metadata) error {
 				invoked <- struct{}{}
 				return nil
 			},
@@ -387,7 +386,7 @@ func TestCompRetryRunsOnHealthyPeer(t *testing.T) {
 
 		st := newCompensatingStep("comp-deferred-step")
 		env.MockClient.SetCompensate(st.ID,
-			func(step.CompensateRequest) error {
+			func(*api.Step, api.Args, api.Metadata) error {
 				return nil
 			},
 		)
@@ -580,7 +579,7 @@ func TestCompRetryDeferredUntilPeerRecovers(t *testing.T) {
 		st := newCompensatingStep("comp-deferred-recovery-step")
 		compensated := make(chan struct{}, 1)
 		env.MockClient.SetCompensate(st.ID,
-			func(step.CompensateRequest) error {
+			func(*api.Step, api.Args, api.Metadata) error {
 				compensated <- struct{}{}
 				return nil
 			},
@@ -635,7 +634,7 @@ func TestLateCompCallbackSettlesPending(t *testing.T) {
 		assert.NoError(t, env.Engine.RegisterStep(st))
 		invoked := make(chan struct{}, 1)
 		env.MockClient.SetCompensate(st.ID,
-			func(step.CompensateRequest) error {
+			func(*api.Step, api.Args, api.Metadata) error {
 				invoked <- struct{}{}
 				return nil
 			},
@@ -687,7 +686,7 @@ func TestLateCompFailureSettlesPending(t *testing.T) {
 		assert.NoError(t, env.Engine.RegisterStep(st))
 		invoked := make(chan struct{}, 1)
 		env.MockClient.SetCompensate(st.ID,
-			func(step.CompensateRequest) error {
+			func(*api.Step, api.Args, api.Metadata) error {
 				invoked <- struct{}{}
 				return nil
 			},
@@ -746,7 +745,7 @@ func TestCompDispatchRecovery(t *testing.T) {
 
 		compCount := 0
 		env.MockClient.SetCompensate(st.ID,
-			func(step.CompensateRequest) error {
+			func(*api.Step, api.Args, api.Metadata) error {
 				compCount++
 				return nil
 			},
@@ -870,10 +869,10 @@ func TestFlowCompensation(t *testing.T) {
 
 			var mu sync.Mutex
 			var order []api.StepID
-			record := func(req step.CompensateRequest) error {
+			record := func(s *api.Step, _ api.Args, _ api.Metadata) error {
 				mu.Lock()
 				defer mu.Unlock()
-				order = append(order, req.Step.ID)
+				order = append(order, s.ID)
 				return nil
 			}
 			env.MockClient.SetCompensate(first.ID, record)
@@ -939,7 +938,7 @@ func TestFlowCompensation(t *testing.T) {
 			// Each blocks until the other arrives; serialized never settles
 			var wg sync.WaitGroup
 			wg.Add(2)
-			together := func(step.CompensateRequest) error {
+			together := func(*api.Step, api.Args, api.Metadata) error {
 				wg.Done()
 				wg.Wait()
 				return nil
