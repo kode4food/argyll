@@ -12,7 +12,6 @@ require (
 	github.com/kode4food/lru v0.0.0-20260821124822-50bd9a308b71
 	github.com/kode4food/timebox v0.3.1-0.20261009161103-4e90098c4a63
 	github.com/stretchr/testify v1.12.1
-	golang.org/x/tools v0.51.0
 )
 
 require (
@@ -64,6 +63,13 @@ require (
 	golang.org/x/sys v0.48.0 // indirect
 	golang.org/x/telemetry v0.0.0-20260924152758-ed294f943157 // indirect
 	golang.org/x/text v0.42.0 // indirect
+	golang.org/x/tools v0.51.0 // indirect
 	google.golang.org/protobuf v1.36.12 // indirect
 	honnef.co/go/tools v0.8.1 // indirect
+)
+
+tool (
+	golang.org/x/tools/cmd/goimports
+	golang.org/x/tools/cmd/stringer
+	honnef.co/go/tools/cmd/staticcheck
 )

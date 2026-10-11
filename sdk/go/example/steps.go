@@ -59,7 +59,7 @@ type (
 	}
 )
 
-//go:generate go run ../gen/cmd/argyll-gen .
+//go:generate go tool argyll-gen .
 
 var ErrAmountNegative = errors.New("amount must not be negative")
 

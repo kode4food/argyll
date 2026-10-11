@@ -40,7 +40,7 @@ type (
 
 var inv = newInventory()
 
-//go:generate go run github.com/kode4food/argyll/sdk/go/gen/cmd/argyll-gen -server .
+//go:generate go tool argyll-gen -server .
 
 func newInventory() *inventory {
 	return &inventory{

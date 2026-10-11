@@ -23,3 +23,9 @@ require (
 	golang.org/x/telemetry v0.0.0-20260924152758-ed294f943157 // indirect
 	honnef.co/go/tools v0.8.1 // indirect
 )
+
+tool (
+	github.com/kode4food/argyll/sdk/go/gen/cmd/argyll-gen
+	golang.org/x/tools/cmd/goimports
+	honnef.co/go/tools/cmd/staticcheck
+)

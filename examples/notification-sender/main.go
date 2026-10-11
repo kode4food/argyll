@@ -40,7 +40,7 @@ type (
 	}
 )
 
-//go:generate go run github.com/kode4food/argyll/sdk/go/gen/cmd/argyll-gen -server .
+//go:generate go tool argyll-gen -server .
 
 //argyll:step
 //argyll:labels description: send order confirmation notifications
