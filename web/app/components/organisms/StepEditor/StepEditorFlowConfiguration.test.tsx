@@ -185,10 +185,8 @@ describe("StepEditorFlowConfiguration", () => {
       />
     );
 
-    expect(screen.getByText(t("goals.fallbackTo"))).toBeVisible();
-    expect(screen.getByText(t("goals.fallbackTo"))).not.toHaveAttribute(
-      "title"
-    );
+    expect(screen.getByText(t("goals.or"))).toBeVisible();
+    expect(screen.getByText(t("goals.or"))).not.toHaveAttribute("title");
     expect(lineSuggestions(0)).toEqual(["eligibility-checker"]);
     expect(lineSuggestions(1)).toEqual([
       "notification-sender",
@@ -227,8 +225,8 @@ describe("StepEditorFlowConfiguration", () => {
     );
 
     expect(
-      screen.getAllByTestId("flow-goal-line")[0].parentElement
-    ).toContainElement(screen.getByText(t("goals.fallbackTo")));
+      screen.getAllByTestId("flow-goal-line")[0].parentElement?.parentElement
+    ).toContainElement(screen.getByText(t("goals.or")));
     mockApplyFlowGoalSelectionChange.mockClear();
     fireEvent.click(
       screen.getAllByRole("button", { name: t("goals.removeSet") })[0]

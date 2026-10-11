@@ -1,14 +1,12 @@
 import React from "react";
 import { GoalSets, Step } from "@/app/api";
 import {
-  getStepActionIcon,
   IconAddStep,
   IconClose,
   IconFlowGoals,
   IconGoalFallback,
   IconStepTypeFlow,
 } from "@/utils/iconRegistry";
-import { getStepType } from "@/utils/stepUtils";
 import StepTypeLabel from "@/app/components/atoms/StepTypeLabel";
 import useArrowFocus from "@/app/hooks/useArrowFocus";
 import { useT } from "@/app/i18n";
@@ -118,41 +116,42 @@ const FlowGoalsSection: React.FC<FlowGoalsSectionProps> = ({
           )}
         </div>
       </div>
-      {committedSets.map((set, idx) => (
-        <div key={idx} className={styles.goalSetPanel}>
-          <div className={styles.goalSetSummary} data-testid="goal-set-summary">
-            {set.map((id) => {
-              const step = sortedSteps.find((s) => s.id === id);
-              const TypeIcon = step ? getStepActionIcon(step) : null;
-              return (
-                <span key={id} className={styles.goalPill}>
-                  {TypeIcon && step && (
-                    <TypeIcon
-                      className={`step-type-icon ${getStepType(step)}`}
-                    />
-                  )}
-                  {id}
-                </span>
-              );
-            })}
-            <button
-              type="button"
-              className={styles.goalSetRemove}
-              aria-label={t("goals.removeSet")}
-              title={t("goals.removeSet")}
-              onClick={() =>
-                void onGoalStepsChange(goalSteps.filter((_, i) => i !== idx))
-              }
-            >
-              <IconClose aria-hidden="true" />
-            </button>
-          </div>
-          <div className={styles.orDivider}>
-            {t("goals.fallbackTo")}
-            <IconGoalFallback size={16} aria-hidden="true" />
-          </div>
+      {committedSets.length > 0 && (
+        <div className={styles.goalSetPanel}>
+          {committedSets.map((set, idx) => (
+            <React.Fragment key={idx}>
+              <div
+                className={styles.goalSetSummary}
+                data-testid="goal-set-summary"
+              >
+                {set.map((id) => {
+                  const step = sortedSteps.find((s) => s.id === id);
+                  return (
+                    <span key={id} className={styles.goalPill}>
+                      {step && <StepTypeLabel step={step} />}
+                      {id}
+                    </span>
+                  );
+                })}
+                <button
+                  type="button"
+                  className={styles.goalSetRemove}
+                  aria-label={t("goals.removeSet")}
+                  title={t("goals.removeSet")}
+                  onClick={() =>
+                    void onGoalStepsChange(
+                      goalSteps.filter((_, i) => i !== idx)
+                    )
+                  }
+                >
+                  <IconClose aria-hidden="true" />
+                </button>
+              </div>
+              <span className={styles.orDivider}>{t("goals.or")}</span>
+            </React.Fragment>
+          ))}
         </div>
-      ))}
+      )}
       <div className={styles.goalListShell}>
         <div
           ref={sidebarListRef}

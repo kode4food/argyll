@@ -175,17 +175,15 @@
 }
 
 .goalSetPanel {
-  composes: flowGoalSet from "../StepEditor/StepEditorControls.module.css";
+  composes: flowGoalSets from "../StepEditor/StepEditorControls.module.css";
 }
 
 .goalSetSummary {
-  composes: flowGoalList from "../StepEditor/StepEditorControls.module.css";
-  align-items: center;
-  padding-right: var(--spacing-lg);
+  composes: flowGoalGroup from "../StepEditor/StepEditorControls.module.css";
 }
 
 .goalPill {
-  composes: flowGoalTag flowGoalChipSelected from "../StepEditor/StepEditorControls.module.css";
+  composes: flowGoalLabel from "../StepEditor/StepEditorControls.module.css";
 }
 
 .goalSetRemove {

@@ -106,6 +106,24 @@ describe("ComboInput", () => {
     expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
   });
 
+  test("typing opens the list filtered to matching suggestions", () => {
+    const { rerender } = render(
+      <ComboInput value="" suggestions={suggestions} onChange={onChange} />
+    );
+    fireEvent.change(screen.getByRole("textbox"), {
+      target: { value: "MA" },
+    });
+    rerender(
+      <ComboInput value="MA" suggestions={suggestions} onChange={onChange} />
+    );
+
+    expect(
+      screen.getAllByRole("option").map((option) => option.textContent)
+    ).toEqual(["gamma"]);
+    fireEvent.keyDown(screen.getByRole("textbox"), { key: "Enter" });
+    expect(onChange).toHaveBeenLastCalledWith("gamma");
+  });
+
   test("accepts arbitrary text that matches no suggestion", () => {
     render(
       <ComboInput

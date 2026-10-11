@@ -1,7 +1,7 @@
 .flowGoalList {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--spacing-xs);
+  gap: var(--spacing-md);
 }
 
 .flowGoalTag {
@@ -29,32 +29,12 @@
   --control-focus-border: var(--color-info);
 }
 
-.flowGoalTag :global(.step-type-icon) {
-  /* same box as the form's label icons */
-  height: 1rem;
-  width: 1rem;
-  flex-shrink: 0;
-  --step-icon-color: color-mix(in srgb, var(--step-kind) 30%, white);
-}
-
-.flowGoalChipSelected {
-  --control-hover-bg: var(--color-info-light);
-  --control-hover-border: var(--color-info-light);
-  --control-focus-bg: var(--color-info-light);
-  --control-focus-border: var(--color-info-light);
-  background-color: var(--color-info);
-  border-color: var(--color-info);
-  color: var(--color-white);
-}
-
-.flowGoalChipIncluded {
-  --control-hover-bg: color-mix(in srgb, var(--color-info) 55%, transparent);
-  --control-hover-border: var(--color-info);
-  --control-focus-bg: color-mix(in srgb, var(--color-info) 55%, transparent);
-  --control-focus-border: var(--color-info);
-  border-color: var(--color-info);
-  background-color: color-mix(in srgb, var(--color-info) 55%, transparent);
-  color: var(--color-white);
+.flowGoalLabel {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  color: var(--panel-text);
+  font-size: var(--text-xs);
 }
 
 .flowGoalRemove {
@@ -71,10 +51,28 @@
   height: var(--text-xs);
 }
 
-.flowGoalSet {
-  composes: section from "@/app/styles/components/form.module.css";
+.flowGoalSets {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-md);
+  border: 1px solid var(--color-dark-border);
+  border-radius: var(--radius-lg);
+}
+
+.flowGoalGroup {
   position: relative;
-  background-color: transparent;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-md);
+  min-width: 0;
+  /* right side clears the absolute remove button */
+  padding: var(--spacing-xs) calc(var(--spacing-xs) * 2 + var(--text-xs))
+    var(--spacing-xs) var(--spacing-xs);
+  border: 1px solid var(--color-dark-border);
+  border-radius: var(--radius-md);
 }
 
 .flowGoalSetRemove {
@@ -86,17 +84,8 @@
 }
 
 .flowGoalFallback {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: var(--spacing-xs);
   color: var(--panel-text-muted);
   font-size: var(--text-xs);
-}
-
-.flowGoalChipDisabled {
-  opacity: 0.55;
-  cursor: not-allowed;
 }
 
 .httpFields {

@@ -20,7 +20,13 @@ const ComboInput: React.FC<ComboInputProps> = ({
   suggestions,
   value,
 }) => {
-  const options = suggestions.map((s) => ({ value: s }));
+  // Typing narrows the list, while the trigger and arrow keys show all of it
+  const [isFiltering, setIsFiltering] = React.useState(false);
+  const needle = value.toLowerCase();
+  const shown = isFiltering
+    ? suggestions.filter((s) => s.toLowerCase().includes(needle))
+    : suggestions;
+  const options = shown.map((s) => ({ value: s }));
   const {
     open,
     setOpen,
@@ -29,6 +35,17 @@ const ComboInput: React.FC<ComboInputProps> = ({
     wrapperRef,
     handleKeyDown,
   } = useDropdown(options, value, onChange);
+
+  React.useEffect(() => {
+    if (!open) setIsFiltering(false);
+  }, [open]);
+
+  const handleInputChange = (next: string) => {
+    onChange(next);
+    setIsFiltering(true);
+    setOpen(true);
+    setHighlightedIndex(0);
+  };
 
   const handleComboKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === " ") return;
@@ -52,7 +69,7 @@ const ComboInput: React.FC<ComboInputProps> = ({
       <input
         type="text"
         value={value}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={(e) => handleInputChange(e.target.value)}
         placeholder={placeholder}
         className={styles.input}
         aria-label={ariaLabel}
@@ -62,12 +79,15 @@ const ComboInput: React.FC<ComboInputProps> = ({
       <button
         type="button"
         tabIndex={-1}
-        onClick={() => setOpen((o) => !o)}
+        onClick={() => {
+          setIsFiltering(false);
+          setOpen((o) => !o);
+        }}
         disabled={suggestions.length === 0}
         className={`${styles.trigger} ${open ? styles.triggerOpen : ""}`}
         aria-label="Show suggestions"
       />
-      {open && suggestions.length > 0 && (
+      {open && shown.length > 0 && (
         <div
           className={dropdownStyles.list}
           role="listbox"
@@ -83,7 +103,7 @@ const ComboInput: React.FC<ComboInputProps> = ({
               : undefined
           }
         >
-          {suggestions.map((s, index) => (
+          {shown.map((s, index) => (
             <button
               key={s}
               type="button"

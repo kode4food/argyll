@@ -24,12 +24,8 @@
   composes: flowGoalList from "./StepEditorControls.module.css";
 }
 
-.flowGoalChip {
-  composes: flowGoalChip from "./StepEditorControls.module.css";
-}
-
-.flowGoalChipSelected {
-  composes: flowGoalChipSelected from "./StepEditorControls.module.css";
+.flowGoalLabel {
+  composes: flowGoalLabel from "./StepEditorControls.module.css";
 }
 
 .flowGoalRemove {
@@ -41,12 +37,12 @@
   min-width: 8rem;
 }
 
-.flowGoalSet {
-  composes: flowGoalSet from "./StepEditorControls.module.css";
+.flowGoalSets {
+  composes: flowGoalSets from "./StepEditorControls.module.css";
 }
 
-.flowGoalSet .flowGoalList {
-  padding-right: var(--spacing-lg);
+.flowGoalGroup {
+  composes: flowGoalGroup from "./StepEditorControls.module.css";
 }
 
 .flowGoalSetRemove {

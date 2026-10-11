@@ -68,7 +68,7 @@
   "flowSelector.title": "Argyll Engine",
   "goals.addFallback": "Ausweich-Goals hinzufügen, die versucht werden, wenn das aktuelle Set nicht abgeschlossen werden kann",
   "goals.addGoal": "Goal Step hinzufügen",
-  "goals.fallbackTo": "Weicht aus auf",
+  "goals.or": "oder",
   "goals.removeGoal": "{id} entfernen",
   "goals.removeSet": "Goal-Set entfernen",
   "healthStatus.healthy": "Gesund",

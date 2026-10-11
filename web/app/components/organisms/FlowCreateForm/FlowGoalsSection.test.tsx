@@ -252,7 +252,7 @@ describe("FlowGoalsSection", () => {
       );
       expect(
         screen.getByTestId("goal-set-summary").parentElement
-      ).toContainElement(screen.getByText(t("goals.fallbackTo")));
+      ).toContainElement(screen.getByText(t("goals.or")));
       expect(stockItem()).toHaveAttribute("aria-disabled", "false");
       fireEvent.click(screen.getByText("Stock Reservation"));
       expect(onGoalStepsChange).toHaveBeenCalledWith([

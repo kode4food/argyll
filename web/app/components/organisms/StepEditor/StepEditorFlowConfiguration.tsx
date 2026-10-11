@@ -9,8 +9,7 @@ import {
   IconSpace,
 } from "@/utils/iconRegistry";
 import IconCheckbox from "@/app/components/molecules/IconCheckbox";
-import { getStepActionIcon } from "@/utils/iconRegistry";
-import { getStepType } from "@/utils/stepUtils";
+import StepTypeLabel from "@/app/components/atoms/StepTypeLabel";
 import SelectField from "@/app/components/molecules/SelectField";
 import ComboInput from "@/app/components/molecules/ComboInput";
 import { useSpaces, useSpaceSelection } from "@/app/store/flowStore";
@@ -66,15 +65,9 @@ const GoalSetLine: React.FC<GoalSetLineProps> = ({
     <div className={localStyles.flowGoalList} data-testid="flow-goal-line">
       {set.map((id) => {
         const step = steps.find((s) => s.id === id);
-        const TypeIcon = step ? getStepActionIcon(step) : null;
         return (
-          <span
-            key={id}
-            className={`${localStyles.flowGoalChip} ${localStyles.flowGoalChipSelected}`}
-          >
-            {TypeIcon && step && (
-              <TypeIcon className={`step-type-icon ${getStepType(step)}`} />
-            )}
+          <span key={id} className={localStyles.flowGoalLabel}>
+            {step && <StepTypeLabel step={step} />}
             {id}
             <button
               type="button"
@@ -291,38 +284,46 @@ const StepEditorFlowConfiguration: React.FC<
               title={t("stepEditor.flowCompensateTitle")}
             />
           </div>
-          {lines.map((set, idx) => (
-            <div key={idx} className={localStyles.flowGoalSet}>
-              {lines.length > 1 && (
-                <button
-                  type="button"
-                  className={localStyles.flowGoalSetRemove}
-                  aria-label={t("goals.removeSet")}
-                  onClick={() =>
-                    void applyGoals(
-                      lines.filter((_, i) => i !== idx),
-                      flowSpaceId
-                    )
-                  }
-                >
-                  <IconClose aria-hidden="true" />
-                </button>
-              )}
-              <GoalSetLine
-                context={context}
-                onChange={(next) => handleLineChange(idx, next)}
-                set={set}
-                steps={displaySteps}
-                t={t}
-              />
-              {idx < lines.length - 1 && (
-                <div className={localStyles.flowGoalOr}>
-                  {t("goals.fallbackTo")}
-                  <IconGoalFallback size={16} aria-hidden="true" />
-                </div>
-              )}
+          {lines.length > 1 && (
+            <div className={localStyles.flowGoalSets}>
+              {lines.slice(0, -1).map((set, idx) => (
+                <React.Fragment key={idx}>
+                  <div className={localStyles.flowGoalGroup}>
+                    <GoalSetLine
+                      context={context}
+                      onChange={(next) => handleLineChange(idx, next)}
+                      set={set}
+                      steps={displaySteps}
+                      t={t}
+                    />
+                    <button
+                      type="button"
+                      className={localStyles.flowGoalSetRemove}
+                      aria-label={t("goals.removeSet")}
+                      onClick={() =>
+                        void applyGoals(
+                          lines.filter((_, i) => i !== idx),
+                          flowSpaceId
+                        )
+                      }
+                    >
+                      <IconClose aria-hidden="true" />
+                    </button>
+                  </div>
+                  <span className={localStyles.flowGoalOr}>
+                    {t("goals.or")}
+                  </span>
+                </React.Fragment>
+              ))}
             </div>
-          ))}
+          )}
+          <GoalSetLine
+            context={context}
+            onChange={(next) => handleLineChange(lines.length - 1, next)}
+            set={lines[lines.length - 1]}
+            steps={displaySteps}
+            t={t}
+          />
           <button
             type="button"
             className={localStyles.flowGoalOrButton}

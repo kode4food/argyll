@@ -68,7 +68,7 @@
   "flowSelector.title": "Argyll Engine",
   "goals.addFallback": "Add fallback Goals, tried if the current set cannot complete",
   "goals.addGoal": "Add Goal Step",
-  "goals.fallbackTo": "Falls back to",
+  "goals.or": "or",
   "goals.removeGoal": "Remove {id}",
   "goals.removeSet": "Remove Goal set",
   "healthStatus.healthy": "Healthy",
