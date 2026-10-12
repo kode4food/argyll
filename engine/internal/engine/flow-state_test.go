@@ -59,6 +59,10 @@ func TestCompletableProvider(t *testing.T) {
 		},
 	}
 
+	assert.False(t, e.HasInputProvider("input", fl))
+	ex := fl.Executions["provider"]
+	ex.Outputs = api.Args{"input": "value"}
+	fl.Executions["provider"] = ex
 	assert.True(t, e.HasInputProvider("input", fl))
 }
 

@@ -110,6 +110,14 @@ func (e *Engine) HasInputProvider(name api.Name, fl api.FlowState) bool {
 	}
 
 	for _, providerID := range deps.Providers {
+		ex := fl.Executions[providerID]
+		if policy.StepTerminal(ex.Status) {
+			succeeded := policy.StepSucceeded(ex.Status)
+			if _, ok := ex.Outputs[name]; ok && succeeded {
+				return true
+			}
+			continue
+		}
 		if e.canStepComplete(providerID, fl) {
 			return true
 		}

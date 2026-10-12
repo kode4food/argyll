@@ -149,6 +149,7 @@ func (tx *flowTx) handleWorkSucceeded(sid api.StepID) error {
 
 	return call.Perform(
 		tx.skipPendingUnused,
+		tx.checkUnreachable,
 		tx.startReadyPendingSteps,
 		tx.checkTerminal,
 	)

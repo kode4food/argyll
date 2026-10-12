@@ -2,6 +2,7 @@ package engine_test
 
 import (
 	"testing"
+	"time"
 
 	testify "github.com/stretchr/testify/assert"
 
@@ -44,6 +45,118 @@ func TestSetAttribute(t *testing.T) {
 		}, "test_key", "test_value")
 	})
 }
+
+func TestMissingOutputFailsFlow(t *testing.T) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		testify.NoError(t, env.Engine.Start())
+		producer := helpers.NewStepWithOutputs(
+			"inventory-resolver", "inventory",
+		)
+		consumer := helpers.NewSimpleStep("order-creator")
+		consumer.Attributes["inventory"] = &api.AttributeSpec{
+			Role: api.RoleRequired,
+			Type: api.TypeString,
+			Required: &api.RequiredConfig{
+				Collect: api.InputCollectFirst,
+			},
+		}
+		testify.NoError(t, env.Engine.RegisterStep(producer))
+		testify.NoError(t, env.Engine.RegisterStep(consumer))
+		env.MockClient.SetResponse(producer.ID, api.Args{})
+		pl := &api.ExecutionPlan{
+			Goals: api.Goals{Steps: []api.StepID{consumer.ID}},
+			Steps: api.Steps{producer.ID: producer, consumer.ID: consumer},
+			Attributes: api.AttributeGraph{
+				"inventory": {
+					Providers: []api.StepID{producer.ID},
+					Consumers: []api.StepID{consumer.ID},
+				},
+			},
+		}
+		fid := api.FlowID("missing-inventory")
+		env.WaitFor(
+			wait.StepTerminal(api.FlowStep{FlowID: fid, StepID: producer.ID}),
+			func() {
+				testify.NoError(t, env.Engine.StartPlan(fid, pl))
+			},
+		)
+		fl, err := env.Engine.GetFlowState(fid)
+		testify.NoError(t, err)
+		testify.Equal(t, api.FlowFailed, fl.Status)
+		testify.Equal(t, api.StepCompleted, fl.Executions[producer.ID].Status)
+		for _, work := range fl.Executions[producer.ID].WorkItems {
+			testify.Equal(t, api.WorkSucceeded, work.Status)
+		}
+		ex := fl.Executions[consumer.ID]
+		testify.Equal(t, api.StepFailed, ex.Status)
+		testify.Equal(t, "required input no longer available", ex.Error)
+		testify.False(t, env.MockClient.WasInvoked(consumer.ID))
+		testify.NotContains(t, fl.Attributes, api.Name("inventory"))
+	})
+}
+
+func TestMissingOutputOtherProvider(t *testing.T) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		testify.NoError(t, env.Engine.Start())
+		first := helpers.NewStepWithOutputs("first-inventory", "inventory")
+		other := helpers.NewStepWithOutputs("other-inventory", "inventory")
+		other.HTTP.Invoke.Mode = api.ActionModeAsync
+		other.HTTP.Invoke.Timeout = time.Minute.Milliseconds()
+		consumer := helpers.NewSimpleStep("order-creator")
+		consumer.Attributes["inventory"] = &api.AttributeSpec{
+			Role: api.RoleRequired,
+			Type: api.TypeString,
+			Required: &api.RequiredConfig{
+				Collect: api.InputCollectFirst,
+			},
+		}
+		for _, st := range []*api.Step{first, other, consumer} {
+			testify.NoError(t, env.Engine.RegisterStep(st))
+		}
+		env.MockClient.SetResponse(first.ID, api.Args{})
+		env.MockClient.SetResponse(other.ID, api.Args{})
+		pl := &api.ExecutionPlan{
+			Goals: api.Goals{Steps: []api.StepID{consumer.ID}},
+			Steps: api.Steps{
+				first.ID:    first,
+				other.ID:    other,
+				consumer.ID: consumer,
+			},
+			Attributes: api.AttributeGraph{
+				"inventory": {
+					Providers: []api.StepID{first.ID, other.ID},
+					Consumers: []api.StepID{consumer.ID},
+				},
+			},
+		}
+		fid := api.FlowID("other-inventory")
+		env.WaitFor(
+			wait.StepTerminal(api.FlowStep{FlowID: fid, StepID: first.ID}),
+			func() {
+				testify.NoError(t, env.Engine.StartPlan(fid, pl))
+			},
+		)
+		fl, err := env.Engine.GetFlowState(fid)
+		testify.NoError(t, err)
+		testify.Equal(t, api.FlowActive, fl.Status)
+		testify.Equal(t, api.StepPending, fl.Executions[consumer.ID].Status)
+		testify.False(t, env.MockClient.WasInvoked(consumer.ID))
+		fl = env.WaitForFlowStatus(fid, func() {
+			for tkn := range fl.Executions[other.ID].WorkItems {
+				err := env.Engine.CompleteWork(
+					api.FlowStep{FlowID: fid, StepID: other.ID}, tkn,
+					api.Args{"inventory": "available"},
+				)
+				testify.NoError(t, err)
+			}
+		})
+		testify.Equal(t, api.FlowCompleted, fl.Status)
+		testify.True(t, env.MockClient.WasInvoked(consumer.ID))
+		testify.Equal(t,
+			"available", fl.Executions[consumer.ID].Inputs["inventory"])
+	})
+}
+
 func TestDuplicateFirstWins(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		testify.NoError(t, env.Engine.Start())

@@ -7,6 +7,8 @@ info:
 
     An action with `mode: sync` completes in the initial HTTP response. An action with `mode: async` returns a quick 2xx response, then completes later by POSTing its result to the action-specific webhook URL provided in `Argyll-Webhook-URL`. Invocation and compensation choose their modes independently.
 
+    Successful results may omit declared outputs. Downstream collection uses only values actually supplied.
+
 servers:
   - url: "{protocol}://{host}:{port}"
     variables:
