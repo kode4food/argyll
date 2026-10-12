@@ -52,8 +52,8 @@ const DiagramChrome: React.FC = () => {
         onZoomIn={handleZoomIn}
         onZoomOut={handleZoomOut}
         style={{
-          right: "var(--spacing-xl)",
-          bottom: "var(--spacing-xl)",
+          right: "var(--spacing-md)",
+          bottom: "var(--spacing-md)",
         }}
       >
         <ControlButton

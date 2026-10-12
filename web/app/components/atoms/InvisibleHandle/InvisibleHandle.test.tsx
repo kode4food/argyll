@@ -22,6 +22,18 @@ jest.mock("@xyflow/react", () => ({
 }));
 
 describe("InvisibleHandle", () => {
+  test("centers summary handles relative to the card height", () => {
+    const { getByTestId } = render(
+      <InvisibleHandle
+        id="summary-input"
+        type="target"
+        position={Position.Left}
+        argName="summary"
+      />
+    );
+    expect(getByTestId("handle-summary-input").style.top).toBe("50%");
+  });
+
   test("renders handle with correct id", () => {
     const { getByTestId } = render(
       <InvisibleHandle

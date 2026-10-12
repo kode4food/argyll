@@ -4,6 +4,7 @@ import {
   ReactFlowProvider,
   useNodesState,
   useReactFlow,
+  useViewport,
   NodeChange,
   NodeTypes,
 } from "@xyflow/react";
@@ -33,6 +34,11 @@ import { useFitView } from "@/app/hooks/useFitView";
 import useFocusWithin from "@/app/hooks/useFocusWithin";
 import { useLayoutPlan } from "./useLayoutPlan";
 import { activeGoalSet } from "@/utils/goalSets";
+import {
+  MIN_DIAGRAM_ZOOM,
+  diagramDetailForZoom,
+  edgesForDiagramDetail,
+} from "@/utils/diagramDetail";
 import styles from "./OverviewDiagramView.module.css";
 
 interface OverviewDiagramViewProps {
@@ -51,6 +57,8 @@ const OverviewDiagramViewInner: React.FC<OverviewDiagramViewProps> = ({
   const goalStepIds = React.useMemo(() => goalSteps.flat(), [goalSteps]);
   const activeGoalStepId = activeGoalSet(goalSteps).at(-1) ?? null;
   const reactFlowInstance = useReactFlow();
+  const { zoom } = useViewport();
+  const diagramDetail = diagramDetailForZoom(zoom);
   const {
     diagramContainerRef,
     focusedPreviewAttribute,
@@ -101,6 +109,10 @@ const OverviewDiagramViewInner: React.FC<OverviewDiagramViewProps> = ({
     visibleSteps,
     previewStepIds,
     focusedPreviewAttribute
+  );
+  const visibleEdges = React.useMemo(
+    () => edgesForDiagramDetail(initialEdges, diagramDetail, zoom),
+    [initialEdges, diagramDetail, zoom]
   );
 
   const { plan } = useLayoutPlan(visibleSteps, [], positionScope);
@@ -272,7 +284,7 @@ const OverviewDiagramViewInner: React.FC<OverviewDiagramViewProps> = ({
     <ReactFlow
       ref={diagramContainerRef}
       nodes={nodes}
-      edges={initialEdges}
+      edges={visibleEdges}
       nodeTypes={nodeTypes}
       onNodesChange={handleNodesChange}
       onPaneClick={handlePaneClick}
@@ -284,8 +296,9 @@ const OverviewDiagramViewInner: React.FC<OverviewDiagramViewProps> = ({
       panOnScroll={true}
       zoomOnScroll={false}
       zoomOnPinch={true}
+      minZoom={MIN_DIAGRAM_ZOOM}
       onViewportChange={handleViewportChange}
-      className="overview-mode-bg"
+      className={`overview-mode-bg diagram-detail-${diagramDetail}`}
       proOptions={{ hideAttribution: true }}
     >
       {showPreviewHud && (

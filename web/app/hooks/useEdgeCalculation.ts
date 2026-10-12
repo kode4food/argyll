@@ -59,6 +59,7 @@ const buildEdge = (
       color: strokeColor,
       strokeWidth: stepLayout.EDGE_WIDTH - 0.5,
     },
+    data: { isInPlan },
     zIndex: input.isOptional ? baseZIndex : baseZIndex + 1,
     className:
       focusedAttributeName && isFocusedAttribute && !isOutOfPlan

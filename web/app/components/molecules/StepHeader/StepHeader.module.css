@@ -29,6 +29,34 @@
   flex-shrink: 1;
 }
 
+:global(.diagram-detail-overview)
+  :global(.step-widget.diagram)
+  .titleContainer {
+  overflow: visible;
+  min-height: calc(var(--text-sm) * 1.2);
+}
+
+:global(.diagram-detail-overview) :global(.step-widget.diagram) .header {
+  border-bottom-color: transparent;
+}
+
+:global(.diagram-detail-overview) :global(.step-widget.diagram) .title {
+  position: absolute;
+  inset: var(--spacing-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--text-3xl);
+  font-weight: var(--font-normal);
+  white-space: normal;
+  overflow-wrap: anywhere;
+  text-align: center;
+}
+
+:global(.diagram-detail-overview) :global(.step-widget.diagram) .memoIcon {
+  visibility: hidden;
+}
+
 .memoIcon {
   display: flex;
   align-items: center;

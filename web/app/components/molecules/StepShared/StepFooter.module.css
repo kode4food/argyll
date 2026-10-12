@@ -15,6 +15,16 @@
   flex: 1;
 }
 
+:global(.diagram-detail-overview)
+  :global(.step-widget.diagram)
+  :global(.step-footer)
+  .actions {
+  visibility: visible;
+  position: absolute;
+  bottom: var(--spacing-md);
+  right: var(--spacing-md);
+}
+
 .icon {
   height: 0.875rem;
   width: 0.875rem;

@@ -1,7 +1,7 @@
 .root {
   composes: hud from "@/app/styles/modules/GlassChrome.module.css";
   width: max-content;
-  max-width: calc(100% - (2 * var(--spacing-xl)));
+  max-width: calc(100% - (2 * var(--spacing-md)));
   padding: var(--spacing-xs) var(--spacing-lg);
   border-radius: 999px;
   pointer-events: none;
@@ -47,7 +47,7 @@
 
 @media (max-width: 70rem) {
   .root {
-    max-width: calc(100% - (2 * var(--spacing-lg)));
+    max-width: calc(100% - (2 * var(--spacing-sm)));
     padding: var(--spacing-xs) var(--spacing-md);
     border-radius: var(--radius-xl);
   }

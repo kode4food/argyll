@@ -3,6 +3,7 @@ import {
   ReactFlow,
   ReactFlowProvider,
   useReactFlow,
+  useViewport,
   NodeTypes,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
@@ -18,6 +19,11 @@ import { useUI } from "@/app/contexts/UIContext";
 import { useDiagramViewport } from "@/app/hooks/useDiagramViewport";
 import { useFitView } from "@/app/hooks/useFitView";
 import { useStepVisibility } from "./useStepVisibility";
+import {
+  MIN_DIAGRAM_ZOOM,
+  diagramDetailForZoom,
+  edgesForDiagramDetail,
+} from "@/utils/diagramDetail";
 
 interface LiveDiagramViewProps {
   steps: Step[];
@@ -38,6 +44,8 @@ const LiveDiagramViewInner: React.FC<LiveDiagramViewProps> = ({
 }) => {
   const t = useT();
   const reactFlowInstance = useReactFlow();
+  const { zoom } = useViewport();
+  const diagramDetail = diagramDetailForZoom(zoom);
   const viewportKey = flowData?.id || "flow";
   const { diagramContainerRef } = useUI();
   const fitView = useFitView();
@@ -57,6 +65,10 @@ const LiveDiagramViewInner: React.FC<LiveDiagramViewProps> = ({
   );
 
   const edges = useEdgeCalculation(stepsToRender, null);
+  const visibleEdges = React.useMemo(
+    () => edgesForDiagramDetail(edges, diagramDetail, zoom),
+    [edges, diagramDetail, zoom]
+  );
 
   const handleNodeDragStart = useCallback(() => {
     const event = new CustomEvent("hideTooltips");
@@ -116,7 +128,7 @@ const LiveDiagramViewInner: React.FC<LiveDiagramViewProps> = ({
     <ReactFlow
       ref={diagramContainerRef}
       nodes={nodes}
-      edges={edges}
+      edges={visibleEdges}
       nodeTypes={nodeTypes}
       onNodeDragStart={handleNodeDragStart}
       nodesConnectable={false}
@@ -126,8 +138,9 @@ const LiveDiagramViewInner: React.FC<LiveDiagramViewProps> = ({
       panOnScroll={true}
       zoomOnScroll={false}
       zoomOnPinch={true}
+      minZoom={MIN_DIAGRAM_ZOOM}
       onViewportChange={handleViewportChange}
-      className="flow-mode-bg"
+      className={`flow-mode-bg diagram-detail-${diagramDetail}`}
       proOptions={{ hideAttribution: true }}
     >
       <DiagramChrome />

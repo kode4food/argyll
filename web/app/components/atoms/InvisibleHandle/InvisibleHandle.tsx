@@ -7,7 +7,7 @@ interface InvisibleHandleProps {
   id: string;
   type: "source" | "target";
   position: Position;
-  top: number;
+  top?: number;
   argName: string;
 }
 
@@ -25,7 +25,9 @@ const InvisibleHandle: React.FC<InvisibleHandleProps> = ({
     id={id}
     isConnectable={false}
     className={`invisible-handle invisible-handle-${type}`}
-    style={{ top: `${top + HANDLE_VERTICAL_OFFSET_PX}px` }}
+    style={{
+      top: top === undefined ? "50%" : `${top + HANDLE_VERTICAL_OFFSET_PX}px`,
+    }}
   />
 );
 

@@ -28,7 +28,7 @@
 
 .flowHud {
   position: absolute;
-  bottom: var(--spacing-xl);
+  bottom: var(--spacing-md);
   left: 50%;
   z-index: 5;
   transform: translateX(-50%);
@@ -140,7 +140,7 @@
 @media (max-width: 70rem) {
   .flowHud {
     max-width: calc(
-      100% - (2 * (var(--spacing-xl) + 2rem + var(--spacing-md)))
+      100% - (2 * (var(--spacing-md) + 2rem + var(--spacing-md)))
     );
   }
 }

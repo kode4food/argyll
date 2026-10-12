@@ -11,6 +11,7 @@ const reactFlowMock = jest.fn(({ children }: any) => (
 const previewHookState = {
   previewPlan: null as any,
 };
+let viewportZoom = 1;
 
 jest.mock("@xyflow/react", () => ({
   ReactFlow: (props: any) => reactFlowMock(props),
@@ -35,6 +36,7 @@ jest.mock("@xyflow/react", () => ({
     <>{children}</>
   ),
   useNodesState: (nodes: any[]) => [nodes, jest.fn(), jest.fn()],
+  useViewport: () => ({ zoom: viewportZoom }),
   useReactFlow: () => ({
     fitView: jest.fn(),
     setViewport: jest.fn(),
@@ -135,6 +137,7 @@ describe("OverviewDiagramView", () => {
     jest.clearAllMocks();
     useEdgeCalculationMock.mockReturnValue([]);
     previewHookState.previewPlan = null;
+    viewportZoom = 1;
   });
 
   it("renders diagram scaffolding", () => {

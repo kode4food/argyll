@@ -21,9 +21,9 @@
 .panelPane {
   composes: overlayStrong from "@/app/styles/modules/GlassChrome.module.css";
   position: absolute;
-  top: var(--spacing-xl);
-  left: var(--spacing-xl);
-  bottom: var(--spacing-xl);
+  top: var(--spacing-md);
+  left: var(--spacing-md);
+  bottom: var(--spacing-md);
   width: clamp(20rem, 26vw, 26rem);
   overflow: hidden;
   border-radius: var(--radius-xl);

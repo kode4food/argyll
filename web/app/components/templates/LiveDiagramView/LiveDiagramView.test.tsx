@@ -4,6 +4,7 @@ import LiveDiagramView from "./LiveDiagramView";
 import { Step, FlowContext, ExecutionResult } from "@/app/api";
 
 const reactFlowMock = jest.fn(() => <div data-testid="react-flow" />);
+let viewportZoom = 1;
 
 jest.mock("@xyflow/react", () => ({
   ReactFlow: (props: any) => reactFlowMock(props),
@@ -26,6 +27,7 @@ jest.mock("@xyflow/react", () => ({
   ReactFlowProvider: ({ children }: { children: React.ReactNode }) => (
     <>{children}</>
   ),
+  useViewport: () => ({ zoom: viewportZoom }),
   useReactFlow: () => ({
     fitView: jest.fn(),
     setViewport: jest.fn(),
@@ -102,6 +104,7 @@ describe("LiveDiagramView", () => {
     });
     mockUseNodeCalculation.mockReturnValue([]);
     mockUseEdgeCalculation.mockReturnValue([]);
+    viewportZoom = 1;
   });
 
   test("renders empty state when no visible steps", () => {

@@ -104,6 +104,11 @@
   width: var(--step-widget-width);
 }
 
+.diagram-detail-overview .step-widget.diagram .step-args-section,
+.diagram-detail-overview .step-widget.diagram .step-footer {
+  visibility: hidden;
+}
+
 .step-widget.list {
   width: 100%;
 }

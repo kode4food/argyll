@@ -36,6 +36,18 @@ const Node: React.FC<NodeProps> = ({ id, data }) => {
 
   return (
     <div>
+      <InvisibleHandle
+        id="summary-input"
+        type="target"
+        position={Position.Left}
+        argName="summary"
+      />
+      <InvisibleHandle
+        id="summary-output"
+        type="source"
+        position={Position.Right}
+        argName="summary"
+      />
       {allHandles.map((handle) => (
         <InvisibleHandle
           key={handle.id}

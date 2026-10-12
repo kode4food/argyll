@@ -134,8 +134,8 @@
 .selector {
   composes: overlayStrong from "@/app/styles/modules/GlassChrome.module.css";
   position: absolute;
-  top: var(--spacing-xl);
-  right: var(--spacing-xl);
+  top: var(--spacing-md);
+  right: var(--spacing-md);
   display: flex;
   align-items: center;
   gap: var(--spacing-sm);
