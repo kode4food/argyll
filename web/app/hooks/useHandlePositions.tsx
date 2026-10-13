@@ -7,28 +7,21 @@ import {
   HandlePosition,
 } from "@/utils/stepNodeUtils";
 
-/**
- * Hook that manages handle positions for a step node
- * Calculates DOM-based positions for connection handles
- *
- * @param step - The step data
- * @param stepWidgetRef - Reference to the step widget container
- * @returns Object containing handle positions and all handles array
- */
 export const useHandlePositions = (
   step: Step,
   stepWidgetRef: React.RefObject<HTMLDivElement | null>
-): { handlePositions: HandlePositions; allHandles: HandlePosition[] } => {
+): {
+  handlePositions: HandlePositions;
+  allHandles: HandlePosition[];
+  summaryInputTop: number | undefined;
+  summaryOutputTop: number | undefined;
+} => {
   const [handlePositions, setHandlePositions] = useState<HandlePositions>({
     required: [],
     optional: [],
     output: [],
   });
 
-  /**
-   * Updates handle positions by querying the DOM
-   * Finds elements with matching data attributes and calculates their positions
-   */
   const updateHandlePositions = useCallback(() => {
     if (!stepWidgetRef.current) return;
 
@@ -57,9 +50,6 @@ export const useHandlePositions = (
       };
     };
 
-    /**
-     * Finds all handle positions for a given attribute type
-     */
     const findHandles = (
       argType: string,
       argNames: string[],
@@ -84,24 +74,35 @@ export const useHandlePositions = (
     });
   }, [step.attributes]);
 
-  /**
-   * Run updateHandlePositions whenever the step attributes change
-   */
   useEffect(() => {
     updateHandlePositions();
   }, [updateHandlePositions]);
 
-  /**
-   * Flatten all handles into a single array for easy iteration
-   */
   const allHandles: HandlePosition[] = [
     ...handlePositions.required,
     ...handlePositions.optional,
     ...handlePositions.output,
   ];
 
+  // So the collapsed summary handle lands near the real handles instead of
+  // snapping to the node's vertical center, which keeps edges from jumping
+  // when detail collapses.
+  const midpointTop = (handles: HandlePosition[]): number | undefined => {
+    if (handles.length === 0) return undefined;
+    const tops = handles.map((handle) => handle.top);
+    return (Math.min(...tops) + Math.max(...tops)) / 2;
+  };
+
+  const summaryInputTop = midpointTop([
+    ...handlePositions.required,
+    ...handlePositions.optional,
+  ]);
+  const summaryOutputTop = midpointTop(handlePositions.output);
+
   return {
     handlePositions,
     allHandles,
+    summaryInputTop,
+    summaryOutputTop,
   };
 };

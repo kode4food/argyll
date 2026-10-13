@@ -1,5 +1,9 @@
 import { Edge } from "@xyflow/react";
-import { diagramDetailForZoom, edgesForDiagramDetail } from "./diagramDetail";
+import {
+  diagramDetailForZoom,
+  edgesForDiagramDetail,
+  fullDetailMinZoom,
+} from "./diagramDetail";
 
 const edge = (id: string, source: string, target: string): Edge => ({
   id,
@@ -9,11 +13,18 @@ const edge = (id: string, source: string, target: string): Edge => ({
 
 describe("diagramDetail", () => {
   test("selects detail from zoom", () => {
-    expect(diagramDetailForZoom(1)).toBe("full");
-    expect(diagramDetailForZoom(0.6)).toBe("full");
-    expect(diagramDetailForZoom(0.5)).toBe("full");
-    expect(diagramDetailForZoom(0.499)).toBe("overview");
-    expect(diagramDetailForZoom(0.2)).toBe("overview");
+    const minZoom = fullDetailMinZoom(16, 1);
+    expect(diagramDetailForZoom(1, minZoom)).toBe("full");
+    expect(diagramDetailForZoom(minZoom, minZoom)).toBe("full");
+    expect(diagramDetailForZoom(minZoom - 0.001, minZoom)).toBe("overview");
+    expect(diagramDetailForZoom(0.01, minZoom)).toBe("overview");
+  });
+
+  test("derives threshold from device pixel ratio", () => {
+    // Higher DPI screens can render legible text at a smaller zoom.
+    expect(fullDetailMinZoom(16, 2)).toBeLessThan(fullDetailMinZoom(16, 1));
+    // Larger root font size needs less zoom to stay legible.
+    expect(fullDetailMinZoom(20, 1)).toBeLessThan(fullDetailMinZoom(16, 1));
   });
 
   test("preserves attribute edges at full detail", () => {

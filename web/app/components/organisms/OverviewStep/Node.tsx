@@ -37,7 +37,10 @@ const Node: React.FC<NodeProps> = ({ id, data }) => {
     [onStepClick, setGoalSteps, step.id]
   );
 
-  const { allHandles } = useHandlePositions(step, widgetRef);
+  const { allHandles, summaryInputTop, summaryOutputTop } = useHandlePositions(
+    step,
+    widgetRef
+  );
 
   React.useEffect(() => {
     updateNodeInternals(id);
@@ -50,12 +53,14 @@ const Node: React.FC<NodeProps> = ({ id, data }) => {
         type="target"
         position={Position.Left}
         argName="summary"
+        top={summaryInputTop}
       />
       <InvisibleHandle
         id="summary-output"
         type="source"
         position={Position.Right}
         argName="summary"
+        top={summaryOutputTop}
       />
       {allHandles.map((handle) => (
         <InvisibleHandle

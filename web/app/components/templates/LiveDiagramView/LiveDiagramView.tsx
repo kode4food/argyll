@@ -18,6 +18,7 @@ import { useEdgeCalculation } from "@/app/hooks/useEdgeCalculation";
 import { useUI } from "@/app/contexts/UIContext";
 import { useDiagramViewport } from "@/app/hooks/useDiagramViewport";
 import { useFitView } from "@/app/hooks/useFitView";
+import { useFullDetailMinZoom } from "@/app/hooks/useFullDetailMinZoom";
 import { useStepVisibility } from "./useStepVisibility";
 import {
   MIN_DIAGRAM_ZOOM,
@@ -45,7 +46,8 @@ const LiveDiagramViewInner: React.FC<LiveDiagramViewProps> = ({
   const t = useT();
   const reactFlowInstance = useReactFlow();
   const { zoom } = useViewport();
-  const diagramDetail = diagramDetailForZoom(zoom);
+  const fullDetailMinZoom = useFullDetailMinZoom();
+  const diagramDetail = diagramDetailForZoom(zoom, fullDetailMinZoom);
   const viewportKey = flowData?.id || "flow";
   const { diagramContainerRef } = useUI();
   const fitView = useFitView();

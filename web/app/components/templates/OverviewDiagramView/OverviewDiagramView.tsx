@@ -31,6 +31,7 @@ import { useDiagramSelection } from "@/app/contexts/DiagramSelectionContext";
 import { useKeyboardNavigation } from "./useKeyboardNavigation";
 import { useDiagramViewport } from "@/app/hooks/useDiagramViewport";
 import { useFitView } from "@/app/hooks/useFitView";
+import { useFullDetailMinZoom } from "@/app/hooks/useFullDetailMinZoom";
 import useFocusWithin from "@/app/hooks/useFocusWithin";
 import { useLayoutPlan } from "./useLayoutPlan";
 import { activeGoalSet } from "@/utils/goalSets";
@@ -58,7 +59,8 @@ const OverviewDiagramViewInner: React.FC<OverviewDiagramViewProps> = ({
   const activeGoalStepId = activeGoalSet(goalSteps).at(-1) ?? null;
   const reactFlowInstance = useReactFlow();
   const { zoom } = useViewport();
-  const diagramDetail = diagramDetailForZoom(zoom);
+  const fullDetailMinZoom = useFullDetailMinZoom();
+  const diagramDetail = diagramDetailForZoom(zoom, fullDetailMinZoom);
   const {
     diagramContainerRef,
     focusedPreviewAttribute,
