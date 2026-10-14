@@ -13,18 +13,15 @@ const edge = (id: string, source: string, target: string): Edge => ({
 
 describe("diagramDetail", () => {
   test("selects detail from zoom", () => {
-    const minZoom = fullDetailMinZoom(16, 1);
+    const minZoom = fullDetailMinZoom(16);
     expect(diagramDetailForZoom(1, minZoom)).toBe("full");
     expect(diagramDetailForZoom(minZoom, minZoom)).toBe("full");
     expect(diagramDetailForZoom(minZoom - 0.001, minZoom)).toBe("overview");
     expect(diagramDetailForZoom(0.01, minZoom)).toBe("overview");
   });
 
-  test("derives threshold from device pixel ratio", () => {
-    // Higher DPI screens can render legible text at a smaller zoom.
-    expect(fullDetailMinZoom(16, 2)).toBeLessThan(fullDetailMinZoom(16, 1));
-    // Larger root font size needs less zoom to stay legible.
-    expect(fullDetailMinZoom(20, 1)).toBeLessThan(fullDetailMinZoom(16, 1));
+  test("derives threshold from root font size, not device pixel ratio", () => {
+    expect(fullDetailMinZoom(20)).toBeLessThan(fullDetailMinZoom(16));
   });
 
   test("preserves attribute edges at full detail", () => {

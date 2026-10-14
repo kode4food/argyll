@@ -1,9 +1,7 @@
 import { useState, useEffect } from "react";
 import { fullDetailMinZoom } from "@/utils/diagramDetail";
 
-// Recomputes on resize since the root font size and the device pixel ratio
-// can both change (browser zoom, moving the window to another monitor) and
-// both affect the physical rendered size.
+// Recomputes on resize since the root font size can change (browser zoom)
 export const useFullDetailMinZoom = (): number => {
   const [minZoom, setMinZoom] = useState(() => compute());
 
@@ -25,5 +23,5 @@ function compute(): number {
   const rootFontSizePx = Number.isNaN(parsed)
     ? DEFAULT_ROOT_FONT_SIZE_PX
     : parsed;
-  return fullDetailMinZoom(rootFontSizePx, window.devicePixelRatio || 1);
+  return fullDetailMinZoom(rootFontSizePx);
 }
