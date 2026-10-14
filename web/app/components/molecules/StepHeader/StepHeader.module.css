@@ -15,6 +15,8 @@
   margin-right: var(--spacing-sm);
   min-width: 0;
   overflow: hidden;
+  opacity: 1;
+  transition: var(--transition-opacity);
 }
 
 .title {
@@ -29,18 +31,7 @@
   flex-shrink: 1;
 }
 
-:global(.diagram-detail-overview)
-  :global(.step-widget.diagram)
-  .titleContainer {
-  overflow: visible;
-  min-height: calc(var(--text-sm) * 1.2);
-}
-
-:global(.diagram-detail-overview) :global(.step-widget.diagram) .header {
-  border-bottom-color: transparent;
-}
-
-:global(.diagram-detail-overview) :global(.step-widget.diagram) .title {
+.overviewTitle {
   position: absolute;
   inset: var(--spacing-md);
   display: flex;
@@ -51,10 +42,31 @@
   white-space: normal;
   overflow-wrap: anywhere;
   text-align: center;
+  margin: 0;
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    var(--transition-opacity),
+    visibility 0s linear 0.2s;
 }
 
+:global(.diagram-detail-overview) :global(.step-widget.diagram) .titleContainer,
 :global(.diagram-detail-overview) :global(.step-widget.diagram) .memoIcon {
+  opacity: 0;
   visibility: hidden;
+  transition:
+    var(--transition-opacity),
+    visibility 0s linear 0.2s;
+}
+
+:global(.diagram-detail-overview) :global(.step-widget.diagram) .header {
+  border-bottom-color: transparent;
+}
+
+:global(.diagram-detail-overview) :global(.step-widget.diagram) .overviewTitle {
+  opacity: 1;
+  visibility: visible;
+  transition: var(--transition-opacity);
 }
 
 .memoIcon {
@@ -63,6 +75,8 @@
   height: 0.875rem;
   width: 0.875rem;
   flex-shrink: 0;
+  opacity: 1;
+  transition: var(--transition-opacity);
 }
 
 .memoIcon svg {

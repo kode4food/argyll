@@ -27,6 +27,9 @@ const StepHeader: React.FC<StepHeaderProps> = ({ step }) => {
         </TooltipSection>
         <TooltipSection title={t("tooltip.stepId")}>{step.id}</TooltipSection>
       </Tooltip>
+      <h3 className={styles.overviewTitle} aria-hidden="true">
+        {step.name}
+      </h3>
       {step.handling === "memoized" && (
         <span
           className={`step-type-icon ${styles.memoIcon}`}
