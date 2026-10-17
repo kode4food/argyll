@@ -3,7 +3,7 @@ module github.com/kode4food/argyll/mcp
 go 1.27.0
 
 require (
-	github.com/getkin/kin-openapi v0.148.0
+	github.com/getkin/kin-openapi v0.149.0
 	github.com/kode4food/argyll/engine v0.0.0-20261009102201-cf4904e2b790
 	github.com/localrivet/gomcp v1.7.2
 	github.com/stretchr/testify v1.12.1
