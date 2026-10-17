@@ -41,7 +41,7 @@ executor.Exec(ctx, aggregateID, cmd)
 
 **Side effects use `ag.OnSuccess()`**
 
-Register external effects such as network calls, script execution, and retry queue updates through `ag.OnSuccess()` inside the command callback rather than calling them directly in the command. Related aggregate changes within the same Store belong in `ag.Transaction().Exec(...)`, so they commit atomically and retry together. Child creation joins parent work start; child settlement joins parent work completion; parent deactivation joins eligible child deactivation. Catalog registration and its cluster health update also share a transaction.
+Register external effects such as network calls and retry queue updates through `ag.OnSuccess()` inside the command callback rather than calling them directly in the command. `Inline` handlers, such as scripts, run inside the command. Related aggregate changes within the same Store belong in `ag.Transaction().Exec(...)`, so they commit atomically and retry together. Child creation joins parent work start; child settlement joins parent work completion; parent deactivation joins eligible child deactivation. Catalog registration and its cluster health update also share a transaction.
 
 **Why:** If the command retries (optimistic concurrency conflict), direct side effects execute multiple times. `ag.OnSuccess()` runs only once, after Exec commits, and receives the final aggregate state plus the successfully flushed `[]*timebox.Event`.
 
@@ -141,24 +141,10 @@ func (tx *flowTx) checkTerminal() error {
         ); err != nil {
             return err
         }
-        tx.cancelObsoleteTasks()
         return tx.maybeDeactivate()
     }
     // ... same shape for the failed case
     return nil
-}
-
-// cancelObsoleteTasks drops the retry and timeout tasks a terminal flow can
-// no longer act on
-func (tx *flowTx) cancelObsoleteTasks() {
-    tx.OnSuccess(func(fl api.FlowState, _ []*timebox.Event) {
-        if flowHasRetryTasks(fl) {
-            tx.CancelPrefixedTasks(retryPrefix(tx.flowID))
-        }
-        if flowHasTimeouts(fl) {
-            tx.CancelPrefixedTasks(timeoutFlowPrefix(tx.flowID))
-        }
-    })
 }
 ```
 
@@ -170,6 +156,7 @@ func (tx *flowTx) cancelObsoleteTasks() {
 - Idempotency: check state before raising an event, so each event is raised once
 - Executor: Handles conflict retries automatically (no manual retry needed)
 - Atomicity: Events and projections commit together
+- Scheduled tasks are never cancelled. Every handler rechecks the flow's state when its task fires and does nothing when the task no longer applies
 
 ## Stale References After Event Raise
 

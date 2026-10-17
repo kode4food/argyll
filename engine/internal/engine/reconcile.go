@@ -10,34 +10,25 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/events"
 	"github.com/kode4food/argyll/engine/pkg/log"
 	"github.com/kode4food/argyll/engine/pkg/policy"
+	"github.com/kode4food/argyll/engine/pkg/util"
 )
 
-// HandleCommitted requests reconciliation for committed flow events except
-// attribute updates. Every online replica schedules tasks; none dispatches
-// external work directly from the batch
+// HandleCommitted requests reconciliation for flows whose committed work this
+// node could not dispatch, so a replica able to run the step picks it up
 func (e *Engine) HandleCommitted(evs ...*timebox.Event) {
-	requested := map[api.FlowID]time.Time{}
-	now := e.Now()
-
+	requested := util.Set[api.FlowID]{}
 	for _, ev := range evs {
-		fid, ok := events.ParseFlowID(ev.AggregateID)
-		if !ok {
+		if api.EventType(ev.Type) != api.EventTypeDispatchDeferred {
 			continue
 		}
-		at := now
-		switch api.EventType(ev.Type) {
-		case api.EventTypeAttributeSet:
-			continue
-		case api.EventTypeDispatchDeferred:
-			// No node could run the step, so poll rather than spin
-			at = now.Add(localDispatchBackoff)
-		}
-		if prev, ok := requested[fid]; !ok || at.Before(prev) {
-			requested[fid] = at
+		if fid, ok := events.ParseFlowID(ev.AggregateID); ok {
+			requested.Add(fid)
 		}
 	}
 
-	for fid, at := range requested {
+	// No node could run the step, so poll rather than spin
+	at := e.Now().Add(localDispatchBackoff)
+	for fid := range requested {
 		if e.ctx.Err() != nil {
 			return
 		}
@@ -60,7 +51,7 @@ func (e *Engine) RecoverFlow(fid api.FlowID) error {
 func (tx *flowTx) recoverFlow() error {
 	fl := tx.Value()
 	if fl.ID == "" || !fl.DeactivatedAt.IsZero() {
-		return tx.cancelEventPrefix(flowTaskPrefix(tx.flowID))
+		return nil
 	}
 	if err := validateParentMetadata(fl.Metadata); err != nil {
 		return err
@@ -99,12 +90,6 @@ func (e *Engine) scheduleFlowReconcile(fid api.FlowID, at time.Time) error {
 				Type:        flowReconcileRequested,
 			})
 	})
-}
-
-// flowTaskPrefix covers every task derived from a flow's state, which the
-// reconcile task is deliberately keyed outside of
-func flowTaskPrefix(fid api.FlowID) []string {
-	return []string{string(fid)}
 }
 
 func reconcileKey(fid api.FlowID) []string {

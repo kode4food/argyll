@@ -150,9 +150,6 @@ func (tx *flowTx) completeCompensation(sid api.StepID, tkn api.Token) error {
 	if err := tx.raiseCompSucceeded(sid, tkn); err != nil {
 		return err
 	}
-	if err := tx.clearWorkDeadline(sid, tkn); err != nil {
-		return err
-	}
 	return tx.maybeDeactivate()
 }
 
@@ -164,9 +161,6 @@ func (tx *flowTx) failCompensation(
 		return nil
 	}
 	if err := tx.raiseCompFailed(sid, tkn, errMsg); err != nil {
-		return err
-	}
-	if err := tx.clearWorkDeadline(sid, tkn); err != nil {
 		return err
 	}
 	return tx.maybeDeactivate()

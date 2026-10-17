@@ -140,10 +140,8 @@ func (tx *flowTx) startPlan(pl *api.ExecutionPlan, opts *flow.Options) error {
 	); err != nil {
 		return err
 	}
-	for _, sid := range tx.findInitialSteps(tx.Value()) {
-		if err := tx.prepareStep(sid); err != nil {
-			return err
-		}
+	if err := tx.startReadyPendingSteps(); err != nil {
+		return err
 	}
 	return tx.scheduleTimeouts(tx.Value(), tx.Now())
 }

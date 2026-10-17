@@ -4,7 +4,7 @@ go 1.27.0
 
 require (
 	github.com/kode4food/argyll/engine v0.0.0-20261009102201-cf4904e2b790
-	github.com/kode4food/timebox v0.3.1-0.20261009161103-4e90098c4a63
+	github.com/kode4food/timebox v0.3.1-0.20261017070008-9c30caa3b46a
 	github.com/stretchr/testify v1.12.1
 	golang.org/x/tools v0.51.0
 )

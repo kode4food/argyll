@@ -91,39 +91,16 @@ func (tx *flowTx) scheduleRetry(sid api.StepID, tkn api.Token) error {
 	return tx.raiseWorkFailed(sid, tkn, work.Error)
 }
 
-func (tx *flowTx) continueStepWork(sid api.StepID, clearRetry bool) error {
+func (tx *flowTx) continueStepWork(sid api.StepID) error {
 	st := tx.Value().Plan.Steps[sid]
 	started, err := tx.startPendingWork(st)
 	if err != nil {
 		return err
 	}
-	ex := tx.Value().Executions[sid]
-	if policy.WorkReadyToDispatch(st, ex, tx.Now()) &&
-		!tx.canDispatchLocally(st.ID) {
-		if err := tx.raiseDispatchDeferred(sid); err != nil {
-			return err
-		}
-		if err := tx.scheduleWorkDispatch(
-			sid, tx.Now().Add(localDispatchBackoff),
-		); err != nil {
-			return err
-		}
-	}
 	if len(started) == 0 {
 		return nil
 	}
-	if clearRetry {
-		for tkn := range started {
-			if err := tx.clearRetryTask(sid, tkn); err != nil {
-				return err
-			}
-		}
-	}
 	return tx.startContinuedWork(sid, st, started)
-}
-
-func (tx *flowTx) handleWorkContinuation(sid api.StepID) error {
-	return tx.continueStepWork(sid, true)
 }
 
 func (tx *flowTx) startContinuedWork(
@@ -216,8 +193,4 @@ func retryKey(fs api.FlowStep, tkn api.Token) []string {
 	return []string{
 		string(fs.FlowID), "retry", string(fs.StepID), string(tkn),
 	}
-}
-
-func retryPrefix(fid api.FlowID) []string {
-	return []string{string(fid), "retry"}
 }

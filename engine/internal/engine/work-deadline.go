@@ -20,11 +20,6 @@ func (tx *flowTx) scheduleWorkDeadlineAt(
 		scheduledWork{StepID: sid, Token: tkn})
 }
 
-func (tx *flowTx) clearWorkDeadline(sid api.StepID, tkn api.Token) error {
-	fs := api.FlowStep{FlowID: tx.flowID, StepID: sid}
-	return tx.cancelEvent(deadlineKey(fs, tkn))
-}
-
 func (tx *flowTx) handleWorkDeadline(sid api.StepID, tkn api.Token) error {
 	fl := tx.Value()
 	at, ok := tx.workDeadline(fl, sid, tkn)
@@ -84,8 +79,4 @@ func deadlineKey(fs api.FlowStep, tkn api.Token) []string {
 	return []string{
 		string(fs.FlowID), "deadline", string(fs.StepID), string(tkn),
 	}
-}
-
-func deadlinePrefix(fid api.FlowID) []string {
-	return []string{string(fid), "deadline"}
 }

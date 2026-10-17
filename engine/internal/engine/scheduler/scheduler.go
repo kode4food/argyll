@@ -11,12 +11,12 @@ import (
 )
 
 type (
-	// Scheduler stores and processes Argyll's deferred messages
+	// Scheduler stores and processes Argyll's scheduled tasks
 	Scheduler struct {
 		runner *scheduler.Scheduler
 	}
 
-	// Config configures Argyll's deferred message scheduler
+	// Config configures Argyll's task scheduler
 	Config struct {
 		Store            *timebox.Store
 		Processor        scheduler.Processor
@@ -33,8 +33,6 @@ type (
 	// TimerConstructor creates a scheduler Timer
 	TimerConstructor = scheduler.TimerConstructor
 )
-
-const keyPrefix = "argyll:"
 
 // New creates an Argyll scheduler over a Timebox store
 func New(cfg Config) (*Scheduler, error) {
@@ -56,33 +54,20 @@ func Now() time.Time {
 	return time.Now()
 }
 
-// Run processes due messages until ctx ends
+// Run processes due scheduled tasks until ctx ends
 func (s *Scheduler) Run(ctx context.Context) error {
 	return s.runner.Run(ctx)
 }
 
-// Schedule creates or replaces a durable deferred message
+// Schedule creates or replaces a durable scheduled task
 func (s *Scheduler) Schedule(
 	tx *timebox.Transaction, path []string, at time.Time, msg *timebox.Message,
 ) error {
 	return tx.Schedule(encodePath(path), at, msg)
 }
 
-// Cancel removes the durable message at path
-func (s *Scheduler) Cancel(tx *timebox.Transaction, path []string) error {
-	return tx.CancelSchedule(encodePath(path))
-}
-
-// CancelPrefix removes every Argyll message below prefix
-func (s *Scheduler) CancelPrefix(
-	tx *timebox.Transaction, prefix []string,
-) error {
-	return tx.CancelSchedulePrefix(encodePath(prefix))
-}
-
 func encodePath(path []string) timebox.ScheduleKey {
 	var b strings.Builder
-	b.WriteString(keyPrefix)
 	for _, part := range path {
 		b.WriteString(base64.RawURLEncoding.EncodeToString([]byte(part)))
 		b.WriteByte('/')

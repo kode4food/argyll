@@ -100,14 +100,6 @@ func (tx *flowTx) scheduleEvent(
 	)
 }
 
-func (tx *flowTx) cancelEvent(path []string) error {
-	return tx.scheduler.Cancel(tx.storeTx.Transaction, path)
-}
-
-func (tx *flowTx) cancelEventPrefix(prefix []string) error {
-	return tx.scheduler.CancelPrefix(tx.storeTx.Transaction, prefix)
-}
-
 func handleScheduledValue[T any](msg *timebox.Message, fn func(T) error) error {
 	value, err := msg.GetValue[T]()
 	if err != nil {

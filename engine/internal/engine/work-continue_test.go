@@ -139,6 +139,7 @@ func TestRetryDeferredOnUnhealthyNode(t *testing.T) {
 				},
 			},
 		))
+		assert.NoError(t, env.Engine.RecoverFlow(id))
 		assert.False(t,
 			env.MockClient.WaitForInvocation(st.ID, 100*time.Millisecond),
 		)
@@ -225,6 +226,7 @@ func TestRetryOnHealthyPeer(t *testing.T) {
 						},
 					},
 				))
+				assert.NoError(t, env.Engine.RecoverFlow(id))
 			},
 		)
 

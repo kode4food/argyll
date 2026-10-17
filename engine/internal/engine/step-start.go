@@ -91,7 +91,7 @@ func (tx *flowTx) prepareStep(sid api.StepID) error {
 		return err
 	}
 
-	return nil
+	return tx.continueStepWork(sid)
 }
 
 func (tx *flowTx) performSkip(
@@ -116,28 +116,10 @@ func (tx *flowTx) performSkip(
 	)
 }
 
-func (tx *flowTx) canStartStep(sid api.StepID, fl api.FlowState) bool {
-	ready, _ := tx.newStepEval(sid, fl, tx.Now()).canStart()
-	return ready
-}
-
 func (tx *flowTx) canStartStepAt(
 	sid api.StepID, fl api.FlowState, when time.Time,
 ) (bool, time.Time) {
 	return tx.newStepEval(sid, fl, when).canStart()
-}
-
-func (tx *flowTx) findInitialSteps(fl api.FlowState) []api.StepID {
-	res := make([]api.StepID, 0, len(fl.Executions))
-	for sid, ex := range fl.Executions {
-		if !policy.StepPending(ex.Status) {
-			continue
-		}
-		if tx.canStartStep(sid, fl) {
-			res = append(res, sid)
-		}
-	}
-	return res
 }
 
 func (e *Engine) newStepEval(

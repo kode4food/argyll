@@ -37,9 +37,6 @@ func (tx *flowTx) checkTerminal() error {
 		); err != nil {
 			return err
 		}
-		if err := tx.cancelObsoleteTasks(); err != nil {
-			return err
-		}
 		return tx.maybeDeactivate()
 	}
 	if tx.IsFlowFailed(fl) {
@@ -52,25 +49,7 @@ func (tx *flowTx) checkTerminal() error {
 		); err != nil {
 			return err
 		}
-		if err := tx.cancelObsoleteTasks(); err != nil {
-			return err
-		}
 		return tx.maybeDeactivate()
-	}
-	return nil
-}
-
-// cancelObsoleteTasks drops the retry and timeout tasks a terminal flow can
-// no longer act on
-func (tx *flowTx) cancelObsoleteTasks() error {
-	fl := tx.Value()
-	if flowHasRetryTasks(fl) {
-		if err := tx.cancelEventPrefix(retryPrefix(tx.flowID)); err != nil {
-			return err
-		}
-	}
-	if flowHasTimeouts(fl) {
-		return tx.cancelEventPrefix(timeoutFlowPrefix(tx.flowID))
 	}
 	return nil
 }
@@ -115,9 +94,6 @@ func (tx *flowTx) deactivate(parent api.FlowState) error {
 			Status: fl.Status,
 		},
 	); err != nil {
-		return err
-	}
-	if err := tx.cancelEventPrefix(deadlinePrefix(tx.flowID)); err != nil {
 		return err
 	}
 	return tx.releaseChildFlows()
@@ -214,17 +190,6 @@ func (tx *flowTx) completeParentFlowWork(
 }
 
 // getFailureReason extracts a failure reason from flow state
-func flowHasRetryTasks(fl api.FlowState) bool {
-	for _, ex := range fl.Executions {
-		for _, work := range ex.WorkItems {
-			if !work.NextRetryAt.IsZero() {
-				return true
-			}
-		}
-	}
-	return false
-}
-
 func getFailureReason(fl api.FlowState) string {
 	for sid, ex := range fl.Executions {
 		if policy.StepFailed(ex.Status) {

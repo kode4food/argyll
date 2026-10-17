@@ -26,33 +26,22 @@ func TestPaths(t *testing.T) {
 	message := newMessage()
 	at := scheduler.Now().Add(time.Hour)
 
+	paths := [][]string{
+		{"flow", "one"},
+		{"flow", "two"},
+		{"flow", "one/two"},
+		{"flow", "one", "two"},
+		{"flowish"},
+	}
 	assert.NoError(t, store.Transact(func(tx *timebox.Transaction) error {
-		for _, path := range [][]string{
-			{"flow", "one"},
-			{"flow", "two"},
-			{"flow", "one/two"},
-			{"flowish"},
-			{"other"},
-		} {
+		for _, path := range paths {
 			if err := runner.Schedule(tx, path, at, message); err != nil {
 				return err
 			}
 		}
-		return tx.Schedule("foreign", at, message)
+		return nil
 	}))
-
-	assert.NoError(t, store.Transact(func(tx *timebox.Transaction) error {
-		return runner.CancelPrefix(tx, []string{"flow"})
-	}))
-	assert.Equal(t, 3, activeScheduleCount(t, store))
-
-	assert.NoError(t, store.Transact(func(tx *timebox.Transaction) error {
-		return runner.Cancel(tx, []string{"other"})
-	}))
-	assert.Equal(t, 2, activeScheduleCount(t, store))
-	foreign, err := store.LoadSchedule("foreign")
-	assert.NoError(t, err)
-	assert.NotNil(t, foreign)
+	assert.Equal(t, len(paths), activeScheduleCount(t, store))
 }
 
 func TestDelivery(t *testing.T) {

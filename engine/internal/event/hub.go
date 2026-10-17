@@ -88,7 +88,7 @@ func (h *Hub) IsClosed() <-chan struct{} {
 // Publish sends committed events to matching subscribers
 func (h *Hub) Publish(evs ...*timebox.Event) {
 	for _, ev := range evs {
-		if ev == nil || !h.hasSubscribers(ev.Type, ev.AggregateID) {
+		if ev == nil || !h.registry.hasSubscribers(ev.Type, ev.AggregateID) {
 			continue
 		}
 		h.producer.Send() <- ev
@@ -179,12 +179,6 @@ func (c *Consumer) Close() {
 		close(c.closed)
 		c.inner.Close()
 	})
-}
-
-func (h *Hub) hasSubscribers(
-	typ timebox.EventType, id timebox.AggregateID,
-) bool {
-	return h.registry.hasSubscribers(typ, id)
 }
 
 // matches checks if an event matches the consumer's interests

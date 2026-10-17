@@ -10,18 +10,12 @@ import (
 )
 
 func (tx *flowTx) scheduleTimeouts(fl api.FlowState, when time.Time) error {
-	if !flowHasTimeouts(fl) {
-		return nil
-	}
-	if err := tx.cancelEventPrefix(timeoutFlowPrefix(fl.ID)); err != nil {
-		return err
-	}
-	if policy.FlowTerminal(fl.Status) {
+	if !flowHasTimeouts(fl) || policy.FlowTerminal(fl.Status) {
 		return nil
 	}
 
 	for sid := range fl.Executions {
-		if err := tx.scheduleStepTimeouts(fl, sid, when, false); err != nil {
+		if err := tx.scheduleStepTimeouts(fl, sid, when); err != nil {
 			return err
 		}
 	}
@@ -32,9 +26,6 @@ func (tx *flowTx) scheduleConsumerTimeouts(
 	fl api.FlowState, producerID api.StepID, when time.Time,
 ) error {
 	if policy.FlowTerminal(fl.Status) {
-		if flowHasTimeouts(fl) {
-			return tx.cancelEventPrefix(timeoutFlowPrefix(fl.ID))
-		}
 		return nil
 	}
 
@@ -57,9 +48,7 @@ func (tx *flowTx) scheduleConsumerTimeouts(
 				continue
 			}
 			seen.Add(sid)
-			if err := tx.scheduleStepTimeouts(
-				fl, sid, when, true,
-			); err != nil {
+			if err := tx.scheduleStepTimeouts(fl, sid, when); err != nil {
 				return err
 			}
 		}
@@ -68,23 +57,13 @@ func (tx *flowTx) scheduleConsumerTimeouts(
 }
 
 func (tx *flowTx) scheduleStepTimeouts(
-	fl api.FlowState, sid api.StepID, when time.Time, clearExisting bool,
+	fl api.FlowState, sid api.StepID, when time.Time,
 ) error {
 	st, ok := fl.Plan.Steps[sid]
 	if !ok || !stepHasTimeouts(st) {
 		return nil
 	}
 
-	fs := api.FlowStep{FlowID: fl.ID, StepID: sid}
-	if clearExisting {
-		if err := tx.cancelEventPrefix(timeoutStepPrefix(fs)); err != nil {
-			return err
-		}
-	}
-
-	if policy.FlowTerminal(fl.Status) {
-		return nil
-	}
 	ex, ok := fl.Executions[sid]
 	if !ok || !policy.StepPending(ex.Status) {
 		return nil
@@ -180,12 +159,4 @@ func stepHasTimeouts(st *api.Step) bool {
 func timeoutKey(fs api.FlowStep, name api.Name) []string {
 	return []string{string(fs.FlowID), "timeout", string(fs.StepID),
 		string(name)}
-}
-
-func timeoutFlowPrefix(fid api.FlowID) []string {
-	return []string{string(fid), "timeout"}
-}
-
-func timeoutStepPrefix(fs api.FlowStep) []string {
-	return []string{string(fs.FlowID), "timeout", string(fs.StepID)}
 }

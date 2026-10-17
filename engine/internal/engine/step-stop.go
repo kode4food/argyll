@@ -135,7 +135,7 @@ func (tx *flowTx) handleStepFailure(sid api.StepID) error {
 		if err != nil {
 			return err
 		}
-		return tx.continueStepWork(sid, false)
+		return tx.continueStepWork(sid)
 	}
 
 	return call.Perform(

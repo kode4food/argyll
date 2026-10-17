@@ -26,6 +26,36 @@ type atomicFlowBackend struct {
 	commits       map[api.EventType][]timebox.AppendRequest
 }
 
+func TestStartCachedSteps(t *testing.T) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		assert.NoError(t, env.Engine.Start())
+		a := helpers.NewSimpleStep("memo-a")
+		b := helpers.NewSimpleStep("memo-b")
+		for _, st := range []*api.Step{a, b} {
+			st.Handling = api.HandlingMemoized
+			assert.NoError(t, env.Engine.RegisterStep(st))
+			env.MockClient.SetResponse(st.ID, api.Args{})
+		}
+		pl := &api.ExecutionPlan{
+			Goals: api.Goals{Steps: []api.StepID{a.ID, b.ID}},
+			Steps: api.Steps{a.ID: a, b.ID: b},
+		}
+		fl := env.WaitForFlowStatus("warm-steps", func() {
+			assert.NoError(t, env.Engine.StartPlan("warm-steps", pl))
+		})
+		assert.Equal(t, api.FlowCompleted, fl.Status)
+		assert.Len(t, env.MockClient.GetInvocations(), 2)
+
+		if !assert.NoError(t, env.Engine.StartPlan("cached-steps", pl)) {
+			return
+		}
+		fl, err := env.Engine.GetFlowState("cached-steps")
+		assert.NoError(t, err)
+		assert.Equal(t, api.FlowCompleted, fl.Status)
+		assert.Len(t, env.MockClient.GetInvocations(), 2)
+	})
+}
+
 func TestStartDuplicate(t *testing.T) {
 	t.Run("same goals is idempotent", func(t *testing.T) {
 		helpers.WithStartedEngine(t, func(eng *engine.Engine) {
@@ -489,10 +519,10 @@ func TestAtomicFlowLifecycle(t *testing.T) {
 							}
 						}
 						assert.Equal(t, 2, flowRequests)
-						assert.NotZero(t, scheduleRequests)
 						assert.Contains(t, kinds[fid], phase)
 						switch phase {
 						case api.EventTypeFlowStarted:
+							assert.NotZero(t, scheduleRequests)
 							assert.Contains(t,
 								kinds["atomic"], api.EventTypeWorkStarted)
 						case api.EventTypeFlowCompleted:

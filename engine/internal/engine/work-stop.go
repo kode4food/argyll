@@ -63,19 +63,7 @@ func (tx *flowTx) completeWork(
 		return err
 	}
 
-	if err := tx.clearRetryTask(sid, tkn); err != nil {
-		return err
-	}
-	if err := tx.clearWorkDeadline(sid, tkn); err != nil {
-		return err
-	}
-
 	return tx.handleWorkSucceeded(sid)
-}
-
-func (tx *flowTx) clearRetryTask(sid api.StepID, tkn api.Token) error {
-	fs := api.FlowStep{FlowID: tx.flowID, StepID: sid}
-	return tx.cancelEvent(retryKey(fs, tkn))
 }
 
 func (tx *flowTx) memoizeWorkOutput(
@@ -103,10 +91,7 @@ func (tx *flowTx) failWork(
 	if err := tx.raiseWorkFailed(sid, tkn, errMsg); err != nil {
 		return err
 	}
-	if err := tx.clearWorkDeadline(sid, tkn); err != nil {
-		return err
-	}
-	return tx.handleWorkFailed(sid)
+	return tx.handleStepFailure(sid)
 }
 
 func (tx *flowTx) checkWorkTransition(
@@ -144,7 +129,7 @@ func (tx *flowTx) handleWorkSucceeded(sid api.StepID) error {
 		return err
 	}
 	if !completed {
-		return tx.handleWorkContinuation(sid)
+		return tx.continueStepWork(sid)
 	}
 
 	return call.Perform(
@@ -153,10 +138,6 @@ func (tx *flowTx) handleWorkSucceeded(sid api.StepID) error {
 		tx.startReadyPendingSteps,
 		tx.checkTerminal,
 	)
-}
-
-func (tx *flowTx) handleWorkFailed(sid api.StepID) error {
-	return tx.handleStepFailure(sid)
 }
 
 func (tx *flowTx) handleWorkNotCompleted(
@@ -170,7 +151,7 @@ func (tx *flowTx) handleWorkNotCompleted(
 	}
 	return call.Perform(
 		call.WithArgs(tx.scheduleRetry, sid, tkn),
-		call.WithArgs(tx.continueStepWork, sid, true),
+		call.WithArg(tx.continueStepWork, sid),
 		call.WithArg(tx.handleStepFailure, sid),
 	)
 }
@@ -192,9 +173,6 @@ func (tx *flowTx) handleMemoCacheHit(
 			Outputs: outputs,
 		},
 	); err != nil {
-		return err
-	}
-	if err := tx.clearRetryTask(sid, tkn); err != nil {
 		return err
 	}
 	return tx.handleWorkSucceeded(sid)
@@ -242,15 +220,12 @@ func (tx *flowTx) raiseWorkNotCompleted(
 	); err != nil {
 		return err
 	}
-	if err := events.Raise(tx.FlowAggregator, api.EventTypeWorkNotCompleted,
+	return events.Raise(tx.FlowAggregator, api.EventTypeWorkNotCompleted,
 		api.WorkNotCompletedEvent{
 			FlowID: tx.flowID,
 			StepID: sid,
 			Token:  tkn,
 			Error:  errMsg,
 		},
-	); err != nil {
-		return err
-	}
-	return tx.clearWorkDeadline(sid, tkn)
+	)
 }

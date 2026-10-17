@@ -18,13 +18,16 @@ type (
 	// Handlers maps each step type to the implementation that runs it
 	Handlers api.Map[api.StepType, *Handler]
 
-	// Handler describes the capabilities supplied by a step implementation
+	// Handler describes the capabilities supplied by a step implementation. An
+	// Inline handler's Invoke runs in the transaction starting its work and
+	// reruns on retry, so it must be pure, bounded, and free of I/O
 	Handler struct {
 		Validate   ValidateFunc
 		Invoke     InvokeFunc
 		Health     HealthFunc
 		Children   ChildrenFunc
 		Compensate CompensateFunc
+		Inline     bool
 	}
 
 	// ValidateFunc validates step-type-specific configuration

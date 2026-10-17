@@ -195,7 +195,7 @@ func (e *TestEngineEnv) NewEngineInstance() (*engine.Engine, error) {
 		return nil, err
 	}
 	e.flowExec = e.flowStore.Executor(
-		events.NewFlowState, events.FlowAppliers,
+		events.NewFlowState, events.FlowAppliers.Reduce,
 	)
 	return eng, nil
 }
@@ -483,7 +483,7 @@ func newTestEngine(
 		flowStore:  flowStore,
 		conflict:   conflict,
 		flowExec: flowStore.Executor(
-			events.NewFlowState, events.FlowAppliers,
+			events.NewFlowState, events.FlowAppliers.Reduce,
 		),
 		backend:   shared,
 		subscribe: subscribe,

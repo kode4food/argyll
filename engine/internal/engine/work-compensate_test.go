@@ -414,6 +414,7 @@ func TestCompRetryRunsOnHealthyPeer(t *testing.T) {
 				started: true,
 				pending: true,
 			})
+			assert.NoError(t, env.Engine.RecoverFlow(id))
 			w.ForAll(
 				wait.CompSucceeded(fs),
 				wait.FlowDeactivated(id),
@@ -606,6 +607,7 @@ func TestCompRetryDeferredUntilPeerRecovers(t *testing.T) {
 			started: true,
 			pending: true,
 		})
+		assert.NoError(t, env.Engine.RecoverFlow(id))
 		select {
 		case <-compensated:
 			t.Fatal("compensation ran while both replicas were unhealthy")

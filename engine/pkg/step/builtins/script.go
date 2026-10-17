@@ -18,6 +18,7 @@ var (
 func Script() *step.Handler {
 	scripts := script.NewRegistry()
 	return &step.Handler{
+		Inline: true,
 		Validate: func(st *api.Step) error {
 			if st.Script == nil {
 				return api.ErrScriptRequired

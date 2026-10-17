@@ -15,6 +15,139 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/util"
 )
 
+func TestMemoizedParallelWork(t *testing.T) {
+	for _, tt := range []struct {
+		name        string
+		items       []any
+		invocations int
+	}{
+		{name: "cached", items: []any{"a", "b"}, invocations: 2},
+		{name: "mixed", items: []any{"a", "b", "c", "d"}, invocations: 4},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+				assert.NoError(t, env.Engine.Start())
+				st := helpers.NewTestStepWithArgs([]api.Name{"items"}, nil)
+				st.Handling = api.HandlingMemoized
+				st.WorkConfig = &api.WorkConfig{Parallelism: 2}
+				st.Attributes["items"].Required = &api.RequiredConfig{
+					ForEach: true,
+				}
+				st.Attributes["items"].Type = api.TypeArray
+				assert.NoError(t, env.Engine.RegisterStep(st))
+				env.MockClient.SetResponse(st.ID, api.Args{})
+				pl := &api.ExecutionPlan{
+					Goals: api.Goals{Steps: []api.StepID{st.ID}},
+					Steps: api.Steps{st.ID: st},
+				}
+				fl := env.WaitForFlowStatus("warm-items", func() {
+					err := env.Engine.StartPlan("warm-items", pl,
+						flow.WithInit(api.InitArgs{"items": {[]any{"a", "b"}}}),
+					)
+					assert.NoError(t, err)
+				})
+				assert.Equal(t, api.FlowCompleted, fl.Status)
+				assert.Len(t, env.MockClient.GetInvocations(), 2)
+
+				err := env.Engine.StartPlan("cached-items", pl,
+					flow.WithInit(api.InitArgs{"items": {tt.items}}),
+				)
+				if !assert.NoError(t, err) {
+					return
+				}
+				fl = env.WaitForTerminalFlow("cached-items")
+				assert.Equal(t, api.FlowCompleted, fl.Status)
+				assert.Len(t, env.MockClient.GetInvocations(), tt.invocations)
+			})
+		})
+	}
+}
+
+func TestCachedChildFlows(t *testing.T) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		assert.NoError(t, env.Engine.Start())
+		leaf := helpers.NewSimpleStep("cached-leaf")
+		leaf.Handling = api.HandlingMemoized
+		assert.NoError(t, env.Engine.RegisterStep(leaf))
+		env.MockClient.SetResponse(leaf.ID, api.Args{})
+		child := &api.ExecutionPlan{
+			Goals: api.Goals{Steps: []api.StepID{leaf.ID}},
+			Steps: api.Steps{leaf.ID: leaf},
+		}
+		fl := env.WaitForFlowStatus("warm-leaf", func() {
+			assert.NoError(t, env.Engine.StartPlan("warm-leaf", child))
+		})
+		assert.Equal(t, api.FlowCompleted, fl.Status)
+
+		sub := &api.Step{
+			ID:   "cached-sub",
+			Type: api.StepTypeFlow,
+			Attributes: api.AttributeSpecs{
+				"items": {
+					Role:     api.RoleRequired,
+					Type:     api.TypeArray,
+					Required: &api.RequiredConfig{ForEach: true},
+				},
+			},
+			WorkConfig: &api.WorkConfig{Parallelism: 2},
+		}
+		pl := &api.ExecutionPlan{
+			Goals:    api.Goals{Steps: []api.StepID{sub.ID}},
+			Steps:    api.Steps{sub.ID: sub},
+			Children: map[api.StepID]*api.ExecutionPlan{sub.ID: child},
+		}
+		err := env.Engine.StartPlan("cached-parent", pl,
+			flow.WithInit(api.InitArgs{"items": {[]any{"a", "b"}}}),
+		)
+		if !assert.NoError(t, err) {
+			return
+		}
+		fl, err = env.Engine.GetFlowState("cached-parent")
+		assert.NoError(t, err)
+		assert.Equal(t, api.FlowCompleted, fl.Status)
+		assert.Len(t, env.MockClient.GetInvocations(), 1)
+	})
+}
+
+func TestDeferredAfterMemoHit(t *testing.T) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		assert.NoError(t, env.Engine.Start())
+		st := helpers.NewTestStepWithArgs([]api.Name{"items"}, nil)
+		st.Handling = api.HandlingMemoized
+		st.WorkConfig = &api.WorkConfig{Parallelism: 2}
+		st.Attributes["items"].Required = &api.RequiredConfig{ForEach: true}
+		st.Attributes["items"].Type = api.TypeArray
+		assert.NoError(t, env.Engine.RegisterStep(st))
+		env.MockClient.SetResponse(st.ID, api.Args{})
+		pl := &api.ExecutionPlan{
+			Goals: api.Goals{Steps: []api.StepID{st.ID}},
+			Steps: api.Steps{st.ID: st},
+		}
+		fl := env.WaitForFlowStatus("warm-deferred", func() {
+			assert.NoError(t, env.Engine.StartPlan("warm-deferred", pl,
+				flow.WithInit(api.InitArgs{"items": {[]any{"a"}}}),
+			))
+		})
+		assert.Equal(t, api.FlowCompleted, fl.Status)
+
+		assert.NoError(t, env.Engine.UpdateStepHealth(
+			st.ID, api.HealthUnhealthy, "offline",
+		))
+		assert.NoError(t, env.Engine.StartPlan("deferred", pl,
+			flow.WithInit(api.InitArgs{"items": {[]any{"a", "c"}}}),
+		))
+		evs, err := env.Engine.GetFlowEvents("deferred")
+		assert.NoError(t, err)
+		deferred := 0
+		for _, ev := range evs {
+			if api.EventType(ev.Type) == api.EventTypeDispatchDeferred {
+				deferred++
+			}
+		}
+		assert.Equal(t, 1, deferred)
+	})
+}
+
 func TestMemoizedWork(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		assert.NoError(t, env.Engine.Start())

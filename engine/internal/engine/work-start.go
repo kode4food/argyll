@@ -3,12 +3,12 @@ package engine
 import (
 	"errors"
 	"fmt"
-	"log/slog"
+	"maps"
+	"slices"
 	"time"
 
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/events"
-	"github.com/kode4food/argyll/engine/pkg/log"
 	"github.com/kode4food/argyll/engine/pkg/policy"
 	"github.com/kode4food/argyll/engine/pkg/step"
 )
@@ -26,18 +26,6 @@ type (
 
 	// MultiArgs maps attribute names to value arrays for parallel execution
 	MultiArgs map[api.Name][]any
-
-	// workSettler records how dispatched work or its compensation ended
-	workSettler interface {
-		step.Runtime
-		notCompleteWork(api.Token, string) error
-		failWork(api.Token, string) error
-	}
-
-	// workRuntime is the Runtime an invocation receives, settling work items
-	workRuntime struct {
-		*ExecContext
-	}
 )
 
 var (
@@ -63,18 +51,6 @@ func (e *ExecContext) Metadata() api.Metadata {
 
 func (e *ExecContext) UpdateHealth(s api.HealthStatus, msg string) error {
 	return e.engine.UpdateStepHealth(e.stepID, s, msg)
-}
-
-func (r workRuntime) CompleteWork(tkn api.Token, outputs api.Args) error {
-	return r.engine.CompleteWork(r.flowStep(), tkn, outputs)
-}
-
-func (r workRuntime) notCompleteWork(tkn api.Token, errMsg string) error {
-	return r.engine.NotCompleteWork(r.flowStep(), tkn, errMsg)
-}
-
-func (r workRuntime) failWork(tkn api.Token, errMsg string) error {
-	return r.engine.FailWork(r.flowStep(), tkn, errMsg)
 }
 
 func (tx *flowTx) executeStartedWork(
@@ -129,19 +105,16 @@ func (tx *flowTx) startPendingWork(st *api.Step) (api.WorkItems, error) {
 	}
 
 	limit := policy.StepParallelism(st)
-	active := policy.CountActiveWorkItems(ex.WorkItems)
-	remaining := limit - active
-	if remaining <= 0 {
-		return nil, nil
-	}
-
 	now := tx.Now()
 	started := api.WorkItems{}
 	canDispatch := tx.canDispatchLocally(st.ID)
-	for tkn, work := range ex.WorkItems {
-		if remaining == 0 {
+	for _, tkn := range slices.Sorted(maps.Keys(ex.WorkItems)) {
+		ex = tx.Value().Executions[sid]
+		if !policy.StepActive(ex.Status) ||
+			policy.CountActiveWorkItems(ex.WorkItems) >= limit {
 			break
 		}
+		work := ex.WorkItems[tkn]
 		shouldStart, err := tx.shouldStartPendingWorkItem(
 			st, ex.Inputs, work, now,
 		)
@@ -155,12 +128,7 @@ func (tx *flowTx) startPendingWork(st *api.Step) (api.WorkItems, error) {
 		inputs := ex.Inputs.Apply(work.Inputs)
 		if st.DefaultedHandling() == api.HandlingMemoized {
 			if cached, ok := tx.memoCache.Get(st, inputs); ok {
-				err := tx.handleMemoCacheHit(sid, tkn, cached)
-				if err != nil {
-					return nil, err
-				}
-				remaining--
-				continue
+				return started, tx.handleMemoCacheHit(sid, tkn, cached)
 			}
 		}
 		if !canDispatch {
@@ -170,11 +138,19 @@ func (tx *flowTx) startPendingWork(st *api.Step) (api.WorkItems, error) {
 		if err := tx.raiseWorkStarted(sid, tkn, inputs); err != nil {
 			return nil, err
 		}
-		ex = tx.Value().Executions[sid]
-		started[tkn] = ex.WorkItems[tkn]
-		remaining--
+		started[tkn] = tx.Value().Executions[sid].WorkItems[tkn]
 	}
 
+	ex = tx.Value().Executions[sid]
+	if !canDispatch && policy.WorkReadyToDispatch(st, ex, now) {
+		if err := tx.raiseDispatchDeferred(sid); err != nil {
+			return nil, err
+		}
+		err := tx.scheduleWorkDispatch(sid, now.Add(localDispatchBackoff))
+		if err != nil {
+			return nil, err
+		}
+	}
 	return started, nil
 }
 
@@ -287,38 +263,27 @@ func (tx *flowTx) raiseWorkStarted(
 	); err != nil {
 		return err
 	}
+	st := tx.Value().Plan.Steps[sid]
+	if h, err := tx.steps.Lookup(st.Type); err == nil && h.Inline {
+		return tx.invokeInline(h, st, tkn, inputs)
+	}
 	if at, ok := tx.workDeadline(tx.Value(), sid, tkn); ok {
 		if err := tx.scheduleWorkDeadlineAt(sid, tkn, at); err != nil {
 			return err
 		}
 	}
-	if tx.Value().Plan.Steps[sid].Type == api.StepTypeFlow {
+	if st.Type == api.StepTypeFlow {
 		return tx.startChildFlow(sid, tkn, inputs)
 	}
 	return nil
 }
 
-// settleFailure records a handler error as a retry when the handler reports the
-// work not completed, and as a permanent failure otherwise
-func settleFailure(s workSettler, tkn api.Token, err error) {
-	if errors.Is(err, api.ErrInvalidWorkTransition) {
-		return
+func (tx *flowTx) invokeInline(
+	h *step.Handler, st *api.Step, tkn api.Token, inputs api.Args,
+) error {
+	rt := &txRuntime{tx: tx, sid: st.ID}
+	if err := h.Invoke(rt, st, inputs, tkn); err != nil && rt.err == nil {
+		settleFailure(rt, tkn, err)
 	}
-
-	if errors.Is(err, api.ErrWorkNotCompleted) {
-		if recErr := s.notCompleteWork(tkn, err.Error()); recErr != nil {
-			slog.Error("Failed to record work not completed",
-				log.FlowID(s.FlowID()),
-				log.StepID(s.StepID()),
-				log.Error(recErr))
-		}
-		return
-	}
-
-	if recErr := s.failWork(tkn, err.Error()); recErr != nil {
-		slog.Error("Failed to record work failure",
-			log.FlowID(s.FlowID()),
-			log.StepID(s.StepID()),
-			log.Error(recErr))
-	}
+	return rt.err
 }

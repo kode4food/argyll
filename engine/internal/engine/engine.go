@@ -168,12 +168,14 @@ func (e *Engine) openStores(open OpenBackend) error {
 	e.engStore = engStore
 	e.flowStore = flowStore
 	e.catalogExec = engStore.Executor(
-		events.NewCatalogState, events.CatalogAppliers,
+		events.NewCatalogState, events.CatalogAppliers.Reduce,
 	)
 	e.clusterExec = engStore.Executor(
-		events.NewClusterState, events.ClusterAppliers,
+		events.NewClusterState, events.ClusterAppliers.Reduce,
 	)
-	e.flowExec = flowStore.Executor(events.NewFlowState, events.FlowAppliers)
+	e.flowExec = flowStore.Executor(
+		events.NewFlowState, events.FlowAppliers.Reduce,
+	)
 	return nil
 }
 

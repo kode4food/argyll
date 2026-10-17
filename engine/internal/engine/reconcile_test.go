@@ -24,72 +24,43 @@ var errTransient = fmt.Errorf(
 	"%w: transient failure", api.ErrWorkNotCompleted,
 )
 
-// TestCommittedEventWakesIdleReplica proves a scheduled retry is reconstructed
-// from the committed batch alone, with no call to RecoverFlow
-func TestCommittedEventWakesIdleReplica(t *testing.T) {
-	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		assert.NoError(t, env.Engine.Start())
-
-		st := helpers.NewSimpleStep("reconcile-retry-step")
-		assert.NoError(t, env.Engine.RegisterStep(st))
-		env.MockClient.SetResponse(st.ID, api.Args{})
-
-		id := api.FlowID("wf-reconcile-retry")
-		fs := api.FlowStep{FlowID: id, StepID: st.ID}
-		tkn := api.Token("work-a")
-
-		env.WaitFor(wait.WorkStarted(fs), func() {
-			seedRetryScheduledFlow(env, fs, tkn)
-		})
-
-		assert.True(t,
-			env.MockClient.WaitForInvocation(st.ID, wait.DefaultTimeout),
-		)
-	})
-}
-
+// TestCommittedEventFilter proves only deferred dispatch requests reconciling
 func TestCommittedEventFilter(t *testing.T) {
-	types := []api.EventType{
-		api.EventTypeWorkRetryScheduled,
-		api.EventTypeDispatchDeferred,
-		"future_flow_event",
+	types := map[api.EventType]bool{
+		api.EventTypeAttributeSet:       false,
+		api.EventTypeWorkRetryScheduled: false,
+		api.EventTypeDispatchDeferred:   true,
+		"future_flow_event":             false,
 	}
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		st := helpers.NewSimpleStep("reconcile-filter-step")
 		assert.NoError(t, env.Engine.RegisterStep(st))
 
-		for _, typ := range types {
+		for typ, schedules := range types {
 			t.Run(string(typ), func(t *testing.T) {
 				fid := api.FlowID("wf-filter-" + typ)
 				fs := api.FlowStep{FlowID: fid, StepID: st.ID}
 				seedRetryScheduledFlow(env, fs, "work-a")
 				before := scheduleVersions(t, env)
-				ev := &timebox.Event{
-					AggregateID: events.FlowKey(fid),
-					Type:        timebox.EventType(typ),
-				}
 
 				env.Engine.HandleCommitted(&timebox.Event{
 					AggregateID: events.FlowKey(fid),
-					Type:        timebox.EventType(api.EventTypeAttributeSet),
+					Type:        timebox.EventType(typ),
 				})
-				afterAttribute := scheduleVersions(t, env)
-				assert.Equal(t, before, afterAttribute)
-
-				env.Engine.HandleCommitted(ev, &timebox.Event{
-					AggregateID: events.FlowKey(fid),
-					Type:        timebox.EventType(api.EventTypeAttributeSet),
-				})
-				afterEvent := scheduleVersions(t, env)
-				assert.NotEqual(t, before, afterEvent)
+				after := scheduleVersions(t, env)
+				if schedules {
+					assert.NotEqual(t, before, after)
+					return
+				}
+				assert.Equal(t, before, after)
 			})
 		}
 	})
 }
 
-// TestDuplicateCommittedBatchStartsWorkOnce proves the deterministic task keys
-// collapse a batch that a replica sees more than once
-func TestDuplicateCommittedBatchStartsWorkOnce(t *testing.T) {
+// TestDuplicateRecoveryStartsWorkOnce proves the deterministic task keys
+// collapse a recovery that runs more than once
+func TestDuplicateRecoveryStartsWorkOnce(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		assert.NoError(t, env.Engine.Start())
 
@@ -110,10 +81,8 @@ func TestDuplicateCommittedBatchStartsWorkOnce(t *testing.T) {
 
 		env.WaitFor(wait.WorkStarted(fs), func() {
 			seedRetryScheduledFlow(env, fs, tkn)
-			// The same batch reaching a replica twice must not run it twice
-			evs, err := env.Engine.GetFlowEvents(id)
-			assert.NoError(t, err)
-			env.Engine.HandleCommitted(evs...)
+			assert.NoError(t, env.Engine.RecoverFlow(id))
+			assert.NoError(t, env.Engine.RecoverFlow(id))
 		})
 
 		assert.Equal(t, st.ID, <-invocations)
@@ -125,9 +94,9 @@ func TestDuplicateCommittedBatchStartsWorkOnce(t *testing.T) {
 	})
 }
 
-// TestBatchUsesFinalState proves a handler reads the projection at the end of
+// TestBatchUsesFinalState proves recovery reads the projection at the end of
 // the committed batch. The intermediate state carries a lapsed retry, so a
-// per-event handler would dispatch work the final state has already settled
+// per-event reading would dispatch work the final state has already settled
 func TestBatchUsesFinalState(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		assert.NoError(t, env.Engine.Start())
@@ -156,6 +125,7 @@ func TestBatchUsesFinalState(t *testing.T) {
 				Outputs: api.Args{},
 			},
 		})
+		assert.NoError(t, env.Engine.RecoverFlow(id))
 
 		select {
 		case <-invocations:
@@ -196,9 +166,7 @@ func TestConcurrentReplicasStartWorkOnce(t *testing.T) {
 		fs := api.FlowStep{FlowID: id, StepID: st.ID}
 		tkn := api.Token("work-a")
 
-		env.WaitFor(wait.WorkStarted(fs), func() {
-			seedRetryScheduledFlow(env, fs, tkn)
-		})
+		seedRetryScheduledFlow(env, fs, tkn)
 
 		// Both replicas race the same still-projected condition
 		var wg sync.WaitGroup

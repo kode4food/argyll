@@ -1,7 +1,8 @@
 package engine
 
 import (
-	"errors"
+	"maps"
+	"slices"
 
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/events"
@@ -82,37 +83,38 @@ func (tx *flowTx) skipPendingUnused() error {
 }
 
 func (tx *flowTx) startReadyPendingSteps() error {
-	if policy.FlowTerminal(tx.Value().Status) {
-		return nil
-	}
-
-	for {
-		fl := tx.Value()
-		now := tx.Now()
-		startedAny := false
-
-		for sid, ex := range fl.Executions {
-			if !policy.StepPending(ex.Status) {
-				continue
-			}
-
-			ready, _ := tx.canStartStepAt(sid, fl, now)
-			if !ready {
-				continue
-			}
-
-			if err := tx.prepareStep(sid); err != nil {
-				if errors.Is(err, ErrStepAlreadyPending) {
-					continue
-				}
-				return err
-			}
-			startedAny = true
-			break
-		}
-
-		if !startedAny || policy.FlowTerminal(tx.Value().Status) {
+	for !policy.FlowTerminal(tx.Value().Status) {
+		ready := tx.readyPendingSteps()
+		if len(ready) == 0 {
 			return nil
 		}
+		for _, sid := range ready {
+			fl := tx.Value()
+			if policy.FlowTerminal(fl.Status) {
+				return nil
+			}
+			if !policy.StepPending(fl.Executions[sid].Status) {
+				continue
+			}
+			if err := tx.prepareStep(sid); err != nil {
+				return err
+			}
+		}
 	}
+	return nil
+}
+
+func (tx *flowTx) readyPendingSteps() []api.StepID {
+	fl := tx.Value()
+	now := tx.Now()
+	var res []api.StepID
+	for _, sid := range slices.Sorted(maps.Keys(fl.Executions)) {
+		if !policy.StepPending(fl.Executions[sid].Status) {
+			continue
+		}
+		if ready, _ := tx.canStartStepAt(sid, fl, now); ready {
+			res = append(res, sid)
+		}
+	}
+	return res
 }
