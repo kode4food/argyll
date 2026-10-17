@@ -260,6 +260,7 @@ Inside the executor command:
     - If the predicate is false, raise StepSkippedEvent
     - Otherwise raise StepStartedEvent with computed work items
     - Raise WorkStartedEvent for each work item that can start now
+    - Run Inline handlers, such as scripts, settling their work here
     - Register OnSuccess handlers for post-commit side effects
   ↓
 Commit succeeds
@@ -269,7 +270,7 @@ OnSuccess handlers run:
   - Launch newly started work items
   ↓
 Work item execution branch:
-  - Script/sync HTTP: perform work, then call CompleteWork() on success
+  - Sync HTTP: perform work, then call CompleteWork() on success
   - Async HTTP: invoke the step and return; webhook later calls CompleteWork()/FailWork()
   - Flow step: no external execution; parent work start and child creation already committed atomically using the precomputed child plan
   ↓
