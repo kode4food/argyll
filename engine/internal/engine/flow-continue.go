@@ -20,12 +20,12 @@ func (tx *flowTx) checkUnreachable() error {
 			if !policy.StepPending(ex.Status) {
 				continue
 			}
-			if tx.canStepComplete(sid, fl) {
+			if tx.canStepComplete(sid, &fl) {
 				continue
 			}
 
 			st := fl.Plan.Steps[sid]
-			inputs, err := tx.collectStepInputs(st, fl)
+			inputs, err := tx.collectStepInputs(st, &fl)
 			if err != nil {
 				inputs = ex.Inputs
 			}
@@ -59,7 +59,7 @@ func (tx *flowTx) skipPendingUnused() error {
 			if !policy.StepPending(ex.Status) {
 				continue
 			}
-			if tx.areOutputsNeeded(sid, fl, keptGoals(fl)) {
+			if tx.areOutputsNeeded(sid, &fl, keptGoals(&fl)) {
 				continue
 			}
 
@@ -112,7 +112,7 @@ func (tx *flowTx) readyPendingSteps() []api.StepID {
 		if !policy.StepPending(fl.Executions[sid].Status) {
 			continue
 		}
-		if ready, _ := tx.canStartStepAt(sid, fl, now); ready {
+		if ready, _ := tx.canStartStepAt(sid, &fl, now); ready {
 			res = append(res, sid)
 		}
 	}

@@ -113,7 +113,7 @@ func (c *httpClient) sendRequest(
 		slog.Error("Failed to read response body",
 			log.StepID(st.ID),
 			log.Error(err))
-		return nil, err
+		return nil, errors.Join(api.ErrWorkNotCompleted, err)
 	}
 
 	if resp.StatusCode/100 != 2 { // not a 2xx success response

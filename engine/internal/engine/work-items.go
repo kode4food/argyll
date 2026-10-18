@@ -43,9 +43,9 @@ func computeWorkItems(st *api.Step, inputs api.Args) ([]api.Args, error) {
 		return []api.Args{{}}, nil
 	}
 
-	if n := productSize(multiArgs); n > MaxWorkItemsPerStep {
-		return nil, fmt.Errorf("%w: %d (max %d)", ErrTooManyWorkItems,
-			n, MaxWorkItemsPerStep)
+	n, err := productSize(multiArgs)
+	if err != nil || n == 0 {
+		return nil, err
 	}
 	return cartesianProduct(multiArgs), nil
 }
@@ -82,12 +82,22 @@ func asArray(value any) []any {
 	return arr
 }
 
-func productSize(multiArgs MultiArgs) int {
+// productSize bounds non-empty products before multiplication can overflow
+func productSize(multiArgs MultiArgs) (int, error) {
+	for _, arr := range multiArgs {
+		if len(arr) == 0 {
+			return 0, nil
+		}
+	}
 	n := 1
 	for _, arr := range multiArgs {
+		if n > MaxWorkItemsPerStep/len(arr) {
+			return 0, fmt.Errorf("%w: max %d",
+				ErrTooManyWorkItems, MaxWorkItemsPerStep)
+		}
 		n *= len(arr)
 	}
-	return n
+	return n, nil
 }
 
 func cartesianProduct(multiArgs MultiArgs) []api.Args {

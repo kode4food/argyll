@@ -88,7 +88,7 @@ func (e *Engine) GetAttribute(
 
 // IsFlowFailed determines if a flow has failed by checking whether every one of
 // its goal sets has become impossible
-func (e *Engine) IsFlowFailed(fl api.FlowState) bool {
+func (e *Engine) IsFlowFailed(fl *api.FlowState) bool {
 	for _, goals := range fl.Plan.Goals.Sets() {
 		if !e.goalSetImpossible(goals, fl) {
 			return false
@@ -99,7 +99,7 @@ func (e *Engine) IsFlowFailed(fl api.FlowState) bool {
 
 // HasInputProvider checks if a required attribute has at least one step that
 // can provide it in the flow execution plan
-func (e *Engine) HasInputProvider(name api.Name, fl api.FlowState) bool {
+func (e *Engine) HasInputProvider(name api.Name, fl *api.FlowState) bool {
 	deps, ok := fl.Plan.Attributes[name]
 	if !ok {
 		return false
@@ -125,7 +125,7 @@ func (e *Engine) HasInputProvider(name api.Name, fl api.FlowState) bool {
 	return false
 }
 
-func (e *Engine) goalSetImpossible(goals []api.StepID, fl api.FlowState) bool {
+func (e *Engine) goalSetImpossible(goals []api.StepID, fl *api.FlowState) bool {
 	return goalSetFailed(goals, fl) || slices.ContainsFunc(goals,
 		func(sid api.StepID) bool {
 			ex := fl.Executions[sid]
@@ -136,7 +136,7 @@ func (e *Engine) goalSetImpossible(goals []api.StepID, fl api.FlowState) bool {
 }
 
 func (e *Engine) areOutputsNeeded(
-	sid api.StepID, fl api.FlowState, goals []api.StepID,
+	sid api.StepID, fl *api.FlowState, goals []api.StepID,
 ) bool {
 	if slices.Contains(goals, sid) {
 		return true
@@ -144,7 +144,10 @@ func (e *Engine) areOutputsNeeded(
 	return e.needsOutputs(fl.Plan.Steps[sid], fl, goalScope(fl.Plan, goals))
 }
 
-func (e *Engine) canStepComplete(sid api.StepID, fl api.FlowState) bool {
+func (e *Engine) canStepComplete(sid api.StepID, fl *api.FlowState) bool {
+	if _, ok := fl.Plan.Excluded.Satisfied[sid]; ok {
+		return true
+	}
 	ex := fl.Executions[sid]
 	if policy.StepTerminal(ex.Status) {
 		return policy.StepSucceeded(ex.Status)
@@ -174,7 +177,7 @@ func (e *Engine) canStepComplete(sid api.StepID, fl api.FlowState) bool {
 }
 
 func (e *Engine) matchGateWillSkip(
-	st *api.Step, fl api.FlowState,
+	st *api.Step, fl *api.FlowState,
 ) (bool, error) {
 	unsatisfied, err := e.matchGateUnsatisfiedInputs(st, fl)
 	if err != nil {
@@ -184,7 +187,7 @@ func (e *Engine) matchGateWillSkip(
 }
 
 func (e *Engine) matchGateUnsatisfiedInputs(
-	st *api.Step, fl api.FlowState,
+	st *api.Step, fl *api.FlowState,
 ) ([]api.Name, error) {
 	var unsatisfied []api.Name
 	for name, attr := range st.Attributes {
@@ -213,7 +216,7 @@ func (e *Engine) matchGateUnsatisfiedInputs(
 }
 
 func (e *Engine) needsOutputs(
-	st *api.Step, fl api.FlowState, scope util.Set[api.StepID],
+	st *api.Step, fl *api.FlowState, scope util.Set[api.StepID],
 ) bool {
 	for name, attr := range st.Attributes {
 		if e.needsOutput(name, attr, fl, scope) {
@@ -226,7 +229,7 @@ func (e *Engine) needsOutputs(
 // needsOutput reports whether a pending consumer within scope still needs
 // the named output
 func (e *Engine) needsOutput(
-	name api.Name, attr *api.AttributeSpec, fl api.FlowState,
+	name api.Name, attr *api.AttributeSpec, fl *api.FlowState,
 	scope util.Set[api.StepID],
 ) bool {
 	if !attr.IsOutput() {
@@ -262,7 +265,7 @@ func (e *Engine) needsOutput(
 }
 
 func (e *Engine) inputHasValue(
-	name api.Name, attr *api.AttributeSpec, fl api.FlowState,
+	name api.Name, attr *api.AttributeSpec, fl *api.FlowState,
 ) bool {
 	values := fl.AttributeValues(name)
 	if !policy.RequiredInputHasMatch(attr) {
@@ -274,7 +277,7 @@ func (e *Engine) inputHasValue(
 
 // isFlowComplete reports whether the active goal set has succeeded and no step
 // is still pending or running
-func isFlowComplete(fl api.FlowState) bool {
+func isFlowComplete(fl *api.FlowState) bool {
 	active := activeGoals(fl)
 	if active == nil || !goalsComplete(active.Steps, fl) {
 		return false
@@ -289,7 +292,7 @@ func isFlowComplete(fl api.FlowState) bool {
 
 // activeGoals returns the first link in the goal chain that has not failed,
 // since checkUnreachable fails impossible pending goals before any start
-func activeGoals(fl api.FlowState) *api.Goals {
+func activeGoals(fl *api.FlowState) *api.Goals {
 	for g := &fl.Plan.Goals; g != nil; g = g.Else {
 		if !goalSetFailed(g.Steps, fl) {
 			return g
@@ -299,7 +302,7 @@ func activeGoals(fl api.FlowState) *api.Goals {
 }
 
 // startGoals returns the goals whose work may start: the active set only
-func startGoals(fl api.FlowState) []api.StepID {
+func startGoals(fl *api.FlowState) []api.StepID {
 	if active := activeGoals(fl); active != nil {
 		return active.Steps
 	}
@@ -308,7 +311,7 @@ func startGoals(fl api.FlowState) []api.StepID {
 
 // keptGoals returns the goals whose outputs must be kept: the active set once
 // it succeeds, otherwise the active set and every later fallback set
-func keptGoals(fl api.FlowState) []api.StepID {
+func keptGoals(fl *api.FlowState) []api.StepID {
 	active := activeGoals(fl)
 	if active == nil {
 		return fl.Plan.Goals.AllSteps()
@@ -319,7 +322,7 @@ func keptGoals(fl api.FlowState) []api.StepID {
 	return active.AllSteps()
 }
 
-func hasPendingMatchGate(st *api.Step, fl api.FlowState) bool {
+func hasPendingMatchGate(st *api.Step, fl *api.FlowState) bool {
 	for name, attr := range st.Attributes {
 		if !policy.RequiredInputHasMatch(attr) {
 			continue
@@ -334,7 +337,7 @@ func hasPendingMatchGate(st *api.Step, fl api.FlowState) bool {
 
 // goalSetFailed reports whether a goal in the set failed, or every goal in it
 // was pruned by a required match
-func goalSetFailed(goals []api.StepID, fl api.FlowState) bool {
+func goalSetFailed(goals []api.StepID, fl *api.FlowState) bool {
 	viableGoal := false
 	for _, sid := range goals {
 		ex := fl.Executions[sid]
@@ -348,8 +351,11 @@ func goalSetFailed(goals []api.StepID, fl api.FlowState) bool {
 	return !viableGoal
 }
 
-func goalsComplete(goals []api.StepID, fl api.FlowState) bool {
+func goalsComplete(goals []api.StepID, fl *api.FlowState) bool {
 	return !slices.ContainsFunc(goals, func(sid api.StepID) bool {
+		if _, ok := fl.Plan.Excluded.Satisfied[sid]; ok {
+			return false
+		}
 		return !policy.StepComplete(fl.Executions[sid].Status)
 	})
 }
@@ -375,7 +381,7 @@ func goalScope(pl *api.ExecutionPlan, goals []api.StepID) util.Set[api.StepID] {
 	return res
 }
 
-func canCollectAll(name api.Name, fl api.FlowState) bool {
+func canCollectAll(name api.Name, fl *api.FlowState) bool {
 	deps, ok := fl.Plan.Attributes[name]
 	if !ok {
 		return false
@@ -392,7 +398,7 @@ func canCollectAll(name api.Name, fl api.FlowState) bool {
 	return true
 }
 
-func hasActiveWork(fl api.FlowState) bool {
+func hasActiveWork(fl *api.FlowState) bool {
 	for _, ex := range fl.Executions {
 		for _, work := range ex.WorkItems {
 			if policy.WorkBlocksFlowDeactivation(work.Status) {

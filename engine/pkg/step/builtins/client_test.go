@@ -5,6 +5,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"testing"
 	"time"
 
@@ -14,6 +15,32 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/step/builtins"
 )
+
+func TestTruncatedResponse(t *testing.T) {
+	body := "{"
+	srv := httptest.NewServer(http.HandlerFunc(
+		func(w http.ResponseWriter, _ *http.Request) {
+			w.Header().Set("Content-Length", strconv.Itoa(len(body)+1))
+			_, err := io.WriteString(w, body)
+			assert.NoError(t, err)
+		},
+	))
+	defer srv.Close()
+	st := &api.Step{
+		ID: "truncated",
+		HTTP: &api.HTTPConfig{
+			Invoke:     api.HTTPAction{Endpoint: srv.URL},
+			Compensate: &api.HTTPAction{Endpoint: srv.URL},
+		},
+	}
+	cl := builtins.NewHTTPClient(time.Second)
+	_, err := cl.Invoke(st, nil, nil)
+	assert.ErrorIs(t, err, api.ErrWorkNotCompleted)
+	assert.ErrorIs(t, err, io.ErrUnexpectedEOF)
+	err = cl.Compensate(st, nil, nil)
+	assert.ErrorIs(t, err, api.ErrWorkNotCompleted)
+	assert.ErrorIs(t, err, io.ErrUnexpectedEOF)
+}
 
 func TestNewHTTPClient(t *testing.T) {
 	timeout := 30 * time.Second

@@ -10,7 +10,7 @@ import (
 )
 
 func (tx *flowTx) scheduleTimeouts(fl api.FlowState, when time.Time) error {
-	if !flowHasTimeouts(fl) || policy.FlowTerminal(fl.Status) {
+	if !flowHasTimeouts(&fl) || policy.FlowTerminal(fl.Status) {
 		return nil
 	}
 
@@ -69,7 +69,7 @@ func (tx *flowTx) scheduleStepTimeouts(
 		return nil
 	}
 
-	s := tx.newStepEval(sid, fl, when)
+	s := tx.newStepEval(sid, &fl, when)
 	anchor, err := s.requiredReadyAt()
 	if err != nil {
 		return nil
@@ -120,7 +120,7 @@ func (tx *flowTx) handleStepTimeout(
 		return nil
 	}
 
-	ready, nextAt := tx.canStartStepAt(sid, fl, when)
+	ready, nextAt := tx.canStartStepAt(sid, &fl, when)
 	if !ready {
 		if !nextAt.IsZero() {
 			return tx.scheduleTimeoutTask(sid, name, nextAt)
@@ -138,7 +138,7 @@ func (tx *flowTx) handleStepTimeout(
 	return tx.skipPendingUnused()
 }
 
-func flowHasTimeouts(fl api.FlowState) bool {
+func flowHasTimeouts(fl *api.FlowState) bool {
 	for _, st := range fl.Plan.Steps {
 		if stepHasTimeouts(st) {
 			return true

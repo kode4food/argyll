@@ -42,7 +42,7 @@ func (tx *flowTx) recoverRetries(fl api.FlowState) error {
 	now := tx.Now()
 	for sid, ex := range fl.Executions {
 		for tkn, work := range ex.WorkItems {
-			if retryAt, ok := policy.RecoverableDeadline(ex, work, now); ok {
+			if retryAt, ok := policy.RecoverableDeadline(&ex, &work, now); ok {
 				if err := tx.scheduleRetryTask(sid, tkn, retryAt); err != nil {
 					return err
 				}

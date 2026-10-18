@@ -66,7 +66,7 @@ func StepWorkCompletion(items api.WorkItems) WorkCompletion {
 // whether it has one at all. HTTP steps use their configured timeout, which
 // for async work bounds the callback; the rest fall back to the step timeout
 func WorkDeadline(
-	st *api.Step, work api.WorkState, fallback time.Duration,
+	st *api.Step, work *api.WorkState, fallback time.Duration,
 ) (time.Time, bool) {
 	if st == nil || st.Type == api.StepTypeFlow || work.StartedAt.IsZero() {
 		return time.Time{}, false
@@ -100,7 +100,7 @@ func WorkDeadline(
 // WorkReadyToDispatch reports whether a step has a pending work item that can
 // be claimed now, respecting parallelism and any scheduled retry time
 func WorkReadyToDispatch(
-	st *api.Step, ex api.ExecutionState, when time.Time,
+	st *api.Step, ex *api.ExecutionState, when time.Time,
 ) bool {
 	if CountActiveWorkItems(ex.WorkItems) >= StepParallelism(st) {
 		return false

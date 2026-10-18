@@ -142,7 +142,7 @@ func (tx *flowTx) startPendingWork(st *api.Step) (api.WorkItems, error) {
 	}
 
 	ex = tx.Value().Executions[sid]
-	if !canDispatch && policy.WorkReadyToDispatch(st, ex, now) {
+	if !canDispatch && policy.WorkReadyToDispatch(st, &ex, now) {
 		if err := tx.raiseDispatchDeferred(sid); err != nil {
 			return nil, err
 		}
@@ -169,7 +169,7 @@ func (tx *flowTx) startRetryWorkItem(
 	}
 
 	now := tx.Now()
-	action, nextAt := policy.RetryStartDecision(work, now)
+	action, nextAt := policy.RetryStartDecision(&work, now)
 	if action == policy.RetryStartWait {
 		return nil, nextAt, nil
 	}
@@ -267,7 +267,8 @@ func (tx *flowTx) raiseWorkStarted(
 	if h, err := tx.steps.Lookup(st.Type); err == nil && h.Inline {
 		return tx.invokeInline(h, st, tkn, inputs)
 	}
-	if at, ok := tx.workDeadline(tx.Value(), sid, tkn); ok {
+	fl := tx.Value()
+	if at, ok := tx.workDeadline(&fl, sid, tkn); ok {
 		if err := tx.scheduleWorkDeadlineAt(sid, tkn, at); err != nil {
 			return err
 		}

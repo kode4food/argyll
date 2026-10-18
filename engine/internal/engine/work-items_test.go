@@ -2,6 +2,8 @@ package engine_test
 
 import (
 	"errors"
+	"fmt"
+	"strconv"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -250,6 +252,89 @@ func TestOutputMappingDescendants(t *testing.T) {
 		books, ok := raw.([]any)
 		assert.True(t, ok)
 		assert.Equal(t, []any{"A", "B"}, books)
+	})
+}
+
+func TestForEachEmpty(t *testing.T) {
+	for _, value := range []any{[]any{}, []string{}, []int{}} {
+		t.Run(fmt.Sprintf("%T", value), func(t *testing.T) {
+			helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+				st := helpers.NewStepWithOutputs("empty-each", "result")
+				st.Attributes["item"] = &api.AttributeSpec{
+					Role:     api.RoleRequired,
+					Type:     api.TypeArray,
+					Required: &api.RequiredConfig{ForEach: true},
+				}
+				assert.NoError(t, env.Engine.RegisterStep(st))
+				req := api.CreateFlowRequest{
+					ID:    "empty-each",
+					Goals: api.Goals{Steps: []api.StepID{st.ID}},
+					Init:  api.InitArgs{"item": {value}},
+				}
+				assert.NoError(t, env.Engine.StartFlow(req))
+				fl, err := env.Engine.GetFlowState(req.ID)
+				assert.NoError(t, err)
+				assert.Equal(t, api.FlowCompleted, fl.Status)
+				ex := fl.Executions[st.ID]
+				assert.Equal(t, api.StepCompleted, ex.Status)
+				assert.Empty(t, ex.WorkItems)
+				assert.False(t, fl.DeactivatedAt.IsZero())
+				assert.Empty(t, env.MockClient.GetInvocations())
+			})
+		})
+	}
+}
+
+func TestForEachEmptyProduct(t *testing.T) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		st := helpers.NewStepWithOutputs("empty-product", "result")
+		init := api.InitArgs{}
+		for i := range strconv.IntSize {
+			name := api.Name(fmt.Sprintf("item%d", i))
+			st.Attributes[name] = &api.AttributeSpec{
+				Role:     api.RoleRequired,
+				Type:     api.TypeArray,
+				Required: &api.RequiredConfig{ForEach: true},
+			}
+			init[name] = []any{[]any{0, 1}}
+		}
+		init["item0"] = []any{[]any{}}
+		pl := &api.ExecutionPlan{
+			Goals: api.Goals{Steps: []api.StepID{st.ID}},
+			Steps: api.Steps{st.ID: st},
+		}
+		assert.NoError(t,
+			env.Engine.StartPlan("empty-product", pl, flow.WithInit(init)))
+		fl, err := env.Engine.GetFlowState("empty-product")
+		assert.NoError(t, err)
+		assert.Equal(t, api.FlowCompleted, fl.Status)
+		assert.Empty(t, fl.Executions[st.ID].WorkItems)
+		assert.Empty(t, env.MockClient.GetInvocations())
+	})
+}
+
+func TestWorkItemCountOverflow(t *testing.T) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		st := helpers.NewStepWithOutputs("overflow-each", "result")
+		init := api.InitArgs{}
+		for i := range strconv.IntSize {
+			name := api.Name(fmt.Sprintf("item%d", i))
+			st.Attributes[name] = &api.AttributeSpec{
+				Role:     api.RoleRequired,
+				Type:     api.TypeArray,
+				Required: &api.RequiredConfig{ForEach: true},
+			}
+			init[name] = []any{[]any{0, 1}}
+		}
+		pl := &api.ExecutionPlan{
+			Goals: api.Goals{Steps: []api.StepID{st.ID}},
+			Steps: api.Steps{st.ID: st},
+		}
+		err := env.Engine.StartPlan("overflow-each", pl, flow.WithInit(init))
+		assert.ErrorIs(t, err, engine.ErrTooManyWorkItems)
+		_, err = env.Engine.GetFlowState("overflow-each")
+		assert.ErrorIs(t, err, api.ErrFlowNotFound)
+		assert.Empty(t, env.MockClient.GetInvocations())
 	})
 }
 

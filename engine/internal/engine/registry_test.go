@@ -23,6 +23,49 @@ type clusterWriteBackend struct {
 
 var ErrClusterWrite = errors.New("cluster write unavailable")
 
+func TestRegisterEmptyScripts(t *testing.T) {
+	tests := []struct {
+		language string
+		kind     string
+	}{
+		{language: api.ScriptLangLua, kind: "predicate"},
+		{language: api.ScriptLangLua, kind: "match"},
+		{language: api.ScriptLangJPath, kind: "predicate"},
+		{language: api.ScriptLangJPath, kind: "match"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.language+"/"+tt.kind, func(t *testing.T) {
+			helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+				st := helpers.NewStepWithOutputs("invalid-script", "result")
+				cfg := &api.ScriptConfig{Language: tt.language}
+				if tt.kind == "predicate" {
+					st.Predicate = cfg
+				} else {
+					st.Attributes["input"] = &api.AttributeSpec{
+						Role:     api.RoleRequired,
+						Required: &api.RequiredConfig{Match: cfg},
+					}
+				}
+				err := env.Engine.RegisterStep(st)
+				assert.ErrorIs(t, err, api.ErrScriptEmpty)
+				cat, err := env.Engine.GetCatalogState()
+				assert.NoError(t, err)
+				assert.NotContains(t, cat.Steps, st.ID)
+
+				valid := helpers.NewStepWithOutputs(st.ID, "result")
+				assert.NoError(t, env.Engine.RegisterStep(valid))
+				err = env.Engine.UpdateStep(st)
+				assert.ErrorIs(t, err, api.ErrScriptEmpty)
+				cat, err = env.Engine.GetCatalogState()
+				assert.NoError(t, err)
+				assert.Nil(t, cat.Steps[st.ID].Predicate)
+				assert.NotContains(t,
+					cat.Steps[st.ID].Attributes, api.Name("input"))
+			})
+		})
+	}
+}
+
 func TestRegisterStep(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
 		st := &api.Step{

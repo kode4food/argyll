@@ -23,24 +23,22 @@ var (
 // checkTerminal checks for flow completion or failure
 func (tx *flowTx) checkTerminal() error {
 	fl := tx.Value()
-	if isFlowComplete(fl) {
-		result := api.Args{}
-		for _, goalID := range startGoals(fl) {
-			goal := fl.Executions[goalID]
-			maps.Copy(result, goal.Outputs)
-		}
+	if policy.FlowTerminal(fl.Status) {
+		return nil
+	}
+	if isFlowComplete(&fl) {
 		if err := events.Raise(tx.FlowAggregator, api.EventTypeFlowCompleted,
 			api.FlowCompletedEvent{
 				FlowID: tx.flowID,
-				Result: result,
+				Result: flowResult(&fl),
 			},
 		); err != nil {
 			return err
 		}
 		return tx.maybeDeactivate()
 	}
-	if tx.IsFlowFailed(fl) {
-		errMsg := getFailureReason(fl)
+	if tx.IsFlowFailed(&fl) {
+		errMsg := getFailureReason(&fl)
 		if err := events.Raise(tx.FlowAggregator, api.EventTypeFlowFailed,
 			api.FlowFailedEvent{
 				FlowID: tx.flowID,
@@ -73,7 +71,7 @@ func (tx *flowTx) maybeDeactivate() error {
 		return err
 	}
 	fl := tx.Value()
-	if hasActiveWork(fl) || tx.compensationPending(fl) {
+	if hasActiveWork(&fl) || tx.compensationPending(&fl) {
 		return nil
 	}
 	return tx.deactivate(parent)
@@ -84,7 +82,7 @@ func (tx *flowTx) deactivate(parent api.FlowState) error {
 	if !fl.DeactivatedAt.IsZero() {
 		return nil
 	}
-	released, err := tx.parentReleased(fl, parent)
+	released, err := tx.parentReleased(&fl, &parent)
 	if err != nil || !released {
 		return err
 	}
@@ -102,7 +100,7 @@ func (tx *flowTx) deactivate(parent api.FlowState) error {
 // parentReleased reports whether the parent can still order a rollback, from
 // the state it settled earlier in this same transaction
 func (tx *flowTx) parentReleased(
-	fl api.FlowState, parent api.FlowState,
+	fl *api.FlowState, parent *api.FlowState,
 ) (bool, error) {
 	target := &parentWork{}
 	ok, err := parentMeta(fl, target)
@@ -143,7 +141,7 @@ func (tx *flowTx) releaseChildFlows() error {
 func (tx *flowTx) completeParentWork() (api.FlowState, error) {
 	fl := tx.Value()
 	target := &parentWork{}
-	ok, err := parentMeta(fl, target)
+	ok, err := parentMeta(&fl, target)
 	if !ok || err != nil {
 		return api.FlowState{}, err
 	}
@@ -189,8 +187,22 @@ func (tx *flowTx) completeParentFlowWork(
 	return tx.flowTx(target.fs.FlowID, settle)
 }
 
+// flowResult includes initial outputs of goals excluded as already satisfied
+func flowResult(fl *api.FlowState) api.Args {
+	res := api.Args{}
+	for _, sid := range startGoals(fl) {
+		maps.Copy(res, fl.Executions[sid].Outputs)
+		for _, name := range fl.Plan.Excluded.Satisfied[sid] {
+			if value, ok := fl.FirstAttribute(name); ok {
+				res[name] = value.Value
+			}
+		}
+	}
+	return res
+}
+
 // getFailureReason extracts a failure reason from flow state
-func getFailureReason(fl api.FlowState) string {
+func getFailureReason(fl *api.FlowState) string {
 	for sid, ex := range fl.Executions {
 		if policy.StepFailed(ex.Status) {
 			return fmt.Sprintf("step %s failed: %s", sid, ex.Error)
@@ -199,7 +211,7 @@ func getFailureReason(fl api.FlowState) string {
 	return "flow failed"
 }
 
-func parentMeta(fl api.FlowState, target *parentWork) (bool, error) {
+func parentMeta(fl *api.FlowState, target *parentWork) (bool, error) {
 	if err := validateParentMetadata(fl.Metadata); err != nil {
 		return false, fmt.Errorf("%w: %s", err, fl.ID)
 	}

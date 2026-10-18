@@ -20,7 +20,7 @@ func TestNoDeps(t *testing.T) {
 		},
 	}
 
-	assert.False(t, e.HasInputProvider("missing", fl))
+	assert.False(t, e.HasInputProvider("missing", &fl))
 }
 
 func TestNoProviders(t *testing.T) {
@@ -33,7 +33,7 @@ func TestNoProviders(t *testing.T) {
 		},
 	}
 
-	assert.True(t, e.HasInputProvider("input", fl))
+	assert.True(t, e.HasInputProvider("input", &fl))
 }
 
 func TestCompletableProvider(t *testing.T) {
@@ -59,11 +59,11 @@ func TestCompletableProvider(t *testing.T) {
 		},
 	}
 
-	assert.False(t, e.HasInputProvider("input", fl))
+	assert.False(t, e.HasInputProvider("input", &fl))
 	ex := fl.Executions["provider"]
 	ex.Outputs = api.Args{"input": "value"}
 	fl.Executions["provider"] = ex
-	assert.True(t, e.HasInputProvider("input", fl))
+	assert.True(t, e.HasInputProvider("input", &fl))
 }
 
 func TestFailedProvider(t *testing.T) {
@@ -89,7 +89,7 @@ func TestFailedProvider(t *testing.T) {
 		},
 	}
 
-	assert.False(t, e.HasInputProvider("input", fl))
+	assert.False(t, e.HasInputProvider("input", &fl))
 }
 
 func TestGoalBlocked(t *testing.T) {
@@ -133,7 +133,7 @@ func TestGoalBlocked(t *testing.T) {
 		},
 	}
 
-	assert.True(t, e.IsFlowFailed(fl))
+	assert.True(t, e.IsFlowFailed(&fl))
 }
 
 func TestGoalCompleted(t *testing.T) {
@@ -155,7 +155,7 @@ func TestGoalCompleted(t *testing.T) {
 		},
 	}
 
-	assert.False(t, e.IsFlowFailed(fl))
+	assert.False(t, e.IsFlowFailed(&fl))
 }
 
 func TestIsFlowFailed(t *testing.T) {
@@ -196,7 +196,7 @@ func TestIsFlowFailed(t *testing.T) {
 
 		fl, err := env.Engine.GetFlowState("wf-failed-test")
 		assert.NoError(t, err)
-		assert.True(t, env.Engine.IsFlowFailed(fl))
+		assert.True(t, env.Engine.IsFlowFailed(&fl))
 	})
 }
 
@@ -217,7 +217,7 @@ func TestIsFlowNotFailed(t *testing.T) {
 
 		fl, err := eng.GetFlowState("wf-ok-test")
 		assert.NoError(t, err)
-		assert.False(t, eng.IsFlowFailed(fl))
+		assert.False(t, eng.IsFlowFailed(&fl))
 	})
 }
 
@@ -255,7 +255,7 @@ func TestHasInputProvider(t *testing.T) {
 
 		fl, err := eng.GetFlowState("wf-provider-test")
 		assert.NoError(t, err)
-		assert.True(t, eng.HasInputProvider("value", fl))
+		assert.True(t, eng.HasInputProvider("value", &fl))
 	})
 }
 
@@ -281,7 +281,7 @@ func TestHasInputProviderNone(t *testing.T) {
 
 		fl, err := eng.GetFlowState("wf-no-provider-test")
 		assert.NoError(t, err)
-		assert.False(t, eng.HasInputProvider("missing", fl))
+		assert.False(t, eng.HasInputProvider("missing", &fl))
 	})
 }
 

@@ -231,7 +231,7 @@ func TestFlowStatus(t *testing.T) {
 			}
 
 			w := assert.New(t)
-			w.FlowStatus(fl, tt.expectedStatus)
+			w.FlowStatus(&fl, tt.expectedStatus)
 		})
 	}
 }

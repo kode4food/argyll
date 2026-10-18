@@ -15,7 +15,7 @@ import (
 
 type healthResolver struct {
 	eng      *Engine
-	cat      api.CatalogState
+	cat      *api.CatalogState
 	steps    api.Steps
 	base     map[api.StepID]api.HealthState
 	cache    map[api.StepID]api.HealthState
@@ -51,7 +51,7 @@ func (e *Engine) RefreshStepHealth(
 		health[sid] = h
 	}
 
-	resolved := e.ResolveHealth(e.Matcher, cat, health)
+	resolved := e.ResolveHealth(e.Matcher, &cat, health)
 	for sid, st := range cat.Steps {
 		h, ok := health[sid]
 		if st.Type == api.StepTypeFlow {
@@ -78,7 +78,7 @@ func (e *Engine) GetStepHealth(sid api.StepID) (api.HealthState, error) {
 		return api.HealthState{}, err
 	}
 
-	merged := e.ResolveHealth(e.Matcher, cat, MergeNodeHealth(cluster))
+	merged := e.ResolveHealth(e.Matcher, &cat, MergeNodeHealth(&cluster))
 	h, ok := merged[sid]
 	if !ok {
 		return api.HealthState{}, fmt.Errorf(
@@ -103,7 +103,7 @@ func (e *Engine) UpdateStepHealth(
 // ResolveHealth returns resolved health for all steps, deriving flow step
 // health from all steps included in the flow's execution preview
 func (e *Engine) ResolveHealth(
-	match api.Matcher, cat api.CatalogState,
+	match api.Matcher, cat *api.CatalogState,
 	base map[api.StepID]api.HealthState,
 ) map[api.StepID]api.HealthState {
 	resolver := &healthResolver{
@@ -127,7 +127,7 @@ func (e *Engine) ResolveHealth(
 
 // MergeNodeHealth reduces per-node step health into a cluster-wide worst-case
 // view while preserving stable results
-func MergeNodeHealth(cluster api.ClusterState) map[api.StepID]api.HealthState {
+func MergeNodeHealth(cluster *api.ClusterState) map[api.StepID]api.HealthState {
 	res := map[api.StepID]api.HealthState{}
 	nodes := make([]string, 0, len(cluster.Nodes))
 	for id := range cluster.Nodes {
@@ -257,13 +257,13 @@ func (r *healthResolver) resolve(sid api.StepID) api.HealthState {
 	for id := range pl.Steps {
 		h := r.resolve(id)
 		if h.Status == api.HealthUnhealthy {
-			h := flowStepHealth(id, h)
+			h := flowStepHealth(id, &h)
 			r.cache[sid] = h
 			return h
 		}
 		if h.Status == api.HealthUnknown && h.Error != "" &&
 			unknown == (api.HealthState{}) {
-			unknown = flowStepHealth(id, h)
+			unknown = flowStepHealth(id, &h)
 		}
 	}
 
@@ -316,7 +316,7 @@ func (r *healthResolver) previewFlowPlan(
 	}
 	pl, err := plan.Create(&plan.Request{
 		Match:   r.match,
-		Catalog: r.cat,
+		Catalog: *r.cat,
 		Steps:   steps,
 		Goals:   *children,
 		Init:    api.InitArgs{},
@@ -366,7 +366,7 @@ func updateStepHealth(
 	return err
 }
 
-func flowStepHealth(sid api.StepID, h api.HealthState) api.HealthState {
+func flowStepHealth(sid api.StepID, h *api.HealthState) api.HealthState {
 	switch h.Status {
 	case api.HealthUnhealthy:
 		if h.Error == "" {

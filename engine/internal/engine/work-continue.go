@@ -27,7 +27,7 @@ var backoffCalculators = map[string]backoffCalculator{
 
 // ShouldRetry determines if a failed work item should be retried based on
 // configured retry limits
-func (e *Engine) ShouldRetry(st *api.Step, work api.WorkState) bool {
+func (e *Engine) ShouldRetry(st *api.Step, work *api.WorkState) bool {
 	workConfig := e.resolveRetryConfig(st.WorkConfig)
 
 	if workConfig.MaxRetries == 0 {
@@ -77,7 +77,7 @@ func (tx *flowTx) scheduleRetry(sid api.StepID, tkn api.Token) error {
 	}
 
 	st := tx.Value().Plan.Steps[sid]
-	if tx.ShouldRetry(st, work) {
+	if tx.ShouldRetry(st, &work) {
 		nextRetryAt := tx.calculateNextRetryAt(
 			tx.Now(), st.WorkConfig, work.RetryCount,
 		)
@@ -97,10 +97,13 @@ func (tx *flowTx) continueStepWork(sid api.StepID) error {
 	if err != nil {
 		return err
 	}
-	if len(started) == 0 {
-		return nil
+	if len(started) > 0 {
+		return tx.startContinuedWork(sid, st, started)
 	}
-	return tx.startContinuedWork(sid, st, started)
+	if len(tx.Value().Executions[sid].WorkItems) == 0 {
+		return tx.handleWorkSucceeded(sid)
+	}
+	return nil
 }
 
 func (tx *flowTx) startContinuedWork(

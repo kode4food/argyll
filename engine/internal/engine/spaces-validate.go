@@ -8,7 +8,7 @@ import (
 )
 
 func (e *Engine) validateSpaceSubFlows(
-	cat api.CatalogState, newStep *api.Step,
+	cat *api.CatalogState, newStep *api.Step,
 ) error {
 	steps := stepsIncluding(cat, newStep)
 	for _, st := range steps {
@@ -26,7 +26,7 @@ func (e *Engine) validateSpaceSubFlows(
 	return nil
 }
 
-func (e *Engine) validateSpaceGoals(cat api.CatalogState, sp api.Space) error {
+func (e *Engine) validateSpaceGoals(cat *api.CatalogState, sp api.Space) error {
 	for _, st := range cat.Steps {
 		if st.Flow == nil || st.Flow.SpaceID != sp.ID {
 			continue
@@ -58,7 +58,7 @@ func (e *Engine) validateSubFlowGoals(
 }
 
 func spaceSubFlow(
-	cat api.CatalogState, spaceID api.SpaceID,
+	cat *api.CatalogState, spaceID api.SpaceID,
 ) (api.StepID, bool) {
 	for id, st := range cat.Steps {
 		if st.Flow != nil && st.Flow.SpaceID == spaceID {
@@ -69,7 +69,7 @@ func spaceSubFlow(
 }
 
 func spaceSubFlowGoal(
-	cat api.CatalogState, goalID api.StepID,
+	cat *api.CatalogState, goalID api.StepID,
 ) (api.StepID, bool) {
 	for id, st := range cat.Steps {
 		if st.Flow != nil && st.Flow.SpaceID != api.NoSpace &&

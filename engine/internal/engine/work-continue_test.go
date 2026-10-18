@@ -324,7 +324,7 @@ func TestShouldRetryStep(t *testing.T) {
 					Error:      sc.error,
 				}
 
-				result := eng.ShouldRetry(st, work)
+				result := eng.ShouldRetry(st, &work)
 				assert.Equal(t, sc.expected, result)
 			})
 		}

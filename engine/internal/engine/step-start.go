@@ -19,7 +19,7 @@ type (
 		when   time.Time
 		e      *Engine
 		step   *api.Step
-		flow   api.FlowState
+		flow   *api.FlowState
 		stepID api.StepID
 	}
 
@@ -43,12 +43,12 @@ func (tx *flowTx) prepareStep(sid api.StepID) error {
 	}
 
 	st := fl.Plan.Steps[sid]
-	unsatisfied, err := tx.matchGateUnsatisfiedInputs(st, fl)
+	unsatisfied, err := tx.matchGateUnsatisfiedInputs(st, &fl)
 	if err != nil {
 		return err
 	}
 	if len(unsatisfied) > 0 {
-		inputs, err := tx.collectStepInputs(st, fl)
+		inputs, err := tx.collectStepInputs(st, &fl)
 		if err != nil {
 			return err
 		}
@@ -57,7 +57,7 @@ func (tx *flowTx) prepareStep(sid api.StepID) error {
 		)
 	}
 
-	inputs, err := tx.collectStepInputs(st, fl)
+	inputs, err := tx.collectStepInputs(st, &fl)
 	if err != nil {
 		return err
 	}
@@ -117,13 +117,13 @@ func (tx *flowTx) performSkip(
 }
 
 func (tx *flowTx) canStartStepAt(
-	sid api.StepID, fl api.FlowState, when time.Time,
+	sid api.StepID, fl *api.FlowState, when time.Time,
 ) (bool, time.Time) {
 	return tx.newStepEval(sid, fl, when).canStart()
 }
 
 func (e *Engine) newStepEval(
-	sid api.StepID, fl api.FlowState, when time.Time,
+	sid api.StepID, fl *api.FlowState, when time.Time,
 ) *stepEval {
 	return &stepEval{
 		e:      e,
@@ -160,7 +160,7 @@ func (e *Engine) evaluateStepPredicate(
 }
 
 func (tx *flowTx) collectStepInputs(
-	st *api.Step, fl api.FlowState,
+	st *api.Step, fl *api.FlowState,
 ) (api.Args, error) {
 	inputs := api.Args{}
 	now := tx.Now()
@@ -442,7 +442,7 @@ func optionalAt(anchor time.Time, deadlineMS int64) time.Time {
 }
 
 func providerSummaryFor(
-	fl api.FlowState, name api.Name,
+	fl *api.FlowState, name api.Name,
 ) (policy.ProviderSummary, time.Time) {
 	deps, ok := fl.Plan.Attributes[name]
 	if !ok || len(deps.Providers) == 0 {
@@ -480,7 +480,7 @@ func providerSummaryFor(
 	return res, completedAt
 }
 
-func hasValueFrom(fl api.FlowState, name api.Name, sid api.StepID) bool {
+func hasValueFrom(fl *api.FlowState, name api.Name, sid api.StepID) bool {
 	for _, v := range fl.AttributeValues(name) {
 		if v.Step == sid {
 			return true

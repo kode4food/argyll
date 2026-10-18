@@ -66,6 +66,15 @@ func (tx *flowTx) recoverFlow() error {
 		return err
 	}
 
+	for sid := range tx.Value().Executions {
+		ex := tx.Value().Executions[sid]
+		if !policy.StepActive(ex.Status) || len(ex.WorkItems) != 0 {
+			continue
+		}
+		if err := tx.continueStepWork(sid); err != nil {
+			return err
+		}
+	}
 	if policy.FlowTerminal(tx.Value().Status) {
 		return tx.maybeDeactivate()
 	}
@@ -77,7 +86,17 @@ func (tx *flowTx) recoverFlow() error {
 	if err := tx.recoverWorkDispatch(fl); err != nil {
 		return err
 	}
-	return tx.recoverRetries(fl)
+	if err := tx.recoverRetries(fl); err != nil {
+		return err
+	}
+	if err := tx.skipPendingUnused(); err != nil {
+		return err
+	}
+	fl = tx.Value()
+	if isFlowComplete(&fl) {
+		return tx.checkTerminal()
+	}
+	return nil
 }
 
 // scheduleFlowReconcile arms the reconciliation of a single flow, keyed so that

@@ -90,9 +90,8 @@ func NewLuaEnv() *LuaEnv {
 func (e *LuaEnv) EvaluateScript(
 	c Compiled, _ *api.Step, inputs api.Args,
 ) (api.Args, error) {
-	proc := c.(*CompiledLua)
 	var result api.Args
-	err := e.withCompiledResult(proc, inputs,
+	err := e.withCompiledResult(c, inputs,
 		func(L *lua.State) {
 			if L.IsTable(-1) {
 				result = luaTableToMap(L, -1)
@@ -111,9 +110,8 @@ func (e *LuaEnv) EvaluateScript(
 func (e *LuaEnv) EvaluatePredicate(
 	c Compiled, _ *api.Step, inputs api.Args,
 ) (bool, error) {
-	proc := c.(*CompiledLua)
 	result := false
-	err := e.withCompiledResult(proc, inputs,
+	err := e.withCompiledResult(c, inputs,
 		func(L *lua.State) {
 			result = L.ToBoolean(-1)
 			L.Pop(1)
@@ -125,9 +123,8 @@ func (e *LuaEnv) EvaluatePredicate(
 // EvaluateMatch executes a compiled Lua matcher with a single input and returns
 // the boolean result
 func (e *LuaEnv) EvaluateMatch(c Compiled, input any) (bool, error) {
-	proc := c.(*CompiledLua)
 	result := false
-	err := e.withCompiledResult(proc, api.Args{matchValue: input},
+	err := e.withCompiledResult(c, api.Args{matchValue: input},
 		func(L *lua.State) {
 			result = L.ToBoolean(-1)
 			L.Pop(1)
@@ -190,8 +187,9 @@ func (e *LuaEnv) installPrelude(L *lua.State) error {
 }
 
 func (e *LuaEnv) withCompiledResult(
-	proc *CompiledLua, inputs api.Args, onResult func(*lua.State),
+	c Compiled, inputs api.Args, onResult func(*lua.State),
 ) error {
+	proc := c.(*CompiledLua)
 	st, err := e.getState()
 	if err != nil {
 		return err

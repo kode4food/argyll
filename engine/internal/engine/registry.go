@@ -90,7 +90,7 @@ func (tx *catalogTx) register(newStep *api.Step) error {
 		}
 		return fmt.Errorf("%w: %s", api.ErrStepExists, newStep.ID)
 	}
-	err = tx.validateStepUpsert(cat, newStep, tx.steps.Children)
+	err = tx.validateStepUpsert(&cat, newStep, tx.steps.Children)
 	if err != nil {
 		return err
 	}
@@ -110,7 +110,7 @@ func (tx *catalogTx) update(newStep *api.Step) error {
 	if old.Equal(newStep) {
 		return nil
 	}
-	err = tx.validateStepUpsert(cat, newStep, tx.steps.Children)
+	err = tx.validateStepUpsert(&cat, newStep, tx.steps.Children)
 	if err != nil {
 		return err
 	}
@@ -119,13 +119,13 @@ func (tx *catalogTx) update(newStep *api.Step) error {
 
 func (tx *catalogTx) remove(sid api.StepID) error {
 	cat := tx.ag.Value()
-	if ref, ok := spaceSubFlowGoal(cat, sid); ok {
+	if ref, ok := spaceSubFlowGoal(&cat, sid); ok {
 		return fmt.Errorf("%w: %s", ErrSubFlowGoalInUse, ref)
 	}
 	var spaces []api.SpaceID
 	if oldStep, ok := cat.Steps[sid]; ok {
 		var err error
-		spaces, err = tx.matchingSpaceIDs(cat, oldStep)
+		spaces, err = tx.matchingSpaceIDs(&cat, oldStep)
 		if err != nil {
 			return err
 		}
@@ -174,7 +174,8 @@ func (tx *catalogTx) raiseStepUpdatedEvent(st *api.Step) error {
 func (tx *catalogTx) raiseStepEvent(
 	st *api.Step, raise func([]api.SpaceID) error,
 ) error {
-	spaces, err := tx.matchingSpaceIDs(tx.ag.Value(), st)
+	cat := tx.ag.Value()
+	spaces, err := tx.matchingSpaceIDs(&cat, st)
 	if err != nil {
 		return err
 	}
@@ -194,7 +195,7 @@ func (tx *catalogTx) prepareStep(st *api.Step) (*api.Step, error) {
 }
 
 func (e *Engine) validateStepUpsert(
-	cat api.CatalogState, newStep *api.Step,
+	cat *api.CatalogState, newStep *api.Step,
 	children func(*api.Step) (*api.Goals, error),
 ) error {
 	if err := call.Perform(
@@ -215,13 +216,13 @@ func resetStepHealth(tx storeTx, st *api.Step) error {
 	return updateStepHealth(tx, st.ID, h.Status, h.Error)
 }
 
-func validateAttributeTypes(cat api.CatalogState, newStep *api.Step) error {
+func validateAttributeTypes(cat *api.CatalogState, newStep *api.Step) error {
 	attributeTypes := collectAttributeTypes(cat, newStep.ID)
 	return checkAttributeConflicts(newStep.Attributes, attributeTypes)
 }
 
 func collectAttributeTypes(
-	cat api.CatalogState, excludeID api.StepID,
+	cat *api.CatalogState, excludeID api.StepID,
 ) api.AttributeTypes {
 	attributeTypes := make(api.AttributeTypes)
 	for sid, st := range cat.Steps {
@@ -248,6 +249,6 @@ func checkAttributeConflicts(
 	return nil
 }
 
-func stepsIncluding(cat api.CatalogState, newStep *api.Step) api.Steps {
+func stepsIncluding(cat *api.CatalogState, newStep *api.Step) api.Steps {
 	return cat.Steps.Set(newStep.ID, newStep)
 }

@@ -53,7 +53,7 @@ func TestCompleteFlow(t *testing.T) {
 			err = env.Engine.StartPlan("wf-complete", pl)
 			testify.NoError(t, err)
 		})
-		a.FlowStatus(fl, api.FlowCompleted)
+		a.FlowStatus(&fl, api.FlowCompleted)
 	})
 }
 
@@ -83,7 +83,7 @@ func TestFailFlow(t *testing.T) {
 
 		fl, err := env.Engine.GetFlowState("wf-fail")
 		testify.NoError(t, err)
-		a.FlowStatus(fl, api.FlowFailed)
+		a.FlowStatus(&fl, api.FlowFailed)
 		testify.Contains(t, fl.Error, "test error")
 	})
 }

@@ -36,12 +36,13 @@ func NewJPathEnv() *JPathEnv {
 func (*JPathEnv) EvaluateScript(
 	c Compiled, _ *api.Step, inputs api.Args,
 ) (api.Args, error) {
-	doc := marshalJPathValue(inputs)
+	var doc any = inputs
 	if len(inputs) == 1 {
 		for _, v := range inputs {
-			doc = marshalJPathValue(v)
+			doc = v
 		}
 	}
+	doc = marshalJPathValue(doc)
 
 	value, ok := collapseJPathMatches(c.(jpath.Path)(doc))
 	if !ok {

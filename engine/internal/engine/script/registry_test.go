@@ -359,6 +359,18 @@ func TestCompileViaRegistry(t *testing.T) {
 	})
 }
 
+func TestEmptyScript(t *testing.T) {
+	for _, language := range []string{api.ScriptLangLua, api.ScriptLangJPath} {
+		t.Run(language, func(t *testing.T) {
+			r := script.NewRegistry()
+			_, err := r.Compile(
+				&api.Step{}, &api.ScriptConfig{Language: language},
+			)
+			assert.ErrorIs(t, err, api.ErrScriptEmpty)
+		})
+	}
+}
+
 func TestRegistryComplexScript(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
 		registry := script.NewRegistry()

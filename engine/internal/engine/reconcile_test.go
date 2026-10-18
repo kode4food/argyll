@@ -24,6 +24,68 @@ var errTransient = fmt.Errorf(
 	"%w: transient failure", api.ErrWorkNotCompleted,
 )
 
+func TestRecoverEmptyStep(t *testing.T) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		st := helpers.NewStepWithOutputs("empty", "result")
+		fid := api.FlowID("recover-empty")
+		err := env.RaiseFlowEvents(
+			fid,
+			helpers.FlowEvent{
+				Type: api.EventTypeFlowStarted,
+				Data: api.FlowStartedEvent{
+					FlowID: fid,
+					Plan: &api.ExecutionPlan{
+						Goals: api.Goals{Steps: []api.StepID{st.ID}},
+						Steps: api.Steps{st.ID: st},
+					},
+				},
+			},
+			helpers.FlowEvent{
+				Type: api.EventTypeStepStarted,
+				Data: api.StepStartedEvent{FlowID: fid, StepID: st.ID},
+			},
+		)
+		assert.NoError(t, err)
+		assert.NoError(t, env.Engine.RecoverFlow(fid))
+		fl, err := env.Engine.GetFlowState(fid)
+		assert.NoError(t, err)
+		assert.Equal(t, api.FlowCompleted, fl.Status)
+		assert.False(t, fl.DeactivatedAt.IsZero())
+		assert.Empty(t, env.MockClient.GetInvocations())
+	})
+}
+
+func TestRecoverSatisfiedGoal(t *testing.T) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		st := helpers.NewStepWithOutputs("satisfied", "result")
+		assert.NoError(t, env.Engine.RegisterStep(st))
+		req := api.ExecutionPlanRequest{
+			Goals: api.Goals{Steps: []api.StepID{st.ID}},
+			Init:  api.InitArgs{"result": {"ready"}},
+		}
+		pl, err := env.Engine.CreatePlan(req)
+		assert.NoError(t, err)
+		fid := api.FlowID("recover-satisfied")
+		err = env.RaiseFlowEvents(
+			fid, helpers.FlowEvent{
+				Type: api.EventTypeFlowStarted,
+				Data: api.FlowStartedEvent{
+					FlowID: fid,
+					Plan:   pl,
+					Init:   req.Init,
+				},
+			},
+		)
+		assert.NoError(t, err)
+		assert.NoError(t, env.Engine.RecoverFlow(fid))
+		fl, err := env.Engine.GetFlowState(fid)
+		assert.NoError(t, err)
+		assert.Equal(t, api.FlowCompleted, fl.Status)
+		assert.False(t, fl.DeactivatedAt.IsZero())
+		assert.Empty(t, env.MockClient.GetInvocations())
+	})
+}
+
 // TestCommittedEventFilter proves only deferred dispatch requests reconciling
 func TestCommittedEventFilter(t *testing.T) {
 	types := map[api.EventType]bool{

@@ -78,7 +78,7 @@ func (w *flowCycleWalker) check(sid api.StepID) error {
 }
 
 func detectStepCycles(
-	cat api.CatalogState, newStep *api.Step,
+	cat *api.CatalogState, newStep *api.Step,
 	children func(*api.Step) (*api.Goals, error),
 ) error {
 	if err := detectAttributeCycles(cat, newStep); err != nil {
@@ -87,7 +87,7 @@ func detectStepCycles(
 	return detectFlowCycles(cat, newStep, children)
 }
 
-func detectAttributeCycles(cat api.CatalogState, newStep *api.Step) error {
+func detectAttributeCycles(cat *api.CatalogState, newStep *api.Step) error {
 	deps := cat.Attributes
 	if existing, ok := cat.Steps[newStep.ID]; ok {
 		deps = deps.RemoveStep(existing)
@@ -101,7 +101,7 @@ func detectAttributeCycles(cat api.CatalogState, newStep *api.Step) error {
 }
 
 func detectFlowCycles(
-	cat api.CatalogState, newStep *api.Step,
+	cat *api.CatalogState, newStep *api.Step,
 	children func(*api.Step) (*api.Goals, error),
 ) error {
 	steps := stepsIncluding(cat, newStep)

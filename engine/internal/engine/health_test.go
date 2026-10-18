@@ -244,7 +244,7 @@ func TestMergeNodeHealth(t *testing.T) {
 			}},
 		},
 	}
-	h := engine.MergeNodeHealth(cluster)
+	h := engine.MergeNodeHealth(&cluster)
 
 	if assert.Contains(t, h, api.StepID("step-a")) {
 		assert.Equal(t, api.HealthUnhealthy, h["step-a"].Status)
@@ -276,7 +276,7 @@ func TestScriptHealthDefaults(t *testing.T) {
 		assert.NoError(t, err)
 
 		h := eng.ResolveHealth(
-			helpers.Matcher(), cat, map[api.StepID]api.HealthState{},
+			helpers.Matcher(), &cat, map[api.StepID]api.HealthState{},
 		)
 		if assert.Contains(t, h, st.ID) {
 			assert.Equal(t, api.HealthHealthy, h[st.ID].Status)
@@ -321,7 +321,7 @@ func TestScriptHealthOnRegister(t *testing.T) {
 func TestResolveHealthNilCat(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
 		h := eng.ResolveHealth(
-			helpers.Matcher(), api.CatalogState{},
+			helpers.Matcher(), &api.CatalogState{},
 			map[api.StepID]api.HealthState{},
 		)
 		assert.Empty(t, h)
@@ -348,7 +348,7 @@ func TestResolveHealthPreviewFail(t *testing.T) {
 		}
 
 		h := eng.ResolveHealth(
-			helpers.Matcher(), cat, map[api.StepID]api.HealthState{},
+			helpers.Matcher(), &cat, map[api.StepID]api.HealthState{},
 		)
 		if assert.Contains(t, h, api.StepID("flow-step")) {
 			assert.Equal(t, api.HealthUnknown, h["flow-step"].Status)
@@ -367,7 +367,7 @@ func TestResolveHealthSimpleUnknown(t *testing.T) {
 		}
 
 		h := eng.ResolveHealth(
-			helpers.Matcher(), cat, map[api.StepID]api.HealthState{},
+			helpers.Matcher(), &cat, map[api.StepID]api.HealthState{},
 		)
 		if assert.Contains(t, h, api.StepID("step-a")) {
 			assert.Equal(t, api.HealthUnknown, h["step-a"].Status)
@@ -402,7 +402,7 @@ func TestResolveHealthScriptError(t *testing.T) {
 			},
 		}
 
-		h := eng.ResolveHealth(helpers.Matcher(), cat, base)
+		h := eng.ResolveHealth(helpers.Matcher(), &cat, base)
 		if assert.Contains(t, h, api.StepID("script-step")) {
 			assert.Equal(t, api.HealthUnknown, h["script-step"].Status)
 			assert.Equal(t, "compile failed", h["script-step"].Error)
@@ -435,7 +435,7 @@ func TestResolveHealthFlowUnknown(t *testing.T) {
 			goal.ID: {Status: api.HealthUnknown},
 		}
 
-		h := eng.ResolveHealth(helpers.Matcher(), cat, base)
+		h := eng.ResolveHealth(helpers.Matcher(), &cat, base)
 		if assert.Contains(t, h, st.ID) {
 			assert.Equal(t, api.HealthHealthy, h[st.ID].Status)
 			assert.Empty(t, h[st.ID].Error)
@@ -458,7 +458,7 @@ func TestMergeNodeHealthUnknown(t *testing.T) {
 		},
 	}
 
-	h := engine.MergeNodeHealth(cluster)
+	h := engine.MergeNodeHealth(&cluster)
 	if assert.Contains(t, h, api.StepID("step-a")) {
 		assert.Equal(t, api.HealthUnknown, h["step-a"].Status)
 		assert.Equal(t, "node node-b: late report", h["step-a"].Error)
@@ -490,7 +490,7 @@ func TestResolveHealthFlowUnhealthyChild(t *testing.T) {
 			goal.ID: {Status: api.HealthUnhealthy, Error: "endpoint down"},
 		}
 
-		h := eng.ResolveHealth(helpers.Matcher(), cat, base)
+		h := eng.ResolveHealth(helpers.Matcher(), &cat, base)
 		if assert.Contains(t, h, st.ID) {
 			assert.Equal(t, api.HealthUnhealthy, h[st.ID].Status)
 			assert.Equal(t,
@@ -524,7 +524,7 @@ func TestResolveHealthUnhealthyWithoutReason(t *testing.T) {
 			goal.ID: {Status: api.HealthUnhealthy},
 		}
 
-		h := eng.ResolveHealth(helpers.Matcher(), cat, base)
+		h := eng.ResolveHealth(helpers.Matcher(), &cat, base)
 		if assert.Contains(t, h, st.ID) {
 			assert.Equal(t, api.HealthUnhealthy, h[st.ID].Status)
 			assert.Equal(t, "step silent-goal unhealthy", h[st.ID].Error)
@@ -544,7 +544,7 @@ func TestResolveHealthBaseWins(t *testing.T) {
 		}
 
 		// A node has reported on this step, so no handler is consulted
-		h := eng.ResolveHealth(helpers.Matcher(), cat, base)
+		h := eng.ResolveHealth(helpers.Matcher(), &cat, base)
 		if assert.Contains(t, h, st.ID) {
 			assert.Equal(t, api.HealthHealthy, h[st.ID].Status)
 			assert.Empty(t, h[st.ID].Error)
@@ -597,6 +597,6 @@ func resolveHealth(
 	cluster, err := eng.GetClusterState()
 	assert.NoError(t, err)
 
-	merged := engine.MergeNodeHealth(cluster)
-	return eng.ResolveHealth(eng.Matcher, cat, merged)
+	merged := engine.MergeNodeHealth(&cluster)
+	return eng.ResolveHealth(eng.Matcher, &cat, merged)
 }

@@ -26,6 +26,68 @@ type atomicFlowBackend struct {
 	commits       map[api.EventType][]timebox.AppendRequest
 }
 
+func TestStartSatisfiedGoals(t *testing.T) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		st := helpers.NewStepWithOutputs("satisfied", "result")
+		fallback := helpers.NewStepWithOutputs("fallback", "fallback-result")
+		assert.NoError(t, env.Engine.RegisterSteps(st, fallback))
+		req := api.CreateFlowRequest{
+			ID: "satisfied",
+			Goals: api.Goals{
+				Steps: []api.StepID{st.ID},
+				Else:  &api.Goals{Steps: []api.StepID{fallback.ID}},
+			},
+			Init: api.InitArgs{"result": {"ready"}},
+		}
+		assert.NoError(t, env.Engine.StartFlow(req))
+		fl, err := env.Engine.GetFlowState(req.ID)
+		assert.NoError(t, err)
+		assert.Equal(t, api.FlowCompleted, fl.Status)
+		assert.False(t, fl.DeactivatedAt.IsZero())
+		assert.Equal(t, api.StepSkipped, fl.Executions[fallback.ID].Status)
+		assert.Empty(t, env.MockClient.GetInvocations())
+		evs, err := env.Engine.GetFlowEvents(req.ID)
+		assert.NoError(t, err)
+		n := 0
+		for _, ev := range evs {
+			if api.EventType(ev.Type) != api.EventTypeFlowCompleted {
+				continue
+			}
+			data, err := ev.GetValue[api.FlowCompletedEvent]()
+			assert.NoError(t, err)
+			assert.Equal(t, api.Args{"result": "ready"}, data.Result)
+			n++
+		}
+		assert.Equal(t, 1, n)
+		assert.NoError(t, env.Engine.RecoverFlow(req.ID))
+		after, err := env.Engine.GetFlowEvents(req.ID)
+		assert.NoError(t, err)
+		assert.Len(t, after, len(evs))
+	})
+}
+
+func TestStartMixedSatisfiedGoals(t *testing.T) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		a := helpers.NewStepWithOutputs("satisfied", "ready")
+		b := helpers.NewStepWithOutputs("pending", "result")
+		assert.NoError(t, env.Engine.RegisterSteps(a, b))
+		env.MockClient.SetResponse(b.ID, api.Args{"result": "done"})
+		fl := env.WaitForFlowStatus("mixed-satisfied", func() {
+			req := api.CreateFlowRequest{
+				ID:    "mixed-satisfied",
+				Goals: api.Goals{Steps: []api.StepID{a.ID, b.ID}},
+				Init:  api.InitArgs{"ready": {"initial"}},
+			}
+			assert.NoError(t, env.Engine.StartFlow(req))
+		})
+		assert.Equal(t, api.FlowCompleted, fl.Status)
+		assert.Equal(t,
+			api.Args{"ready": "initial", "result": "done"}, fl.GetAttributes())
+		assert.False(t, env.Engine.IsFlowFailed(&fl))
+		assert.Equal(t, []api.StepID{b.ID}, env.MockClient.GetInvocations())
+	})
+}
+
 func TestStartCachedSteps(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		assert.NoError(t, env.Engine.Start())

@@ -88,7 +88,7 @@ func (e *Engine) UpdateSpace(sp api.Space) error {
 		if old.Equal(sp) {
 			return nil
 		}
-		if err := e.validateSpaceGoals(cat, sp); err != nil {
+		if err := e.validateSpaceGoals(&cat, sp); err != nil {
 			return err
 		}
 		ids, err := e.selectSpaceSteps(cat.Steps, sp)
@@ -111,7 +111,7 @@ func (e *Engine) UnregisterSpace(spaceID api.SpaceID) error {
 		if _, ok := cat.Spaces.Defined[spaceID]; !ok {
 			return fmt.Errorf("%w: %s", api.ErrSpaceNotFound, spaceID)
 		}
-		if ref, ok := spaceSubFlow(cat, spaceID); ok {
+		if ref, ok := spaceSubFlow(&cat, spaceID); ok {
 			return fmt.Errorf("%w: %s", ErrSpaceInUse, ref)
 		}
 		return events.Raise(tx.ag, api.EventTypeSpaceUnregistered,
@@ -121,7 +121,7 @@ func (e *Engine) UnregisterSpace(spaceID api.SpaceID) error {
 }
 
 func (e *Engine) matchingSpaceIDs(
-	cat api.CatalogState, st *api.Step,
+	cat *api.CatalogState, st *api.Step,
 ) ([]api.SpaceID, error) {
 	var res []api.SpaceID
 	for id, sp := range cat.Spaces.Defined {

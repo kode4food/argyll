@@ -143,6 +143,13 @@ func (tx *flowTx) startPlan(pl *api.ExecutionPlan, opts *flow.Options) error {
 	if err := tx.startReadyPendingSteps(); err != nil {
 		return err
 	}
+	if err := tx.skipPendingUnused(); err != nil {
+		return err
+	}
+	fl := tx.Value()
+	if isFlowComplete(&fl) {
+		return tx.checkTerminal()
+	}
 	return tx.scheduleTimeouts(tx.Value(), tx.Now())
 }
 

@@ -510,6 +510,24 @@ func TestLuaNilReturn(t *testing.T) {
 	assert.Nil(t, result["result"])
 }
 
+func TestLuaExplicitNil(t *testing.T) {
+	env := script.NewLuaEnv()
+	compiled, err := env.Compile(&api.Step{}, &api.ScriptConfig{
+		Language: api.ScriptLangLua,
+		Script:   "return nil",
+	})
+	assert.NoError(t, err)
+	outputs, err := env.EvaluateScript(compiled, nil, nil)
+	assert.NoError(t, err)
+	assert.Equal(t, api.Args{"result": nil}, outputs)
+	passed, err := env.EvaluatePredicate(compiled, nil, nil)
+	assert.NoError(t, err)
+	assert.False(t, passed)
+	matched, err := env.EvaluateMatch(compiled, nil)
+	assert.NoError(t, err)
+	assert.False(t, matched)
+}
+
 func TestLuaEmptyTable(t *testing.T) {
 	env := script.NewLuaEnv()
 

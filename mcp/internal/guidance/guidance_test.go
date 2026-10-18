@@ -2,14 +2,18 @@ package guidance_test
 
 import (
 	"encoding/json"
+	"fmt"
 	"strings"
 	"testing"
 
 	"github.com/getkin/kin-openapi/openapi3"
+	"github.com/santhosh-tekuri/jsonschema/v6"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/kode4food/argyll/mcp/internal/guidance"
 )
+
+const goalsSchema = "engine-api.json#/components/schemas/%s/properties/goals"
 
 func TestRead(t *testing.T) {
 	text, err := guidance.Read("openapi-ingestion.md")
@@ -56,23 +60,34 @@ func TestEngineAPIGoalsSchema(t *testing.T) {
 	if !assert.NoError(t, err) {
 		return
 	}
+	b, err := json.Marshal(doc)
+	if !assert.NoError(t, err) {
+		return
+	}
+	c := jsonschema.NewCompiler()
+	err = c.AddResource("engine-api.json", decode(t, string(b)))
+	if !assert.NoError(t, err) {
+		return
+	}
 
 	for _, name := range []string{
 		"CreateFlowRequest", "ExecutionPlanRequest", "ExecutionPlan",
 		"FlowConfig",
 	} {
 		t.Run(name, func(t *testing.T) {
-			schema := doc.Components.Schemas[name].Value
-			goals := schema.Properties["goals"].Value
+			goals, err := c.Compile(fmt.Sprintf(goalsSchema, name))
+			if !assert.NoError(t, err) {
+				return
+			}
 
-			assert.NoError(t, goals.VisitJSON(decode(t,
+			assert.NoError(t, goals.Validate(decode(t,
 				`{"steps":["a","b"],"else":{"steps":["c"]}}`,
 			)))
 			for _, bad := range []string{
 				`{}`, `{"steps":[]}`, `{"steps":["a"],"else":{"steps":[]}}`,
 				`{"steps":["a"],"else":{}}`, `["a"]`, `[["a"]]`,
 			} {
-				assert.Error(t, goals.VisitJSON(decode(t, bad)))
+				assert.Error(t, goals.Validate(decode(t, bad)))
 			}
 		})
 	}

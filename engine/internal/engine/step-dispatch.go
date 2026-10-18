@@ -17,7 +17,7 @@ var (
 )
 
 func (tx *flowTx) recoverWorkDispatch(fl api.FlowState) error {
-	steps := tx.findWorkDispatchSteps(fl)
+	steps := tx.findWorkDispatchSteps(&fl)
 	if steps.IsEmpty() {
 		return nil
 	}
@@ -31,7 +31,7 @@ func (tx *flowTx) recoverWorkDispatch(fl api.FlowState) error {
 	return nil
 }
 
-func (e *Engine) findWorkDispatchSteps(fl api.FlowState) util.Set[api.StepID] {
+func (e *Engine) findWorkDispatchSteps(fl *api.FlowState) util.Set[api.StepID] {
 	steps := util.Set[api.StepID]{}
 	now := e.Now()
 
@@ -43,7 +43,7 @@ func (e *Engine) findWorkDispatchSteps(fl api.FlowState) util.Set[api.StepID] {
 		if !ok {
 			continue
 		}
-		if policy.WorkReadyToDispatch(st, ex, now) {
+		if policy.WorkReadyToDispatch(st, &ex, now) {
 			steps.Add(sid)
 		}
 	}
@@ -73,7 +73,7 @@ func (tx *flowTx) handleWorkDispatch(sid api.StepID) error {
 
 	st := fl.Plan.Steps[sid]
 
-	if policy.WorkReadyToDispatch(st, ex, tx.Now()) &&
+	if policy.WorkReadyToDispatch(st, &ex, tx.Now()) &&
 		!tx.canDispatchLocally(st.ID) {
 		return ErrDispatchUnavailable
 	}

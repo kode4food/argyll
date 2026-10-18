@@ -594,6 +594,39 @@ func TestPredicateFailure(t *testing.T) {
 	})
 }
 
+func TestPredicateRuntimeFailure(t *testing.T) {
+	tests := []struct {
+		name   string
+		source string
+	}{
+		{name: "empty"},
+		{name: "runtime error", source: `error("predicate failed")`},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+				st := helpers.NewStepWithOutputs("predicate", "result")
+				st.Predicate = &api.ScriptConfig{
+					Language: api.ScriptLangLua,
+					Script:   tt.source,
+				}
+				pl := &api.ExecutionPlan{
+					Goals: api.Goals{Steps: []api.StepID{st.ID}},
+					Steps: api.Steps{st.ID: st},
+				}
+				assert.NoError(t, env.Engine.StartPlan("predicate", pl))
+				fl, err := env.Engine.GetFlowState("predicate")
+				assert.NoError(t, err)
+				assert.Equal(t, api.FlowFailed, fl.Status)
+				ex := fl.Executions[st.ID]
+				assert.Equal(t, api.StepFailed, ex.Status)
+				assert.NotEmpty(t, ex.Error)
+				assert.Empty(t, env.MockClient.GetInvocations())
+			})
+		})
+	}
+}
+
 func TestJPathNullMatch(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		assert.NoError(t, env.Engine.Start())

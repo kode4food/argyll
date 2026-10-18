@@ -28,7 +28,7 @@ const (
 // supplied time. It keeps the state/timestamp policy separate from executor
 // concerns such as predicates, dispatch locality, and event raising
 func RetryStartDecision(
-	work api.WorkState, when time.Time,
+	work *api.WorkState, when time.Time,
 ) (RetryStartAction, time.Time) {
 	if !WorkPending(work.Status) {
 		return RetryStartIgnore, time.Time{}
@@ -43,7 +43,7 @@ func RetryStartDecision(
 // retry handling. Only pending work qualifies, at NextRetryAt when one exists,
 // with active-step pending work also recoverable immediately
 func RecoverableDeadline(
-	ex api.ExecutionState, work api.WorkState, when time.Time,
+	ex *api.ExecutionState, work *api.WorkState, when time.Time,
 ) (time.Time, bool) {
 	if !WorkPending(work.Status) {
 		return time.Time{}, false
@@ -59,7 +59,7 @@ func RecoverableDeadline(
 
 // CompRetryAt returns when a pending compensation should next be attempted, and
 // whether it is waiting for one. A lapsed time means attempt it now
-func CompRetryAt(work api.WorkState, when time.Time) (time.Time, bool) {
+func CompRetryAt(work *api.WorkState, when time.Time) (time.Time, bool) {
 	if !WorkCompPending(work.Status) {
 		return time.Time{}, false
 	}

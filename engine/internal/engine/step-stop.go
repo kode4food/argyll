@@ -42,7 +42,7 @@ func (tx *flowTx) checkStepCompletion(sid api.StepID) (bool, error) {
 
 	st := fl.Plan.Steps[sid]
 	outputs := tx.collectStepOutputs(ex.WorkItems, st)
-	outputs = tx.consumedOutputs(st, outputs, fl)
+	outputs = tx.consumedOutputs(st, outputs, &fl)
 	dur := max(tx.Now().Sub(ex.StartedAt).Milliseconds(), int64(0))
 
 	for key, value := range outputs {
@@ -81,7 +81,7 @@ func (tx *flowTx) checkStepCompletion(sid api.StepID) (bool, error) {
 }
 
 func (tx *flowTx) consumedOutputs(
-	st *api.Step, outputs api.Args, fl api.FlowState,
+	st *api.Step, outputs api.Args, fl *api.FlowState,
 ) api.Args {
 	goals := keptGoals(fl)
 	if slices.Contains(goals, st.ID) {

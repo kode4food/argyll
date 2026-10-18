@@ -172,7 +172,7 @@ func (c CatalogState) DeleteStep(id StepID) CatalogState {
 }
 
 // SpaceSteps returns the steps the specified space selects
-func (c CatalogState) SpaceSteps(id SpaceID) Steps {
+func (c *CatalogState) SpaceSteps(id SpaceID) Steps {
 	selected := c.Spaces.Selected[id]
 	res := make(Steps, len(selected))
 	for _, sid := range selected {
@@ -280,7 +280,7 @@ func (n NodeState) SetLastSeen(t time.Time) NodeState {
 }
 
 // GetAttributes returns all attribute values as Args
-func (f FlowState) GetAttributes() Args {
+func (f *FlowState) GetAttributes() Args {
 	result := make(Args, len(f.Attributes))
 	for key, values := range f.Attributes {
 		if len(values) > 0 {
@@ -302,7 +302,7 @@ func (f FlowState) SetAttribute(name Name, attr *AttributeValue) FlowState {
 	return f
 }
 
-func (f FlowState) FirstAttribute(name Name) (*AttributeValue, bool) {
+func (f *FlowState) FirstAttribute(name Name) (*AttributeValue, bool) {
 	values, ok := f.Attributes[name]
 	if !ok || len(values) == 0 {
 		return nil, false
@@ -310,7 +310,7 @@ func (f FlowState) FirstAttribute(name Name) (*AttributeValue, bool) {
 	return values[0], true
 }
 
-func (f FlowState) LastAttribute(name Name) (*AttributeValue, bool) {
+func (f *FlowState) LastAttribute(name Name) (*AttributeValue, bool) {
 	values, ok := f.Attributes[name]
 	if !ok || len(values) == 0 {
 		return nil, false
@@ -318,7 +318,7 @@ func (f FlowState) LastAttribute(name Name) (*AttributeValue, bool) {
 	return values[len(values)-1], true
 }
 
-func (f FlowState) AttributeValues(name Name) []*AttributeValue {
+func (f *FlowState) AttributeValues(name Name) []*AttributeValue {
 	return f.Attributes[name]
 }
 

@@ -22,7 +22,7 @@ func (tx *flowTx) scheduleWorkDeadlineAt(
 
 func (tx *flowTx) handleWorkDeadline(sid api.StepID, tkn api.Token) error {
 	fl := tx.Value()
-	at, ok := tx.workDeadline(fl, sid, tkn)
+	at, ok := tx.workDeadline(&fl, sid, tkn)
 	if !ok {
 		return nil
 	}
@@ -45,14 +45,14 @@ func (tx *flowTx) handleWorkDeadline(sid api.StepID, tkn api.Token) error {
 }
 
 func (e *Engine) workDeadline(
-	fl api.FlowState, sid api.StepID, tkn api.Token,
+	fl *api.FlowState, sid api.StepID, tkn api.Token,
 ) (time.Time, bool) {
 	work, ok := fl.Executions[sid].WorkItems[tkn]
 	if !ok {
 		return time.Time{}, false
 	}
 	return policy.WorkDeadline(
-		fl.Plan.Steps[sid], work, e.defaultWorkTimeout(),
+		fl.Plan.Steps[sid], &work, e.defaultWorkTimeout(),
 	)
 }
 
@@ -65,7 +65,7 @@ func (e *Engine) defaultWorkTimeout() time.Duration {
 func (tx *flowTx) recoverInFlightWork(fl api.FlowState) error {
 	for sid, ex := range fl.Executions {
 		for tkn := range ex.WorkItems {
-			if at, ok := tx.workDeadline(fl, sid, tkn); ok {
+			if at, ok := tx.workDeadline(&fl, sid, tkn); ok {
 				if err := tx.scheduleWorkDeadlineAt(sid, tkn, at); err != nil {
 					return err
 				}

@@ -75,7 +75,7 @@ func TestWorkDeadline(t *testing.T) {
 		},
 	}
 
-	at, ok := policy.WorkDeadline(st, api.WorkState{
+	at, ok := policy.WorkDeadline(st, &api.WorkState{
 		Status:    api.WorkActive,
 		StartedAt: started,
 	}, deadlineFallback)
@@ -93,7 +93,7 @@ func TestWorkDeadline(t *testing.T) {
 			},
 		},
 	}
-	at, ok = policy.WorkDeadline(async, api.WorkState{
+	at, ok = policy.WorkDeadline(async, &api.WorkState{
 		Status:    api.WorkActive,
 		StartedAt: started,
 	}, deadlineFallback)
@@ -106,7 +106,7 @@ func TestWorkDeadline(t *testing.T) {
 		Type: api.StepTypeService,
 		HTTP: &api.HTTPConfig{Invoke: api.HTTPAction{}},
 	}
-	at, ok = policy.WorkDeadline(bare, api.WorkState{
+	at, ok = policy.WorkDeadline(bare, &api.WorkState{
 		Status:    api.WorkActive,
 		StartedAt: started,
 	}, deadlineFallback)
@@ -116,7 +116,7 @@ func TestWorkDeadline(t *testing.T) {
 	// A script has no timeout of its own, so the fallback bounds a lost
 	// invocation
 	script := &api.Step{ID: "script-step", Type: api.StepTypeScript}
-	at, ok = policy.WorkDeadline(script, api.WorkState{
+	at, ok = policy.WorkDeadline(script, &api.WorkState{
 		Status:    api.WorkActive,
 		StartedAt: started,
 	}, deadlineFallback)
@@ -135,7 +135,7 @@ func TestCompensationDeadline(t *testing.T) {
 		},
 	}
 
-	at, ok := policy.WorkDeadline(st, api.WorkState{
+	at, ok := policy.WorkDeadline(st, &api.WorkState{
 		Status:    api.WorkCompensating,
 		StartedAt: started,
 	}, deadlineFallback)
@@ -151,7 +151,7 @@ func TestCompensationDeadline(t *testing.T) {
 			Compensate: &api.HTTPAction{},
 		},
 	}
-	at, ok = policy.WorkDeadline(inherited, api.WorkState{
+	at, ok = policy.WorkDeadline(inherited, &api.WorkState{
 		Status:    api.WorkCompensating,
 		StartedAt: started,
 	}, deadlineFallback)
@@ -161,7 +161,7 @@ func TestCompensationDeadline(t *testing.T) {
 
 func TestNoWorkDeadline(t *testing.T) {
 	started := time.Unix(1000, 0)
-	active := api.WorkState{Status: api.WorkActive, StartedAt: started}
+	active := &api.WorkState{Status: api.WorkActive, StartedAt: started}
 	_, childDeadline := policy.WorkDeadline(
 		&api.Step{Type: api.StepTypeFlow}, active, deadlineFallback,
 	)
@@ -181,19 +181,19 @@ func TestNoWorkDeadline(t *testing.T) {
 	assert.False(t, ok)
 
 	// Nothing is in flight, so nothing is awaited
-	_, ok = policy.WorkDeadline(http, api.WorkState{
+	_, ok = policy.WorkDeadline(http, &api.WorkState{
 		Status:    api.WorkPending,
 		StartedAt: started,
 	}, deadlineFallback)
 	assert.False(t, ok)
 
-	_, ok = policy.WorkDeadline(http, api.WorkState{
+	_, ok = policy.WorkDeadline(http, &api.WorkState{
 		Status:    api.WorkSucceeded,
 		StartedAt: started,
 	}, deadlineFallback)
 	assert.False(t, ok)
 
-	_, ok = policy.WorkDeadline(http, api.WorkState{
+	_, ok = policy.WorkDeadline(http, &api.WorkState{
 		Status: api.WorkActive,
 	}, deadlineFallback)
 	assert.False(t, ok)
@@ -203,12 +203,12 @@ func TestWorkReadyToDispatch(t *testing.T) {
 	now := time.Unix(1000, 0)
 	st := &api.Step{ID: "step"}
 
-	assert.True(t, policy.WorkReadyToDispatch(st, api.ExecutionState{
+	assert.True(t, policy.WorkReadyToDispatch(st, &api.ExecutionState{
 		WorkItems: api.WorkItems{"a": {Status: api.WorkPending}},
 	}, now))
 
 	// Parallelism is already spent on an active item
-	assert.False(t, policy.WorkReadyToDispatch(st, api.ExecutionState{
+	assert.False(t, policy.WorkReadyToDispatch(st, &api.ExecutionState{
 		WorkItems: api.WorkItems{
 			"a": {Status: api.WorkActive},
 			"b": {Status: api.WorkPending},
@@ -216,18 +216,18 @@ func TestWorkReadyToDispatch(t *testing.T) {
 	}, now))
 
 	// Pending, but not until its retry time arrives
-	assert.False(t, policy.WorkReadyToDispatch(st, api.ExecutionState{
+	assert.False(t, policy.WorkReadyToDispatch(st, &api.ExecutionState{
 		WorkItems: api.WorkItems{
 			"a": {Status: api.WorkPending, NextRetryAt: now.Add(time.Minute)},
 		},
 	}, now))
-	assert.True(t, policy.WorkReadyToDispatch(st, api.ExecutionState{
+	assert.True(t, policy.WorkReadyToDispatch(st, &api.ExecutionState{
 		WorkItems: api.WorkItems{
 			"a": {Status: api.WorkPending, NextRetryAt: now.Add(-time.Minute)},
 		},
 	}, now))
 
-	assert.False(t, policy.WorkReadyToDispatch(st, api.ExecutionState{
+	assert.False(t, policy.WorkReadyToDispatch(st, &api.ExecutionState{
 		WorkItems: api.WorkItems{"a": {Status: api.WorkSucceeded}},
 	}, now))
 }
