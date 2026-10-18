@@ -627,6 +627,45 @@ func TestPredicateRuntimeFailure(t *testing.T) {
 	}
 }
 
+func TestRequiredMatchError(t *testing.T) {
+	for _, fallback := range []bool{false, true} {
+		helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+			st := helpers.NewStepWithOutputs("match-error", "result")
+			st.Attributes["value"] = &api.AttributeSpec{
+				Role: api.RoleRequired,
+				Required: &api.RequiredConfig{Match: &api.ScriptConfig{
+					Language: api.ScriptLangLua,
+					Script:   "return value.nonexistent.field == 1",
+				}},
+			}
+			other := helpers.NewStepWithOutputs("fallback", "other")
+			pl := &api.ExecutionPlan{
+				Goals: api.Goals{Steps: []api.StepID{st.ID}},
+				Steps: api.Steps{st.ID: st},
+			}
+			if fallback {
+				pl.Goals.Else = &api.Goals{Steps: []api.StepID{other.ID}}
+				pl.Steps[other.ID] = other
+				env.MockClient.SetResponse(other.ID, api.Args{"other": "ok"})
+			}
+			assert.NoError(t, env.Engine.StartPlan("match-error", pl,
+				flow.WithInit(api.InitArgs{"value": {map[string]any{}}}),
+			))
+			fl, err := env.Engine.GetFlowState("match-error")
+			assert.NoError(t, err)
+			assert.Equal(t, api.StepFailed, fl.Executions[st.ID].Status)
+			assert.NotEmpty(t, fl.Executions[st.ID].Error)
+			if fallback {
+				fl = env.WaitForTerminalFlow(fl.ID)
+				assert.Equal(t, api.FlowCompleted, fl.Status)
+				return
+			}
+			assert.Equal(t, api.FlowFailed, fl.Status)
+			assert.False(t, fl.DeactivatedAt.IsZero())
+		})
+	}
+}
+
 func TestJPathNullMatch(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		assert.NoError(t, env.Engine.Start())

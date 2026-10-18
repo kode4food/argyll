@@ -310,7 +310,8 @@ func (s *Step) MultiArgNames() []Name {
 	var names []Name
 	for name, attr := range s.Attributes {
 		if attr.ForEach() {
-			names = append(names, name)
+			mapped, _ := s.MappedName(name)
+			names = append(names, mapped)
 		}
 	}
 	slices.Sort(names)

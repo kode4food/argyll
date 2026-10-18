@@ -730,4 +730,14 @@ return found`,
 		assert.NoError(t, err)
 		assert.True(t, matched)
 	})
+
+	t.Run("raw writes do not survive a call", func(t *testing.T) {
+		for range 3 {
+			matched, err := run(`local clean = string.rep("a", 2) == "aa"
+rawset(string, "rep", function() return "corrupt" end)
+return clean`)
+			assert.NoError(t, err)
+			assert.True(t, matched)
+		}
+	})
 }

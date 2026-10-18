@@ -13,6 +13,7 @@ type (
 		deps  api.AttributeGraph
 		steps api.Steps
 		stack stepSet
+		done  stepSet
 	}
 
 	// flowCycleWalker walks sub-flow goals, depth first
@@ -20,12 +21,16 @@ type (
 		steps    api.Steps
 		children func(*api.Step) (*api.Goals, error)
 		stack    stepSet
+		done     stepSet
 	}
 
 	stepSet = util.Set[api.StepID]
 )
 
 func (w *attrCycleWalker) check(sid api.StepID) error {
+	if w.done.Contains(sid) {
+		return nil
+	}
 	if w.stack.Contains(sid) {
 		return fmt.Errorf("%w: step %s", api.ErrCircularDependency, sid)
 	}
@@ -45,10 +50,14 @@ func (w *attrCycleWalker) check(sid api.StepID) error {
 		}
 	}
 
+	w.done.Add(sid)
 	return nil
 }
 
 func (w *flowCycleWalker) check(sid api.StepID) error {
+	if w.done.Contains(sid) {
+		return nil
+	}
 	if w.stack.Contains(sid) {
 		return fmt.Errorf("%w: step %s", api.ErrCircularDependency, sid)
 	}
@@ -62,6 +71,7 @@ func (w *flowCycleWalker) check(sid api.StepID) error {
 		return err
 	}
 	if childIDs == nil {
+		w.done.Add(sid)
 		return nil
 	}
 
@@ -74,6 +84,7 @@ func (w *flowCycleWalker) check(sid api.StepID) error {
 		}
 	}
 
+	w.done.Add(sid)
 	return nil
 }
 
@@ -96,6 +107,7 @@ func detectAttributeCycles(cat *api.CatalogState, newStep *api.Step) error {
 		deps:  deps.AddStep(newStep),
 		steps: stepsIncluding(cat, newStep),
 		stack: stepSet{},
+		done:  stepSet{},
 	}
 	return w.check(newStep.ID)
 }
@@ -105,12 +117,13 @@ func detectFlowCycles(
 	children func(*api.Step) (*api.Goals, error),
 ) error {
 	steps := stepsIncluding(cat, newStep)
+	w := &flowCycleWalker{
+		steps:    steps,
+		children: children,
+		stack:    stepSet{},
+		done:     stepSet{},
+	}
 	for sid := range steps {
-		w := &flowCycleWalker{
-			steps:    steps,
-			children: children,
-			stack:    stepSet{},
-		}
 		if err := w.check(sid); err != nil {
 			return err
 		}

@@ -11,6 +11,7 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/log"
 	"github.com/kode4food/argyll/engine/pkg/policy"
 	"github.com/kode4food/argyll/engine/pkg/util"
+	"github.com/kode4food/argyll/engine/pkg/util/call"
 )
 
 // HandleCommitted requests reconciliation for flows whose committed work this
@@ -80,23 +81,14 @@ func (tx *flowTx) recoverFlow() error {
 	}
 
 	fl = tx.Value()
-	if err := tx.scheduleTimeouts(fl, tx.Now()); err != nil {
-		return err
-	}
-	if err := tx.recoverWorkDispatch(fl); err != nil {
-		return err
-	}
-	if err := tx.recoverRetries(fl); err != nil {
-		return err
-	}
-	if err := tx.skipPendingUnused(); err != nil {
-		return err
-	}
-	fl = tx.Value()
-	if isFlowComplete(&fl) {
-		return tx.checkTerminal()
-	}
-	return nil
+	return call.Perform(
+		call.WithArgs(tx.scheduleTimeouts, fl, tx.Now()),
+		call.WithArg(tx.recoverWorkDispatch, fl),
+		call.WithArg(tx.recoverRetries, fl),
+		tx.checkUnreachable,
+		tx.skipPendingUnused,
+		tx.checkTerminal,
+	)
 }
 
 // scheduleFlowReconcile arms the reconciliation of a single flow, keyed so that

@@ -242,6 +242,31 @@ func TestSkipFailedAllProvider(t *testing.T) {
 	})
 }
 
+func TestAllMissingProviderOutput(t *testing.T) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		first := helpers.NewStepWithOutputs("first", "data")
+		second := helpers.NewStepWithOutputs("second", "data")
+		st := helpers.NewStepWithOutputs("consumer", "result")
+		st.Attributes["data"] = &api.AttributeSpec{
+			Role:     api.RoleRequired,
+			Type:     api.TypeString,
+			Required: &api.RequiredConfig{Collect: api.InputCollectAll},
+		}
+		assert.NoError(t, env.Engine.RegisterSteps(first, second, st))
+		env.MockClient.SetResponse(first.ID, api.Args{"data": "x"})
+		env.MockClient.SetResponse(second.ID, api.Args{})
+		assert.NoError(t, env.Engine.StartFlow(api.CreateFlowRequest{
+			ID:    "all-missing",
+			Goals: api.Goals{Steps: []api.StepID{st.ID}},
+		}))
+		fl := env.WaitForTerminalFlow("all-missing")
+		assert.Equal(t, api.FlowFailed, fl.Status)
+		assert.Equal(t, api.StepFailed, fl.Executions[st.ID].Status)
+		assert.False(t, env.MockClient.WasInvoked(st.ID))
+		assert.NoError(t, env.Engine.RecoverFlow(fl.ID))
+	})
+}
+
 func TestSkipStep(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		assert.NoError(t, env.Engine.Start())

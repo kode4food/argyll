@@ -305,6 +305,19 @@ func dumpChunk(L *lua.State, src string) ([]byte, error) {
 // globals, so its writes are discarded with the call
 func setChunkEnv(L *lua.State) error {
 	L.NewTable()
+	// Raw writes bypass __newindex, so library stand-ins belong to the call
+	for _, name := range []string{"string", "table", "math", "bit32"} {
+		L.Global(name)
+		if !L.MetaTable(-1) {
+			L.Pop(1)
+			continue
+		}
+		L.Remove(-2)
+		L.NewTable()
+		L.Insert(-2)
+		L.SetMetaTable(-2)
+		L.SetField(-2, name)
+	}
 	L.NewTable()
 	L.PushGlobalTable()
 	L.SetField(-2, "__index")

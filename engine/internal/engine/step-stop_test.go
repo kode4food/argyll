@@ -95,6 +95,45 @@ func TestMissingOutputFailsFlow(t *testing.T) {
 	})
 }
 
+func TestFailedFanOutSettlesPending(t *testing.T) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		st := &api.Step{
+			ID:   "fan-fail",
+			Name: "fan-fail",
+			Type: api.StepTypeScript,
+			Script: &api.ScriptConfig{
+				Language: api.ScriptLangLua,
+				Script:   "error('failed')",
+			},
+			Attributes: api.AttributeSpecs{
+				"item": {
+					Role:     api.RoleRequired,
+					Required: &api.RequiredConfig{ForEach: true},
+				},
+				"result": {Role: api.RoleOutput},
+			},
+		}
+		pl := &api.ExecutionPlan{
+			Goals: api.Goals{Steps: []api.StepID{st.ID}},
+			Steps: api.Steps{st.ID: st},
+		}
+		testify.NoError(t, env.Engine.StartPlan("fan-fail", pl,
+			flow.WithInit(api.InitArgs{"item": {[]any{1, 2, 3}}}),
+		))
+		testify.NoError(t, env.Engine.RecoverFlow("fan-fail"))
+		fl, err := env.Engine.GetFlowState("fan-fail")
+		testify.NoError(t, err)
+		testify.Equal(t, api.FlowFailed, fl.Status)
+		testify.False(t, fl.DeactivatedAt.IsZero())
+		status, err := env.Engine.GetFlowStatus(fl.ID)
+		testify.NoError(t, err)
+		testify.Equal(t, api.FlowFailed, status)
+		for _, work := range fl.Executions[st.ID].WorkItems {
+			testify.Equal(t, api.WorkFailed, work.Status)
+		}
+	})
+}
+
 func TestMissingOutputOtherProvider(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		testify.NoError(t, env.Engine.Start())

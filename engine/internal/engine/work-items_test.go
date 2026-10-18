@@ -73,6 +73,51 @@ func TestForEachAggregatesOutputs(t *testing.T) {
 	})
 }
 
+func TestMappedFanOut(t *testing.T) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		st := &api.Step{
+			ID:   "mapped",
+			Name: "mapped",
+			Type: api.StepTypeScript,
+			Script: &api.ScriptConfig{
+				Language: api.ScriptLangLua,
+				Script:   "return { result = item }",
+			},
+			Attributes: api.AttributeSpecs{
+				"items": {
+					Role: api.RoleRequired,
+					Required: &api.RequiredConfig{
+						ForEach: true,
+						Mapping: &api.MappingConfig{Name: "item"},
+					},
+				},
+				"result": {Role: api.RoleOutput},
+			},
+		}
+		pl := &api.ExecutionPlan{
+			Goals: api.Goals{Steps: []api.StepID{st.ID}},
+			Steps: api.Steps{st.ID: st},
+		}
+		assert.NoError(t, env.Engine.StartPlan("mapped", pl,
+			flow.WithInit(api.InitArgs{"items": {[]any{1, 2, 3}}}),
+		))
+		fl, err := env.Engine.GetFlowState("mapped")
+		assert.NoError(t, err)
+		assert.Equal(t, api.FlowCompleted, fl.Status)
+		ex := fl.Executions[st.ID]
+		assert.Len(t, ex.WorkItems, 3)
+		for _, work := range ex.WorkItems {
+			assert.NotContains(t, work.Inputs, api.Name("items"))
+			assert.Equal(t, work.Inputs["item"], work.Outputs["result"])
+		}
+		assert.ElementsMatch(t, []map[string]any{
+			{"item": 1, "result": 1},
+			{"item": 2, "result": 2},
+			{"item": 3, "result": 3},
+		}, ex.Outputs["result"])
+	})
+}
+
 func TestForEachTypedSlice(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		assert.NoError(t, env.Engine.Start())

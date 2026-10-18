@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"net"
 	"net/http"
 	"os"
 	"time"
@@ -30,6 +31,7 @@ type App struct {
 	health     *server.HealthChecker
 	apiServer  *server.Server
 	httpServer *http.Server
+	serveErr   chan error
 }
 
 var logLevels = map[string]slog.Level{
@@ -44,14 +46,18 @@ func New(cfg Config) *App {
 	return &App{cfg: cfg}
 }
 
-// Run starts the App, waits for ctx to be done, then shuts the App down
+// Run serves until cancellation or an HTTP server error, then shuts down
 func (a *App) Run(ctx context.Context) error {
 	if err := a.Start(); err != nil {
 		return err
 	}
-	<-ctx.Done()
-	a.Shutdown()
-	return nil
+	defer a.Shutdown()
+	select {
+	case <-ctx.Done():
+		return nil
+	case err := <-a.serveErr:
+		return err
+	}
 }
 
 // SetupLogging installs the default logger at the configured level
@@ -84,7 +90,9 @@ func (a *App) Start() error {
 	if err := a.startEngine(); err != nil {
 		return err
 	}
-	a.startServer()
+	if err := a.startServer(); err != nil {
+		return errors.Join(err, a.engine.Stop())
+	}
 	return nil
 }
 
@@ -145,7 +153,12 @@ func (a *App) openRaft(pub timebox.Publisher) (timebox.Backend, error) {
 	return b, nil
 }
 
-func (a *App) startServer() {
+func (a *App) startServer() error {
+	addr := fmt.Sprintf("%s:%d", a.cfg.APIHost, a.cfg.APIPort)
+	ln, err := net.Listen("tcp", addr)
+	if err != nil {
+		return err
+	}
 	a.health = server.NewHealthChecker(a.engine)
 	a.health.Start()
 
@@ -156,16 +169,19 @@ func (a *App) startServer() {
 	mux := a.apiServer.SetupRoutes()
 
 	a.httpServer = &http.Server{
-		Addr:    fmt.Sprintf("%s:%d", a.cfg.APIHost, a.cfg.APIPort),
+		Addr:    addr,
 		Handler: mux,
 	}
 
+	a.serveErr = make(chan error, 1)
 	go func() {
 		slog.Info("HTTP server starting",
 			slog.String("addr", a.httpServer.Addr))
-		err := a.httpServer.ListenAndServe()
-		if err != nil && !errors.Is(err, http.ErrServerClosed) {
-			slog.Error("HTTP server error", log.Error(err))
+		err := a.httpServer.Serve(ln)
+		if errors.Is(err, http.ErrServerClosed) {
+			err = nil
 		}
+		a.serveErr <- err
 	}()
+	return nil
 }

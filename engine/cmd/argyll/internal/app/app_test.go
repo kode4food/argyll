@@ -27,6 +27,24 @@ func TestStartInvalidRaftConfig(t *testing.T) {
 	assert.ErrorIs(t, err, engine.ErrOpenBackend)
 }
 
+func TestStartOccupiedPort(t *testing.T) {
+	cfg := newRaftTestConfig(t)
+	cfg.APIHost = "127.0.0.1"
+	blocked, err := net.Listen("tcp", fmt.Sprintf("127.0.0.1:%d", cfg.APIPort))
+	assert.NoError(t, err)
+	defer func() { _ = blocked.Close() }()
+
+	err = app.New(cfg).Start()
+	assert.Error(t, err)
+
+	// Startup failure must release the raft listener too
+	ln, err := net.Listen("tcp", cfg.Raft.Address)
+	assert.NoError(t, err)
+	if err == nil {
+		assert.NoError(t, ln.Close())
+	}
+}
+
 func TestSetupLogging(t *testing.T) {
 	prevLogger := slog.Default()
 	t.Cleanup(func() { slog.SetDefault(prevLogger) })

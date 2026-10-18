@@ -8,6 +8,7 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/events"
 	"github.com/kode4food/argyll/engine/pkg/policy"
+	"github.com/kode4food/argyll/engine/pkg/util/call"
 )
 
 type parentWork struct {
@@ -22,6 +23,9 @@ var (
 
 // checkTerminal checks for flow completion or failure
 func (tx *flowTx) checkTerminal() error {
+	if err := tx.failAbandonedWork(); err != nil {
+		return err
+	}
 	fl := tx.Value()
 	if policy.FlowTerminal(fl.Status) {
 		return nil
@@ -61,7 +65,10 @@ func (tx *flowTx) maybeDeactivate() error {
 	}
 	// Compensation may start new work, so sweep before testing for active
 	// work rather than after
-	if err := tx.compensateFlow(); err != nil {
+	if err := call.Perform(
+		tx.failAbandonedWork,
+		tx.compensateFlow,
+	); err != nil {
 		return err
 	}
 	// Told before deactivating, since the parent decides the rollback. Both
@@ -75,6 +82,26 @@ func (tx *flowTx) maybeDeactivate() error {
 		return nil
 	}
 	return tx.deactivate(parent)
+}
+
+func (tx *flowTx) failAbandonedWork() error {
+	fl := tx.Value()
+	for sid, ex := range fl.Executions {
+		if !policy.FlowTerminal(fl.Status) && !policy.StepTerminal(ex.Status) {
+			continue
+		}
+		for tkn, work := range ex.WorkItems {
+			if !policy.WorkPending(work.Status) {
+				continue
+			}
+			if err := tx.raiseWorkFailed(
+				sid, tkn, "execution no longer active",
+			); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }
 
 func (tx *flowTx) deactivate(parent api.FlowState) error {

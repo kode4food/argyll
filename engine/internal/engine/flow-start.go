@@ -140,10 +140,10 @@ func (tx *flowTx) startPlan(pl *api.ExecutionPlan, opts *flow.Options) error {
 	); err != nil {
 		return err
 	}
-	if err := tx.startReadyPendingSteps(); err != nil {
-		return err
-	}
-	if err := tx.skipPendingUnused(); err != nil {
+	if err := call.Perform(
+		tx.startReadyPendingSteps,
+		tx.skipPendingUnused,
+	); err != nil {
 		return err
 	}
 	fl := tx.Value()

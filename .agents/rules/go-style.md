@@ -496,6 +496,24 @@ api.HealthState{api.HealthHealthy, now, reason}
 
 The only exception is single-field structs where the field name adds no information.
 
+Use Go 1.27's promoted fields directly in struct literals instead of explicitly initializing the embedded struct:
+
+```go
+// Good
+api.CreateFlowRequest{
+	ID:    "all-missing",
+	Goals: api.Goals{Steps: []api.StepID{st.ID}},
+}
+
+// Bad
+api.CreateFlowRequest{
+	ID: "all-missing",
+	ExecutionPlanRequest: api.ExecutionPlanRequest{
+		Goals: api.Goals{Steps: []api.StepID{st.ID}},
+	},
+}
+```
+
 ## Control Flow
 
 ### Early Returns

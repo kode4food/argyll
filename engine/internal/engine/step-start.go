@@ -45,12 +45,12 @@ func (tx *flowTx) prepareStep(sid api.StepID) error {
 	st := fl.Plan.Steps[sid]
 	unsatisfied, err := tx.matchGateUnsatisfiedInputs(st, &fl)
 	if err != nil {
-		return err
+		return tx.handlePredicateFailure(sid, ex.Inputs, err)
 	}
 	if len(unsatisfied) > 0 {
 		inputs, err := tx.collectStepInputs(st, &fl)
 		if err != nil {
-			return err
+			return tx.handlePredicateFailure(sid, ex.Inputs, err)
 		}
 		return tx.performSkip(
 			sid, policy.RequiredMatchSkipReason, inputs, unsatisfied,
@@ -59,7 +59,7 @@ func (tx *flowTx) prepareStep(sid api.StepID) error {
 
 	inputs, err := tx.collectStepInputs(st, &fl)
 	if err != nil {
-		return err
+		return tx.handlePredicateFailure(sid, ex.Inputs, err)
 	}
 
 	shouldExecute, err := tx.evaluateStepPredicate(st, inputs)
@@ -260,14 +260,15 @@ func (s *stepEval) canStart() (bool, time.Time) {
 		return false, time.Time{}
 	}
 
-	// If the match gate is closed, allow start so prepareStep can skip it
-	if willSkip, _ := s.e.matchGateWillSkip(s.step, s.flow); willSkip {
+	// Let preparation record a closed or broken match gate's outcome
+	if willSkip, err := s.e.matchGateWillSkip(s.step, s.flow); willSkip ||
+		err != nil {
 		return true, time.Time{}
 	}
 
 	anchor, err := s.requiredReadyAt()
 	if err != nil {
-		return false, time.Time{}
+		return true, time.Time{}
 	}
 	if anchor.IsZero() {
 		return false, time.Time{}

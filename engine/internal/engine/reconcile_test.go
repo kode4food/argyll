@@ -86,6 +86,158 @@ func TestRecoverSatisfiedGoal(t *testing.T) {
 	})
 }
 
+func TestRecoverBrokenMatch(t *testing.T) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		st := helpers.NewStepWithOutputs("broken-match", "result")
+		st.Attributes["value"] = &api.AttributeSpec{
+			Role: api.RoleRequired,
+			Required: &api.RequiredConfig{Match: &api.ScriptConfig{
+				Language: api.ScriptLangLua,
+				Script:   "return value.nonexistent.field == 1",
+			}},
+		}
+		fid := api.FlowID("recover-match")
+		assert.NoError(t, env.RaiseFlowEvents(fid, helpers.FlowEvent{
+			Type: api.EventTypeFlowStarted,
+			Data: api.FlowStartedEvent{
+				FlowID: fid,
+				Plan: &api.ExecutionPlan{
+					Goals: api.Goals{Steps: []api.StepID{st.ID}},
+					Steps: api.Steps{st.ID: st},
+				},
+				Init: api.InitArgs{"value": {map[string]any{}}},
+			},
+		}))
+		assert.NoError(t, env.Engine.RecoverFlow(fid))
+		fl, err := env.Engine.GetFlowState(fid)
+		assert.NoError(t, err)
+		assert.Equal(t, api.FlowFailed, fl.Status)
+		assert.Equal(t, api.StepFailed, fl.Executions[st.ID].Status)
+		assert.False(t, fl.DeactivatedAt.IsZero())
+		assert.Empty(t, env.MockClient.GetInvocations())
+	})
+}
+
+func TestRecoverMissingAll(t *testing.T) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		first := helpers.NewStepWithOutputs("first", "data")
+		second := helpers.NewStepWithOutputs("second", "data")
+		st := helpers.NewStepWithOutputs("consumer", "result")
+		st.Attributes["data"] = &api.AttributeSpec{
+			Role:     api.RoleRequired,
+			Type:     api.TypeString,
+			Required: &api.RequiredConfig{Collect: api.InputCollectAll},
+		}
+		fid := api.FlowID("recover-all")
+		pl := &api.ExecutionPlan{
+			Goals: api.Goals{Steps: []api.StepID{st.ID}},
+			Steps: api.Steps{first.ID: first, second.ID: second, st.ID: st},
+			Attributes: api.AttributeGraph{
+				"data": {
+					Providers: []api.StepID{first.ID, second.ID},
+					Consumers: []api.StepID{st.ID},
+				},
+			},
+		}
+		assert.NoError(t, env.RaiseFlowEvents(fid,
+			helpers.FlowEvent{
+				Type: api.EventTypeFlowStarted,
+				Data: api.FlowStartedEvent{FlowID: fid, Plan: pl},
+			},
+			helpers.FlowEvent{
+				Type: api.EventTypeStepStarted,
+				Data: api.StepStartedEvent{FlowID: fid, StepID: first.ID},
+			},
+			helpers.FlowEvent{
+				Type: api.EventTypeAttributeSet,
+				Data: api.AttributeSetEvent{
+					FlowID: fid,
+					StepID: first.ID,
+					Key:    "data",
+					Value:  "x",
+				},
+			},
+			helpers.FlowEvent{
+				Type: api.EventTypeStepCompleted,
+				Data: api.StepCompletedEvent{
+					FlowID:  fid,
+					StepID:  first.ID,
+					Outputs: api.Args{"data": "x"},
+				},
+			},
+			helpers.FlowEvent{
+				Type: api.EventTypeStepStarted,
+				Data: api.StepStartedEvent{FlowID: fid, StepID: second.ID},
+			},
+			helpers.FlowEvent{
+				Type: api.EventTypeStepCompleted,
+				Data: api.StepCompletedEvent{FlowID: fid, StepID: second.ID},
+			},
+		))
+		assert.NoError(t, env.Engine.RecoverFlow(fid))
+		fl, err := env.Engine.GetFlowState(fid)
+		assert.NoError(t, err)
+		assert.Equal(t, api.FlowFailed, fl.Status)
+		assert.Equal(t, api.StepFailed, fl.Executions[st.ID].Status)
+		assert.False(t, fl.DeactivatedAt.IsZero())
+		assert.Empty(t, env.MockClient.GetInvocations())
+	})
+}
+
+func TestRecoverAbandonedWork(t *testing.T) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		st := helpers.NewStepWithOutputs("failed", "result")
+		fid := api.FlowID("recover-abandoned")
+		assert.NoError(t, env.RaiseFlowEvents(fid,
+			helpers.FlowEvent{
+				Type: api.EventTypeFlowStarted,
+				Data: api.FlowStartedEvent{
+					FlowID: fid,
+					Plan: &api.ExecutionPlan{
+						Goals: api.Goals{Steps: []api.StepID{st.ID}},
+						Steps: api.Steps{st.ID: st},
+					},
+				},
+			},
+			helpers.FlowEvent{
+				Type: api.EventTypeStepStarted,
+				Data: api.StepStartedEvent{
+					FlowID:    fid,
+					StepID:    st.ID,
+					WorkItems: map[api.Token]api.Args{"pending": {}},
+				},
+			},
+			helpers.FlowEvent{
+				Type: api.EventTypeStepFailed,
+				Data: api.StepFailedEvent{
+					FlowID: fid,
+					StepID: st.ID,
+					Error:  "failed",
+				},
+			},
+			helpers.FlowEvent{
+				Type: api.EventTypeFlowFailed,
+				Data: api.FlowFailedEvent{FlowID: fid, Error: "failed"},
+			},
+		))
+		assert.NoError(t, env.Engine.RecoverFlow(fid))
+		fl, err := env.Engine.GetFlowState(fid)
+		assert.NoError(t, err)
+		assert.Equal(t, api.WorkFailed,
+			fl.Executions[st.ID].WorkItems["pending"].Status)
+		assert.False(t, fl.DeactivatedAt.IsZero())
+		status, err := env.Engine.GetFlowStatus(fid)
+		assert.NoError(t, err)
+		assert.Equal(t, api.FlowFailed, status)
+		before, err := env.Engine.GetFlowEvents(fid)
+		assert.NoError(t, err)
+		assert.NoError(t, env.Engine.RecoverFlow(fid))
+		after, err := env.Engine.GetFlowEvents(fid)
+		assert.NoError(t, err)
+		assert.Len(t, after, len(before))
+	})
+}
+
 // TestCommittedEventFilter proves only deferred dispatch requests reconciling
 func TestCommittedEventFilter(t *testing.T) {
 	types := map[api.EventType]bool{

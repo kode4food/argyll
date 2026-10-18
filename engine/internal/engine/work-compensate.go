@@ -11,6 +11,7 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/log"
 	"github.com/kode4food/argyll/engine/pkg/policy"
 	"github.com/kode4food/argyll/engine/pkg/util"
+	"github.com/kode4food/argyll/engine/pkg/util/call"
 )
 
 type (
@@ -149,10 +150,10 @@ func (tx *flowTx) completeCompensation(sid api.StepID, tkn api.Token) error {
 	if !policy.WorkCompUnsettled(ex.WorkItems[tkn].Status) {
 		return nil
 	}
-	if err := tx.raiseCompSucceeded(sid, tkn); err != nil {
-		return err
-	}
-	return tx.maybeDeactivate()
+	return call.Perform(
+		call.WithArgs(tx.raiseCompSucceeded, sid, tkn),
+		tx.maybeDeactivate,
+	)
 }
 
 func (tx *flowTx) failCompensation(

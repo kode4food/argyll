@@ -1,6 +1,7 @@
 package engine_test
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -9,6 +10,38 @@ import (
 	"github.com/kode4food/argyll/engine/internal/engine"
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
+
+const sharedGraphDepth = 24
+
+func TestRegisterSharedGraph(t *testing.T) {
+	for _, batch := range []bool{false, true} {
+		t.Run(fmt.Sprintf("batch=%t", batch), func(t *testing.T) {
+			helpers.WithEngine(t, func(eng *engine.Engine) {
+				steps := sharedGraphSteps()
+				if batch {
+					assert.NoError(t, eng.RegisterSteps(steps...))
+				} else {
+					for _, st := range steps {
+						assert.NoError(t, eng.RegisterStep(st))
+					}
+				}
+				cat, err := eng.GetCatalogState()
+				assert.NoError(t, err)
+				assert.Len(t, cat.Steps, len(steps))
+				first := helpers.NewStepWithOutputs(
+					steps[0].ID, api.Name(steps[0].ID),
+				)
+				last := steps[len(steps)-1]
+				first.Attributes[api.Name(last.ID)] = &api.AttributeSpec{
+					Role: api.RoleRequired,
+					Type: api.TypeString,
+				}
+				assert.ErrorIs(t,
+					eng.UpdateStep(first), api.ErrCircularDependency)
+			})
+		})
+	}
+}
 
 func TestUpdateStepCycles(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
@@ -142,4 +175,25 @@ func TestUpdateStepRejectsGoalCycles(t *testing.T) {
 		assert.ErrorIs(t, err, api.ErrInvalidStep)
 		assert.ErrorIs(t, err, api.ErrCircularDependency)
 	})
+}
+
+func sharedGraphSteps() []*api.Step {
+	var steps []*api.Step
+	for layer := range sharedGraphDepth {
+		for i := range 2 {
+			sid := api.StepID(fmt.Sprintf("layer%d_%d", layer, i))
+			st := helpers.NewStepWithOutputs(sid, api.Name(sid))
+			if layer > 0 {
+				for j := range 2 {
+					name := api.Name(fmt.Sprintf("layer%d_%d", layer-1, j))
+					st.Attributes[name] = &api.AttributeSpec{
+						Role: api.RoleRequired,
+						Type: api.TypeString,
+					}
+				}
+			}
+			steps = append(steps, st)
+		}
+	}
+	return steps
 }

@@ -154,7 +154,10 @@ func (e *Engine) canStepComplete(sid api.StepID, fl *api.FlowState) bool {
 	}
 
 	st := fl.Plan.Steps[sid]
-	willSkip, _ := e.matchGateWillSkip(st, fl)
+	willSkip, err := e.matchGateWillSkip(st, fl)
+	if err != nil {
+		return false
+	}
 	if willSkip {
 		return true
 	}
@@ -164,6 +167,10 @@ func (e *Engine) canStepComplete(sid api.StepID, fl *api.FlowState) bool {
 
 	for name, attr := range st.Attributes {
 		if attr.IsRequired() {
+			if attr.Collect() == api.InputCollectAll &&
+				!canCollectAll(name, fl) {
+				return false
+			}
 			if _, ok := fl.FirstAttribute(name); ok {
 				continue
 			}
