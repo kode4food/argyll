@@ -11,91 +11,91 @@ import (
 )
 
 // advanceFlow settles pending steps, starts ready ones, and arms the rest's
-// deadlines. Unused steps skip both before and after unreachable ones fail
+// deadlines
 func (tx *flowTx) advanceFlow() error {
 	return call.Perform(
-		tx.skipPendingUnused,
-		tx.checkUnreachable,
-		tx.skipPendingUnused,
+		tx.settlePending,
 		tx.checkTerminal,
 		tx.startReadyPendingSteps,
 		tx.scheduleTimeouts,
 	)
 }
 
-// checkUnreachable finds and fails all pending steps that can no longer
-// complete because their required inputs cannot be satisfied
-func (tx *flowTx) checkUnreachable() error {
+// settlePending skips unused pending steps before failing unreachable ones,
+// repeating until neither changes anything
+func (tx *flowTx) settlePending() error {
 	for {
-		failedAny := false
-		fl := tx.Value()
-
-		for sid, ex := range fl.Executions {
-			if !policy.StepPending(ex.Status) {
-				continue
-			}
-			if tx.canStepComplete(sid, &fl) {
-				continue
-			}
-
-			st := fl.Plan.Steps[sid]
-			reason := "required input no longer available"
-			inputs, err := tx.collectStepInputs(st, &fl)
-			if err != nil {
-				reason = err.Error()
-				inputs = ex.Inputs
-			}
-
-			if err := events.Raise(tx.FlowAggregator, api.EventTypeStepFailed,
-				api.StepFailedEvent{
-					FlowID: tx.flowID,
-					StepID: sid,
-					Error:  reason,
-					Inputs: inputs,
-				},
-			); err != nil {
-				return err
-			}
-			failedAny = true
-			break
+		skipped, err := tx.skipPendingUnused()
+		if err != nil {
+			return err
 		}
-
-		if !failedAny {
-			return nil
+		if skipped {
+			continue
+		}
+		failed, err := tx.checkUnreachable()
+		if err != nil || !failed {
+			return err
 		}
 	}
 }
 
-func (tx *flowTx) skipPendingUnused() error {
-	for {
-		skip := false
-		fl := tx.Value()
-
-		for sid, ex := range fl.Executions {
-			if !policy.StepPending(ex.Status) {
-				continue
-			}
-			if tx.areOutputsNeeded(sid, &fl, keptGoals(&fl)) {
-				continue
-			}
-
-			if err := events.Raise(tx.FlowAggregator, api.EventTypeStepSkipped,
-				api.StepSkippedEvent{
-					FlowID: tx.flowID,
-					StepID: sid,
-					Reason: "outputs not needed",
-				},
-			); err != nil {
-				return err
-			}
-			skip = true
-			break
+func (tx *flowTx) skipPendingUnused() (bool, error) {
+	fl := tx.Value()
+	for sid, ex := range fl.Executions {
+		if !policy.StepPending(ex.Status) {
+			continue
+		}
+		if tx.areOutputsNeeded(sid, &fl, keptGoals(&fl)) {
+			continue
 		}
 
-		if !skip {
-			return nil
+		if err := events.Raise(tx.FlowAggregator, api.EventTypeStepSkipped,
+			api.StepSkippedEvent{
+				FlowID: tx.flowID,
+				StepID: sid,
+				Reason: "outputs not needed",
+			},
+		); err != nil {
+			return false, err
 		}
+		return true, nil
 	}
+	return false, nil
+}
+
+// checkUnreachable fails the first pending step that can no longer complete
+// because its required inputs cannot be satisfied
+func (tx *flowTx) checkUnreachable() (bool, error) {
+	fl := tx.Value()
+	for sid, ex := range fl.Executions {
+		if !policy.StepPending(ex.Status) {
+			continue
+		}
+		if tx.canStepComplete(sid, &fl) {
+			continue
+		}
+
+		st := fl.Plan.Steps[sid]
+		reason := "required input no longer available"
+		inputs, err := tx.collectStepInputs(st, &fl)
+		if err != nil {
+			reason = err.Error()
+			inputs = ex.Inputs
+		}
+
+		if err := events.Raise(tx.FlowAggregator, api.EventTypeStepFailed,
+			api.StepFailedEvent{
+				FlowID: tx.flowID,
+				StepID: sid,
+				Error:  reason,
+				Inputs: inputs,
+			},
+		); err != nil {
+			return false, err
+		}
+		return true, nil
+	}
+	return false, nil
 }
 
 func (tx *flowTx) startReadyPendingSteps() error {
