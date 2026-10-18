@@ -18,6 +18,7 @@ type flowTx struct {
 	storeTx
 	*FlowAggregator
 	flowID api.FlowID
+	start  api.FlowState
 }
 
 var (
@@ -140,17 +141,7 @@ func (tx *flowTx) startPlan(pl *api.ExecutionPlan, opts *flow.Options) error {
 	); err != nil {
 		return err
 	}
-	if err := call.Perform(
-		tx.startReadyPendingSteps,
-		tx.skipPendingUnused,
-	); err != nil {
-		return err
-	}
-	fl := tx.Value()
-	if isFlowComplete(&fl) {
-		return tx.checkTerminal()
-	}
-	return tx.scheduleTimeouts(tx.Value(), tx.Now())
+	return tx.advanceFlow()
 }
 
 func (tx *flowTx) startChildFlow(
@@ -210,11 +201,12 @@ func (tx storeTx) flowTx(
 	fid api.FlowID, fn func(*flowTx) error,
 ) (api.FlowState, error) {
 	return tx.Exec(tx.flowExec, events.FlowKey(fid),
-		func(_ api.FlowState, ag *FlowAggregator) error {
+		func(start api.FlowState, ag *FlowAggregator) error {
 			return fn(&flowTx{
 				storeTx:        tx,
 				FlowAggregator: ag,
 				flowID:         fid,
+				start:          start,
 			})
 		},
 	)

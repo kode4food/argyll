@@ -166,17 +166,17 @@ func (e *Engine) canStepComplete(sid api.StepID, fl *api.FlowState) bool {
 	}
 
 	for name, attr := range st.Attributes {
-		if attr.IsRequired() {
-			if attr.Collect() == api.InputCollectAll &&
-				!canCollectAll(name, fl) {
-				return false
-			}
-			if _, ok := fl.FirstAttribute(name); ok {
-				continue
-			}
-			if !e.HasInputProvider(name, fl) {
-				return false
-			}
+		if !attr.IsRequired() {
+			continue
+		}
+		if !policy.InputSatisfiable(attr.Collect(), policy.InputOutlook{
+			HasValue:       e.inputHasValue(name, attr, fl),
+			AllCollectable: canCollectAll(name, fl),
+			Providable: func() bool {
+				return e.HasInputProvider(name, fl)
+			},
+		}) {
+			return false
 		}
 	}
 

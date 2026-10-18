@@ -6,15 +6,33 @@ import (
 
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/policy"
-	"github.com/kode4food/argyll/engine/pkg/util"
 )
 
-func (tx *flowTx) scheduleTimeouts(fl api.FlowState, when time.Time) error {
+// scheduleTimeouts arms the steps anchored during this transaction, since an
+// anchor never moves once set and earlier ones were armed when they appeared
+func (tx *flowTx) scheduleTimeouts() error {
+	return tx.armTimeouts(tx.anchoredAtStart)
+}
+
+// recoverTimeouts arms the steps scheduleTimeouts skips, re-arming deadlines
+// that were anchored before this transaction began
+func (tx *flowTx) recoverTimeouts() error {
+	return tx.armTimeouts(func(sid api.StepID) bool {
+		return !tx.anchoredAtStart(sid)
+	})
+}
+
+func (tx *flowTx) armTimeouts(skip func(api.StepID) bool) error {
+	fl := tx.Value()
 	if !flowHasTimeouts(&fl) || policy.FlowTerminal(fl.Status) {
 		return nil
 	}
 
+	when := tx.Now()
 	for sid := range fl.Executions {
+		if skip(sid) {
+			continue
+		}
 		if err := tx.scheduleStepTimeouts(fl, sid, when); err != nil {
 			return err
 		}
@@ -22,38 +40,14 @@ func (tx *flowTx) scheduleTimeouts(fl api.FlowState, when time.Time) error {
 	return nil
 }
 
-func (tx *flowTx) scheduleConsumerTimeouts(
-	fl api.FlowState, producerID api.StepID, when time.Time,
-) error {
-	if policy.FlowTerminal(fl.Status) {
-		return nil
+func (tx *flowTx) anchoredAtStart(sid api.StepID) bool {
+	start := tx.start
+	ex, ok := start.Executions[sid]
+	if !ok || !policy.StepPending(ex.Status) {
+		return false
 	}
-
-	producer, ok := fl.Plan.Steps[producerID]
-	if !ok {
-		return nil
-	}
-
-	seen := util.Set[api.StepID]{}
-	for name, attr := range producer.Attributes {
-		if !attr.IsOutput() {
-			continue
-		}
-		deps, ok := fl.Plan.Attributes[name]
-		if !ok {
-			continue
-		}
-		for _, sid := range deps.Consumers {
-			if seen.Contains(sid) {
-				continue
-			}
-			seen.Add(sid)
-			if err := tx.scheduleStepTimeouts(fl, sid, when); err != nil {
-				return err
-			}
-		}
-	}
-	return nil
+	anchor, err := tx.newStepEval(sid, &start, tx.Now()).requiredReadyAt()
+	return err == nil && !anchor.IsZero()
 }
 
 func (tx *flowTx) scheduleStepTimeouts(
@@ -135,7 +129,7 @@ func (tx *flowTx) handleStepTimeout(
 		}
 		return err
 	}
-	return tx.skipPendingUnused()
+	return tx.advanceFlow()
 }
 
 func flowHasTimeouts(fl *api.FlowState) bool {

@@ -191,16 +191,15 @@ func TestCompensationDeadlineRetries(t *testing.T) {
 // A running child keeps its parent in flight beyond the work timeout
 func TestLiveChildFlowSurvivesDeadline(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		child := &api.Step{
-			ID:   "live-child-step",
-			Name: "Child Step",
-			Type: api.StepTypeScript,
-			Script: &api.ScriptConfig{
-				Language: api.ScriptLangLua,
-				Script:   "return {}",
+		child := helpers.NewSimpleStep("live-child-step")
+		child.HTTP.Invoke.Timeout = 60000
+		release := make(chan struct{})
+		env.MockClient.SetInvoke(child.ID,
+			func(*api.Step, api.Args, api.Metadata) (api.Args, error) {
+				<-release
+				return api.Args{}, nil
 			},
-			Attributes: api.AttributeSpecs{},
-		}
+		)
 		parent := &api.Step{
 			ID:   "live-parent-step",
 			Name: "Parent Step",
@@ -256,6 +255,7 @@ func TestLiveChildFlowSurvivesDeadline(t *testing.T) {
 			unsub()
 			assert.NoError(t, peer.Stop())
 		}()
+		defer close(release)
 		assert.NoError(t, peer.Start())
 
 		time.Sleep(400 * time.Millisecond)

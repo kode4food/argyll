@@ -11,7 +11,6 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/events"
 	"github.com/kode4food/argyll/engine/pkg/policy"
-	"github.com/kode4food/argyll/engine/pkg/util/call"
 )
 
 type (
@@ -108,12 +107,7 @@ func (tx *flowTx) performSkip(
 	); err != nil {
 		return err
 	}
-	return call.Perform(
-		tx.checkUnreachable,
-		tx.skipPendingUnused,
-		tx.checkTerminal,
-		tx.startReadyPendingSteps,
-	)
+	return tx.advanceFlow()
 }
 
 func (tx *flowTx) canStartStepAt(
@@ -208,9 +202,6 @@ func (tx *flowTx) collectStepInputs(
 		}
 		val, ok := policy.ResolveInputValue(attr.Collect(), values)
 		if !ok {
-			if attr.IsRequired() && attr.Collect() == api.InputCollectNone {
-				continue
-			}
 			if !attr.IsRequired() && attr.OptionalDefault() != "" {
 				value := parseDefaultValue(attr.OptionalDefault())
 				tx.setStepInput(setStepInputArgs{
@@ -404,19 +395,7 @@ func (s *stepEval) inputFulfilledAt(
 	if !policy.InputFulfilled(attr.Collect(), len(values), providers) {
 		return false, time.Time{}, nil
 	}
-
-	switch attr.Collect() {
-	case api.InputCollectNone:
-		return true, completedAt, nil
-	case api.InputCollectLast:
-		return true, values[len(values)-1].SetAt, nil
-	case api.InputCollectAll:
-		return true, lastSetAt(values), nil
-	case api.InputCollectSome:
-		return true, lastSetAt(values), nil
-	default: // api.InputCollectFirst
-		return true, values[0].SetAt, nil
-	}
+	return true, policy.FulfilledAt(attr.Collect(), values, completedAt), nil
 }
 
 func (s *stepEval) inputValues(
@@ -504,14 +483,4 @@ func valuesUntil(
 		res = append(res, v)
 	}
 	return res
-}
-
-func lastSetAt(values []*api.AttributeValue) time.Time {
-	var at time.Time
-	for _, v := range values {
-		if !v.SetAt.IsZero() && (at.IsZero() || v.SetAt.After(at)) {
-			at = v.SetAt
-		}
-	}
-	return at
 }

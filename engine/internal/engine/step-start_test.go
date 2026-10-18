@@ -277,6 +277,55 @@ func TestCollectNone(t *testing.T) {
 	})
 }
 
+func TestCollectNoneProviderNoValue(t *testing.T) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		assert.NoError(t, env.Engine.Start())
+
+		provider := helpers.NewStepWithOutputs("provider-none-empty", "data")
+		consumer := &api.Step{
+			ID:   "consumer-none-empty",
+			Name: "Consumer",
+			Type: api.StepTypeService,
+			Attributes: api.AttributeSpecs{
+				"data": {
+					Role: api.RoleRequired,
+					Type: api.TypeString,
+					Required: &api.RequiredConfig{
+						Collect: api.InputCollectNone,
+					},
+				},
+				"result": {Role: api.RoleOutput, Type: api.TypeString},
+			},
+			HTTP: &api.HTTPConfig{
+				Invoke: api.HTTPAction{Endpoint: "http://example.com"},
+			},
+		}
+		assert.NoError(t, env.Engine.RegisterStep(provider))
+		assert.NoError(t, env.Engine.RegisterStep(consumer))
+		env.MockClient.SetResponse(provider.ID, api.Args{})
+		env.MockClient.SetResponse(consumer.ID, api.Args{"result": "ok"})
+
+		cat, err := env.Engine.GetCatalogState()
+		assert.NoError(t, err)
+		pl, err := plan.Create(&plan.Request{
+			Match:    env.Engine.Matcher,
+			Children: env.Engine.Children,
+			Steps:    cat.Steps,
+			Goals:    api.Goals{Steps: []api.StepID{consumer.ID}},
+			Init:     api.InitArgs{},
+		})
+		assert.NoError(t, err)
+
+		id := api.FlowID("wf-collect-none-empty")
+		fl := env.WaitForFlowStatus(id, func() {
+			assert.NoError(t, env.Engine.StartPlan(id, pl))
+		})
+		assert.Equal(t, api.FlowCompleted, fl.Status)
+		assert.Equal(t, api.StepCompleted, fl.Executions[provider.ID].Status)
+		assert.Equal(t, api.StepCompleted, fl.Executions[consumer.ID].Status)
+	})
+}
+
 func TestCollectNoneNoProvider(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		assert.NoError(t, env.Engine.Start())

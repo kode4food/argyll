@@ -82,12 +82,10 @@ func (tx *flowTx) recoverFlow() error {
 
 	fl = tx.Value()
 	return call.Perform(
-		call.WithArgs(tx.scheduleTimeouts, fl, tx.Now()),
 		call.WithArg(tx.recoverWorkDispatch, fl),
 		call.WithArg(tx.recoverRetries, fl),
-		tx.checkUnreachable,
-		tx.skipPendingUnused,
-		tx.checkTerminal,
+		tx.advanceFlow,
+		tx.recoverTimeouts,
 	)
 }
 

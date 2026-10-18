@@ -1,6 +1,7 @@
 package engine_test
 
 import (
+	"sync"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -112,13 +113,26 @@ func TestPendingUnusedSkip(t *testing.T) {
 				Invoke: api.HTTPAction{Endpoint: "http://example.com"},
 			},
 		}
+		seeder := helpers.NewStepWithOutputs("seed-provider", "seed")
 
 		assert.NoError(t, env.Engine.RegisterStep(providerA))
 		assert.NoError(t, env.Engine.RegisterStep(providerB))
 		assert.NoError(t, env.Engine.RegisterStep(consumer))
+		assert.NoError(t, env.Engine.RegisterStep(seeder))
 
 		env.MockClient.SetResponse(providerA.ID, api.Args{"opt": "value"})
 		env.MockClient.SetResponse(consumer.ID, api.Args{"result": "done"})
+
+		// The seed arrives only after A has made provider-b unnecessary
+		release := make(chan struct{})
+		unblock := sync.OnceFunc(func() { close(release) })
+		defer unblock()
+		env.MockClient.SetInvoke(seeder.ID,
+			func(*api.Step, api.Args, api.Metadata) (api.Args, error) {
+				<-release
+				return api.Args{"seed": "value"}, nil
+			},
+		)
 
 		pl := &api.ExecutionPlan{
 			Goals: api.Goals{Steps: []api.StepID{consumer.ID}},
@@ -126,8 +140,13 @@ func TestPendingUnusedSkip(t *testing.T) {
 				providerA.ID: providerA,
 				providerB.ID: providerB,
 				consumer.ID:  consumer,
+				seeder.ID:    seeder,
 			},
 			Attributes: api.AttributeGraph{
+				"seed": {
+					Providers: []api.StepID{seeder.ID},
+					Consumers: []api.StepID{providerB.ID},
+				},
 				"opt": {
 					Providers: []api.StepID{providerA.ID, providerB.ID},
 					Consumers: []api.StepID{consumer.ID},
@@ -139,9 +158,13 @@ func TestPendingUnusedSkip(t *testing.T) {
 			},
 		}
 
+		fsB := api.FlowStep{FlowID: "wf-skip-unneeded", StepID: providerB.ID}
 		fl := env.WaitForFlowStatus("wf-skip-unneeded", func() {
-			err := env.Engine.StartPlan("wf-skip-unneeded", pl)
-			assert.NoError(t, err)
+			env.WaitFor(wait.StepTerminal(fsB), func() {
+				err := env.Engine.StartPlan("wf-skip-unneeded", pl)
+				assert.NoError(t, err)
+			})
+			unblock()
 		})
 		assert.Equal(t, api.FlowCompleted, fl.Status)
 		assert.Equal(t, api.StepCompleted, fl.Executions[providerA.ID].Status)

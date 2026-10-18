@@ -963,6 +963,92 @@ func TestOptionalSomeTimeout(t *testing.T) {
 	})
 }
 
+func TestTimeoutAfterProviderFails(t *testing.T) {
+	if testing.Short() {
+		t.Skip("waits on a real optional deadline")
+	}
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		assert.NoError(t, env.Engine.Start())
+
+		failing := helpers.NewStepWithOutputs("failing-provider", "gate")
+		slow := helpers.NewStepWithOutputs("slow-provider", "opt")
+		consumer := &api.Step{
+			ID:   "consumer",
+			Name: "Consumer",
+			Type: api.StepTypeService,
+			Attributes: api.AttributeSpecs{
+				"gate": {
+					Role: api.RoleRequired,
+					Type: api.TypeString,
+					Required: &api.RequiredConfig{
+						Collect: api.InputCollectNone,
+					},
+				},
+				"opt": {
+					Role: api.RoleOptional,
+					Type: api.TypeString,
+					Optional: &api.OptionalConfig{
+						Default:  `"fallback"`,
+						Deadline: 200,
+					},
+				},
+				"result": {Role: api.RoleOutput, Type: api.TypeString},
+			},
+			HTTP: &api.HTTPConfig{
+				Invoke: api.HTTPAction{Endpoint: "http://example.com"},
+			},
+		}
+		for _, st := range []*api.Step{failing, slow, consumer} {
+			assert.NoError(t, env.Engine.RegisterStep(st))
+		}
+
+		release := make(chan struct{})
+		defer close(release)
+		env.MockClient.SetError(failing.ID, assert.AnError)
+		env.MockClient.SetInvoke(slow.ID,
+			func(*api.Step, api.Args, api.Metadata) (api.Args, error) {
+				<-release
+				return api.Args{"opt": "late"}, nil
+			},
+		)
+		env.MockClient.SetResponse(consumer.ID, api.Args{"result": "ok"})
+
+		pl := &api.ExecutionPlan{
+			Goals: api.Goals{Steps: []api.StepID{consumer.ID}},
+			Steps: api.Steps{
+				failing.ID:  failing,
+				slow.ID:     slow,
+				consumer.ID: consumer,
+			},
+			Attributes: api.AttributeGraph{
+				"gate": {
+					Providers: []api.StepID{failing.ID},
+					Consumers: []api.StepID{consumer.ID},
+				},
+				"opt": {
+					Providers: []api.StepID{slow.ID},
+					Consumers: []api.StepID{consumer.ID},
+				},
+				"result": {
+					Providers: []api.StepID{consumer.ID},
+					Consumers: []api.StepID{},
+				},
+			},
+		}
+
+		id := api.FlowID("wf-timeout-provider-fails")
+		fs := api.FlowStep{FlowID: id, StepID: consumer.ID}
+		env.WaitFor(wait.StepTerminal(fs), func() {
+			assert.NoError(t, env.Engine.StartPlan(id, pl))
+		})
+
+		fl, err := env.Engine.GetFlowState(id)
+		assert.NoError(t, err)
+		assert.Equal(t, api.StepCompleted, fl.Executions[consumer.ID].Status)
+		assert.Equal(t, "fallback", fl.Executions[consumer.ID].Inputs["opt"])
+	})
+}
+
 func waitForWorkStarted(
 	env *helpers.TestEngineEnv, fid api.FlowID, steps []api.StepID,
 	fn func(),

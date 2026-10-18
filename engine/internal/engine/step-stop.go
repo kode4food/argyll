@@ -7,7 +7,6 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/events"
 	"github.com/kode4food/argyll/engine/pkg/policy"
-	"github.com/kode4food/argyll/engine/pkg/util/call"
 )
 
 // checkStepCompletion checks if a specific step can complete (all work items
@@ -72,11 +71,6 @@ func (tx *flowTx) checkStepCompletion(sid api.StepID) (bool, error) {
 	); err != nil {
 		return true, err
 	}
-	if tx.Value().Status == api.FlowActive {
-		return true, tx.scheduleConsumerTimeouts(
-			tx.Value(), sid, tx.Now(),
-		)
-	}
 	return true, nil
 }
 
@@ -113,11 +107,7 @@ func (tx *flowTx) handlePredicateFailure(
 		return raiseErr
 	}
 
-	return call.Perform(
-		tx.checkUnreachable,
-		tx.skipPendingUnused,
-		tx.checkTerminal,
-	)
+	return tx.advanceFlow()
 }
 
 // handleStepFailure handles common failure logic for work failure paths,
@@ -138,12 +128,7 @@ func (tx *flowTx) handleStepFailure(sid api.StepID) error {
 		return tx.continueStepWork(sid)
 	}
 
-	return call.Perform(
-		tx.checkUnreachable,
-		tx.skipPendingUnused,
-		tx.checkTerminal,
-		tx.startReadyPendingSteps,
-	)
+	return tx.advanceFlow()
 }
 
 // handleTerminalWork handles work completion when the flow is already

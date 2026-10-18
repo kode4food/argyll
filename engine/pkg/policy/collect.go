@@ -1,6 +1,10 @@
 package policy
 
-import "github.com/kode4food/argyll/engine/pkg/api"
+import (
+	"time"
+
+	"github.com/kode4food/argyll/engine/pkg/api"
+)
 
 type (
 	// RequiredInputState describes available values and providers for an input
@@ -20,6 +24,14 @@ type (
 		// AllSucceeded is true when every planned provider completed
 		// successfully and produced a value for the collected attribute
 		AllSucceeded bool
+	}
+
+	// InputOutlook describes what a pending step's required input has and
+	// what its providers can still deliver
+	InputOutlook struct {
+		HasValue       bool
+		AllCollectable bool
+		Providable     func() bool
 	}
 )
 
@@ -164,6 +176,37 @@ func InputFulfilled(
 	}
 }
 
+// InputSatisfiable reports whether a required input can still be satisfied.
+// collect:none needs absence, collect:all needs every provider to deliver
+func InputSatisfiable(collect api.InputCollect, o InputOutlook) bool {
+	switch collect {
+	case api.InputCollectNone:
+		return !o.HasValue
+	case api.InputCollectAll:
+		return o.AllCollectable && (o.HasValue || o.Providable())
+	default:
+		return o.HasValue || o.Providable()
+	}
+}
+
+// FulfilledAt returns when a fulfilled input became ready, which anchors its
+// optional deadlines. collect:none is ready when its providers finished
+func FulfilledAt(
+	collect api.InputCollect, values []*api.AttributeValue,
+	completedAt time.Time,
+) time.Time {
+	switch collect {
+	case api.InputCollectNone:
+		return completedAt
+	case api.InputCollectLast:
+		return values[len(values)-1].SetAt
+	case api.InputCollectAll, api.InputCollectSome:
+		return lastSetAt(values)
+	default: // api.InputCollectFirst
+		return values[0].SetAt
+	}
+}
+
 // TimeoutCanUseValues reports whether an optional input timeout may use values
 // collected up to the timeout cutoff rather than falling back to its default
 func TimeoutCanUseValues(collect api.InputCollect) bool {
@@ -198,4 +241,14 @@ func ResolveInputValue(
 	default:
 		return values[0].Value, true
 	}
+}
+
+func lastSetAt(values []*api.AttributeValue) time.Time {
+	var at time.Time
+	for _, v := range values {
+		if !v.SetAt.IsZero() && (at.IsZero() || v.SetAt.After(at)) {
+			at = v.SetAt
+		}
+	}
+	return at
 }

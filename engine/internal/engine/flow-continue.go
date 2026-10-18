@@ -7,7 +7,21 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/events"
 	"github.com/kode4food/argyll/engine/pkg/policy"
+	"github.com/kode4food/argyll/engine/pkg/util/call"
 )
+
+// advanceFlow settles pending steps, starts ready ones, and arms the rest's
+// deadlines. Unused steps skip both before and after unreachable ones fail
+func (tx *flowTx) advanceFlow() error {
+	return call.Perform(
+		tx.skipPendingUnused,
+		tx.checkUnreachable,
+		tx.skipPendingUnused,
+		tx.checkTerminal,
+		tx.startReadyPendingSteps,
+		tx.scheduleTimeouts,
+	)
+}
 
 // checkUnreachable finds and fails all pending steps that can no longer
 // complete because their required inputs cannot be satisfied

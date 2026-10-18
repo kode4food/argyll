@@ -2,6 +2,7 @@ package policy_test
 
 import (
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 
@@ -210,6 +211,72 @@ func TestInputFulfilled(t *testing.T) {
 	assert.True(t, policy.InputFulfilled(api.InputCollectAll, 1, terminal))
 	assert.False(t, policy.InputFulfilled(api.InputCollectAll, 1, incomplete))
 	assert.False(t, policy.InputFulfilled(api.InputCollectAll, 1, partial))
+}
+
+func TestInputSatisfiable(t *testing.T) {
+	yes := func() bool { return true }
+	no := func() bool { return false }
+	modes := []api.InputCollect{
+		api.InputCollectFirst, api.InputCollectLast, api.InputCollectSome,
+	}
+
+	for _, collect := range modes {
+		assert.True(t, policy.InputSatisfiable(collect, policy.InputOutlook{
+			HasValue: true, Providable: no,
+		}))
+		assert.True(t, policy.InputSatisfiable(collect, policy.InputOutlook{
+			Providable: yes,
+		}))
+		assert.False(t, policy.InputSatisfiable(collect, policy.InputOutlook{
+			Providable: no,
+		}))
+	}
+
+	all := api.InputCollectAll
+	assert.True(t, policy.InputSatisfiable(all, policy.InputOutlook{
+		HasValue: true, AllCollectable: true, Providable: no,
+	}))
+	assert.True(t, policy.InputSatisfiable(all, policy.InputOutlook{
+		AllCollectable: true, Providable: yes,
+	}))
+	assert.False(t, policy.InputSatisfiable(all, policy.InputOutlook{
+		HasValue: true, Providable: yes,
+	}))
+	assert.False(t, policy.InputSatisfiable(all, policy.InputOutlook{
+		AllCollectable: true, Providable: no,
+	}))
+
+	none := api.InputCollectNone
+	assert.True(t, policy.InputSatisfiable(none, policy.InputOutlook{
+		Providable: no,
+	}))
+	assert.False(t, policy.InputSatisfiable(none, policy.InputOutlook{
+		HasValue: true, Providable: yes,
+	}))
+}
+
+func TestFulfilledAt(t *testing.T) {
+	base := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+	done := base.Add(time.Hour)
+	values := []*api.AttributeValue{
+		{Value: "a", SetAt: base.Add(time.Minute)},
+		{Value: "b", SetAt: base.Add(3 * time.Minute)},
+		{Value: "c", SetAt: base.Add(2 * time.Minute)},
+	}
+
+	assert.Equal(t, base.Add(time.Minute),
+		policy.FulfilledAt(api.InputCollectFirst, values, done),
+	)
+	assert.Equal(t, base.Add(2*time.Minute),
+		policy.FulfilledAt(api.InputCollectLast, values, done),
+	)
+	assert.Equal(t, base.Add(3*time.Minute),
+		policy.FulfilledAt(api.InputCollectSome, values, done),
+	)
+	assert.Equal(t, base.Add(3*time.Minute),
+		policy.FulfilledAt(api.InputCollectAll, values, done),
+	)
+	assert.Equal(t, done, policy.FulfilledAt(api.InputCollectNone, nil, done))
 }
 
 func TestResolveInputValue(t *testing.T) {

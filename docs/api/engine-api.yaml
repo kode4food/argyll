@@ -1561,7 +1561,7 @@ components:
             - `first`: first available value (default)
             - `last`: last value after all potential providers finish
             - `all`: array of values after every provider completes successfully and supplies the attribute
-            - `some`: array of values after at least one provider supplies the attribute
+            - `some`: array of the supplied values after all potential providers finish, when at least one supplies the attribute
             - `none`: satisfied only when no provider produces the attribute
 
             If a required value is missing and no provider can supply it, the

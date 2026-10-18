@@ -77,17 +77,17 @@ func (e *Engine) UpdateStepHealth(stepID api.StepID, health api.HealthStatus, er
 For flow state mutations (flowTx wrapper with OnSuccess for side effects):
 
 ```go
-// flow-start.go: StartFlow using flowTx
-func (e *Engine) StartFlow(
+// flow-start.go: StartPlan using flowTx
+func (e *Engine) StartPlan(
     fid api.FlowID, pl *api.ExecutionPlan, apps ...flow.Applier,
 ) error {
     opts := flow.Defaults(apps...)
     return e.flowTx(fid, func(tx *flowTx) error {
-        return tx.startFlow(pl, opts)
+        return tx.startPlan(pl, opts)
     })
 }
 
-func (tx *flowTx) startFlow(pl *api.ExecutionPlan, opts *flow.Options) error {
+func (tx *flowTx) startPlan(pl *api.ExecutionPlan, opts *flow.Options) error {
     if tx.Value().ID != "" {
         // ... match the already started flow, or return ErrFlowExists
     }
@@ -96,16 +96,8 @@ func (tx *flowTx) startFlow(pl *api.ExecutionPlan, opts *flow.Options) error {
     ); err != nil {
         return err
     }
-    // Prepare initial steps (may register more OnSuccess)
-    for _, sid := range tx.findInitialSteps(tx.Value()) {
-        if err := tx.prepareStep(sid); err != nil {
-            return err
-        }
-    }
-    tx.OnSuccess(func(fl api.FlowState, _ []*timebox.Event) {
-        tx.scheduleTimeouts(fl, tx.Now())
-    })
-    return nil
+    // Starts ready steps (which may register OnSuccess) and arms deadlines
+    return tx.advanceFlow()
 }
 ```
 
@@ -255,18 +247,16 @@ engine.StartFlow() calls flowTx(), which joins the flow to Store.Transact()
   ↓
 Inside the executor command:
   - Raise FlowStartedEvent
-  - Find ready pending steps
-  - For each ready step:
-    - If the predicate is false, raise StepSkippedEvent
-    - Otherwise raise StepStartedEvent with computed work items
-    - Raise WorkStartedEvent for each work item that can start now
-    - Run Inline handlers, such as scripts, settling their work here
-    - Register OnSuccess handlers for post-commit side effects
+  - advanceFlow (see Advancing a Flow), which for each ready step:
+    - If the predicate is false, raises StepSkippedEvent
+    - Otherwise raises StepStartedEvent with computed work items
+    - Raises WorkStartedEvent for each work item that can start now
+    - Runs Inline handlers, such as scripts, settling their work here
+    - Registers OnSuccess handlers for post-commit side effects
   ↓
 Commit succeeds
   ↓
 OnSuccess handlers run:
-  - Schedule flow/step timeout tasks
   - Launch newly started work items
   ↓
 Work item execution branch:
@@ -280,13 +270,26 @@ Completion transaction:
     - Maybe raise AttributeSetEvent(s)
     - Raise StepCompletedEvent or StepFailedEvent
   - Maybe schedule retries
-  - Maybe skip unused pending steps
-  - Maybe start newly ready pending steps
+  - Once the step settles, advanceFlow
   ↓
-Check terminal state:
+Terminal state (checkTerminal, inside advanceFlow):
   - Raise FlowCompletedEvent or FlowFailedEvent when appropriate, settling the parent work in the same transaction
   - Raise FlowDeactivatedEvent only after the flow is terminal, no active work or compensation remains, and the parent releases it; join eligible child deactivations to the same transaction
 ```
+
+## Advancing a Flow
+
+`advanceFlow` (`engine/internal/engine/flow-continue.go`) is the single continuation. Every path that changes flow state calls it inside the same transaction: flow start, work success and failure, step skips and predicate failures, optional-input timeouts, and recovery. Never assemble its steps by hand at a call site.
+
+It runs, in order: skip unused pending steps, fail unreachable ones, skip again (a failed goal can leave more steps unused), check for a terminal flow, start ready steps, and arm the optional-input deadlines of steps anchored during this transaction.
+
+Readiness is computed from flow state alone. An `attribute_set` event records a value and is never a trigger. Only `collect: first` is decided by a value existing. `last`, `some`, `all`, `none`, match gates, unreachability, goals, and compensation all depend on providers reaching a terminal state, which `step_completed`, `step_failed`, and `step_skipped` record. A step raises its `attribute_set` events together with its `step_completed`, and advancing runs after both.
+
+The collect-mode rules live in `engine/pkg/policy/collect.go`: `InputFulfilled` and `FulfilledAt` for readiness, `InputSatisfiable` for whether a pending input can still be met. The engine gathers facts from flow state and asks policy, so readiness and reachability share one table.
+
+A deadline's anchor never moves once set, so `flowTx` keeps the state its command started from (`start`) and `scheduleTimeouts` arms only steps whose anchor appeared since then. Recovery calls `recoverTimeouts` after `advanceFlow` to arm the steps anchored before the transaction began, so each pending step is armed once.
+
+WebSocket notifications never drive advancement. The event hub publishes after commit and is best effort, so execution decisions stay inside the flow transaction.
 
 ## State Reconstruction (Recovery)
 
@@ -351,7 +354,10 @@ func reconstructState(aggregateID ID) State {
 - State mutation examples: `engine/internal/engine/flow-start.go`, `engine/internal/engine/step-start.go`, `engine/internal/engine/work-stop.go`
 - Executor setup: `engine/internal/engine/engine.go` (NewExecutor calls)
 - Event types: `engine/pkg/events/` (event definitions)
-- Recovery: `engine/internal/engine/recover.go` (RecoverFlows logic)
+- Flow advancement: `engine/internal/engine/flow-continue.go` (`advanceFlow`)
+- Collect-mode policy: `engine/pkg/policy/collect.go`
+- Optional-input deadlines: `engine/internal/engine/step-continue.go`
+- Recovery: `engine/internal/engine/recover.go` (RecoverFlows logic) and `engine/internal/engine/reconcile.go` (`recoverFlow`)
 - Retry and deferred dispatch scheduling: `engine/internal/engine/work-continue.go`, `engine/internal/engine/step-dispatch.go`, and `engine/internal/engine/scheduler/`
 - Work item deadlines for in-flight attempts: `engine/internal/engine/work-deadline.go`
 - WebSocket broadcast: `engine/cmd/argyll/internal/app/app.go` and `engine/cmd/argyll/internal/server/websocket.go`
