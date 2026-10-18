@@ -21,19 +21,19 @@ func (tx *flowTx) advanceFlow() error {
 	)
 }
 
-// settlePending skips unused pending steps before failing unreachable ones,
-// repeating until neither changes anything
+// settlePending fails every unreachable pending step before each skip, so the
+// outcome never depends on iteration order, repeating until nothing changes
 func (tx *flowTx) settlePending() error {
 	for {
-		skipped, err := tx.skipPendingUnused()
+		failed, err := tx.checkUnreachable()
 		if err != nil {
 			return err
 		}
-		if skipped {
+		if failed {
 			continue
 		}
-		failed, err := tx.checkUnreachable()
-		if err != nil || !failed {
+		skipped, err := tx.skipPendingUnused()
+		if err != nil || !skipped {
 			return err
 		}
 	}

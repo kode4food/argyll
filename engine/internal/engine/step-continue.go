@@ -1,7 +1,6 @@
 package engine
 
 import (
-	"errors"
 	"time"
 
 	"github.com/kode4food/argyll/engine/pkg/api"
@@ -122,13 +121,6 @@ func (tx *flowTx) handleStepTimeout(
 		return nil
 	}
 
-	err := tx.prepareStep(sid)
-	if err != nil {
-		if errors.Is(err, ErrStepAlreadyPending) {
-			return nil
-		}
-		return err
-	}
 	return tx.advanceFlow()
 }
 

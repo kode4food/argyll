@@ -211,7 +211,6 @@ func (tx *flowTx) collectStepInputs(
 					attr:   attr,
 					value:  value,
 				})
-				continue
 			}
 			continue
 		}

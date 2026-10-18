@@ -101,7 +101,7 @@ func (tx *flowTx) continueStepWork(sid api.StepID) error {
 		return tx.startContinuedWork(sid, st, started)
 	}
 	if len(tx.Value().Executions[sid].WorkItems) == 0 {
-		return tx.handleWorkSucceeded(sid)
+		return tx.settleStep(sid)
 	}
 	return nil
 }

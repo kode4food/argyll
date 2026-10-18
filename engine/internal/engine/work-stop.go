@@ -63,7 +63,7 @@ func (tx *flowTx) completeWork(
 		return err
 	}
 
-	return tx.handleWorkSucceeded(sid)
+	return tx.settleStep(sid)
 }
 
 func (tx *flowTx) memoizeWorkOutput(
@@ -91,7 +91,7 @@ func (tx *flowTx) failWork(
 	if err := tx.raiseWorkFailed(sid, tkn, errMsg); err != nil {
 		return err
 	}
-	return tx.handleStepFailure(sid)
+	return tx.settleStep(sid)
 }
 
 func (tx *flowTx) checkWorkTransition(
@@ -116,25 +116,6 @@ func (tx *flowTx) checkWorkTransition(
 	return nil
 }
 
-func (tx *flowTx) handleWorkSucceeded(sid api.StepID) error {
-	if policy.FlowTerminal(tx.Value().Status) {
-		return tx.handleTerminalWork(sid)
-	}
-	if !policy.StepActive(tx.Value().Executions[sid].Status) {
-		return nil
-	}
-
-	completed, err := tx.checkStepCompletion(sid)
-	if err != nil {
-		return err
-	}
-	if !completed {
-		return tx.continueStepWork(sid)
-	}
-
-	return tx.advanceFlow()
-}
-
 func (tx *flowTx) handleWorkNotCompleted(
 	sid api.StepID, tkn api.Token,
 ) error {
@@ -147,7 +128,7 @@ func (tx *flowTx) handleWorkNotCompleted(
 	return call.Perform(
 		call.WithArgs(tx.scheduleRetry, sid, tkn),
 		call.WithArg(tx.continueStepWork, sid),
-		call.WithArg(tx.handleStepFailure, sid),
+		call.WithArg(tx.settleStep, sid),
 	)
 }
 
@@ -170,7 +151,7 @@ func (tx *flowTx) handleMemoCacheHit(
 	); err != nil {
 		return err
 	}
-	return tx.handleWorkSucceeded(sid)
+	return tx.settleStep(sid)
 }
 
 func (tx *flowTx) raiseWorkFailed(

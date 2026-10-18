@@ -58,20 +58,16 @@ func (tx *flowTx) checkStepCompletion(sid api.StepID) (bool, error) {
 		); err != nil {
 			return false, err
 		}
-		fl = tx.Value()
 	}
 
-	if err := events.Raise(tx.FlowAggregator, api.EventTypeStepCompleted,
+	return true, events.Raise(tx.FlowAggregator, api.EventTypeStepCompleted,
 		api.StepCompletedEvent{
 			FlowID:   tx.flowID,
 			StepID:   sid,
 			Outputs:  outputs,
 			Duration: dur,
 		},
-	); err != nil {
-		return true, err
-	}
-	return true, nil
+	)
 }
 
 func (tx *flowTx) consumedOutputs(
@@ -110,9 +106,9 @@ func (tx *flowTx) handlePredicateFailure(
 	return tx.advanceFlow()
 }
 
-// handleStepFailure handles common failure logic for work failure paths,
-// checking step completion and propagating failures
-func (tx *flowTx) handleStepFailure(sid api.StepID) error {
+// settleStep checks step completion after a work item settles, continuing the
+// step's remaining work or advancing the flow once the step is decided
+func (tx *flowTx) settleStep(sid api.StepID) error {
 	if policy.FlowTerminal(tx.Value().Status) {
 		return tx.handleTerminalWork(sid)
 	}
@@ -121,10 +117,10 @@ func (tx *flowTx) handleStepFailure(sid api.StepID) error {
 	}
 
 	completed, err := tx.checkStepCompletion(sid)
-	if err != nil || !completed {
-		if err != nil {
-			return err
-		}
+	if err != nil {
+		return err
+	}
+	if !completed {
 		return tx.continueStepWork(sid)
 	}
 
