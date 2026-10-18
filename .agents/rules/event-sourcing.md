@@ -281,13 +281,15 @@ Terminal state (checkTerminal, inside advanceFlow):
 
 `advanceFlow` (`engine/internal/engine/flow-continue.go`) is the single continuation. Every path that changes flow state calls it inside the same transaction: flow start, work success and failure, step skips and predicate failures, optional-input timeouts, and recovery. Never assemble its steps by hand at a call site.
 
-It runs, in order: skip unused pending steps, fail unreachable ones, skip again (a failed goal can leave more steps unused), check for a terminal flow, start ready steps, and arm the optional-input deadlines of steps anchored during this transaction.
+It runs, in order: settle pending steps to a fixed point (fail unreachable steps before each unused-step skip), check for a terminal flow, start ready steps, and arm the remaining optional-input inactivity windows.
 
 Readiness is computed from flow state alone. An `attribute_set` event records a value and is never a trigger. Only `collect: first` is decided by a value existing. `last`, `some`, `all`, `none`, match gates, unreachability, goals, and compensation all depend on providers reaching a terminal state, which `step_completed`, `step_failed`, and `step_skipped` record. A step raises its `attribute_set` events together with its `step_completed`, and advancing runs after both.
 
-The collect-mode rules live in `engine/pkg/policy/collect.go`: `InputFulfilled` and `FulfilledAt` for readiness, `InputSatisfiable` for whether a pending input can still be met. The engine gathers facts from flow state and asks policy, so readiness and reachability share one table.
+The collect-mode rules live in `engine/pkg/policy/collect.go`: `InputFulfilled` and `FulfilledAt` for readiness, `InputSatisfiable` for whether a pending input can still be met, and `CollectWindow` for accepted optional values and their inactivity deadline. The engine gathers facts from flow state and asks policy, so readiness and reachability share one table.
 
-A deadline's anchor never moves once set, so `flowTx` keeps the state its command started from (`start`) and `scheduleTimeouts` arms only steps whose anchor appeared since then. Recovery calls `recoverTimeouts` after `advanceFlow` to arm the steps anchored before the transaction began, so each pending step is armed once.
+Each optional input's window starts when all required inputs become satisfied. A value arriving strictly before expiry extends that input's deadline by its configured interval. Provider completion without a value does not extend it. Collection ends as soon as its full mode is satisfied or cannot be satisfied; otherwise expiry selects the default, never partial results. With no default the input is omitted. A zero interval does not wait beyond required-input readiness.
+
+`CollectWindow` reconstructs the window from the ordered, persisted attribute values, stopping at the first arrival outside the open window. Late values cannot reopen it, even while another optional input keeps the step pending. Provider completion timestamps determine whether a mode was fully satisfied before expiry. `scheduleTimeouts` upserts each still-open window's keyed task after advancement; recovery uses the same path. A stale timeout re-evaluates current state and re-arms an extended window rather than expiring it early. No separate timeout state or recovery-only scheduling rule is needed.
 
 WebSocket notifications never drive advancement. The event hub publishes after commit and is best effort, so execution decisions stay inside the flow transaction.
 

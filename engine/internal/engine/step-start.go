@@ -24,7 +24,7 @@ type (
 
 	optionalDecision struct {
 		nextAt   time.Time
-		cutoff   time.Time
+		values   []*api.AttributeValue
 		ready    bool
 		fallback bool
 	}
@@ -157,8 +157,7 @@ func (tx *flowTx) collectStepInputs(
 	st *api.Step, fl *api.FlowState,
 ) (api.Args, error) {
 	inputs := api.Args{}
-	now := tx.Now()
-	ev := tx.newStepEval(st.ID, fl, now)
+	ev := tx.newStepEval(st.ID, fl, tx.Now())
 	anchor, err := ev.requiredReadyAt()
 	if err != nil {
 		return nil, err
@@ -169,52 +168,39 @@ func (tx *flowTx) collectStepInputs(
 			inputs[name] = parseDefaultValue(attr.ConstValue())
 			continue
 		}
-
 		if !attr.IsInput() {
 			continue
 		}
 
-		var cutoff time.Time
+		var values []*api.AttributeValue
 		if attr.IsOptional() {
 			dec := ev.optionalDecisionAt(name, attr, anchor)
 			if !dec.ready {
 				continue
 			}
-			cutoff = dec.cutoff
-			if dec.fallback {
-				if attr.OptionalDefault() != "" {
-					value := parseDefaultValue(attr.OptionalDefault())
-					tx.setStepInput(setStepInputArgs{
-						inputs: inputs,
-						step:   st,
-						name:   name,
-						attr:   attr,
-						value:  value,
-					})
-				}
-				continue
-			}
-		}
-
-		values, err := ev.inputValues(name, attr, cutoff)
-		if err != nil {
-			return nil, err
-		}
-		val, ok := policy.ResolveInputValue(attr.Collect(), values)
-		if !ok {
-			if !attr.IsRequired() && attr.OptionalDefault() != "" {
-				value := parseDefaultValue(attr.OptionalDefault())
+			if dec.fallback && attr.OptionalDefault() != "" {
 				tx.setStepInput(setStepInputArgs{
 					inputs: inputs,
 					step:   st,
 					name:   name,
 					attr:   attr,
-					value:  value,
+					value:  parseDefaultValue(attr.OptionalDefault()),
 				})
 			}
+			if dec.fallback {
+				continue
+			}
+			values = dec.values
+		} else {
+			values, err = ev.inputValues(name, attr)
+			if err != nil {
+				return nil, err
+			}
+		}
+		val, ok := policy.ResolveInputValue(attr.Collect(), values)
+		if !ok {
 			continue
 		}
-
 		tx.setStepInput(setStepInputArgs{
 			inputs: inputs,
 			step:   st,
@@ -223,7 +209,6 @@ func (tx *flowTx) collectStepInputs(
 			value:  val,
 		})
 	}
-
 	return inputs, nil
 }
 
@@ -295,52 +280,32 @@ func (s *stepEval) hasOptionalReady(anchor time.Time) (bool, time.Time) {
 func (s *stepEval) optionalDecisionAt(
 	name api.Name, attr *api.AttributeSpec, anchor time.Time,
 ) optionalDecision {
-	deps, ok := s.flow.Plan.Attributes[name]
-	fulfilled, fulfilledAt, err := s.inputFulfilledAt(name, attr)
+	if anchor.IsZero() {
+		return optionalDecision{}
+	}
+	values, err := s.inputValues(name, attr)
 	if err != nil {
 		return optionalDecision{}
 	}
-
-	if fulfilled {
-		at := optionalAt(anchor, attr.OptionalDeadline())
-		if at.IsZero() {
-			return optionalDecision{ready: true}
+	values, at := policy.CollectWindow(anchor, attr.OptionalDeadline(), values)
+	providers, completedAt := providerSummaryFor(s.flow, name)
+	if policy.InputFulfilled(attr.Collect(), len(values), providers) {
+		readyAt := policy.FulfilledAt(attr.Collect(), values, completedAt)
+		if readyAt.Before(at) ||
+			(attr.OptionalDeadline() == 0 && !readyAt.After(at)) {
+			return optionalDecision{ready: true, values: values}
 		}
-
-		if !fulfilledAt.IsZero() && fulfilledAt.After(at) {
-			return s.timeoutDecision(name, attr, at)
-		}
-		return optionalDecision{ready: true}
 	}
-
-	if !ok || len(deps.Providers) == 0 {
+	if providers.Terminal || !at.After(s.when) {
 		return optionalDecision{ready: true, fallback: true}
 	}
-
-	providers, _ := providerSummaryFor(s.flow, name)
-	if providers.Terminal || attr.OptionalDeadline() <= 0 {
-		return s.timeoutDecision(name, attr, s.when)
+	if attr.Collect() == api.InputCollectNone && len(values) > 0 {
+		return optionalDecision{ready: true, fallback: true}
 	}
-
-	at := optionalAt(anchor, attr.OptionalDeadline())
-	if at.IsZero() {
-		return optionalDecision{}
-	}
-	if !at.After(s.when) {
-		return s.timeoutDecision(name, attr, at)
+	if attr.Collect() == api.InputCollectAll && !canCollectAll(name, s.flow) {
+		return optionalDecision{ready: true, fallback: true}
 	}
 	return optionalDecision{nextAt: at}
-}
-
-func (s *stepEval) timeoutDecision(
-	name api.Name, attr *api.AttributeSpec, cutoff time.Time,
-) optionalDecision {
-	if policy.TimeoutCanUseValues(attr.Collect()) {
-		if len(valuesUntil(s.flow.AttributeValues(name), cutoff)) > 0 {
-			return optionalDecision{ready: true, cutoff: cutoff}
-		}
-	}
-	return optionalDecision{ready: true, fallback: true}
 }
 
 func (s *stepEval) requiredReadyAt() (time.Time, error) {
@@ -386,7 +351,7 @@ func (e *Engine) Matcher(cfg *api.ScriptConfig, value any) (bool, error) {
 func (s *stepEval) inputFulfilledAt(
 	name api.Name, attr *api.AttributeSpec,
 ) (bool, time.Time, error) {
-	values, err := s.inputValues(name, attr, time.Time{})
+	values, err := s.inputValues(name, attr)
 	if err != nil {
 		return false, time.Time{}, err
 	}
@@ -398,9 +363,9 @@ func (s *stepEval) inputFulfilledAt(
 }
 
 func (s *stepEval) inputValues(
-	name api.Name, attr *api.AttributeSpec, cutoff time.Time,
+	name api.Name, attr *api.AttributeSpec,
 ) ([]*api.AttributeValue, error) {
-	values := valuesUntil(s.flow.AttributeValues(name), cutoff)
+	values := s.flow.AttributeValues(name)
 	matched, _, err := policy.MatchCandidateValues(attr, values, s.e.Matcher)
 	return matched, err
 }
@@ -411,13 +376,6 @@ func parseDefaultValue(value string) any {
 		return nil
 	}
 	return result
-}
-
-func optionalAt(anchor time.Time, deadlineMS int64) time.Time {
-	if anchor.IsZero() {
-		return time.Time{}
-	}
-	return anchor.Add(time.Duration(deadlineMS) * time.Millisecond)
 }
 
 func providerSummaryFor(
@@ -466,20 +424,4 @@ func hasValueFrom(fl *api.FlowState, name api.Name, sid api.StepID) bool {
 		}
 	}
 	return false
-}
-
-func valuesUntil(
-	values []*api.AttributeValue, cutoff time.Time,
-) []*api.AttributeValue {
-	if cutoff.IsZero() {
-		return values
-	}
-	res := make([]*api.AttributeValue, 0, len(values))
-	for _, v := range values {
-		if v.SetAt.IsZero() || v.SetAt.After(cutoff) {
-			continue
-		}
-		res = append(res, v)
-	}
-	return res
 }

@@ -7,21 +7,8 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/policy"
 )
 
-// scheduleTimeouts arms the steps anchored during this transaction, since an
-// anchor never moves once set and earlier ones were armed when they appeared
+// scheduleTimeouts replaces each open window's task at its latest deadline
 func (tx *flowTx) scheduleTimeouts() error {
-	return tx.armTimeouts(tx.anchoredAtStart)
-}
-
-// recoverTimeouts arms the steps scheduleTimeouts skips, re-arming deadlines
-// that were anchored before this transaction began
-func (tx *flowTx) recoverTimeouts() error {
-	return tx.armTimeouts(func(sid api.StepID) bool {
-		return !tx.anchoredAtStart(sid)
-	})
-}
-
-func (tx *flowTx) armTimeouts(skip func(api.StepID) bool) error {
 	fl := tx.Value()
 	if !flowHasTimeouts(&fl) || policy.FlowTerminal(fl.Status) {
 		return nil
@@ -29,24 +16,11 @@ func (tx *flowTx) armTimeouts(skip func(api.StepID) bool) error {
 
 	when := tx.Now()
 	for sid := range fl.Executions {
-		if skip(sid) {
-			continue
-		}
 		if err := tx.scheduleStepTimeouts(fl, sid, when); err != nil {
 			return err
 		}
 	}
 	return nil
-}
-
-func (tx *flowTx) anchoredAtStart(sid api.StepID) bool {
-	start := tx.start
-	ex, ok := start.Executions[sid]
-	if !ok || !policy.StepPending(ex.Status) {
-		return false
-	}
-	anchor, err := tx.newStepEval(sid, &start, tx.Now()).requiredReadyAt()
-	return err == nil && !anchor.IsZero()
 }
 
 func (tx *flowTx) scheduleStepTimeouts(
@@ -76,12 +50,6 @@ func (tx *flowTx) scheduleStepTimeouts(
 			continue
 		}
 		dec := s.optionalDecisionAt(name, attr, anchor)
-		if dec.ready {
-			if err := tx.scheduleTimeoutTask(sid, name, when); err != nil {
-				return err
-			}
-			continue
-		}
 		if dec.nextAt.IsZero() {
 			continue
 		}
@@ -100,9 +68,7 @@ func (tx *flowTx) scheduleTimeoutTask(
 		scheduledTimeout{StepID: sid, Name: name})
 }
 
-func (tx *flowTx) handleStepTimeout(
-	sid api.StepID, name api.Name, when time.Time,
-) error {
+func (tx *flowTx) handleStepTimeout(sid api.StepID) error {
 	fl := tx.Value()
 	if policy.FlowTerminal(fl.Status) {
 		return nil
@@ -110,14 +76,6 @@ func (tx *flowTx) handleStepTimeout(
 
 	ex, ok := fl.Executions[sid]
 	if !ok || !policy.StepPending(ex.Status) {
-		return nil
-	}
-
-	ready, nextAt := tx.canStartStepAt(sid, &fl, when)
-	if !ready {
-		if !nextAt.IsZero() {
-			return tx.scheduleTimeoutTask(sid, name, nextAt)
-		}
 		return nil
 	}
 

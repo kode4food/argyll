@@ -79,10 +79,10 @@ func InitSatisfiesRequired(st *RequiredInputState) bool {
 	return err == nil && status == MatchMatched
 }
 
-// InitBlocksRuntime reports whether init data blocks a runtime input from
-// being satisfied. Non-runtime inputs are not blocked by init data
+// InitBlocksRuntime reports whether init data blocks a required input.
+// Optional inputs can fall back instead
 func InitBlocksRuntime(attr *api.AttributeSpec, hasInit bool) bool {
-	return attr.IsRuntimeInput() && InitBlocksInput(attr.Collect(), hasInit)
+	return attr.IsRequired() && InitBlocksInput(attr.Collect(), hasInit)
 }
 
 // RequiredInputMissing reports whether a required input is missing. Providers
@@ -195,27 +195,45 @@ func FulfilledAt(
 	collect api.InputCollect, values []*api.AttributeValue,
 	completedAt time.Time,
 ) time.Time {
+	var at time.Time
 	switch collect {
 	case api.InputCollectNone:
 		return completedAt
 	case api.InputCollectLast:
-		return values[len(values)-1].SetAt
+		at = values[len(values)-1].SetAt
 	case api.InputCollectAll, api.InputCollectSome:
-		return lastSetAt(values)
+		at = lastSetAt(values)
 	default: // api.InputCollectFirst
 		return values[0].SetAt
 	}
+	if completedAt.After(at) {
+		return completedAt
+	}
+	return at
 }
 
-// TimeoutCanUseValues reports whether an optional input timeout may use values
-// collected up to the timeout cutoff rather than falling back to its default
-func TimeoutCanUseValues(collect api.InputCollect) bool {
-	switch collect {
-	case api.InputCollectLast, api.InputCollectSome, api.InputCollectNone:
-		return true
-	default:
-		return false
+// CollectWindow returns values accepted before expiry and the resulting
+// inactivity deadline. An expired window cannot be extended by later values
+func CollectWindow(
+	anchor time.Time, timeoutMS int64, values []*api.AttributeValue,
+) ([]*api.AttributeValue, time.Time) {
+	gap := time.Duration(timeoutMS) * time.Millisecond
+	at := anchor.Add(gap)
+	for i, value := range values {
+		if timeoutMS == 0 {
+			if value.SetAt.After(anchor) {
+				return values[:i], at
+			}
+			continue
+		}
+		if !value.SetAt.Before(at) {
+			return values[:i], at
+		}
+		if next := value.SetAt.Add(gap); next.After(at) {
+			at = next
+		}
 	}
+	return values, at
 }
 
 // ResolveInputValue returns the runtime argument value selected by a collect

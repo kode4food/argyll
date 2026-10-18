@@ -18,7 +18,6 @@ type flowTx struct {
 	storeTx
 	*FlowAggregator
 	flowID api.FlowID
-	start  api.FlowState
 }
 
 var (
@@ -201,12 +200,11 @@ func (tx storeTx) flowTx(
 	fid api.FlowID, fn func(*flowTx) error,
 ) (api.FlowState, error) {
 	return tx.Exec(tx.flowExec, events.FlowKey(fid),
-		func(start api.FlowState, ag *FlowAggregator) error {
+		func(_ api.FlowState, ag *FlowAggregator) error {
 			return fn(&flowTx{
 				storeTx:        tx,
 				FlowAggregator: ag,
 				flowID:         fid,
-				start:          start,
 			})
 		},
 	)

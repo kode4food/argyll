@@ -18,12 +18,67 @@ func TestRequiresAllProviders(t *testing.T) {
 	assert.False(t, policy.RequiresAllProviders(api.InputCollectNone))
 }
 
-func TestTimeoutCanUseValues(t *testing.T) {
-	assert.True(t, policy.TimeoutCanUseValues(api.InputCollectLast))
-	assert.True(t, policy.TimeoutCanUseValues(api.InputCollectSome))
-	assert.True(t, policy.TimeoutCanUseValues(api.InputCollectNone))
-	assert.False(t, policy.TimeoutCanUseValues(api.InputCollectFirst))
-	assert.False(t, policy.TimeoutCanUseValues(api.InputCollectAll))
+func TestCollectWindow(t *testing.T) {
+	base := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+	tests := []struct {
+		name    string
+		timeout int64
+		arrival []time.Duration
+		count   int
+		end     time.Duration
+	}{
+		{name: "empty", timeout: 1000, end: time.Second},
+		{
+			name:    "already available",
+			timeout: 1000,
+			arrival: []time.Duration{-time.Second, 0},
+			count:   2,
+			end:     time.Second,
+		},
+		{
+			name:    "each arrival extends",
+			timeout: 1000,
+			arrival: []time.Duration{
+				500 * time.Millisecond, 1200 * time.Millisecond,
+			},
+			count: 2,
+			end:   2200 * time.Millisecond,
+		},
+		{
+			name:    "a gap closes permanently",
+			timeout: 1000,
+			arrival: []time.Duration{
+				500 * time.Millisecond, 1600 * time.Millisecond,
+				1700 * time.Millisecond,
+			},
+			count: 1,
+			end:   1500 * time.Millisecond,
+		},
+		{
+			name:    "expiry boundary",
+			timeout: 1000,
+			arrival: []time.Duration{time.Second},
+			end:     time.Second,
+		},
+		{
+			name:    "zero does not wait",
+			arrival: []time.Duration{0, time.Nanosecond},
+			count:   1,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var values []*api.AttributeValue
+			for _, at := range tt.arrival {
+				values = append(values, &api.AttributeValue{
+					SetAt: base.Add(at),
+				})
+			}
+			got, at := policy.CollectWindow(base, tt.timeout, values)
+			assert.Len(t, got, tt.count)
+			assert.Equal(t, base.Add(tt.end), at)
+		})
+	}
 }
 
 func TestInitPolicy(t *testing.T) {
@@ -71,6 +126,16 @@ func TestInitSatisfiesRequired(t *testing.T) {
 }
 
 func TestInitBlocksRuntime(t *testing.T) {
+	assert.False(t,
+		policy.InitBlocksRuntime(
+			&api.AttributeSpec{
+				Role: api.RoleOptional,
+				Optional: &api.OptionalConfig{
+					Collect: api.InputCollectNone,
+				},
+			},
+			true,
+		))
 	assert.True(t, policy.InitBlocksRuntime(
 		&api.AttributeSpec{
 			Role: api.RoleRequired,
@@ -264,18 +329,23 @@ func TestFulfilledAt(t *testing.T) {
 		{Value: "c", SetAt: base.Add(2 * time.Minute)},
 	}
 
-	assert.Equal(t, base.Add(time.Minute),
-		policy.FulfilledAt(api.InputCollectFirst, values, done),
-	)
-	assert.Equal(t, base.Add(2*time.Minute),
-		policy.FulfilledAt(api.InputCollectLast, values, done),
-	)
-	assert.Equal(t, base.Add(3*time.Minute),
-		policy.FulfilledAt(api.InputCollectSome, values, done),
-	)
-	assert.Equal(t, base.Add(3*time.Minute),
-		policy.FulfilledAt(api.InputCollectAll, values, done),
-	)
+	assert.Equal(t,
+		base.Add(time.Minute),
+		policy.FulfilledAt(api.InputCollectFirst, values, done))
+	for _, collect := range []api.InputCollect{
+		api.InputCollectLast, api.InputCollectSome, api.InputCollectAll,
+	} {
+		t.Run(string(collect), func(t *testing.T) {
+			assert.Equal(t, done, policy.FulfilledAt(collect, values, done))
+			at := base.Add(3 * time.Minute)
+			if collect == api.InputCollectLast {
+				at = values[len(values)-1].SetAt
+			}
+			assert.Equal(t, at, policy.FulfilledAt(collect, values, base))
+			assert.Equal(t,
+				at, policy.FulfilledAt(collect, values, time.Time{}))
+		})
+	}
 	assert.Equal(t, done, policy.FulfilledAt(api.InputCollectNone, nil, done))
 }
 

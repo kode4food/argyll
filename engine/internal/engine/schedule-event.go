@@ -74,9 +74,7 @@ func (tx *flowTx) handleScheduled(msg *timebox.Message) error {
 		return handleScheduledValue(msg, tx.handleWorkDispatch)
 	case stepTimeoutElapsed:
 		return handleScheduledValue(msg, func(timeout scheduledTimeout) error {
-			return tx.handleStepTimeout(
-				timeout.StepID, timeout.Name, tx.Now(),
-			)
+			return tx.handleStepTimeout(timeout.StepID)
 		})
 	case flowReconcileRequested:
 		return tx.recoverFlow()

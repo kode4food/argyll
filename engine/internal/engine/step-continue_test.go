@@ -13,6 +13,14 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/flow"
 )
 
+const (
+	optionalShortWindowMS = 50
+	optionalExpiredWait   = 100 * time.Millisecond
+	optionalResetWindowMS = 400
+	optionalArrivalWait   = 250 * time.Millisecond
+	optionalLongWindowMS  = 5000
+)
+
 func TestOverdueOptionalRecovery(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		fixture := collectTimeoutPlan(api.InputCollectSome)
@@ -898,6 +906,224 @@ func TestTimeoutAfterRequireds(t *testing.T) {
 	})
 }
 
+func TestFinalityDeadline(t *testing.T) {
+	for _, collect := range []api.InputCollect{
+		api.InputCollectLast, api.InputCollectSome,
+	} {
+		t.Run(string(collect), func(t *testing.T) {
+			helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+				early := helpers.NewStepWithOutputs("early", "req")
+				late := helpers.NewStepWithOutputs("late", "req")
+				optional := helpers.NewStepWithOutputs("optional", "opt")
+				consumer := helpers.NewStepWithOutputs("consumer", "result")
+				consumer.Attributes["req"] = &api.AttributeSpec{
+					Role:     api.RoleRequired,
+					Type:     api.TypeString,
+					Required: &api.RequiredConfig{Collect: collect},
+				}
+				consumer.Attributes["opt"] = &api.AttributeSpec{
+					Role: api.RoleOptional,
+					Type: api.TypeString,
+					Optional: &api.OptionalConfig{
+						Default:  `"fallback"`,
+						Deadline: optionalShortWindowMS,
+					},
+				}
+				for _, st := range []*api.Step{early, late, optional} {
+					st.HTTP.Invoke.Mode = api.ActionModeAsync
+					env.MockClient.SetResponse(st.ID, api.Args{})
+				}
+				env.MockClient.SetResponse(
+					consumer.ID, api.Args{"result": "ok"},
+				)
+				assert.NoError(t,
+					env.Engine.RegisterSteps(early, late, optional, consumer))
+				fid := api.FlowID("provider-finality")
+				assert.NoError(t,
+					env.Engine.StartFlow(api.CreateFlowRequest{
+						ID:    fid,
+						Goals: api.Goals{Steps: []api.StepID{consumer.ID}},
+					}))
+				complete := func(sid api.StepID, outputs api.Args) {
+					fl, err := env.Engine.GetFlowState(fid)
+					assert.NoError(t, err)
+					items := fl.Executions[sid].WorkItems
+					assert.Len(t, items, 1)
+					for token := range items {
+						assert.NoError(t,
+							env.Engine.CompleteWork(
+								api.FlowStep{FlowID: fid, StepID: sid},
+								token, outputs,
+							))
+					}
+				}
+				complete(early.ID, api.Args{"req": "x"})
+				time.Sleep(optionalExpiredWait)
+				complete(optional.ID, api.Args{"opt": "real"})
+				fl, err := env.Engine.GetFlowState(fid)
+				assert.NoError(t, err)
+				assert.Equal(t,
+					api.StepPending, fl.Executions[consumer.ID].Status)
+				complete(late.ID, api.Args{})
+				fl = env.WaitForTerminalFlow(fid)
+				assert.Equal(t, api.FlowCompleted, fl.Status)
+				assert.Equal(t,
+					"real", fl.Executions[consumer.ID].Inputs["opt"])
+			})
+		})
+	}
+}
+
+func TestOptionalWindowResets(t *testing.T) {
+	for _, collect := range []api.InputCollect{
+		api.InputCollectLast, api.InputCollectSome, api.InputCollectAll,
+	} {
+		t.Run(string(collect), func(t *testing.T) {
+			helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+				pl := optionalWindowPlan(collect, optionalResetWindowMS)
+				startOptionalWindow(t, env, pl)
+				time.Sleep(optionalArrivalWait)
+				completeOptionalWork(t, env, "a", api.Args{"opt": "a"})
+				assert.NoError(t, env.Engine.RecoverFlow("window"))
+				time.Sleep(optionalArrivalWait)
+				completeOptionalWork(t, env, "b", api.Args{"opt": "b"})
+				fl, err := env.Engine.GetFlowState("window")
+				assert.NoError(t, err)
+				assert.Equal(t,
+					api.StepPending, fl.Executions["consumer"].Status)
+				completeOptionalWork(t, env, "c", api.Args{"opt": "c"})
+				fl = env.WaitForTerminalFlow("window")
+				assert.Equal(t, api.FlowCompleted, fl.Status)
+				if collect == api.InputCollectLast {
+					assert.Equal(t,
+						"c", fl.Executions["consumer"].Inputs["opt"])
+					return
+				}
+				assert.Equal(t,
+					[]any{"a", "b", "c"},
+					fl.Executions["consumer"].Inputs["opt"])
+			})
+		})
+	}
+}
+
+func TestClosedOptionalWindow(t *testing.T) {
+	for _, collect := range []api.InputCollect{
+		api.InputCollectLast, api.InputCollectSome, api.InputCollectAll,
+		api.InputCollectFirst,
+	} {
+		t.Run(string(collect), func(t *testing.T) {
+			helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+				pl := optionalWindowPlan(collect, optionalShortWindowMS)
+				addOptionalHold(pl)
+				startOptionalWindow(t, env, pl)
+				if collect != api.InputCollectFirst {
+					completeOptionalWork(t, env, "a", api.Args{"opt": "a"})
+				}
+				time.Sleep(optionalExpiredWait)
+				if collect == api.InputCollectFirst {
+					completeOptionalWork(t, env, "a", api.Args{"opt": "late"})
+				}
+				completeOptionalWork(t, env, "b", api.Args{"opt": "late"})
+				completeOptionalWork(t, env, "c", api.Args{"opt": "late"})
+				assert.NoError(t, env.Engine.RecoverFlow("window"))
+				fl, err := env.Engine.GetFlowState("window")
+				assert.NoError(t, err)
+				assert.Equal(t,
+					api.StepPending, fl.Executions["consumer"].Status)
+				completeOptionalWork(t, env, "hold", api.Args{"hold": "ready"})
+				fl = env.WaitForTerminalFlow("window")
+				assert.Equal(t,
+					"fallback", fl.Executions["consumer"].Inputs["opt"])
+				assert.Equal(t,
+					"ready", fl.Executions["consumer"].Inputs["hold"])
+			})
+		})
+	}
+}
+
+func TestOptionalZeroSnapshot(t *testing.T) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		pl := optionalWindowPlan(api.InputCollectFirst, 0)
+		addOptionalHold(pl)
+		startOptionalWindow(t, env, pl)
+		completeOptionalWork(t, env, "a", api.Args{"opt": "late"})
+		completeOptionalWork(t, env, "b", api.Args{"opt": "late"})
+		completeOptionalWork(t, env, "c", api.Args{"opt": "late"})
+		completeOptionalWork(t, env, "hold", api.Args{"hold": "ready"})
+		fl := env.WaitForTerminalFlow("window")
+		assert.Equal(t, "fallback", fl.Executions["consumer"].Inputs["opt"])
+	})
+}
+
+func TestImpossibleOptional(t *testing.T) {
+	for _, collect := range []api.InputCollect{
+		api.InputCollectAll, api.InputCollectNone,
+	} {
+		t.Run(string(collect), func(t *testing.T) {
+			helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+				pl := optionalWindowPlan(collect, optionalLongWindowMS)
+				startOptionalWindow(t, env, pl)
+				out := api.Args{}
+				if collect == api.InputCollectNone {
+					out["opt"] = "present"
+				}
+				env.WaitFor(
+					wait.StepTerminal(api.FlowStep{
+						FlowID: "window",
+						StepID: "consumer",
+					}),
+					func() { completeOptionalWork(t, env, "a", out) },
+				)
+				fl, err := env.Engine.GetFlowState("window")
+				assert.NoError(t, err)
+				assert.Equal(t,
+					"fallback", fl.Executions["consumer"].Inputs["opt"])
+				completeOptionalWork(t, env, "b", api.Args{})
+				completeOptionalWork(t, env, "c", api.Args{})
+				fl = env.WaitForTerminalFlow("window")
+				assert.Equal(t, api.FlowCompleted, fl.Status)
+			})
+		})
+	}
+}
+
+func TestOptionalNoneInit(t *testing.T) {
+	for _, present := range []bool{false, true} {
+		helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+			st := helpers.NewStepWithOutputs("consumer", "result")
+			st.Attributes["opt"] = &api.AttributeSpec{
+				Role: api.RoleOptional,
+				Type: api.TypeString,
+				Optional: &api.OptionalConfig{
+					Collect:  api.InputCollectNone,
+					Deadline: optionalLongWindowMS,
+					Default:  `"fallback"`,
+				},
+			}
+			assert.NoError(t, env.Engine.RegisterStep(st))
+			env.MockClient.SetResponse(st.ID, api.Args{"result": "ok"})
+			init := api.InitArgs{}
+			if present {
+				init["opt"] = []any{"blocked"}
+			}
+			assert.NoError(t,
+				env.Engine.StartFlow(api.CreateFlowRequest{
+					ID:    "none-init",
+					Goals: api.Goals{Steps: []api.StepID{st.ID}},
+					Init:  init,
+				}))
+			fl := env.WaitForTerminalFlow("none-init")
+			assert.Equal(t, api.FlowCompleted, fl.Status)
+			if present {
+				assert.Equal(t, "fallback", fl.Executions[st.ID].Inputs["opt"])
+				return
+			}
+			assert.NotContains(t, fl.Executions[st.ID].Inputs, api.Name("opt"))
+		})
+	}
+}
+
 func TestOptionalLastTimeout(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		assert.NoError(t, env.Engine.Start())
@@ -924,7 +1150,7 @@ func TestOptionalLastTimeout(t *testing.T) {
 		})
 
 		assert.Equal(t, api.FlowCompleted, fl.Status)
-		assert.Equal(t, "real", fl.Executions[consumer.ID].Inputs["opt"])
+		assert.Equal(t, "fallback", fl.Executions[consumer.ID].Inputs["opt"])
 		assert.Equal(t, api.StepSkipped, fl.Executions[providerB.ID].Status)
 		assert.Equal(t,
 			"outputs not needed", fl.Executions[providerB.ID].Error,
@@ -958,7 +1184,7 @@ func TestOptionalSomeTimeout(t *testing.T) {
 		})
 
 		assert.Equal(t, api.FlowCompleted, fl.Status)
-		assert.Equal(t, []any{"real"}, fl.Executions[consumer.ID].Inputs["opt"])
+		assert.Equal(t, "fallback", fl.Executions[consumer.ID].Inputs["opt"])
 		assert.Equal(t, api.StepSkipped, fl.Executions[providerB.ID].Status)
 	})
 }
@@ -1150,5 +1376,94 @@ func collectTimeoutPlan(collect api.InputCollect) collectTimeoutPlanRes {
 		providerB: providerB,
 		consumer:  consumer,
 		plan:      pl,
+	}
+}
+
+func optionalWindowPlan(
+	collect api.InputCollect, timeout int64,
+) *api.ExecutionPlan {
+	consumer := helpers.NewStepWithOutputs("consumer", "result")
+	consumer.Attributes["seed"] = &api.AttributeSpec{
+		Role: api.RoleRequired,
+		Type: api.TypeString,
+	}
+	consumer.Attributes["opt"] = &api.AttributeSpec{
+		Role: api.RoleOptional,
+		Type: api.TypeString,
+		Optional: &api.OptionalConfig{
+			Collect:  collect,
+			Deadline: timeout,
+			Default:  `"fallback"`,
+		},
+	}
+	pl := &api.ExecutionPlan{
+		Goals: api.Goals{Steps: []api.StepID{consumer.ID}},
+		Steps: api.Steps{consumer.ID: consumer},
+		Attributes: api.AttributeGraph{
+			"opt": {
+				Providers: []api.StepID{"a", "b", "c"},
+				Consumers: []api.StepID{consumer.ID},
+			},
+			"seed": {Consumers: []api.StepID{consumer.ID}},
+		},
+	}
+	for _, sid := range []api.StepID{"a", "b", "c"} {
+		pl.Steps[sid] = helpers.NewStepWithOutputs(sid, "opt")
+	}
+	return pl
+}
+
+func addOptionalHold(pl *api.ExecutionPlan) {
+	pl.Steps["consumer"].Attributes["hold"] = &api.AttributeSpec{
+		Role: api.RoleOptional,
+		Type: api.TypeString,
+		Optional: &api.OptionalConfig{
+			Deadline: optionalLongWindowMS,
+			Default:  `"missing"`,
+		},
+	}
+	pl.Steps["hold"] = helpers.NewStepWithOutputs("hold", "hold")
+	pl.Attributes["hold"] = &api.AttributeEdges{
+		Providers: []api.StepID{"hold"},
+		Consumers: []api.StepID{"consumer"},
+	}
+}
+
+func startOptionalWindow(
+	t *testing.T, env *helpers.TestEngineEnv, pl *api.ExecutionPlan,
+) {
+	t.Helper()
+	assert.NoError(t, env.Engine.Start())
+	var providers []api.StepID
+	for sid, st := range pl.Steps {
+		if sid != "consumer" {
+			st.HTTP.Invoke.Mode = api.ActionModeAsync
+			env.MockClient.SetResponse(sid, api.Args{})
+			providers = append(providers, sid)
+		}
+		assert.NoError(t, env.Engine.RegisterStep(st))
+	}
+	env.MockClient.SetResponse("consumer", api.Args{"result": "ok"})
+	waitForWorkStarted(env, "window", providers, func() {
+		assert.NoError(t,
+			env.Engine.StartPlan(
+				"window", pl, flow.WithInit(api.InitArgs{"seed": {"ready"}}),
+			))
+	})
+}
+
+func completeOptionalWork(
+	t *testing.T, env *helpers.TestEngineEnv, sid api.StepID, outputs api.Args,
+) {
+	t.Helper()
+	fl, err := env.Engine.GetFlowState("window")
+	assert.NoError(t, err)
+	items := fl.Executions[sid].WorkItems
+	assert.Len(t, items, 1)
+	for token := range items {
+		assert.NoError(t,
+			env.Engine.CompleteWork(
+				api.FlowStep{FlowID: fl.ID, StepID: sid}, token, outputs,
+			))
 	}
 }

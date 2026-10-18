@@ -1590,12 +1590,17 @@ components:
 
     OptionalConfig:
       type: object
-      description: Configuration for an optional input attribute
+      description: |
+        Configuration for an optional input attribute. Collection starts when
+        all required inputs are satisfied and ends when this input's collection
+        policy succeeds, becomes impossible, or its inactivity window expires.
       properties:
         collect:
           type: string
           description: |
-            How upstream provider outputs are resolved (same values as RequiredConfig)
+            How upstream provider outputs are resolved (same values as RequiredConfig).
+            The complete collection policy must be satisfied before expiry;
+            partial values do not replace the default on timeout.
           enum:
             - first
             - last
@@ -1611,13 +1616,24 @@ components:
           example: false
         default:
           type: string
-          description: Default value as a JSON string, used when no provider supplies a value
+          description: |
+            Default value as a JSON string, used when the collection policy
+            cannot be satisfied or the inactivity window expires unsatisfied.
+            If omitted, the input is omitted in those cases.
           example: '"default_value"'
         deadline:
           type: integer
           format: int64
-          description: Collection deadline in milliseconds
+          description: |
+            Maximum inactivity gap in milliseconds, starting when all required
+            inputs are satisfied. Each value arriving before expiry resets
+            this input's window while collection is still pending. Provider
+            completion without a value does not reset it. Expired windows never
+            reopen, even if another optional input keeps the step pending or
+            the engine restarts. Zero or omission means no waiting: use only
+            inputs already satisfied when the required inputs became ready.
           minimum: 0
+          default: 0
           example: 2000
         mapping:
           $ref: "#/components/schemas/MappingConfig"

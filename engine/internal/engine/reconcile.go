@@ -85,7 +85,6 @@ func (tx *flowTx) recoverFlow() error {
 		call.WithArg(tx.recoverWorkDispatch, fl),
 		call.WithArg(tx.recoverRetries, fl),
 		tx.advanceFlow,
-		tx.recoverTimeouts,
 	)
 }
 
