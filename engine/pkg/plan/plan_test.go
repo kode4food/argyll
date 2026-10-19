@@ -269,6 +269,37 @@ func TestCollectNoneSatisfied(t *testing.T) {
 	assert.Empty(t, pl.Required)
 }
 
+func TestCollectNoneProvider(t *testing.T) {
+	for _, name := range []string{"absent", "declared"} {
+		t.Run(name, func(t *testing.T) {
+			provider := planConsumer(
+				"provider", "blocked", api.InputCollectNone,
+			)
+			provider.Attributes["x"] = provider.Attributes["result"]
+			delete(provider.Attributes, "result")
+			consumer := planConsumer("consumer", "x", api.InputCollectFirst)
+			steps := api.Steps{
+				provider.ID: provider,
+				consumer.ID: consumer,
+			}
+			if name == "declared" {
+				steps["blocker"] = planProvider("blocker", "blocked")
+			}
+			cat := makeCatalogState(steps)
+			pl, err := createPlan(
+				cat, []api.StepID{consumer.ID}, api.InitArgs{},
+			)
+			assert.NoError(t, err)
+			assert.Contains(t, pl.Steps, provider.ID)
+			assert.Contains(t, pl.Steps, consumer.ID)
+			assert.Empty(t, pl.Required)
+			if name == "declared" {
+				assert.Contains(t, pl.Steps, api.StepID("blocker"))
+			}
+		})
+	}
+}
+
 func TestCollectSomeInitNoProviders(t *testing.T) {
 	consumer := planConsumer("consumer", "data", api.InputCollectSome)
 	cat := makeCatalogState(api.Steps{

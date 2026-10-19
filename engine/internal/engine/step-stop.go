@@ -25,18 +25,14 @@ func (tx *flowTx) checkStepCompletion(sid api.StepID) (bool, error) {
 	}
 
 	if completion.Failed {
-		if err := events.Raise(tx.FlowAggregator, api.EventTypeStepFailed,
+		return true, events.Raise(tx.FlowAggregator, api.EventTypeStepFailed,
 			api.StepFailedEvent{
 				FlowID: tx.flowID,
 				StepID: sid,
 				Error:  completion.FailureError,
 				Inputs: ex.Inputs,
 			},
-		); err != nil {
-			return true, err
-		}
-		st := fl.Plan.Steps[sid]
-		return true, tx.startPendingCompensations(st, ex)
+		)
 	}
 
 	st := fl.Plan.Steps[sid]
@@ -106,36 +102,33 @@ func (tx *flowTx) handlePredicateFailure(
 	return tx.advanceFlow()
 }
 
-// settleStep checks step completion after a work item settles, continuing the
-// step's remaining work or advancing the flow once the step is decided
+// settleStep records step outcomes and starts failed-step compensation before
+// continuing work, advancing the flow, or checking deactivation
 func (tx *flowTx) settleStep(sid api.StepID) error {
-	if policy.FlowTerminal(tx.Value().Status) {
-		return tx.handleTerminalWork(sid)
-	}
-	if !policy.StepActive(tx.Value().Executions[sid].Status) {
-		return nil
-	}
-
-	completed, err := tx.checkStepCompletion(sid)
-	if err != nil {
-		return err
-	}
-	if !completed {
-		return tx.continueStepWork(sid)
-	}
-
-	return tx.advanceFlow()
-}
-
-// handleTerminalWork handles work completion when the flow is already
-// terminal: checks step completion then deactivates if no work remains
-func (tx *flowTx) handleTerminalWork(sid api.StepID) error {
-	// A late result on a settled step is recorded for the audit trail, but
-	// there is no step outcome left to decide
+	var completed bool
 	if policy.StepActive(tx.Value().Executions[sid].Status) {
-		if _, err := tx.checkStepCompletion(sid); err != nil {
+		var err error
+		completed, err = tx.checkStepCompletion(sid)
+		if err != nil {
 			return err
 		}
 	}
-	return tx.maybeDeactivate()
+	fl := tx.Value()
+	ex := fl.Executions[sid]
+	if policy.StepFailed(ex.Status) {
+		err := tx.startPendingCompensations(fl.Plan.Steps[sid], ex)
+		if err != nil {
+			return err
+		}
+	}
+	if policy.FlowTerminal(tx.Value().Status) {
+		return tx.maybeDeactivate()
+	}
+	if completed {
+		return tx.advanceFlow()
+	}
+	if policy.StepActive(ex.Status) {
+		return tx.continueStepWork(sid)
+	}
+	return nil
 }

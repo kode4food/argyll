@@ -17,7 +17,7 @@ info:
 
     ## Key Features
 
-    - **Goal-Driven Execution**: Create flows by specifying a goal step; the engine
+    - **Goal-Driven Execution**: Create flows by specifying a goal step. The engine
       automatically determines and executes only the necessary steps
     - **Event Sourcing**: Complete audit trail with durable storage for recovery and debugging
     - **Multi-Instance Support**: Horizontal scaling with optimistic concurrency control
@@ -885,7 +885,7 @@ paths:
         The engine resolves this directly from the flow status index without
         loading the full flow state. The index remains `active` after a flow
         enters terminal state while work that has already started or
-        compensation can still produce external side effects; it
+        compensation can still produce external side effects. It
         changes to `completed` or `failed` when `flow_deactivated` is recorded.
         Use `GET /engine/flows/{flow_id}` or terminal flow events to observe and
         act on an outcome before deactivation. This indexed endpoint reports
@@ -1031,7 +1031,7 @@ paths:
       summary: Async Compensation Callback
       description: |
         Receive the outcome of an asynchronous compensation action. The engine
-        supplies this action-specific URL in `Argyll-Webhook-URL`; callers
+        supplies this action-specific URL in `Argyll-Webhook-URL`. Callers
         should use that value directly rather than construct the path.
 
         A success callback may have an empty body. A failure callback uses
@@ -1133,7 +1133,7 @@ paths:
 
         Server messages always carry both parts, so catalog events arrive as `["catalog", "_"]`.
 
-        Each ID selects one aggregate; `["flow"]` is not a wildcard. Omitted or empty `aggregate_ids` selects all aggregates. Malformed IDs and empty components prevent the subscription from being registered.
+        Each ID selects one aggregate. `["flow"]` is not a wildcard. Omitted or empty `aggregate_ids` selects all aggregates. Malformed IDs and empty components prevent the subscription from being registered.
 
         ## Event Filtering
 
@@ -1313,7 +1313,7 @@ components:
           example: ["flow", "wf-text-processing-001"]
         data:
           type: object
-          description: Event payload; shape varies by event type
+          description: Event payload with a shape determined by the event type
           additionalProperties: true
 
     EventsResponse:
@@ -1475,7 +1475,14 @@ components:
         predicate:
           allOf:
             - $ref: "#/components/schemas/ScriptConfig"
-          description: Optional script-based predicate for conditional execution
+          description: |
+            Optional script-based predicate evaluated once per candidate Work
+            Item, after `for_each` expansion and before any work is created.
+            Without `for_each`, there is one candidate. False excludes an item.
+            If every candidate is rejected, the Step is skipped. Accepted items
+            are not evaluated again on dispatch, retry, or recovery.
+            Errors fail the Step before any work starts. An empty expansion
+            completes without evaluating the Predicate or creating work.
         handling:
           type: string
           enum: [standard, memoized, compensated]
@@ -1584,7 +1591,7 @@ components:
           allOf:
             - $ref: "#/components/schemas/ScriptConfig"
           description: >
-            Optional predicate evaluated against each candidate value before collection. Lua receives one candidate as `value`; JSONPath (`jpath`) evaluates one candidate as its document. Collect semantics are then applied over matching candidates: `some` requires at least one match, `all` requires every upstream candidate to match, and `none` requires no candidate to match.
+            Optional predicate evaluated against each candidate value before collection. Lua receives one candidate as `value`. JSONPath (`jpath`) evaluates one candidate as its document. Collect semantics are then applied over matching candidates: `some` requires at least one match, `all` requires every upstream candidate to match, and `none` requires no candidate to match.
         mapping:
           $ref: "#/components/schemas/MappingConfig"
 
@@ -1599,8 +1606,8 @@ components:
           type: string
           description: |
             How upstream provider outputs are resolved (same values as RequiredConfig).
-            The complete collection policy must be satisfied before expiry;
-            partial values do not replace the default on timeout.
+            The complete collection policy must be satisfied before expiry.
+            Partial values do not replace the default on timeout.
           enum:
             - first
             - last
@@ -1664,7 +1671,7 @@ components:
       type: object
       description: |
         Configuration for an output attribute. A successful execution may omit
-        declared outputs; collection uses only values actually supplied.
+        declared outputs. Collection uses only values actually supplied.
       properties:
         mapping:
           $ref: "#/components/schemas/MappingConfig"
@@ -2169,7 +2176,7 @@ components:
             input_text: ["Hello, Argyll!"]
         space_id:
           type: string
-          description: Optional planning space; omitted uses the global catalog
+          description: Optional planning space that defaults to the global catalog
           example: "payments"
         labels:
           type: object
@@ -2242,7 +2249,7 @@ components:
           enum: [active, completed, failed]
           description: |
             Status indexed at deactivation:
-            - `active`: Flow has not deactivated yet; it may already be terminal
+            - `active`: Flow has not deactivated yet. It may already be terminal
               while work can still produce external side effects
             - `completed`: Flow deactivated after completing successfully
             - `failed`: Flow deactivated after failing
@@ -2445,7 +2452,7 @@ components:
           type: object
           description: |
             Output values retained for the Flow. Goal Steps retain all declared
-            outputs; other Steps retain only outputs needed by downstream consumers.
+            outputs. Other Steps retain only outputs needed by downstream consumers.
           additionalProperties: true
         unsatisfied:
           type: array

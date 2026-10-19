@@ -86,6 +86,65 @@ func TestCompensationSucceeds(t *testing.T) {
 	})
 }
 
+func TestLateSuccessCompensates(t *testing.T) {
+	for _, enabled := range []bool{false, true} {
+		helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+			assert.NoError(t, env.Engine.Start())
+			st := newCompensatingStep("late-success")
+			st.WorkConfig = &api.WorkConfig{Parallelism: 2}
+			st.HTTP.Invoke.Mode = api.ActionModeAsync
+			st.HTTP.Compensate.Mode = api.ActionModeAsync
+			st.Attributes["items"] = &api.AttributeSpec{
+				Role:     api.RoleRequired,
+				Type:     api.TypeArray,
+				Required: &api.RequiredConfig{ForEach: true},
+			}
+			assert.NoError(t, env.Engine.RegisterStep(st))
+			env.MockClient.SetResponse(st.ID, api.Args{})
+			pl := &api.ExecutionPlan{
+				Goals: api.Goals{Steps: []api.StepID{st.ID}},
+				Steps: api.Steps{st.ID: st},
+			}
+			assert.NoError(t,
+				env.Engine.StartPlan("late-success", pl,
+					flow.WithCompensate(enabled),
+					flow.WithInit(api.InitArgs{
+						"items": {[]any{"fail", "late"}},
+					})))
+			fl, err := env.Engine.GetFlowState("late-success")
+			assert.NoError(t, err)
+			var failed api.Token
+			var late api.Token
+			for tkn, work := range fl.Executions[st.ID].WorkItems {
+				assert.Equal(t, api.WorkActive, work.Status)
+				if work.Inputs["items"] == "fail" {
+					failed = tkn
+				} else {
+					late = tkn
+				}
+			}
+			fs := api.FlowStep{FlowID: fl.ID, StepID: st.ID}
+			assert.NoError(t, env.Engine.FailWork(fs, failed, "failed"))
+			assert.NoError(t, env.Engine.CompleteWork(fs, late, api.Args{}))
+			fl, err = env.Engine.GetFlowState(fl.ID)
+			assert.NoError(t, err)
+			assert.Equal(t, api.FlowFailed, fl.Status)
+			assert.True(t, fl.DeactivatedAt.IsZero())
+			work := fl.Executions[st.ID].WorkItems[late]
+			if !assert.Equal(t, api.WorkCompensating, work.Status) {
+				return
+			}
+			env.WaitFor(wait.FlowDeactivated(fl.ID), func() {
+				assert.NoError(t, env.Engine.CompleteCompensation(fs, late))
+			})
+			fl, err = env.Engine.GetFlowState(fl.ID)
+			assert.NoError(t, err)
+			work = fl.Executions[st.ID].WorkItems[late]
+			assert.Equal(t, api.WorkCompensated, work.Status)
+		})
+	}
+}
+
 func TestCompensationAsyncAwaitsCallback(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		assert.NoError(t, env.Engine.Start())

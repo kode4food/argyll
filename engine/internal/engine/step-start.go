@@ -31,6 +31,10 @@ type (
 	}
 )
 
+var (
+	ErrPredicateFalse = errors.New("predicate returned false")
+)
+
 // Matcher returns the engine's shared match predicate evaluator
 func (e *Engine) Matcher(cfg *api.ScriptConfig, value any) (bool, error) {
 	comp, err := e.scripts.Compile(script.MatchStep, cfg)
@@ -81,22 +85,26 @@ func (tx *flowTx) prepareStep(sid api.StepID) error {
 		return tx.handlePredicateFailure(sid, ex.Inputs, err)
 	}
 
-	shouldExecute, err := tx.evaluateStepPredicate(st, inputs)
-	if err != nil {
-		return tx.handlePredicateFailure(sid, inputs, err)
-	}
-	if !shouldExecute {
-		return tx.performSkip(sid, "predicate returned false", inputs, nil)
-	}
-
 	workItemsList, err := computeWorkItems(st, inputs)
 	if err != nil {
 		return err
 	}
 	workItemsMap := map[api.Token]api.Args{}
 	for _, workInputs := range workItemsList {
+		shouldExecute, err := tx.evaluateStepPredicate(
+			st, inputs.Apply(workInputs),
+		)
+		if err != nil {
+			return tx.handlePredicateFailure(sid, inputs, err)
+		}
+		if !shouldExecute {
+			continue
+		}
 		tkn := api.Token(uuid.New().String())
 		workItemsMap[tkn] = workInputs
+	}
+	if len(workItemsList) > 0 && len(workItemsMap) == 0 {
+		return tx.performSkip(sid, ErrPredicateFalse.Error(), inputs, nil)
 	}
 
 	if err := events.Raise(tx.FlowAggregator, api.EventTypeStepStarted,

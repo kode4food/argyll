@@ -107,13 +107,14 @@ func RequiresAllProviders(collect api.InputCollect) bool {
 	return collect == api.InputCollectAll
 }
 
-// RequiredInputsAvailable reports whether every required input on a step is
-// available. The caller supplies availability facts from its planning layer
+// RequiredInputsAvailable reports whether required values are speculatively
+// available. collect:none waits for absence instead
 func RequiredInputsAvailable(
 	st *api.Step, available func(api.Name) bool,
 ) bool {
 	for name, attr := range st.Attributes {
-		if attr.IsRequired() && !available(name) {
+		if attr.IsRequired() && attr.Collect() != api.InputCollectNone &&
+			!available(name) {
 			return false
 		}
 	}

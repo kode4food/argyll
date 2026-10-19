@@ -325,8 +325,7 @@ func (tx *flowTx) recoverStepCompensations(sid api.StepID) error {
 				// Covers the whole flow, so sibling steps are redundant
 				return tx.compensateFlow()
 			}
-			// One pass per step covers all succeeded items
-			return tx.startPendingCompensations(fl.Plan.Steps[sid], ex)
+			return tx.settleStep(sid)
 		}
 	}
 	return nil

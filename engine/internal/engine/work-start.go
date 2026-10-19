@@ -115,13 +115,8 @@ func (tx *flowTx) startPendingWork(st *api.Step) (api.WorkItems, error) {
 			break
 		}
 		work := ex.WorkItems[tkn]
-		shouldStart, err := tx.shouldStartPendingWorkItem(
-			st, ex.Inputs, work, now,
-		)
-		if err != nil {
-			return nil, err
-		}
-		if !shouldStart {
+		action, _ := policy.RetryStartDecision(&work, now)
+		if action != policy.RetryStartCheckPending {
 			continue
 		}
 
@@ -177,17 +172,8 @@ func (tx *flowTx) startRetryWorkItem(
 		return nil, time.Time{}, nil
 	}
 
-	shouldStart, err := tx.shouldStartRetryPending(
-		shouldStartRetryPendingArgs{
-			step:  st,
-			base:  ex.Inputs,
-			work:  work,
-			items: ex.WorkItems,
-			when:  now,
-		},
-	)
-	if err != nil || !shouldStart {
-		return nil, time.Time{}, err
+	if policy.CountActiveWorkItems(ex.WorkItems) >= policy.StepParallelism(st) {
+		return nil, time.Time{}, nil
 	}
 
 	inputs := ex.Inputs.Apply(work.Inputs)
@@ -198,53 +184,6 @@ func (tx *flowTx) startRetryWorkItem(
 	started := api.WorkItems{}
 	started[tkn] = ex.WorkItems[tkn]
 	return started, time.Time{}, nil
-}
-
-func (tx *flowTx) shouldStartPendingWorkItem(
-	st *api.Step, base api.Args, work api.WorkState, when time.Time,
-) (bool, error) {
-	sid := st.ID
-	if !policy.WorkPending(work.Status) {
-		return false, nil
-	}
-	if !work.NextRetryAt.IsZero() && work.NextRetryAt.After(when) {
-		return false, nil
-	}
-	inputs := base.Apply(work.Inputs)
-	shouldStart, err := tx.evaluateStepPredicate(st, inputs)
-	if err != nil {
-		return false, tx.handlePredicateFailure(sid, base, err)
-	}
-	return shouldStart, nil
-}
-
-type shouldStartRetryPendingArgs struct {
-	step  *api.Step
-	base  api.Args
-	work  api.WorkState
-	items api.WorkItems
-	when  time.Time
-}
-
-func (tx *flowTx) shouldStartRetryPending(
-	args shouldStartRetryPendingArgs,
-) (bool, error) {
-	sid := args.step.ID
-	if !args.work.NextRetryAt.IsZero() &&
-		args.work.NextRetryAt.After(args.when) {
-		return false, nil
-	}
-	limit := policy.StepParallelism(args.step)
-	active := policy.CountActiveWorkItems(args.items)
-	if active >= limit {
-		return false, nil
-	}
-	inputs := args.base.Apply(args.work.Inputs)
-	shouldStart, err := tx.evaluateStepPredicate(args.step, inputs)
-	if err != nil {
-		return false, tx.handlePredicateFailure(sid, args.base, err)
-	}
-	return shouldStart, nil
 }
 
 func (tx *flowTx) raiseWorkStarted(

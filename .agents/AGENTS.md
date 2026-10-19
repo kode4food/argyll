@@ -22,6 +22,8 @@ Assume nothing. Ask the developer rather than developing on a guess.
 
 ## Tools
 
+Before changing execution logic, read [the execution algorithm](../docs/algorithm.md) and keep it consistent with the implementation.
+
 Use Serena for reading and editing source: it is faster and cheaper than brute force.
 
 Editing files with `sed`, `awk`, `perl`, or `python` is forbidden. Use Serena, or Read/Edit/Write. If a file change genuinely needs a script, ask for approval for that specific instance.

@@ -543,9 +543,95 @@ func TestWorkPredicate(t *testing.T) {
 		ex := fl.Executions[st.ID]
 		assert.Equal(t, api.StepFailed, ex.Status)
 		assert.Contains(t, ex.Error, "predicate")
+		assert.Empty(t, ex.WorkItems)
+		assert.True(t, ex.StartedAt.IsZero())
 		assert.Equal(t, api.FlowFailed, fl.Status)
 	})
 }
+
+func TestWorkPredicateFilters(t *testing.T) {
+	for _, tt := range []struct {
+		name     string
+		input    any
+		forEach  bool
+		accepted int
+		status   api.StepStatus
+	}{
+		{
+			name:     "some",
+			input:    []any{1, -1},
+			forEach:  true,
+			accepted: 1,
+			status:   api.StepCompleted,
+		},
+		{
+			name:    "none",
+			input:   []any{-1, -2},
+			forEach: true,
+			status:  api.StepSkipped,
+		},
+		{
+			name:    "empty",
+			input:   []any{},
+			forEach: true,
+			status:  api.StepCompleted,
+		},
+		{
+			name:     "single accepted",
+			input:    1,
+			accepted: 1,
+			status:   api.StepCompleted,
+		},
+		{
+			name:   "single rejected",
+			input:  -1,
+			status: api.StepSkipped,
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+				st := helpers.NewStepWithOutputs("filtered-items", "result")
+				st.Type = api.StepTypeScript
+				st.HTTP = nil
+				st.Script = &api.ScriptConfig{
+					Language: api.ScriptLangLua,
+					Script:   `return {result = items}`,
+				}
+				st.Predicate = &api.ScriptConfig{
+					Language: api.ScriptLangLua,
+					Script:   `return items > 0`,
+				}
+				st.Attributes["items"] = &api.AttributeSpec{
+					Role:     api.RoleRequired,
+					Type:     api.TypeNumber,
+					Required: &api.RequiredConfig{ForEach: tt.forEach},
+				}
+				if tt.forEach {
+					st.Attributes["items"].Type = api.TypeArray
+				}
+				assert.NoError(t, env.Engine.RegisterStep(st))
+				pl := &api.ExecutionPlan{
+					Goals: api.Goals{Steps: []api.StepID{st.ID}},
+					Steps: api.Steps{st.ID: st},
+				}
+				assert.NoError(t,
+					env.Engine.StartPlan("filtered", pl,
+						flow.WithInit(api.InitArgs{"items": {tt.input}})))
+				fl, err := env.Engine.GetFlowState("filtered")
+				assert.NoError(t, err)
+				assert.Equal(t, api.FlowCompleted, fl.Status)
+				ex := fl.Executions[st.ID]
+				assert.Equal(t, tt.status, ex.Status)
+				assert.Len(t, ex.WorkItems, tt.accepted)
+				for _, work := range ex.WorkItems {
+					assert.Equal(t, api.WorkSucceeded, work.Status)
+					assert.EqualValues(t, 1, work.Outputs["result"])
+				}
+			})
+		})
+	}
+}
+
 func TestHTTPExecution(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		assert.NoError(t, env.Engine.Start())
