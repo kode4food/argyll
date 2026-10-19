@@ -7,7 +7,6 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/policy"
 )
 
-// scheduleTimeouts replaces each open window's task at its latest deadline
 func (tx *flowTx) scheduleTimeouts() error {
 	fl := tx.Value()
 	if !flowHasTimeouts(&fl) || policy.FlowTerminal(fl.Status) {

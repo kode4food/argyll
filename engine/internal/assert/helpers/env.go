@@ -19,6 +19,7 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/events"
 	"github.com/kode4food/argyll/engine/pkg/step"
 	"github.com/kode4food/argyll/engine/pkg/step/builtins"
+	"github.com/kode4food/argyll/engine/pkg/util"
 )
 
 type (
@@ -312,17 +313,15 @@ func (e *TestEngineEnv) AppendEvents(
 	return e.flowStore.AppendEvents(id, atSeq, evs)
 }
 
-// ScheduleVersions loads active schedule versions from their aggregate streams
-func (e *TestEngineEnv) ScheduleVersions() (
-	map[timebox.ScheduleKey]timebox.ScheduleVersion, error,
-) {
+// ScheduleKeys loads the keys of every active schedule
+func (e *TestEngineEnv) ScheduleKeys() (util.Set[timebox.ScheduleKey], error) {
 	schedules, err := e.flowStore.ListSchedules(time.Time{})
 	if err != nil {
 		return nil, err
 	}
-	res := make(map[timebox.ScheduleKey]timebox.ScheduleVersion, len(schedules))
+	res := make(util.Set[timebox.ScheduleKey], len(schedules))
 	for _, schedule := range schedules {
-		res[schedule.Key] = schedule.Version
+		res.Add(schedule.Key)
 	}
 	return res, nil
 }

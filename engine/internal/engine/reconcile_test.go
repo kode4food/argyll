@@ -255,13 +255,13 @@ func TestCommittedEventFilter(t *testing.T) {
 				fid := api.FlowID("wf-filter-" + typ)
 				fs := api.FlowStep{FlowID: fid, StepID: st.ID}
 				seedRetryScheduledFlow(env, fs, "work-a")
-				before := scheduleVersions(t, env)
+				before := scheduleKeys(t, env)
 
 				env.Engine.HandleCommitted(&timebox.Event{
 					AggregateID: events.FlowKey(fid),
 					Type:        timebox.EventType(typ),
 				})
-				after := scheduleVersions(t, env)
+				after := scheduleKeys(t, env)
 				if schedules {
 					assert.NotEqual(t, before, after)
 					return
@@ -577,11 +577,11 @@ func mustStep(env *helpers.TestEngineEnv, sid api.StepID) *api.Step {
 	return cat.Steps[sid]
 }
 
-func scheduleVersions(
+func scheduleKeys(
 	t *testing.T, env *helpers.TestEngineEnv,
-) map[timebox.ScheduleKey]timebox.ScheduleVersion {
+) util.Set[timebox.ScheduleKey] {
 	t.Helper()
-	versions, err := env.ScheduleVersions()
+	keys, err := env.ScheduleKeys()
 	assert.NoError(t, err)
-	return versions
+	return keys
 }
