@@ -82,7 +82,7 @@ func (tx *flowTx) consumedOutputs(
 	res := api.Args{}
 	for name, value := range outputs {
 		attr := st.Attributes[name]
-		if tx.needsOutput(name, attr, fl, scope) {
+		if attr.IsOutput() && tx.needsOutput(name, fl, scope, tx.Now()) {
 			res[name] = value
 		}
 	}

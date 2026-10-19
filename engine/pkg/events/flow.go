@@ -205,7 +205,7 @@ func stepCompleted(
 		SetExecution(data.StepID,
 			fl.Executions[data.StepID].
 				SetStatus(api.StepCompleted).
-				SetCompletedAt(ev.Timestamp).
+				SetCompletion(asCompletion(ev)).
 				SetDuration(data.Duration).
 				SetOutputs(data.Outputs),
 		).
@@ -220,7 +220,7 @@ func stepFailed(
 		SetError(data.Error).
 		SetUnsatisfied(data.Unsatisfied).
 		SetInputs(data.Inputs).
-		SetCompletedAt(ev.Timestamp)
+		SetCompletion(asCompletion(ev))
 	return fl.
 		SetExecution(data.StepID, ex).
 		SetLastUpdated(ev.Timestamp)
@@ -234,7 +234,7 @@ func stepSkipped(
 		SetError(data.Reason).
 		SetUnsatisfied(data.Unsatisfied).
 		SetInputs(data.Inputs).
-		SetCompletedAt(ev.Timestamp)
+		SetCompletion(asCompletion(ev))
 	return fl.
 		SetExecution(data.StepID, ex).
 		SetLastUpdated(ev.Timestamp)
@@ -420,4 +420,8 @@ func compFailed(
 	return fl.
 		SetExecution(data.StepID, ex.SetWorkItem(data.Token, item)).
 		SetLastUpdated(ev.Timestamp)
+}
+
+func asCompletion(ev *timebox.Event) api.Completion {
+	return api.Completion{At: ev.Timestamp, Seq: ev.Sequence}
 }

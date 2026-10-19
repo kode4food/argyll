@@ -2406,6 +2406,19 @@ components:
             When this attribute value was set in flow state.
             For init-state attributes, this is the `flow_started` timestamp.
 
+    Completion:
+      type: object
+      description: When a Step completed, failed, or was skipped (if finished)
+      properties:
+        at:
+          type: string
+          format: date-time
+          description: Timestamp of the Step's terminal event
+        seq:
+          type: integer
+          format: int64
+          description: Flow event sequence of the Step's terminal event
+
     ExecutionState:
       type: object
       required:
@@ -2422,10 +2435,8 @@ components:
           type: string
           format: date-time
           description: When the step execution started
-        completed_at:
-          type: string
-          format: date-time
-          description: When the step execution completed (if finished)
+        completion:
+          $ref: "#/components/schemas/Completion"
         inputs:
           type: object
           description: Input arguments provided to the step

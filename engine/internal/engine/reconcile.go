@@ -82,7 +82,7 @@ func (tx *flowTx) recoverFlow() error {
 
 	fl = tx.Value()
 	return call.Perform(
-		call.WithArg(tx.recoverWorkDispatch, fl),
+		call.WithArg(tx.recoverWorkDispatch, &fl),
 		call.WithArg(tx.recoverRetries, fl),
 		tx.advanceFlow,
 	)

@@ -3,6 +3,7 @@ package engine
 import (
 	"errors"
 	"slices"
+	"time"
 
 	"github.com/kode4food/timebox"
 
@@ -136,12 +137,13 @@ func (e *Engine) goalSetImpossible(goals []api.StepID, fl *api.FlowState) bool {
 }
 
 func (e *Engine) areOutputsNeeded(
-	sid api.StepID, fl *api.FlowState, goals []api.StepID,
+	sid api.StepID, fl *api.FlowState, goals []api.StepID, when time.Time,
 ) bool {
 	if slices.Contains(goals, sid) {
 		return true
 	}
-	return e.needsOutputs(fl.Plan.Steps[sid], fl, goalScope(fl.Plan, goals))
+	scope := goalScope(fl.Plan, goals)
+	return e.needsOutputs(fl.Plan.Steps[sid], fl, scope, when)
 }
 
 func (e *Engine) canStepComplete(sid api.StepID, fl *api.FlowState) bool {
@@ -223,10 +225,10 @@ func (e *Engine) matchGateUnsatisfiedInputs(
 }
 
 func (e *Engine) needsOutputs(
-	st *api.Step, fl *api.FlowState, scope util.Set[api.StepID],
+	st *api.Step, fl *api.FlowState, scope util.Set[api.StepID], when time.Time,
 ) bool {
 	for name, attr := range st.Attributes {
-		if e.needsOutput(name, attr, fl, scope) {
+		if attr.IsOutput() && e.needsOutput(name, fl, scope, when) {
 			return true
 		}
 	}
@@ -236,13 +238,9 @@ func (e *Engine) needsOutputs(
 // needsOutput reports whether a pending consumer within scope still needs
 // the named output
 func (e *Engine) needsOutput(
-	name api.Name, attr *api.AttributeSpec, fl *api.FlowState,
-	scope util.Set[api.StepID],
+	name api.Name, fl *api.FlowState, scope util.Set[api.StepID],
+	when time.Time,
 ) bool {
-	if !attr.IsOutput() {
-		return false
-	}
-
 	deps, ok := fl.Plan.Attributes[name]
 	if !ok || len(deps.Consumers) == 0 {
 		return false
@@ -259,6 +257,10 @@ func (e *Engine) needsOutput(
 			continue
 		}
 		if willSkip, _ := e.matchGateWillSkip(consumer, fl); willSkip {
+			continue
+		}
+		s := e.newStepEval(sid, fl, when)
+		if input.IsOptional() && s.hasOptionalDecision(name, input) {
 			continue
 		}
 		hasValue := e.inputHasValue(name, input, fl)

@@ -40,7 +40,7 @@ func (tx *flowTx) scheduleStepTimeouts(
 	if err != nil {
 		return nil
 	}
-	if anchor.IsZero() {
+	if anchor.At.IsZero() {
 		return nil
 	}
 

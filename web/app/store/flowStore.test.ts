@@ -790,6 +790,7 @@ describe("flowStore", () => {
             status: "completed",
             inputs: { arg: "val" },
             outputs: { out: "result" },
+            completion: { at: "2024-01-01T00:00:01Z", seq: 3 },
           },
         },
         created_at: "2024-01-01T00:00:00Z",
@@ -803,6 +804,7 @@ describe("flowStore", () => {
       });
       expect(state.executions).toHaveLength(1);
       expect(state.executions[0].status).toBe("completed");
+      expect(state.executions[0].completed_at).toBe("2024-01-01T00:00:01Z");
       expect(state.resolvedAttributes).toContain("result");
       expect(state.resolvedAttributes).toContain("out");
       expect(state.loading).toBe(false);

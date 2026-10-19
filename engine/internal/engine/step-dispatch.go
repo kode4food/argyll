@@ -16,39 +16,19 @@ var (
 	ErrDispatchUnavailable = errors.New("dispatch unavailable")
 )
 
-func (tx *flowTx) recoverWorkDispatch(fl api.FlowState) error {
-	steps := tx.findWorkDispatchSteps(&fl)
+func (tx *flowTx) recoverWorkDispatch(fl *api.FlowState) error {
+	now := tx.Now()
+	steps := findWorkDispatchSteps(fl, now)
 	if steps.IsEmpty() {
 		return nil
 	}
 
-	now := tx.Now()
 	for sid := range steps {
 		if err := tx.scheduleWorkDispatch(sid, now); err != nil {
 			return err
 		}
 	}
 	return nil
-}
-
-func (e *Engine) findWorkDispatchSteps(fl *api.FlowState) util.Set[api.StepID] {
-	steps := util.Set[api.StepID]{}
-	now := e.Now()
-
-	for sid, ex := range fl.Executions {
-		if !policy.StepActive(ex.Status) {
-			continue
-		}
-		st, ok := fl.Plan.Steps[sid]
-		if !ok {
-			continue
-		}
-		if policy.WorkReadyToDispatch(st, &ex, now) {
-			steps.Add(sid)
-		}
-	}
-
-	return steps
 }
 
 func (tx *flowTx) scheduleWorkDispatch(sid api.StepID, at time.Time) error {
@@ -96,6 +76,26 @@ func (tx *flowTx) raiseDispatchDeferred(sid api.StepID) error {
 			StepID: sid,
 		},
 	)
+}
+
+func findWorkDispatchSteps(fl *api.FlowState, now time.Time,
+) util.Set[api.StepID] {
+	steps := util.Set[api.StepID]{}
+
+	for sid, ex := range fl.Executions {
+		if !policy.StepActive(ex.Status) {
+			continue
+		}
+		st, ok := fl.Plan.Steps[sid]
+		if !ok {
+			continue
+		}
+		if policy.WorkReadyToDispatch(st, &ex, now) {
+			steps.Add(sid)
+		}
+	}
+
+	return steps
 }
 
 func workDispatchKey(fs api.FlowStep) []string {

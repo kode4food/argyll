@@ -471,7 +471,12 @@ func newTestEngine(
 			}
 		},
 	}
-	flowStore, err := timebox.NewStore(shared, cfg.FlowStoreConfig())
+	clock := mergeDependencies(
+		engine.Dependencies{Clock: scheduler.Now}, overrides,
+	).Clock
+	flowStore, err := timebox.NewStore(
+		shared, cfg.FlowStoreConfig(), timebox.Config{Clock: clock},
+	)
 	assert.NoError(t, err)
 
 	testEnv := &TestEngineEnv{

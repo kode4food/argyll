@@ -323,7 +323,7 @@ func TestStepCompleted(t *testing.T) {
 
 	ex := result.Executions["step1"]
 	assert.Equal(t, api.StepCompleted, ex.Status)
-	assert.True(t, ex.CompletedAt.Equal(now))
+	assert.True(t, ex.Completion.At.Equal(now))
 	assert.EqualValues(t, 1000, ex.Duration)
 	assert.Equal(t, "success", ex.Outputs["result"])
 }
@@ -711,7 +711,7 @@ func TestMissingExecution(t *testing.T) {
 	ex, ok := result.Executions["nonexistent"]
 	if assert.True(t, ok) {
 		assert.Equal(t, api.StepCompleted, ex.Status)
-		assert.True(t, ex.CompletedAt.Equal(now))
+		assert.True(t, ex.Completion.At.Equal(now))
 		assert.EqualValues(t, 1000, ex.Duration)
 		assert.Empty(t, ex.Outputs)
 	}

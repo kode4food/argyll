@@ -1,6 +1,7 @@
 package engine
 
 import (
+	"errors"
 	"maps"
 	"slices"
 
@@ -8,6 +9,10 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/events"
 	"github.com/kode4food/argyll/engine/pkg/policy"
 	"github.com/kode4food/argyll/engine/pkg/util/call"
+)
+
+var (
+	ErrOutputsNotNeeded = errors.New("outputs not needed")
 )
 
 // advanceFlow settles pending steps, starts ready ones, and arms the rest's
@@ -45,7 +50,7 @@ func (tx *flowTx) skipPendingUnused() (bool, error) {
 		if !policy.StepPending(ex.Status) {
 			continue
 		}
-		if tx.areOutputsNeeded(sid, &fl, keptGoals(&fl)) {
+		if tx.areOutputsNeeded(sid, &fl, keptGoals(&fl), tx.Now()) {
 			continue
 		}
 
@@ -53,7 +58,7 @@ func (tx *flowTx) skipPendingUnused() (bool, error) {
 			api.StepSkippedEvent{
 				FlowID: tx.flowID,
 				StepID: sid,
-				Reason: "outputs not needed",
+				Reason: ErrOutputsNotNeeded.Error(),
 			},
 		); err != nil {
 			return false, err

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math"
 	"time"
 	"uuid"
 
@@ -29,6 +30,25 @@ type (
 		fallback bool
 	}
 )
+
+// Matcher returns the engine's shared match predicate evaluator
+func (e *Engine) Matcher(cfg *api.ScriptConfig, value any) (bool, error) {
+	comp, err := e.scripts.Compile(script.MatchStep, cfg)
+	if err != nil {
+		return false, errors.Join(ErrPredicateCompileFailed, err)
+	}
+
+	env, err := e.scripts.Get(cfg.Language)
+	if err != nil {
+		return false, errors.Join(ErrScriptEnvFailed, err)
+	}
+
+	matched, err := env.EvaluateMatch(comp, value)
+	if err != nil {
+		return false, errors.Join(ErrMatchEvalFailed, err)
+	}
+	return matched, nil
+}
 
 // prepareStep validates a step and raises its StepStarted event with the work
 // items to run, leaving dispatch to the work start path
@@ -231,7 +251,7 @@ func (s *stepEval) canStart() (bool, time.Time) {
 	if !policy.StepPending(ex.Status) {
 		return false, time.Time{}
 	}
-	if !s.e.areOutputsNeeded(s.stepID, s.flow, startGoals(s.flow)) {
+	if !s.e.areOutputsNeeded(s.stepID, s.flow, startGoals(s.flow), s.when) {
 		return false, time.Time{}
 	}
 
@@ -245,7 +265,7 @@ func (s *stepEval) canStart() (bool, time.Time) {
 	if err != nil {
 		return true, time.Time{}
 	}
-	if anchor.IsZero() {
+	if anchor.At.IsZero() {
 		return false, time.Time{}
 	}
 
@@ -256,7 +276,9 @@ func (s *stepEval) canStart() (bool, time.Time) {
 	return true, time.Time{}
 }
 
-func (s *stepEval) hasOptionalReady(anchor time.Time) (bool, time.Time) {
+func (s *stepEval) hasOptionalReady(
+	anchor api.Completion,
+) (bool, time.Time) {
 	blocked := false
 	var nextAt time.Time
 
@@ -277,22 +299,36 @@ func (s *stepEval) hasOptionalReady(anchor time.Time) (bool, time.Time) {
 	return !blocked, nextAt
 }
 
+func (s *stepEval) hasOptionalDecision(
+	name api.Name, attr *api.AttributeSpec,
+) bool {
+	anchor, err := s.requiredReadyAt()
+	if err != nil {
+		return false
+	}
+	return s.optionalDecisionAt(name, attr, anchor).ready
+}
+
 func (s *stepEval) optionalDecisionAt(
-	name api.Name, attr *api.AttributeSpec, anchor time.Time,
+	name api.Name, attr *api.AttributeSpec, anchor api.Completion,
 ) optionalDecision {
-	if anchor.IsZero() {
+	if anchor.At.IsZero() {
 		return optionalDecision{}
 	}
 	values, err := s.inputValues(name, attr)
 	if err != nil {
 		return optionalDecision{}
 	}
-	values, at := policy.CollectWindow(anchor, attr.OptionalDeadline(), values)
-	providers, completedAt := providerSummaryFor(s.flow, name)
+	if attr.OptionalDeadline() == 0 {
+		return s.resolveImmediateOptional(name, attr, values, anchor)
+	}
+	values, at := policy.CollectWindow(
+		anchor.At, attr.OptionalDeadline(), values,
+	)
+	providers, last := providerSummaryFor(s.flow, name)
 	if policy.InputFulfilled(attr.Collect(), len(values), providers) {
-		readyAt := policy.FulfilledAt(attr.Collect(), values, completedAt)
-		if readyAt.Before(at) ||
-			(attr.OptionalDeadline() == 0 && !readyAt.After(at)) {
+		readyAt := policy.FulfilledAt(attr.Collect(), values, last.At)
+		if readyAt.Before(at) {
 			return optionalDecision{ready: true, values: values}
 		}
 	}
@@ -308,58 +344,46 @@ func (s *stepEval) optionalDecisionAt(
 	return optionalDecision{nextAt: at}
 }
 
-func (s *stepEval) requiredReadyAt() (time.Time, error) {
-	anchor := s.flow.CreatedAt
+func (s *stepEval) resolveImmediateOptional(
+	name api.Name, attr *api.AttributeSpec, values []*api.AttributeValue,
+	anchor api.Completion,
+) optionalDecision {
+	accepted := make([]*api.AttributeValue, 0, len(values))
+	// Init values have no producing execution, so their sequence is zero
+	for _, value := range values {
+		if s.flow.Executions[value.Step].Completion.Within(anchor.Seq) {
+			accepted = append(accepted, value)
+		}
+	}
+	providers, _ := providerSummaryAt(s.flow, name, anchor.Seq)
+	if policy.InputFulfilled(attr.Collect(), len(accepted), providers) {
+		return optionalDecision{ready: true, values: accepted}
+	}
+	return optionalDecision{ready: true, fallback: true}
+}
+
+// requiredReadyAt returns when the required inputs became satisfied, or zero
+// while any is unsatisfied. collect:first counts from its first value
+func (s *stepEval) requiredReadyAt() (api.Completion, error) {
+	res := api.Completion{At: s.flow.CreatedAt}
 	for name, attr := range s.step.Attributes {
 		if !attr.IsRequired() {
 			continue
 		}
-
-		ok, setAt, err := s.inputFulfilledAt(name, attr)
+		values, err := s.inputValues(name, attr)
 		if err != nil {
-			return time.Time{}, err
+			return api.Completion{}, err
 		}
-		if !ok || setAt.IsZero() {
-			return time.Time{}, nil
+		providers, last := providerSummaryFor(s.flow, name)
+		if !policy.InputFulfilled(attr.Collect(), len(values), providers) {
+			return api.Completion{}, nil
 		}
-		if anchor.IsZero() || setAt.After(anchor) {
-			anchor = setAt
+		if attr.Collect() == api.InputCollectFirst {
+			last = s.flow.Executions[values[0].Step].Completion
 		}
+		res = res.Latest(last)
 	}
-	return anchor, nil
-}
-
-// Matcher returns the engine's shared match predicate evaluator
-func (e *Engine) Matcher(cfg *api.ScriptConfig, value any) (bool, error) {
-	comp, err := e.scripts.Compile(script.MatchStep, cfg)
-	if err != nil {
-		return false, errors.Join(ErrPredicateCompileFailed, err)
-	}
-
-	env, err := e.scripts.Get(cfg.Language)
-	if err != nil {
-		return false, errors.Join(ErrScriptEnvFailed, err)
-	}
-
-	matched, err := env.EvaluateMatch(comp, value)
-	if err != nil {
-		return false, errors.Join(ErrMatchEvalFailed, err)
-	}
-	return matched, nil
-}
-
-func (s *stepEval) inputFulfilledAt(
-	name api.Name, attr *api.AttributeSpec,
-) (bool, time.Time, error) {
-	values, err := s.inputValues(name, attr)
-	if err != nil {
-		return false, time.Time{}, err
-	}
-	providers, completedAt := providerSummaryFor(s.flow, name)
-	if !policy.InputFulfilled(attr.Collect(), len(values), providers) {
-		return false, time.Time{}, nil
-	}
-	return true, policy.FulfilledAt(attr.Collect(), values, completedAt), nil
+	return res, nil
 }
 
 func (s *stepEval) inputValues(
@@ -380,20 +404,28 @@ func parseDefaultValue(value string) any {
 
 func providerSummaryFor(
 	fl *api.FlowState, name api.Name,
-) (policy.ProviderSummary, time.Time) {
+) (policy.ProviderSummary, api.Completion) {
+	return providerSummaryAt(fl, name, math.MaxInt64)
+}
+
+// providerSummaryAt summarizes the providers that had finished by sequence,
+// returning the latest of their completions
+func providerSummaryAt(
+	fl *api.FlowState, name api.Name, seq int64,
+) (policy.ProviderSummary, api.Completion) {
 	deps, ok := fl.Plan.Attributes[name]
 	if !ok || len(deps.Providers) == 0 {
 		return policy.ProviderSummary{
 			Terminal:     true,
 			AllSucceeded: true,
-		}, fl.CreatedAt
+		}, api.Completion{At: fl.CreatedAt}
 	}
 
 	res := policy.ProviderSummary{
 		Terminal:     true,
 		AllSucceeded: true,
 	}
-	var completedAt time.Time
+	var last api.Completion
 	for _, sid := range deps.Providers {
 		ex, ok := fl.Executions[sid]
 		if !ok {
@@ -401,20 +433,19 @@ func providerSummaryFor(
 			res.AllSucceeded = false
 			continue
 		}
-		if !policy.StepTerminal(ex.Status) {
+		terminal := policy.StepTerminal(ex.Status) && ex.Completion.Within(seq)
+		if !terminal {
 			res.Terminal = false
 		}
-		if !policy.StepSucceeded(ex.Status) || !hasValueFrom(fl, name, sid) {
+		if !terminal || !policy.StepSucceeded(ex.Status) ||
+			!hasValueFrom(fl, name, sid) {
 			res.AllSucceeded = false
 		}
-		if ex.CompletedAt.IsZero() {
-			continue
-		}
-		if completedAt.IsZero() || ex.CompletedAt.After(completedAt) {
-			completedAt = ex.CompletedAt
+		if terminal {
+			last = last.Latest(ex.Completion)
 		}
 	}
-	return res, completedAt
+	return res, last
 }
 
 func hasValueFrom(fl *api.FlowState, name api.Name, sid api.StepID) bool {

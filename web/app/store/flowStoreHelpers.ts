@@ -188,7 +188,7 @@ export function buildExecutionList(state: FlowStateUpdate): ExecutionResult[] {
       unsatisfied: exec.unsatisfied,
       error_message: exec.error,
       started_at: exec.started_at || "",
-      completed_at: exec.completed_at,
+      completed_at: exec.completion?.at,
       duration_ms: exec.duration,
       work_items: exec.work_items,
     })

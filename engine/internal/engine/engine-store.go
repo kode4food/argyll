@@ -1,6 +1,8 @@
 package engine
 
 import (
+	"time"
+
 	"github.com/kode4food/timebox"
 
 	"github.com/kode4food/argyll/engine/pkg/api"
@@ -12,6 +14,12 @@ import (
 type storeTx struct {
 	*Engine
 	*timebox.Transaction
+}
+
+// Now returns the transaction's time, so decisions and the events they raise
+// share one instant
+func (tx storeTx) Now() time.Time {
+	return tx.Transaction.Now()
 }
 
 // GetCatalogState retrieves the current catalog state

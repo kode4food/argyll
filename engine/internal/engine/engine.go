@@ -149,11 +149,16 @@ func (e *Engine) openStores(open OpenBackend) error {
 	if err != nil {
 		return err
 	}
-	engStore, err := timebox.NewStore(backend, e.config.EngineStoreConfig())
+	clock := timebox.Config{Clock: e.clock}
+	engStore, err := timebox.NewStore(
+		backend, e.config.EngineStoreConfig(), clock,
+	)
 	if err != nil {
 		return errors.Join(err, backend.Close())
 	}
-	flowStore, err := timebox.NewStore(backend, e.config.FlowStoreConfig())
+	flowStore, err := timebox.NewStore(
+		backend, e.config.FlowStoreConfig(), clock,
+	)
 	if err != nil {
 		return errors.Join(err, backend.Close())
 	}

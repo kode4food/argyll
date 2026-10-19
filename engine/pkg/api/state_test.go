@@ -287,10 +287,27 @@ func TestSetExecCompleted(t *testing.T) {
 	original := &api.ExecutionState{}
 	completedTime := scheduler.Now()
 
-	result := original.SetCompletedAt(completedTime)
+	completion := api.Completion{At: completedTime, Seq: 7}
 
-	assert.True(t, result.CompletedAt.Equal(completedTime))
-	assert.True(t, original.CompletedAt.IsZero())
+	result := original.SetCompletion(completion)
+
+	assert.Equal(t, completion, result.Completion)
+	assert.Equal(t, api.Completion{}, original.Completion)
+}
+
+func TestCompletionWithin(t *testing.T) {
+	c := api.Completion{Seq: 5}
+	assert.True(t, c.Within(5))
+	assert.True(t, c.Within(6))
+	assert.False(t, c.Within(4))
+}
+
+func TestCompletionLatest(t *testing.T) {
+	early := api.Completion{At: time.Unix(1, 0), Seq: 1}
+	late := api.Completion{At: time.Unix(1, 0), Seq: 2}
+	assert.Equal(t, late, early.Latest(late))
+	assert.Equal(t, late, late.Latest(early))
+	assert.Equal(t, early, early.Latest(early))
 }
 
 func TestSetInputs(t *testing.T) {
@@ -483,7 +500,7 @@ func TestExecChain(t *testing.T) {
 		SetInputs(api.Args{"input": "value"}).
 		SetStatus(api.StepCompleted).
 		SetOutputs(api.Args{"output": "result"}).
-		SetCompletedAt(completedTime).
+		SetCompletion(api.Completion{At: completedTime}).
 		SetDuration(1000)
 
 	assert.Equal(t, api.StepCompleted, result.Status)

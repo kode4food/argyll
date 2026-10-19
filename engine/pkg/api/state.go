@@ -82,7 +82,7 @@ type (
 	// ExecutionState contains the state of a step execution
 	ExecutionState struct {
 		StartedAt   time.Time  `json:"started_at"`
-		CompletedAt time.Time  `json:"completed_at"`
+		Completion  Completion `json:"completion"`
 		Inputs      Args       `json:"inputs"`
 		Outputs     Args       `json:"outputs,omitempty"`
 		WorkItems   WorkItems  `json:"work_items,omitempty"`
@@ -90,6 +90,12 @@ type (
 		Error       string     `json:"error,omitempty"`
 		Unsatisfied []Name     `json:"unsatisfied,omitempty"`
 		Duration    int64      `json:"duration,omitempty"`
+	}
+
+	// Completion records when a step reached a terminal state
+	Completion struct {
+		At  time.Time `json:"at"`
+		Seq int64     `json:"seq"`
 	}
 
 	// WorkItems contains the state of multiple work items
@@ -363,10 +369,23 @@ func (e ExecutionState) SetStartedAt(t time.Time) ExecutionState {
 	return e
 }
 
-// SetCompletedAt returns a new ExecutionState with completion time set
-func (e ExecutionState) SetCompletedAt(t time.Time) ExecutionState {
-	e.CompletedAt = t
+// SetCompletion returns a new ExecutionState with its completion set
+func (e ExecutionState) SetCompletion(c Completion) ExecutionState {
+	e.Completion = c
 	return e
+}
+
+// Within reports whether the completion happened at or before seq
+func (c Completion) Within(seq int64) bool {
+	return c.Seq <= seq
+}
+
+// Latest returns whichever completion happened later in the event order
+func (c Completion) Latest(other Completion) Completion {
+	if other.Seq > c.Seq {
+		return other
+	}
+	return c
 }
 
 // SetInputs returns a new ExecutionState with the input arguments set
