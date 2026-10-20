@@ -12,12 +12,12 @@ export function useModalDimensions(
     if (containerRef?.current) {
       const rect = containerRef.current.getBoundingClientRect();
       return {
-        width: Math.min(rect.width * 0.8, 1000),
+        width: Math.min(rect.width * 0.8, 1200),
         height: Math.min(rect.height * 0.9, window.innerHeight * 0.9),
       };
     }
     return {
-      width: Math.min(window.innerWidth * 0.9, 1000),
+      width: Math.min(window.innerWidth * 0.9, 1200),
       height: Math.min(window.innerHeight * 0.9, 800),
     };
   }, [containerRef]);

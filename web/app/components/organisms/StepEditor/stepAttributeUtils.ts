@@ -68,14 +68,8 @@ function buildSingleAttribute(
         : undefined,
     collect: inputConfig?.collect || "first",
     forEach: inputConfig?.for_each || false,
-    matchLanguage:
-      spec.role === AttributeRole.Required
-        ? spec.required?.match?.language
-        : undefined,
-    matchScript:
-      spec.role === AttributeRole.Required
-        ? spec.required?.match?.script
-        : undefined,
+    matchLanguage: inputConfig?.match?.language,
+    matchScript: inputConfig?.match?.script,
     metaKey: spec.role === AttributeRole.Meta ? spec.meta?.key : undefined,
     mappingName: mappingConfig?.name,
     mappingLanguage: mappingConfig?.script?.language,
@@ -112,6 +106,7 @@ function buildOptionalAttrSpec(
   const optional: OptionalConfig = {};
   if (a.collect && a.collect !== "first") optional.collect = a.collect;
   if (a.forEach) optional.for_each = true;
+  if (a.matchScript?.trim()) optional.match = buildMatchConfig(a);
   if (a.defaultValue?.trim()) optional.default = a.defaultValue.trim();
   if (a.deadline) optional.deadline = a.deadline;
   if (mapping) optional.mapping = mapping;

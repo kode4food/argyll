@@ -31,6 +31,7 @@ type (
 
 	// OptionalConfig configures an optional input attribute
 	OptionalConfig struct {
+		Match    *ScriptConfig  `json:"match,omitempty"`
 		Mapping  *MappingConfig `json:"mapping,omitempty"`
 		Collect  InputCollect   `json:"collect,omitempty"`
 		Default  string         `json:"default,omitempty"`
@@ -114,8 +115,8 @@ var (
 	ErrMetaKeyRequired = errors.New(
 		"meta key required for meta attribute",
 	)
-	ErrForEachRequiresArray = errors.New(
-		"for_each processing requires an array attribute type",
+	ErrForEachRequiresCollect = errors.New(
+		"for_each processing requires collect all or some",
 	)
 	ErrInvalidDefaultValue      = errors.New("invalid default value for type")
 	ErrInvalidMappingConfig     = errors.New("invalid attribute mapping")
@@ -219,13 +220,14 @@ func (s *AttributeSpec) validateRequired(name Name) error {
 	if cfg == nil {
 		return nil
 	}
-	if cfg.ForEach && s.Type != TypeArray && s.Type != TypeAny && s.Type != "" {
-		return fmt.Errorf("%w: type %s for attribute %q",
-			ErrForEachRequiresArray, s.Type, name)
-	}
 	if cfg.Collect != "" && !validInputCollect.Contains(cfg.Collect) {
 		return fmt.Errorf("%w: %s for attribute %q",
 			ErrInvalidInputCollect, cfg.Collect, name)
+	}
+	if err := validateForEachCollect(
+		cfg.ForEach, cfg.Collect, name,
+	); err != nil {
+		return err
 	}
 	return validateMapping(cfg.Mapping, name)
 }
@@ -234,10 +236,6 @@ func (s *AttributeSpec) validateOptional(name Name) error {
 	cfg := s.Optional
 	if cfg == nil {
 		return nil
-	}
-	if cfg.ForEach && s.Type != TypeArray && s.Type != TypeAny && s.Type != "" {
-		return fmt.Errorf("%w: type %s for attribute %q",
-			ErrForEachRequiresArray, s.Type, name)
 	}
 	if cfg.Default != "" && s.Type != "" {
 		if err := validateDefaultValue(cfg.Default, s.Type); err != nil {
@@ -253,6 +251,11 @@ func (s *AttributeSpec) validateOptional(name Name) error {
 	if cfg.Collect != "" && !validInputCollect.Contains(cfg.Collect) {
 		return fmt.Errorf("%w: %s for attribute %q",
 			ErrInvalidInputCollect, cfg.Collect, name)
+	}
+	if err := validateForEachCollect(
+		cfg.ForEach, cfg.Collect, name,
+	); err != nil {
+		return err
 	}
 	return validateMapping(cfg.Mapping, name)
 }
@@ -350,11 +353,19 @@ func (s *AttributeSpec) ForEach() bool {
 	return false
 }
 
-func (s *AttributeSpec) RequiredMatch() string {
-	if s.Required == nil || s.Required.Match == nil {
-		return ""
+// Match returns the match predicate configured for the attribute, if any
+func (s *AttributeSpec) Match() *ScriptConfig {
+	switch s.Role {
+	case RoleRequired:
+		if s.Required != nil {
+			return s.Required.Match
+		}
+	case RoleOptional:
+		if s.Optional != nil {
+			return s.Optional.Match
+		}
 	}
-	return s.Required.Match.Script
+	return nil
 }
 
 func (s *AttributeSpec) ConstValue() string {
@@ -449,6 +460,7 @@ func (c *OptionalConfig) equal(other *OptionalConfig) bool {
 		c.ForEach == other.ForEach &&
 		c.Default == other.Default &&
 		c.Deadline == other.Deadline &&
+		c.Match.equal(other.Match) &&
 		c.Mapping.equal(other.Mapping)
 }
 
@@ -500,6 +512,19 @@ func (c *ScriptConfig) equal(other *ScriptConfig) bool {
 		return false
 	}
 	return c.Language == other.Language && c.Script == other.Script
+}
+
+func validateForEachCollect(
+	forEach bool, collect InputCollect, name Name,
+) error {
+	if !forEach {
+		return nil
+	}
+	if collect != InputCollectAll && collect != InputCollectSome {
+		return fmt.Errorf("%w: %s for attribute %q",
+			ErrForEachRequiresCollect, collect, name)
+	}
+	return nil
 }
 
 func validateMapping(m *MappingConfig, name Name) error {

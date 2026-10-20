@@ -95,21 +95,28 @@ func TestLateSuccessCompensates(t *testing.T) {
 			st.HTTP.Invoke.Mode = api.ActionModeAsync
 			st.HTTP.Compensate.Mode = api.ActionModeAsync
 			st.Attributes["items"] = &api.AttributeSpec{
-				Role:     api.RoleRequired,
-				Type:     api.TypeArray,
-				Required: &api.RequiredConfig{ForEach: true},
+				Role: api.RoleRequired,
+				Required: &api.RequiredConfig{
+					ForEach: true,
+					Collect: api.InputCollectAll,
+				},
 			}
 			assert.NoError(t, env.Engine.RegisterStep(st))
 			env.MockClient.SetResponse(st.ID, api.Args{})
 			pl := &api.ExecutionPlan{
 				Goals: api.Goals{Steps: []api.StepID{st.ID}},
 				Steps: api.Steps{st.ID: st},
+				Attributes: api.AttributeGraph{
+					"items": &api.AttributeEdges{
+						Consumers: []api.StepID{st.ID},
+					},
+				},
 			}
 			assert.NoError(t,
 				env.Engine.StartPlan("late-success", pl,
 					flow.WithCompensate(enabled),
 					flow.WithInit(api.InitArgs{
-						"items": {[]any{"fail", "late"}},
+						"items": {"fail", "late"},
 					})))
 			fl, err := env.Engine.GetFlowState("late-success")
 			assert.NoError(t, err)

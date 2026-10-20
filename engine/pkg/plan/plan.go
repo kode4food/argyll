@@ -267,7 +267,7 @@ func (b *builder) collectStep(sid api.StepID) error {
 	required := buildRequired(st)
 	for _, name := range allInputs {
 		attr := st.Attributes[name]
-		isGateAttr := policy.RequiredInputHasMatch(attr)
+		isGateAttr := policy.InputHasMatch(attr)
 		if gateClosed && !isGateAttr {
 			continue
 		}

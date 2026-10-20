@@ -890,36 +890,38 @@ func TestMatchFiltersForEachItems(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		assert.NoError(t, env.Engine.Start())
 
-		st := helpers.NewTestStepWithArgs([]api.Name{"items"}, nil)
-		st.Attributes["items"].Type = api.TypeArray
-		st.Attributes["items"].Required = &api.RequiredConfig{
-			ForEach: true,
-			Match: &api.ScriptConfig{
-				Language: api.ScriptLangLua,
-				Script:   `return value > 0`,
-			},
-		}
-		assert.NoError(t, env.Engine.RegisterStep(st))
-		env.MockClient.SetResponse(st.ID, api.Args{})
-		pl := &api.ExecutionPlan{
-			Goals: api.Goals{Steps: []api.StepID{st.ID}},
-			Steps: api.Steps{st.ID: st},
+		fixture := collectPlan("match-foreach", api.InputCollectSome)
+		providerA := fixture.providerA
+		providerB := fixture.providerB
+		consumer := fixture.consumer
+		pl := fixture.plan
+		consumer.Attributes["data"].Required.ForEach = true
+		consumer.Attributes["data"].Required.Match = &api.ScriptConfig{
+			Language: api.ScriptLangLua,
+			Script:   `return value > 0`,
 		}
 
-		fl := env.WaitForFlowStatus("match-items", func() {
-			assert.NoError(t, env.Engine.StartPlan("match-items", pl,
-				flow.WithInit(api.InitArgs{"items": {[]any{1, -1, 2}}}),
-			))
+		assert.NoError(t, env.Engine.RegisterStep(providerA))
+		assert.NoError(t, env.Engine.RegisterStep(providerB))
+		assert.NoError(t, env.Engine.RegisterStep(consumer))
+
+		env.MockClient.SetResponse(providerA.ID, api.Args{"data": 1})
+		env.MockClient.SetResponse(providerB.ID, api.Args{"data": -1})
+		env.MockClient.SetResponse(consumer.ID, api.Args{"result": "ok"})
+
+		id := api.FlowID("match-foreach")
+		fl := env.WaitForFlowStatus(id, func() {
+			assert.NoError(t, env.Engine.StartPlan(id, pl))
 		})
 
-		ex := fl.Executions[st.ID]
+		ex := fl.Executions[consumer.ID]
 		assert.Equal(t, api.StepCompleted, ex.Status)
-		assert.Len(t, ex.WorkItems, 2)
+		assert.Len(t, ex.WorkItems, 1)
 		items := make([]any, 0, len(ex.WorkItems))
 		for _, work := range ex.WorkItems {
-			items = append(items, work.Inputs["items"])
+			items = append(items, work.Inputs["data"])
 		}
-		assert.ElementsMatch(t, []any{1, 2}, items)
+		assert.ElementsMatch(t, []any{1}, items)
 	})
 }
 

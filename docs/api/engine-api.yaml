@@ -1584,14 +1584,17 @@ components:
           example: "first"
         for_each:
           type: boolean
-          description: Execute once per element of this array input
+          description: >
+            Expand into one Work Item per collected candidate value. Valid
+            only when `collect` is `all` or `some`, since those are the only
+            policies that resolve to an array of candidates.
           default: false
           example: false
         match:
           allOf:
             - $ref: "#/components/schemas/ScriptConfig"
           description: >
-            Optional predicate evaluated against each candidate value before collection. For `for_each`, each array element is a candidate and nonmatching elements are removed before Work Items are expanded. Lua receives one candidate as `value`. JSONPath (`jpath`) evaluates one candidate as its document. Collect semantics are then applied over matching candidates: `some` requires at least one match, `all` requires every upstream candidate to match, and `none` requires no candidate to match.
+            Optional predicate evaluated against each candidate value before collection. Lua receives one candidate as `value`. JSONPath (`jpath`) evaluates one candidate as its document. Collect semantics are then applied over matching candidates: `some` requires at least one match, `all` requires every upstream candidate to match, and `none` requires no candidate to match. With `for_each`, Work Items expand from the matched candidates, so a predicate that matches nothing yields none.
         mapping:
           $ref: "#/components/schemas/MappingConfig"
 
@@ -1618,9 +1621,17 @@ components:
           example: "first"
         for_each:
           type: boolean
-          description: Execute once per element of this array input
+          description: >
+            Expand into one Work Item per collected candidate value. Valid
+            only when `collect` is `all` or `some`, since those are the only
+            policies that resolve to an array of candidates.
           default: false
           example: false
+        match:
+          allOf:
+            - $ref: "#/components/schemas/ScriptConfig"
+          description: >
+            Optional predicate evaluated against each candidate value before collection, exactly as in `RequiredConfig`. Candidates that fail to match are treated as absent for collection purposes, so the default below can still apply.
         default:
           type: string
           description: |

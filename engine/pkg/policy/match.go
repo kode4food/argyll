@@ -37,10 +37,11 @@ const (
 	RequiredMatchSkipReason = "required match did not match"
 )
 
-// RequiredInputHasMatch reports whether a required input has a non-empty match
-// predicate that should gate demand and candidate collection
-func RequiredInputHasMatch(attr *api.AttributeSpec) bool {
-	return attr.IsRequired() && attr.RequiredMatch() != ""
+// InputHasMatch reports whether an input (required or optional) has a
+// non-empty match predicate that should gate demand and candidate collection
+func InputHasMatch(attr *api.AttributeSpec) bool {
+	cfg := attr.Match()
+	return attr.IsInput() && cfg != nil && cfg.Script != ""
 }
 
 // RequiredMatchStepStatus combines all required match gates on a step. Any
@@ -49,7 +50,7 @@ func RequiredInputHasMatch(attr *api.AttributeSpec) bool {
 func RequiredMatchStepStatus(facts RequiredMatchStep) (MatchStatus, error) {
 	status := MatchNotGated
 	for name, attr := range facts.Step.Attributes {
-		if !RequiredInputHasMatch(attr) {
+		if !InputHasMatch(attr) {
 			continue
 		}
 		decision, err := RequiredMatchStatus(RequiredMatchSpec{
@@ -77,7 +78,7 @@ func RequiredMatchStepStatus(facts RequiredMatchStep) (MatchStatus, error) {
 // RequiredMatchStatus evaluates one required input's match predicate against
 // each candidate value and applies the input's collect policy to those results
 func RequiredMatchStatus(facts RequiredMatchSpec) (MatchStatus, error) {
-	if !RequiredInputHasMatch(facts.Attr) {
+	if !InputHasMatch(facts.Attr) {
 		return MatchNotGated, nil
 	}
 
@@ -151,29 +152,15 @@ func StepPrunedByRequiredMatch(status api.StepStatus, reason string) bool {
 func MatchCandidateValues(
 	attr *api.AttributeSpec, values []*api.AttributeValue, match api.Matcher,
 ) ([]*api.AttributeValue, int, error) {
-	if !RequiredInputHasMatch(attr) {
+	if !InputHasMatch(attr) {
 		return values, 0, nil
 	}
 
+	cfg := attr.Match()
 	matched := make([]*api.AttributeValue, 0, len(values))
 	unmatched := 0
 	for _, val := range values {
-		if attr.ForEach() {
-			item, count, ok, err := matchForEachValue(
-				attr.Required.Match, val, match,
-			)
-			if err != nil {
-				return nil, 0, err
-			}
-			if ok {
-				unmatched += count
-				if item != nil {
-					matched = append(matched, item)
-				}
-				continue
-			}
-		}
-		ok, err := match(attr.Required.Match, val.Value)
+		ok, err := match(cfg, val.Value)
 		if err != nil {
 			return nil, 0, err
 		}
@@ -184,32 +171,4 @@ func MatchCandidateValues(
 		unmatched++
 	}
 	return matched, unmatched, nil
-}
-
-func matchForEachValue(
-	cfg *api.ScriptConfig, val *api.AttributeValue, match api.Matcher,
-) (*api.AttributeValue, int, bool, error) {
-	items, ok := val.Value.([]any)
-	if !ok {
-		return nil, 0, false, nil
-	}
-	accepted := make([]any, 0, len(items))
-	unmatched := 0
-	for _, item := range items {
-		ok, err := match(cfg, item)
-		if err != nil {
-			return nil, 0, true, err
-		}
-		if ok {
-			accepted = append(accepted, item)
-		} else {
-			unmatched++
-		}
-	}
-	if len(accepted) == 0 {
-		return nil, unmatched, true, nil
-	}
-	cpy := *val
-	cpy.Value = accepted
-	return &cpy, unmatched, true, nil
 }

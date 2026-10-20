@@ -60,6 +60,7 @@ export interface RequiredConfig {
 export interface OptionalConfig {
   collect?: InputCollect;
   for_each?: boolean;
+  match?: ScriptConfig;
   default?: string;
   deadline?: number;
   mapping?: MappingConfig;

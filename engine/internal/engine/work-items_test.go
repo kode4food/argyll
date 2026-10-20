@@ -30,9 +30,11 @@ func TestForEachAggregatesOutputs(t *testing.T) {
 			},
 			Attributes: api.AttributeSpecs{
 				"item": {
-					Role:     api.RoleRequired,
-					Type:     api.TypeArray,
-					Required: &api.RequiredConfig{ForEach: true},
+					Role: api.RoleRequired,
+					Required: &api.RequiredConfig{
+						ForEach: true,
+						Collect: api.InputCollectAll,
+					},
 				},
 				"result": {
 					Role: api.RoleOutput,
@@ -47,11 +49,14 @@ func TestForEachAggregatesOutputs(t *testing.T) {
 		pl := &api.ExecutionPlan{
 			Goals: api.Goals{Steps: []api.StepID{st.ID}},
 			Steps: api.Steps{st.ID: st},
+			Attributes: api.AttributeGraph{
+				"item": &api.AttributeEdges{Consumers: []api.StepID{st.ID}},
+			},
 		}
 
 		fl := env.WaitForFlowStatus("wf-foreach", func() {
 			err := env.Engine.StartPlan("wf-foreach", pl,
-				flow.WithInit(api.InitArgs{"item": {[]any{"a", "b"}}}),
+				flow.WithInit(api.InitArgs{"item": {"a", "b"}}),
 			)
 			assert.NoError(t, err)
 		})
@@ -88,6 +93,7 @@ func TestMappedFanOut(t *testing.T) {
 					Role: api.RoleRequired,
 					Required: &api.RequiredConfig{
 						ForEach: true,
+						Collect: api.InputCollectAll,
 						Mapping: &api.MappingConfig{Name: "item"},
 					},
 				},
@@ -97,9 +103,12 @@ func TestMappedFanOut(t *testing.T) {
 		pl := &api.ExecutionPlan{
 			Goals: api.Goals{Steps: []api.StepID{st.ID}},
 			Steps: api.Steps{st.ID: st},
+			Attributes: api.AttributeGraph{
+				"items": &api.AttributeEdges{Consumers: []api.StepID{st.ID}},
+			},
 		}
 		assert.NoError(t, env.Engine.StartPlan("mapped", pl,
-			flow.WithInit(api.InitArgs{"items": {[]any{1, 2, 3}}}),
+			flow.WithInit(api.InitArgs{"items": {1, 2, 3}}),
 		))
 		fl, err := env.Engine.GetFlowState("mapped")
 		assert.NoError(t, err)
@@ -183,52 +192,67 @@ func TestOutputMappingDescendants(t *testing.T) {
 }
 
 func TestForEachEmpty(t *testing.T) {
-	for _, value := range []any{[]any{}} {
-		t.Run(fmt.Sprintf("%T", value), func(t *testing.T) {
-			helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-				st := helpers.NewStepWithOutputs("empty-each", "result")
-				st.Attributes["item"] = &api.AttributeSpec{
-					Role:     api.RoleRequired,
-					Type:     api.TypeArray,
-					Required: &api.RequiredConfig{ForEach: true},
-				}
-				assert.NoError(t, env.Engine.RegisterStep(st))
-				req := api.CreateFlowRequest{
-					ID:    "empty-each",
-					Goals: api.Goals{Steps: []api.StepID{st.ID}},
-					Init:  api.InitArgs{"item": {value}},
-				}
-				assert.NoError(t, env.Engine.StartFlow(req))
-				fl, err := env.Engine.GetFlowState(req.ID)
-				assert.NoError(t, err)
-				assert.Equal(t, api.FlowCompleted, fl.Status)
-				ex := fl.Executions[st.ID]
-				assert.Equal(t, api.StepCompleted, ex.Status)
-				assert.Empty(t, ex.WorkItems)
-				assert.False(t, fl.DeactivatedAt.IsZero())
-				assert.Empty(t, env.MockClient.GetInvocations())
-			})
-		})
-	}
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		st := helpers.NewStepWithOutputs("empty-each", "result")
+		st.Attributes["item"] = &api.AttributeSpec{
+			Role: api.RoleOptional,
+			Type: api.TypeArray,
+			Optional: &api.OptionalConfig{
+				ForEach: true,
+				Collect: api.InputCollectSome,
+				Default: "[]",
+			},
+		}
+		assert.NoError(t, env.Engine.RegisterStep(st))
+		req := api.CreateFlowRequest{
+			ID:    "empty-each",
+			Goals: api.Goals{Steps: []api.StepID{st.ID}},
+		}
+		assert.NoError(t, env.Engine.StartFlow(req))
+		fl, err := env.Engine.GetFlowState(req.ID)
+		assert.NoError(t, err)
+		assert.Equal(t, api.FlowCompleted, fl.Status)
+		ex := fl.Executions[st.ID]
+		assert.Equal(t, api.StepCompleted, ex.Status)
+		assert.Empty(t, ex.WorkItems)
+		assert.False(t, fl.DeactivatedAt.IsZero())
+		assert.Empty(t, env.MockClient.GetInvocations())
+	})
 }
 
 func TestForEachEmptyProduct(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		st := helpers.NewStepWithOutputs("empty-product", "result")
 		init := api.InitArgs{}
+		attrGraph := api.AttributeGraph{}
 		for i := range strconv.IntSize {
 			name := api.Name(fmt.Sprintf("item%d", i))
 			st.Attributes[name] = &api.AttributeSpec{
-				Role:     api.RoleRequired,
-				Type:     api.TypeArray,
-				Required: &api.RequiredConfig{ForEach: true},
+				Role: api.RoleRequired,
+				Required: &api.RequiredConfig{
+					ForEach: true,
+					Collect: api.InputCollectAll,
+				},
 			}
-			init[name] = []any{[]any{0, 1}}
+			init[name] = []any{0, 1}
+			attrGraph[name] = &api.AttributeEdges{
+				Consumers: []api.StepID{st.ID},
+			}
 		}
-		init["item0"] = []any{[]any{}}
+		st.Attributes["item0"] = &api.AttributeSpec{
+			Role: api.RoleOptional,
+			Type: api.TypeArray,
+			Optional: &api.OptionalConfig{
+				ForEach: true,
+				Collect: api.InputCollectAll,
+				Default: "[]",
+			},
+		}
+		delete(init, "item0")
 		pl := &api.ExecutionPlan{
-			Goals: api.Goals{Steps: []api.StepID{st.ID}},
-			Steps: api.Steps{st.ID: st},
+			Goals:      api.Goals{Steps: []api.StepID{st.ID}},
+			Steps:      api.Steps{st.ID: st},
+			Attributes: attrGraph,
 		}
 		assert.NoError(t,
 			env.Engine.StartPlan("empty-product", pl, flow.WithInit(init)))
@@ -244,18 +268,25 @@ func TestWorkItemCountOverflow(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		st := helpers.NewStepWithOutputs("overflow-each", "result")
 		init := api.InitArgs{}
+		attrGraph := api.AttributeGraph{}
 		for i := range strconv.IntSize {
 			name := api.Name(fmt.Sprintf("item%d", i))
 			st.Attributes[name] = &api.AttributeSpec{
-				Role:     api.RoleRequired,
-				Type:     api.TypeArray,
-				Required: &api.RequiredConfig{ForEach: true},
+				Role: api.RoleRequired,
+				Required: &api.RequiredConfig{
+					ForEach: true,
+					Collect: api.InputCollectAll,
+				},
 			}
-			init[name] = []any{[]any{0, 1}}
+			init[name] = []any{0, 1}
+			attrGraph[name] = &api.AttributeEdges{
+				Consumers: []api.StepID{st.ID},
+			}
 		}
 		pl := &api.ExecutionPlan{
-			Goals: api.Goals{Steps: []api.StepID{st.ID}},
-			Steps: api.Steps{st.ID: st},
+			Goals:      api.Goals{Steps: []api.StepID{st.ID}},
+			Steps:      api.Steps{st.ID: st},
+			Attributes: attrGraph,
 		}
 		err := env.Engine.StartPlan("overflow-each", pl, flow.WithInit(init))
 		assert.ErrorIs(t, err, engine.ErrTooManyWorkItems)
@@ -276,14 +307,18 @@ func TestTooManyWorkItems(t *testing.T) {
 			},
 			Attributes: api.AttributeSpecs{
 				"x": {
-					Role:     api.RoleRequired,
-					Type:     api.TypeArray,
-					Required: &api.RequiredConfig{ForEach: true},
+					Role: api.RoleRequired,
+					Required: &api.RequiredConfig{
+						ForEach: true,
+						Collect: api.InputCollectAll,
+					},
 				},
 				"y": {
-					Role:     api.RoleRequired,
-					Type:     api.TypeArray,
-					Required: &api.RequiredConfig{ForEach: true},
+					Role: api.RoleRequired,
+					Required: &api.RequiredConfig{
+						ForEach: true,
+						Collect: api.InputCollectAll,
+					},
 				},
 			},
 		}
@@ -300,9 +335,13 @@ func TestTooManyWorkItems(t *testing.T) {
 		pl := &api.ExecutionPlan{
 			Goals: api.Goals{Steps: []api.StepID{st.ID}},
 			Steps: api.Steps{st.ID: st},
+			Attributes: api.AttributeGraph{
+				"x": &api.AttributeEdges{Consumers: []api.StepID{st.ID}},
+				"y": &api.AttributeEdges{Consumers: []api.StepID{st.ID}},
+			},
 		}
 		err := env.Engine.StartPlan("wf-too-many", pl,
-			flow.WithInit(api.InitArgs{"x": {xArr}, "y": {yArr}}),
+			flow.WithInit(api.InitArgs{"x": xArr, "y": yArr}),
 		)
 		assert.True(t, errors.Is(err, engine.ErrTooManyWorkItems))
 	})

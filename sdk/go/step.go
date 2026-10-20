@@ -106,6 +106,27 @@ func (s Step) Output(name api.Name, argType api.AttributeType) Step {
 	})
 }
 
+// WithCollect sets the collect policy for input attributes
+func (s Step) WithCollect(collect api.InputCollect, names ...api.Name) Step {
+	for _, name := range names {
+		attr, ok := s.step.Attributes[name]
+		if !ok {
+			continue
+		}
+		cpy := util.MutableCopy(attr)
+		switch cpy.Role {
+		case api.RoleRequired:
+			cpy.Required = util.MutableCopy(cpy.Required)
+			cpy.Required.Collect = collect
+		case api.RoleOptional:
+			cpy.Optional = util.MutableCopy(cpy.Optional)
+			cpy.Optional.Collect = collect
+		}
+		s = s.withAttribute(name, cpy)
+	}
+	return s
+}
+
 // WithForEach marks attributes as supporting multi work items (arrays)
 func (s Step) WithForEach(names ...api.Name) Step {
 	for _, name := range names {
@@ -152,17 +173,25 @@ func (s Step) WithPredicate(predicate api.ScriptConfig) Step {
 	return s
 }
 
-// WithRequiredMatch sets a match predicate for a required attribute. The
-// predicate receives each candidate attribute value as "value" before collect
+// WithMatch sets a match predicate for an input attribute. The predicate
+// receives each candidate attribute value as "value" before collect
 // semantics are applied
-func (s Step) WithRequiredMatch(name api.Name, match api.ScriptConfig) Step {
+func (s Step) WithMatch(name api.Name, match api.ScriptConfig) Step {
 	attr, ok := s.step.Attributes[name]
-	if !ok || !attr.IsRequired() {
+	if !ok {
 		return s
 	}
 	cpy := util.MutableCopy(attr)
-	cpy.Required = util.MutableCopy(cpy.Required)
-	cpy.Required.Match = &match
+	switch cpy.Role {
+	case api.RoleRequired:
+		cpy.Required = util.MutableCopy(cpy.Required)
+		cpy.Required.Match = &match
+	case api.RoleOptional:
+		cpy.Optional = util.MutableCopy(cpy.Optional)
+		cpy.Optional.Match = &match
+	default:
+		return s
+	}
 	return s.withAttribute(name, cpy)
 }
 

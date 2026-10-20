@@ -314,23 +314,44 @@ func TestWithPredicate(t *testing.T) {
 	assert.Equal(t, predicate, st.Predicate.Script)
 }
 
-func TestWithRequiredMatch(t *testing.T) {
+func TestWithMatch(t *testing.T) {
 	script := `return value == "email"`
-	st, err := testClient().NewStep().WithName("Test").
-		WithEndpoint("http://example.com").
-		Required("kind", api.TypeString).
-		WithRequiredMatch("kind", api.ScriptConfig{
-			Language: api.ScriptLangLua,
-			Script:   script,
-		}).
-		Build()
 
-	assert.NoError(t, err)
-	assert.NotNil(t, st.Attributes["kind"].Required.Match)
-	assert.Equal(t,
-		api.ScriptLangLua, st.Attributes["kind"].Required.Match.Language,
-	)
-	assert.Equal(t, script, st.Attributes["kind"].Required.Match.Script)
+	t.Run("required attribute", func(t *testing.T) {
+		st, err := testClient().NewStep().WithName("Test").
+			WithEndpoint("http://example.com").
+			Required("kind", api.TypeString).
+			WithMatch("kind", api.ScriptConfig{
+				Language: api.ScriptLangLua,
+				Script:   script,
+			}).
+			Build()
+
+		assert.NoError(t, err)
+		assert.NotNil(t, st.Attributes["kind"].Required.Match)
+		assert.Equal(t,
+			api.ScriptLangLua, st.Attributes["kind"].Required.Match.Language,
+		)
+		assert.Equal(t, script, st.Attributes["kind"].Required.Match.Script)
+	})
+
+	t.Run("optional attribute", func(t *testing.T) {
+		st, err := testClient().NewStep().WithName("Test").
+			WithEndpoint("http://example.com").
+			Optional("kind", api.TypeString, `""`).
+			WithMatch("kind", api.ScriptConfig{
+				Language: api.ScriptLangLua,
+				Script:   script,
+			}).
+			Build()
+
+		assert.NoError(t, err)
+		assert.NotNil(t, st.Attributes["kind"].Optional.Match)
+		assert.Equal(t,
+			api.ScriptLangLua, st.Attributes["kind"].Optional.Match.Language,
+		)
+		assert.Equal(t, script, st.Attributes["kind"].Optional.Match.Script)
+	})
 }
 
 func TestBuildValidHTTPStep(t *testing.T) {
@@ -571,6 +592,7 @@ func TestStepBuilderWithForEach(t *testing.T) {
 			WithEndpoint("http://example.com").
 			Required("users", api.TypeArray).
 			Optional("groups", api.TypeArray, "[]").
+			WithCollect(api.InputCollectAll, "users", "groups").
 			WithForEach("users", "groups").
 			Output("results", api.TypeArray).
 			Build()

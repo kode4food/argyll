@@ -134,12 +134,9 @@ export const getAttributeModifiers = (
   if (spec.optional?.deadline) {
     modifiers.push({ kind: "icon", Icon: IconDuration });
   }
-  if (spec.required?.match) {
-    modifiers.push({
-      kind: "match",
-      Icon: IconAttributeMatch,
-      script: spec.required.match,
-    });
+  const match = spec.required?.match ?? spec.optional?.match;
+  if (match) {
+    modifiers.push({ kind: "match", Icon: IconAttributeMatch, script: match });
   }
   const config = spec.required ?? spec.optional ?? spec.output;
   if (config?.mapping) {

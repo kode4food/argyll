@@ -331,7 +331,7 @@ describe("useStepEditorForm", () => {
   });
 
   describe("attribute type side effects", () => {
-    it("clears match script for non-input roles", () => {
+    it("keeps match script when switching between input roles", () => {
       const { result } = renderHook(() =>
         useStepEditorForm({ step: null, onUpdate, onClose })
       );
@@ -351,6 +351,31 @@ describe("useStepEditorForm", () => {
 
       act(() => {
         result.current.updateAttribute(attrId, "role", "optional");
+      });
+
+      expect(result.current.attributes[0].matchScript).toBe("$.foo");
+    });
+
+    it("clears match script for non-input roles", () => {
+      const { result } = renderHook(() =>
+        useStepEditorForm({ step: null, onUpdate, onClose })
+      );
+
+      act(() => {
+        result.current.setStepId("step-1");
+        result.current.setEndpoint("https://api.example.com");
+        result.current.addAttribute();
+      });
+
+      const attrId = result.current.attributes[0].id;
+
+      act(() => {
+        result.current.updateAttribute(attrId, "role", "required");
+        result.current.updateAttribute(attrId, "matchScript", "$.foo");
+      });
+
+      act(() => {
+        result.current.updateAttribute(attrId, "role", "const");
       });
 
       expect(result.current.attributes[0].matchScript).toBeUndefined();

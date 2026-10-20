@@ -427,27 +427,37 @@ func TestValidateMetaRole(t *testing.T) {
 }
 
 func TestAccessors(t *testing.T) {
-	t.Run("RequiredMatch_with_match", func(t *testing.T) {
+	t.Run("Match_required_with_match", func(t *testing.T) {
 		spec := &api.AttributeSpec{
 			Role: api.RoleRequired,
 			Required: &api.RequiredConfig{
 				Match: &api.ScriptConfig{Script: "$.foo"},
 			},
 		}
-		assert.Equal(t, "$.foo", spec.RequiredMatch())
+		assert.Equal(t, "$.foo", spec.Match().Script)
 	})
 
-	t.Run("RequiredMatch_no_match", func(t *testing.T) {
+	t.Run("Match_optional_with_match", func(t *testing.T) {
+		spec := &api.AttributeSpec{
+			Role: api.RoleOptional,
+			Optional: &api.OptionalConfig{
+				Match: &api.ScriptConfig{Script: "$.foo"},
+			},
+		}
+		assert.Equal(t, "$.foo", spec.Match().Script)
+	})
+
+	t.Run("Match_no_match", func(t *testing.T) {
 		spec := &api.AttributeSpec{
 			Role:     api.RoleRequired,
 			Required: &api.RequiredConfig{},
 		}
-		assert.Empty(t, spec.RequiredMatch())
+		assert.Nil(t, spec.Match())
 	})
 
-	t.Run("RequiredMatch_no_required", func(t *testing.T) {
+	t.Run("Match_no_required", func(t *testing.T) {
 		spec := &api.AttributeSpec{Role: api.RoleRequired}
-		assert.Empty(t, spec.RequiredMatch())
+		assert.Nil(t, spec.Match())
 	})
 
 	t.Run("ConstValue_with_value", func(t *testing.T) {
@@ -831,7 +841,7 @@ func TestOptionalInputValidation(t *testing.T) {
 			ForEach: true,
 		},
 	}
-	assert.ErrorIs(t, forEach.Validate("value"), api.ErrForEachRequiresArray)
+	assert.ErrorIs(t, forEach.Validate("value"), api.ErrForEachRequiresCollect)
 
 	collect := &api.AttributeSpec{
 		Role: api.RoleOptional,
@@ -890,34 +900,53 @@ func TestValidateEdgeCases(t *testing.T) {
 		assert.ErrorIs(t, err, api.ErrInvalidInputCollect)
 	})
 
-	t.Run("for_each_with_type_any", func(t *testing.T) {
+	t.Run("for_each_with_collect_all", func(t *testing.T) {
+		spec := &api.AttributeSpec{
+			Role: api.RoleRequired,
+			Type: api.TypeAny,
+			Required: &api.RequiredConfig{
+				ForEach: true,
+				Collect: api.InputCollectAll,
+			},
+		}
+		err := spec.Validate("test_arg")
+		assert.NoError(t, err)
+	})
+
+	t.Run("for_each_with_collect_some", func(t *testing.T) {
+		spec := &api.AttributeSpec{
+			Role: api.RoleRequired,
+			Type: api.TypeAny,
+			Required: &api.RequiredConfig{
+				ForEach: true,
+				Collect: api.InputCollectSome,
+			},
+		}
+		err := spec.Validate("test_arg")
+		assert.NoError(t, err)
+	})
+
+	t.Run("for_each_with_default_collect", func(t *testing.T) {
 		spec := &api.AttributeSpec{
 			Role:     api.RoleRequired,
 			Type:     api.TypeAny,
 			Required: &api.RequiredConfig{ForEach: true},
 		}
 		err := spec.Validate("test_arg")
-		assert.NoError(t, err)
+		assert.ErrorIs(t, err, api.ErrForEachRequiresCollect)
 	})
 
-	t.Run("for_each_with_empty_type", func(t *testing.T) {
+	t.Run("for_each_with_collect_first", func(t *testing.T) {
 		spec := &api.AttributeSpec{
-			Role:     api.RoleRequired,
-			Type:     "",
-			Required: &api.RequiredConfig{ForEach: true},
+			Role: api.RoleRequired,
+			Type: api.TypeAny,
+			Required: &api.RequiredConfig{
+				ForEach: true,
+				Collect: api.InputCollectFirst,
+			},
 		}
 		err := spec.Validate("test_arg")
-		assert.NoError(t, err)
-	})
-
-	t.Run("for_each_with_non_array_type", func(t *testing.T) {
-		spec := &api.AttributeSpec{
-			Role:     api.RoleRequired,
-			Type:     api.TypeString,
-			Required: &api.RequiredConfig{ForEach: true},
-		}
-		err := spec.Validate("test_arg")
-		assert.ErrorIs(t, err, api.ErrForEachRequiresArray)
+		assert.ErrorIs(t, err, api.ErrForEachRequiresCollect)
 	})
 
 	t.Run("for_each_with_output_role", func(t *testing.T) {

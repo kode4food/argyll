@@ -36,7 +36,7 @@ const applyAttributeFieldSideEffects = (
     if (value !== "optional" && value !== "const") {
       updated.validationError = undefined;
     }
-    if (value !== "required") {
+    if (value !== "required" && value !== "optional") {
       updated.matchLanguage = undefined;
       updated.matchScript = undefined;
     }
@@ -47,6 +47,10 @@ const applyAttributeFieldSideEffects = (
       updated.forEach = false;
       updated.collect = "first";
     }
+  }
+
+  if (field === "collect" && value !== "all" && value !== "some") {
+    updated.forEach = false;
   }
 
   return updated;

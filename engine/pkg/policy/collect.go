@@ -63,7 +63,7 @@ func InitSatisfiesRequired(st *RequiredInputState) bool {
 	if !InitSatisfiesInput(st.Attr.Collect(), st.HasInit) {
 		return false
 	}
-	if !RequiredInputHasMatch(st.Attr) {
+	if !InputHasMatch(st.Attr) {
 		return true
 	}
 	complete := InitProviderComplete(st.HasInit, st.HasProvider)

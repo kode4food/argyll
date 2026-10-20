@@ -200,7 +200,7 @@ func (e *Engine) matchGateUnsatisfiedInputs(
 ) ([]api.Name, error) {
 	var unsatisfied []api.Name
 	for name, attr := range st.Attributes {
-		if !policy.RequiredInputHasMatch(attr) {
+		if !policy.InputHasMatch(attr) {
 			continue
 		}
 		providers, _ := providerSummaryFor(fl, name)
@@ -277,7 +277,7 @@ func (e *Engine) inputHasValue(
 	name api.Name, attr *api.AttributeSpec, fl *api.FlowState,
 ) bool {
 	values := fl.AttributeValues(name)
-	if !policy.RequiredInputHasMatch(attr) {
+	if !policy.InputHasMatch(attr) {
 		return len(values) > 0
 	}
 	matched, _, _ := policy.MatchCandidateValues(attr, values, e.Matcher)
@@ -333,7 +333,7 @@ func keptGoals(fl *api.FlowState) []api.StepID {
 
 func hasPendingMatchGate(st *api.Step, fl *api.FlowState) bool {
 	for name, attr := range st.Attributes {
-		if !policy.RequiredInputHasMatch(attr) {
+		if !policy.InputHasMatch(attr) {
 			continue
 		}
 		providers, _ := providerSummaryFor(fl, name)

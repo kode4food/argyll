@@ -149,34 +149,41 @@ func TestWorkItemFailFast(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		assert.NoError(t, env.Engine.Start())
 
-		provider := helpers.NewStepWithOutputs("ff-provider", "items")
-		provider.Attributes["items"].Type = api.TypeArray
+		provider1 := helpers.NewStepWithOutputs("ff-provider-1", "items")
+		provider2 := helpers.NewStepWithOutputs("ff-provider-2", "items")
+		provider3 := helpers.NewStepWithOutputs("ff-provider-3", "items")
 
 		consumer := helpers.NewTestStepWithArgs([]api.Name{"items"}, nil)
 		consumer.ID = "ff-consumer"
 		consumer.Attributes["items"].Required = &api.RequiredConfig{
 			ForEach: true,
+			Collect: api.InputCollectAll,
 		}
-		consumer.Attributes["items"].Type = api.TypeArray
 		consumer.WorkConfig = &api.WorkConfig{Parallelism: 1}
 
-		assert.NoError(t, env.Engine.RegisterStep(provider))
+		assert.NoError(t, env.Engine.RegisterStep(provider1))
+		assert.NoError(t, env.Engine.RegisterStep(provider2))
+		assert.NoError(t, env.Engine.RegisterStep(provider3))
 		assert.NoError(t, env.Engine.RegisterStep(consumer))
 
-		env.MockClient.SetResponse(provider.ID, api.Args{
-			"items": []any{"a", "b", "c"},
-		})
+		env.MockClient.SetResponse(provider1.ID, api.Args{"items": "a"})
+		env.MockClient.SetResponse(provider2.ID, api.Args{"items": "b"})
+		env.MockClient.SetResponse(provider3.ID, api.Args{"items": "c"})
 		env.MockClient.SetError(consumer.ID, errors.New("boom"))
 
 		pl := &api.ExecutionPlan{
 			Goals: api.Goals{Steps: []api.StepID{consumer.ID}},
 			Steps: api.Steps{
-				provider.ID: provider,
-				consumer.ID: consumer,
+				provider1.ID: provider1,
+				provider2.ID: provider2,
+				provider3.ID: provider3,
+				consumer.ID:  consumer,
 			},
 			Attributes: api.AttributeGraph{
 				"items": &api.AttributeEdges{
-					Providers: []api.StepID{provider.ID},
+					Providers: []api.StepID{
+						provider1.ID, provider2.ID, provider3.ID,
+					},
 					Consumers: []api.StepID{consumer.ID},
 				},
 			},

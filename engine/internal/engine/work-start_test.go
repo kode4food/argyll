@@ -32,17 +32,22 @@ func TestMemoizedParallelWork(t *testing.T) {
 				st.WorkConfig = &api.WorkConfig{Parallelism: 2}
 				st.Attributes["items"].Required = &api.RequiredConfig{
 					ForEach: true,
+					Collect: api.InputCollectAll,
 				}
-				st.Attributes["items"].Type = api.TypeArray
 				assert.NoError(t, env.Engine.RegisterStep(st))
 				env.MockClient.SetResponse(st.ID, api.Args{})
 				pl := &api.ExecutionPlan{
 					Goals: api.Goals{Steps: []api.StepID{st.ID}},
 					Steps: api.Steps{st.ID: st},
+					Attributes: api.AttributeGraph{
+						"items": &api.AttributeEdges{
+							Consumers: []api.StepID{st.ID},
+						},
+					},
 				}
 				fl := env.WaitForFlowStatus("warm-items", func() {
 					err := env.Engine.StartPlan("warm-items", pl,
-						flow.WithInit(api.InitArgs{"items": {[]any{"a", "b"}}}),
+						flow.WithInit(api.InitArgs{"items": {"a", "b"}}),
 					)
 					assert.NoError(t, err)
 				})
@@ -50,7 +55,7 @@ func TestMemoizedParallelWork(t *testing.T) {
 				assert.Len(t, env.MockClient.GetInvocations(), 2)
 
 				err := env.Engine.StartPlan("cached-items", pl,
-					flow.WithInit(api.InitArgs{"items": {tt.items}}),
+					flow.WithInit(api.InitArgs{"items": tt.items}),
 				)
 				if !assert.NoError(t, err) {
 					return
@@ -115,17 +120,22 @@ func TestDeferredAfterMemoHit(t *testing.T) {
 		st := helpers.NewTestStepWithArgs([]api.Name{"items"}, nil)
 		st.Handling = api.HandlingMemoized
 		st.WorkConfig = &api.WorkConfig{Parallelism: 2}
-		st.Attributes["items"].Required = &api.RequiredConfig{ForEach: true}
-		st.Attributes["items"].Type = api.TypeArray
+		st.Attributes["items"].Required = &api.RequiredConfig{
+			ForEach: true,
+			Collect: api.InputCollectAll,
+		}
 		assert.NoError(t, env.Engine.RegisterStep(st))
 		env.MockClient.SetResponse(st.ID, api.Args{})
 		pl := &api.ExecutionPlan{
 			Goals: api.Goals{Steps: []api.StepID{st.ID}},
 			Steps: api.Steps{st.ID: st},
+			Attributes: api.AttributeGraph{
+				"items": &api.AttributeEdges{Consumers: []api.StepID{st.ID}},
+			},
 		}
 		fl := env.WaitForFlowStatus("warm-deferred", func() {
 			assert.NoError(t, env.Engine.StartPlan("warm-deferred", pl,
-				flow.WithInit(api.InitArgs{"items": {[]any{"a"}}}),
+				flow.WithInit(api.InitArgs{"items": {"a"}}),
 			))
 		})
 		assert.Equal(t, api.FlowCompleted, fl.Status)
@@ -134,7 +144,7 @@ func TestDeferredAfterMemoHit(t *testing.T) {
 			st.ID, api.HealthUnhealthy, "offline",
 		))
 		assert.NoError(t, env.Engine.StartPlan("deferred", pl,
-			flow.WithInit(api.InitArgs{"items": {[]any{"a", "c"}}}),
+			flow.WithInit(api.InitArgs{"items": {"a", "c"}}),
 		))
 		evs, err := env.Engine.GetFlowEvents("deferred")
 		assert.NoError(t, err)
@@ -476,8 +486,10 @@ func TestParallelWorkItems(t *testing.T) {
 		st := helpers.NewTestStepWithArgs([]api.Name{"items"}, nil)
 		st.ID = "parallel-items"
 		st.WorkConfig = &api.WorkConfig{Parallelism: 2}
-		st.Attributes["items"].Required = &api.RequiredConfig{ForEach: true}
-		st.Attributes["items"].Type = api.TypeArray
+		st.Attributes["items"].Required = &api.RequiredConfig{
+			ForEach: true,
+			Collect: api.InputCollectAll,
+		}
 		st.Attributes["result"] = &api.AttributeSpec{
 			Role: api.RoleOutput,
 			Type: api.TypeString,
@@ -489,10 +501,13 @@ func TestParallelWorkItems(t *testing.T) {
 		pl := &api.ExecutionPlan{
 			Goals: api.Goals{Steps: []api.StepID{st.ID}},
 			Steps: api.Steps{st.ID: st},
+			Attributes: api.AttributeGraph{
+				"items": &api.AttributeEdges{Consumers: []api.StepID{st.ID}},
+			},
 		}
 
 		err := env.Engine.StartPlan("wf-parallel", pl,
-			flow.WithInit(api.InitArgs{"items": {[]any{"a", "b", "c"}}}),
+			flow.WithInit(api.InitArgs{"items": {"a", "b", "c"}}),
 		)
 		assert.NoError(t, err)
 
@@ -517,8 +532,10 @@ func TestWorkPredicate(t *testing.T) {
 			Script: "if type(items) ~= 'table' then error('boom') end; " +
 				"return true",
 		}
-		st.Attributes["items"].Required = &api.RequiredConfig{ForEach: true}
-		st.Attributes["items"].Type = api.TypeArray
+		st.Attributes["items"].Required = &api.RequiredConfig{
+			ForEach: true,
+			Collect: api.InputCollectAll,
+		}
 		st.Attributes["result"] = &api.AttributeSpec{
 			Role: api.RoleOutput,
 			Type: api.TypeString,
@@ -530,12 +547,15 @@ func TestWorkPredicate(t *testing.T) {
 		pl := &api.ExecutionPlan{
 			Goals: api.Goals{Steps: []api.StepID{st.ID}},
 			Steps: api.Steps{st.ID: st},
+			Attributes: api.AttributeGraph{
+				"items": &api.AttributeEdges{Consumers: []api.StepID{st.ID}},
+			},
 		}
 
 		id := api.FlowID("wf-pred-work-item")
 		fl := env.WaitForFlowStatus(id, func() {
 			err := env.Engine.StartPlan(id, pl,
-				flow.WithInit(api.InitArgs{"items": {[]any{"a", "b"}}}),
+				flow.WithInit(api.InitArgs{"items": {"a", "b"}}),
 			)
 			assert.NoError(t, err)
 		})
@@ -552,8 +572,9 @@ func TestWorkPredicate(t *testing.T) {
 func TestWorkPredicateFilters(t *testing.T) {
 	for _, tt := range []struct {
 		name     string
-		input    any
+		input    []any
 		forEach  bool
+		optional bool
 		accepted int
 		status   api.StepStatus
 	}{
@@ -571,20 +592,21 @@ func TestWorkPredicateFilters(t *testing.T) {
 			status:  api.StepSkipped,
 		},
 		{
-			name:    "empty",
-			input:   []any{},
-			forEach: true,
-			status:  api.StepCompleted,
+			name:     "empty",
+			input:    nil,
+			forEach:  true,
+			optional: true,
+			status:   api.StepCompleted,
 		},
 		{
 			name:     "single accepted",
-			input:    1,
+			input:    []any{1},
 			accepted: 1,
 			status:   api.StepCompleted,
 		},
 		{
 			name:   "single rejected",
-			input:  -1,
+			input:  []any{-1},
 			status: api.StepSkipped,
 		},
 	} {
@@ -601,22 +623,45 @@ func TestWorkPredicateFilters(t *testing.T) {
 					Language: api.ScriptLangLua,
 					Script:   `return items > 0`,
 				}
-				st.Attributes["items"] = &api.AttributeSpec{
-					Role:     api.RoleRequired,
-					Type:     api.TypeNumber,
-					Required: &api.RequiredConfig{ForEach: tt.forEach},
-				}
-				if tt.forEach {
-					st.Attributes["items"].Type = api.TypeArray
+				switch {
+				case tt.optional:
+					st.Attributes["items"] = &api.AttributeSpec{
+						Role: api.RoleOptional,
+						Type: api.TypeArray,
+						Optional: &api.OptionalConfig{
+							ForEach: true,
+							Collect: api.InputCollectSome,
+							Default: "[]",
+						},
+					}
+				case tt.forEach:
+					st.Attributes["items"] = &api.AttributeSpec{
+						Role: api.RoleRequired,
+						Required: &api.RequiredConfig{
+							ForEach: true,
+							Collect: api.InputCollectAll,
+						},
+					}
+				default:
+					st.Attributes["items"] = &api.AttributeSpec{
+						Role:     api.RoleRequired,
+						Type:     api.TypeNumber,
+						Required: &api.RequiredConfig{},
+					}
 				}
 				assert.NoError(t, env.Engine.RegisterStep(st))
 				pl := &api.ExecutionPlan{
 					Goals: api.Goals{Steps: []api.StepID{st.ID}},
 					Steps: api.Steps{st.ID: st},
+					Attributes: api.AttributeGraph{
+						"items": &api.AttributeEdges{
+							Consumers: []api.StepID{st.ID},
+						},
+					},
 				}
 				assert.NoError(t,
 					env.Engine.StartPlan("filtered", pl,
-						flow.WithInit(api.InitArgs{"items": {tt.input}})))
+						flow.WithInit(api.InitArgs{"items": tt.input})))
 				fl, err := env.Engine.GetFlowState("filtered")
 				assert.NoError(t, err)
 				assert.Equal(t, api.FlowCompleted, fl.Status)

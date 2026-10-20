@@ -37,8 +37,10 @@ func TestRetryPendingParallelism(t *testing.T) {
 			BackoffType: api.BackoffTypeFixed,
 			Parallelism: 1,
 		}
-		st.Attributes["items"].Required = &api.RequiredConfig{ForEach: true}
-		st.Attributes["items"].Type = api.TypeArray
+		st.Attributes["items"].Required = &api.RequiredConfig{
+			ForEach: true,
+			Collect: api.InputCollectAll,
+		}
 		st.Attributes["result"] = &api.AttributeSpec{
 			Role: api.RoleOutput,
 			Type: api.TypeString,
@@ -50,13 +52,16 @@ func TestRetryPendingParallelism(t *testing.T) {
 		pl := &api.ExecutionPlan{
 			Goals: api.Goals{Steps: []api.StepID{st.ID}},
 			Steps: api.Steps{st.ID: st},
+			Attributes: api.AttributeGraph{
+				"items": &api.AttributeEdges{Consumers: []api.StepID{st.ID}},
+			},
 		}
 
 		id := api.FlowID("wf-retry-parallel")
 		env.WithConsumer(func(consumer *event.Consumer) {
 			w := wait.On(t, consumer)
 			err := env.Engine.StartPlan(id, pl,
-				flow.WithInit(api.InitArgs{"items": {[]any{"a", "b"}}}),
+				flow.WithInit(api.InitArgs{"items": {"a", "b"}}),
 			)
 			assert.NoError(t, err)
 			w.ForEvents(2, wait.WorkRetryScheduledDistinct(api.FlowStep{

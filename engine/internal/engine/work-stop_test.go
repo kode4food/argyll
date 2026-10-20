@@ -255,8 +255,10 @@ func TestLateResultsAfterFlowFails(t *testing.T) {
 		st.HTTP.Invoke.Mode = api.ActionModeAsync
 		st.HTTP.Invoke.Timeout = 60000
 		st.WorkConfig = &api.WorkConfig{Parallelism: 2, MaxRetries: -1}
-		st.Attributes["items"].Required = &api.RequiredConfig{ForEach: true}
-		st.Attributes["items"].Type = api.TypeArray
+		st.Attributes["items"].Required = &api.RequiredConfig{
+			ForEach: true,
+			Collect: api.InputCollectAll,
+		}
 		st.Attributes["result"] = &api.AttributeSpec{
 			Role: api.RoleOutput,
 			Type: api.TypeString,
@@ -269,11 +271,14 @@ func TestLateResultsAfterFlowFails(t *testing.T) {
 		pl := &api.ExecutionPlan{
 			Goals: api.Goals{Steps: []api.StepID{st.ID}},
 			Steps: api.Steps{st.ID: st},
+			Attributes: api.AttributeGraph{
+				"items": &api.AttributeEdges{Consumers: []api.StepID{st.ID}},
+			},
 		}
 
 		env.WaitForCount(2, wait.WorkStartedAny(fs), func() {
 			assert.NoError(t, env.Engine.StartPlan(id, pl,
-				flow.WithInit(api.InitArgs{"items": {[]any{"a", "b"}}}),
+				flow.WithInit(api.InitArgs{"items": {"a", "b"}}),
 			))
 		})
 
@@ -321,8 +326,10 @@ func TestSideEffectRunsOnceUnderConflict(t *testing.T) {
 		st.HTTP.Invoke.Mode = api.ActionModeAsync
 		st.HTTP.Invoke.Timeout = 60000
 		st.WorkConfig = &api.WorkConfig{Parallelism: 1, MaxRetries: -1}
-		st.Attributes["items"].Required = &api.RequiredConfig{ForEach: true}
-		st.Attributes["items"].Type = api.TypeArray
+		st.Attributes["items"].Required = &api.RequiredConfig{
+			ForEach: true,
+			Collect: api.InputCollectAll,
+		}
 		assert.NoError(t, env.Engine.RegisterStep(st))
 
 		var invocations atomic.Int32
@@ -338,11 +345,14 @@ func TestSideEffectRunsOnceUnderConflict(t *testing.T) {
 		pl := &api.ExecutionPlan{
 			Goals: api.Goals{Steps: []api.StepID{st.ID}},
 			Steps: api.Steps{st.ID: st},
+			Attributes: api.AttributeGraph{
+				"items": &api.AttributeEdges{Consumers: []api.StepID{st.ID}},
+			},
 		}
 
 		env.WaitFor(wait.WorkStartedAny(fs), func() {
 			assert.NoError(t, env.Engine.StartPlan(id, pl,
-				flow.WithInit(api.InitArgs{"items": {[]any{"a", "b"}}}),
+				flow.WithInit(api.InitArgs{"items": {"a", "b"}}),
 			))
 		})
 

@@ -9,38 +9,43 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
-// TestForEachWorkItems verifies that steps with ForEach inputs create multiple
-// work items (one per array element) and aggregate outputs correctly
+// TestForEachWorkItems verifies that a required input with for_each and
+// collect:all fans out one work item per collected provider value and
+// aggregates outputs correctly
 func TestForEachWorkItems(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		assert.NoError(t, env.Engine.Start())
 
-		// Step A: Produces array "items"
-		stepA := helpers.NewStepWithOutputs("step-a", "items")
-		stepA.Attributes["items"].Type = api.TypeArray
+		// Steps A1-A3: each produces one "items" value
+		stepA1 := helpers.NewStepWithOutputs("step-a1", "items")
+		stepA2 := helpers.NewStepWithOutputs("step-a2", "items")
+		stepA3 := helpers.NewStepWithOutputs("step-a3", "items")
 
-		// Step B: Has ForEach on "items" input, processes each item
+		// Step B: collects all "items" values and runs once per value
 		stepB := helpers.NewTestStepWithArgs(
 			[]api.Name{"items"},
 			nil,
 		)
 		stepB.ID = "step-b"
-		stepB.Attributes["items"].Required = &api.RequiredConfig{ForEach: true}
-		stepB.Attributes["items"].Type = api.TypeArray
+		stepB.Attributes["items"].Required = &api.RequiredConfig{
+			ForEach: true,
+			Collect: api.InputCollectAll,
+		}
 		stepB.Attributes["result"] = &api.AttributeSpec{
 			Role: api.RoleOutput,
 			Type: api.TypeString,
 		}
 
-		assert.NoError(t, env.Engine.RegisterStep(stepA))
+		assert.NoError(t, env.Engine.RegisterStep(stepA1))
+		assert.NoError(t, env.Engine.RegisterStep(stepA2))
+		assert.NoError(t, env.Engine.RegisterStep(stepA3))
 		assert.NoError(t, env.Engine.RegisterStep(stepB))
 
-		// Step A produces array of items
-		env.MockClient.SetResponse("step-a", api.Args{
-			"items": []any{"apple", "banana", "cherry"},
-		})
+		env.MockClient.SetResponse("step-a1", api.Args{"items": "apple"})
+		env.MockClient.SetResponse("step-a2", api.Args{"items": "banana"})
+		env.MockClient.SetResponse("step-a3", api.Args{"items": "cherry"})
 
-		// Step B will be invoked once per item
+		// Step B will be invoked once per collected value
 		env.MockClient.SetResponse("step-b", api.Args{
 			"result": "processed",
 		})
@@ -48,12 +53,14 @@ func TestForEachWorkItems(t *testing.T) {
 		pl := &api.ExecutionPlan{
 			Goals: api.Goals{Steps: []api.StepID{"step-b"}},
 			Steps: api.Steps{
-				"step-a": stepA,
-				"step-b": stepB,
+				"step-a1": stepA1,
+				"step-a2": stepA2,
+				"step-a3": stepA3,
+				"step-b":  stepB,
 			},
 			Attributes: api.AttributeGraph{
 				"items": &api.AttributeEdges{
-					Providers: []api.StepID{"step-a"},
+					Providers: []api.StepID{"step-a1", "step-a2", "step-a3"},
 					Consumers: []api.StepID{"step-b"},
 				},
 				"result": &api.AttributeEdges{
@@ -72,11 +79,13 @@ func TestForEachWorkItems(t *testing.T) {
 		// Verify flow completed successfully
 		assert.Equal(t, api.FlowCompleted, fl.Status)
 
-		// Verify both steps completed
-		assert.Equal(t, api.StepCompleted, fl.Executions["step-a"].Status)
+		// Verify all steps completed
+		assert.Equal(t, api.StepCompleted, fl.Executions["step-a1"].Status)
+		assert.Equal(t, api.StepCompleted, fl.Executions["step-a2"].Status)
+		assert.Equal(t, api.StepCompleted, fl.Executions["step-a3"].Status)
 		assert.Equal(t, api.StepCompleted, fl.Executions["step-b"].Status)
 
-		// Verify step B was invoked 3 times (once per array element)
+		// Verify step B was invoked 3 times (once per collected value)
 		invocations := env.MockClient.GetInvocations()
 		stepBInvocations := 0
 		for _, inv := range invocations {

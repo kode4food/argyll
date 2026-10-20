@@ -148,14 +148,13 @@ func TestMatchAllowsNormalDemand(t *testing.T) {
 
 func TestMatchCandidateForEachValues(t *testing.T) {
 	cfg := &api.ScriptConfig{Language: api.ScriptLangLua, Script: "match"}
-	attr := requiredMatch(cfg, api.InputCollectFirst)
+	attr := requiredMatch(cfg, api.InputCollectAll)
 	attr.Required.ForEach = true
-	attr.Type = api.TypeArray
 	calls := 0
 
 	matched, unmatched, err := policy.MatchCandidateValues(
 		attr,
-		matchValues([]any{"keep", "drop", "keep"}),
+		matchValues("keep", "drop", "keep"),
 		func(_ *api.ScriptConfig, value any) (bool, error) {
 			calls++
 			return value == "keep", nil
@@ -165,8 +164,9 @@ func TestMatchCandidateForEachValues(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, 3, calls)
 	assert.Equal(t, 1, unmatched)
-	if assert.Len(t, matched, 1) {
-		assert.Equal(t, []any{"keep", "keep"}, matched[0].Value)
+	if assert.Len(t, matched, 2) {
+		assert.Equal(t, "keep", matched[0].Value)
+		assert.Equal(t, "keep", matched[1].Value)
 	}
 }
 

@@ -243,16 +243,14 @@ START_PLAN(id, plan, options):
 
 ## Collect policy and match gates
 
-Values retain their persisted arrival order. Required-match predicates filter candidate values without changing that order. For a `for_each` input, the candidates are the elements of each array value; the retained value is an array containing only matching elements. Optional inputs have no required-match predicate. A match error propagates to step preparation, which records step failure.
+Values retain their persisted arrival order. Match predicates filter candidate values without changing that order, whether the input is required or optional. A match error propagates to step preparation, which records step failure.
+
+A `for_each` input is valid only with `collect: all` or `collect: some`: its resolved value is the collected candidate list itself, which step preparation fans out into one work item per element. An empty filtered candidate list is unambiguous absence, letting `INPUT_FULFILLED` and the optional default apply normally.
 
 ```text
 INPUT_VALUES(name, input):
     values := STATE.attributes[name]
-    IF input is required and has a match predicate:
-        IF input is for_each:
-            evaluate the predicate against each element of every array value
-            RETURN array values containing only their matching elements,
-                   omitting array values with no matching elements
+    IF input has a match predicate:
         RETURN values for which the predicate returns TRUE
     RETURN values
 
@@ -290,7 +288,7 @@ RESOLVE_VALUE(mode, values):
     NONE: RETURN OMIT
 
 MATCH_STATUS(input, candidateValues, providers):
-    IF no required-match predicate: RETURN NOT_GATED
+    IF no match predicate: RETURN NOT_GATED
     matched, unmatched := evaluate predicate against all candidateValues
     NONE:
         IF matched is nonempty: RETURN UNMATCHED
@@ -310,7 +308,7 @@ MATCH_STATUS(input, candidateValues, providers):
 
 CLOSED_MATCH_INPUTS(step):
     result := empty
-    FOR each required input with a match predicate:
+    FOR each input with a match predicate:
         providers := PROVIDER_SUMMARY(input.name)
         IF NOT providers.terminal: CONTINUE
         IF MATCH_STATUS(input, all recorded values, providers) = UNMATCHED:

@@ -1,5 +1,5 @@
 import React from "react";
-import { AttributeType, META_KEYS, SCRIPT_LANGUAGE_JPATH } from "@/app/api";
+import { META_KEYS, SCRIPT_LANGUAGE_JPATH } from "@/app/api";
 import type { Handling, StepType } from "@/app/api";
 import DurationInput from "@/app/components/molecules/DurationInput";
 import ScriptLanguageInlineInput from "@/app/components/molecules/ScriptLanguageInlineInput";
@@ -101,10 +101,7 @@ const AttributeRow: React.FC<AttributeRowProps> = ({
 
   const { Icon: RoleIcon, className: roleClassName } = getArgIcon(attr.role);
 
-  const showForEach =
-    attr.role !== "output" &&
-    attr.role !== "meta" &&
-    attr.dataType === AttributeType.Array;
+  const showForEach = canCollect && (collect === "all" || collect === "some");
 
   const hasValueControl = attr.role !== "output";
   const nameClass = hasValueControl
@@ -117,6 +114,33 @@ const AttributeRow: React.FC<AttributeRowProps> = ({
         value={attr.dataType}
         options={dataTypeOptions}
         onChange={(v) => updateAttribute(attr.id, "dataType", v)}
+      />
+    </SegmentedGroup>
+  );
+
+  const nameControl = canCollect ? (
+    <SegmentedGroup className={nameClass}>
+      <IconDropdown
+        ariaLabel={t("stepEditor.collectSelect")}
+        faceIcon={
+          <span
+            className={formStyles.collectIcon}
+            style={{
+              maskImage: `url(/icons/collect-${collect}.svg)`,
+              WebkitMaskImage: `url(/icons/collect-${collect}.svg)`,
+            }}
+          />
+        }
+        onChange={(v) => updateAttribute(attr.id, "collect", v)}
+        options={collectOptions}
+        value={collect}
+      />
+      <input
+        type="text"
+        value={attr.name}
+        onChange={(e) => updateAttribute(attr.id, "name", e.target.value)}
+        placeholder={t("stepEditor.attributeNamePlaceholder")}
+        className={formStyles.argNameInputInline}
       />
       {showForEach && (
         <IconDropdown
@@ -144,33 +168,6 @@ const AttributeRow: React.FC<AttributeRowProps> = ({
           value={attr.forEach ? "multi" : "single"}
         />
       )}
-    </SegmentedGroup>
-  );
-
-  const nameControl = canCollect ? (
-    <SegmentedGroup className={nameClass}>
-      <input
-        type="text"
-        value={attr.name}
-        onChange={(e) => updateAttribute(attr.id, "name", e.target.value)}
-        placeholder={t("stepEditor.attributeNamePlaceholder")}
-        className={formStyles.argNameInputInline}
-      />
-      <IconDropdown
-        ariaLabel={t("stepEditor.collectSelect")}
-        faceIcon={
-          <span
-            className={formStyles.collectIcon}
-            style={{
-              maskImage: `url(/icons/collect-${collect}.svg)`,
-              WebkitMaskImage: `url(/icons/collect-${collect}.svg)`,
-            }}
-          />
-        }
-        onChange={(v) => updateAttribute(attr.id, "collect", v)}
-        options={collectOptions}
-        value={collect}
-      />
     </SegmentedGroup>
   ) : (
     <input
@@ -232,7 +229,7 @@ const AttributeRow: React.FC<AttributeRowProps> = ({
             className={formStyles.argValueInput}
           />
         )}
-        {attr.role === "required" && (
+        {(attr.role === "required" || attr.role === "optional") && (
           <ScriptLanguageInlineInput
             ariaLabel={t("stepEditor.matchLanguageLabel")}
             className={formStyles.argValueInput}

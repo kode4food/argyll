@@ -110,10 +110,11 @@ func (r *Registry) ValidateStep(st *api.Step) error {
 		}
 	}
 	for name, attr := range st.Attributes {
-		if attr.Required == nil || attr.Required.Match == nil {
+		cfg := attr.Match()
+		if cfg == nil {
 			continue
 		}
-		if _, err := r.Compile(MatchStep, attr.Required.Match); err != nil {
+		if _, err := r.Compile(MatchStep, cfg); err != nil {
 			return fmt.Errorf("%w for attribute %q: %w",
 				api.ErrInvalidScriptLanguage, name, err)
 		}

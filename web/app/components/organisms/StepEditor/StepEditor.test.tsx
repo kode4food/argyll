@@ -229,7 +229,7 @@ describe("StepEditor", () => {
     );
 
     const matchInput = await screen.findByDisplayValue("$.kind");
-    const matchLangBtn = screen.getByLabelText(
+    const [matchLangBtn] = screen.getAllByLabelText(
       t("stepEditor.matchLanguageLabel")
     );
     fireEvent.click(matchLangBtn);
@@ -265,12 +265,14 @@ describe("StepEditor", () => {
     );
 
     expect(
-      await screen.findByPlaceholderText(
-        t("stepEditor.matchScriptPlaceholderJPath")
-      )
+      (
+        await screen.findAllByPlaceholderText(
+          t("stepEditor.matchScriptPlaceholderJPath")
+        )
+      )[0]
     ).toBeInTheDocument();
 
-    const matchLanguageSelect = screen.getByLabelText(
+    const [matchLanguageSelect] = screen.getAllByLabelText(
       t("stepEditor.matchLanguageLabel")
     );
 
@@ -278,9 +280,34 @@ describe("StepEditor", () => {
     fireEvent.click(screen.getByRole("option", { name: "Lua" }));
     await waitFor(() => {
       expect(
-        screen.getByPlaceholderText(t("stepEditor.matchScriptPlaceholderLua"))
+        screen.getAllByPlaceholderText(
+          t("stepEditor.matchScriptPlaceholderLua")
+        )[0]
       ).toBeInTheDocument();
     });
+  });
+
+  test("reveals for_each once collect is all or some", async () => {
+    const step = createHttpStep();
+
+    render(
+      <StepEditor step={step} onClose={mockOnClose} onUpdate={mockOnUpdate} />
+    );
+
+    await screen.findByDisplayValue("input2");
+    expect(
+      screen.queryByLabelText(t("stepEditor.forEachSelect"))
+    ).not.toBeInTheDocument();
+
+    const [, optionalCollectSelect] = screen.getAllByLabelText(
+      t("stepEditor.collectSelect")
+    );
+    fireEvent.click(optionalCollectSelect);
+    fireEvent.click(screen.getByRole("option", { name: "All" }));
+
+    expect(
+      screen.getByLabelText(t("stepEditor.forEachSelect"))
+    ).toBeInTheDocument();
   });
 
   test("renders optional args with deadline", async () => {
