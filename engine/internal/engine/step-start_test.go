@@ -886,6 +886,43 @@ func TestMatchFilters(t *testing.T) {
 	})
 }
 
+func TestMatchFiltersForEachItems(t *testing.T) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		assert.NoError(t, env.Engine.Start())
+
+		st := helpers.NewTestStepWithArgs([]api.Name{"items"}, nil)
+		st.Attributes["items"].Type = api.TypeArray
+		st.Attributes["items"].Required = &api.RequiredConfig{
+			ForEach: true,
+			Match: &api.ScriptConfig{
+				Language: api.ScriptLangLua,
+				Script:   `return value > 0`,
+			},
+		}
+		assert.NoError(t, env.Engine.RegisterStep(st))
+		env.MockClient.SetResponse(st.ID, api.Args{})
+		pl := &api.ExecutionPlan{
+			Goals: api.Goals{Steps: []api.StepID{st.ID}},
+			Steps: api.Steps{st.ID: st},
+		}
+
+		fl := env.WaitForFlowStatus("match-items", func() {
+			assert.NoError(t, env.Engine.StartPlan("match-items", pl,
+				flow.WithInit(api.InitArgs{"items": {[]any{1, -1, 2}}}),
+			))
+		})
+
+		ex := fl.Executions[st.ID]
+		assert.Equal(t, api.StepCompleted, ex.Status)
+		assert.Len(t, ex.WorkItems, 2)
+		items := make([]any, 0, len(ex.WorkItems))
+		for _, work := range ex.WorkItems {
+			items = append(items, work.Inputs["items"])
+		}
+		assert.ElementsMatch(t, []any{1, 2}, items)
+	})
+}
+
 func TestMatchFirstPending(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		assert.NoError(t, env.Engine.Start())

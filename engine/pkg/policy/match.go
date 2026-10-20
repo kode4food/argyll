@@ -158,6 +158,21 @@ func MatchCandidateValues(
 	matched := make([]*api.AttributeValue, 0, len(values))
 	unmatched := 0
 	for _, val := range values {
+		if attr.ForEach() {
+			item, count, ok, err := matchForEachValue(
+				attr.Required.Match, val, match,
+			)
+			if err != nil {
+				return nil, 0, err
+			}
+			if ok {
+				unmatched += count
+				if item != nil {
+					matched = append(matched, item)
+				}
+				continue
+			}
+		}
 		ok, err := match(attr.Required.Match, val.Value)
 		if err != nil {
 			return nil, 0, err
@@ -169,4 +184,32 @@ func MatchCandidateValues(
 		unmatched++
 	}
 	return matched, unmatched, nil
+}
+
+func matchForEachValue(
+	cfg *api.ScriptConfig, val *api.AttributeValue, match api.Matcher,
+) (*api.AttributeValue, int, bool, error) {
+	items, ok := val.Value.([]any)
+	if !ok {
+		return nil, 0, false, nil
+	}
+	accepted := make([]any, 0, len(items))
+	unmatched := 0
+	for _, item := range items {
+		ok, err := match(cfg, item)
+		if err != nil {
+			return nil, 0, true, err
+		}
+		if ok {
+			accepted = append(accepted, item)
+		} else {
+			unmatched++
+		}
+	}
+	if len(accepted) == 0 {
+		return nil, unmatched, true, nil
+	}
+	cpy := *val
+	cpy.Value = accepted
+	return &cpy, unmatched, true, nil
 }

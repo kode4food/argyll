@@ -1591,7 +1591,7 @@ components:
           allOf:
             - $ref: "#/components/schemas/ScriptConfig"
           description: >
-            Optional predicate evaluated against each candidate value before collection. Lua receives one candidate as `value`. JSONPath (`jpath`) evaluates one candidate as its document. Collect semantics are then applied over matching candidates: `some` requires at least one match, `all` requires every upstream candidate to match, and `none` requires no candidate to match.
+            Optional predicate evaluated against each candidate value before collection. For `for_each`, each array element is a candidate and nonmatching elements are removed before Work Items are expanded. Lua receives one candidate as `value`. JSONPath (`jpath`) evaluates one candidate as its document. Collect semantics are then applied over matching candidates: `some` requires at least one match, `all` requires every upstream candidate to match, and `none` requires no candidate to match.
         mapping:
           $ref: "#/components/schemas/MappingConfig"
 

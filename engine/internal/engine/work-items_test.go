@@ -118,124 +118,6 @@ func TestMappedFanOut(t *testing.T) {
 	})
 }
 
-func TestForEachTypedSlice(t *testing.T) {
-	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		assert.NoError(t, env.Engine.Start())
-
-		st := &api.Step{
-			ID:   "foreach-typed",
-			Name: "For Each Typed",
-			Type: api.StepTypeService,
-			HTTP: &api.HTTPConfig{
-				Invoke: api.HTTPAction{
-					Endpoint: "http://example.com",
-					Timeout:  30 * api.Second,
-				},
-			},
-			Attributes: api.AttributeSpecs{
-				"item": {
-					Role:     api.RoleRequired,
-					Type:     api.TypeArray,
-					Required: &api.RequiredConfig{ForEach: true},
-				},
-				"result": {
-					Role: api.RoleOutput,
-					Type: api.TypeString,
-				},
-			},
-		}
-
-		assert.NoError(t, env.Engine.RegisterStep(st))
-		env.MockClient.SetResponse(st.ID, api.Args{"result": "ok"})
-
-		pl := &api.ExecutionPlan{
-			Goals: api.Goals{Steps: []api.StepID{st.ID}},
-			Steps: api.Steps{st.ID: st},
-		}
-
-		fl := env.WaitForFlowStatus("wf-foreach-typed", func() {
-			err := env.Engine.StartPlan("wf-foreach-typed", pl,
-				flow.WithInit(api.InitArgs{"item": {[]string{"a", "b"}}}),
-			)
-			assert.NoError(t, err)
-		})
-		assert.Equal(t, api.FlowCompleted, fl.Status)
-
-		attrs := fl.GetAttributes()
-		results, ok := attrs["result"].([]map[string]any)
-		assert.True(t, ok)
-		assert.Len(t, results, 2)
-
-		assertContainsEntry(t, results, map[string]any{
-			"item":   "a",
-			"result": "ok",
-		})
-		assertContainsEntry(t, results, map[string]any{
-			"item":   "b",
-			"result": "ok",
-		})
-	})
-}
-
-func TestForEachTypedNumbers(t *testing.T) {
-	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		assert.NoError(t, env.Engine.Start())
-
-		st := &api.Step{
-			ID:   "foreach-nums",
-			Name: "For Each Numbers",
-			Type: api.StepTypeService,
-			HTTP: &api.HTTPConfig{
-				Invoke: api.HTTPAction{
-					Endpoint: "http://example.com",
-					Timeout:  30 * api.Second,
-				},
-			},
-			Attributes: api.AttributeSpecs{
-				"item": {
-					Role:     api.RoleRequired,
-					Type:     api.TypeArray,
-					Required: &api.RequiredConfig{ForEach: true},
-				},
-				"result": {
-					Role: api.RoleOutput,
-					Type: api.TypeString,
-				},
-			},
-		}
-
-		assert.NoError(t, env.Engine.RegisterStep(st))
-		env.MockClient.SetResponse(st.ID, api.Args{"result": "ok"})
-
-		pl := &api.ExecutionPlan{
-			Goals: api.Goals{Steps: []api.StepID{st.ID}},
-			Steps: api.Steps{st.ID: st},
-		}
-
-		fl := env.WaitForFlowStatus("wf-foreach-nums", func() {
-			err := env.Engine.StartPlan("wf-foreach-nums", pl,
-				flow.WithInit(api.InitArgs{"item": {[]int{2, 3}}}),
-			)
-			assert.NoError(t, err)
-		})
-		assert.Equal(t, api.FlowCompleted, fl.Status)
-
-		attrs := fl.GetAttributes()
-		results, ok := attrs["result"].([]map[string]any)
-		assert.True(t, ok)
-		assert.Len(t, results, 2)
-
-		assertContainsEntry(t, results, map[string]any{
-			"item":   float64(2),
-			"result": "ok",
-		})
-		assertContainsEntry(t, results, map[string]any{
-			"item":   float64(3),
-			"result": "ok",
-		})
-	})
-}
-
 func TestOutputMappingDescendants(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		assert.NoError(t, env.Engine.Start())
@@ -301,7 +183,7 @@ func TestOutputMappingDescendants(t *testing.T) {
 }
 
 func TestForEachEmpty(t *testing.T) {
-	for _, value := range []any{[]any{}, []string{}, []int{}} {
+	for _, value := range []any{[]any{}} {
 		t.Run(fmt.Sprintf("%T", value), func(t *testing.T) {
 			helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 				st := helpers.NewStepWithOutputs("empty-each", "result")

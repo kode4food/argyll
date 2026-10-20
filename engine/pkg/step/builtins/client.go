@@ -224,12 +224,6 @@ func endpointValue(value any) string {
 
 	data, err := json.Marshal(value)
 	if err == nil {
-		if len(data) >= 2 && data[0] == '"' && data[len(data)-1] == '"' {
-			var s string
-			if unmarshalErr := json.Unmarshal(data, &s); unmarshalErr == nil {
-				return s
-			}
-		}
 		return string(data)
 	}
 

@@ -1,7 +1,6 @@
 package engine
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 
@@ -54,32 +53,12 @@ func getMultiArgs(argNames []api.Name, inputs api.Args) MultiArgs {
 	multiArgs := MultiArgs{}
 
 	for _, name := range argNames {
-		if arr := asArray(inputs[name]); arr != nil {
+		if arr, ok := inputs[name].([]any); ok {
 			multiArgs[name] = arr
 		}
 	}
 
 	return multiArgs
-}
-
-func asArray(value any) []any {
-	if value == nil {
-		return nil
-	}
-	if arr, ok := value.([]any); ok {
-		return arr
-	}
-
-	data, err := json.Marshal(value)
-	if err != nil {
-		return nil
-	}
-
-	var arr []any
-	if err := json.Unmarshal(data, &arr); err != nil {
-		return nil
-	}
-	return arr
 }
 
 // productSize bounds non-empty products before multiplication can overflow

@@ -243,12 +243,16 @@ START_PLAN(id, plan, options):
 
 ## Collect policy and match gates
 
-Values retain their persisted arrival order. Required-match predicates filter candidate values without changing that order. Optional inputs have no required-match predicate. A match error propagates to step preparation, which records step failure.
+Values retain their persisted arrival order. Required-match predicates filter candidate values without changing that order. For a `for_each` input, the candidates are the elements of each array value; the retained value is an array containing only matching elements. Optional inputs have no required-match predicate. A match error propagates to step preparation, which records step failure.
 
 ```text
 INPUT_VALUES(name, input):
     values := STATE.attributes[name]
     IF input is required and has a match predicate:
+        IF input is for_each:
+            evaluate the predicate against each element of every array value
+            RETURN array values containing only their matching elements,
+                   omitting array values with no matching elements
         RETURN values for which the predicate returns TRUE
     RETURN values
 
