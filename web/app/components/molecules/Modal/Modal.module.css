@@ -22,6 +22,7 @@
   --control-face-bg: var(--overlay-dark-30);
   background-color: var(--color-dark-bg);
   border: none;
+  outline: none;
   border-radius: var(--radius-xl);
   padding: 0;
   display: flex;
