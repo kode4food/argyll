@@ -200,7 +200,7 @@ func (e *Engine) matchGateUnsatisfiedInputs(
 ) ([]api.Name, error) {
 	var unsatisfied []api.Name
 	for name, attr := range st.Attributes {
-		if !policy.InputHasMatch(attr) {
+		if !policy.RequiredInputHasMatch(attr) {
 			continue
 		}
 		providers, _ := providerSummaryFor(fl, name)

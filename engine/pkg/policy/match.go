@@ -37,8 +37,8 @@ const (
 	RequiredMatchSkipReason = "required match did not match"
 )
 
-// InputHasMatch reports whether an input (required or optional) has a
-// non-empty match predicate that should gate demand and candidate collection
+// InputHasMatch reports whether an input (required or optional) has a non-empty
+// match predicate that should filter its candidate values
 func InputHasMatch(attr *api.AttributeSpec) bool {
 	cfg := attr.Match()
 	return attr.IsInput() && cfg != nil && cfg.Script != ""
@@ -50,7 +50,7 @@ func InputHasMatch(attr *api.AttributeSpec) bool {
 func RequiredMatchStepStatus(facts RequiredMatchStep) (MatchStatus, error) {
 	status := MatchNotGated
 	for name, attr := range facts.Step.Attributes {
-		if !InputHasMatch(attr) {
+		if !RequiredInputHasMatch(attr) {
 			continue
 		}
 		decision, err := RequiredMatchStatus(RequiredMatchSpec{
@@ -73,6 +73,13 @@ func RequiredMatchStepStatus(facts RequiredMatchStep) (MatchStatus, error) {
 		}
 	}
 	return status, nil
+}
+
+// RequiredInputHasMatch reports whether a required input has a match predicate
+// that gates step-level readiness and skip decisions. An optional input's match
+// predicate filters its candidates but never gates the step
+func RequiredInputHasMatch(attr *api.AttributeSpec) bool {
+	return attr.IsRequired() && InputHasMatch(attr)
 }
 
 // RequiredMatchStatus evaluates one required input's match predicate against

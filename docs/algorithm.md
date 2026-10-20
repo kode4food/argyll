@@ -211,7 +211,7 @@ COLLECT_PLAN_STEP(step):
 
 INIT_SATISFIES_INPUT(input):
     require nonempty init values and collect FIRST
-    without a required-match predicate: TRUE
+    without a match predicate: TRUE
     with a predicate: require the init-based match status to be MATCHED
 
 OUTPUTS_ALREADY_SATISFIED(step):
@@ -243,7 +243,7 @@ START_PLAN(id, plan, options):
 
 ## Collect policy and match gates
 
-Values retain their persisted arrival order. Match predicates filter candidate values without changing that order, whether the input is required or optional. A match error propagates to step preparation, which records step failure.
+Values retain their persisted arrival order. Match predicates filter candidate values without changing that order, whether the input is required or optional. A match error propagates to step preparation, which records step failure. An unmatched required input can close the step entirely. An unmatched optional input never does: it falls back to its default through the same path as any other unfulfilled optional input, since the step does not depend on it.
 
 A `for_each` input is valid only with `collect: all` or `collect: some`: its resolved value is the collected candidate list itself, which step preparation fans out into one work item per element. An empty filtered candidate list is unambiguous absence, letting `INPUT_FULFILLED` and the optional default apply normally.
 
@@ -308,7 +308,7 @@ MATCH_STATUS(input, candidateValues, providers):
 
 CLOSED_MATCH_INPUTS(step):
     result := empty
-    FOR each input with a match predicate:
+    FOR each required input with a match predicate:
         providers := PROVIDER_SUMMARY(input.name)
         IF NOT providers.terminal: CONTINUE
         IF MATCH_STATUS(input, all recorded values, providers) = UNMATCHED:

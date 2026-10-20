@@ -995,6 +995,48 @@ func TestMatchAllPrunes(t *testing.T) {
 	})
 }
 
+func TestOptionalMatchAllFallsBack(t *testing.T) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		assert.NoError(t, env.Engine.Start())
+
+		fixture := collectPlan("opt-match-all", api.InputCollectAll)
+		providerA := fixture.providerA
+		providerB := fixture.providerB
+		consumer := fixture.consumer
+		pl := fixture.plan
+		consumer.Attributes["data"] = &api.AttributeSpec{
+			Role: api.RoleOptional,
+			Type: api.TypeAny,
+			Optional: &api.OptionalConfig{
+				Collect: api.InputCollectAll,
+				Default: `"fallback"`,
+				Match: &api.ScriptConfig{
+					Language: api.ScriptLangLua,
+					Script:   `return value == "a"`,
+				},
+			},
+		}
+
+		assert.NoError(t, env.Engine.RegisterStep(providerA))
+		assert.NoError(t, env.Engine.RegisterStep(providerB))
+		assert.NoError(t, env.Engine.RegisterStep(consumer))
+
+		env.MockClient.SetResponse(providerA.ID, api.Args{"data": "a"})
+		env.MockClient.SetResponse(providerB.ID, api.Args{"data": "b"})
+		env.MockClient.SetResponse(consumer.ID, api.Args{"result": "ok"})
+
+		id := api.FlowID("wf-opt-match-all")
+		err := env.Engine.StartPlan(id, pl)
+		assert.NoError(t, err)
+		fl := env.WaitForTerminalFlow(id)
+		assert.True(t, env.MockClient.WasInvoked(consumer.ID))
+		assert.Equal(t, api.FlowCompleted, fl.Status)
+		ex := fl.Executions[consumer.ID]
+		assert.Equal(t, api.StepCompleted, ex.Status)
+		assert.Equal(t, "fallback", ex.Inputs["data"])
+	})
+}
+
 func TestMatchSkipInputs(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		assert.NoError(t, env.Engine.Start())
