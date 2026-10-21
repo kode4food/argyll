@@ -277,13 +277,8 @@ func (b *builder) collectStep(sid api.StepID) error {
 		if err != nil {
 			return err
 		}
-		if required.Contains(name) && policy.RequiredInputMissing(
-			&policy.RequiredInputState{
-				Attr:        attr,
-				HasProvider: hasProvider,
-				HasInit:     b.hasInit(name),
-			},
-		) {
+		if required.Contains(name) &&
+			policy.RequiredInputMissing(attr, hasProvider) {
 			if !gateOpen && (gateClosed || !isGateAttr) {
 				continue
 			}

@@ -516,6 +516,7 @@ func TestInitFrozen(t *testing.T) {
 		})
 		assert.Equal(t, api.FlowCompleted, fl.Status)
 		assert.Len(t, fl.Attributes["data"], 1)
+		assert.NotContains(t, fl.Executions[provider.ID].Outputs, "data")
 	})
 }
 

@@ -81,13 +81,18 @@ func TestCollectWindow(t *testing.T) {
 	}
 }
 
-func TestInitPolicy(t *testing.T) {
-	assert.True(t, policy.InitBlocksInput(api.InputCollectNone, true))
-	assert.False(t, policy.InitBlocksInput(api.InputCollectFirst, true))
-	assert.False(t, policy.InitBlocksInput(api.InputCollectNone, false))
-}
-
 func TestInitBlocksRuntime(t *testing.T) {
+	required := func(collect api.InputCollect) *api.AttributeSpec {
+		return &api.AttributeSpec{
+			Role:     api.RoleRequired,
+			Required: &api.RequiredConfig{Collect: collect},
+		}
+	}
+	assert.False(t,
+		policy.InitBlocksRuntime(required(api.InputCollectFirst), true))
+	assert.False(t,
+		policy.InitBlocksRuntime(required(api.InputCollectNone), false))
+
 	assert.False(t,
 		policy.InitBlocksRuntime(
 			&api.AttributeSpec{
@@ -125,26 +130,12 @@ func TestRequiredInputMissing(t *testing.T) {
 			Required: &api.RequiredConfig{Collect: collect},
 		}
 	}
-	assert.False(t, policy.RequiredInputMissing(&policy.RequiredInputState{
-		Attr:        attr(api.InputCollectFirst),
-		HasProvider: true,
-		HasInit:     false,
-	}))
-	assert.False(t, policy.RequiredInputMissing(&policy.RequiredInputState{
-		Attr:        attr(api.InputCollectNone),
-		HasProvider: false,
-		HasInit:     false,
-	}))
-	assert.False(t, policy.RequiredInputMissing(&policy.RequiredInputState{
-		Attr:        attr(api.InputCollectFirst),
-		HasProvider: false,
-		HasInit:     true,
-	}))
-	assert.True(t, policy.RequiredInputMissing(&policy.RequiredInputState{
-		Attr:        attr(api.InputCollectFirst),
-		HasProvider: false,
-		HasInit:     false,
-	}))
+	assert.False(t,
+		policy.RequiredInputMissing(attr(api.InputCollectFirst), true))
+	assert.False(t,
+		policy.RequiredInputMissing(attr(api.InputCollectNone), false))
+	assert.True(t,
+		policy.RequiredInputMissing(attr(api.InputCollectFirst), false))
 }
 
 func TestProviderOutputNeeded(t *testing.T) {

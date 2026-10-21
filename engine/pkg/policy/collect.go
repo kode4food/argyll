@@ -7,13 +7,6 @@ import (
 )
 
 type (
-	// RequiredInputState describes available values and providers for an input
-	RequiredInputState struct {
-		Attr        *api.AttributeSpec
-		HasInit     bool
-		HasProvider bool
-	}
-
 	ProviderSummary struct {
 		// Terminal is true when every planned provider has reached a terminal
 		// step state, whether successful, failed, or skipped
@@ -34,30 +27,19 @@ type (
 	}
 )
 
-// InitBlocksInput reports whether an initial flow value makes an input
-// impossible to satisfy. collect:none means the step is waiting for absence,
-// so a present init value blocks that step during planning
-func InitBlocksInput(collect api.InputCollect, hasInit bool) bool {
-	return hasInit && collect == api.InputCollectNone
+// InitBlocksRuntime reports whether init values block a required input.
+// collect:none waits for absence, so values block it. Optional inputs fall
+// back instead
+func InitBlocksRuntime(attr *api.AttributeSpec, hasValues bool) bool {
+	return hasValues && attr.IsRequired() &&
+		attr.Collect() == api.InputCollectNone
 }
 
-// InitBlocksRuntime reports whether init data blocks a required input.
-// Optional inputs can fall back instead
-func InitBlocksRuntime(attr *api.AttributeSpec, hasInit bool) bool {
-	return attr.IsRequired() && InitBlocksInput(attr.Collect(), hasInit)
-}
-
-// RequiredInputMissing reports whether a required input is missing. Providers
-// satisfy it speculatively and collect:none never needs a supplied value, so
-// otherwise an init value is required
-func RequiredInputMissing(st *RequiredInputState) bool {
-	if st.HasProvider {
-		return false
-	}
-	if st.Attr.Collect() == api.InputCollectNone {
-		return false
-	}
-	return !st.HasInit
+// RequiredInputMissing reports whether a required input that init leaves
+// undeclared needs an external value. Providers satisfy it speculatively, and
+// collect:none needs no value
+func RequiredInputMissing(attr *api.AttributeSpec, hasProvider bool) bool {
+	return !hasProvider && attr.Collect() != api.InputCollectNone
 }
 
 // RequiresAllProviders reports whether planning must keep every available

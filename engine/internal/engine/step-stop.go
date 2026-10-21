@@ -41,7 +41,7 @@ func (tx *flowTx) checkStepCompletion(sid api.StepID) (bool, error) {
 	dur := max(tx.Now().Sub(ex.StartedAt).Milliseconds(), int64(0))
 
 	for key, value := range outputs {
-		if !isOutputAttribute(st, key) || fl.HasInit(key) {
+		if !isOutputAttribute(st, key) {
 			continue
 		}
 		if err := events.Raise(tx.FlowAggregator, api.EventTypeAttributeSet,
@@ -69,13 +69,18 @@ func (tx *flowTx) checkStepCompletion(sid api.StepID) (bool, error) {
 func (tx *flowTx) consumedOutputs(
 	st *api.Step, outputs api.Args, fl *api.FlowState,
 ) api.Args {
+	res := api.Args{}
 	goals := keptGoals(fl)
 	if slices.Contains(goals, st.ID) {
-		return outputs
+		for name, value := range outputs {
+			if !fl.HasInit(name) {
+				res[name] = value
+			}
+		}
+		return res
 	}
 
 	scope := goalScope(fl.Plan, goals)
-	res := api.Args{}
 	for name, value := range outputs {
 		attr := st.Attributes[name]
 		if attr.IsOutput() && tx.needsOutput(name, fl, scope, tx.Now()) {

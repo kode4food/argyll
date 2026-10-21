@@ -483,7 +483,7 @@ OUTPUTS_NEEDED(step, goals, now):
 
 Output demand is shared across consumers: one decided optional does not remove demand from another pending consumer, including a required consumer. Only PENDING executions are eligible for the unused-provider skip.
 
-An init declaration freezes its name at the init values, regardless of collect mode. Consumers of a declared name resolve it from those values alone, and step completion records no `attribute_set` for it. An empty array declares that zero values were resolved, so `some` and `all` receive an empty list, while a required `first` or `last` input fails its step.
+An init declaration freezes its name at the init values, regardless of collect mode. Consumers of a declared name resolve it from those values alone. When a step that runs for other reasons also outputs a declared name, that output is discarded. An empty array declares that zero values were resolved, so `some` and `all` receive an empty list, while a required `first` or `last` input fails its step.
 
 ## Advancing a flow
 
@@ -748,10 +748,12 @@ CHECK_STEP_COMPLETION(step):
         RETURN UNSETTLED
 
     outputs := COLLECT_STEP_OUTPUTS(step)
-    IF step is not itself a kept goal:
+    IF step is itself a kept goal:
+        retain outputs whose name init leaves undeclared
+    ELSE:
         retain only declared outputs for which
             NEEDS_OUTPUT(name, GOAL_SCOPE(KEPT_GOALS()), tx.now) is TRUE
-    FOR each retained declared output whose name init leaves undeclared:
+    FOR each retained declared output:
         EMIT attribute_set(step, name, value)
     EMIT step_completed(retained outputs,
                         duration = MAX(0, tx.now - step.startedAt))
@@ -771,7 +773,7 @@ COLLECT_STEP_OUTPUTS(step):
     RETURN mapped outputs
 ```
 
-Raw work outputs remain recorded by `work_succeeded`. The filtered output set becomes the step's outputs, and its names that init leaves undeclared become `attribute_set` events. A value needed only by decided optional consumers can therefore remain in work history without becoming a flow attribute. Goal-step outputs are retained. Late outcomes can settle already-running work after flow failure, but cannot restart terminal steps or change frozen inputs.
+Raw work outputs remain recorded by `work_succeeded`. The filtered output set becomes both the step's outputs and its `attribute_set` events. A value needed only by decided optional consumers can therefore remain in work history without becoming a flow attribute. Goal-step outputs are retained. Late outcomes can settle already-running work after flow failure, but cannot restart terminal steps or change frozen inputs.
 
 ## Work retries and attempt deadlines
 
