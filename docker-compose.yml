@@ -2,29 +2,22 @@ x-step-env: &step-env
   ARGYLL_ENGINE_URL: http://argyll-engine-1:8080
 
 services:
-  argyll-proxy:
-    image: haproxy:3.1-alpine
-    depends_on:
-      argyll-engine-1:
-        condition: service_healthy
-      argyll-engine-2:
-        condition: service_healthy
-      argyll-engine-3:
-        condition: service_healthy
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: argyll
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
     ports:
-      - "8080:8080"
+      - "5432:5432"
     volumes:
-      - ./haproxy/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
+      - postgres-data:/var/lib/postgresql/data
     restart: unless-stopped
-    dns:
-      - 8.8.8.8
-      - 8.8.4.4
     healthcheck:
-      test: ["CMD", "haproxy", "-c", "-f", "/usr/local/etc/haproxy/haproxy.cfg"]
-      interval: 5s
-      timeout: 3s
-      retries: 12
-      start_period: 5s
+      test: ["CMD-SHELL", "pg_isready -U postgres -d argyll"]
+      interval: 3s
+      timeout: 2s
+      retries: 10
 
   argyll-engine-1:
     build:
@@ -35,68 +28,13 @@ services:
       API_HOST: "0.0.0.0"
       WEBHOOK_BASE_URL: http://argyll-engine-1:8080
       LOG_LEVEL: debug
-      RAFT_NODE_ID: argyll-1
-      RAFT_ADDRESS: argyll-engine-1:9701
-      RAFT_SERVERS: "argyll-1=argyll-engine-1:9701,argyll-2=argyll-engine-2:9701,argyll-3=argyll-engine-3:9701"
-      RAFT_DATA_DIR: /data/argyll-raft
-    volumes:
-      - argyll-data-1:/data
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    restart: unless-stopped
-    dns:
-      - 8.8.8.8
-      - 8.8.4.4
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
-      interval: 30s
-      timeout: 3s
-      retries: 3
-      start_period: 15s
-
-  argyll-engine-2:
-    build:
-      context: .
-      dockerfile: engine/Dockerfile
-    environment:
-      API_PORT: "8080"
-      API_HOST: "0.0.0.0"
-      WEBHOOK_BASE_URL: http://argyll-engine-2:8080
-      LOG_LEVEL: debug
-      RAFT_NODE_ID: argyll-2
-      RAFT_ADDRESS: argyll-engine-2:9701
-      RAFT_SERVERS: "argyll-1=argyll-engine-1:9701,argyll-2=argyll-engine-2:9701,argyll-3=argyll-engine-3:9701"
-      RAFT_DATA_DIR: /data/argyll-raft
-    volumes:
-      - argyll-data-2:/data
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    restart: unless-stopped
-    dns:
-      - 8.8.8.8
-      - 8.8.4.4
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
-      interval: 30s
-      timeout: 3s
-      retries: 3
-      start_period: 15s
-
-  argyll-engine-3:
-    build:
-      context: .
-      dockerfile: engine/Dockerfile
-    environment:
-      API_PORT: "8080"
-      API_HOST: "0.0.0.0"
-      WEBHOOK_BASE_URL: http://argyll-engine-3:8080
-      LOG_LEVEL: debug
-      RAFT_NODE_ID: argyll-3
-      RAFT_ADDRESS: argyll-engine-3:9701
-      RAFT_SERVERS: "argyll-1=argyll-engine-1:9701,argyll-2=argyll-engine-2:9701,argyll-3=argyll-engine-3:9701"
-      RAFT_DATA_DIR: /data/argyll-raft
-    volumes:
-      - argyll-data-3:/data
+      POSTGRES_URL: postgres://postgres:postgres@postgres:5432/argyll?sslmode=disable
+      POSTGRES_PREFIX: argyll
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
     extra_hosts:
       - "host.docker.internal:host-gateway"
     restart: unless-stopped
@@ -126,7 +64,7 @@ services:
       - CHOKIDAR_USEPOLLING=true # For better file watching in Docker
       - NODE_ENV=development
     depends_on:
-      argyll-proxy:
+      argyll-engine-1:
         condition: service_healthy
     restart: unless-stopped
     dns:
@@ -159,10 +97,6 @@ services:
     depends_on:
       argyll-engine-1:
         condition: service_healthy
-      argyll-engine-2:
-        condition: service_healthy
-      argyll-engine-3:
-        condition: service_healthy
     ports:
       - "8090:8090"
     restart: on-failure
@@ -186,10 +120,6 @@ services:
       STEP_HOSTNAME: user-resolver
     depends_on:
       argyll-engine-1:
-        condition: service_healthy
-      argyll-engine-2:
-        condition: service_healthy
-      argyll-engine-3:
         condition: service_healthy
     ports:
       - "8091:8091"
@@ -215,10 +145,6 @@ services:
     depends_on:
       argyll-engine-1:
         condition: service_healthy
-      argyll-engine-2:
-        condition: service_healthy
-      argyll-engine-3:
-        condition: service_healthy
     ports:
       - "8092:8092"
     restart: unless-stopped
@@ -242,10 +168,6 @@ services:
       STEP_HOSTNAME: order-creator
     depends_on:
       argyll-engine-1:
-        condition: service_healthy
-      argyll-engine-2:
-        condition: service_healthy
-      argyll-engine-3:
         condition: service_healthy
     ports:
       - "8093:8093"
@@ -271,10 +193,6 @@ services:
     depends_on:
       argyll-engine-1:
         condition: service_healthy
-      argyll-engine-2:
-        condition: service_healthy
-      argyll-engine-3:
-        condition: service_healthy
     ports:
       - "8094:8094"
     restart: unless-stopped
@@ -298,10 +216,6 @@ services:
       STEP_HOSTNAME: stock-reservation
     depends_on:
       argyll-engine-1:
-        condition: service_healthy
-      argyll-engine-2:
-        condition: service_healthy
-      argyll-engine-3:
         condition: service_healthy
     ports:
       - "8095:8095"
@@ -327,10 +241,6 @@ services:
     depends_on:
       argyll-engine-1:
         condition: service_healthy
-      argyll-engine-2:
-        condition: service_healthy
-      argyll-engine-3:
-        condition: service_healthy
     ports:
       - "8096:8096"
     restart: unless-stopped
@@ -345,6 +255,4 @@ services:
       start_period: 10s
 
 volumes:
-  argyll-data-1:
-  argyll-data-2:
-  argyll-data-3:
+  postgres-data:

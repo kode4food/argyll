@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/kode4food/timebox"
-	"github.com/kode4food/timebox/raft"
+	"github.com/kode4food/timebox/postgres"
 
 	build "github.com/kode4food/argyll/engine"
 	"github.com/kode4food/argyll/engine/cmd/argyll/internal/server"
@@ -23,10 +23,10 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/step/builtins"
 )
 
-// App is the Argyll server: an engine on a raft backend behind the HTTP API
+// App is the Argyll server: an engine on a postgres backend behind the HTTP
+// API
 type App struct {
 	cfg        Config
-	backend    *raft.Backend
 	engine     *engine.Engine
 	health     *server.HealthChecker
 	apiServer  *server.Server
@@ -76,16 +76,14 @@ func (a *App) SetupLogging() {
 		slog.String("log_level", a.cfg.LogLevel))
 
 	slog.Info("Configuration loaded",
-		slog.String("raft_node_id", a.cfg.Raft.LocalID),
-		slog.String("raft_address", a.cfg.Raft.Address),
-		slog.String("raft_data_dir", a.cfg.Raft.DataDir),
-		slog.Int("raft_log_tail_size", a.cfg.Raft.LogTailSize),
-		slog.String("raft_servers", formatRaftServers(a.cfg.Raft.Servers)),
+		slog.String("postgres_prefix", a.cfg.Postgres.Prefix),
+		slog.Int("postgres_max_conns", int(a.cfg.Postgres.MaxConns)),
 		slog.String("api_host", a.cfg.APIHost),
 		slog.Int("api_port", a.cfg.APIPort))
 }
 
-// Start opens the engine on its raft backend and begins serving the HTTP API
+// Start opens the engine on its postgres backend and begins serving the HTTP
+// API
 func (a *App) Start() error {
 	if err := a.startEngine(); err != nil {
 		return err
@@ -131,7 +129,7 @@ func (a *App) startEngine() error {
 		Scripts:  script.NewRegistry(),
 		Steps:    steps,
 		EventHub: event.NewHub(),
-	}, a.openRaft)
+	}, a.openPostgres)
 	if err != nil {
 		return err
 	}
@@ -142,15 +140,9 @@ func (a *App) startEngine() error {
 	return nil
 }
 
-// openRaft keeps the raft backend it opens, which the server reports status
-// from, while the engine owns its lifecycle
-func (a *App) openRaft(pub timebox.Publisher) (timebox.Backend, error) {
-	b, err := raft.Open(a.cfg.Raft.With(raft.Config{Publisher: pub}))
-	if err != nil {
-		return nil, err
-	}
-	a.backend = b
-	return b, nil
+// openPostgres opens the postgres backend, whose lifecycle the engine owns
+func (a *App) openPostgres(pub timebox.Publisher) (timebox.Backend, error) {
+	return postgres.Open(a.cfg.Postgres.With(postgres.Config{Publisher: pub}))
 }
 
 func (a *App) startServer() error {
@@ -162,10 +154,7 @@ func (a *App) startServer() error {
 	a.health = server.NewHealthChecker(a.engine)
 	a.health.Start()
 
-	a.apiServer = server.NewServer(
-		a.engine, a.engine.GetEventHub(),
-		NewRaftStatusProvider(a.backend),
-	)
+	a.apiServer = server.NewServer(a.engine, a.engine.GetEventHub())
 	mux := a.apiServer.SetupRoutes()
 
 	a.httpServer = &http.Server{

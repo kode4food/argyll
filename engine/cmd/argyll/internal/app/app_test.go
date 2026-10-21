@@ -10,25 +10,27 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kode4food/timebox/raft"
+	"github.com/jackc/pgx/v5"
+	"github.com/kode4food/timebox/postgres"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/kode4food/argyll/engine/cmd/argyll/internal/app"
 	"github.com/kode4food/argyll/engine/internal/engine"
-	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/config"
 )
 
-func TestStartInvalidRaftConfig(t *testing.T) {
-	cfg := newRaftTestConfig(t)
-	cfg.Raft.Address = ""
-
-	err := app.New(cfg).Start()
+func TestStartInvalidPostgresConfig(t *testing.T) {
+	err := app.New(app.Config{
+		Engine: config.NewDefaultConfig(),
+		Postgres: postgres.DefaultConfig().With(postgres.Config{
+			URL: "://bad",
+		}),
+	}).Start()
 	assert.ErrorIs(t, err, engine.ErrOpenBackend)
 }
 
 func TestStartOccupiedPort(t *testing.T) {
-	cfg := newRaftTestConfig(t)
+	cfg := newPostgresTestConfig(t)
 	cfg.APIHost = "127.0.0.1"
 	blocked, err := net.Listen("tcp", fmt.Sprintf("127.0.0.1:%d", cfg.APIPort))
 	assert.NoError(t, err)
@@ -36,13 +38,6 @@ func TestStartOccupiedPort(t *testing.T) {
 
 	err = app.New(cfg).Start()
 	assert.Error(t, err)
-
-	// Startup failure must release the raft listener too
-	ln, err := net.Listen("tcp", cfg.Raft.Address)
-	assert.NoError(t, err)
-	if err == nil {
-		assert.NoError(t, ln.Close())
-	}
 }
 
 func TestSetupLogging(t *testing.T) {
@@ -78,7 +73,7 @@ func TestSetupLogging(t *testing.T) {
 }
 
 func TestStartServesHTTP(t *testing.T) {
-	cfg := newRaftTestConfig(t)
+	cfg := newPostgresTestConfig(t)
 	a := app.New(cfg)
 
 	assert.NoError(t, a.Start())
@@ -96,7 +91,7 @@ func TestStartServesHTTP(t *testing.T) {
 }
 
 func TestRun(t *testing.T) {
-	cfg := newRaftTestConfig(t)
+	cfg := newPostgresTestConfig(t)
 	cfg.ShutdownTimeout = 100 * time.Millisecond
 	ctx, cancel := context.WithCancel(t.Context())
 
@@ -127,35 +122,41 @@ func availablePort(t *testing.T) int {
 	return addr.Port
 }
 
-func availableAddress(t *testing.T) string {
+// newPostgresTestConfig points the App at its own schema in the local postgres,
+// dropped when the test ends
+func newPostgresTestConfig(t *testing.T) app.Config {
 	t.Helper()
+	if testing.Short() {
+		t.Skip("needs a running postgres")
+	}
 
-	ln, err := net.Listen("tcp", "127.0.0.1:0")
-	assert.NoError(t, err)
-	defer func() { _ = ln.Close() }()
-
-	return ln.Addr().String()
-}
-
-func newRaftTestConfig(t *testing.T) app.Config {
-	t.Helper()
-
-	addr := availableAddress(t)
 	port := availablePort(t)
-	nid := "test-node-" + strconv.Itoa(port)
-
-	cfg := config.NewDefaultConfig()
-	cfg.NodeID = api.NodeID(nid)
+	pc := postgres.DefaultConfig().With(postgres.Config{
+		Prefix: "argyll_test_" + strconv.Itoa(port),
+	})
+	t.Cleanup(func() { dropSchema(t, pc) })
 
 	return app.Config{
-		Engine: cfg,
-		Raft: raft.DefaultConfig().With(raft.Config{
-			LocalID: nid,
-			Address: addr,
-			DataDir: t.TempDir(),
-			Servers: []raft.Server{{ID: nid, Address: addr}},
-		}),
+		Engine:          config.NewDefaultConfig(),
+		Postgres:        pc,
 		APIPort:         port,
 		ShutdownTimeout: app.DefaultShutdownTimeout,
 	}
+}
+
+func dropSchema(t *testing.T, pc postgres.Config) {
+	t.Helper()
+
+	ctx := context.Background()
+	conn, err := pgx.Connect(ctx, pc.URL)
+	if !assert.NoError(t, err) {
+		return
+	}
+	defer func() { _ = conn.Close(ctx) }()
+
+	_, err = conn.Exec(ctx,
+		"DROP SCHEMA IF EXISTS "+pgx.Identifier{pc.Prefix}.Sanitize()+
+			" CASCADE",
+	)
+	assert.NoError(t, err)
 }

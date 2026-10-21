@@ -7,17 +7,17 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/kode4food/timebox/raft"
+	"github.com/kode4food/timebox/postgres"
 
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/config"
 )
 
-// Config holds everything the App runs with: the engine, the raft backend
+// Config holds everything the App runs with: the engine, the postgres backend
 // beneath it, and the HTTP server that fronts it
 type Config struct {
 	Engine          *config.Config
-	Raft            raft.Config
+	Postgres        postgres.Config
 	APIHost         string
 	WebhookBaseURL  string
 	LogLevel        string
@@ -48,18 +48,18 @@ var (
 
 // LoadConfig reads the whole App configuration from the environment
 func LoadConfig() (Config, error) {
-	rc, err := loadRaftConfig()
+	pc, err := loadPostgresConfig()
 	if err != nil {
 		return Config{}, err
 	}
-	eng, err := loadEngineConfig(rc)
+	eng, err := loadEngineConfig()
 	if err != nil {
 		return Config{}, err
 	}
 
 	cfg := Config{
 		Engine:          eng,
-		Raft:            rc,
+		Postgres:        pc,
 		APIHost:         DefaultAPIHost,
 		WebhookBaseURL:  DefaultWebhookBaseURL,
 		LogLevel:        DefaultLogLevel,
@@ -86,12 +86,9 @@ func LoadConfig() (Config, error) {
 	return cfg, nil
 }
 
-// loadEngineConfig reads the engine settings from the environment, taking the
-// node identity and cluster membership from the raft configuration
-func loadEngineConfig(rc raft.Config) (*config.Config, error) {
+// loadEngineConfig reads the engine settings from the environment
+func loadEngineConfig() (*config.Config, error) {
 	cfg := config.NewDefaultConfig()
-	cfg.NodeID = api.NodeID(rc.LocalID)
-	cfg.Nodes = raftNodes(rc.Servers)
 
 	if backoffType := os.Getenv("RETRY_BACKOFF_TYPE"); backoffType != "" {
 		cfg.Work.BackoffType = backoffType
@@ -150,7 +147,7 @@ func loadEngineConfig(rc raft.Config) (*config.Config, error) {
 }
 
 // loadEnvIntArgs bundles the bounds an environment integer must fall within
-type loadEnvIntArgs[T ~int | ~int64] struct {
+type loadEnvIntArgs[T ~int | ~int32 | ~int64] struct {
 	key string
 	dst *T
 	min T
@@ -159,7 +156,7 @@ type loadEnvIntArgs[T ~int | ~int64] struct {
 
 // loadEnvInt reads key from the environment, parses it as an integer, and
 // sets *dst if the value is in the range (min, max]
-func loadEnvInt[T ~int | ~int64](args loadEnvIntArgs[T]) error {
+func loadEnvInt[T ~int | ~int32 | ~int64](args loadEnvIntArgs[T]) error {
 	s := os.Getenv(args.key)
 	if s == "" {
 		return nil
@@ -168,11 +165,10 @@ func loadEnvInt[T ~int | ~int64](args loadEnvIntArgs[T]) error {
 	if err != nil {
 		return fmt.Errorf("%w: %s=%q", ErrInvalidEnvValue, args.key, s)
 	}
-	tv := T(v)
-	if tv <= args.min || tv > args.max {
+	if v <= int64(args.min) || v > int64(args.max) {
 		return fmt.Errorf("%w: %s=%d, want [%d, %d]",
-			ErrEnvOutOfRange, args.key, tv, args.min+1, args.max)
+			ErrEnvOutOfRange, args.key, v, args.min+1, args.max)
 	}
-	*args.dst = tv
+	*args.dst = T(v)
 	return nil
 }
