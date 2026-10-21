@@ -98,9 +98,10 @@ func (tx *flowTx) nextCompensationWave(
 	var wave []api.StepID
 	for sid := range pending {
 		walk := &compensationWaveWalk{pending: pending, seen: util.SetOf(sid)}
-		if !walk.dependentPending(fl.Plan, sid) {
-			wave = append(wave, sid)
+		if walk.dependentPending(fl.Plan, sid) {
+			continue
 		}
+		wave = append(wave, sid)
 	}
 	return wave, nil
 }

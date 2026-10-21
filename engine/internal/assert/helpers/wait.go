@@ -106,9 +106,10 @@ func (e *TestEngineEnv) WaitForTerminalFlows(
 				break
 			}
 			res[fid] = st
-			if !isFlowTerminal(st) {
-				allTerminal = false
+			if isFlowTerminal(st) {
+				continue
 			}
+			allTerminal = false
 		}
 		if allTerminal {
 			return res

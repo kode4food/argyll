@@ -56,7 +56,7 @@ describe("flowGoalSelectionModel", () => {
 
     await applyFlowGoalSelectionChange({
       goals,
-      initialState: "{}",
+      initialState: '{"empty":[],"blank":""}',
       steps: [orderCreator, notificationSender],
       idManuallyEdited: false,
       setNewID,
@@ -69,14 +69,14 @@ describe("flowGoalSelectionModel", () => {
 
     expect(getExecutionPlan).toHaveBeenCalledWith({
       goalSteps: [["order-creator"], ["notification-sender"]],
-      initialState: {},
+      initialState: { empty: [] },
       spaceId: undefined,
     });
     expect(setGoalSteps).toHaveBeenCalledWith(goals);
     expect(setPreviewPlan).toHaveBeenCalledWith(plan);
     expect(updatePreviewPlan).toHaveBeenCalledWith(
       [["order-creator"], ["notification-sender"]],
-      {},
+      { empty: [] },
       undefined
     );
     expect(clearPreviewPlan).not.toHaveBeenCalled();

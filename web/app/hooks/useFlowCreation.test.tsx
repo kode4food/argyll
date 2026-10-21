@@ -119,7 +119,7 @@ describe("useFlowCreation", () => {
     expect(uiState.clearPreviewPlan).toHaveBeenCalled();
   });
 
-  test("drops empty init lists when creating a flow", async () => {
+  test("preserves empty init sets and omits blank fields", async () => {
     const { result } = renderHook(() => useFlowCreation());
     await act(async () => {
       await result.current.handleStepChange([["goal"]]);
@@ -127,7 +127,9 @@ describe("useFlowCreation", () => {
     await act(async () => {
       result.current.setIDManuallyEdited(true);
       result.current.setNewID("flow-1");
-      result.current.setInitialState('{"empty":[],"filled":["a"]}');
+      result.current.setInitialState(
+        '{"empty":[],"blank":"","filled":["a"],"emptyString":[""]}'
+      );
     });
 
     await act(async () => {
@@ -135,7 +137,9 @@ describe("useFlowCreation", () => {
     });
 
     expect(api.startFlow).toHaveBeenCalledWith(
-      expect.objectContaining({ initialState: { filled: ["a"] } })
+      expect.objectContaining({
+        initialState: { empty: [], filled: ["a"], emptyString: [""] },
+      })
     );
   });
 

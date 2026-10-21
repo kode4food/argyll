@@ -73,9 +73,10 @@ func (tx *flowTx) consumedOutputs(
 	goals := keptGoals(fl)
 	if slices.Contains(goals, st.ID) {
 		for name, value := range outputs {
-			if !fl.HasInit(name) {
-				res[name] = value
+			if fl.HasInit(name) {
+				continue
 			}
+			res[name] = value
 		}
 		return res
 	}

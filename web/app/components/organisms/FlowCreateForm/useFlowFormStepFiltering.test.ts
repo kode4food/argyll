@@ -50,6 +50,21 @@ describe("useFlowFormStepFiltering", () => {
     expect(result.current.satisfied.has("step-3")).toBe(false);
   });
 
+  it.each([
+    { value: "", satisfied: false },
+    { value: [], satisfied: true },
+  ])("distinguishes blank fields from $value", ({ value, satisfied }) => {
+    const { result } = renderHook(() =>
+      useFlowFormStepFiltering(
+        steps,
+        JSON.stringify({ outputA: value }),
+        previewPlan
+      )
+    );
+
+    expect(result.current.satisfied.has("step-1")).toBe(satisfied);
+  });
+
   it("uses excluded steps when available", () => {
     const resolvedPlan: ExecutionPlan = {
       goals: { steps: [] },

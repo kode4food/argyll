@@ -160,6 +160,16 @@ describe("flowFormUtils", () => {
   });
 
   describe("parseInputValues", () => {
+    it.each([
+      { input: "[]", values: [] },
+      { input: "[[]]", values: [[]] },
+      { input: "[1, 2]", values: [1, 2] },
+      { input: '""', values: [""] },
+      { input: '["", null, false, 0]', values: ["", null, false, 0] },
+    ])("parses $input as the candidate list", ({ input, values }) => {
+      expect(parseInputValues(input)).toEqual(values);
+    });
+
     it("parses the whole line as a JSON array before applying fallback rules", () => {
       expect(parseInputValues('90, 120, {"a":[1,2]}, [3,4]')).toEqual([
         90,
@@ -207,6 +217,18 @@ describe("flowFormUtils", () => {
   });
 
   describe("formatInputValues", () => {
+    it.each([
+      { values: [] },
+      { values: [[]] },
+      { values: [[1, 2]] },
+      { values: ["[]"] },
+      { values: [""] },
+      { values: [null, false, 0] },
+      { values: ["null", "false", "0", "'quoted'", "{}"] },
+    ])("round-trips $values", ({ values }) => {
+      expect(parseInputValues(formatInputValues(values))).toEqual(values);
+    });
+
     it("formats arrays as comma-delimited editor values", () => {
       expect(formatInputValues([1, true, "hello"])).toBe("1, true, hello");
     });
@@ -246,13 +268,21 @@ describe("flowFormUtils", () => {
       expect(state).toEqual({
         a: [1],
         b: ["hello"],
-        c: [],
         d: [{ x: true }],
       });
     });
   });
 
   describe("getFlowInputStatus", () => {
+    it("treats an explicit empty set as supplied", () => {
+      expect(getFlowInputStatus({ required: true }, "[]")).toBe(
+        "requiredSatisfied"
+      );
+      expect(getFlowInputStatus({ required: false }, "[]")).toBe(
+        "optionalSatisfied"
+      );
+    });
+
     it("returns requiredMissing for empty required values", () => {
       expect(getFlowInputStatus({ required: true }, "")).toBe(
         "requiredMissing"

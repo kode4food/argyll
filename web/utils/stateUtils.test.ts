@@ -170,6 +170,7 @@ describe("stateUtils", () => {
       const filtered = filterDefaultValues(state);
 
       expect(filtered).toEqual({
+        emptyArr: [],
         realString: "hello",
         realNumber: 42,
         realBool: true,
@@ -241,7 +242,7 @@ describe("stateUtils", () => {
   });
 
   describe("addRequiredDefaults", () => {
-    it("adds array defaults for required attributes", () => {
+    it("adds blank placeholders for required attributes", () => {
       const state = {};
 
       const executionPlan: ExecutionPlan = {
@@ -274,9 +275,9 @@ describe("stateUtils", () => {
       const result = addRequiredDefaults(state, executionPlan);
 
       expect(result).toEqual({
-        boolProp: [],
-        numberProp: [],
-        stringProp: [],
+        boolProp: "",
+        numberProp: "",
+        stringProp: "",
       });
     });
 
@@ -318,7 +319,7 @@ describe("stateUtils", () => {
       expect(result).toEqual({
         boolProp: true,
         numberProp: 42,
-        stringProp: [],
+        stringProp: "",
       });
     });
   });

@@ -101,6 +101,13 @@ export function parseInputValues(rawValue: string): any[] {
   }
 
   try {
+    const value = JSON.parse(trimmed);
+    return Array.isArray(value) ? value : [value];
+  } catch {
+    // Comma-separated values and unquoted strings use the editor syntax
+  }
+
+  try {
     return JSON.parse(`[${trimmed}]`);
   } catch {
     return splitDelimitedInputValues(rawValue)

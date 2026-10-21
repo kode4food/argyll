@@ -61,7 +61,7 @@ export function getFlowInputStatus(
   if (attr.satisfiedByOutput) {
     return "outputSatisfied";
   }
-  if (parseInputValues(rawValue).length === 0) {
+  if (rawValue.trim() === "") {
     return attr.required ? "requiredMissing" : "optionalMissing";
   }
   return attr.required ? "requiredSatisfied" : "optionalSatisfied";
@@ -88,7 +88,10 @@ export function buildInitialStateFromInputValues(
   const nextState: Record<string, any> = {};
 
   inputNames.forEach((name) => {
-    nextState[name] = parseInputValues(inputValues[name] || "");
+    const rawValue = inputValues[name] || "";
+    if (rawValue.trim() !== "") {
+      nextState[name] = parseInputValues(rawValue);
+    }
   });
 
   return nextState;

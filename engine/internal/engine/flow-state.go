@@ -356,9 +356,10 @@ func goalSetFailed(goals []api.StepID, fl *api.FlowState) bool {
 		if policy.StepFailed(ex.Status) {
 			return true
 		}
-		if !policy.StepPrunedByRequiredMatch(ex.Status, ex.Error) {
-			viableGoal = true
+		if policy.StepPrunedByRequiredMatch(ex.Status, ex.Error) {
+			continue
 		}
+		viableGoal = true
 	}
 	return !viableGoal
 }

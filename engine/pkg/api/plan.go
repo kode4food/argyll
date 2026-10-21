@@ -105,9 +105,10 @@ func (g *Goals) AllSteps() []StepID {
 	var res []StepID
 	for _, set := range g.Sets() {
 		for _, sid := range set {
-			if !slices.Contains(res, sid) {
-				res = append(res, sid)
+			if slices.Contains(res, sid) {
+				continue
 			}
+			res = append(res, sid)
 		}
 	}
 	return res

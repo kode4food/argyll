@@ -79,6 +79,11 @@ export const filterDefaultValues = (
   const filtered: Record<string, any> = {};
 
   Object.keys(state).forEach((key) => {
+    if (state[key] === "") return;
+    if (Array.isArray(state[key])) {
+      filtered[key] = state[key];
+      return;
+    }
     let attributeType: AttributeType | undefined;
 
     // Find the type from the global step registry
@@ -113,7 +118,7 @@ export const addRequiredDefaults = (
 
   requiredNames.forEach((name) => {
     if (!(name in result)) {
-      result[name] = [];
+      result[name] = "";
     }
   });
 

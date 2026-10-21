@@ -668,7 +668,14 @@ describe("FlowCreateForm", () => {
     expect(JSON.parse(editor.value)).toEqual({ note: ["hello, world"] });
   });
 
-  test("serializes cleared basic editor values as empty init arg arrays", () => {
+  test.each([
+    { input: "", state: {} },
+    { input: "[]", state: { quantity: [] } },
+    { input: "[[]]", state: { quantity: [[]] } },
+    { input: "[1, 2]", state: { quantity: [1, 2] } },
+    { input: "1, 2", state: { quantity: [1, 2] } },
+    { input: '""', state: { quantity: [""] } },
+  ])("preserves $input when switching editor modes", ({ input, state }) => {
     const previewPlan = {
       goals: { steps: ["goal-step"] },
       required: ["quantity"],
@@ -697,13 +704,26 @@ describe("FlowCreateForm", () => {
 
     render(<StatefulForm initialState='{"quantity":[1]}' />);
 
-    fireEvent.change(screen.getByDisplayValue("1"), { target: { value: "" } });
+    fireEvent.change(screen.getByDisplayValue("1"), {
+      target: { value: input },
+    });
     fireEvent.click(
       screen.getByRole("button", { name: t("flowCreate.modeJson") })
     );
 
     const editor = screen.getByTestId("code-editor") as HTMLTextAreaElement;
-    expect(JSON.parse(editor.value)).toEqual({ quantity: [] });
+    expect(JSON.parse(editor.value)).toEqual(state);
+    fireEvent.click(
+      screen.getByRole("button", { name: t("flowCreate.modeBasic") })
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: t("flowCreate.modeJson") })
+    );
+    expect(
+      JSON.parse(
+        (screen.getByTestId("code-editor") as HTMLTextAreaElement).value
+      )
+    ).toEqual(state);
   });
 
   test("formats init args with normal JSON stringify output", () => {

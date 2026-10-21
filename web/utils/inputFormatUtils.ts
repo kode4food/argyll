@@ -6,7 +6,8 @@ function shouldQuoteDelimitedString(value: string): boolean {
   return (
     value === "" ||
     value.trim() !== value ||
-    DELIMITED_SPECIAL_CHARS.test(value)
+    DELIMITED_SPECIAL_CHARS.test(value) ||
+    parseInputValue(value) !== value
   );
 }
 
@@ -28,8 +29,12 @@ export function formatInputValue(value: any): string {
 
 export function formatInputValues(values: any): string {
   if (Array.isArray(values)) {
+    if (values.length === 0 || values.some(Array.isArray)) {
+      return JSON.stringify(values);
+    }
     return values
       .map((value) => {
+        if (value === null) return "null";
         if (typeof value === "string" && shouldQuoteDelimitedString(value)) {
           return JSON.stringify(value);
         }

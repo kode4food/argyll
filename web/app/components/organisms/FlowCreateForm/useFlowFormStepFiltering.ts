@@ -39,7 +39,9 @@ export function useFlowFormStepFiltering(
     }
 
     const fallbackSatisfied = new Set<string>();
-    const availableAttrs = new Set(Object.keys(parsedState));
+    const availableAttrs = new Set(
+      Object.keys(parsedState).filter((name) => parsedState[name] !== "")
+    );
 
     steps.forEach((step) => {
       const outputKeys = Object.entries(step.attributes || {})

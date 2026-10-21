@@ -354,9 +354,10 @@ func (b *builder) includeProviders(
 
 	// Mark rejected providers as visited so they appear in excluded
 	for _, providerID := range providers {
-		if !slices.Contains(selected, providerID) {
-			b.visited.Add(providerID)
+		if slices.Contains(selected, providerID) {
+			continue
 		}
+		b.visited.Add(providerID)
 	}
 
 	if len(selected) == 0 {

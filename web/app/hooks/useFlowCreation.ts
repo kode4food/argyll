@@ -114,7 +114,7 @@ export const useFlowCreation = () => {
     if (!newID.trim() || planGoals.length === 0) return;
 
     const flowId = newID.trim();
-    // Empty form lists would otherwise declare zero values
+    // Blank fields are absent; explicit lists declare resolved values
     const parsedState = filterDefaultValues(parseState(initialState), steps);
 
     snapshotFlowPositions(
