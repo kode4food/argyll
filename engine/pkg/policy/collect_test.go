@@ -85,54 +85,6 @@ func TestInitPolicy(t *testing.T) {
 	assert.True(t, policy.InitBlocksInput(api.InputCollectNone, true))
 	assert.False(t, policy.InitBlocksInput(api.InputCollectFirst, true))
 	assert.False(t, policy.InitBlocksInput(api.InputCollectNone, false))
-
-	assert.True(t, policy.InitProviderComplete(
-		&policy.RequiredInputState{HasInit: true, HasProvider: false},
-	))
-	assert.False(t, policy.InitProviderComplete(
-		&policy.RequiredInputState{HasInit: true, HasProvider: true},
-	))
-	assert.False(t, policy.InitProviderComplete(
-		&policy.RequiredInputState{HasInit: false, HasProvider: false},
-	))
-}
-
-func TestInitSatisfiesRequired(t *testing.T) {
-	cfg := &api.ScriptConfig{Language: "test", Script: "match"}
-	matcher := func(_ *api.ScriptConfig, value any) (bool, error) {
-		return value == "ok", nil
-	}
-	values := []*api.AttributeValue{{Value: "ok"}}
-
-	assert.True(t, policy.InitSatisfiesRequired(&policy.RequiredInputState{
-		Attr:    &api.AttributeSpec{Role: api.RoleRequired},
-		HasInit: true,
-		Match:   matcher,
-	}))
-	assert.False(t, policy.InitSatisfiesRequired(&policy.RequiredInputState{
-		Attr:  &api.AttributeSpec{Role: api.RoleRequired},
-		Match: matcher,
-	}))
-	assert.True(t, policy.InitSatisfiesRequired(&policy.RequiredInputState{
-		Attr:    requiredMatch(cfg, api.InputCollectFirst),
-		HasInit: true,
-		Values:  values,
-		Match:   matcher,
-	}))
-	assert.False(t, policy.InitSatisfiesRequired(&policy.RequiredInputState{
-		Attr:    requiredMatch(cfg, api.InputCollectFirst),
-		HasInit: true,
-		Values:  []*api.AttributeValue{{Value: "bad"}},
-		Match:   matcher,
-	}))
-	assert.True(t, policy.InitSatisfiesRequired(&policy.RequiredInputState{
-		Attr: &api.AttributeSpec{
-			Role:     api.RoleRequired,
-			Required: &api.RequiredConfig{Collect: api.InputCollectLast},
-		},
-		HasInit: true,
-		Match:   matcher,
-	}))
 }
 
 func TestInitBlocksRuntime(t *testing.T) {

@@ -181,8 +181,7 @@ COLLECT_PLAN_STEP(step):
         RETURN
 
     gate := combined required-match status using init values
-        init provider state is complete only when init declares the name
-        and no catalog provider exists for that name
+        init provider state is complete when init declares the name
         a match-evaluation error makes this planning gate UNKNOWN
 
     FOR each input name:
@@ -211,10 +210,8 @@ COLLECT_PLAN_STEP(step):
     include step if another step needs it, or its outputs are not all satisfied
 
 INIT_SATISFIES_INPUT(input):
-    require init to declare the name, regardless of collect mode
+    RETURN init declares the name, regardless of collect mode or predicate
         an empty list declares that zero values were resolved
-    without a match predicate: TRUE
-    with a predicate: require the init-based match status to be MATCHED
 
 OUTPUTS_ALREADY_SATISFIED(step):
     require at least one declared output
@@ -223,7 +220,7 @@ OUTPUTS_ALREADY_SATISFIED(step):
 
 The preview planner uses the same traversal: it selects strict providers when any exist, otherwise it includes all candidate providers for that input. A submitted plan validates its external required inputs against the names declared in init before execution.
 
-An init key is a declaration of intent. Its presence states that the listed values, possibly none, are the resolved values for that name. Its absence leaves the name to providers. A declared name is frozen at its init values. `INIT_SATISFIES_INPUT` prunes a declared input's providers from the plan in every collect mode, and the plan records no provider edge for a declared name, even from a step included for its other outputs.
+An init key is a declaration of intent. Its presence states that the listed values, possibly none, are the resolved values for that name. Its absence leaves the name to providers. A declared name is frozen at its init values. `INIT_SATISFIES_INPUT` prunes a declared input's providers from the plan in every collect mode, a match predicate judges the init values alone, and the plan records no provider edge for a declared name, even from a step included for its other outputs.
 
 ## Starting a flow
 

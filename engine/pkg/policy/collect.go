@@ -12,8 +12,6 @@ type (
 		Attr        *api.AttributeSpec
 		HasInit     bool
 		HasProvider bool
-		Values      []*api.AttributeValue
-		Match       api.Matcher
 	}
 
 	ProviderSummary struct {
@@ -41,36 +39,6 @@ type (
 // so a present init value blocks that step during planning
 func InitBlocksInput(collect api.InputCollect, hasInit bool) bool {
 	return hasInit && collect == api.InputCollectNone
-}
-
-// InitProviderComplete reports whether init data lets match policy treat
-// provider state as complete. Init data is complete only when it exists and no
-// planned provider can produce the same attribute later
-func InitProviderComplete(st *RequiredInputState) bool {
-	return st.HasInit && !st.HasProvider
-}
-
-// InitSatisfiesRequired reports whether init data can satisfy an input during
-// planning. An init value always prunes upstream providers for that input,
-// regardless of collect mode, unless a match predicate rejects it
-func InitSatisfiesRequired(st *RequiredInputState) bool {
-	if !st.HasInit {
-		return false
-	}
-	if !InputHasMatch(st.Attr) {
-		return true
-	}
-	complete := InitProviderComplete(st)
-	status, err := RequiredMatchStatus(RequiredMatchSpec{
-		Attr:   st.Attr,
-		Values: st.Values,
-		Provider: ProviderSummary{
-			Terminal:     complete,
-			AllSucceeded: complete,
-		},
-		Match: st.Match,
-	})
-	return err == nil && status == MatchMatched
 }
 
 // InitBlocksRuntime reports whether init data blocks a required input.

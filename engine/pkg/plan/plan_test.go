@@ -1021,7 +1021,7 @@ func TestRequiredMatchInitMismatchPrunesNormalInputs(t *testing.T) {
 	assert.Empty(t, pl.Required)
 }
 
-func TestRequiredMatchInitMismatchKeepsGateProviders(t *testing.T) {
+func TestRequiredMatchInitMismatchPrunesProviders(t *testing.T) {
 	route := planProvider("route", "notification_type")
 	sendPostal := &api.Step{
 		ID:   "send-postal",
@@ -1057,7 +1057,7 @@ func TestRequiredMatchInitMismatchKeepsGateProviders(t *testing.T) {
 	)
 	assert.NoError(t, err)
 
-	assert.Contains(t, pl.Steps, route.ID)
+	assert.NotContains(t, pl.Steps, route.ID)
 	assert.Contains(t, pl.Steps, sendPostal.ID)
 	assert.Empty(t, pl.Required)
 }

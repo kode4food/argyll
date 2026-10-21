@@ -269,7 +269,7 @@ func (b *builder) collectStep(sid api.StepID) error {
 		if gateClosed && !isGateAttr {
 			continue
 		}
-		if b.initSatisfiesInput(name, attr) {
+		if b.hasInit(name) {
 			b.markSatisfied(name)
 			continue
 		}
@@ -305,10 +305,7 @@ func (b *builder) stepGateStatus(st *api.Step) policy.MatchStatus {
 			return initAttributeValues(b.init[name])
 		},
 		Providers: func(name api.Name) policy.ProviderSummary {
-			complete := policy.InitProviderComplete(&policy.RequiredInputState{
-				HasInit:     b.hasInit(name),
-				HasProvider: len(b.findProviders(name)) > 0,
-			})
+			complete := b.hasInit(name)
 			return policy.ProviderSummary{
 				Terminal:     complete,
 				AllSucceeded: complete,
@@ -320,18 +317,6 @@ func (b *builder) stepGateStatus(st *api.Step) policy.MatchStatus {
 		return policy.MatchUnknown
 	}
 	return status
-}
-
-func (b *builder) initSatisfiesInput(
-	name api.Name, attr *api.AttributeSpec,
-) bool {
-	return policy.InitSatisfiesRequired(&policy.RequiredInputState{
-		Attr:        attr,
-		HasInit:     b.hasInit(name),
-		HasProvider: len(b.findProviders(name)) > 0,
-		Values:      initAttributeValues(b.init[name]),
-		Match:       b.match,
-	})
 }
 
 func (b *builder) blockedInputs(st *api.Step) []api.Name {
