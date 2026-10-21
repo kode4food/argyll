@@ -114,12 +114,8 @@ export const useFlowCreation = () => {
     if (!newID.trim() || planGoals.length === 0) return;
 
     const flowId = newID.trim();
-    let parsedState: {};
-    try {
-      parsedState = JSON.parse(initialState);
-    } catch {
-      parsedState = {};
-    }
+    // Empty form lists would otherwise declare zero values
+    const parsedState = filterDefaultValues(parseState(initialState), steps);
 
     snapshotFlowPositions(
       flowId,
@@ -161,6 +157,7 @@ export const useFlowCreation = () => {
     loadFlows,
     removeFlow,
     initialState,
+    steps,
     compensate,
     spaceId,
     resetForm,

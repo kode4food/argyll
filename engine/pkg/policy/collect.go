@@ -140,8 +140,8 @@ func StepInputGuaranteed(attr *api.AttributeSpec) bool {
 }
 
 // ProviderOutputNeeded reports whether a provider should still run for a
-// pending consumer of this attribute. An init value always answers for it;
-// otherwise collect:first stops at the first value, but other modes may not
+// pending consumer of this attribute. An init declaration always answers for
+// it. Without one, collect:first stops at the first value and others continue
 func ProviderOutputNeeded(collect api.InputCollect, o InputOutlook) bool {
 	if o.HasInit {
 		return false
@@ -152,32 +152,39 @@ func ProviderOutputNeeded(collect api.InputCollect, o InputOutlook) bool {
 	return !o.HasValue || collect != api.InputCollectFirst
 }
 
-// InputFulfilled reports whether the executor has enough real flow state to
-// start a step input. It applies collect-mode semantics over concrete value
-// count and provider terminal/success state
+// InputFulfilled applies collect-mode semantics over value count and provider
+// state. An init declaration lets collect:some and collect:all resolve with
+// zero values
 func InputFulfilled(
 	collect api.InputCollect, valueCount int, providers ProviderSummary,
+	hasInit bool,
 ) bool {
+	collected := valueCount > 0 || hasInit
 	switch collect {
 	case api.InputCollectNone:
 		return providers.Terminal && valueCount == 0
-	case api.InputCollectLast, api.InputCollectSome:
+	case api.InputCollectLast:
 		return valueCount > 0 && providers.Terminal
+	case api.InputCollectSome:
+		return collected && providers.Terminal
 	case api.InputCollectAll:
-		return valueCount > 0 && providers.Terminal && providers.AllSucceeded
+		return collected && providers.Terminal && providers.AllSucceeded
 	default: // api.InputCollectFirst
 		return valueCount > 0
 	}
 }
 
 // InputSatisfiable reports whether a required input can still be satisfied.
-// collect:none needs absence, collect:all needs every provider to deliver
+// collect:none needs absence, collect:all needs every provider to deliver, and
+// an init declaration satisfies collect:some and collect:all with zero values
 func InputSatisfiable(collect api.InputCollect, o InputOutlook) bool {
 	switch collect {
 	case api.InputCollectNone:
 		return !o.HasValue
 	case api.InputCollectAll:
-		return o.AllCollectable && (o.HasValue || o.Providable())
+		return o.AllCollectable && (o.HasInit || o.HasValue || o.Providable())
+	case api.InputCollectSome:
+		return o.HasInit || o.HasValue || o.Providable()
 	default:
 		return o.HasValue || o.Providable()
 	}
@@ -230,18 +237,13 @@ func CollectWindow(
 	return values, at
 }
 
-// ResolveInputValue returns the runtime argument value selected by a collect
-// mode from already-filtered attribute values. Callers are responsible for any
-// deadline cutoff or match filtering before calling it
+// ResolveInputValue selects a collect mode's argument from already-filtered
+// values, where collect:some and collect:all resolve zero values to an empty
+// list. Callers apply any deadline cutoff or match filtering first
 func ResolveInputValue(
 	collect api.InputCollect, values []*api.AttributeValue,
 ) (any, bool) {
-	if len(values) == 0 {
-		return nil, false
-	}
 	switch collect {
-	case api.InputCollectLast:
-		return values[len(values)-1].Value, true
 	case api.InputCollectAll, api.InputCollectSome:
 		res := make([]any, 0, len(values))
 		for _, v := range values {
@@ -250,9 +252,14 @@ func ResolveInputValue(
 		return res, true
 	case api.InputCollectNone:
 		return nil, false
-	default:
-		return values[0].Value, true
 	}
+	if len(values) == 0 {
+		return nil, false
+	}
+	if collect == api.InputCollectLast {
+		return values[len(values)-1].Value, true
+	}
+	return values[0].Value, true
 }
 
 func lastSetAt(values []*api.AttributeValue) time.Time {

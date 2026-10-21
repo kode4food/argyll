@@ -190,10 +190,8 @@ func newPlanBuilder(args planArgs) *builder {
 		attributes:  api.AttributeGraph{},
 	}
 
-	for key, values := range args.init {
-		if len(values) > 0 {
-			pb.satisfied.Add(key)
-		}
+	for key := range args.init {
+		pb.satisfied.Add(key)
 	}
 
 	return pb
@@ -283,7 +281,7 @@ func (b *builder) collectStep(sid api.StepID) error {
 			&policy.RequiredInputState{
 				Attr:        attr,
 				HasProvider: hasProvider,
-				HasInit:     b.initHasValues(name),
+				HasInit:     b.hasInit(name),
 			},
 		) {
 			if !gateOpen && (gateClosed || !isGateAttr) {
@@ -308,7 +306,7 @@ func (b *builder) stepGateStatus(st *api.Step) policy.MatchStatus {
 		},
 		Providers: func(name api.Name) policy.ProviderSummary {
 			complete := policy.InitProviderComplete(&policy.RequiredInputState{
-				HasInit:     b.initHasValues(name),
+				HasInit:     b.hasInit(name),
 				HasProvider: len(b.findProviders(name)) > 0,
 			})
 			return policy.ProviderSummary{
@@ -329,7 +327,7 @@ func (b *builder) initSatisfiesInput(
 ) bool {
 	return policy.InitSatisfiesRequired(&policy.RequiredInputState{
 		Attr:        attr,
-		HasInit:     b.initHasValues(name),
+		HasInit:     b.hasInit(name),
 		HasProvider: len(b.findProviders(name)) > 0,
 		Values:      initAttributeValues(b.init[name]),
 		Match:       b.match,
@@ -339,7 +337,7 @@ func (b *builder) initSatisfiesInput(
 func (b *builder) blockedInputs(st *api.Step) []api.Name {
 	var blocked []api.Name
 	for name, attr := range st.Attributes {
-		if policy.InitBlocksRuntime(attr, b.initHasValues(name)) {
+		if policy.InitBlocksRuntime(attr, len(b.init[name]) > 0) {
 			blocked = append(blocked, name)
 		}
 	}
@@ -355,8 +353,9 @@ func (b *builder) markSatisfied(name api.Name) {
 	}
 }
 
-func (b *builder) initHasValues(name api.Name) bool {
-	return len(b.init[name]) > 0
+func (b *builder) hasInit(name api.Name) bool {
+	_, ok := b.init[name]
+	return ok
 }
 
 func (b *builder) includeProviders(
@@ -417,7 +416,7 @@ func (b *builder) buildPlan() {
 		st := b.candidates[id]
 		b.steps[id] = st
 		for name, attr := range st.Attributes {
-			if attr.IsOutput() {
+			if attr.IsOutput() && !b.hasInit(name) {
 				b.addProvider(name, id)
 			}
 		}

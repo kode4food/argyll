@@ -37,7 +37,7 @@ func CountActiveWorkItems(items api.WorkItems) int {
 }
 
 // StepWorkCompletion classifies a step's work items for step completion. One
-// failure makes the step terminal at once, abandoning pending items; without
+// failure makes the step terminal at once, abandoning pending items. Without
 // one, the step completes only when every item has succeeded
 func StepWorkCompletion(items api.WorkItems) WorkCompletion {
 	res := WorkCompletion{Done: true}
@@ -64,7 +64,7 @@ func StepWorkCompletion(items api.WorkItems) WorkCompletion {
 
 // WorkDeadline returns when an in-flight attempt stops being expected, and
 // whether it has one at all. HTTP steps use their configured timeout, which
-// for async work bounds the callback; the rest fall back to the step timeout
+// for async work bounds the callback. Other steps use the step timeout
 func WorkDeadline(
 	st *api.Step, work *api.WorkState, fallback time.Duration,
 ) (time.Time, bool) {

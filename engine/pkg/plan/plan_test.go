@@ -223,14 +223,20 @@ func TestCollectFirstPrunesProvider(t *testing.T) {
 	)
 }
 
-func TestCollectModesPruneProviders(t *testing.T) {
+func TestInitPrunesProviders(t *testing.T) {
 	tests := []struct {
 		name    string
 		collect api.InputCollect
+		init    []any
 	}{
-		{name: "last", collect: api.InputCollectLast},
-		{name: "some", collect: api.InputCollectSome},
-		{name: "all", collect: api.InputCollectAll},
+		{name: "last", collect: api.InputCollectLast, init: []any{"ready"}},
+		{name: "some", collect: api.InputCollectSome, init: []any{"ready"}},
+		{name: "all", collect: api.InputCollectAll, init: []any{"ready"}},
+		{name: "first-empty", collect: api.InputCollectFirst, init: []any{}},
+		{name: "last-empty", collect: api.InputCollectLast, init: []any{}},
+		{name: "some-empty", collect: api.InputCollectSome, init: []any{}},
+		{name: "all-empty", collect: api.InputCollectAll, init: []any{}},
+		{name: "none-empty", collect: api.InputCollectNone, init: []any{}},
 	}
 
 	for _, tt := range tests {
@@ -244,8 +250,7 @@ func TestCollectModesPruneProviders(t *testing.T) {
 			})
 
 			pl, err := createPlan(
-				cat, []api.StepID{consumer.ID},
-				api.InitArgs{"data": {"ready"}},
+				cat, []api.StepID{consumer.ID}, api.InitArgs{"data": tt.init},
 			)
 			assert.NoError(t, err)
 
@@ -254,6 +259,31 @@ func TestCollectModesPruneProviders(t *testing.T) {
 			assert.Empty(t, pl.Required)
 		})
 	}
+}
+
+func TestInitFreezesProvidedName(t *testing.T) {
+	provider := planProvider("provider", "data")
+	provider.Attributes["other"] = &api.AttributeSpec{
+		Role: api.RoleOutput,
+		Type: api.TypeString,
+	}
+	consumer := planConsumer("consumer", "data", api.InputCollectAll)
+	other := planConsumer("other-consumer", "other", api.InputCollectFirst)
+	cat := makeCatalogState(api.Steps{
+		provider.ID: provider,
+		consumer.ID: consumer,
+		other.ID:    other,
+	})
+
+	pl, err := createPlan(
+		cat, []api.StepID{consumer.ID, other.ID},
+		api.InitArgs{"data": {"x"}},
+	)
+	assert.NoError(t, err)
+
+	assert.Contains(t, pl.Steps, provider.ID)
+	assert.Empty(t, pl.Attributes["data"].Providers)
+	assert.Contains(t, pl.Attributes["other"].Providers, provider.ID)
 }
 
 func TestCollectNoneSatisfied(t *testing.T) {

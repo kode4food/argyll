@@ -1,6 +1,8 @@
 package events
 
 import (
+	"maps"
+	"slices"
 	"time"
 
 	"github.com/kode4food/timebox"
@@ -138,6 +140,7 @@ func flowStarted(
 		Metadata:    data.Metadata,
 		Tags:        data.Tags,
 		Attributes:  attributes,
+		Init:        slices.Sorted(maps.Keys(data.Init)),
 		Executions:  execs,
 		Compensate:  data.Compensate,
 		CreatedAt:   ev.Timestamp,

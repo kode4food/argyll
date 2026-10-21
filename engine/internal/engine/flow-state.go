@@ -99,7 +99,8 @@ func (e *Engine) IsFlowFailed(fl *api.FlowState) bool {
 }
 
 // HasInputProvider checks if a required attribute has at least one step that
-// can provide it in the flow execution plan
+// can provide it in the flow execution plan. Providers for a name declared by
+// init come only from the plan
 func (e *Engine) HasInputProvider(name api.Name, fl *api.FlowState) bool {
 	deps, ok := fl.Plan.Attributes[name]
 	if !ok {
@@ -107,7 +108,7 @@ func (e *Engine) HasInputProvider(name api.Name, fl *api.FlowState) bool {
 	}
 
 	if len(deps.Providers) == 0 {
-		return true
+		return !fl.HasInit(name)
 	}
 
 	for _, providerID := range deps.Providers {
@@ -172,6 +173,7 @@ func (e *Engine) canStepComplete(sid api.StepID, fl *api.FlowState) bool {
 			continue
 		}
 		if !policy.InputSatisfiable(attr.Collect(), policy.InputOutlook{
+			HasInit:        fl.HasInit(name),
 			HasValue:       e.inputHasValue(name, attr, fl),
 			AllCollectable: canCollectAll(name, fl),
 			Providable: func() bool {
@@ -264,7 +266,7 @@ func (e *Engine) needsOutput(
 			continue
 		}
 		if policy.ProviderOutputNeeded(input.Collect(), policy.InputOutlook{
-			HasInit:        fl.HasInitValue(name),
+			HasInit:        fl.HasInit(name),
 			HasValue:       e.inputHasValue(name, input, fl),
 			AllCollectable: canCollectAll(name, fl),
 		}) {

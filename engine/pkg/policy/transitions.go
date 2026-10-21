@@ -12,7 +12,7 @@ type StateTransitions[T comparable] map[T]util.Set[T]
 
 var (
 	// FlowTransitions defines the valid flow lifecycle. Active flows may
-	// become completed or failed; completed and failed flows are terminal
+	// become completed or failed. Completed and failed flows are terminal
 	FlowTransitions = StateTransitions[api.FlowStatus]{
 		api.FlowActive: util.SetOf(
 			api.FlowCompleted,
@@ -23,7 +23,7 @@ var (
 	}
 
 	// StepTransitions defines the valid step lifecycle. Pending steps may
-	// start, skip, or fail; active steps may complete or fail
+	// start, skip, or fail. Active steps may complete or fail
 	StepTransitions = StateTransitions[api.StepStatus]{
 		api.StepPending: util.SetOf(
 			api.StepActive,

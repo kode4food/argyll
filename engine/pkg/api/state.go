@@ -58,6 +58,7 @@ type (
 		Metadata      Metadata        `json:"metadata,omitempty"`
 		Tags          Tags            `json:"tags,omitempty"`
 		Attributes    AttributeValues `json:"attributes"`
+		Init          Slice[Name]     `json:"init,omitempty"`
 		DeactivatedAt time.Time       `json:"deactivated_at"`
 		Executions    Executions      `json:"executions"`
 		ID            FlowID          `json:"id"`
@@ -328,15 +329,10 @@ func (f *FlowState) AttributeValues(name Name) []*AttributeValue {
 	return f.Attributes[name]
 }
 
-// HasInitValue reports whether any of this attribute's values came from the
-// flow's initial state rather than a provider
-func (f *FlowState) HasInitValue(name Name) bool {
-	for _, v := range f.Attributes[name] {
-		if v.Step == "" {
-			return true
-		}
-	}
-	return false
+// HasInit reports whether the flow's initial state declared this attribute,
+// even with zero values
+func (f *FlowState) HasInit(name Name) bool {
+	return slices.Contains(f.Init, name)
 }
 
 func (f FlowState) SetExecution(id StepID, ex ExecutionState) FlowState {

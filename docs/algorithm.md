@@ -89,6 +89,7 @@ EMIT(type, data):
 REDUCE(flow, event):
     flow_started:
         create ACTIVE flow and PENDING execution for each planned step
+        record every init name, including names declared with zero values
         append each init value with SetAt = event.timestamp and no producer
         set createdAt and lastUpdated
     step_started:
@@ -137,7 +138,7 @@ CREATE_PLAN(request):
     select catalog steps in the requested space, or all steps
     require valid, nonempty goal sets and existing goal step IDs
     build attribute -> provider dependencies
-    satisfied := names with nonempty init values
+    satisfied := names declared in init, even with zero values
     available := satisfied
     satisfiableSteps := empty
 
@@ -158,7 +159,7 @@ CREATE_PLAN(request):
     visited := visitedAcrossSets
 
     build plan.steps from included steps
-    build attribute provider edges from their declared outputs
+    build provider edges from declared outputs that init leaves undeclared
     build consumer edges for their inputs supplied by init or planned providers
     record missing external required inputs
     classify visited, excluded steps as satisfied, blocked, or missing
@@ -175,12 +176,12 @@ CREATE_PLAN(request):
 COLLECT_PLAN_STEP(step):
     IF already visited: RETURN
     mark visited
-    IF a required collect:NONE input has init values:
+    IF a required collect:NONE input has nonempty init values:
         record blocked inputs
         RETURN
 
     gate := combined required-match status using init values
-        init provider state is complete only when init exists
+        init provider state is complete only when init declares the name
         and no catalog provider exists for that name
         a match-evaluation error makes this planning gate UNKNOWN
 
@@ -210,7 +211,8 @@ COLLECT_PLAN_STEP(step):
     include step if another step needs it, or its outputs are not all satisfied
 
 INIT_SATISFIES_INPUT(input):
-    require nonempty init values, regardless of collect mode
+    require init to declare the name, regardless of collect mode
+        an empty list declares that zero values were resolved
     without a match predicate: TRUE
     with a predicate: require the init-based match status to be MATCHED
 
@@ -219,9 +221,9 @@ OUTPUTS_ALREADY_SATISFIED(step):
     require every output name to be in satisfied
 ```
 
-The preview planner uses the same traversal: it selects strict providers when any exist, otherwise it includes all candidate providers for that input. A submitted plan validates its external required inputs against the actual init values before execution.
+The preview planner uses the same traversal: it selects strict providers when any exist, otherwise it includes all candidate providers for that input. A submitted plan validates its external required inputs against the names declared in init before execution.
 
-`INIT_SATISFIES_INPUT` no longer depends on collect mode: an init value prunes that input's providers from the plan the same way for `last`, `some`, and `all` as it already did for `first`. A provider can still be included for a different input or output it also supplies; only its contribution to the init-satisfied name is pruned.
+An init key is a declaration of intent. Its presence states that the listed values, possibly none, are the resolved values for that name. Its absence leaves the name to providers. A declared name is frozen at its init values. `INIT_SATISFIES_INPUT` prunes a declared input's providers from the plan in every collect mode, and the plan records no provider edge for a declared name, even from a step included for its other outputs.
 
 ## Starting a flow
 
@@ -247,7 +249,7 @@ START_PLAN(id, plan, options):
 
 Values retain their persisted arrival order. Match predicates filter candidate values without changing that order, whether the input is required or optional. A match error propagates to step preparation, which records step failure. An unmatched required input can close the step entirely. An unmatched optional input never does: it falls back to its default through the same path as any other unfulfilled optional input, since the step does not depend on it.
 
-A `for_each` input is valid only with `collect: all` or `collect: some`: its resolved value is the collected candidate list itself, which step preparation fans out into one work item per element. An empty filtered candidate list is unambiguous absence, letting `INPUT_FULFILLED` and the optional default apply normally.
+A `for_each` input is valid only with `collect: all` or `collect: some`: its resolved value is the collected candidate list itself, which step preparation fans out into one work item per element. An empty filtered candidate list is unambiguous absence, letting `INPUT_FULFILLED` and the optional default apply normally. When init declares the name with zero values, `collect: some` and `collect: all` resolve to an empty list instead, and a `for_each` step settles with zero work items.
 
 ```text
 INPUT_VALUES(name, input):
@@ -274,19 +276,20 @@ PROVIDER_SUMMARY(name, cutoff = INFINITY):
         IF terminal: last := LATEST(last, execution.completion)
     RETURN summary, last
 
-INPUT_FULFILLED(mode, values, providers):
+INPUT_FULFILLED(mode, name, values, providers):
+    collected := count(values) > 0 OR init declares name
     FIRST: RETURN count(values) > 0
     LAST:  RETURN count(values) > 0 AND providers.terminal
-    SOME:  RETURN count(values) > 0 AND providers.terminal
-    ALL:   RETURN count(values) > 0 AND providers.terminal
+    SOME:  RETURN collected AND providers.terminal
+    ALL:   RETURN collected AND providers.terminal
                    AND providers.allSucceeded
     NONE:  RETURN count(values) = 0 AND providers.terminal
 
 RESOLVE_VALUE(mode, values):
-    IF values is empty: RETURN OMIT
+    IF values is empty AND mode is FIRST or LAST: RETURN OMIT
     FIRST: RETURN first value
     LAST:  RETURN last value
-    SOME | ALL: RETURN array of values in persisted order
+    SOME | ALL: RETURN array of values in persisted order, possibly empty
     NONE: RETURN OMIT
 
 MATCH_STATUS(input, candidateValues, providers):
@@ -330,7 +333,7 @@ REQUIRED_READY_AT(step):
     FOR each required input:
         values := INPUT_VALUES(input.name, input)
         providers, last := PROVIDER_SUMMARY(input.name)
-        IF NOT INPUT_FULFILLED(input.collect, values, providers):
+        IF NOT INPUT_FULFILLED(input.collect, input.name, values, providers):
             RETURN NOT_READY
         IF input.collect = FIRST:
             last := completion of the first matched value's producing step
@@ -363,13 +366,13 @@ OPTIONAL_DECISION(step, input, anchor, now):
         accepted := values whose producing execution's completion.Seq
                     is <= anchor.Seq
         providers := PROVIDER_SUMMARY(input.name, anchor.Seq)
-        IF INPUT_FULFILLED(input.collect, accepted, providers):
+        IF INPUT_FULFILLED(input.collect, input.name, accepted, providers):
             RETURN USE(accepted)
         RETURN FALLBACK
 
     accepted, deadline := COLLECT_WINDOW(anchor.At, input.deadline, values)
     providers, last := PROVIDER_SUMMARY(input.name)
-    IF INPUT_FULFILLED(input.collect, accepted, providers):
+    IF INPUT_FULFILLED(input.collect, input.name, accepted, providers):
         IF FULFILLED_AT(input.collect, accepted, last.At) < deadline:
             RETURN USE(accepted)
     IF providers.terminal OR now >= deadline:
@@ -423,7 +426,7 @@ CAN_COLLECT_ALL(name):
 
 HAS_INPUT_PROVIDER(name):
     IF name has no plan edges: RETURN FALSE
-    IF edges have no providers: RETURN TRUE
+    IF edges have no providers: RETURN init does not declare name
     FOR each provider:
         IF provider is terminal:
             IF COMPLETED and its retained outputs contain name: RETURN TRUE
@@ -441,11 +444,12 @@ CAN_STEP_COMPLETE(step):
 
     FOR each required input:
         hasValue := HAS_INPUT_VALUE(input.name, input)
+        supplied := hasValue OR HAS_INPUT_PROVIDER(input.name)
+        declared := init declares input.name
         NONE: possible := NOT hasValue
-        ALL:  possible := CAN_COLLECT_ALL(input.name)
-                          AND (hasValue OR HAS_INPUT_PROVIDER(input.name))
-        FIRST | LAST | SOME:
-              possible := hasValue OR HAS_INPUT_PROVIDER(input.name)
+        ALL:  possible := CAN_COLLECT_ALL(input.name) AND (declared OR supplied)
+        SOME: possible := declared OR supplied
+        FIRST | LAST: possible := supplied
         IF NOT possible: RETURN FALSE
     RETURN TRUE
 
@@ -468,7 +472,7 @@ NEEDS_OUTPUT(name, scope, now):
         IF closed-match evaluation succeeds and finds closed inputs: CONTINUE
         IF input is optional AND OPTIONAL_DECIDED(consumer, input, now):
             CONTINUE
-        IF name has an init value: CONTINUE
+        IF init declares name: CONTINUE
         hasValue := HAS_INPUT_VALUE(name, input)
         IF input.collect = ALL AND NOT CAN_COLLECT_ALL(name): CONTINUE
         IF NOT hasValue OR input.collect != FIRST: RETURN TRUE
@@ -482,7 +486,7 @@ OUTPUTS_NEEDED(step, goals, now):
 
 Output demand is shared across consumers: one decided optional does not remove demand from another pending consumer, including a required consumer. Only PENDING executions are eligible for the unused-provider skip.
 
-An init value for a name is authoritative for that name, regardless of collect mode: it is what the caller declared the values to be. A pending consumer with an init value never demands that name's output from a provider, even when that provider has to run anyway to satisfy some other name it also produces. This holds for `last`, `some`, and `all`, not only `first`: the init array is the complete candidate list those modes would otherwise assemble from providers.
+An init declaration freezes its name at the init values, regardless of collect mode. Consumers of a declared name resolve it from those values alone, and step completion records no `attribute_set` for it. An empty array declares that zero values were resolved, so `some` and `all` receive an empty list, while a required `first` or `last` input fails its step.
 
 ## Advancing a flow
 
@@ -750,7 +754,7 @@ CHECK_STEP_COMPLETION(step):
     IF step is not itself a kept goal:
         retain only declared outputs for which
             NEEDS_OUTPUT(name, GOAL_SCOPE(KEPT_GOALS()), tx.now) is TRUE
-    FOR each retained declared output:
+    FOR each retained declared output whose name init leaves undeclared:
         EMIT attribute_set(step, name, value)
     EMIT step_completed(retained outputs,
                         duration = MAX(0, tx.now - step.startedAt))
@@ -770,7 +774,7 @@ COLLECT_STEP_OUTPUTS(step):
     RETURN mapped outputs
 ```
 
-Raw work outputs remain recorded by `work_succeeded`. The filtered output set becomes both the step's outputs and its `attribute_set` events. A value needed only by decided optional consumers can therefore remain in work history without becoming a flow attribute. Goal-step outputs are retained. Late outcomes can settle already-running work after flow failure, but cannot restart terminal steps or change frozen inputs.
+Raw work outputs remain recorded by `work_succeeded`. The filtered output set becomes the step's outputs, and its names that init leaves undeclared become `attribute_set` events. A value needed only by decided optional consumers can therefore remain in work history without becoming a flow attribute. Goal-step outputs are retained. Late outcomes can settle already-running work after flow failure, but cannot restart terminal steps or change frozen inputs.
 
 ## Work retries and attempt deadlines
 

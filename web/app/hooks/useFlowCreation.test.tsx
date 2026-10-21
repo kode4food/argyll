@@ -119,6 +119,26 @@ describe("useFlowCreation", () => {
     expect(uiState.clearPreviewPlan).toHaveBeenCalled();
   });
 
+  test("drops empty init lists when creating a flow", async () => {
+    const { result } = renderHook(() => useFlowCreation());
+    await act(async () => {
+      await result.current.handleStepChange([["goal"]]);
+    });
+    await act(async () => {
+      result.current.setIDManuallyEdited(true);
+      result.current.setNewID("flow-1");
+      result.current.setInitialState('{"empty":[],"filled":["a"]}');
+    });
+
+    await act(async () => {
+      result.current.handleCreateFlow();
+    });
+
+    expect(api.startFlow).toHaveBeenCalledWith(
+      expect.objectContaining({ initialState: { filled: ["a"] } })
+    );
+  });
+
   test("removes optimistic flow on create error", async () => {
     (api.startFlow as jest.Mock).mockRejectedValueOnce(new Error("boom"));
     const { result } = renderHook(() => useFlowCreation());

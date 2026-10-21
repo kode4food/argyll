@@ -41,7 +41,7 @@ func (tx *flowTx) checkStepCompletion(sid api.StepID) (bool, error) {
 	dur := max(tx.Now().Sub(ex.StartedAt).Milliseconds(), int64(0))
 
 	for key, value := range outputs {
-		if !isOutputAttribute(st, key) {
+		if !isOutputAttribute(st, key) || fl.HasInit(key) {
 			continue
 		}
 		if err := events.Raise(tx.FlowAggregator, api.EventTypeAttributeSet,

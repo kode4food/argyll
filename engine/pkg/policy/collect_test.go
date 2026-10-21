@@ -302,22 +302,34 @@ func TestInputFulfilled(t *testing.T) {
 	incomplete := policy.ProviderSummary{Terminal: false, AllSucceeded: true}
 	partial := policy.ProviderSummary{Terminal: true, AllSucceeded: false}
 
-	assert.True(t, policy.InputFulfilled(api.InputCollectNone, 0, terminal))
-	assert.False(t, policy.InputFulfilled(api.InputCollectNone, 1, terminal))
-	assert.False(t, policy.InputFulfilled(api.InputCollectNone, 0, incomplete))
+	none := api.InputCollectNone
+	assert.True(t, policy.InputFulfilled(none, 0, terminal, false))
+	assert.False(t, policy.InputFulfilled(none, 1, terminal, false))
+	assert.False(t, policy.InputFulfilled(none, 0, incomplete, false))
+	assert.True(t, policy.InputFulfilled(none, 0, terminal, true))
 
-	assert.True(t, policy.InputFulfilled(api.InputCollectFirst, 1, incomplete))
-	assert.False(t, policy.InputFulfilled(api.InputCollectFirst, 0, terminal))
+	first := api.InputCollectFirst
+	assert.True(t, policy.InputFulfilled(first, 1, incomplete, false))
+	assert.False(t, policy.InputFulfilled(first, 0, terminal, false))
+	assert.False(t, policy.InputFulfilled(first, 0, terminal, true))
 
-	assert.True(t, policy.InputFulfilled(api.InputCollectLast, 1, terminal))
-	assert.False(t, policy.InputFulfilled(api.InputCollectLast, 1, incomplete))
+	last := api.InputCollectLast
+	assert.True(t, policy.InputFulfilled(last, 1, terminal, false))
+	assert.False(t, policy.InputFulfilled(last, 1, incomplete, false))
+	assert.False(t, policy.InputFulfilled(last, 0, terminal, true))
 
-	assert.True(t, policy.InputFulfilled(api.InputCollectSome, 1, terminal))
-	assert.False(t, policy.InputFulfilled(api.InputCollectSome, 1, incomplete))
+	some := api.InputCollectSome
+	assert.True(t, policy.InputFulfilled(some, 1, terminal, false))
+	assert.False(t, policy.InputFulfilled(some, 1, incomplete, false))
+	assert.False(t, policy.InputFulfilled(some, 0, terminal, false))
+	assert.True(t, policy.InputFulfilled(some, 0, terminal, true))
 
-	assert.True(t, policy.InputFulfilled(api.InputCollectAll, 1, terminal))
-	assert.False(t, policy.InputFulfilled(api.InputCollectAll, 1, incomplete))
-	assert.False(t, policy.InputFulfilled(api.InputCollectAll, 1, partial))
+	all := api.InputCollectAll
+	assert.True(t, policy.InputFulfilled(all, 1, terminal, false))
+	assert.False(t, policy.InputFulfilled(all, 1, incomplete, false))
+	assert.False(t, policy.InputFulfilled(all, 1, partial, false))
+	assert.False(t, policy.InputFulfilled(all, 0, terminal, false))
+	assert.True(t, policy.InputFulfilled(all, 0, terminal, true))
 }
 
 func TestInputSatisfiable(t *testing.T) {
@@ -352,6 +364,19 @@ func TestInputSatisfiable(t *testing.T) {
 	assert.False(t, policy.InputSatisfiable(all, policy.InputOutlook{
 		AllCollectable: true, Providable: no,
 	}))
+	assert.True(t, policy.InputSatisfiable(all, policy.InputOutlook{
+		HasInit: true, AllCollectable: true, Providable: no,
+	}))
+
+	assert.True(t, policy.InputSatisfiable(api.InputCollectSome,
+		policy.InputOutlook{HasInit: true, Providable: no},
+	))
+	assert.False(t, policy.InputSatisfiable(api.InputCollectFirst,
+		policy.InputOutlook{HasInit: true, Providable: no},
+	))
+	assert.False(t, policy.InputSatisfiable(api.InputCollectLast,
+		policy.InputOutlook{HasInit: true, Providable: no},
+	))
 
 	none := api.InputCollectNone
 	assert.True(t, policy.InputSatisfiable(none, policy.InputOutlook{
@@ -418,4 +443,15 @@ func TestResolveInputValue(t *testing.T) {
 
 	_, ok = policy.ResolveInputValue(api.InputCollectFirst, nil)
 	assert.False(t, ok)
+
+	_, ok = policy.ResolveInputValue(api.InputCollectLast, nil)
+	assert.False(t, ok)
+
+	val, ok = policy.ResolveInputValue(api.InputCollectSome, nil)
+	assert.True(t, ok)
+	assert.Equal(t, []any{}, val)
+
+	val, ok = policy.ResolveInputValue(api.InputCollectAll, nil)
+	assert.True(t, ok)
+	assert.Equal(t, []any{}, val)
 }

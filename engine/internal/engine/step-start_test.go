@@ -415,6 +415,110 @@ func TestCollectSomeInit(t *testing.T) {
 	})
 }
 
+func TestEmptyInit(t *testing.T) {
+	tests := []struct {
+		collect api.InputCollect
+		status  api.FlowStatus
+	}{
+		{collect: api.InputCollectSome, status: api.FlowCompleted},
+		{collect: api.InputCollectAll, status: api.FlowCompleted},
+		{collect: api.InputCollectFirst, status: api.FlowFailed},
+		{collect: api.InputCollectLast, status: api.FlowFailed},
+	}
+
+	for _, tt := range tests {
+		name := string(tt.collect)
+		t.Run(name, func(t *testing.T) {
+			helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+				assert.NoError(t, env.Engine.Start())
+
+				st := &api.Step{
+					ID:   api.StepID("consumer-empty-init-" + name),
+					Name: "Consumer",
+					Type: api.StepTypeService,
+					Attributes: api.AttributeSpecs{
+						"data": {
+							Role: api.RoleRequired,
+							Type: api.TypeAny,
+							Required: &api.RequiredConfig{
+								Collect: tt.collect,
+							},
+						},
+						"result": {Role: api.RoleOutput, Type: api.TypeString},
+					},
+					HTTP: &api.HTTPConfig{
+						Invoke: api.HTTPAction{Endpoint: "http://example.com"},
+					},
+				}
+				pl := &api.ExecutionPlan{
+					Goals: api.Goals{Steps: []api.StepID{st.ID}},
+					Steps: api.Steps{st.ID: st},
+					Attributes: api.AttributeGraph{
+						"data": {Consumers: []api.StepID{st.ID}},
+					},
+				}
+
+				assert.NoError(t, env.Engine.RegisterStep(st))
+				env.MockClient.SetInvoke(st.ID,
+					func(
+						_ *api.Step, args api.Args, _ api.Metadata,
+					) (api.Args, error) {
+						assert.Equal(t, []any{}, args["data"])
+						return api.Args{"result": "ok"}, nil
+					},
+				)
+
+				id := api.FlowID("wf-empty-init-" + name)
+				fl := env.WaitForFlowStatus(id, func() {
+					err := env.Engine.StartPlan(id, pl,
+						flow.WithInit(api.InitArgs{"data": {}}))
+					assert.NoError(t, err)
+				})
+				assert.Equal(t, tt.status, fl.Status)
+			})
+		})
+	}
+}
+
+func TestInitFrozen(t *testing.T) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		assert.NoError(t, env.Engine.Start())
+
+		provider := helpers.NewStepWithOutputs("frozen-provider", "data")
+		consumer := helpers.NewSimpleStep("frozen-consumer")
+		consumer.Attributes = api.AttributeSpecs{
+			"data": {
+				Role: api.RoleRequired,
+				Type: api.TypeString,
+				Required: &api.RequiredConfig{
+					Collect: api.InputCollectAll,
+				},
+			},
+		}
+		assert.NoError(t, env.Engine.RegisterSteps(provider, consumer))
+		env.MockClient.SetResponse(provider.ID, api.Args{"data": "provided"})
+		env.MockClient.SetInvoke(consumer.ID,
+			func(_ *api.Step, args api.Args, _ api.Metadata) (api.Args, error) {
+				assert.Equal(t, []any{"init"}, args["data"])
+				return api.Args{}, nil
+			},
+		)
+
+		id := api.FlowID("wf-init-frozen")
+		fl := env.WaitForFlowStatus(id, func() {
+			assert.NoError(t, env.Engine.StartFlow(api.CreateFlowRequest{
+				ID: id,
+				Goals: api.Goals{
+					Steps: []api.StepID{provider.ID, consumer.ID},
+				},
+				Init: api.InitArgs{"data": {"init"}},
+			}))
+		})
+		assert.Equal(t, api.FlowCompleted, fl.Status)
+		assert.Len(t, fl.Attributes["data"], 1)
+	})
+}
+
 func TestConstObject(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		assert.NoError(t, env.Engine.Start())

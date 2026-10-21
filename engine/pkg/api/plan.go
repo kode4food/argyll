@@ -62,7 +62,7 @@ func (p *ExecutionPlan) ValidateInputs(args InitArgs) error {
 	var missing []Name
 
 	for _, required := range p.Required {
-		if len(args[required]) == 0 {
+		if _, ok := args[required]; !ok {
 			missing = append(missing, required)
 		}
 	}

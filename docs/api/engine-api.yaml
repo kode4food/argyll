@@ -10,31 +10,35 @@ info:
 
     ## Overview
 
-    The Argyll Engine is a goal-driven flow processing system that uses lazy evaluation
-    and event sourcing. Steps declare input/output dependencies and the engine orchestrates
-    execution based on state availability, only executing the minimal set of steps needed to
-    reach a specified goal.
+    The Argyll Engine is a goal-driven flow processing system that uses lazy
+    evaluation and event sourcing. Steps declare input/output dependencies and
+    the engine orchestrates execution based on state availability, only
+    executing the minimal set of steps needed to reach a specified goal.
 
     ## Key Features
 
-    - **Goal-Driven Execution**: Create flows by specifying a goal step. The engine
-      automatically determines and executes only the necessary steps
-    - **Event Sourcing**: Complete audit trail with durable storage for recovery and debugging
-    - **Multi-Instance Support**: Horizontal scaling with optimistic concurrency control
+    - **Goal-Driven Execution**: Create flows by specifying a goal step. The
+      engine automatically determines and executes only the necessary steps
+    - **Event Sourcing**: Complete audit trail with durable storage for recovery
+      and debugging
+    - **Multi-Instance Support**: Horizontal scaling with optimistic concurrency
+      control
     - **Real-Time Updates**: WebSocket streaming for live flow monitoring
-    - **Three Step Types**: Service (HTTP, sync or async via webhooks), Script (Lua), and Flow (sub-flow execution)
+    - **Three Step Types**: Service (HTTP, sync or async via webhooks), Script
+      (Lua), and Flow (sub-flow execution)
 
     ## Step Implementation
 
-    If you're implementing flow steps (HTTP endpoints or scripts that the engine calls),
-    see the separate **Step Interface Contract** specification in `step-interface.yaml`.
-    This document describes what you need to consume the engine's REST API.
+    If you're implementing flow steps (HTTP endpoints or scripts that the engine
+    calls), see the separate **Step Interface Contract** specification in
+    `step-interface.yaml`. This document describes what you need to consume the
+    engine's REST API.
 
     ## Authentication
 
-    Currently, the API does not require authentication. For production deployments,
-    it's recommended to place the engine behind a reverse proxy with appropriate
-    authentication and authorization.
+    Currently, the API does not require authentication. For production
+    deployments, it's recommended to place the engine behind a reverse proxy
+    with appropriate authentication and authorization.
 
   version: 1.0.0
   contact:
@@ -52,7 +56,9 @@ paths:
   /health:
     get:
       summary: Engine Health Check
-      description: Returns the health status of the Argyll engine and includes the local Raft state in the `X-Argyll-Raft-State` response header
+      description: |
+        Returns the health status of the Argyll engine and includes the local
+        Raft state in the `X-Argyll-Raft-State` response header
       operationId: getEngineHealth
       tags:
         - Health
@@ -72,7 +78,9 @@ paths:
   /engine:
     get:
       summary: Engine State
-      description: Get complete engine state including all registered steps and per-node health details
+      description: |
+        Get complete engine state including all registered steps and per-node
+        health details
       operationId: getEngine
       tags:
         - Engine
@@ -93,7 +101,9 @@ paths:
   /engine/catalog:
     get:
       summary: Catalog State
-      description: Get the current catalog state, including all registered steps and the engine-level attribute dependency graph
+      description: |
+        Get the current catalog state, including all registered steps and the
+        engine-level attribute dependency graph
       operationId: getCatalogState
       tags:
         - Engine
@@ -114,7 +124,10 @@ paths:
   /engine/catalog/events:
     get:
       summary: Catalog Events
-      description: Get all raw events for the catalog aggregate, from sequence zero to the present. Useful for auditing step registration history or replicating catalog state
+      description: |
+        Get all raw events for the catalog aggregate, from sequence zero to the
+        present. Useful for auditing step registration history or replicating
+        catalog state
       operationId: getCatalogEvents
       tags:
         - Engine
@@ -135,7 +148,10 @@ paths:
   /engine/cluster:
     get:
       summary: Cluster State
-      description: Get the current cluster state, including per-node step health. Configured Raft nodes are always present even if no health events have been observed for them
+      description: |
+        Get the current cluster state, including per-node step health.
+        Configured Raft nodes are always present even if no health events have
+        been observed for them
       operationId: getClusterState
       tags:
         - Engine
@@ -156,7 +172,9 @@ paths:
   /engine/cluster/events:
     get:
       summary: Cluster Events
-      description: Get all raw events for the cluster aggregate, from sequence zero to the present. Useful for auditing node health history
+      description: |
+        Get all raw events for the cluster aggregate, from sequence zero to the
+        present. Useful for auditing node health history
       operationId: getClusterEvents
       tags:
         - Engine
@@ -199,10 +217,11 @@ paths:
       description: |
         Register a new flow step with the engine. Steps can be:
         - **Service**: HTTP endpoints. Each action (`invoke`, `compensate`)
-          returns results immediately by default, or completes later via
-          webhook when its `mode` is `async`
+          returns results immediately by default, or completes later via webhook
+          when its `mode` is `async`
         - **Script**: Lua scripts executed in-engine
-        - **Flow**: Sub-flow execution using child flow goals and attribute mappings
+        - **Flow**: Sub-flow execution using child flow goals and attribute
+          mappings
       operationId: registerStep
       tags:
         - Steps
@@ -539,10 +558,10 @@ paths:
   /engine/spaces/preview:
     post:
       summary: Preview a Space selector
-      description: Evaluate an unsaved QBE or script selector against the
-        current Step catalog without persisting it. Only the selector is
-        read, so a Space still being drafted can be previewed without an
-        `id` or `name`
+      description: |
+        Evaluate an unsaved QBE or script selector against the current Step
+        catalog without persisting it. Only the selector is read, so a Space
+        still being drafted can be previewed without an `id` or `name`
       operationId: previewSpace
       tags:
         - Spaces
@@ -554,8 +573,9 @@ paths:
               $ref: "#/components/schemas/Space"
       responses:
         "200":
-          description: The normalized Space, including its authoritative
-            selector, and the selected Step IDs
+          description: |
+            The normalized Space, including its authoritative selector, and the
+            selected Step IDs
           content:
             application/json:
               schema:
@@ -715,9 +735,14 @@ paths:
     get:
       summary: List Flows
       description: |
-        Retrieve non-child flows in the system (`active`, `completed`, and `failed`), sorted by most-recent activity within each status group.
+        Retrieve non-child flows in the system (`active`, `completed`, and
+        `failed`), sorted by most-recent activity within each status group.
 
-        This endpoint uses the same query engine as `/engine/flows/query`. Status, ID-prefix, and label filtering are resolved from flow-store indexes without loading full flow state. A terminal flow remains indexed as `active` until `flow_deactivated` records that no remaining work can produce external side effects (changes outside flow state).
+        This endpoint uses the same query engine as `/engine/flows/query`.
+        Status, ID-prefix, and label filtering are resolved from flow-store
+        indexes without loading full flow state. A terminal flow remains indexed
+        as `active` until `flow_deactivated` records that no remaining work can
+        produce external side effects (changes outside flow state).
       operationId: listFlows
       tags:
         - Flows
@@ -741,7 +766,9 @@ paths:
       description: |
         Create and start a new flow execution with goal-driven planning.
 
-        If `space_id` is omitted, planning uses the complete global step catalog. If supplied, the current Space selector is resolved against registered Step metadata before planning.
+        If `space_id` is omitted, planning uses the complete global step
+        catalog. If supplied, the current Space selector is resolved against
+        registered Step metadata before planning.
 
         The engine will:
         1. Create an execution plan containing only necessary steps
@@ -749,7 +776,11 @@ paths:
         3. Start the flow in `active` state
         4. Execute steps in dependency order until a goal set is reached
 
-        `goals` is a chain of fallback goal sets. Every one of `steps` must succeed. The set in `else` is attempted only when `steps` becomes impossible, and it reuses every completed step and attribute from earlier attempts. Required inputs are the union across all sets, so every set is startable.
+        `goals` is a chain of fallback goal sets. Every one of `steps` must
+        succeed. The set in `else` is attempted only when `steps` becomes
+        impossible, and it reuses every completed step and attribute from
+        earlier attempts. Required inputs are the union across all sets, so
+        every set is startable.
       operationId: createFlow
       tags:
         - Flows
@@ -801,9 +832,13 @@ paths:
     post:
       summary: Query Flows
       description: |
-        Query non-child flows using ID prefix, labels, deactivation-based status filters, and pagination.
+        Query non-child flows using ID prefix, labels, deactivation-based status
+        filters, and pagination.
 
-        The engine resolves status, ID-prefix, and label filtering directly from flow-store indexes. A terminal flow remains indexed as `active` until `flow_deactivated` records that no remaining work can produce external side effects (changes outside flow state).
+        The engine resolves status, ID-prefix, and label filtering directly from
+        flow-store indexes. A terminal flow remains indexed as `active` until
+        `flow_deactivated` records that no remaining work can produce external
+        side effects (changes outside flow state).
       operationId: queryFlows
       tags:
         - Flows
@@ -877,7 +912,8 @@ paths:
     get:
       summary: Get Flow Status
       description: |
-        Retrieve the minimal deactivation-based status payload for a specific flow.
+        Retrieve the minimal deactivation-based status payload for a specific
+        flow.
 
         This endpoint is intended for lightweight polling when callers do not
         need the full reconstructed flow state.
@@ -885,11 +921,12 @@ paths:
         The engine resolves this directly from the flow status index without
         loading the full flow state. The index remains `active` after a flow
         enters terminal state while work that has already started or
-        compensation can still produce external side effects. It
-        changes to `completed` or `failed` when `flow_deactivated` is recorded.
-        Use `GET /engine/flows/{flow_id}` or terminal flow events to observe and
-        act on an outcome before deactivation. This indexed endpoint reports
-        final status only after remaining work can no longer produce external side effects.
+        compensation can still produce external side effects. It changes to
+        `completed` or `failed` when `flow_deactivated` is recorded. Use
+        `GET /engine/flows/{flow_id}` or terminal flow events to observe and act
+        on an outcome before deactivation. This indexed endpoint reports final
+        status only after remaining work can no longer produce external side
+        effects.
       operationId: getFlowStatus
       tags:
         - Flows
@@ -924,7 +961,9 @@ paths:
   /engine/flows/{flow_id}/events:
     get:
       summary: Flow Events
-      description: Get all raw events for a flow aggregate, from sequence zero to the present. Returns 404 if no events exist for the given flow ID
+      description: |
+        Get all raw events for a flow aggregate, from sequence zero to the
+        present. Returns 404 if no events exist for the given flow ID
       operationId: getFlowEvents
       tags:
         - Flows
@@ -963,9 +1002,9 @@ paths:
         Receive asynchronous invocation results. This endpoint is called when a
         service step's `invoke` action has `mode: async`.
 
-        The `token` parameter is a receipt token generated by the engine when the
-        async invocation was started. It validates that the callback is for a
-        legitimate in-progress step execution.
+        The `token` parameter is a receipt token generated by the engine when
+        the async invocation was started. It validates that the callback is for
+        a legitimate in-progress step execution.
       operationId: handleCallback
       tags:
         - Callbacks
@@ -1105,7 +1144,8 @@ paths:
         }
         ```
 
-        If `include_state` is `true`, the server responds with a `subscribed` message containing the current projection for every requested aggregate:
+        If `include_state` is `true`, the server responds with a `subscribed`
+        message containing the current projection for every requested aggregate:
 
         ```json
         {
@@ -1121,19 +1161,27 @@ paths:
         }
         ```
 
-        After subscription, the server streams events matching your filter. For each subscribed aggregate, the server filters out stale live events whose sequence is lower than the initial subscribed sequence for that aggregate.
+        After subscription, the server streams events matching your filter. For
+        each subscribed aggregate, the server filters out stale live events
+        whose sequence is lower than the initial subscribed sequence for that
+        aggregate.
 
         ## Aggregate IDs
 
-        An aggregate ID is a type and a key. An aggregate that is the only one of its type uses the key `_`, which you may omit when subscribing.
+        An aggregate ID is a type and a key. An aggregate that is the only one
+        of its type uses the key `_`, which you may omit when subscribing.
 
         - **Catalog events**: `["catalog"]` - step registration and updates
         - **Cluster events**: `["cluster"]` - per-step health across nodes
-        - **Flow events**: `["flow", "flow-id"]` - flow and step execution events
+        - **Flow events**: `["flow", "flow-id"]` - flow and step execution
+          events
 
-        Server messages always carry both parts, so catalog events arrive as `["catalog", "_"]`.
+        Server messages always carry both parts, so catalog events arrive as
+        `["catalog", "_"]`.
 
-        Each ID selects one aggregate. `["flow"]` is not a wildcard. Omitted or empty `aggregate_ids` selects all aggregates. Malformed IDs and empty components prevent the subscription from being registered.
+        Each ID selects one aggregate. `["flow"]` is not a wildcard. Omitted or
+        empty `aggregate_ids` selects all aggregates. Malformed IDs and empty
+        components prevent the subscription from being registered.
 
         ## Event Filtering
 
@@ -1168,16 +1216,18 @@ paths:
         **Event Types:**
         - Catalog events: step_registered, step_unregistered, step_updated
         - Cluster events: step_health_changed
-        - Flow events: flow_started, flow_completed, flow_failed, flow_deactivated,
-          step_started, step_completed, step_failed, step_skipped, attribute_set,
-          work_started, work_succeeded, work_failed, work_not_completed,
-          work_retry_scheduled, dispatch_deferred, comp_started,
-          comp_retry_scheduled, comp_succeeded, comp_failed
+        - Flow events: flow_started, flow_completed, flow_failed,
+          flow_deactivated, step_started, step_completed, step_failed,
+          step_skipped, attribute_set, work_started, work_succeeded,
+          work_failed, work_not_completed, work_retry_scheduled,
+          dispatch_deferred, comp_started, comp_retry_scheduled, comp_succeeded,
+          comp_failed
 
         For flow lifecycle consumers, `flow_completed` and `flow_failed`
-        establish an outcome that callers can use immediately. `flow_deactivated` is emitted
-        later, once no pending, active, or compensating work can still produce
-        external side effects and no parent flow can still order a rollback.
+        establish an outcome that callers can use immediately.
+        `flow_deactivated` is emitted later, once no pending, active, or
+        compensating work can still produce external side effects and no parent
+        flow can still order a rollback.
       operationId: connectWebSocket
       tags:
         - WebSocket
@@ -1206,7 +1256,8 @@ components:
           description: Error message if status is unhealthy
         details:
           type: object
-          description: Informational subsystem status that does not affect overall health
+          description: |
+            Informational subsystem status that does not affect overall health
           additionalProperties: true
 
     CatalogState:
@@ -1295,7 +1346,8 @@ components:
         sequence:
           type: integer
           format: int64
-          description: Monotonically increasing sequence number within the aggregate
+          description: |
+            Monotonically increasing sequence number within the aggregate
           example: 0
         timestamp:
           type: string
@@ -1307,7 +1359,8 @@ components:
           example: "flow_started"
         aggregate_id:
           type: array
-          description: Aggregate type and key (e.g. ["flow", "wf-123"] or ["catalog", "_"])
+          description: |
+            Aggregate type and key (e.g. ["flow", "wf-123"] or ["catalog", "_"])
           items:
             type: string
           example: ["flow", "wf-text-processing-001"]
@@ -1372,7 +1425,8 @@ components:
       properties:
         health:
           type: object
-          description: Per-node resolved step health keyed by node ID, then step ID
+          description: |
+            Per-node resolved step health keyed by node ID, then step ID
           additionalProperties:
             type: object
             additionalProperties:
@@ -1426,7 +1480,8 @@ components:
           example: "service"
         attributes:
           type: object
-          description: Step attributes (inputs and outputs) mapped by attribute name
+          description: |
+            Step attributes (inputs and outputs) mapped by attribute name
           additionalProperties:
             $ref: "#/components/schemas/AttributeSpec"
           example:
@@ -1463,9 +1518,10 @@ components:
                     script: "$.response.data"
         tags:
           type: array
-          description: Optional tags for categorization and discovery, held as
-            a set of opaque strings. A `prefix:value` shape is a convention
-            callers may adopt, and the engine compares whole strings
+          description: |
+            Optional tags for categorization and discovery, held as a set of
+            opaque strings. A `prefix:value` shape is a convention callers may
+            adopt, and the engine compares whole strings
           items:
             type: string
           example:
@@ -1480,9 +1536,9 @@ components:
             Item, after `for_each` expansion and before any work is created.
             Without `for_each`, there is one candidate. False excludes an item.
             If every candidate is rejected, the Step is skipped. Accepted items
-            are not evaluated again on dispatch, retry, or recovery.
-            Errors fail the Step before any work starts. An empty expansion
-            completes without evaluating the Predicate or creating work.
+            are not evaluated again on dispatch, retry, or recovery. Errors fail
+            the Step before any work starts. An empty expansion completes
+            without evaluating the Predicate or creating work.
         handling:
           type: string
           enum: [standard, memoized, compensated]
@@ -1516,7 +1572,8 @@ components:
             - `required`: Input that must be available before execution
             - `optional`: Input that may be omitted
             - `const`: Input fixed to a constant value
-            - `meta`: Input drawn from step/flow execution metadata at invocation time
+            - `meta`: Input drawn from step/flow execution metadata at
+              invocation time
             - `output`: Value the step may produce during execution
           enum:
             - required
@@ -1567,13 +1624,15 @@ components:
             How upstream provider outputs are resolved:
             - `first`: first available value (default)
             - `last`: last value after all potential providers finish
-            - `all`: array of values after every provider completes successfully and supplies the attribute
-            - `some`: array of the supplied values after all potential providers finish, when at least one supplies the attribute
+            - `all`: array of values after every provider completes successfully
+              and supplies the attribute
+            - `some`: array of the supplied values after all potential providers
+              finish, when at least one supplies the attribute
             - `none`: satisfied only when no provider produces the attribute
 
             If a required value is missing and no provider can supply it, the
-            consumer fails with `required input no longer available`.
-            The Flow fails if its Goals are no longer reachable.
+            consumer fails with `required input no longer available`. The Flow
+            fails if its Goals are no longer reachable.
           enum:
             - first
             - last
@@ -1584,17 +1643,24 @@ components:
           example: "first"
         for_each:
           type: boolean
-          description: >
-            Expand into one Work Item per collected candidate value. Valid
-            only when `collect` is `all` or `some`, since those are the only
-            policies that resolve to an array of candidates.
+          description: |
+            Expand into one Work Item per collected candidate value. Valid only
+            when `collect` is `all` or `some`, since those are the only policies
+            that resolve to an array of candidates.
           default: false
           example: false
         match:
           allOf:
             - $ref: "#/components/schemas/ScriptConfig"
-          description: >
-            Optional predicate evaluated against each candidate value before collection. Lua receives one candidate as `value`. JSONPath (`jpath`) evaluates one candidate as its document. Collect semantics are then applied over matching candidates: `some` requires at least one match, `all` requires every upstream candidate to match, and `none` requires no candidate to match. With `for_each`, Work Items expand from the matched candidates, so a predicate that matches nothing yields none.
+          description: |
+            Optional predicate evaluated against each candidate value before
+            collection. Lua receives one candidate as `value`. JSONPath
+            (`jpath`) evaluates one candidate as its document. Collect semantics
+            are then applied over matching candidates: `some` requires at least
+            one match, `all` requires every upstream candidate to match, and
+            `none` requires no candidate to match. With `for_each`, Work Items
+            expand from the matched candidates, so a predicate that matches
+            nothing yields none.
         mapping:
           $ref: "#/components/schemas/MappingConfig"
 
@@ -1608,9 +1674,9 @@ components:
         collect:
           type: string
           description: |
-            How upstream provider outputs are resolved (same values as RequiredConfig).
-            The complete collection policy must be satisfied before expiry.
-            Partial values do not replace the default on timeout.
+            How upstream provider outputs are resolved (same values as
+            RequiredConfig). The complete collection policy must be satisfied
+            before expiry. Partial values do not replace the default on timeout.
           enum:
             - first
             - last
@@ -1621,35 +1687,38 @@ components:
           example: "first"
         for_each:
           type: boolean
-          description: >
-            Expand into one Work Item per collected candidate value. Valid
-            only when `collect` is `all` or `some`, since those are the only
-            policies that resolve to an array of candidates.
+          description: |
+            Expand into one Work Item per collected candidate value. Valid only
+            when `collect` is `all` or `some`, since those are the only policies
+            that resolve to an array of candidates.
           default: false
           example: false
         match:
           allOf:
             - $ref: "#/components/schemas/ScriptConfig"
-          description: >
-            Optional predicate evaluated against each candidate value before collection, exactly as in `RequiredConfig`. Candidates that fail to match are treated as absent for collection purposes, so the default below can still apply.
+          description: |
+            Optional predicate evaluated against each candidate value before
+            collection, exactly as in `RequiredConfig`. Candidates that fail to
+            match are treated as absent for collection purposes, so the default
+            below can still apply.
         default:
           type: string
           description: |
             Default value as a JSON string, used when the collection policy
-            cannot be satisfied or the inactivity window expires unsatisfied.
-            If omitted, the input is omitted in those cases.
+            cannot be satisfied or the inactivity window expires unsatisfied. If
+            omitted, the input is omitted in those cases.
           example: '"default_value"'
         deadline:
           type: integer
           format: int64
           description: |
             Maximum inactivity gap in milliseconds, starting when all required
-            inputs are satisfied. Each value arriving before expiry resets
-            this input's window while collection is still pending. Provider
+            inputs are satisfied. Each value arriving before expiry resets this
+            input's window while collection is still pending. Provider
             completion without a value does not reset it. Expired windows never
-            reopen, even if another optional input keeps the step pending or
-            the engine restarts. Zero or omission means no waiting: use only
-            inputs already satisfied when the required inputs became ready.
+            reopen, even if another optional input keeps the step pending or the
+            engine restarts. Zero or omission means no waiting: use only inputs
+            already satisfied when the required inputs became ready.
           minimum: 0
           default: 0
           example: 2000
@@ -1658,7 +1727,9 @@ components:
 
     ConstConfig:
       type: object
-      description: Configuration for a const attribute, a fixed value injected at execution time
+      description: |
+        Configuration for a const attribute, a fixed value injected at execution
+        time
       required:
         - value
       properties:
@@ -1669,13 +1740,17 @@ components:
 
     MetaConfig:
       type: object
-      description: Configuration for a meta attribute, a value drawn from step/flow execution metadata at invocation time
+      description: |
+        Configuration for a meta attribute, a value drawn from step/flow
+        execution metadata at invocation time
       required:
         - key
       properties:
         key:
           type: string
-          description: The metadata key to inject (e.g. flow_id, step_id, receipt_token, webhook_url)
+          description: |
+            The metadata key to inject (e.g. flow_id, step_id, receipt_token,
+            webhook_url)
           example: "webhook_url"
 
     OutputConfig:
@@ -1692,19 +1767,24 @@ components:
       description: |
         Defines parameter name mapping and value transformation for attributes.
         Allows renaming parameters between flow state and service interfaces,
-        and transforming values using scripts (JSONPath (`jpath`) for queries, Lua for logic).
+        and transforming values using scripts (JSONPath (`jpath`) for queries,
+        Lua for logic).
 
-        At least one of `name` or `script` must be provided.
-        Not allowed on const or meta attributes.
+        At least one of `name` or `script` must be provided. Not allowed on
+        const or meta attributes.
       properties:
         name:
           type: string
           description: |
-            Service-level parameter name (inner name) - the key used in the service request/response.
-            If not specified, the attribute name (outer name) is used.
+            Service-level parameter name (inner name) - the key used in the
+            service request/response. If not specified, the attribute name
+            (outer name) is used.
 
-            For inputs: reads from flow state using attribute name, sends to service using this name.
-            For outputs: reads from the service response using this name and, when the output is retained for a Goal or downstream consumer, stores it in Flow state using the attribute name.
+            For inputs: reads from flow state using attribute name, sends to
+            service using this name.
+            For outputs: reads from the service response using this name and,
+            when the output is retained for a Goal or downstream consumer,
+            stores it in Flow state using the attribute name.
           example: "user_email"
         script:
           $ref: "#/components/schemas/ScriptConfig"
@@ -1723,12 +1803,12 @@ components:
         method:
           type: string
           description: |
-            Optional HTTP method used to call this endpoint.
-            Supported values are `GET`, `POST`, `PUT`, and `DELETE`.
-            Defaults to `POST` when omitted.
+            Optional HTTP method used to call this endpoint. Supported values
+            are `GET`, `POST`, `PUT`, and `DELETE`. Defaults to `POST` when
+            omitted.
 
-            Invoke `GET` requests carry no body. Compensation `GET` and
-            `DELETE` requests carry no body. Other requests carry JSON.
+            Invoke `GET` requests carry no body. Compensation `GET` and `DELETE`
+            requests carry no body. Other requests carry JSON.
           enum:
             - GET
             - POST
@@ -1747,10 +1827,10 @@ components:
           type: integer
           format: int64
           description: |
-            Optional per-action timeout in milliseconds.
-            If omitted or <= 0, `compensate` falls back to the `invoke`
-            timeout, and `invoke` falls back to the global engine timeout
-            (`STEP_TIMEOUT`, default `30000` ms).
+            Optional per-action timeout in milliseconds. If omitted or <= 0,
+            `compensate` falls back to the `invoke` timeout, and `invoke` falls
+            back to the global engine timeout (`STEP_TIMEOUT`, default
+            `30000` ms).
           example: 30000
         mode:
           type: string
@@ -1777,15 +1857,14 @@ components:
             - $ref: "#/components/schemas/HttpAction"
           description: |
             Endpoint that reverses completed work. Required when handling is
-            `compensated` and forbidden otherwise. Its request arguments are
-            the attributes marked `compensated`. Selected attributes resolve
-            URL placeholders for every method and form the JSON body for
-            `POST` and `PUT`.
+            `compensated` and forbidden otherwise. Its request arguments are the
+            attributes marked `compensated`. Selected attributes resolve URL
+            placeholders for every method and form the JSON body for `POST` and
+            `PUT`.
         health:
           type: string
           format: uri
-          description: |
-            Optional health check endpoint. Always polled with `GET`.
+          description: Optional health check endpoint. Always polled with `GET`.
           example: "http://localhost:8081/health"
 
     ScriptConfig:
@@ -1794,11 +1873,11 @@ components:
         Configuration for script-based steps, predicates, attribute mappings,
         and Space selectors.
 
-        For step execution (`type: script`), `lua` is supported.
-        For predicates and attribute mappings, all registered languages are valid
-        (`lua`, `jpath` in the default engine).
-        Space selectors use the same languages and evaluate stable Step metadata.
-        A selector generated from `qbe` is emitted as `jpath`.
+        For step execution (`type: script`), `lua` is supported. For predicates
+        and attribute mappings, all registered languages are valid (`lua`,
+        `jpath` in the default engine). Space selectors use the same languages
+        and evaluate stable Step metadata. A selector generated from `qbe` is
+        emitted as `jpath`.
       required:
         - language
         - script
@@ -1816,7 +1895,8 @@ components:
           description: |
             The script code to execute.
 
-            For JSONPath (`jpath`): A query string like `$.user.email` or `$.data[0].value`
+            For JSONPath (`jpath`): A query string like `$.user.email` or
+            `$.data[0].value`
             For Lua: The complete script code
           example: 'return {greeting = "Hello, " .. name}'
 
@@ -1840,8 +1920,8 @@ components:
     Goals:
       type: object
       description: |
-        A chain of fallback goal sets. Every one of `steps` must succeed. The set
-        in `else` is attempted only when `steps` becomes impossible, and it
+        A chain of fallback goal sets. Every one of `steps` must succeed. The
+        set in `else` is attempted only when `steps` becomes impossible, and it
         reuses every completed step and attribute from earlier attempts.
       required:
         - steps
@@ -1871,60 +1951,54 @@ components:
         space_id:
           type: string
           description: |
-            Optional Space that restricts planning for the child flow. Every goal
-            must be a current member of the Space.
+            Optional Space that restricts planning for the child flow. Every
+            goal must be a current member of the Space.
           example: "payments"
         compensate:
           type: boolean
           description: |
-            Enable Rollback on Failure for the child flow. Every completed
-            work item is compensated if the child flow fails. When it
-            completes through a fallback goal set, completed work that the
-            winning set does not use is compensated. Not inherited from the
-            parent flow.
+            Enable Rollback on Failure for the child flow. Every completed work
+            item is compensated if the child flow fails. When it completes
+            through a fallback goal set, completed work that the winning set
+            does not use is compensated. Not inherited from the parent flow.
           example: true
 
     WorkConfig:
       type: object
       description: |
-        Configuration for step execution behavior.
-        If retry settings are omitted (no `work_config`, or `work_config`
-        only setting non-retry fields like `parallelism`), the engine uses
-        global retry defaults.
-        Global retry defaults are validated at engine startup.
+        Configuration for step execution behavior. If retry settings are omitted
+        (no `work_config`, or `work_config` only setting non-retry fields like
+        `parallelism`), the engine uses global retry defaults. Global retry
+        defaults are validated at engine startup.
       properties:
         max_retries:
           type: integer
           description: |
-            Maximum number of retries on failure.
-            `0` means use global default, `-1` means unlimited retries.
+            Maximum number of retries on failure. `0` means use global default,
+            `-1` means unlimited retries.
           example: 3
         init_backoff:
           type: integer
           format: int64
           description: |
-            Initial backoff delay in milliseconds.
-            `0` means use global default.
+            Initial backoff delay in milliseconds. `0` means use global default.
           example: 1000
         max_backoff:
           type: integer
           format: int64
           description: |
-            Maximum backoff delay in milliseconds.
-            `0` means use global default.
+            Maximum backoff delay in milliseconds. `0` means use global default.
           example: 30000
         backoff_type:
           type: string
           enum: ["fixed", "linear", "exponential"]
-          description: |
-            Backoff strategy.
-            Empty string means use global default.
+          description: Backoff strategy. Empty string means use global default.
           example: "exponential"
         parallelism:
           type: integer
           description: |
-            Maximum parallel executions for for_each steps.
-            If omitted or <= 0, execution defaults to sequential (`1`).
+            Maximum parallel executions for for_each steps. If omitted or <= 0,
+            execution defaults to sequential (`1`).
           example: 10
 
     StepRegisteredResponse:
@@ -1977,25 +2051,25 @@ components:
         selector:
           allOf:
             - $ref: "#/components/schemas/ScriptConfig"
-          description: Authoritative selector, a predicate over stable Step
-            metadata in any registered scripting language. The document exposes
-            tags as an array under `tags`, the Step `type`, its defaulted `handling`,
-            and `attributes` keyed by name. Each attribute contains only `role`,
+          description: |
+            Authoritative selector, a predicate over stable Step metadata in any
+            registered scripting language. The document exposes tags as an array
+            under `tags`, the Step `type`, its defaulted `handling`, and
+            `attributes` keyed by name. Each attribute contains only `role`,
             `type`, and `compensated`. JPath receives the document directly,
             making a tag test read `$.tags[?@=="domain:risk"]`. Lua receives it
             as `value` and gets the helpers `has(list, value)` and
             `has_prefix(list, prefix)`, making the same test read
-            `has(value.tags, "domain:risk")`.
-            Query-by-example matches on tags.
+            `has(value.tags, "domain:risk")`. Query-by-example matches on tags.
         qbe:
           type: array
-          description: Optional query-by-example source, a list of alternative
-            tag sets. A Step matches when it carries every tag of any one of
-            them, so tags within a set are ANDed and the sets themselves are
-            ORed. When present, the engine stores each set sorted and
-            deduplicated, sorts and deduplicates the sets, and replaces
-            `selector` with generated JPath. Every tag across all sets counts
-            toward the tag limit
+          description: |
+            Optional query-by-example source, a list of alternative tag sets. A
+            Step matches when it carries every tag of any one of them, so tags
+            within a set are ANDed and the sets themselves are ORed. When
+            present, the engine stores each set sorted and deduplicated, sorts
+            and deduplicates the sets, and replaces `selector` with generated
+            JPath. Every tag across all sets counts toward the tag limit
           minItems: 1
           items:
             type: array
@@ -2062,7 +2136,10 @@ components:
           example: risk
         init:
           type: object
-          description: Initial flow attribute values
+          description: |
+            Initial flow attribute values. Each key declares the resolved values
+            for that attribute, and an empty array declares that zero values
+            were resolved. Omit a key to let providers supply it.
           additionalProperties:
             type: array
             items: {}
@@ -2081,7 +2158,9 @@ components:
           $ref: "#/components/schemas/Goals"
         required:
           type: array
-          description: Inputs that must be provided in init, the union of what every goal set requires
+          description: |
+            Inputs that must be declared in init, the union of what every goal
+            set requires. An empty array declares an input
           items:
             type: string
           example: ["input_text"]
@@ -2093,33 +2172,38 @@ components:
         children:
           type: object
           description: |
-            Map of flow step ID to its precomputed child execution plan.
-            Present only for included flow steps. Child plans are compiled when
-            the parent plan is created and do not replan at child start time.
+            Map of flow step ID to its precomputed child execution plan. Present
+            only for included flow steps. Child plans are compiled when the
+            parent plan is created and do not replan at child start time.
           additionalProperties:
             $ref: "#/components/schemas/ExecutionPlan"
         attributes:
           type: object
-          description: Map of attribute names to their provider/consumer dependencies
+          description: |
+            Map of attribute names to their provider/consumer dependencies
           additionalProperties:
             $ref: "#/components/schemas/Dependencies"
         excluded:
           allOf:
             - $ref: "#/components/schemas/ExcludedSteps"
-          description: Steps encountered during dependency traversal that were not included in the plan, grouped by reason
+          description: |
+            Steps encountered during dependency traversal that were not included
+            in the plan, grouped by reason
 
     ExcludedSteps:
       type: object
       description: |
-        Steps that were considered during dependency resolution but not included in the plan.
-        Only steps reachable from the goal set are represented here. Unrelated catalog steps are not included.
+        Steps that were considered during dependency resolution but not included
+        in the plan. Only steps reachable from the goal set are represented
+        here. Unrelated catalog steps are not included.
       properties:
         missing:
           type: object
           description: |
-            Steps that could not be included because one or more required inputs have no provider and
-            were not supplied in init. Map of step ID to the list of unsatisfied required input names.
-            Includes alternative providers that were rejected in favor of a satisfiable provider.
+            Steps that could not be included because one or more required inputs
+            have no provider and were not declared in init. Map of step ID to
+            the list of unsatisfied required input names. Includes alternative
+            providers that were rejected in favor of a satisfiable provider.
           additionalProperties:
             type: array
             items:
@@ -2127,8 +2211,9 @@ components:
         satisfied:
           type: object
           description: |
-            Steps skipped because all their outputs were already available from init state,
-            making their execution unnecessary. Map of step ID to the list of output names that were satisfied.
+            Steps skipped because all their outputs were already declared in
+            init state, making their execution unnecessary. Map of step ID to
+            the list of output names that were satisfied.
           additionalProperties:
             type: array
             items:
@@ -2136,9 +2221,11 @@ components:
         blocked:
           type: object
           description: |
-            Steps skipped because one or more inputs can never satisfy their collection policy with
-            the supplied init state. For example, an init value for a `collect: none` input blocks
-            that step because absence can no longer be proven. Map of step ID to blocked input names.
+            Steps skipped because one or more inputs can never satisfy their
+            collection policy with the supplied init state. For example, a
+            nonempty init array for a `collect: none` input blocks that step
+            because absence can no longer be proven. Map of step ID to blocked
+            input names.
           additionalProperties:
             type: array
             items:
@@ -2179,7 +2266,11 @@ components:
           $ref: "#/components/schemas/Goals"
         init:
           type: object
-          description: Initial flow attribute values providing required inputs
+          description: |
+            Initial flow attribute values providing required inputs. Each key
+            declares the resolved values for that attribute, and an empty array
+            declares that zero values were resolved. Omit a key to let providers
+            supply it.
           additionalProperties:
             type: array
             items: {}
@@ -2187,7 +2278,8 @@ components:
             input_text: ["Hello, Argyll!"]
         space_id:
           type: string
-          description: Optional planning space that defaults to the global catalog
+          description: |
+            Optional planning space that defaults to the global catalog
           example: "payments"
         labels:
           type: object
@@ -2197,11 +2289,10 @@ components:
         compensate:
           type: boolean
           description: |
-            Enable Rollback on Failure. Every completed work item in the flow
-            is compensated if the flow fails, rather than only those of the
-            step that failed. When the flow completes through a fallback goal
-            set, completed work that the winning set does not use is
-            compensated.
+            Enable Rollback on Failure. Every completed work item in the flow is
+            compensated if the flow fails, rather than only those of the step
+            that failed. When the flow completes through a fallback goal set,
+            completed work that the winning set does not use is compensated.
           example: true
 
     FlowStartedResponse:
@@ -2211,7 +2302,9 @@ components:
       properties:
         message:
           type: string
-          description: Optional informational message (currently returned as an empty string)
+          description: |
+            Optional informational message (currently returned as an empty
+            string)
           example: ""
         flow_id:
           type: string
@@ -2269,9 +2362,9 @@ components:
           type: string
           format: date-time
           description: |
-            Status timestamp used by flow list/query responses.
-            For active flows, this is when the flow entered active status.
-            For completed or failed flows, this is when the flow deactivated.
+            Status timestamp used by flow list/query responses. For active
+            flows, this is when the flow entered active status. For completed or
+            failed flows, this is when the flow deactivated.
         labels:
           type: object
           description: Flow labels when available in the summary
@@ -2312,7 +2405,9 @@ components:
         sort:
           type: string
           enum: [recent_desc, recent_asc]
-          description: Sort order by recency within status grouping (defaults to `recent_asc` when omitted)
+          description: |
+            Sort order by recency within status grouping (defaults to
+            `recent_asc` when omitted)
           example: "recent_desc"
 
     FlowStatusResponse:
@@ -2356,7 +2451,8 @@ components:
             Current reconstructed flow outcome. `completed` or `failed` is
             terminal and callers can use the outcome immediately, but
             `deactivated_at` may remain unset while work that has already
-            started can still produce external side effects or compensation runs.
+            started can still produce external side effects or compensation
+            runs.
           example: "active"
         created_at:
           type: string
@@ -2365,11 +2461,15 @@ components:
         completed_at:
           type: string
           format: date-time
-          description: Timestamp when the flow entered terminal state (if completed or failed)
+          description: |
+            Timestamp when the flow entered terminal state (if completed or
+            failed)
         deactivated_at:
           type: string
           format: date-time
-          description: Timestamp after a terminal outcome when no remaining work could produce external side effects, if deactivated
+          description: |
+            Timestamp after a terminal outcome when no remaining work could
+            produce external side effects, if deactivated
         last_updated:
           type: string
           format: date-time
@@ -2389,11 +2489,20 @@ components:
             type: string
         attributes:
           type: object
-          description: Map of attribute name to ordered list of values, including which step produced each value
+          description: |
+            Map of attribute name to ordered list of values, including which
+            step produced each value
           additionalProperties:
             type: array
             items:
               $ref: "#/components/schemas/AttributeValue"
+        init:
+          type: array
+          description: |
+            Sorted attribute names declared in the flow's init state, including
+            names declared with zero values
+          items:
+            type: string
         executions:
           type: object
           description: Map of step ID to execution state
@@ -2414,15 +2523,15 @@ components:
         step:
           type: string
           description: |
-            ID of the step that produced this value.
-            Omitted for attributes provided in flow init state.
+            ID of the step that produced this value. Omitted for attributes
+            provided in flow init state.
           example: "data-fetcher"
         set_at:
           type: string
           format: date-time
           description: |
-            When this attribute value was set in flow state.
-            For init-state attributes, this is the `flow_started` timestamp.
+            When this attribute value was set in flow state. For init-state
+            attributes, this is the `flow_started` timestamp.
 
     Completion:
       type: object
@@ -2463,13 +2572,16 @@ components:
           type: object
           description: |
             Output values retained for the Flow. Goal Steps retain all declared
-            outputs. Other Steps retain only outputs needed by downstream consumers.
+            outputs. Other Steps retain only outputs needed by downstream
+            consumers.
           additionalProperties: true
         unsatisfied:
           type: array
           items:
             type: string
-          description: Input names that could not be satisfied (present on skipped or failed steps)
+          description: |
+            Input names that could not be satisfied (present on skipped or
+            failed steps)
         error:
           type: string
           description: Error message if status is failed

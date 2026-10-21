@@ -334,7 +334,9 @@ func (s *stepEval) optionalDecisionAt(
 		anchor.At, attr.OptionalDeadline(), values,
 	)
 	providers, last := providerSummaryFor(s.flow, name)
-	if policy.InputFulfilled(attr.Collect(), len(values), providers) {
+	if policy.InputFulfilled(
+		attr.Collect(), len(values), providers, s.flow.HasInit(name),
+	) {
 		readyAt := policy.FulfilledAt(attr.Collect(), values, last.At)
 		if readyAt.Before(at) {
 			return optionalDecision{ready: true, values: values}
@@ -364,7 +366,9 @@ func (s *stepEval) resolveImmediateOptional(
 		}
 	}
 	providers, _ := providerSummaryAt(s.flow, name, anchor.Seq)
-	if policy.InputFulfilled(attr.Collect(), len(accepted), providers) {
+	if policy.InputFulfilled(
+		attr.Collect(), len(accepted), providers, s.flow.HasInit(name),
+	) {
 		return optionalDecision{ready: true, values: accepted}
 	}
 	return optionalDecision{ready: true, fallback: true}
@@ -383,7 +387,9 @@ func (s *stepEval) requiredReadyAt() (api.Completion, error) {
 			return api.Completion{}, err
 		}
 		providers, last := providerSummaryFor(s.flow, name)
-		if !policy.InputFulfilled(attr.Collect(), len(values), providers) {
+		if !policy.InputFulfilled(
+			attr.Collect(), len(values), providers, s.flow.HasInit(name),
+		) {
 			return api.Completion{}, nil
 		}
 		if attr.Collect() == api.InputCollectFirst {

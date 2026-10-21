@@ -166,6 +166,15 @@ func TestValidateNilArgs(t *testing.T) {
 	assert.Error(t, err)
 }
 
+func TestValidateEmptyValues(t *testing.T) {
+	pl := &api.ExecutionPlan{
+		Required: []api.Name{"input1"},
+	}
+
+	err := pl.ValidateInputs(api.InitArgs{"input1": {}})
+	assert.NoError(t, err)
+}
+
 func TestValidateEmptyArgs(t *testing.T) {
 	pl := &api.ExecutionPlan{
 		Required: []api.Name{"input1", "input2"},
