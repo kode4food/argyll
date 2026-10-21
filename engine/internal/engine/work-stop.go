@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/kode4food/argyll/engine/internal/engine/memo"
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/events"
 	"github.com/kode4food/argyll/engine/pkg/log"
@@ -78,7 +79,11 @@ func (tx *flowTx) memoizeWorkOutput(
 	ex := fl.Executions[sid]
 	work := ex.WorkItems[tkn]
 	inputs := ex.Inputs.Apply(work.Inputs)
-	if err := tx.memoCache.Put(st, inputs, outputs); err != nil {
+	err := tx.memoCache.Put(st, memo.PutArgs{
+		Inputs:  inputs,
+		Outputs: outputs,
+	})
+	if err != nil {
 		slog.Warn("memo cache put failed",
 			log.FlowID(tx.flowID), log.StepID(sid),
 			log.Error(err))
@@ -108,7 +113,10 @@ func (tx *flowTx) checkWorkTransition(
 		return fmt.Errorf("%w: %s", api.ErrWorkItemNotFound, tkn)
 	}
 
-	if !policy.WorkCanTransition(work.Status, toStatus) {
+	if !policy.WorkCanTransition(policy.TransitionArgs[api.WorkStatus]{
+		From: work.Status,
+		To:   toStatus,
+	}) {
 		return fmt.Errorf("%w: %s -> %s", api.ErrInvalidWorkTransition,
 			work.Status, toStatus)
 	}

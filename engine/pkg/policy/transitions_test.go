@@ -26,20 +26,26 @@ func TestCanTransition(t *testing.T) {
 		StateFailed:   {},
 	}
 
+	can := func(from, to TestState) bool {
+		return transitions.CanTransition(
+			policy.TransitionArgs[TestState]{From: from, To: to},
+		)
+	}
+
 	// The table lists StateRunning as its own successor, but staying put is
 	// not a transition
-	assert.False(t, transitions.CanTransition(StateRunning, StateRunning))
+	assert.False(t, can(StateRunning, StateRunning))
 
-	assert.True(t, transitions.CanTransition(StateInit, StateRunning))
-	assert.True(t, transitions.CanTransition(StateInit, StateFailed))
-	assert.True(t, transitions.CanTransition(StateRunning, StateComplete))
-	assert.True(t, transitions.CanTransition(StateRunning, StateFailed))
+	assert.True(t, can(StateInit, StateRunning))
+	assert.True(t, can(StateInit, StateFailed))
+	assert.True(t, can(StateRunning, StateComplete))
+	assert.True(t, can(StateRunning, StateFailed))
 
-	assert.False(t, transitions.CanTransition(StateInit, StateComplete))
-	assert.False(t, transitions.CanTransition(StateComplete, StateRunning))
-	assert.False(t, transitions.CanTransition(StateFailed, StateRunning))
+	assert.False(t, can(StateInit, StateComplete))
+	assert.False(t, can(StateComplete, StateRunning))
+	assert.False(t, can(StateFailed, StateRunning))
 
-	assert.False(t, transitions.CanTransition("unknown", StateRunning))
+	assert.False(t, can("unknown", StateRunning))
 }
 
 func TestIsTerminal(t *testing.T) {

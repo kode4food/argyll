@@ -181,7 +181,10 @@ func (e *Engine) matchesStartedFlow(
 			return false, err
 		}
 		return data.FlowID == fid && data.Plan.Goals.Equal(&pl.Goals) &&
-			initArgsEqual(data.Init, init), nil
+			initArgsEqual(initArgsEqualArgs{
+				existing: data.Init,
+				proposed: init,
+			}), nil
 	}
 	return false, nil
 }
@@ -216,14 +219,19 @@ func childFlowID(parent api.FlowStep, tkn api.Token) api.FlowID {
 	)
 }
 
-func initArgsEqual(a, b api.InitArgs) bool {
-	aj, err := json.Marshal(a)
+type initArgsEqualArgs struct {
+	existing api.InitArgs
+	proposed api.InitArgs
+}
+
+func initArgsEqual(args initArgsEqualArgs) bool {
+	existingJSON, err := json.Marshal(args.existing)
 	if err != nil {
 		return false
 	}
-	bj, err := json.Marshal(b)
+	proposedJSON, err := json.Marshal(args.proposed)
 	if err != nil {
 		return false
 	}
-	return string(aj) == string(bj)
+	return string(existingJSON) == string(proposedJSON)
 }

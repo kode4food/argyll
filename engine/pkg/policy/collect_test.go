@@ -82,17 +82,19 @@ func TestCollectWindow(t *testing.T) {
 }
 
 func TestInitPolicy(t *testing.T) {
-	assert.True(t, policy.InitSatisfiesInput(api.InputCollectFirst, true))
-	assert.False(t, policy.InitSatisfiesInput(api.InputCollectLast, true))
-	assert.False(t, policy.InitSatisfiesInput(api.InputCollectFirst, false))
-
 	assert.True(t, policy.InitBlocksInput(api.InputCollectNone, true))
 	assert.False(t, policy.InitBlocksInput(api.InputCollectFirst, true))
 	assert.False(t, policy.InitBlocksInput(api.InputCollectNone, false))
 
-	assert.True(t, policy.InitProviderComplete(true, false))
-	assert.False(t, policy.InitProviderComplete(true, true))
-	assert.False(t, policy.InitProviderComplete(false, false))
+	assert.True(t, policy.InitProviderComplete(
+		&policy.RequiredInputState{HasInit: true, HasProvider: false},
+	))
+	assert.False(t, policy.InitProviderComplete(
+		&policy.RequiredInputState{HasInit: true, HasProvider: true},
+	))
+	assert.False(t, policy.InitProviderComplete(
+		&policy.RequiredInputState{HasInit: false, HasProvider: false},
+	))
 }
 
 func TestInitSatisfiesRequired(t *testing.T) {
@@ -121,6 +123,14 @@ func TestInitSatisfiesRequired(t *testing.T) {
 		Attr:    requiredMatch(cfg, api.InputCollectFirst),
 		HasInit: true,
 		Values:  []*api.AttributeValue{{Value: "bad"}},
+		Match:   matcher,
+	}))
+	assert.True(t, policy.InitSatisfiesRequired(&policy.RequiredInputState{
+		Attr: &api.AttributeSpec{
+			Role:     api.RoleRequired,
+			Required: &api.RequiredConfig{Collect: api.InputCollectLast},
+		},
+		HasInit: true,
 		Match:   matcher,
 	}))
 }
@@ -157,39 +167,71 @@ func TestInitBlocksRuntime(t *testing.T) {
 }
 
 func TestRequiredInputMissing(t *testing.T) {
-	assert.False(t,
-		policy.RequiredInputMissing(api.InputCollectFirst, true, false),
-	)
-	assert.False(t,
-		policy.RequiredInputMissing(api.InputCollectNone, false, false),
-	)
-	assert.False(t,
-		policy.RequiredInputMissing(api.InputCollectFirst, false, true),
-	)
-	assert.True(t,
-		policy.RequiredInputMissing(api.InputCollectFirst, false, false),
-	)
+	attr := func(collect api.InputCollect) *api.AttributeSpec {
+		return &api.AttributeSpec{
+			Role:     api.RoleRequired,
+			Required: &api.RequiredConfig{Collect: collect},
+		}
+	}
+	assert.False(t, policy.RequiredInputMissing(&policy.RequiredInputState{
+		Attr:        attr(api.InputCollectFirst),
+		HasProvider: true,
+		HasInit:     false,
+	}))
+	assert.False(t, policy.RequiredInputMissing(&policy.RequiredInputState{
+		Attr:        attr(api.InputCollectNone),
+		HasProvider: false,
+		HasInit:     false,
+	}))
+	assert.False(t, policy.RequiredInputMissing(&policy.RequiredInputState{
+		Attr:        attr(api.InputCollectFirst),
+		HasProvider: false,
+		HasInit:     true,
+	}))
+	assert.True(t, policy.RequiredInputMissing(&policy.RequiredInputState{
+		Attr:        attr(api.InputCollectFirst),
+		HasProvider: false,
+		HasInit:     false,
+	}))
 }
 
 func TestProviderOutputNeeded(t *testing.T) {
-	assert.False(t,
-		policy.ProviderOutputNeeded(api.InputCollectFirst, true, true),
-	)
-	assert.True(t,
-		policy.ProviderOutputNeeded(api.InputCollectFirst, false, true),
-	)
-	assert.True(t,
-		policy.ProviderOutputNeeded(api.InputCollectLast, true, true),
-	)
-	assert.True(t,
-		policy.ProviderOutputNeeded(api.InputCollectSome, true, true),
-	)
-	assert.True(t,
-		policy.ProviderOutputNeeded(api.InputCollectAll, true, true),
-	)
-	assert.False(t,
-		policy.ProviderOutputNeeded(api.InputCollectAll, true, false),
-	)
+	assert.False(t, policy.ProviderOutputNeeded(api.InputCollectFirst,
+		policy.InputOutlook{
+			HasValue:       true,
+			AllCollectable: true,
+		}))
+	assert.True(t, policy.ProviderOutputNeeded(api.InputCollectFirst,
+		policy.InputOutlook{
+			HasValue:       false,
+			AllCollectable: true,
+		}))
+	assert.True(t, policy.ProviderOutputNeeded(api.InputCollectLast,
+		policy.InputOutlook{
+			HasValue:       true,
+			AllCollectable: true,
+		}))
+	assert.True(t, policy.ProviderOutputNeeded(api.InputCollectSome,
+		policy.InputOutlook{
+			HasValue:       true,
+			AllCollectable: true,
+		}))
+	assert.True(t, policy.ProviderOutputNeeded(api.InputCollectAll,
+		policy.InputOutlook{
+			HasValue:       true,
+			AllCollectable: true,
+		}))
+	assert.False(t, policy.ProviderOutputNeeded(api.InputCollectAll,
+		policy.InputOutlook{
+			HasValue:       true,
+			AllCollectable: false,
+		}))
+	assert.False(t, policy.ProviderOutputNeeded(api.InputCollectAll,
+		policy.InputOutlook{
+			HasInit:        true,
+			HasValue:       false,
+			AllCollectable: true,
+		}))
 }
 
 func TestRequiredInputsAvailable(t *testing.T) {

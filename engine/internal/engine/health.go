@@ -146,7 +146,11 @@ func MergeNodeHealth(cluster *api.ClusterState) map[api.StepID]api.HealthState {
 
 		for _, rawStepID := range steps {
 			sid := api.StepID(rawStepID)
-			res[sid] = mergeHealthState(nid, res[sid], node.Health[sid])
+			res[sid] = mergeHealthState(mergeHealthStateArgs{
+				nodeID: nid,
+				curr:   res[sid],
+				next:   node.Health[sid],
+			})
 		}
 	}
 
@@ -395,12 +399,20 @@ func flowStepHealth(sid api.StepID, h *api.HealthState) api.HealthState {
 	}
 }
 
-func mergeHealthState(
-	nid api.NodeID, curr, next api.HealthState,
-) api.HealthState {
+type mergeHealthStateArgs struct {
+	nodeID api.NodeID
+	curr   api.HealthState
+	next   api.HealthState
+}
+
+func mergeHealthState(args mergeHealthStateArgs) api.HealthState {
+	curr := args.curr
 	norm := api.HealthState{
-		Status: next.Status,
-		Error:  annotateHealthError(string(nid), next.Error),
+		Status: args.next.Status,
+		Error: annotateHealthError(healthErrorArgs{
+			nodeID: string(args.nodeID),
+			errMsg: args.next.Error,
+		}),
 	}
 	if curr == (api.HealthState{}) {
 		return norm
@@ -418,11 +430,16 @@ func mergeHealthState(
 	return curr
 }
 
-func annotateHealthError(nodeID, errMsg string) string {
-	if errMsg == "" {
+type healthErrorArgs struct {
+	nodeID string
+	errMsg string
+}
+
+func annotateHealthError(args healthErrorArgs) string {
+	if args.errMsg == "" {
 		return ""
 	}
-	return fmt.Sprintf("node %s: %s", nodeID, errMsg)
+	return fmt.Sprintf("node %s: %s", args.nodeID, args.errMsg)
 }
 
 func healthRank(st api.HealthStatus) int {

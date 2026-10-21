@@ -40,15 +40,21 @@ func (c *Cache) Get(st *api.Step, inputs api.Args) (api.Args, bool) {
 	return result, true
 }
 
+// PutArgs bundles the inputs and outputs a cached step result pairs
+type PutArgs struct {
+	Inputs  api.Args
+	Outputs api.Args
+}
+
 // Put stores cached outputs for a step and inputs
-func (c *Cache) Put(st *api.Step, inputs api.Args, outputs api.Args) error {
-	key, err := buildCacheKey(st, inputs)
+func (c *Cache) Put(st *api.Step, args PutArgs) error {
+	key, err := buildCacheKey(st, args.Inputs)
 	if err != nil {
 		return err
 	}
 
 	_, err = c.cache.Get(key, func() (api.Args, error) {
-		return outputs, nil
+		return args.Outputs, nil
 	})
 	return err
 }

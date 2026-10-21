@@ -223,7 +223,7 @@ func TestCollectFirstPrunesProvider(t *testing.T) {
 	)
 }
 
-func TestCollectModesKeepProviders(t *testing.T) {
+func TestCollectModesPruneProviders(t *testing.T) {
 	tests := []struct {
 		name    string
 		collect api.InputCollect
@@ -249,8 +249,8 @@ func TestCollectModesKeepProviders(t *testing.T) {
 			)
 			assert.NoError(t, err)
 
-			assert.Contains(t, pl.Steps, provider.ID)
 			assert.Contains(t, pl.Steps, consumer.ID)
+			assert.NotContains(t, pl.Steps, provider.ID)
 			assert.Empty(t, pl.Required)
 		})
 	}

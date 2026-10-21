@@ -151,11 +151,11 @@ func (s *Server) handleHealth(c *gin.Context) {
 
 func (s *Server) handleEngineHealth(c *gin.Context) {
 	cat, err := s.engine.GetCatalogState()
-	if writeError(c, ErrGetCatalogState, err) {
+	if writeError(c, writeErrorArgs{sentinel: ErrGetCatalogState, err: err}) {
 		return
 	}
 	cluster, err := s.engine.GetClusterState()
-	if writeError(c, ErrGetClusterState, err) {
+	if writeError(c, writeErrorArgs{sentinel: ErrGetClusterState, err: err}) {
 		return
 	}
 	c.JSON(http.StatusOK, completeClusterHealth(cat, cluster))
@@ -172,7 +172,7 @@ func (s *Server) handleEngineHealthByID(c *gin.Context) {
 		})
 		return
 	}
-	if writeError(c, ErrGetStepHealth, err) {
+	if writeError(c, writeErrorArgs{sentinel: ErrGetStepHealth, err: err}) {
 		return
 	}
 

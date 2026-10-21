@@ -263,10 +263,11 @@ func (e *Engine) needsOutput(
 		if input.IsOptional() && s.hasOptionalDecision(name, input) {
 			continue
 		}
-		hasValue := e.inputHasValue(name, input, fl)
-		if policy.ProviderOutputNeeded(
-			input.Collect(), hasValue, canCollectAll(name, fl),
-		) {
+		if policy.ProviderOutputNeeded(input.Collect(), policy.InputOutlook{
+			HasInit:        fl.HasInitValue(name),
+			HasValue:       e.inputHasValue(name, input, fl),
+			AllCollectable: canCollectAll(name, fl),
+		}) {
 			return true
 		}
 	}

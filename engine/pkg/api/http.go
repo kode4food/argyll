@@ -100,10 +100,22 @@ func SetMetadataHeaders(header http.Header, meta Metadata) {
 // MetadataFromHeaders maps Argyll HTTP headers into metadata values
 func MetadataFromHeaders(header http.Header) Metadata {
 	meta := Metadata{}
-	addHeaderMeta(meta, MetaFlowID, header.Get(HeaderFlowID))
-	addHeaderMeta(meta, MetaStepID, header.Get(HeaderStepID))
-	addHeaderMeta(meta, MetaReceiptToken, header.Get(HeaderReceiptToken))
-	addHeaderMeta(meta, MetaWebhookURL, header.Get(HeaderWebhookURL))
+	addHeaderMeta(meta, headerMetaArgs{
+		key:   MetaFlowID,
+		value: header.Get(HeaderFlowID),
+	})
+	addHeaderMeta(meta, headerMetaArgs{
+		key:   MetaStepID,
+		value: header.Get(HeaderStepID),
+	})
+	addHeaderMeta(meta, headerMetaArgs{
+		key:   MetaReceiptToken,
+		value: header.Get(HeaderReceiptToken),
+	})
+	addHeaderMeta(meta, headerMetaArgs{
+		key:   MetaWebhookURL,
+		value: header.Get(HeaderWebhookURL),
+	})
 	return meta
 }
 
@@ -113,8 +125,13 @@ func setMetaHeader(header http.Header, name string, meta Metadata, key string) {
 	}
 }
 
-func addHeaderMeta(meta Metadata, key, value string) {
-	if value != "" {
-		meta[key] = value
+type headerMetaArgs struct {
+	key   string
+	value string
+}
+
+func addHeaderMeta(meta Metadata, args headerMetaArgs) {
+	if args.value != "" {
+		meta[args.key] = args.value
 	}
 }

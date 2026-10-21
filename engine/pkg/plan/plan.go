@@ -280,7 +280,11 @@ func (b *builder) collectStep(sid api.StepID) error {
 			return err
 		}
 		if required.Contains(name) && policy.RequiredInputMissing(
-			attr.Collect(), hasProvider, b.initHasValues(name),
+			&policy.RequiredInputState{
+				Attr:        attr,
+				HasProvider: hasProvider,
+				HasInit:     b.initHasValues(name),
+			},
 		) {
 			if !gateOpen && (gateClosed || !isGateAttr) {
 				continue
@@ -303,9 +307,10 @@ func (b *builder) stepGateStatus(st *api.Step) policy.MatchStatus {
 			return initAttributeValues(b.init[name])
 		},
 		Providers: func(name api.Name) policy.ProviderSummary {
-			hasInit := b.initHasValues(name)
-			hasProvider := len(b.findProviders(name)) > 0
-			complete := policy.InitProviderComplete(hasInit, hasProvider)
+			complete := policy.InitProviderComplete(&policy.RequiredInputState{
+				HasInit:     b.initHasValues(name),
+				HasProvider: len(b.findProviders(name)) > 0,
+			})
 			return policy.ProviderSummary{
 				Terminal:     complete,
 				AllSucceeded: complete,

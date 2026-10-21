@@ -440,7 +440,10 @@ func luaTableToAny(L *lua.State, index int) any {
 	}
 
 	if isArray && length > 0 {
-		return convertLuaArray(L, absIndex, length)
+		return convertLuaArray(L, convertLuaArrayArgs{
+			index:  absIndex,
+			length: length,
+		})
 	}
 
 	result := map[string]any{}
@@ -461,10 +464,15 @@ func luaTableToAny(L *lua.State, index int) any {
 	return result
 }
 
-func convertLuaArray(L *lua.State, index, length int) []any {
-	arr := make([]any, length)
-	absIndex := luaAbsIndex(L, index)
-	for i := 1; i <= length; i++ {
+type convertLuaArrayArgs struct {
+	index  int
+	length int
+}
+
+func convertLuaArray(L *lua.State, args convertLuaArrayArgs) []any {
+	arr := make([]any, args.length)
+	absIndex := luaAbsIndex(L, args.index)
+	for i := 1; i <= args.length; i++ {
 		L.RawGetInt(absIndex, i)
 		arr[i-1] = luaToGo(L, -1)
 		L.Pop(1)

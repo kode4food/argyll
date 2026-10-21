@@ -58,9 +58,12 @@ func loadRaftConfig() (raft.Config, error) {
 	if dataDir := os.Getenv("RAFT_DATA_DIR"); dataDir != "" {
 		cfg.DataDir = dataDir
 	}
-	if err := loadEnvInt(
-		"RAFT_LOG_TAIL_SIZE", &cfg.LogTailSize, 0, MaxRaftLogTailSize,
-	); err != nil {
+	if err := loadEnvInt(loadEnvIntArgs[int]{
+		key: "RAFT_LOG_TAIL_SIZE",
+		dst: &cfg.LogTailSize,
+		min: 0,
+		max: MaxRaftLogTailSize,
+	}); err != nil {
 		return raft.Config{}, err
 	}
 

@@ -77,17 +77,23 @@ var (
 	}
 )
 
+// TransitionArgs bundles the states a transition check compares
+type TransitionArgs[T comparable] struct {
+	From T
+	To   T
+}
+
 // CanTransition reports whether a status change is valid according to the
 // transition table. Remaining in the same state is not a transition
-func (t StateTransitions[T]) CanTransition(from, to T) bool {
-	if from == to {
+func (t StateTransitions[T]) CanTransition(args TransitionArgs[T]) bool {
+	if args.From == args.To {
 		return false
 	}
-	allowed, ok := t[from]
+	allowed, ok := t[args.From]
 	if !ok {
 		return false
 	}
-	return allowed.Contains(to)
+	return allowed.Contains(args.To)
 }
 
 // IsTerminal reports whether a status has no valid outgoing transitions

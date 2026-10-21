@@ -30,7 +30,7 @@ func TestCacheGetPut(t *testing.T) {
 	inputs := api.Args{"input": "value"}
 	outputs := api.Args{"output": "result"}
 
-	err := cache.Put(st, inputs, outputs)
+	err := cache.Put(st, memo.PutArgs{Inputs: inputs, Outputs: outputs})
 	assert.NoError(t, err)
 
 	result, ok := cache.Get(st, inputs)
@@ -83,9 +83,9 @@ func TestCacheDifferentInputs(t *testing.T) {
 	inputs2 := api.Args{"input": "value2"}
 	outputs2 := api.Args{"output": "result2"}
 
-	err := cache.Put(st, inputs1, outputs1)
+	err := cache.Put(st, memo.PutArgs{Inputs: inputs1, Outputs: outputs1})
 	assert.NoError(t, err)
-	err = cache.Put(st, inputs2, outputs2)
+	err = cache.Put(st, memo.PutArgs{Inputs: inputs2, Outputs: outputs2})
 	assert.NoError(t, err)
 
 	result, ok := cache.Get(st, inputs1)
@@ -117,7 +117,7 @@ func TestCacheInvalidatesOnStepChange(t *testing.T) {
 	inputs := api.Args{"input": "value"}
 	outputs := api.Args{"output": "result"}
 
-	err := cache.Put(step1, inputs, outputs)
+	err := cache.Put(step1, memo.PutArgs{Inputs: inputs, Outputs: outputs})
 	assert.NoError(t, err)
 
 	step2 := &api.Step{
@@ -160,7 +160,7 @@ func TestCacheKeepsOnMetadataChange(t *testing.T) {
 	inputs := api.Args{"input": "value"}
 	outputs := api.Args{"output": "result"}
 
-	err := cache.Put(step1, inputs, outputs)
+	err := cache.Put(step1, memo.PutArgs{Inputs: inputs, Outputs: outputs})
 	assert.NoError(t, err)
 
 	step2 := &api.Step{
@@ -204,7 +204,7 @@ func TestCacheEmptyInputs(t *testing.T) {
 	inputs := api.Args{}
 	outputs := api.Args{"output": "result"}
 
-	err := cache.Put(st, inputs, outputs)
+	err := cache.Put(st, memo.PutArgs{Inputs: inputs, Outputs: outputs})
 	assert.NoError(t, err)
 
 	result, ok := cache.Get(st, inputs)
@@ -250,7 +250,7 @@ func TestCacheHashAttributeOrder(t *testing.T) {
 	inputs := api.Args{"a": "1", "z": "2", "m": "3"}
 	outputs := api.Args{"output": "result"}
 
-	err := cache.Put(step1, inputs, outputs)
+	err := cache.Put(step1, memo.PutArgs{Inputs: inputs, Outputs: outputs})
 	assert.NoError(t, err)
 	result, ok := cache.Get(step2, inputs)
 
@@ -289,7 +289,7 @@ func TestCacheHashFlowConfig(t *testing.T) {
 	inputs := api.Args{"input": "value"}
 	outputs := api.Args{"output": "result"}
 
-	err := cache.Put(step1, inputs, outputs)
+	err := cache.Put(step1, memo.PutArgs{Inputs: inputs, Outputs: outputs})
 	assert.NoError(t, err)
 	result, ok := cache.Get(step2, inputs)
 
@@ -325,7 +325,7 @@ func TestCacheHashInputOrder(t *testing.T) {
 	}
 	outputs := api.Args{"result": "data"}
 
-	err := cache.Put(st, inputs1, outputs)
+	err := cache.Put(st, memo.PutArgs{Inputs: inputs1, Outputs: outputs})
 	assert.NoError(t, err)
 	result, ok := cache.Get(st, inputs2)
 

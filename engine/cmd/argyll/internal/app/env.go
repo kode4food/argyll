@@ -75,7 +75,12 @@ func LoadConfig() (Config, error) {
 	if logLevel := os.Getenv("LOG_LEVEL"); logLevel != "" {
 		cfg.LogLevel = logLevel
 	}
-	if err := loadEnvInt("API_PORT", &cfg.APIPort, 0, MaxTCPPort); err != nil {
+	if err := loadEnvInt(loadEnvIntArgs[int]{
+		key: "API_PORT",
+		dst: &cfg.APIPort,
+		min: 0,
+		max: MaxTCPPort,
+	}); err != nil {
 		return Config{}, err
 	}
 	return cfg, nil
@@ -92,56 +97,82 @@ func loadEngineConfig(rc raft.Config) (*config.Config, error) {
 		cfg.Work.BackoffType = backoffType
 	}
 
-	if err := loadEnvInt(
-		"TIMEBOX_CACHE_SIZE", &cfg.Timebox.CacheSize, 0, MaxTimeboxCacheSize,
-	); err != nil {
+	if err := loadEnvInt(loadEnvIntArgs[int]{
+		key: "TIMEBOX_CACHE_SIZE",
+		dst: &cfg.Timebox.CacheSize,
+		min: 0,
+		max: MaxTimeboxCacheSize,
+	}); err != nil {
 		return nil, err
 	}
-	if err := loadEnvInt(
-		"MEMO_CACHE_SIZE", &cfg.MemoCacheSize, 0, MaxMemoCacheSize,
-	); err != nil {
+	if err := loadEnvInt(loadEnvIntArgs[int]{
+		key: "MEMO_CACHE_SIZE",
+		dst: &cfg.MemoCacheSize,
+		min: 0,
+		max: MaxMemoCacheSize,
+	}); err != nil {
 		return nil, err
 	}
-	if err := loadEnvInt(
-		"STEP_TIMEOUT", &cfg.StepTimeout, 0, MaxStepTimeout,
-	); err != nil {
+	if err := loadEnvInt(loadEnvIntArgs[int64]{
+		key: "STEP_TIMEOUT",
+		dst: &cfg.StepTimeout,
+		min: 0,
+		max: MaxStepTimeout,
+	}); err != nil {
 		return nil, err
 	}
 
-	if err := loadEnvInt(
-		"RETRY_MAX_RETRIES", &cfg.Work.MaxRetries, 0, MaxRetryMaxRetries,
-	); err != nil {
+	if err := loadEnvInt(loadEnvIntArgs[int]{
+		key: "RETRY_MAX_RETRIES",
+		dst: &cfg.Work.MaxRetries,
+		min: 0,
+		max: MaxRetryMaxRetries,
+	}); err != nil {
 		return nil, err
 	}
-	if err := loadEnvInt(
-		"RETRY_INITIAL_BACKOFF", &cfg.Work.InitBackoff, 0, MaxRetryInitBackoff,
-	); err != nil {
+	if err := loadEnvInt(loadEnvIntArgs[int64]{
+		key: "RETRY_INITIAL_BACKOFF",
+		dst: &cfg.Work.InitBackoff,
+		min: 0,
+		max: MaxRetryInitBackoff,
+	}); err != nil {
 		return nil, err
 	}
-	if err := loadEnvInt(
-		"RETRY_MAX_BACKOFF", &cfg.Work.MaxBackoff, 0, MaxRetryMaxBackoff,
-	); err != nil {
+	if err := loadEnvInt(loadEnvIntArgs[int64]{
+		key: "RETRY_MAX_BACKOFF",
+		dst: &cfg.Work.MaxBackoff,
+		min: 0,
+		max: MaxRetryMaxBackoff,
+	}); err != nil {
 		return nil, err
 	}
 	return cfg, nil
 }
 
+// loadEnvIntArgs bundles the bounds an environment integer must fall within
+type loadEnvIntArgs[T ~int | ~int64] struct {
+	key string
+	dst *T
+	min T
+	max T
+}
+
 // loadEnvInt reads key from the environment, parses it as an integer, and
 // sets *dst if the value is in the range (min, max]
-func loadEnvInt[T ~int | ~int64](key string, dst *T, min, max T) error {
-	s := os.Getenv(key)
+func loadEnvInt[T ~int | ~int64](args loadEnvIntArgs[T]) error {
+	s := os.Getenv(args.key)
 	if s == "" {
 		return nil
 	}
 	v, err := strconv.ParseInt(s, 10, 64)
 	if err != nil {
-		return fmt.Errorf("%w: %s=%q", ErrInvalidEnvValue, key, s)
+		return fmt.Errorf("%w: %s=%q", ErrInvalidEnvValue, args.key, s)
 	}
 	tv := T(v)
-	if tv <= min || tv > max {
+	if tv <= args.min || tv > args.max {
 		return fmt.Errorf("%w: %s=%d, want [%d, %d]",
-			ErrEnvOutOfRange, key, tv, min+1, max)
+			ErrEnvOutOfRange, args.key, tv, args.min+1, args.max)
 	}
-	*dst = tv
+	*args.dst = tv
 	return nil
 }

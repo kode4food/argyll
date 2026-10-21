@@ -29,18 +29,12 @@ type (
 	// InputOutlook describes what a pending step's required input has and
 	// what its providers can still deliver
 	InputOutlook struct {
+		HasInit        bool
 		HasValue       bool
 		AllCollectable bool
 		Providable     func() bool
 	}
 )
-
-// InitSatisfiesInput reports whether an initial flow value is enough to
-// satisfy an input during planning. Only collect:first treats an init value as
-// complete and can therefore prune upstream providers from the plan
-func InitSatisfiesInput(collect api.InputCollect, hasInit bool) bool {
-	return hasInit && collect == api.InputCollectFirst
-}
 
 // InitBlocksInput reports whether an initial flow value makes an input
 // impossible to satisfy. collect:none means the step is waiting for absence,
@@ -52,21 +46,21 @@ func InitBlocksInput(collect api.InputCollect, hasInit bool) bool {
 // InitProviderComplete reports whether init data lets match policy treat
 // provider state as complete. Init data is complete only when it exists and no
 // planned provider can produce the same attribute later
-func InitProviderComplete(hasInit, hasProvider bool) bool {
-	return hasInit && !hasProvider
+func InitProviderComplete(st *RequiredInputState) bool {
+	return st.HasInit && !st.HasProvider
 }
 
 // InitSatisfiesRequired reports whether init data can satisfy an input during
-// planning. Inputs without match follow collect-mode init policy; inputs with
-// match must also have an init value that satisfies the match predicate
+// planning. An init value always prunes upstream providers for that input,
+// regardless of collect mode, unless a match predicate rejects it
 func InitSatisfiesRequired(st *RequiredInputState) bool {
-	if !InitSatisfiesInput(st.Attr.Collect(), st.HasInit) {
+	if !st.HasInit {
 		return false
 	}
 	if !InputHasMatch(st.Attr) {
 		return true
 	}
-	complete := InitProviderComplete(st.HasInit, st.HasProvider)
+	complete := InitProviderComplete(st)
 	status, err := RequiredMatchStatus(RequiredMatchSpec{
 		Attr:   st.Attr,
 		Values: st.Values,
@@ -88,16 +82,14 @@ func InitBlocksRuntime(attr *api.AttributeSpec, hasInit bool) bool {
 // RequiredInputMissing reports whether a required input is missing. Providers
 // satisfy it speculatively and collect:none never needs a supplied value, so
 // otherwise an init value is required
-func RequiredInputMissing(
-	collect api.InputCollect, hasProvider, hasInit bool,
-) bool {
-	if hasProvider {
+func RequiredInputMissing(st *RequiredInputState) bool {
+	if st.HasProvider {
 		return false
 	}
-	if collect == api.InputCollectNone {
+	if st.Attr.Collect() == api.InputCollectNone {
 		return false
 	}
-	return !hasInit
+	return !st.HasInit
 }
 
 // RequiresAllProviders reports whether planning must keep every available
@@ -148,15 +140,16 @@ func StepInputGuaranteed(attr *api.AttributeSpec) bool {
 }
 
 // ProviderOutputNeeded reports whether a provider should still run for a
-// pending consumer of this attribute. Existing values satisfy collect:first,
-// but other collect modes may still need later or additional provider output
-func ProviderOutputNeeded(
-	collect api.InputCollect, hasValue, canCollectAll bool,
-) bool {
-	if collect == api.InputCollectAll && !canCollectAll {
+// pending consumer of this attribute. An init value always answers for it;
+// otherwise collect:first stops at the first value, but other modes may not
+func ProviderOutputNeeded(collect api.InputCollect, o InputOutlook) bool {
+	if o.HasInit {
 		return false
 	}
-	return !hasValue || collect != api.InputCollectFirst
+	if collect == api.InputCollectAll && !o.AllCollectable {
+		return false
+	}
+	return !o.HasValue || collect != api.InputCollectFirst
 }
 
 // InputFulfilled reports whether the executor has enough real flow state to

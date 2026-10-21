@@ -43,8 +43,8 @@ func StepFailed(status api.StepStatus) bool {
 }
 
 // WorkCanTransition reports whether a work item status change is valid
-func WorkCanTransition(from, to api.WorkStatus) bool {
-	return WorkTransitions.CanTransition(from, to)
+func WorkCanTransition(args TransitionArgs[api.WorkStatus]) bool {
+	return WorkTransitions.CanTransition(args)
 }
 
 // WorkActive reports whether a work item is currently executing

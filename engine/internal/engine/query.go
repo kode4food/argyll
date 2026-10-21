@@ -91,7 +91,11 @@ func (e *Engine) QueryFlows(
 		return nil, err
 	}
 
-	page := paginateFlowItems(items, start, req.Limit)
+	page := paginateFlowItems(paginateFlowItemsArgs{
+		items: items,
+		start: start,
+		limit: req.Limit,
+	})
 
 	return buildFlowQueryResponse(
 		page.items, len(items), page.hasMore, page.nextCursor,
@@ -356,23 +360,30 @@ func encodeFlowQueryCursor(cursor flowQueryCursor) string {
 	return base64.RawURLEncoding.EncodeToString(b)
 }
 
-type paginateFlowItemsRes struct {
-	items      []flowItem
-	hasMore    bool
-	nextCursor string
-}
+type (
+	paginateFlowItemsArgs struct {
+		items []flowItem
+		start int
+		limit int
+	}
 
-func paginateFlowItems(
-	items []flowItem, start, limit int,
-) paginateFlowItemsRes {
+	paginateFlowItemsRes struct {
+		items      []flowItem
+		hasMore    bool
+		nextCursor string
+	}
+)
+
+func paginateFlowItems(args paginateFlowItemsArgs) paginateFlowItemsRes {
+	items := args.items
 	end := len(items)
-	if limit > 0 && start+limit < end {
-		end = start + limit
+	if args.limit > 0 && args.start+args.limit < end {
+		end = args.start + args.limit
 	}
 
 	var page []flowItem
-	if start < len(items) {
-		page = items[start:end]
+	if args.start < len(items) {
+		page = items[args.start:end]
 	}
 
 	hasMore := end < len(items)

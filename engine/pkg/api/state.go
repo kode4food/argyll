@@ -328,6 +328,17 @@ func (f *FlowState) AttributeValues(name Name) []*AttributeValue {
 	return f.Attributes[name]
 }
 
+// HasInitValue reports whether any of this attribute's values came from the
+// flow's initial state rather than a provider
+func (f *FlowState) HasInitValue(name Name) bool {
+	for _, v := range f.Attributes[name] {
+		if v.Step == "" {
+			return true
+		}
+	}
+	return false
+}
+
 func (f FlowState) SetExecution(id StepID, ex ExecutionState) FlowState {
 	f.Executions = f.Executions.Set(id, ex)
 	return f

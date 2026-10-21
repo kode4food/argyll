@@ -99,7 +99,7 @@ func (s *Server) getSpace(c *gin.Context) {
 
 func (s *Server) listSpaceSteps(c *gin.Context) {
 	cat, err := s.engine.GetCatalogState()
-	if writeError(c, ErrGetCatalogState, err) {
+	if writeError(c, writeErrorArgs{sentinel: ErrGetCatalogState, err: err}) {
 		return
 	}
 	id := api.SpaceID(c.Param("space_id"))

@@ -109,7 +109,10 @@ func (tx *flowTx) deactivate(parent api.FlowState) error {
 	if !fl.DeactivatedAt.IsZero() {
 		return nil
 	}
-	released, err := tx.parentReleased(&fl, &parent)
+	released, err := tx.parentReleased(parentReleasedArgs{
+		flow:   &fl,
+		parent: &parent,
+	})
 	if err != nil || !released {
 		return err
 	}
@@ -124,16 +127,20 @@ func (tx *flowTx) deactivate(parent api.FlowState) error {
 	return tx.releaseChildFlows()
 }
 
+type parentReleasedArgs struct {
+	flow   *api.FlowState
+	parent *api.FlowState
+}
+
 // parentReleased reports whether the parent can still order a rollback, from
 // the state it settled earlier in this same transaction
-func (tx *flowTx) parentReleased(
-	fl *api.FlowState, parent *api.FlowState,
-) (bool, error) {
+func (tx *flowTx) parentReleased(args parentReleasedArgs) (bool, error) {
 	target := &parentWork{}
-	ok, err := parentMeta(fl, target)
+	ok, err := parentMeta(args.flow, target)
 	if err != nil {
 		return false, err
 	}
+	parent := args.parent
 	if !ok || parent.ID == "" || !parent.DeactivatedAt.IsZero() {
 		return true, nil
 	}

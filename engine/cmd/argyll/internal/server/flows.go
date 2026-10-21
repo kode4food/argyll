@@ -192,7 +192,7 @@ func (s *Server) getFlow(c *gin.Context) {
 func (s *Server) getFlowEvents(c *gin.Context) {
 	id := api.FlowID(c.Param("flow_id"))
 	evs, err := s.engine.GetFlowEvents(id)
-	if writeError(c, ErrGetFlowEvents, err) {
+	if writeError(c, writeErrorArgs{sentinel: ErrGetFlowEvents, err: err}) {
 		return
 	}
 	if len(evs) == 0 {

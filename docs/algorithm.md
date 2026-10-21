@@ -210,7 +210,7 @@ COLLECT_PLAN_STEP(step):
     include step if another step needs it, or its outputs are not all satisfied
 
 INIT_SATISFIES_INPUT(input):
-    require nonempty init values and collect FIRST
+    require nonempty init values, regardless of collect mode
     without a match predicate: TRUE
     with a predicate: require the init-based match status to be MATCHED
 
@@ -220,6 +220,8 @@ OUTPUTS_ALREADY_SATISFIED(step):
 ```
 
 The preview planner uses the same traversal: it selects strict providers when any exist, otherwise it includes all candidate providers for that input. A submitted plan validates its external required inputs against the actual init values before execution.
+
+`INIT_SATISFIES_INPUT` no longer depends on collect mode: an init value prunes that input's providers from the plan the same way for `last`, `some`, and `all` as it already did for `first`. A provider can still be included for a different input or output it also supplies; only its contribution to the init-satisfied name is pruned.
 
 ## Starting a flow
 
@@ -466,6 +468,7 @@ NEEDS_OUTPUT(name, scope, now):
         IF closed-match evaluation succeeds and finds closed inputs: CONTINUE
         IF input is optional AND OPTIONAL_DECIDED(consumer, input, now):
             CONTINUE
+        IF name has an init value: CONTINUE
         hasValue := HAS_INPUT_VALUE(name, input)
         IF input.collect = ALL AND NOT CAN_COLLECT_ALL(name): CONTINUE
         IF NOT hasValue OR input.collect != FIRST: RETURN TRUE
@@ -478,6 +481,8 @@ OUTPUTS_NEEDED(step, goals, now):
 ```
 
 Output demand is shared across consumers: one decided optional does not remove demand from another pending consumer, including a required consumer. Only PENDING executions are eligible for the unused-provider skip.
+
+An init value for a name is authoritative for that name, regardless of collect mode: it is what the caller declared the values to be. A pending consumer with an init value never demands that name's output from a provider, even when that provider has to run anyway to satisfy some other name it also produces. This holds for `last`, `some`, and `all`, not only `first`: the init array is the complete candidate list those modes would otherwise assemble from providers.
 
 ## Advancing a flow
 
