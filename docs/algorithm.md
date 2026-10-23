@@ -822,7 +822,8 @@ WORK_DEADLINE(step, item):
     IF item is ACTIVE:
         timeout := invoke timeout, otherwise engine default
     ELSE IF item is COMPENSATING:
-        timeout := compensation timeout, otherwise engine default
+        timeout := compensation timeout, otherwise invoke timeout,
+                   otherwise engine default
     ELSE: RETURN NONE
     IF timeout <= 0: RETURN NONE
     RETURN item.startedAt + timeout
