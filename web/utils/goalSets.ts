@@ -1,7 +1,27 @@
-import { AttributeRole, AttributeSpec, GoalSets, Step } from "@/app/api";
+import {
+  AttributeRole,
+  AttributeSpec,
+  ExecutionResult,
+  GoalSets,
+  Step,
+} from "@/app/api";
+
+// The engine's skip reason for a Goal pruned by a required match
+const REQUIRED_MATCH_SKIP_REASON = "required match did not match";
 
 const isInput = (spec: AttributeSpec): boolean =>
   spec.role === AttributeRole.Required || spec.role === AttributeRole.Optional;
+
+const isPrunedByMatch = (exec?: ExecutionResult): boolean =>
+  exec?.status === "skipped" &&
+  exec.error_message === REQUIRED_MATCH_SKIP_REASON;
+
+const isGoalSetFailed = (
+  set: string[],
+  execs: Map<string, ExecutionResult>
+): boolean =>
+  set.some((id) => execs.get(id)?.status === "failed") ||
+  set.every((id) => isPrunedByMatch(execs.get(id)));
 
 export const activeGoalSet = (goals: GoalSets): string[] =>
   goals[goals.length - 1] ?? [];
@@ -44,6 +64,19 @@ export function upstreamSteps(steps: Step[], goals: string[]): Set<string> {
   }
   return res;
 }
+
+// currentGoalScope returns the Steps the first unfailed Goal set can use, or
+// every Step once all sets have failed
+export const currentGoalScope = (
+  steps: Step[],
+  sets: GoalSets,
+  executions: ExecutionResult[]
+): Set<string> => {
+  const execs = new Map(executions.map((exec) => [exec.step_id, exec]));
+  const current = sets.find((set) => !isGoalSetFailed(set, execs));
+  if (!current) return new Set(steps.map((step) => step.id));
+  return new Set([...current, ...upstreamSteps(steps, current)]);
+};
 
 // addGoal appends a goal to one AND-set, pruning goals already upstream of it
 export const addGoal = (

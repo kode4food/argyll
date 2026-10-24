@@ -165,6 +165,49 @@ describe("useExecutionPlanPreview", () => {
     expect(setGoalSteps).toHaveBeenCalledWith([]);
   });
 
+  test("normal click keeps committed fallback sets", async () => {
+    const setGoalSteps = jest.fn();
+    const { result } = renderHook(() =>
+      useExecutionPlanPreview(catalog, [["goal"], []], setGoalSteps)
+    );
+
+    await act(async () => {
+      await result.current.handleStepClick("step-1");
+    });
+
+    const next = [["goal"], ["step-1"]];
+    expect(setGoalSteps).toHaveBeenCalledWith(next);
+    expect(mockUpdatePreviewPlan).toHaveBeenCalledWith(next, {});
+  });
+
+  test("clicking the only active goal keeps committed sets", async () => {
+    const setGoalSteps = jest.fn();
+    const { result } = renderHook(() =>
+      useExecutionPlanPreview(catalog, [["goal"], ["step-1"]], setGoalSteps)
+    );
+
+    await act(async () => {
+      await result.current.handleStepClick("step-1");
+    });
+
+    expect(setGoalSteps).toHaveBeenCalledWith([["goal"], []]);
+    expect(mockClearPreviewPlan).not.toHaveBeenCalled();
+  });
+
+  test("clearPreview keeps committed fallback sets", async () => {
+    const setGoalSteps = jest.fn();
+    const { result } = renderHook(() =>
+      useExecutionPlanPreview(catalog, [["goal"], ["step-1"]], setGoalSteps)
+    );
+
+    await act(async () => {
+      result.current.clearPreview();
+    });
+
+    expect(setGoalSteps).toHaveBeenCalledWith([["goal"], []]);
+    expect(mockClearPreviewPlan).not.toHaveBeenCalled();
+  });
+
   test("returns preview plan from context", () => {
     const mockPlan: ExecutionPlan = {
       goals: { steps: ["step-1"] },

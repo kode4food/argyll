@@ -105,6 +105,44 @@ describe("useNodeCalculation", () => {
     });
   });
 
+  test("grays out Steps outside the current Goal set", () => {
+    const steps: Step[] = [
+      {
+        id: "step-1",
+        name: "Step 1",
+        type: "service",
+        attributes: { data: { role: AttributeRole.Output } },
+      },
+      {
+        id: "step-2",
+        name: "Step 2",
+        type: "service",
+        attributes: { data: { role: AttributeRole.Required } },
+      },
+      { id: "step-3", name: "Step 3", type: "service", attributes: {} },
+    ];
+    const fallbackFlow: FlowContext = {
+      ...flowData,
+      plan: {
+        ...flowData.plan!,
+        goals: { steps: ["step-2"], else: { steps: ["step-3"] } },
+      },
+    };
+    const outside = (execs: any[]) => {
+      const { result } = renderHook(() =>
+        useNodeCalculation(steps, fallbackFlow, execs)
+      );
+      return result.current.map((node) => node.data.isOutsideGoalScope);
+    };
+
+    expect(outside([])).toEqual([false, false, true]);
+    expect(outside([{ step_id: "step-2", status: "failed" }])).toEqual([
+      true,
+      true,
+      false,
+    ]);
+  });
+
   test("stacks nodes within the same level", () => {
     const requiredCount = 1;
     const outputCount = 2;

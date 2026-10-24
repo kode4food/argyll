@@ -186,6 +186,11 @@ describe("LiveDiagramView", () => {
   });
 
   test("passes correct props to useEdgeCalculation", () => {
+    mockUseNodeCalculation.mockReturnValue([
+      { id: "in-scope", data: { isOutsideGoalScope: false } },
+      { id: "out-of-scope", data: { isOutsideGoalScope: true } },
+    ]);
+
     render(
       <LiveDiagramView
         steps={[baseStep]}
@@ -195,7 +200,10 @@ describe("LiveDiagramView", () => {
       />
     );
 
-    expect(mockUseEdgeCalculation).toHaveBeenCalledWith([baseStep], null);
+    expect(mockUseEdgeCalculation).toHaveBeenCalledWith(
+      [baseStep],
+      new Set(["in-scope"])
+    );
   });
 
   test("handles default props", () => {

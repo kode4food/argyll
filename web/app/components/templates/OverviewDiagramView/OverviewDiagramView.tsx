@@ -146,11 +146,6 @@ const OverviewDiagramViewInner: React.FC<OverviewDiagramViewProps> = ({
     [onNodesChange, setNodes, positionScope]
   );
 
-  const handlePaneClick = useCallback(() => {
-    clearPreview();
-    setGoalSteps([]);
-  }, [clearPreview, setGoalSteps]);
-
   const handleNodeDragStart = useCallback(() => {
     const event = new CustomEvent("hideTooltips");
     document.dispatchEvent(event);
@@ -289,7 +284,7 @@ const OverviewDiagramViewInner: React.FC<OverviewDiagramViewProps> = ({
       edges={visibleEdges}
       nodeTypes={nodeTypes}
       onNodesChange={handleNodesChange}
-      onPaneClick={handlePaneClick}
+      onPaneClick={clearPreview}
       onNodeDragStart={handleNodeDragStart}
       nodesConnectable={false}
       nodesDraggable={true}

@@ -14,6 +14,7 @@ interface NodeData {
   resolvedAttributes?: string[];
   isGoalStep?: boolean;
   isStartingPoint?: boolean;
+  isOutsideGoalScope?: boolean;
 }
 
 const Node: React.FC<NodeProps> = ({ id, data }) => {
@@ -74,6 +75,7 @@ const Node: React.FC<NodeProps> = ({ id, data }) => {
           className={[
             nodeData.isGoalStep && "goal",
             nodeData.isStartingPoint && "start-point",
+            nodeData.isOutsideGoalScope && "grayed-out",
           ]
             .filter(Boolean)
             .join(" ")}

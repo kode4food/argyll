@@ -1,7 +1,8 @@
-import { AttributeRole, AttributeType, Step } from "@/app/api";
+import { AttributeRole, AttributeType, Step, StepStatus } from "@/app/api";
 import {
   activeGoalSet,
   addGoal,
+  currentGoalScope,
   formatGoals,
   nonEmptyGoalSets,
   toggleGoal,
@@ -61,6 +62,43 @@ describe("goalSets", () => {
     expect(
       addGoal(goalSetSteps, [ELIGIBILITY_CHECKER], STOCK_RESERVATION)
     ).toEqual([ELIGIBILITY_CHECKER, STOCK_RESERVATION]);
+  });
+
+  test("scopes to the first Goal set that has not failed", () => {
+    const sets = [[NOTIFICATION_SENDER], [ELIGIBILITY_CHECKER]];
+    const exec = (status: StepStatus, error_message?: string) =>
+      ({ step_id: NOTIFICATION_SENDER, status, error_message }) as any;
+
+    expect(currentGoalScope(goalSetSteps, sets, [])).toEqual(
+      new Set([NOTIFICATION_SENDER, STOCK_RESERVATION])
+    );
+    expect(currentGoalScope(goalSetSteps, sets, [exec("completed")])).toEqual(
+      new Set([NOTIFICATION_SENDER, STOCK_RESERVATION])
+    );
+    expect(currentGoalScope(goalSetSteps, sets, [exec("failed")])).toEqual(
+      new Set([ELIGIBILITY_CHECKER])
+    );
+    expect(
+      currentGoalScope(goalSetSteps, sets, [
+        exec("skipped", "required match did not match"),
+      ])
+    ).toEqual(new Set([ELIGIBILITY_CHECKER]));
+    expect(
+      currentGoalScope(goalSetSteps, sets, [exec("skipped", "predicate")])
+    ).toEqual(new Set([NOTIFICATION_SENDER, STOCK_RESERVATION]));
+  });
+
+  test("scopes to every Step once all Goal sets fail", () => {
+    const execs = [NOTIFICATION_SENDER, ELIGIBILITY_CHECKER].map(
+      (step_id) => ({ step_id, status: "failed" }) as any
+    );
+    expect(
+      currentGoalScope(
+        goalSetSteps,
+        [[NOTIFICATION_SENDER], [ELIGIBILITY_CHECKER]],
+        execs
+      )
+    ).toEqual(new Set(goalSetSteps.map((step) => step.id)));
   });
 
   test("toggles goals in a set", () => {

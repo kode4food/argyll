@@ -9,6 +9,7 @@ import {
   calculateStepLevels,
 } from "@/utils/stepDependencyGraph";
 import { calculateWidgetHeightFromAttributes } from "@/utils/stepLayout";
+import { currentGoalScope } from "@/utils/goalSets";
 
 export const useNodeCalculation = (
   visibleSteps: Step[],
@@ -29,6 +30,12 @@ export const useNodeCalculation = (
       activeStepIDs
     );
     const levels = calculateStepLevels(visibleSteps, dependencies);
+    const goalSets = toGoalSets(flowData?.plan?.goals);
+    const goalScope = currentGoalScope(
+      visibleSteps,
+      goalSets,
+      executions ?? []
+    );
     const startingPoints = new Set<string>();
 
     activeStepIDs.forEach((stepID) => {
@@ -76,10 +83,9 @@ export const useNodeCalculation = (
           flowData,
           executions,
           resolvedAttributes,
-          isGoalStep: toGoalSets(flowData?.plan?.goals)
-            .flat()
-            .includes(step.id),
+          isGoalStep: goalSets.flat().includes(step.id),
           isStartingPoint: startingPoints.has(step.id),
+          isOutsideGoalScope: !goalScope.has(step.id),
           diagramContainerRef,
         },
         type: "stepNode",

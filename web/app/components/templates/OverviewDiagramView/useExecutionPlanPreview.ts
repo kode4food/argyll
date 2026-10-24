@@ -3,6 +3,7 @@ import { ExecutionPlan, GoalSets, Step } from "@/app/api";
 import { useUI } from "@/app/contexts/UIContext";
 import {
   activeGoalSet,
+  nonEmptyGoalSets,
   toggleGoal,
   upstreamSteps,
   withActiveGoalSet,
@@ -24,6 +25,21 @@ export function useExecutionPlanPreview(
 ): UseExecutionPlanPreviewReturn {
   const { previewPlan, updatePreviewPlan, clearPreviewPlan } = useUI();
 
+  // The diagram edits only the active set, so committed fallback sets survive
+  const applyActiveSet = useCallback(
+    async (set: string[]) => {
+      const nextGoals = withActiveGoalSet(goalSteps, set);
+      if (nonEmptyGoalSets(nextGoals).length === 0) {
+        setGoalSteps([]);
+        clearPreviewPlan();
+        return;
+      }
+      setGoalSteps(nextGoals);
+      await updatePreviewPlan(nextGoals, {});
+    },
+    [goalSteps, setGoalSteps, updatePreviewPlan, clearPreviewPlan]
+  );
+
   const handleStepClick = useCallback(
     async (stepId: string, options?: { additive?: boolean }) => {
       const isAdditive = options?.additive ?? false;
@@ -37,36 +53,20 @@ export function useExecutionPlanPreview(
           return;
         }
 
-        const nextGoals = withActiveGoalSet(
-          goalSteps,
-          toggleGoal(steps, active, stepId)
-        );
-
-        setGoalSteps(nextGoals);
-        await updatePreviewPlan(nextGoals, {});
+        await applyActiveSet(toggleGoal(steps, active, stepId));
         return;
       }
 
       const isCurrentlySingleSelection =
-        goalSteps.length === 1 && active.length === 1 && active[0] === stepId;
-
-      if (isCurrentlySingleSelection) {
-        setGoalSteps([]);
-        clearPreviewPlan();
-        return;
-      }
-
-      const nextGoals = [[stepId]];
-      setGoalSteps(nextGoals);
-      await updatePreviewPlan(nextGoals, {});
+        active.length === 1 && active[0] === stepId;
+      await applyActiveSet(isCurrentlySingleSelection ? [] : [stepId]);
     },
-    [goalSteps, setGoalSteps, updatePreviewPlan, clearPreviewPlan, steps]
+    [goalSteps, applyActiveSet, steps]
   );
 
   const clearPreview = useCallback(() => {
-    clearPreviewPlan();
-    setGoalSteps([]);
-  }, [setGoalSteps, clearPreviewPlan]);
+    void applyActiveSet([]);
+  }, [applyActiveSet]);
 
   return {
     previewPlan,

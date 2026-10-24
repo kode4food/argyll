@@ -66,7 +66,16 @@ const LiveDiagramViewInner: React.FC<LiveDiagramViewProps> = ({
     diagramContainerRef
   );
 
-  const edges = useEdgeCalculation(stepsToRender, null);
+  const goalScopeIds = React.useMemo(
+    () =>
+      new Set(
+        nodes
+          .filter((node) => !node.data.isOutsideGoalScope)
+          .map((node) => node.id)
+      ),
+    [nodes]
+  );
+  const edges = useEdgeCalculation(stepsToRender, goalScopeIds);
   const visibleEdges = React.useMemo(
     () => edgesForDiagramDetail(edges, diagramDetail, zoom),
     [edges, diagramDetail, zoom]
