@@ -28,7 +28,7 @@ func Greet(args GreetArgs) GreetRes {
 
 Run `go generate ./...`, then serve the generated Steps with `gen.Serve(ctx, ArgyllServiceSteps()...)`.
 
-For a standalone `package main`, pass `-server` before the package pattern to generate a minimal `main` function that registers and serves the steps. Generated servers log each step invocation with `slog`; normal generation adds no logging:
+For a standalone `package main`, pass `-server` before the package pattern to generate a minimal `main` function that registers and serves the steps. Generated servers log each step invocation with `slog`:
 
 ```go
 //go:generate go run github.com/kode4food/argyll/sdk/go/gen/cmd/argyll-gen -server .

@@ -24,7 +24,7 @@ This MCP server exposes both the Argyll runtime surface and an OpenAPI-driven de
 - `engine_state` - fetch the current engine state.
 - `list_step_health` - list health for all steps.
 - `get_step_health` - fetch health for a single step.
-- `sdk_step_template` - return a minimal Go or Python SDK step template; use `step_type: "service"`, set `action_mode: "async"` when needed, and set `external: true` when an existing HTTP endpoint implements the step.
+- `sdk_step_template` - return a minimal Go or Python SDK step template. Use `step_type: "service"`, set `action_mode: "async"` when needed, and set `external: true` when an existing HTTP endpoint implements the step.
 
 ## Resources
 
@@ -42,7 +42,7 @@ This MCP server exposes both the Argyll runtime surface and an OpenAPI-driven de
 
 An LLM can use this MCP to analyze external service specs, author planner-oriented Argyll step registrations, preview the resulting plans, and surface any remaining mapping gaps for the user to resolve.
 
-`analyze_openapi_contract` includes an `argyll_capabilities` block describing declarative step features the LLM can rely on. This includes `required.mapping`, `optional.mapping`, `output.mapping`, and `required.match`. The tool reports neutral contract facts; the LLM authors Argyll step definitions used by the planner and uses role-specific mapping config instead of creating an unnecessary intermediate step.
+`analyze_openapi_contract` includes an `argyll_capabilities` block describing declarative step features the LLM can rely on. This includes `required.mapping`, `optional.mapping`, `output.mapping`, and `required.match`. The tool reports neutral contract facts. The LLM uses those facts to author Argyll step definitions with role-specific configuration for field names, transformations, and matches.
 
 The same capability block also advertises endpoint arguments. Argyll replaces `{name}` placeholders in HTTP step endpoints with runtime args, so OpenAPI path and query parameters are represented as endpoint placeholders such as `/customers/{customerId}?type={type}`.
 
@@ -66,7 +66,7 @@ Example LLM instruction:
 Use the Argyll MCP to analyze these two OpenAPI specs. First run analyze_service_landscape to understand the cross-service graph. Then use analyze_openapi_contract for each spec, author Argyll step definitions used by the planner from the contract facts, compare and apply the required steps, and preview a plan for creating an order from customer_email + items. Explain which steps came directly from the OpenAPI docs and identify any remaining missing attributes.
 ```
 
-This is the intended pattern: the LLM should use the MCP to discover the planner graph, register useful steps, and verify the resulting plan. If the graph still has gaps, the MCP reports them instead of fabricating mapping steps.
+Use the MCP to discover the planner graph, register Steps, and verify the resulting plan. The MCP reports missing Attributes for the user to resolve.
 
 ## Run
 

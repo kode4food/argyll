@@ -50,7 +50,7 @@ VALID_WORK_TRANSITIONS:
     FAILED | COMPENSATED | COMP_FAILED -> none
 ```
 
-Event sequences establish order within an aggregate. A transaction attempt captures one timestamp, used by its decisions and all its events. The timestamp anchors elapsed-time calculations. It is not the ordering key. Init values and the flow-start anchor use sequence zero for collection comparisons. A missing producing execution has a zero completion.
+Event sequences establish order within an aggregate. A transaction attempt captures one timestamp, used by its decisions and all its events. The timestamp anchors elapsed-time calculations. Init values and the flow-start anchor use sequence zero for collection comparisons. A missing producing execution has a zero completion.
 
 ## Transactions and event application
 
@@ -126,7 +126,7 @@ REDUCE(flow, event):
         record the deferred-dispatch fact
 ```
 
-Reducers update the appropriate timestamps and payload fields. Readiness, optional defaults, and inactivity expiry are computed from the resulting state. They do not need separate flow events. WebSocket publication happens after commit and does not drive execution.
+Reducers update the appropriate timestamps and payload fields. Readiness, optional defaults, and inactivity expiry are computed from the resulting state. Flow transactions advance execution. WebSocket publication notifies subscribers after commit.
 
 ## Planning
 
@@ -244,7 +244,7 @@ START_PLAN(id, plan, options):
 
 ## Collect policy and match gates
 
-Values retain their persisted arrival order. Match predicates filter candidate values without changing that order, whether the input is required or optional. A match error propagates to step preparation, which records step failure. An unmatched required input can close the step entirely. An optional input never closes the step: its filtered values are evaluated by its Collection Policy, and it falls back only when that policy is unfulfilled. When init declares the name, an optional `some` or `all` input resolves to an empty list even if its match predicate rejects every init value; providers cannot supplement the frozen set.
+Values retain their persisted arrival order. Match predicates filter candidate values without changing that order, whether the input is required or optional. A match error propagates to step preparation, which records step failure. An unmatched required input can close the step entirely. An optional input never closes the step: its filtered values are evaluated by its Collection Policy, and it falls back only when that policy is unfulfilled. When init declares the name, an optional `some` or `all` input resolves to an empty list even if its match predicate rejects every init value. Providers cannot supplement the frozen set.
 
 A `for_each` input is valid only with `collect: all` or `collect: some`: its resolved value is the collected candidate list itself, which step preparation fans out into one work item per element. When init declares the name with zero values, these policies resolve to an empty list and a `for_each` step settles with zero work items, unless a required match gate closes first. A required `first`, `last`, `some`, or `all` input with a match predicate and no matching candidates skips its step, including when init declares an empty list. Optional inputs have no step-level match gate.
 
@@ -872,7 +872,7 @@ ON_DUE_TASK(task):
     otherwise commit consumption and any events or schedules produced
 ```
 
-Tasks are not cancelled when their original purpose disappears. Delivery rechecks current state. An optional timeout is a wakeup to apply policy, not a separate expiry event. If an early consumption finds an open window, normal advancement re-arms it in that same transaction.
+Scheduled tasks stay queued until delivery, when the handler rechecks current state and applies work that is due. An optional timeout wakes the Flow to apply collection policy. If an early consumption finds an open window, normal advancement re-arms it in that same transaction.
 
 ## Nested flows
 
@@ -1072,4 +1072,4 @@ STOP_ENGINE():
     close storage backend
 ```
 
-Replay reconstructs attribute arrival history, frozen execution inputs, work state, and terminal step completions. Recovery derives required anchors and optional windows from those facts, restores outstanding wakeups, and resumes the same advancement algorithm. It does not rebuild a separate optional-decision projection or invent decision events.
+Replay reconstructs attribute arrival history, frozen execution inputs, work state, and terminal step completions. Recovery derives required anchors and optional windows from those facts, restores outstanding wakeups, and resumes the same advancement algorithm.

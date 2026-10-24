@@ -14,9 +14,9 @@ This starts:
 - UI on http://localhost:3001
 - Example step services (ports 8081–8086)
 
-Use this when you want a working system quickly without wiring services by hand.
+Docker Compose configures the services and their connections for local development.
 
-## Running the engine locally (without Docker)
+## Running the engine binary
 
 To run the engine binary directly (useful when iterating on engine code):
 

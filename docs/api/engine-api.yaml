@@ -559,9 +559,9 @@ paths:
     post:
       summary: Preview a Space selector
       description: |
-        Evaluate an unsaved QBE or script selector against the current Step
-        catalog without persisting it. Only the selector is read, so a Space
-        still being drafted can be previewed without an `id` or `name`
+        Preview the Steps selected by a QBE or script against the current
+        catalog. The request needs only the selector or QBE. Preview leaves
+        the catalog unchanged.
       operationId: previewSpace
       tags:
         - Spaces
@@ -686,7 +686,7 @@ paths:
     post:
       summary: Create Execution Plan (Preview)
       description: |
-        Generate an execution plan for a goal step without starting the flow.
+        Preview an execution plan for a goal step.
         This is useful for:
         - Previewing which steps will execute
         - Determining required inputs
@@ -739,10 +739,9 @@ paths:
         `failed`), sorted by most-recent activity within each status group.
 
         This endpoint uses the same query engine as `/engine/flows/query`.
-        Status, ID-prefix, and label filtering are resolved from flow-store
-        indexes without loading full flow state. A terminal flow remains indexed
-        as `active` until `flow_deactivated` records that no remaining work can
-        produce external side effects (changes outside flow state).
+        Supports filtering by status, ID prefix, and labels. A terminal flow
+        remains indexed as `active` until `flow_deactivated` records that all
+        work capable of producing external side effects has settled.
       operationId: listFlows
       tags:
         - Flows
@@ -915,14 +914,12 @@ paths:
         Retrieve the minimal deactivation-based status payload for a specific
         flow.
 
-        This endpoint is intended for lightweight polling when callers do not
-        need the full reconstructed flow state.
+        Use this endpoint for lightweight status polling.
 
-        The engine resolves this directly from the flow status index without
-        loading the full flow state. The index remains `active` after a flow
-        enters terminal state while work that has already started or
-        compensation can still produce external side effects. It changes to
-        `completed` or `failed` when `flow_deactivated` is recorded. Use
+        Status comes from the flow status index. The index remains `active`
+        after a flow enters terminal state while work that has already started
+        or compensation can still produce external side effects. It changes
+        to `completed` or `failed` when `flow_deactivated` is recorded. Use
         `GET /engine/flows/{flow_id}` or terminal flow events to observe and act
         on an outcome before deactivation. This indexed endpoint reports final
         status only after remaining work can no longer produce external side
@@ -1071,7 +1068,7 @@ paths:
       description: |
         Receive the outcome of an asynchronous compensation action. The engine
         supplies this action-specific URL in `Argyll-Webhook-URL`. Callers
-        should use that value directly rather than construct the path.
+        should post to the supplied URL.
 
         A success callback may have an empty body. A failure callback uses
         `application/problem+json`. Repeating a settled callback is safe.
@@ -2305,11 +2302,10 @@ components:
         compensate:
           type: boolean
           description: |
-            Enable Rollback on Failure. Every completed work item in the flow is
-            compensated if the flow fails, rather than only those of the step
-            that failed. Once a goal set fails, completed work that no
-            remaining fallback set can use is compensated while the fallback
-            runs.
+            Enable Rollback on Failure. If the flow fails, every completed
+            work item in the flow is compensated. Once a goal set fails,
+            completed work that no remaining fallback set can use is
+            compensated while the fallback runs.
           example: true
 
     FlowStartedResponse:

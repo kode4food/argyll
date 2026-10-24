@@ -42,7 +42,7 @@ For an input mapping named `model_results`, sum costs returned by model services
 sum(model_results | map result: number(result.cost))
 ```
 
-Results with costs `"0.012"` and `"0.008"` produce `0.02`. An empty array produces zero. Missing costs and invalid numeric strings fail the mapping rather than silently contributing zero.
+Results with costs `"0.012"` and `"0.008"` produce `0.02`. An empty array produces zero. Missing costs and invalid numeric strings raise a mapping error.
 
 ## Build a notification summary
 
@@ -55,4 +55,4 @@ For an output Attribute named `notification`, its output mapping sees the entire
 }
 ```
 
-Recipients must be strings. The mapping returns an object without changing the response.
+Recipients must be strings. The mapping constructs an object containing the recipient summary and count.

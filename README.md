@@ -4,7 +4,7 @@
 
 [![Build Status](https://github.com/kode4food/argyll/workflows/Build/badge.svg)](https://github.com/kode4food/argyll/actions) [![Code Coverage](https://qlty.sh/gh/kode4food/projects/argyll/coverage.svg)](https://qlty.sh/gh/kode4food/projects/argyll) [![Maintainability](https://qlty.sh/gh/kode4food/projects/argyll/maintainability.svg)](https://qlty.sh/gh/kode4food/projects/argyll) [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/kode4food/argyll/blob/main/LICENSE)
 
-Argyll is a goal-driven orchestrator. It builds the minimum execution plan needed to reach a Flow's Goals. Steps declare named inputs and outputs; Argyll connects them, runs independent work in parallel, and records every state change for recovery and inspection.
+Argyll is a goal-driven orchestrator. It builds the minimum execution plan needed to reach a Flow's Goals. Steps declare named inputs and outputs. Argyll connects them, runs independent work in parallel, and records every state change for recovery and inspection.
 
 ![Argyll UI Screenshot](./docs/img/screenshot.gif)
 

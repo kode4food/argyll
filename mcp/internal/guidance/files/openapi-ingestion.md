@@ -2,7 +2,7 @@ Use the Argyll MCP output below to ingest custom REST services into Argyll. Inge
 
 Your responsibility is to infer the business flow represented by the operations, existing steps, names, descriptions, schemas, examples, enum values, and request/response shapes.
 
-Start with `analyze_openapi_contract` to extract neutral OpenAPI facts. The MCP does not generate final step registrations from OpenAPI; you author those registrations from the contract facts.
+Start with `analyze_openapi_contract` to extract neutral OpenAPI facts, then use those facts to author step registrations.
 
 ## Step JSON schema
 
@@ -12,8 +12,8 @@ Get these structural rules wrong and the engine either rejects the step or silen
 
 - Every step **must** have `id`. Steps missing `id` are silently skipped by `diff_proposed_steps` and `apply_proposed_steps` with no error.
 - Valid `type` values: `service`, `script`, `flow`.
-- The `http` object nests the call under `invoke`, which uses the key `endpoint` (not `url`).
-- Both `http.invoke` and `http.compensate` accept `mode: sync` or `mode: async`; each defaults to sync independently.
+- The `http` object nests the call under `invoke`, which uses the key `endpoint`.
+- Both `http.invoke` and `http.compensate` accept `mode: sync` or `mode: async`. Each defaults to sync independently.
 - If the service exposes a health check endpoint, set `http.health` to that URL. The engine uses it to track step availability, and always polls it with `GET`.
 - If the service can undo the call, add `http.compensate` with its own `endpoint` and optional `method`. Its presence is what makes the step compensatable.
 
@@ -41,12 +41,12 @@ Get these structural rules wrong and the engine either rejects the step or silen
 
 ## Attribute spec
 
-`attributes` is a JSON **object** (map keyed by attribute name), not an array. Valid roles: `required`, `optional`, `const`, `output`.
+`attributes` is a JSON **object** keyed by Attribute name. Valid roles: `required`, `optional`, `const`, `output`.
 
-Mapping and match configuration nest **inside a sub-object keyed by the role name** on the attribute, not at the top level of the attribute. Both `mapping` and `match` are objects, not strings:
+Mapping and match configuration nest **inside a sub-object keyed by the role name** on the Attribute. Both `mapping` and `match` are objects:
 
 - `mapping` → `{ "name": "service_field_name" }` (or add `"script"` for a transform)
-- `match` → `{ "language": "argyll", "script": "value == \"email\"" }` - a `ScriptConfig` object, never a bare string
+- `match` → `{ "language": "argyll", "script": "value == \"email\"" }` - a `ScriptConfig` object
 - `argyll` is the language identifier for Argyll Expressions in mappings, predicates, matches, and Space selectors. Script Steps use Lua. Predicates receive named Step inputs. Matches and selectors receive `value`. Predicates using Argyll Expressions must return a boolean
 
 The spec's own example (from `StepRegistration.attributes`):
@@ -92,9 +92,9 @@ Omit the role sub-object entirely when no mapping or match is needed.
 
 ## Mapping and match guidance
 
-Do not assume identical field names are required across services. If two service-specific fields represent the same business value, choose one planner attribute name for the flow and keep each service field name in the `mapping.name` for that step attribute.
+If two service-specific fields represent the same business value, choose one planner Attribute name for the Flow and keep each service field name in the `mapping.name` for that Step Attribute.
 
-Do not add mappings where Argyll's default pass-through already works. If the planner attribute and service field name are the same, omit mapping.
+If the planner Attribute and service field name are the same, omit mapping and use the default pass-through.
 
 Use `required.mapping` or `optional.mapping` for service input renames. Use `output.mapping` only when an output field must be renamed or extracted from a JSON path.
 
