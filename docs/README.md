@@ -2,7 +2,7 @@
 
 User documentation lives at [argyll.app](https://www.argyll.app/docs/).
 
-This repository keeps the files that belong beside the implementation:
+Development resources and API specifications:
 
 - [Development setup](./dev-setup.md)
 - [Execution algorithm](./algorithm.md)

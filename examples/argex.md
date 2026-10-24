@@ -1,6 +1,6 @@
 # Argyll Expressions
 
-Use Argyll Expressions for Step Predicates, Attribute matches and mappings, and Space selectors. These examples show expressions directly. See the [expression guide](https://www.argyll.app/docs/guides/argex/) for configuring them in Step and Space definitions.
+Use Argyll Expressions for Step Predicates, Attribute matches and mappings, and Space selectors. See the [expression guide](https://www.argyll.app/docs/guides/argex/) for configuring them in Step and Space definitions.
 
 ## Select a market
 

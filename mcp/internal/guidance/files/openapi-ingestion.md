@@ -8,7 +8,7 @@ Start with `analyze_openapi_contract` to extract neutral OpenAPI facts, then use
 
 The schema used to validate registrations is in `engine-api.yaml` (embedded alongside this file). The definitions that matter most for ingestion are `StepRegistration`, `AttributeSpec`, `RequiredConfig`, `OptionalConfig`, `OutputConfig`, `MappingConfig`, `ScriptConfig`, and `HttpConfig`.
 
-Get these structural rules wrong and the engine either rejects the step or silently drops the field:
+Registration structure:
 
 - Every step **must** have `id`. Steps missing `id` are silently skipped by `diff_proposed_steps` and `apply_proposed_steps` with no error.
 - Valid `type` values: `service`, `script`, `flow`.

@@ -11,7 +11,7 @@ Core model:
 
 SDK-hosted HTTP steps:
 - Use Go Start(handler) or Python start(handler) when the SDK should register the step and run the step HTTP server.
-- The SDK-hosted server currently handles POST step invocations. Do not generate SDK-hosted GET/PUT/DELETE handlers unless the SDK handler layer is extended first.
+- SDK-hosted servers handle POST step invocations.
 - Use WithAsyncInvoke or with_async_invoke for async steps. The handler returns immediately and completes through the webhook/AsyncContext.
 
 Service steps backed by existing HTTP endpoints:

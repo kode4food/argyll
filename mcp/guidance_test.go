@@ -13,7 +13,7 @@ func TestSDKGuidance(t *testing.T) {
 
 	text := getResourceText(t, c, "/sdk/steps")
 	assert.Contains(t, text, "Supported configured HTTP methods")
-	assert.Contains(t, text, "SDK-hosted server currently handles POST")
+	assert.Contains(t, text, "SDK-hosted servers handle POST step invocations")
 
 	goText := getResourceText(t, c, "/sdk/go/steps")
 	assert.Contains(t, goText, "WithMethod(\"GET\")")

@@ -74,4 +74,3 @@ client.new_flow("order-flow-123") \
 - Uses Python's `threading` module for background processing
 - Simulates payment gateway delays with `time.sleep()`
 - Returns immediately from handler, completes via webhook
-- Demonstrates proper async context usage
