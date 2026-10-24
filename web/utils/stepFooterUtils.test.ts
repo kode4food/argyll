@@ -3,7 +3,7 @@ import {
   formatScriptForTooltip,
   stripLuaReturn,
 } from "./stepFooterUtils";
-import { SCRIPT_LANGUAGE_JPATH, SCRIPT_LANGUAGE_LUA } from "@/app/api";
+import { SCRIPT_LANGUAGE_ARGYLL, SCRIPT_LANGUAGE_LUA } from "@/app/api";
 
 describe("stepFooterUtils", () => {
   describe("stripLuaReturn", () => {
@@ -35,7 +35,7 @@ describe("stepFooterUtils", () => {
     });
 
     it("leaves other languages alone", () => {
-      expect(stripLuaReturn("return x", SCRIPT_LANGUAGE_JPATH)).toBe(
+      expect(stripLuaReturn("return x", SCRIPT_LANGUAGE_ARGYLL)).toBe(
         "return x"
       );
       expect(stripLuaReturn("return x")).toBe("return x");
@@ -75,14 +75,14 @@ describe("stepFooterUtils", () => {
     });
 
     // a generated QBE selector arrives joined on " ||\n" and " &&\n    "
-    it("collapses a multi-line JPath selector", () => {
+    it("collapses a multi-line ArgEx selector", () => {
       const script =
-        '$.tags[?@=="domain:payments"] &&\n' +
-        '    $.tags[?@=="tier:gold"] ||\n' +
-        '$.tags[?@=="domain:risk"]';
-      expect(formatScriptPreview(script, SCRIPT_LANGUAGE_JPATH)).toBe(
-        '$.tags[?@=="domain:payments"] && $.tags[?@=="tier:gold"] || ' +
-          '$.tags[?@=="domain:risk"]'
+        'value.type == "service" &&\n' +
+        '    value.name == "payments" ||\n' +
+        'value.name == "risk"';
+      expect(formatScriptPreview(script, SCRIPT_LANGUAGE_ARGYLL)).toBe(
+        'value.type == "service" && value.name == "payments" || ' +
+          'value.name == "risk"'
       );
     });
   });

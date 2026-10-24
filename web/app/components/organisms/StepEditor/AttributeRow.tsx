@@ -1,5 +1,5 @@
 import React from "react";
-import { META_KEYS, SCRIPT_LANGUAGE_JPATH } from "@/app/api";
+import { META_KEYS, SCRIPT_LANGUAGE_ARGYLL } from "@/app/api";
 import type { Handling, StepType } from "@/app/api";
 import DurationInput from "@/app/components/molecules/DurationInput";
 import ScriptLanguageInlineInput from "@/app/components/molecules/ScriptLanguageInlineInput";
@@ -233,7 +233,7 @@ const AttributeRow: React.FC<AttributeRowProps> = ({
           <ScriptLanguageInlineInput
             ariaLabel={t("stepEditor.matchLanguageLabel")}
             className={formStyles.argValueInput}
-            language={attr.matchLanguage || SCRIPT_LANGUAGE_JPATH}
+            language={attr.matchLanguage || SCRIPT_LANGUAGE_ARGYLL}
             onLanguageChange={(language) =>
               updateAttribute(attr.id, "matchLanguage", language)
             }

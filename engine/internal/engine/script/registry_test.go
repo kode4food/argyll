@@ -235,19 +235,19 @@ func TestLuaPredicateFalse(t *testing.T) {
 	})
 }
 
-func TestJPathPredicateMatches(t *testing.T) {
+func TestArgExPredicateMatches(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
 		registry := script.NewRegistry()
 
 		st := helpers.NewStepWithPredicate(
-			"jpath-pred-step", api.ScriptLangJPath, "$.flag",
+			"argex-pred-step", api.ScriptLangArgyll, "flag == null",
 		)
 		st.Attributes["flag"] = &api.AttributeSpec{
 			Role: api.RoleOptional,
 			Type: api.TypeAny,
 		}
 
-		env, err := registry.Get(api.ScriptLangJPath)
+		env, err := registry.Get(api.ScriptLangArgyll)
 		assert.NoError(t, err)
 
 		comp, err := env.Compile(st, st.Predicate)
@@ -261,15 +261,15 @@ func TestJPathPredicateMatches(t *testing.T) {
 	})
 }
 
-func TestJPathPredicateNoMatch(t *testing.T) {
+func TestArgExPredicateNoMatch(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
 		registry := script.NewRegistry()
 
 		st := helpers.NewStepWithPredicate(
-			"jpath-pred-step", api.ScriptLangJPath, "$.flag",
+			"argex-pred-step", api.ScriptLangArgyll, "flag ?? false",
 		)
 
-		env, err := registry.Get(api.ScriptLangJPath)
+		env, err := registry.Get(api.ScriptLangArgyll)
 		assert.NoError(t, err)
 
 		comp, err := env.Compile(st, st.Predicate)
@@ -281,32 +281,32 @@ func TestJPathPredicateNoMatch(t *testing.T) {
 	})
 }
 
-func TestJPathInvalidSyntax(t *testing.T) {
+func TestArgExInvalidSyntax(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
 		registry := script.NewRegistry()
 
 		st := helpers.NewStepWithPredicate(
-			"jpath-invalid", api.ScriptLangJPath, "$..[",
+			"argex-invalid", api.ScriptLangArgyll, "value[",
 		)
 
-		env, err := registry.Get(api.ScriptLangJPath)
+		env, err := registry.Get(api.ScriptLangArgyll)
 		assert.NoError(t, err)
 
 		_, err = env.Compile(st, st.Predicate)
 		assert.Error(t, err)
-		assert.ErrorIs(t, err, script.ErrJPathCompile)
+		assert.ErrorIs(t, err, script.ErrArgExCompile)
 	})
 }
 
-func TestJPathEvaluateScript(t *testing.T) {
+func TestArgExEvaluateScript(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
 		registry := script.NewRegistry()
 
-		env, err := registry.Get(api.ScriptLangJPath)
+		env, err := registry.Get(api.ScriptLangArgyll)
 		assert.NoError(t, err)
 
 		st := helpers.NewStepWithPredicate(
-			"jpath-exec", api.ScriptLangJPath, "$.foo",
+			"argex-exec", api.ScriptLangArgyll, "input.foo",
 		)
 
 		comp, err := env.Compile(st, st.Predicate)
@@ -360,7 +360,7 @@ func TestCompileViaRegistry(t *testing.T) {
 }
 
 func TestEmptyScript(t *testing.T) {
-	for _, language := range []string{api.ScriptLangLua, api.ScriptLangJPath} {
+	for _, language := range []string{api.ScriptLangLua, api.ScriptLangArgyll} {
 		t.Run(language, func(t *testing.T) {
 			r := script.NewRegistry()
 			_, err := r.Compile(

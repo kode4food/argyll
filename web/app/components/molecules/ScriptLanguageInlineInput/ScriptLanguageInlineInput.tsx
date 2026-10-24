@@ -1,5 +1,5 @@
 import React from "react";
-import { SCRIPT_LANGUAGE_JPATH, SCRIPT_LANGUAGE_LUA } from "@/app/api";
+import { SCRIPT_LANGUAGE_ARGYLL, SCRIPT_LANGUAGE_LUA } from "@/app/api";
 import useDropdown from "@/app/hooks/useDropdown";
 import { useT } from "@/app/i18n";
 import dropdownStyles from "@/app/styles/components/dropdown.module.css";
@@ -7,7 +7,7 @@ import SegmentedGroup from "@/app/components/molecules/SegmentedGroup";
 import styles from "./ScriptLanguageInlineInput.module.css";
 
 const scriptLanguageOptions = [
-  { value: SCRIPT_LANGUAGE_JPATH, labelKey: "script.language.jpath" },
+  { value: SCRIPT_LANGUAGE_ARGYLL, labelKey: "script.language.argyll" },
   { value: SCRIPT_LANGUAGE_LUA, labelKey: "script.language.lua" },
 ];
 
@@ -33,7 +33,7 @@ const ScriptLanguageInlineInput: React.FC<ScriptLanguageInlineInputProps> = ({
   title,
 }) => {
   const t = useT();
-  const activeLanguage = language || SCRIPT_LANGUAGE_JPATH;
+  const activeLanguage = language || SCRIPT_LANGUAGE_ARGYLL;
   const {
     open,
     setOpen,

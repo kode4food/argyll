@@ -28,7 +28,7 @@ describe("stepEditorUtils", () => {
           required: {
             collect: "all",
             for_each: true,
-            match: { language: "jpath", script: "$.kind" },
+            match: { language: "argyll", script: "value.kind" },
             mapping: {
               name: "child_in",
               script: { language: "lua", script: "return value" },
@@ -68,8 +68,8 @@ describe("stepEditorUtils", () => {
         role: "required",
         collect: "all",
         forEach: true,
-        matchLanguage: "jpath",
-        matchScript: "$.kind",
+        matchLanguage: "argyll",
+        matchScript: "value.kind",
         mappingName: "child_in",
         mappingLanguage: "lua",
         mappingScript: "return value",
@@ -130,7 +130,7 @@ describe("stepEditorUtils", () => {
       [
         attribute({
           name: "route",
-          matchScript: "$.kind",
+          matchScript: "value.kind",
           matchLanguage: " ",
         }),
       ],
@@ -171,8 +171,8 @@ describe("stepEditorUtils", () => {
         matchLanguage: " lua ",
         matchScript: ' return value == "email" ',
         mappingName: " request ",
-        mappingLanguage: " jpath ",
-        mappingScript: " $.payload ",
+        mappingLanguage: " argyll ",
+        mappingScript: " request.payload ",
       }),
       attribute({
         id: "attr-2",
@@ -199,7 +199,7 @@ describe("stepEditorUtils", () => {
         role: "output",
         name: "output",
         dataType: AttributeType.Object,
-        mappingScript: " $.result ",
+        mappingScript: " return output.result ",
       }),
     ]);
 
@@ -213,7 +213,7 @@ describe("stepEditorUtils", () => {
         match: { language: "lua", script: 'return value == "email"' },
         mapping: {
           name: "request",
-          script: { language: "jpath", script: "$.payload" },
+          script: { language: "argyll", script: "request.payload" },
         },
       },
     });
@@ -222,7 +222,7 @@ describe("stepEditorUtils", () => {
     expect(result.metadata.meta).toEqual({ key: "request_id" });
     expect(result.output.output?.mapping?.script).toEqual({
       language: "lua",
-      script: "$.result",
+      script: "return output.result",
     });
   });
 
@@ -337,7 +337,7 @@ describe("stepEditorUtils", () => {
           attribute({
             role: "output",
             name: "result",
-            mappingScript: "$.result",
+            mappingScript: "result.result",
             mappingLanguage: " ",
           }),
         ],

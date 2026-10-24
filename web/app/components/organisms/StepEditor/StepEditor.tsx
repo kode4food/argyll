@@ -114,12 +114,12 @@ const StepEditor: React.FC<StepEditorProps> = ({
     React.useState<ExecutionPlan | null>(null);
   const [flowInitialState, setFlowInitialState] = React.useState("{}");
   const predicateCompletions = React.useMemo(
-    () => stepAttributeCompletions(attributes, predicateLanguage, false),
-    [attributes, predicateLanguage]
+    () => stepAttributeCompletions(attributes, false),
+    [attributes]
   );
   const scriptCompletions = React.useMemo(
-    () => stepAttributeCompletions(attributes, scriptLanguage, true),
-    [attributes, scriptLanguage]
+    () => stepAttributeCompletions(attributes, true),
+    [attributes]
   );
 
   const updateFlowPreviewPlan = React.useCallback(

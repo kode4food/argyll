@@ -1,6 +1,6 @@
 import { render, screen, fireEvent } from "@testing-library/react";
 import ScriptConfigEditor from "./ScriptConfigEditor";
-import { SCRIPT_LANGUAGE_JPATH, SCRIPT_LANGUAGE_LUA } from "@/app/api";
+import { SCRIPT_LANGUAGE_ARGYLL, SCRIPT_LANGUAGE_LUA } from "@/app/api";
 import { t } from "@/app/testUtils/i18n";
 import { IconPredicate } from "@/utils/iconRegistry";
 
@@ -55,7 +55,7 @@ describe("ScriptConfigEditor", () => {
         readOnly
         languageOptions={[
           { value: SCRIPT_LANGUAGE_LUA, labelKey: "script.language.lua" },
-          { value: SCRIPT_LANGUAGE_JPATH, labelKey: "script.language.jpath" },
+          { value: SCRIPT_LANGUAGE_ARGYLL, labelKey: "script.language.argyll" },
         ]}
       />
     );
@@ -70,12 +70,12 @@ describe("ScriptConfigEditor", () => {
         {...defaultProps}
         languageOptions={[
           { value: SCRIPT_LANGUAGE_LUA, labelKey: "script.language.lua" },
-          { value: SCRIPT_LANGUAGE_JPATH, labelKey: "script.language.jpath" },
+          { value: SCRIPT_LANGUAGE_ARGYLL, labelKey: "script.language.argyll" },
         ]}
       />
     );
 
-    expect(screen.getByText(t("script.language.jpath"))).toBeInTheDocument();
+    expect(screen.getByText(t("script.language.argyll"))).toBeInTheDocument();
     expect(screen.getByText(t("script.language.lua"))).toBeInTheDocument();
   });
 
@@ -86,15 +86,15 @@ describe("ScriptConfigEditor", () => {
         language={SCRIPT_LANGUAGE_LUA}
         languageOptions={[
           { value: SCRIPT_LANGUAGE_LUA, labelKey: "script.language.lua" },
-          { value: SCRIPT_LANGUAGE_JPATH, labelKey: "script.language.jpath" },
+          { value: SCRIPT_LANGUAGE_ARGYLL, labelKey: "script.language.argyll" },
         ]}
       />
     );
 
-    const button = screen.getByText(t("script.language.jpath"));
+    const button = screen.getByText(t("script.language.argyll"));
     fireEvent.click(button);
     expect(defaultProps.onLanguageChange).toHaveBeenCalledWith(
-      SCRIPT_LANGUAGE_JPATH
+      SCRIPT_LANGUAGE_ARGYLL
     );
   });
 
@@ -105,7 +105,7 @@ describe("ScriptConfigEditor", () => {
         language={SCRIPT_LANGUAGE_LUA}
         languageOptions={[
           { value: SCRIPT_LANGUAGE_LUA, labelKey: "script.language.lua" },
-          { value: SCRIPT_LANGUAGE_JPATH, labelKey: "script.language.jpath" },
+          { value: SCRIPT_LANGUAGE_ARGYLL, labelKey: "script.language.argyll" },
         ]}
       />
     );

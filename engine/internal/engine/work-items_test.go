@@ -152,8 +152,9 @@ func TestOutputMappingDescendants(t *testing.T) {
 					Output: &api.OutputConfig{
 						Mapping: &api.MappingConfig{
 							Script: &api.ScriptConfig{
-								Language: api.ScriptLangJPath,
-								Script:   "$..book",
+								Language: api.ScriptLangArgyll,
+								Script: "books.payload.sections | map " +
+									"item: item.book",
 							},
 						},
 					},

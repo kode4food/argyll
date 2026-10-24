@@ -8,13 +8,10 @@ test("builds completions from Step attributes and selector metadata", () => {
     { name: "amount", role: "required", mappingName: "value" },
     { name: "result", role: "output" },
   ];
-  expect(stepAttributeCompletions(attributes, "lua", false)).toEqual(["value"]);
-  expect(stepAttributeCompletions(attributes, "lua", true)).toEqual([
+  expect(stepAttributeCompletions(attributes, false)).toEqual(["value"]);
+  expect(stepAttributeCompletions(attributes, true)).toEqual([
     "value",
     "result",
-  ]);
-  expect(stepAttributeCompletions(attributes, "jpath", false)).toEqual([
-    "$.value",
   ]);
 
   const completions = spaceSelectorCompletions(
@@ -25,10 +22,10 @@ test("builds completions from Step attributes and selector metadata", () => {
   expect(completions).toContain('value["attributes"]["score"]["compensated"]');
   expect(completions).toContain('has(value["tags"], "domain:risk")');
 
-  const jpathCompletions = spaceSelectorCompletions(
+  const argExCompletions = spaceSelectorCompletions(
     [{ attributes: { score: {} }, tags: ["domain:risk"] }],
-    "jpath"
+    "argyll"
   );
-  expect(jpathCompletions).toContain('$.tags[?@=="domain:risk"]');
-  expect(jpathCompletions).toContain("$.attributes.score.compensated");
+  expect(argExCompletions).toContain('"domain:risk" in value.tags');
+  expect(argExCompletions).toContain("value.attributes.score.compensated");
 });

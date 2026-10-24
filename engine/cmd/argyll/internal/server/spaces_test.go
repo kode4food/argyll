@@ -41,8 +41,8 @@ func TestSpaceAPI(t *testing.T) {
 		assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &got))
 		assert.Equal(t, sp.QBE, got.QBE)
 		assert.Equal(t, &api.ScriptConfig{
-			Language: api.ScriptLangJPath,
-			Script:   `$.tags[?@=="domain:payments"]`,
+			Language: api.ScriptLangArgyll,
+			Script:   `"domain:payments" in value.tags`,
 		}, got.Selector)
 
 		w = spaceRequest(t, spaceRequestArgs{
@@ -138,14 +138,14 @@ func TestSpacePreviewAPI(t *testing.T) {
 		}
 
 		w := preview(api.Space{Selector: &api.ScriptConfig{
-			Language: api.ScriptLangJPath,
-			Script:   `$.tags[?@=="domain:payments"]`,
+			Language: api.ScriptLangArgyll,
+			Script:   `"domain:payments" in value.tags`,
 		}})
 		assert.Equal(t, http.StatusOK, w.Code)
 		var got api.SpacePreviewResponse
 		assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &got))
 		assert.Equal(t, []api.StepID{matching.ID}, got.StepIDs)
-		assert.Equal(t, api.ScriptLangJPath, got.Space.Selector.Language)
+		assert.Equal(t, api.ScriptLangArgyll, got.Space.Selector.Language)
 
 		w = preview(api.Space{
 			QBE: api.SpaceQuery{{"domain:payments"}},
@@ -154,8 +154,8 @@ func TestSpacePreviewAPI(t *testing.T) {
 		assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &got))
 		assert.Equal(t, []api.StepID{matching.ID}, got.StepIDs)
 		assert.Equal(t, &api.ScriptConfig{
-			Language: api.ScriptLangJPath,
-			Script:   `$.tags[?@=="domain:payments"]`,
+			Language: api.ScriptLangArgyll,
+			Script:   `"domain:payments" in value.tags`,
 		}, got.Space.Selector)
 
 		w = preview(api.Space{Selector: &api.ScriptConfig{
@@ -164,7 +164,7 @@ func TestSpacePreviewAPI(t *testing.T) {
 		}})
 		assert.Equal(t, http.StatusOK, w.Code)
 		assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &got))
-		assert.Empty(t, got.StepIDs)
+		assert.Equal(t, []api.StepID{}, got.StepIDs)
 
 		w = preview(api.Space{Selector: &api.ScriptConfig{
 			Language: api.ScriptLangLua,

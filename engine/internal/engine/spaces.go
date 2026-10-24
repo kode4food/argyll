@@ -166,7 +166,7 @@ func (e *Engine) prepareSelector(sp api.Space) (api.Space, error) {
 func (e *Engine) selectSpaceSteps(
 	steps api.Steps, sp api.Space,
 ) ([]api.StepID, error) {
-	var res []api.StepID
+	res := make([]api.StepID, 0)
 	for id, st := range steps {
 		matches, err := e.spaceMatches(sp, st)
 		if err != nil {

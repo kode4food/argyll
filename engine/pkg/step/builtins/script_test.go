@@ -15,13 +15,13 @@ func TestScriptValidationNil(t *testing.T) {
 	assert.ErrorIs(t, err, api.ErrScriptRequired)
 }
 
-func TestScriptValidationJPath(t *testing.T) {
+func TestScriptValidationArgEx(t *testing.T) {
 	reg := newRegistry(&testClient{})
 	err := reg.Validate(&api.Step{
 		Type: api.StepTypeScript,
 		Script: &api.ScriptConfig{
-			Language: api.ScriptLangJPath,
-			Script:   "$.x",
+			Language: api.ScriptLangArgyll,
+			Script:   "x",
 		},
 	})
 	assert.ErrorIs(t, err, builtins.ErrLangNotValid)

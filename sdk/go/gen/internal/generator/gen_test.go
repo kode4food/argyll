@@ -320,16 +320,16 @@ func TestMappingName(t *testing.T) {
 
 func TestAttributeScripts(t *testing.T) {
 	src := "type In struct {\n" +
-		"Default string `argyll-match:\"$.ready\" " +
+		"Default string `argyll-match:\"value.ready\" " +
 		"argyll-mapping:\"value = value; return value\"`\n" +
 		"Lua string `argyll-match:\"lua:value = true; return value\"`\n" +
 		"}\n" +
 		"type Out struct { Value string " +
-		"`argyll-mapping:\"jpath:$\"` }\n" +
+		"`argyll-mapping:\"argyll:value\"` }\n" +
 		"//argyll:step\nfunc Run(in In) Out { return Out{} }\n"
 	attrs := sourceSteps(t, src)["run"].Attributes
 	assert.Equal(t,
-		&api.ScriptConfig{Language: "jpath", Script: "$.ready"},
+		&api.ScriptConfig{Language: "argyll", Script: "value.ready"},
 		attrs["default"].Required.Match)
 	assert.Equal(t,
 		&api.ScriptConfig{
@@ -344,7 +344,7 @@ func TestAttributeScripts(t *testing.T) {
 		},
 		attrs["lua"].Required.Match)
 	assert.Equal(t,
-		&api.ScriptConfig{Language: "jpath", Script: "$"},
+		&api.ScriptConfig{Language: "argyll", Script: "value"},
 		attrs["value"].Output.Mapping.Script)
 }
 
@@ -359,12 +359,12 @@ func TestAttributeProps(t *testing.T) {
 	assert.True(t, attrs["note"].IsOptional())
 	assert.Equal(t, int64(5000), attrs["currency"].Optional.Deadline)
 	assert.Equal(t, "flow_id", attrs["flow"].Meta.Key)
-	assert.Equal(t, "lua", attrs["amount"].Required.Match.Language)
+	assert.Equal(t, "argyll", attrs["amount"].Required.Match.Language)
 
 	// a default or const value reaches the engine as JSON
 	assert.Equal(t, `"USD"`, attrs["currency"].Optional.Default)
 	assert.Equal(t, `"stripe"`, attrs["gateway"].Const.Value)
-	assert.Equal(t, "return value > 0",
+	assert.Equal(t, "value > 0",
 		attrs["amount"].Required.Match.Script)
 }
 
@@ -374,8 +374,8 @@ func TestStepConfig(t *testing.T) {
 
 	assert.Equal(t, api.Name("Charge Card (v2)"), st.Name)
 	assert.Equal(t, int64(2500), st.HTTP.Invoke.Timeout)
-	assert.Equal(t, api.ScriptLangLua, st.Predicate.Language)
-	assert.Equal(t, "return amount > 0", st.Predicate.Script)
+	assert.Equal(t, api.ScriptLangArgyll, st.Predicate.Language)
+	assert.Equal(t, "amount > 0", st.Predicate.Script)
 
 	// the endpoints are paths until the step server knows its own host
 	assert.Equal(t, "/charge-card-v2", st.HTTP.Invoke.Endpoint)
@@ -387,7 +387,7 @@ func TestStepConfig(t *testing.T) {
 
 func TestPredicate(t *testing.T) {
 	src := "//argyll:step one\n" +
-		"//argyll:predicate jpath:$.active\n" +
+		"//argyll:predicate argyll:active\n" +
 		"func One() {}\n" +
 		"//argyll:step two\n" +
 		"//argyll:predicate lua:ready = true; return ready\n" +
@@ -397,7 +397,7 @@ func TestPredicate(t *testing.T) {
 		"func Three() {}\n"
 	byID := sourceSteps(t, src)
 	assert.Equal(t,
-		&api.ScriptConfig{Language: "jpath", Script: "$.active"},
+		&api.ScriptConfig{Language: "argyll", Script: "active"},
 		byID["one"].Predicate)
 	assert.Equal(t,
 		&api.ScriptConfig{

@@ -16,8 +16,8 @@ func TestSpaceJSON(t *testing.T) {
 		Name: "Payments",
 		QBE:  api.SpaceQuery{{"domain:payments"}, {"domain:risk"}},
 		Selector: &api.ScriptConfig{
-			Language: api.ScriptLangJPath,
-			Script:   `$.tags[?@=="domain:payments"]`,
+			Language: api.ScriptLangArgyll,
+			Script:   `"domain:payments" in value.tags`,
 		},
 	}.Normalize()
 	data, err := json.Marshal(sp)
@@ -27,8 +27,8 @@ func TestSpaceJSON(t *testing.T) {
 		"name": "Payments",
 		"qbe": [["domain:payments"], ["domain:risk"]],
 		"selector": {
-			"language": "jpath",
-			"script": "$.tags[?@==\"domain:payments\"]"
+			"language": "argyll",
+			"script": "\"domain:payments\" in value.tags"
 		}
 	}`, string(data))
 }
@@ -38,8 +38,8 @@ func TestSpaceValidate(t *testing.T) {
 		ID: "payments", Name: "Payments",
 		QBE: api.SpaceQuery{{"domain:payments"}},
 		Selector: &api.ScriptConfig{
-			Language: api.ScriptLangJPath,
-			Script:   `$.tags[?@=="domain:payments"]`,
+			Language: api.ScriptLangArgyll,
+			Script:   `"domain:payments" in value.tags`,
 		},
 	}.Normalize()
 	assert.NoError(t, sp.Validate())
@@ -81,8 +81,8 @@ func TestSpaceNormalize(t *testing.T) {
 	sp := api.Space{
 		ID: "payments", Name: "Payments",
 		Selector: &api.ScriptConfig{
-			Language: api.ScriptLangJPath,
-			Script:   `$.tags[?@=="domain:payments"]`,
+			Language: api.ScriptLangArgyll,
+			Script:   `"domain:payments" in value.tags`,
 		},
 		QBE: api.SpaceQuery{
 			{"tier:gold", "domain:risk", "tier:gold"},
@@ -103,8 +103,8 @@ func TestSpaceNormalize(t *testing.T) {
 
 func TestSpaceValidateIdentity(t *testing.T) {
 	selector := &api.ScriptConfig{
-		Language: api.ScriptLangJPath,
-		Script:   `$.tags[?@=="domain:payments"]`,
+		Language: api.ScriptLangArgyll,
+		Script:   `"domain:payments" in value.tags`,
 	}
 
 	invalidID := api.Space{
@@ -119,7 +119,7 @@ func TestSpaceValidateIdentity(t *testing.T) {
 func TestSpaceValidateSelectorScript(t *testing.T) {
 	noScript := api.Space{
 		ID: "payments", Name: "Payments",
-		Selector: &api.ScriptConfig{Language: api.ScriptLangJPath},
+		Selector: &api.ScriptConfig{Language: api.ScriptLangArgyll},
 	}
 	assert.ErrorIs(t, noScript.ValidateSelector(), api.ErrScriptEmpty)
 
@@ -131,8 +131,8 @@ func TestSpaceValidateSelectorScript(t *testing.T) {
 	tooManyTags := api.Space{
 		ID: "payments", Name: "Payments", QBE: qbe,
 		Selector: &api.ScriptConfig{
-			Language: api.ScriptLangJPath,
-			Script:   `$.tags[?@=="domain:payments"]`,
+			Language: api.ScriptLangArgyll,
+			Script:   `"domain:payments" in value.tags`,
 		},
 	}
 	assert.ErrorIs(t, tooManyTags.ValidateSelector(), api.ErrTooManyTags)

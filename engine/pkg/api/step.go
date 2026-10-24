@@ -113,8 +113,8 @@ const (
 	StepTypeScript  StepType = "script"
 	StepTypeFlow    StepType = "flow"
 
-	ScriptLangJPath = "jpath"
-	ScriptLangLua   = "lua"
+	ScriptLangArgyll = "argyll"
+	ScriptLangLua    = "lua"
 
 	BackoffTypeFixed       = "fixed"
 	BackoffTypeLinear      = "linear"

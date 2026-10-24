@@ -5,7 +5,7 @@ import {
   MappingConfig,
   OptionalConfig,
   RequiredConfig,
-  SCRIPT_LANGUAGE_JPATH,
+  SCRIPT_LANGUAGE_ARGYLL,
   ScriptConfig,
   Step,
 } from "@/app/api";
@@ -115,7 +115,7 @@ function buildOptionalAttrSpec(
 
 function buildMatchConfig(a: Attribute): ScriptConfig {
   return {
-    language: a.matchLanguage?.trim() || SCRIPT_LANGUAGE_JPATH,
+    language: a.matchLanguage?.trim() || SCRIPT_LANGUAGE_ARGYLL,
     script: a.matchScript?.trim() || "",
   };
 }

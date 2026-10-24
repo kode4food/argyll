@@ -43,3 +43,5 @@ curl http://localhost:8080/engine/flows/complete-order-flow
 ```
 
 Each service can also run directly from its directory with `go run .`. See the [documentation](https://www.argyll.app/docs/) for focused examples of Flow design, async callbacks, Work Items, and compensation.
+
+See [Argyll Expressions](./argex.md) for tag selectors, payment matches, check Predicates, and model cost mappings.

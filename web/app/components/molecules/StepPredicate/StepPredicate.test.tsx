@@ -80,12 +80,12 @@ describe("StepPredicate", () => {
     ).toBeInTheDocument();
   });
 
-  test("keeps a JPath predicate intact", () => {
-    const step = createStep('$.tags[?@=="domain:payments"]', "jpath");
+  test("keeps an ArgEx predicate intact", () => {
+    const step = createStep('tags[0] == "domain:payments"', "argyll");
     const { container } = render(<StepPredicate step={step} />);
 
     expect(container.querySelector(".predicate-code")?.textContent).toBe(
-      '$.tags[?@=="domain:payments"]'
+      'tags[0] == "domain:payments"'
     );
   });
 });

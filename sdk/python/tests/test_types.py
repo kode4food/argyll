@@ -105,7 +105,7 @@ def test_attribute_spec_with_match():
         type=AttributeType.OBJECT,
         required=RequiredConfig(
             match=ScriptConfig(
-                language=ScriptLanguage.JPATH, script="$.product_type"
+                language=ScriptLanguage.ARGYLL, script="value.product_type"
             )
         ),
     )
@@ -115,8 +115,8 @@ def test_attribute_spec_with_match():
         "type": "object",
         "required": {
             "match": {
-                "language": "jpath",
-                "script": "$.product_type",
+                "language": "argyll",
+                "script": "value.product_type",
             }
         },
     }
@@ -230,7 +230,7 @@ def test_step_enums():
     assert AttributeRole.REQUIRED.value == "required"
     assert AttributeType.STRING.value == "string"
     assert ScriptLanguage.LUA.value == "lua"
-    assert ScriptLanguage.JPATH.value == "jpath"
+    assert ScriptLanguage.ARGYLL.value == "argyll"
 
 
 def test_http_config_with_timeout():

@@ -49,8 +49,8 @@ func main() {
 		Required("product_info", api.TypeObject).
 		Optional("quantity", api.TypeNumber, "1").
 		WithPredicate(api.ScriptConfig{
-			Language: api.ScriptLangLua,
-			Script:   `return product_info.name == "Professional Laptop"`,
+			Language: api.ScriptLangArgyll,
+			Script:   `product_info.name == "Professional Laptop"`,
 		}).
 		Output("order", api.TypeObject).
 		Start(handle)

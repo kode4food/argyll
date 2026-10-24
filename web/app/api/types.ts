@@ -22,7 +22,7 @@ export type ActionMode = "sync" | "async";
 export type Handling = "standard" | "memoized" | "compensated";
 export type HTTPMethod = "GET" | "POST" | "PUT" | "DELETE";
 
-export const SCRIPT_LANGUAGE_JPATH = "jpath";
+export const SCRIPT_LANGUAGE_ARGYLL = "argyll";
 export const SCRIPT_LANGUAGE_LUA = "lua";
 
 export enum AttributeRole {

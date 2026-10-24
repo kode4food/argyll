@@ -132,13 +132,13 @@ describe("stepUtils", () => {
     [
       "match",
       attr(AttributeRole.Required, {
-        required: { match: { language: "jpath", script: "$.kind" } },
+        required: { match: { language: "argyll", script: "value.kind" } },
       }),
       [
         {
           kind: "match",
           Icon: IconAttributeMatch,
-          script: { language: "jpath", script: "$.kind" },
+          script: { language: "argyll", script: "value.kind" },
         },
       ],
     ],
@@ -191,7 +191,7 @@ describe("stepUtils", () => {
       getAttributeModifiers(
         attr(AttributeRole.Required, {
           required: {
-            match: { language: "jpath", script: "$" },
+            match: { language: "argyll", script: "value" },
             mapping: { name: "mapped" },
             collect: "all",
             for_each: true,

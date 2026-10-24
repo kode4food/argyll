@@ -47,8 +47,8 @@ import { api } from "@/app/api";
 
 const mockApi = api as jest.Mocked<typeof api>;
 const GENERATED_SELECTOR = {
-  language: "jpath" as const,
-  script: '$.tags[?@=="domain:risk"]',
+  language: "argyll" as const,
+  script: '"domain:risk" in value.tags',
 };
 
 describe("SpaceManager", () => {
@@ -60,8 +60,8 @@ describe("SpaceManager", () => {
         name: "Risk",
         description: "Risk steps",
         selector: {
-          language: "jpath",
-          script: '$.tags[?@=="domain:risk"]',
+          language: "argyll",
+          script: '"domain:risk" in value.tags',
         },
         qbe: [["domain:risk"]],
       },
@@ -69,8 +69,8 @@ describe("SpaceManager", () => {
         id: "gold",
         name: "Gold",
         selector: {
-          language: "jpath",
-          script: '$.tags[?@ == "tier:gold"]',
+          language: "argyll",
+          script: '"tier:gold" in value.tags',
         },
       },
     ];
@@ -410,7 +410,7 @@ describe("SpaceManager", () => {
     });
   });
 
-  test("ejects QBE into an editable JPath selector", async () => {
+  test("ejects QBE into an editable ArgEx selector", async () => {
     open();
     fireEvent.click(screen.getByText("Risk"));
     await addSelector("domain:trading");
@@ -426,15 +426,15 @@ describe("SpaceManager", () => {
     expect(screen.getByTestId("selector-editor")).not.toHaveAttribute(
       "readonly"
     );
-    setScript('$.tags[?@ == "tier:gold"]');
+    setScript('"tier:gold" in value.tags');
     await waitFor(() =>
       expect(mockApi.previewSpace).toHaveBeenLastCalledWith({
         id: "risk",
         name: "Risk",
         description: "Risk steps",
         selector: {
-          language: "jpath",
-          script: '$.tags[?@ == "tier:gold"]',
+          language: "argyll",
+          script: '"tier:gold" in value.tags',
         },
       })
     );
@@ -448,8 +448,8 @@ describe("SpaceManager", () => {
         name: "Risk",
         description: "Risk steps",
         selector: {
-          language: "jpath",
-          script: '$.tags[?@ == "tier:gold"]',
+          language: "argyll",
+          script: '"tier:gold" in value.tags',
         },
       });
     });
@@ -466,16 +466,16 @@ describe("SpaceManager", () => {
     editScript();
     await waitFor(() => expect(mockApi.previewSpace).toHaveBeenCalledTimes(1));
 
-    setScript("$.tags[");
-    setScript("$.tags[?@");
-    setScript('$.tags[?@ == "tier:gold"]');
+    setScript("value.tags[");
+    setScript('"tier:gold" in');
+    setScript('"tier:gold" in value.tags');
 
     await waitFor(() =>
       expect(mockApi.previewSpace).toHaveBeenLastCalledWith(
         expect.objectContaining({
           selector: {
-            language: "jpath",
-            script: '$.tags[?@ == "tier:gold"]',
+            language: "argyll",
+            script: '"tier:gold" in value.tags',
           },
         })
       )
@@ -493,12 +493,12 @@ describe("SpaceManager", () => {
     );
     editScript();
 
-    const typed = '  $.tags[?@ == "tier:gold"]\n\n';
+    const typed = '  "tier:gold" in value.tags\n\n';
     setScript(typed);
     await waitFor(() =>
       expect(mockApi.previewSpace).toHaveBeenLastCalledWith(
         expect.objectContaining({
-          selector: { language: "jpath", script: typed.trim() },
+          selector: { language: "argyll", script: typed.trim() },
         })
       )
     );
@@ -523,22 +523,22 @@ describe("SpaceManager", () => {
     fireEvent.click(screen.getByText("Gold"));
 
     const editor = screen.getByTestId("selector-editor");
-    expect(editor).toHaveValue('$.tags[?@ == "tier:gold"]');
+    expect(editor).toHaveValue('"tier:gold" in value.tags');
     expect(editor).not.toHaveAttribute("readonly");
     await waitFor(() =>
       expect(screen.getByText("1 Step in this Space")).toBeInTheDocument()
     );
   });
 
-  test("bypasses QBE with the default JPath selector", async () => {
+  test("bypasses QBE with the default ArgEx selector", async () => {
     open();
     startNew();
     editScript();
     expect(screen.getByTestId("selector-editor")).toHaveAttribute(
       "data-language",
-      "jpath"
+      "argyll"
     );
-    setScript('$.type == "service"');
+    setScript('value.type == "service"');
     fireEvent.click(
       screen.getByRole("button", { name: t("spaceManager.back") })
     );
@@ -555,7 +555,7 @@ describe("SpaceManager", () => {
       expect(mockApi.previewSpace).toHaveBeenLastCalledWith({
         id: "risk-script",
         name: "Risk Script",
-        selector: { language: "jpath", script: '$.type == "service"' },
+        selector: { language: "argyll", script: 'value.type == "service"' },
       })
     );
     fireEvent.click(
@@ -566,7 +566,7 @@ describe("SpaceManager", () => {
       expect(mockApi.registerSpace).toHaveBeenCalledWith({
         id: "risk-script",
         name: "Risk Script",
-        selector: { language: "jpath", script: '$.type == "service"' },
+        selector: { language: "argyll", script: 'value.type == "service"' },
       });
     });
   });

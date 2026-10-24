@@ -25,8 +25,8 @@ func TestSpaces(t *testing.T) {
 		stored := cat.Spaces.Defined[sp.ID]
 		assert.Equal(t, sp.QBE, stored.QBE)
 		assert.Equal(t, &api.ScriptConfig{
-			Language: api.ScriptLangJPath,
-			Script:   `$.tags[?@=="domain:payments"]`,
+			Language: api.ScriptLangArgyll,
+			Script:   `"domain:payments" in value.tags`,
 		}, stored.Selector)
 
 		spaces, err := eng.ListSpaces()
@@ -85,22 +85,22 @@ return has(value.tags, "domain:risk") and score and
     score.compensated == false`,
 			},
 		}
-		jpathSpace := api.Space{
-			ID: "jpath", Name: "JPath",
+		argExSpace := api.Space{
+			ID: "argex", Name: "ArgEx",
 			Selector: &api.ScriptConfig{
-				Language: api.ScriptLangJPath,
-				Script:   `$.tags[?@=="domain:trading"]`,
+				Language: api.ScriptLangArgyll,
+				Script:   `"domain:trading" in value.tags`,
 			},
 		}
 		assert.NoError(t, eng.RegisterSpace(luaSpace))
-		assert.NoError(t, eng.RegisterSpace(jpathSpace))
+		assert.NoError(t, eng.RegisterSpace(argExSpace))
 
 		cat, err := eng.GetCatalogState()
 		assert.NoError(t, err)
 		assert.Equal(t, api.Steps{risk.ID: cat.Steps[risk.ID]},
 			cat.SpaceSteps(luaSpace.ID))
 		assert.Equal(t, api.Steps{trading.ID: cat.Steps[trading.ID]},
-			cat.SpaceSteps(jpathSpace.ID))
+			cat.SpaceSteps(argExSpace.ID))
 	})
 }
 
@@ -125,14 +125,15 @@ func TestSpaceMetadataSelectors(t *testing.T) {
 			expected []api.StepID
 		}{
 			{
-				name:     "handling",
-				script:   `$.type == "service" && $.handling == "compensated"`,
+				name: "handling",
+				script: `value.type == "service" && ` +
+					`value.handling == "compensated"`,
 				expected: []api.StepID{reversible.ID},
 			},
 			{
 				name: "attribute contract",
-				script: `$.attributes.risk_score.role == "output" &&
-    $.attributes.risk_score.type == "number"`,
+				script: `value.attributes?.risk_score?.role == "output" &&
+    value.attributes?.risk_score?.type == "number"`,
 				expected: []api.StepID{risk.ID},
 			},
 		}
@@ -140,7 +141,7 @@ func TestSpaceMetadataSelectors(t *testing.T) {
 			t.Run(tt.name, func(t *testing.T) {
 				preview, err := eng.PreviewSpace(api.Space{
 					Selector: &api.ScriptConfig{
-						Language: api.ScriptLangJPath,
+						Language: api.ScriptLangArgyll,
 						Script:   tt.script,
 					},
 				})
@@ -169,9 +170,10 @@ func TestSpaceMarketSelector(t *testing.T) {
 
 		preview, err := eng.PreviewSpace(api.Space{
 			Selector: &api.ScriptConfig{
-				Language: api.ScriptLangJPath,
-				Script: `$.tags[?@=="market:europe" || @=="market:all"] ||
-    !$.tags[?search(@, "^market:")]`,
+				Language: api.ScriptLangArgyll,
+				Script: `"market:europe" in value.tags ||
+    "market:all" in value.tags ||
+    length(value.tags | filter tag: tag >= "market:" && tag < "market;") == 0`,
 			},
 		})
 		assert.NoError(t, err)
@@ -197,8 +199,8 @@ func TestPreviewSpace(t *testing.T) {
 		assert.Equal(t, []api.StepID{risk.ID}, preview.StepIDs)
 		assert.Equal(t, api.SpaceQuery{{"domain:risk"}}, preview.Space.QBE)
 		assert.Equal(t, &api.ScriptConfig{
-			Language: api.ScriptLangJPath,
-			Script:   `$.tags[?@=="domain:risk"]`,
+			Language: api.ScriptLangArgyll,
+			Script:   `"domain:risk" in value.tags`,
 		}, preview.Space.Selector)
 
 		preview, err = eng.PreviewSpace(api.Space{

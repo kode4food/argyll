@@ -2,7 +2,6 @@ package script_test
 
 import (
 	"fmt"
-	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -11,12 +10,11 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
-// benchCase pairs a Lua script with the JPath expression meant to decide the
-// same thing about the same document
+// benchCase pairs Lua and Argyll Expressions for the same document and decision
 type benchCase struct {
 	name  string
 	lua   string
-	jpath string
+	argEx string
 }
 
 // compilePadding varies a source so repeated compiles miss the script cache
@@ -67,20 +65,20 @@ var matchCases = []benchCase{
 	{
 		name:  "SingleTag",
 		lua:   `return has(value.tags, "domain:payments")`,
-		jpath: `$.tags[?@=="domain:payments"]`,
+		argEx: `"domain:payments" in value.tags`,
 	},
 	{
 		name: "TagAnd",
 		lua: `return has(value.tags, "domain:payments") and ` +
 			`has(value.tags, "environment:production")`,
-		jpath: `$.tags[?@=="domain:payments"] && ` +
-			`$.tags[?@=="environment:production"]`,
+		argEx: `"domain:payments" in value.tags && ` +
+			`"environment:production" in value.tags`,
 	},
 	{
 		name: "TagOr",
 		lua: `return has(value.tags, "market:europe") or ` +
 			`has(value.tags, "market:all")`,
-		jpath: `$.tags[?@=="market:europe" || @=="market:all"]`,
+		argEx: `"market:europe" in value.tags || "market:all" in value.tags`,
 	},
 	{
 		name: "QBETwoTerms",
@@ -88,16 +86,16 @@ var matchCases = []benchCase{
 			`has(value.tags, "tier:gold")) or ` +
 			`(has(value.tags, "domain:risk") and ` +
 			`has(value.tags, "environment:production"))`,
-		jpath: `($.tags[?@=="domain:payments"] && ` +
-			`$.tags[?@=="tier:gold"]) || ` +
-			`($.tags[?@=="domain:risk"] && ` +
-			`$.tags[?@=="environment:production"])`,
+		argEx: `("domain:payments" in value.tags && ` +
+			`"tier:gold" in value.tags) || ` +
+			`("domain:risk" in value.tags && ` +
+			`"environment:production" in value.tags)`,
 	},
 	{
 		name: "TagMiss",
 		// worst case for both: full scan of the tag list, no match
 		lua:   `return has(value.tags, "domain:nonexistent")`,
-		jpath: `$.tags[?@=="domain:nonexistent"]`,
+		argEx: `"domain:nonexistent" in value.tags`,
 	},
 	{
 		name: "NestedMetadata",
@@ -106,21 +104,18 @@ return has(value.tags, "domain:payments") and score and
     value.type == "service" and value.handling == "standard" and
     score.role == "output" and score.type == "number" and
     score.compensated == false`,
-		jpath: `$.tags[?@=="domain:payments"] && $.type=="service" && ` +
-			`$.handling=="standard" && ` +
-			`$.attributes.score.role=="output" && ` +
-			`$.attributes.score.type=="number" && ` +
-			`$.attributes.score.compensated==false`,
+		argEx: `"domain:payments" in value.tags && ` +
+			`value.type=="service" && value.handling=="standard" && ` +
+			`value.attributes.score.role=="output" && ` +
+			`value.attributes.score.type=="number" && ` +
+			`value.attributes.score.compensated==false`,
 	},
 	{
-		name: "Descendant",
-		lua: `for _, a in pairs(value.attributes) do
-  for _, v in pairs(a) do
-    if v == "number" then return true end
-  end
-end
-return false`,
-		jpath: `$.attributes..[?@=="number"]`,
+		name: "AttributeTypes",
+		lua: `return value.attributes.score.type == "number" or ` +
+			`value.attributes.amount.type == "number"`,
+		argEx: `value.attributes.score.type == "number" || ` +
+			`value.attributes.amount.type == "number"`,
 	},
 }
 
@@ -129,21 +124,20 @@ var predicateCases = []benchCase{
 	{
 		name:  "FieldEquals",
 		lua:   `return product_info.name == "Professional Laptop"`,
-		jpath: `$.product_info.name=="Professional Laptop"`,
+		argEx: `product_info.name=="Professional Laptop"`,
 	},
 	{
 		name: "NumericCompare",
 		lua: `return quantity > 1 and ` +
 			`user_info.credit_limit >= product_info.price`,
-		jpath: `$.quantity>1 && ` +
-			`$.user_info.credit_limit>=$.product_info.price`,
+		argEx: `quantity>1 && user_info.credit_limit>=product_info.price`,
 	},
 	{
 		name: "MultiField",
 		lua: `return user_info.account_type == "business" and ` +
 			`product_info.in_stock and quantity <= 10`,
-		jpath: `$.user_info.account_type=="business" && ` +
-			`$.product_info.in_stock==true && $.quantity<=10`,
+		argEx: `user_info.account_type=="business" && ` +
+			`product_info.in_stock==true && quantity<=10`,
 	},
 }
 
@@ -151,12 +145,12 @@ var predicateCases = []benchCase{
 // semantically equivalent, so the timings compare like for like
 func TestBenchCasesAgree(t *testing.T) {
 	lua := script.NewLuaEnv()
-	jp := script.NewJPathEnv()
+	jp := script.NewArgExEnv()
 
 	for _, c := range matchCases {
 		t.Run(c.name, func(t *testing.T) {
 			luaC := compileFor(t, lua, script.MatchStep, c.lua)
-			jpC := compileFor(t, jp, script.MatchStep, c.jpath)
+			jpC := compileFor(t, jp, script.MatchStep, c.argEx)
 			luaRes, err := lua.EvaluateMatch(luaC, matchDoc)
 			assert.NoError(t, err)
 			jpRes, err := jp.EvaluateMatch(jpC, matchDoc)
@@ -168,7 +162,7 @@ func TestBenchCasesAgree(t *testing.T) {
 	for _, c := range predicateCases {
 		t.Run(c.name, func(t *testing.T) {
 			luaC := compileFor(t, lua, predicateStep, c.lua)
-			jpC := compileFor(t, jp, predicateStep, c.jpath)
+			jpC := compileFor(t, jp, predicateStep, c.argEx)
 			luaRes, err := lua.EvaluatePredicate(luaC,
 				predicateStep, predicateArgs)
 			assert.NoError(t, err)
@@ -182,11 +176,11 @@ func TestBenchCasesAgree(t *testing.T) {
 
 func BenchmarkMatch(b *testing.B) {
 	lua := script.NewLuaEnv()
-	jp := script.NewJPathEnv()
+	jp := script.NewArgExEnv()
 
 	for _, c := range matchCases {
 		luaC := compileForBench(b, lua, script.MatchStep, c.lua)
-		jpC := compileForBench(b, jp, script.MatchStep, c.jpath)
+		jpC := compileForBench(b, jp, script.MatchStep, c.argEx)
 
 		b.Run(c.name+"/lua", func(b *testing.B) {
 			b.ReportAllocs()
@@ -196,7 +190,7 @@ func BenchmarkMatch(b *testing.B) {
 				}
 			}
 		})
-		b.Run(c.name+"/jpath", func(b *testing.B) {
+		b.Run(c.name+"/argex", func(b *testing.B) {
 			b.ReportAllocs()
 			for b.Loop() {
 				if _, err := jp.EvaluateMatch(jpC, matchDoc); err != nil {
@@ -209,11 +203,11 @@ func BenchmarkMatch(b *testing.B) {
 
 func BenchmarkPredicate(b *testing.B) {
 	lua := script.NewLuaEnv()
-	jp := script.NewJPathEnv()
+	jp := script.NewArgExEnv()
 
 	for _, c := range predicateCases {
 		luaC := compileForBench(b, lua, predicateStep, c.lua)
-		jpC := compileForBench(b, jp, predicateStep, c.jpath)
+		jpC := compileForBench(b, jp, predicateStep, c.argEx)
 
 		b.Run(c.name+"/lua", func(b *testing.B) {
 			b.ReportAllocs()
@@ -225,7 +219,7 @@ func BenchmarkPredicate(b *testing.B) {
 				}
 			}
 		})
-		b.Run(c.name+"/jpath", func(b *testing.B) {
+		b.Run(c.name+"/argex", func(b *testing.B) {
 			b.ReportAllocs()
 			for b.Loop() {
 				_, err := jp.EvaluatePredicate(jpC, predicateStep,
@@ -242,10 +236,10 @@ func BenchmarkPredicate(b *testing.B) {
 // the Lua state pool becomes contended
 func BenchmarkMatchParallel(b *testing.B) {
 	lua := script.NewLuaEnv()
-	jp := script.NewJPathEnv()
+	jp := script.NewArgExEnv()
 	c := matchCases[0]
 	luaC := compileForBench(b, lua, script.MatchStep, c.lua)
-	jpC := compileForBench(b, jp, script.MatchStep, c.jpath)
+	jpC := compileForBench(b, jp, script.MatchStep, c.argEx)
 
 	b.Run("lua", func(b *testing.B) {
 		b.ReportAllocs()
@@ -258,7 +252,7 @@ func BenchmarkMatchParallel(b *testing.B) {
 			}
 		})
 	})
-	b.Run("jpath", func(b *testing.B) {
+	b.Run("ArgEx", func(b *testing.B) {
 		b.ReportAllocs()
 		b.RunParallel(func(pb *testing.PB) {
 			for pb.Next() {
@@ -276,7 +270,7 @@ func BenchmarkMatchParallel(b *testing.B) {
 // distinct but semantically identical source per iteration
 func BenchmarkCompile(b *testing.B) {
 	lua := script.NewLuaEnv()
-	jp := script.NewJPathEnv()
+	jp := script.NewArgExEnv()
 
 	for _, c := range matchCases {
 		b.Run(c.name+"/lua", func(b *testing.B) {
@@ -288,12 +282,12 @@ func BenchmarkCompile(b *testing.B) {
 					fmt.Sprintf("%s\n-- %d", c.lua, i))
 			}
 		})
-		b.Run(c.name+"/jpath", func(b *testing.B) {
+		b.Run(c.name+"/argex", func(b *testing.B) {
 			b.ReportAllocs()
 			i := 0
 			for b.Loop() {
 				i++
-				compileForBench(b, jp, script.MatchStep, padJPath(c.jpath, i))
+				compileForBench(b, jp, script.MatchStep, padArgEx(c.argEx, i))
 			}
 		})
 	}
@@ -307,10 +301,10 @@ func BenchmarkNewEnv(b *testing.B) {
 			script.NewLuaEnv()
 		}
 	})
-	b.Run("jpath", func(b *testing.B) {
+	b.Run("ArgEx", func(b *testing.B) {
 		b.ReportAllocs()
 		for b.Loop() {
-			script.NewJPathEnv()
+			script.NewArgExEnv()
 		}
 	})
 }
@@ -335,9 +329,13 @@ func compileForBench(
 	return c
 }
 
-// JPath rejects surrounding whitespace, so the padding goes after the first
-// root selector, where it changes the text but not the meaning
-func padJPath(src string, i int) string {
-	pad := strings.Repeat(" ", i%compilePadding)
-	return strings.Replace(src, "$", "$"+pad, 1)
+func padArgEx(src string, i int) string {
+	var pad [compilePadding]byte
+	for bit := range pad {
+		pad[bit] = ' '
+		if uint64(i)>>bit&1 != 0 {
+			pad[bit] = '\t'
+		}
+	}
+	return string(pad[:]) + src
 }

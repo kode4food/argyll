@@ -5,7 +5,7 @@ import {
   GoalSets,
   Handling,
   HTTPMethod,
-  SCRIPT_LANGUAGE_JPATH,
+  SCRIPT_LANGUAGE_ARGYLL,
   SCRIPT_LANGUAGE_LUA,
   Step,
   StepType,
@@ -46,7 +46,7 @@ export function useStepEditorForm({
   );
   const [predicate, setPredicate] = useState(step?.predicate?.script || "");
   const [predicateLanguage, setPredicateLanguage] = useState(
-    step?.predicate?.language || SCRIPT_LANGUAGE_JPATH
+    step?.predicate?.language || SCRIPT_LANGUAGE_ARGYLL
   );
   const [endpoint, setEndpoint] = useState(step?.http?.invoke?.endpoint || "");
   const [httpMethod, setHttpMethod] = useState<HTTPMethod>(
@@ -180,7 +180,7 @@ export function useStepEditorForm({
       setStepTypeState(stepData.type || "service");
       setPredicate(stepData.predicate?.script || "");
       setPredicateLanguage(
-        stepData.predicate?.language || SCRIPT_LANGUAGE_JPATH
+        stepData.predicate?.language || SCRIPT_LANGUAGE_ARGYLL
       );
       setScript(stepData.script?.script || "");
       setScriptLanguage(stepData.script?.language || SCRIPT_LANGUAGE_LUA);

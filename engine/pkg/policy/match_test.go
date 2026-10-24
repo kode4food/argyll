@@ -11,7 +11,9 @@ import (
 )
 
 func TestRequiredMatchStatus(t *testing.T) {
-	cfg := &api.ScriptConfig{Language: api.ScriptLangJPath, Script: "$.kind"}
+	cfg := &api.ScriptConfig{
+		Language: api.ScriptLangArgyll, Script: "value.kind",
+	}
 	matched := func(*api.ScriptConfig, any) (bool, error) {
 		return true, nil
 	}
@@ -189,7 +191,9 @@ func TestStepPrunedByRequiredMatch(t *testing.T) {
 }
 
 func TestRequiredMatchStepStatus(t *testing.T) {
-	cfg := &api.ScriptConfig{Language: api.ScriptLangJPath, Script: "$.kind"}
+	cfg := &api.ScriptConfig{
+		Language: api.ScriptLangArgyll, Script: "value.kind",
+	}
 	st := &api.Step{
 		Attributes: api.AttributeSpecs{
 			"kind":   requiredMatch(cfg, api.InputCollectFirst),

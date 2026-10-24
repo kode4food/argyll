@@ -30,8 +30,8 @@ func TestRegisterEmptyScripts(t *testing.T) {
 	}{
 		{language: api.ScriptLangLua, kind: "predicate"},
 		{language: api.ScriptLangLua, kind: "match"},
-		{language: api.ScriptLangJPath, kind: "predicate"},
-		{language: api.ScriptLangJPath, kind: "match"},
+		{language: api.ScriptLangArgyll, kind: "predicate"},
+		{language: api.ScriptLangArgyll, kind: "match"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.language+"/"+tt.kind, func(t *testing.T) {
@@ -241,8 +241,8 @@ func TestRegisterStepValidatesMappings(t *testing.T) {
 			Required: &api.RequiredConfig{
 				Mapping: &api.MappingConfig{
 					Script: &api.ScriptConfig{
-						Language: api.ScriptLangJPath,
-						Script:   "$..[",
+						Language: api.ScriptLangArgyll,
+						Script:   "value[",
 					},
 				},
 			},
@@ -254,22 +254,22 @@ func TestRegisterStepValidatesMappings(t *testing.T) {
 	})
 }
 
-func TestRegisterStepJPathInvalid(t *testing.T) {
+func TestRegisterStepArgExInvalid(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
 		st := helpers.NewStepWithPredicate(
-			"bad-jpath-predicate", api.ScriptLangJPath, "$..[",
+			"bad-argex-predicate", api.ScriptLangArgyll, "value[",
 		)
 
 		err := eng.RegisterStep(st)
 		assert.ErrorIs(t, err, api.ErrInvalidStep)
-		assert.ErrorContains(t, err, script.ErrJPathCompile.Error())
+		assert.ErrorContains(t, err, script.ErrArgExCompile.Error())
 	})
 }
 
-func TestRegisterStepJPathValid(t *testing.T) {
+func TestRegisterStepArgExValid(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
 		st := helpers.NewStepWithPredicate(
-			"good-jpath-predicate", api.ScriptLangJPath, "$.flag",
+			"good-argex-predicate", api.ScriptLangArgyll, "flag ?? false",
 		)
 
 		err := eng.RegisterStep(st)
@@ -277,15 +277,15 @@ func TestRegisterStepJPathValid(t *testing.T) {
 	})
 }
 
-func TestJPathNotValidForScripts(t *testing.T) {
+func TestArgExNotValidForScripts(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
 		st := &api.Step{
-			ID:   "jpath-script-step",
-			Name: "JPath Script",
+			ID:   "argex-script-step",
+			Name: "ArgEx Script",
 			Type: api.StepTypeScript,
 			Script: &api.ScriptConfig{
-				Language: api.ScriptLangJPath,
-				Script:   "$.value",
+				Language: api.ScriptLangArgyll,
+				Script:   "value",
 			},
 			Attributes: api.AttributeSpecs{
 				"value":  {Role: api.RoleRequired, Type: api.TypeString},

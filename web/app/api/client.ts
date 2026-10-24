@@ -98,10 +98,14 @@ export class ArgyllApi {
   }
 
   async previewSpace(space: Space): Promise<SpacePreviewResponse> {
-    return this.request("/engine/spaces/preview", {
-      method: "POST",
-      body: JSON.stringify(space),
-    });
+    const response = await this.request<SpacePreviewResponse>(
+      "/engine/spaces/preview",
+      {
+        method: "POST",
+        body: JSON.stringify(space),
+      }
+    );
+    return { ...response, step_ids: response.step_ids ?? [] };
   }
 
   async unregisterSpace(spaceId: string): Promise<void> {

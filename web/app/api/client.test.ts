@@ -26,8 +26,8 @@ const space: Space = {
   id: "risk",
   name: "Risk",
   selector: {
-    language: "jpath",
-    script: '$.tags[?@ == "domain:risk"]',
+    language: "argyll",
+    script: '"domain:risk" in value.tags',
   },
 };
 
@@ -91,6 +91,15 @@ describe("ArgyllApi", () => {
       "http://localhost:8080/engine/spaces/preview",
       expect.objectContaining({ method: "POST", body: JSON.stringify(space) })
     );
+  });
+
+  test("normalizes null preview Step IDs", async () => {
+    respond({ space, step_ids: null });
+
+    await expect(api.previewSpace(space)).resolves.toEqual({
+      space,
+      step_ids: [],
+    });
   });
 
   test("queries recent flows", async () => {

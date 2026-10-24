@@ -346,14 +346,14 @@ describe("useStepEditorForm", () => {
 
       act(() => {
         result.current.updateAttribute(attrId, "role", "required");
-        result.current.updateAttribute(attrId, "matchScript", "$.foo");
+        result.current.updateAttribute(attrId, "matchScript", "value.foo");
       });
 
       act(() => {
         result.current.updateAttribute(attrId, "role", "optional");
       });
 
-      expect(result.current.attributes[0].matchScript).toBe("$.foo");
+      expect(result.current.attributes[0].matchScript).toBe("value.foo");
     });
 
     it("clears match script for non-input roles", () => {
@@ -371,7 +371,7 @@ describe("useStepEditorForm", () => {
 
       act(() => {
         result.current.updateAttribute(attrId, "role", "required");
-        result.current.updateAttribute(attrId, "matchScript", "$.foo");
+        result.current.updateAttribute(attrId, "matchScript", "value.foo");
       });
 
       act(() => {

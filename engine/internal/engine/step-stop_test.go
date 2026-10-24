@@ -372,8 +372,8 @@ func TestOutputMapping(t *testing.T) {
 				Output: &api.OutputConfig{
 					Mapping: &api.MappingConfig{
 						Script: &api.ScriptConfig{
-							Language: api.ScriptLangJPath,
-							Script:   "$.payload.value",
+							Language: api.ScriptLangArgyll,
+							Script:   "result.payload.value",
 						},
 					},
 				},

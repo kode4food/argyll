@@ -158,7 +158,7 @@ var attrSetters = map[string]setter[api.AttributeSpec]{
 		if s.Required == nil {
 			return roleError(matchTag, api.RoleRequired)
 		}
-		cfg := &api.ScriptConfig{Language: api.ScriptLangJPath}
+		cfg := &api.ScriptConfig{Language: api.ScriptLangArgyll}
 		if !parseScript(cfg, v) {
 			return fmt.Errorf("%w: %q needs a script", ErrBadProp,
 				matchTag)
@@ -274,7 +274,7 @@ func parseScript(cfg *api.ScriptConfig, value string) bool {
 	cfg.Script = strings.TrimSpace(value)
 	language, script, prefixed := strings.Cut(cfg.Script, optionAssign)
 	language = strings.TrimSpace(language)
-	known := language == api.ScriptLangLua || language == api.ScriptLangJPath
+	known := language == api.ScriptLangLua || language == api.ScriptLangArgyll
 	if !prefixed || !known {
 		return cfg.Script != ""
 	}

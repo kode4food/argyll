@@ -1,7 +1,7 @@
 import {
   AttributeType,
   InputCollect,
-  SCRIPT_LANGUAGE_JPATH,
+  SCRIPT_LANGUAGE_ARGYLL,
   SCRIPT_LANGUAGE_LUA,
 } from "@/app/api";
 import { AttributeRoleType } from "./stepEditorTypes";
@@ -32,17 +32,17 @@ export const inputCollectTypes: InputCollect[] = [
 ];
 
 export const predicateLanguageOptions = [
-  { value: SCRIPT_LANGUAGE_JPATH, labelKey: "script.language.jpath" },
+  { value: SCRIPT_LANGUAGE_ARGYLL, labelKey: "script.language.argyll" },
   { value: SCRIPT_LANGUAGE_LUA, labelKey: "script.language.lua" },
 ];
 
 const mappingScriptPlaceholderKeys: Record<string, string> = {
-  [SCRIPT_LANGUAGE_JPATH]: "stepEditor.mappingScriptPlaceholderJPath",
+  [SCRIPT_LANGUAGE_ARGYLL]: "stepEditor.mappingScriptPlaceholderArgyll",
   [SCRIPT_LANGUAGE_LUA]: "stepEditor.mappingScriptPlaceholderLua",
 };
 
 const matchScriptPlaceholderKeys: Record<string, string> = {
-  [SCRIPT_LANGUAGE_JPATH]: "stepEditor.matchScriptPlaceholderJPath",
+  [SCRIPT_LANGUAGE_ARGYLL]: "stepEditor.matchScriptPlaceholderArgyll",
   [SCRIPT_LANGUAGE_LUA]: "stepEditor.matchScriptPlaceholderLua",
 };
 
@@ -59,11 +59,11 @@ export const getMappingScriptPlaceholderKey = (language?: string): string => {
 
 export const getMatchScriptPlaceholderKey = (language?: string): string => {
   if (!language) {
-    return matchScriptPlaceholderKeys[SCRIPT_LANGUAGE_JPATH];
+    return matchScriptPlaceholderKeys[SCRIPT_LANGUAGE_ARGYLL];
   }
 
   return (
     matchScriptPlaceholderKeys[language] ||
-    matchScriptPlaceholderKeys[SCRIPT_LANGUAGE_JPATH]
+    matchScriptPlaceholderKeys[SCRIPT_LANGUAGE_ARGYLL]
   );
 };

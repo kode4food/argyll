@@ -46,8 +46,8 @@ Get these structural rules wrong and the engine either rejects the step or silen
 Mapping and match configuration nest **inside a sub-object keyed by the role name** on the attribute, not at the top level of the attribute. Both `mapping` and `match` are objects, not strings:
 
 - `mapping` → `{ "name": "service_field_name" }` (or add `"script"` for a transform)
-- `match` → `{ "language": "lua", "script": "..." }` - a `ScriptConfig` object, never a bare string
-- `jpath` is the language identifier for JSONPath query expressions; it is intended for mappings and predicates, not executable Script Steps
+- `match` → `{ "language": "argyll", "script": "value == \"email\"" }` - a `ScriptConfig` object, never a bare string
+- `argyll` is the language identifier for Argyll Expressions in mappings, predicates, matches, and Space selectors. Script Steps use Lua. Predicates receive named Step inputs. Matches and selectors receive `value`. Predicates using Argyll Expressions must return a boolean
 
 The spec's own example (from `StepRegistration.attributes`):
 
@@ -61,15 +61,19 @@ user_email:
   required:
     mapping:
       name: email          # renames planner attr → service field
-result:
+user_data:
   role: output
   type: object
   output:
     mapping:
       script:
-        language: jpath
-        script: "$.response.data"   # extracts from nested response
+        language: argyll
+        script: "user_data.user"
 ```
+
+For service outputs `{"user": {"id": "u-123", "name": "Ada"}}`, this output mapping stores `{"id": "u-123", "name": "Ada"}` as `user_data`. Output mappings receive the complete outputs object under the output Attribute's name.
+
+For an input conversion, an Attribute `price_dollars` with value `12.5` can use `mapping: {name: amount, script: {language: argyll, script: "amount * 100"}}` to send `amount: 1250` to the service. Input mappings receive the individual value under the mapped parameter name.
 
 In JSON, an attribute with both a match discriminator and a field rename looks like:
 
@@ -78,7 +82,7 @@ In JSON, an attribute with both a match discriminator and a field rename looks l
   "type": "string",
   "role": "required",
   "required": {
-    "match":   { "language": "lua", "script": "return value == \"email\"" },
+    "match":   { "language": "argyll", "script": "value == \"email\"" },
     "mapping": { "name": "service_channel_field" }
   }
 }
@@ -96,14 +100,14 @@ Use `required.mapping` or `optional.mapping` for service input renames. Use `out
 
 The MCP may report enum values as schema facts. Do not treat every narrowed enum as a required match. Use the operation names, descriptions, shapes, enum values, and surrounding business flow to decide whether an attribute is a true discriminator.
 
-When a true discriminator exists, use `required.match` to make otherwise similar operations mutually exclusive. For Lua `required.match`, Argyll evaluates the candidate attribute value as `value`.
+When a true discriminator exists, use `required.match` to make otherwise similar operations mutually exclusive. For `required.match` using Argyll Expressions, Argyll evaluates the candidate Attribute value as `value` and requires a boolean result.
 
-Use these generic Lua patterns:
+Use these generic Argyll Expressions patterns:
 
-- Scalar value equals a discriminator: `return value == "some-value"`
-- Object field equals a discriminator: `return value.field_name == "some-value"`
-- Multiple acceptable scalar values: `return value == "a" or value == "b"`
-- Multiple required object conditions: `return value.kind == "a" and value.region == "b"`
+- Scalar value equals a discriminator: `value == "some-value"`
+- Object field equals a discriminator: `value?.field_name == "some-value"`
+- Multiple acceptable scalar values: `value in ["a", "b"]`
+- Multiple required object conditions: `value?.kind == "a" && value?.region == "b"`
 
 Only create the match on the attribute that carries the discriminator. Do not add required matches to every enum-bearing input.
 

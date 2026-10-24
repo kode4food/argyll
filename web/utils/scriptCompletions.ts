@@ -1,4 +1,4 @@
-import { SCRIPT_LANGUAGE_JPATH, type Step } from "@/app/api";
+import { SCRIPT_LANGUAGE_ARGYLL, type Step } from "@/app/api";
 
 interface AttributeCompletion {
   name: string;
@@ -8,34 +8,30 @@ interface AttributeCompletion {
 
 // attribute names come from Step authors, so only the engine's own field
 // names are safe as bare dot segments
-const JPATH_DOT_NAME = /^[A-Za-z_][A-Za-z0-9_]*$/;
+const ARGYLL_DOT_NAME = /^[A-Za-z_][A-Za-z0-9_]*$/;
 
 const path = (language: string, parts: string[]): string => {
-  if (language !== SCRIPT_LANGUAGE_JPATH) {
+  if (language !== SCRIPT_LANGUAGE_ARGYLL) {
     return `value${parts.map((part) => `[${JSON.stringify(part)}]`).join("")}`;
   }
-  return `$${parts
+  return `value${parts
     .map((part) =>
-      JPATH_DOT_NAME.test(part) ? `.${part}` : `[${JSON.stringify(part)}]`
+      ARGYLL_DOT_NAME.test(part) ? `.${part}` : `[${JSON.stringify(part)}]`
     )
     .join("")}`;
 };
 
 export const stepAttributeCompletions = (
   attributes: AttributeCompletion[],
-  language: string,
   includeOutputs: boolean
-): string[] =>
-  [
-    ...new Set(
-      attributes
-        .filter((attr) => includeOutputs || attr.role !== "output")
-        .map((attr) => attr.mappingName?.trim() || attr.name.trim())
-        .filter(Boolean)
-    ),
-  ].map((name) =>
-    language === SCRIPT_LANGUAGE_JPATH ? path(language, [name]) : name
-  );
+): string[] => [
+  ...new Set(
+    attributes
+      .filter((attr) => includeOutputs || attr.role !== "output")
+      .map((attr) => attr.mappingName?.trim() || attr.name.trim())
+      .filter(Boolean)
+  ),
+];
 
 export const spaceSelectorCompletions = (
   steps: Pick<Step, "attributes" | "tags">[],
@@ -57,11 +53,9 @@ export const spaceSelectorCompletions = (
       ["attributes", name, "compensated"]
     );
   });
-  // a tag test is a filter in JPath and a prelude helper in Lua, so neither
-  // is a plain path
   const tagTest = (tag: string): string =>
-    language === SCRIPT_LANGUAGE_JPATH
-      ? `$.tags[?@==${JSON.stringify(tag)}]`
+    language === SCRIPT_LANGUAGE_ARGYLL
+      ? `${JSON.stringify(tag)} in value.tags`
       : `has(value["tags"], ${JSON.stringify(tag)})`;
 
   return [

@@ -23,7 +23,7 @@ func Script() *step.Handler {
 			if st.Script == nil {
 				return api.ErrScriptRequired
 			}
-			if st.Script.Language == api.ScriptLangJPath {
+			if st.Script.Language == api.ScriptLangArgyll {
 				return fmt.Errorf("%w: %s", ErrLangNotValid, st.Script.Language)
 			}
 			_, err := scripts.Compile(st, st.Script)

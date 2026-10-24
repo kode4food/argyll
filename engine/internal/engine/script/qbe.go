@@ -9,16 +9,15 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
-// QBESelector returns a JPath match script equivalent to the query by example,
-// ANDing the tags within a term and ORing the terms, so a step matches when it
-// carries every tag of any one of them
+// QBESelector returns an Argyll Expressions match script for a query by example
+// A Step matches when it carries every tag of any one term
 func QBESelector(qbe api.SpaceQuery) *api.ScriptConfig {
 	terms := make([]string, 0, len(qbe))
 	for _, term := range qbe {
 		terms = append(terms, termScript(term, len(qbe) > 1))
 	}
 	return &api.ScriptConfig{
-		Language: api.ScriptLangJPath,
+		Language: api.ScriptLangArgyll,
 		Script:   strings.Join(terms, " ||\n"),
 	}
 }
@@ -28,8 +27,9 @@ func QBESelector(qbe api.SpaceQuery) *api.ScriptConfig {
 func termScript(term api.SpaceQueryTerm, group bool) string {
 	clauses := make([]string, 0, len(term))
 	for _, tag := range slices.Sorted(slices.Values(term)) {
-		clauses = append(clauses,
-			fmt.Sprintf("$.%s[?@==%s]", MatchTags, jpathString(tag)))
+		clauses = append(clauses, fmt.Sprintf(
+			"%s in value.%s", argexString(tag), MatchTags,
+		))
 	}
 	res := strings.Join(clauses, " &&\n    ")
 	if group {
@@ -38,9 +38,7 @@ func termScript(term api.SpaceQueryTerm, group bool) string {
 	return res
 }
 
-// jpathString quotes a tag for JPath source, whose string literals take JSON
-// escapes. Marshalling a string cannot fail
-func jpathString(value string) string {
+func argexString(value string) string {
 	res, _ := json.Marshal(value)
 	return string(res)
 }

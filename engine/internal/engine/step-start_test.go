@@ -652,8 +652,8 @@ func TestInputMapping(t *testing.T) {
 				Required: &api.RequiredConfig{
 					Mapping: &api.MappingConfig{
 						Script: &api.ScriptConfig{
-							Language: api.ScriptLangJPath,
-							Script:   "$.foo",
+							Language: api.ScriptLangArgyll,
+							Script:   "input.foo",
 						},
 					},
 				},
@@ -820,12 +820,12 @@ func TestRequiredMatchError(t *testing.T) {
 	}
 }
 
-func TestJPathNullMatch(t *testing.T) {
+func TestArgExNullMatch(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		assert.NoError(t, env.Engine.Start())
 
 		st := helpers.NewStepWithPredicate(
-			"jpath-null", api.ScriptLangJPath, "$.flag", "result",
+			"argex-null", api.ScriptLangArgyll, "flag == null", "result",
 		)
 		st.Attributes["flag"] = &api.AttributeSpec{
 			Role: api.RoleOptional,
@@ -840,8 +840,8 @@ func TestJPathNullMatch(t *testing.T) {
 			Steps: api.Steps{st.ID: st},
 		}
 
-		fl := env.WaitForFlowStatus("wf-jpath-null", func() {
-			err := env.Engine.StartPlan("wf-jpath-null", pl,
+		fl := env.WaitForFlowStatus("wf-argex-null", func() {
+			err := env.Engine.StartPlan("wf-argex-null", pl,
 				flow.WithInit(api.InitArgs{"flag": {nil}}),
 			)
 			assert.NoError(t, err)

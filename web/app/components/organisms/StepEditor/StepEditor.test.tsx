@@ -218,8 +218,8 @@ describe("StepEditor", () => {
     const step = createHttpStep();
     step.attributes.input1.required = {
       match: {
-        language: "jpath",
-        script: "$.kind",
+        language: "argyll",
+        script: "value.kind",
       },
     };
     mockUpdateStep.mockResolvedValue(undefined);
@@ -228,13 +228,15 @@ describe("StepEditor", () => {
       <StepEditor step={step} onClose={mockOnClose} onUpdate={mockOnUpdate} />
     );
 
-    const matchInput = await screen.findByDisplayValue("$.kind");
+    const matchInput = await screen.findByDisplayValue("value.kind");
     const [matchLangBtn] = screen.getAllByLabelText(
       t("stepEditor.matchLanguageLabel")
     );
     fireEvent.click(matchLangBtn);
     fireEvent.click(screen.getByRole("option", { name: "Lua" }));
-    fireEvent.change(matchInput, { target: { value: "$.product_type" } });
+    fireEvent.change(matchInput, {
+      target: { value: 'return value.product_type == "email"' },
+    });
 
     fireEvent.click(screen.getByText(t("stepEditor.save")));
 
@@ -247,7 +249,7 @@ describe("StepEditor", () => {
               required: expect.objectContaining({
                 match: {
                   language: "lua",
-                  script: "$.product_type",
+                  script: 'return value.product_type == "email"',
                 },
               }),
             }),
@@ -267,7 +269,7 @@ describe("StepEditor", () => {
     expect(
       (
         await screen.findAllByPlaceholderText(
-          t("stepEditor.matchScriptPlaceholderJPath")
+          t("stepEditor.matchScriptPlaceholderArgyll")
         )
       )[0]
     ).toBeInTheDocument();
@@ -745,7 +747,9 @@ describe("StepEditor", () => {
     const scriptInput = await screen.findByPlaceholderText(
       t("stepEditor.mappingScriptPlaceholderLua")
     );
-    fireEvent.change(scriptInput, { target: { value: "$.payload.input" } });
+    fireEvent.change(scriptInput, {
+      target: { value: "return request_payload.payload.input" },
+    });
 
     const saveButton = screen.getByText(t("stepEditor.save"));
     fireEvent.click(saveButton);
@@ -761,7 +765,7 @@ describe("StepEditor", () => {
                   name: "request_payload",
                   script: {
                     language: "lua",
-                    script: "$.payload.input",
+                    script: "return request_payload.payload.input",
                   },
                 },
               },
@@ -795,11 +799,11 @@ describe("StepEditor", () => {
     );
 
     fireEvent.click(mappingLanguageSelect);
-    fireEvent.click(screen.getByRole("option", { name: "JPath" }));
+    fireEvent.click(screen.getByRole("option", { name: "Argyll" }));
     await waitFor(() => {
       expect(
         screen.getByPlaceholderText(
-          t("stepEditor.mappingScriptPlaceholderJPath")
+          t("stepEditor.mappingScriptPlaceholderArgyll")
         )
       ).toBeInTheDocument();
     });

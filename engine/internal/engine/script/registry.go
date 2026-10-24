@@ -6,7 +6,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/kode4food/jpath"
+	"github.com/kode4food/argex"
 	"github.com/kode4food/lru"
 
 	"github.com/kode4food/argyll/engine/pkg/api"
@@ -49,7 +49,7 @@ type (
 	) (T, error)
 
 	compiledValue interface {
-		*CompiledLua | jpath.Path
+		*CompiledLua | argex.Program
 	}
 )
 
@@ -78,12 +78,12 @@ var MatchStep = &api.Step{
 	},
 }
 
-// NewRegistry creates a new registry with JPath and Lua environments
+// NewRegistry creates a registry with Argyll Expressions and Lua environments
 func NewRegistry() *Registry {
 	return &Registry{
 		envs: map[string]Environment{
-			api.ScriptLangJPath: NewJPathEnv(),
-			api.ScriptLangLua:   NewLuaEnv(),
+			api.ScriptLangArgyll: NewArgExEnv(),
+			api.ScriptLangLua:    NewLuaEnv(),
 		},
 	}
 }

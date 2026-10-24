@@ -73,7 +73,7 @@ class ScriptLanguage(str, Enum):
     """Script language for script steps."""
 
     LUA = "lua"
-    JPATH = "jpath"
+    ARGYLL = "argyll"
 
 
 class BackoffType(str, Enum):

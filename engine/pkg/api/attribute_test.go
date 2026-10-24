@@ -232,8 +232,8 @@ func TestValidateDefault(t *testing.T) {
 				Required: &api.RequiredConfig{
 					Mapping: &api.MappingConfig{
 						Script: &api.ScriptConfig{
-							Language: api.ScriptLangJPath,
-							Script:   "$.foo",
+							Language: api.ScriptLangArgyll,
+							Script:   "value.foo",
 						},
 					},
 				},
@@ -249,8 +249,8 @@ func TestValidateDefault(t *testing.T) {
 				Output: &api.OutputConfig{
 					Mapping: &api.MappingConfig{
 						Script: &api.ScriptConfig{
-							Language: api.ScriptLangJPath,
-							Script:   "$..book",
+							Language: api.ScriptLangArgyll,
+							Script:   "value.books | map item: item.book",
 						},
 					},
 				},
@@ -267,8 +267,8 @@ func TestValidateDefault(t *testing.T) {
 				Output: &api.OutputConfig{
 					Mapping: &api.MappingConfig{
 						Script: &api.ScriptConfig{
-							Language: api.ScriptLangJPath,
-							Script:   "$.foo",
+							Language: api.ScriptLangArgyll,
+							Script:   "value.foo",
 						},
 					},
 				},
@@ -284,8 +284,8 @@ func TestValidateDefault(t *testing.T) {
 				Optional: &api.OptionalConfig{
 					Mapping: &api.MappingConfig{
 						Script: &api.ScriptConfig{
-							Language: api.ScriptLangJPath,
-							Script:   "$[?",
+							Language: api.ScriptLangArgyll,
+							Script:   "value[",
 						},
 					},
 				},
@@ -431,20 +431,20 @@ func TestAccessors(t *testing.T) {
 		spec := &api.AttributeSpec{
 			Role: api.RoleRequired,
 			Required: &api.RequiredConfig{
-				Match: &api.ScriptConfig{Script: "$.foo"},
+				Match: &api.ScriptConfig{Script: "value.foo"},
 			},
 		}
-		assert.Equal(t, "$.foo", spec.Match().Script)
+		assert.Equal(t, "value.foo", spec.Match().Script)
 	})
 
 	t.Run("Match_optional_with_match", func(t *testing.T) {
 		spec := &api.AttributeSpec{
 			Role: api.RoleOptional,
 			Optional: &api.OptionalConfig{
-				Match: &api.ScriptConfig{Script: "$.foo"},
+				Match: &api.ScriptConfig{Script: "value.foo"},
 			},
 		}
-		assert.Equal(t, "$.foo", spec.Match().Script)
+		assert.Equal(t, "value.foo", spec.Match().Script)
 	})
 
 	t.Run("Match_no_match", func(t *testing.T) {
@@ -685,8 +685,8 @@ func TestEqualEdgeCases(t *testing.T) {
 			Output: &api.OutputConfig{
 				Mapping: &api.MappingConfig{
 					Script: &api.ScriptConfig{
-						Language: api.ScriptLangJPath,
-						Script:   "$.foo",
+						Language: api.ScriptLangArgyll,
+						Script:   "value.foo",
 					},
 				},
 			},
@@ -697,8 +697,8 @@ func TestEqualEdgeCases(t *testing.T) {
 			Output: &api.OutputConfig{
 				Mapping: &api.MappingConfig{
 					Script: &api.ScriptConfig{
-						Language: api.ScriptLangJPath,
-						Script:   "$.bar",
+						Language: api.ScriptLangArgyll,
+						Script:   "value.bar",
 					},
 				},
 			},
@@ -1054,8 +1054,8 @@ func TestValidateEdgeCases(t *testing.T) {
 			Output: &api.OutputConfig{
 				Mapping: &api.MappingConfig{
 					Script: &api.ScriptConfig{
-						Language: api.ScriptLangJPath,
-						Script:   "$.foo",
+						Language: api.ScriptLangArgyll,
+						Script:   "value.foo",
 					},
 				},
 			},
@@ -1071,8 +1071,8 @@ func TestValidateEdgeCases(t *testing.T) {
 			Required: &api.RequiredConfig{
 				Mapping: &api.MappingConfig{
 					Script: &api.ScriptConfig{
-						Language: api.ScriptLangJPath,
-						Script:   "$[?",
+						Language: api.ScriptLangArgyll,
+						Script:   "value[",
 					},
 				},
 			},
@@ -1101,8 +1101,8 @@ func TestMappingConfigValidation(t *testing.T) {
 			Required: &api.RequiredConfig{
 				Mapping: &api.MappingConfig{
 					Script: &api.ScriptConfig{
-						Language: api.ScriptLangJPath,
-						Script:   "$.value",
+						Language: api.ScriptLangArgyll,
+						Script:   "value",
 					},
 				},
 			},
@@ -1118,8 +1118,8 @@ func TestMappingConfigValidation(t *testing.T) {
 				Mapping: &api.MappingConfig{
 					Name: "api_field",
 					Script: &api.ScriptConfig{
-						Language: api.ScriptLangJPath,
-						Script:   "$.data.value",
+						Language: api.ScriptLangArgyll,
+						Script:   "data.value",
 					},
 				},
 			},
