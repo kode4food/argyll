@@ -15,12 +15,13 @@ var (
 	ErrOutputsNotNeeded = errors.New("outputs not needed")
 )
 
-// advanceFlow settles pending steps, starts ready ones, and arms the rest's
-// deadlines
+// advanceFlow settles pending steps, unwinds branches no kept goal can use,
+// starts ready ones, and arms the rest's deadlines
 func (tx *flowTx) advanceFlow() error {
 	return call.Perform(
 		tx.settlePending,
 		tx.checkTerminal,
+		tx.compensateFlow,
 		tx.startReadyPendingSteps,
 		tx.scheduleTimeouts,
 	)

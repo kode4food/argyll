@@ -21,8 +21,8 @@ type (
 	}
 
 	compensationWaveWalk struct {
-		pending util.Set[api.StepID]
-		seen    util.Set[api.StepID]
+		blocking util.Set[api.StepID]
+		seen     util.Set[api.StepID]
 	}
 )
 
@@ -52,11 +52,11 @@ func (e *Engine) NotCompleteCompensation(
 	})
 }
 
-// compensateFlow unwinds one wave in reverse dependency order, re-entered by
-// maybeDeactivate after every outcome to drive the next
+// compensateFlow unwinds one wave in reverse dependency order, re-entered after
+// every flow advance and compensation outcome to drive the next
 func (tx *flowTx) compensateFlow() error {
 	fl := tx.Value()
-	if !flowCompensating(&fl) || compensationActive(&fl) {
+	if !fl.Compensate || compensationActive(&fl) {
 		return nil
 	}
 	wave, err := tx.nextCompensationWave(&fl)
@@ -75,14 +75,24 @@ func (tx *flowTx) compensateFlow() error {
 }
 
 // nextCompensationWave returns the steps with succeeded work that no step
-// still awaiting compensation depends on
+// still running or awaiting compensation depends on
 func (tx *flowTx) nextCompensationWave(
 	fl *api.FlowState,
 ) ([]api.StepID, error) {
 	pending := util.Set[api.StepID]{}
+	blocking := util.Set[api.StepID]{}
 	for sid, ex := range fl.Executions {
 		st, ok := fl.Plan.Steps[sid]
-		if !ok || !hasSucceededWork(&ex) || !flowRollsBack(fl, sid) {
+		if !ok || !flowRollsBack(fl, sid) {
+			continue
+		}
+		// A step still running may yet succeed or read upstream values, so it
+		// holds back its own wave and every provider's
+		if policy.StepActive(ex.Status) {
+			blocking.Add(sid)
+			continue
+		}
+		if !hasSucceededWork(&ex) {
 			continue
 		}
 		comp, err := tx.Engine.steps.Compensator(st)
@@ -93,11 +103,12 @@ func (tx *flowTx) nextCompensationWave(
 			continue
 		}
 		pending.Add(sid)
+		blocking.Add(sid)
 	}
 
 	var wave []api.StepID
 	for sid := range pending {
-		walk := &compensationWaveWalk{pending: pending, seen: util.SetOf(sid)}
+		walk := &compensationWaveWalk{blocking: blocking, seen: util.SetOf(sid)}
 		if walk.dependentPending(fl.Plan, sid) {
 			continue
 		}
@@ -153,6 +164,7 @@ func (tx *flowTx) completeCompensation(sid api.StepID, tkn api.Token) error {
 	}
 	return call.Perform(
 		call.WithArgs(tx.raiseCompSucceeded, sid, tkn),
+		tx.compensateFlow,
 		tx.maybeDeactivate,
 	)
 }
@@ -167,7 +179,7 @@ func (tx *flowTx) failCompensation(
 	if err := tx.raiseCompFailed(sid, tkn, errMsg); err != nil {
 		return err
 	}
-	return tx.maybeDeactivate()
+	return call.Perform(tx.compensateFlow, tx.maybeDeactivate)
 }
 
 func (tx *flowTx) scheduleCompensationRetry(
@@ -443,29 +455,23 @@ func (w *compensationWaveWalk) dependentPending(
 			continue
 		}
 		w.seen.Add(dep)
-		if w.pending.Contains(dep) || w.dependentPending(pl, dep) {
+		if w.blocking.Contains(dep) || w.dependentPending(pl, dep) {
 			return true
 		}
 	}
 	return false
 }
 
-func flowCompensating(fl *api.FlowState) bool {
-	return fl.Compensate && policy.FlowTerminal(fl.Status)
-}
-
-// flowRollsBack reports whether a terminal flow undoes the step's work: every
-// step when the flow failed, but only steps the winning goal set does not use
-// when it completed
+// flowRollsBack reports whether the flow undoes the step's work: every step
+// once the flow failed, otherwise steps no kept goal can still use
 func flowRollsBack(fl *api.FlowState, sid api.StepID) bool {
-	if !flowCompensating(fl) {
+	if !fl.Compensate {
 		return false
 	}
 	if fl.Status == api.FlowFailed {
 		return true
 	}
-	// A completed flow always has its winning goal set active
-	return !goalScope(fl.Plan, activeGoals(fl).Steps).Contains(sid)
+	return !goalScope(fl.Plan, keptGoals(fl)).Contains(sid)
 }
 
 func compensationActive(fl *api.FlowState) bool {

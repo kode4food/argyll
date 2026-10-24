@@ -1050,6 +1050,218 @@ func TestFlowCompensation(t *testing.T) {
 		})
 	})
 
+	t.Run("unwinds only steps no fallback can use", func(t *testing.T) {
+		helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+			assert.NoError(t, env.Engine.Start())
+
+			// reserve feeds only the failed set, shared also feeds the running
+			// fallback, and kept also feeds the last fallback
+			reserve := newCompensatingStep("else-reserve")
+			reserve.Attributes = api.AttributeSpecs{
+				"hold": {Role: api.RoleOutput, Type: api.TypeString},
+			}
+			shared := newCompensatingStep("else-shared")
+			shared.Attributes = api.AttributeSpecs{
+				"share": {Role: api.RoleOutput, Type: api.TypeString},
+			}
+			kept := newCompensatingStep("else-kept")
+			kept.Attributes = api.AttributeSpecs{
+				"keep": {Role: api.RoleOutput, Type: api.TypeString},
+			}
+			pay := helpers.NewSimpleStep("else-pay")
+			pay.Attributes = api.AttributeSpecs{
+				"hold":  {Role: api.RoleRequired, Type: api.TypeString},
+				"share": {Role: api.RoleRequired, Type: api.TypeString},
+				"keep":  {Role: api.RoleRequired, Type: api.TypeString},
+			}
+			alt := helpers.NewSimpleStep("else-alt")
+			alt.Attributes = api.AttributeSpecs{
+				"share": {Role: api.RoleRequired, Type: api.TypeString},
+			}
+			last := helpers.NewSimpleStep("else-last")
+			last.Attributes = api.AttributeSpecs{
+				"keep": {Role: api.RoleRequired, Type: api.TypeString},
+			}
+
+			for _, st := range []*api.Step{
+				reserve, shared, kept, pay, alt, last,
+			} {
+				assert.NoError(t, env.Engine.RegisterStep(st))
+			}
+			env.MockClient.SetResponse(reserve.ID, api.Args{"hold": "h"})
+			env.MockClient.SetResponse(shared.ID, api.Args{"share": "s"})
+			env.MockClient.SetResponse(kept.ID, api.Args{"keep": "k"})
+			env.MockClient.SetError(pay.ID, errors.New("permanent"))
+
+			release := make(chan struct{})
+			env.MockClient.SetInvoke(
+				alt.ID,
+				func(*api.Step, api.Args, api.Metadata) (api.Args, error) {
+					<-release
+					return api.Args{}, nil
+				},
+			)
+
+			id := api.FlowID("wf-else-unwind")
+			pl := &api.ExecutionPlan{
+				Goals: api.Goals{
+					Steps: []api.StepID{pay.ID},
+					Else: &api.Goals{
+						Steps: []api.StepID{alt.ID},
+						Else:  &api.Goals{Steps: []api.StepID{last.ID}},
+					},
+				},
+				Steps: api.Steps{
+					reserve.ID: reserve,
+					shared.ID:  shared,
+					kept.ID:    kept,
+					pay.ID:     pay,
+					alt.ID:     alt,
+					last.ID:    last,
+				},
+				Attributes: api.AttributeGraph{
+					"hold": {
+						Providers: []api.StepID{reserve.ID},
+						Consumers: []api.StepID{pay.ID},
+					},
+					"share": {
+						Providers: []api.StepID{shared.ID},
+						Consumers: []api.StepID{pay.ID, alt.ID},
+					},
+					"keep": {
+						Providers: []api.StepID{kept.ID},
+						Consumers: []api.StepID{pay.ID, last.ID},
+					},
+				},
+			}
+
+			workStatus := func(
+				fl *api.FlowState, sid api.StepID,
+			) []api.WorkStatus {
+				var res []api.WorkStatus
+				for _, work := range fl.Executions[sid].WorkItems {
+					res = append(res, work.Status)
+				}
+				return res
+			}
+			succeeded := []api.WorkStatus{api.WorkSucceeded}
+			compensated := []api.WorkStatus{api.WorkCompensated}
+
+			fs := api.FlowStep{FlowID: id, StepID: reserve.ID}
+			env.WithConsumer(func(consumer *event.Consumer) {
+				w := wait.On(t, consumer)
+				assert.NoError(t,
+					env.Engine.StartPlan(id, pl, flow.WithCompensate(true)))
+				w.ForEvent(wait.CompSucceeded(fs))
+
+				fl, err := env.Engine.GetFlowState(id)
+				assert.NoError(t, err)
+				assert.Equal(t, api.FlowActive, fl.Status)
+				assert.Equal(t, compensated, workStatus(&fl, reserve.ID))
+				assert.Equal(t, succeeded, workStatus(&fl, shared.ID))
+				assert.Equal(t, succeeded, workStatus(&fl, kept.ID))
+
+				close(release)
+				w.ForEvent(wait.FlowDeactivated(id))
+			})
+
+			// Once alt wins, the last fallback can no longer use kept
+			fl, err := env.Engine.GetFlowState(id)
+			assert.NoError(t, err)
+			assert.Equal(t, api.FlowCompleted, fl.Status)
+			assert.Equal(t, compensated, workStatus(&fl, reserve.ID))
+			assert.Equal(t, succeeded, workStatus(&fl, shared.ID))
+			assert.Equal(t, compensated, workStatus(&fl, kept.ID))
+		})
+	})
+
+	t.Run("holds providers until a running step settles", func(t *testing.T) {
+		helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+			assert.NoError(t, env.Engine.Start())
+
+			reserve := newCompensatingStep("hold-reserve")
+			reserve.Attributes = api.AttributeSpecs{
+				"hold": {Role: api.RoleOutput, Type: api.TypeString},
+			}
+			slow := newCompensatingStep("hold-slow")
+			slow.Attributes = api.AttributeSpecs{
+				"hold": {Role: api.RoleRequired, Type: api.TypeString},
+			}
+			fail := helpers.NewSimpleStep("hold-fail")
+			fail.Attributes = api.AttributeSpecs{
+				"hold": {Role: api.RoleRequired, Type: api.TypeString},
+			}
+			alt := helpers.NewSimpleStep("hold-alt")
+
+			for _, st := range []*api.Step{reserve, slow, fail, alt} {
+				assert.NoError(t, env.Engine.RegisterStep(st))
+			}
+			env.MockClient.SetResponse(reserve.ID, api.Args{"hold": "h"})
+			env.MockClient.SetError(fail.ID, errors.New("permanent"))
+
+			// The fallback only starts once the first goal set has failed
+			release := make(chan struct{})
+			env.MockClient.SetInvoke(
+				slow.ID,
+				func(*api.Step, api.Args, api.Metadata) (api.Args, error) {
+					<-release
+					return api.Args{}, nil
+				},
+			)
+			env.MockClient.SetInvoke(
+				alt.ID,
+				func(*api.Step, api.Args, api.Metadata) (api.Args, error) {
+					close(release)
+					return api.Args{}, nil
+				},
+			)
+
+			var mu sync.Mutex
+			var order []api.StepID
+			record := func(s *api.Step, _ api.Args, _ api.Metadata) error {
+				mu.Lock()
+				defer mu.Unlock()
+				order = append(order, s.ID)
+				return nil
+			}
+			env.MockClient.SetCompensate(reserve.ID, record)
+			env.MockClient.SetCompensate(slow.ID, record)
+
+			id := api.FlowID("wf-else-hold")
+			pl := &api.ExecutionPlan{
+				Goals: api.Goals{
+					Steps: []api.StepID{fail.ID, slow.ID},
+					Else:  &api.Goals{Steps: []api.StepID{alt.ID}},
+				},
+				Steps: api.Steps{
+					reserve.ID: reserve,
+					slow.ID:    slow,
+					fail.ID:    fail,
+					alt.ID:     alt,
+				},
+				Attributes: api.AttributeGraph{
+					"hold": {
+						Providers: []api.StepID{reserve.ID},
+						Consumers: []api.StepID{fail.ID, slow.ID},
+					},
+				},
+			}
+
+			env.WaitFor(wait.FlowDeactivated(id), func() {
+				assert.NoError(t,
+					env.Engine.StartPlan(id, pl, flow.WithCompensate(true)))
+			})
+
+			fl, err := env.Engine.GetFlowState(id)
+			assert.NoError(t, err)
+			assert.Equal(t, api.FlowCompleted, fl.Status)
+
+			mu.Lock()
+			defer mu.Unlock()
+			assert.Equal(t, []api.StepID{slow.ID, reserve.ID}, order)
+		})
+	})
+
 	t.Run("resumes a partly unwound flow after restart", func(t *testing.T) {
 		helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 			assert.NoError(t, env.Engine.Start())

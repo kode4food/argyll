@@ -1958,9 +1958,10 @@ components:
           type: boolean
           description: |
             Enable Rollback on Failure for the child flow. Every completed work
-            item is compensated if the child flow fails. When it completes
-            through a fallback goal set, completed work that the winning set
-            does not use is compensated. Not inherited from the parent flow.
+            item is compensated if the child flow fails. Once a goal set fails,
+            completed work that no remaining fallback set can use is
+            compensated while the fallback runs. Not inherited from the parent
+            flow.
           example: true
 
     WorkConfig:
@@ -2291,8 +2292,9 @@ components:
           description: |
             Enable Rollback on Failure. Every completed work item in the flow is
             compensated if the flow fails, rather than only those of the step
-            that failed. When the flow completes through a fallback goal set,
-            completed work that the winning set does not use is compensated.
+            that failed. Once a goal set fails, completed work that no
+            remaining fallback set can use is compensated while the fallback
+            runs.
           example: true
 
     FlowStartedResponse:

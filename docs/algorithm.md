@@ -493,6 +493,7 @@ Source: [flow-continue.go](../engine/internal/engine/flow-continue.go).
 ADVANCE_FLOW():
     SETTLE_PENDING()
     CHECK_TERMINAL()
+    COMPENSATE_FLOW()
     START_READY_PENDING_STEPS()
     SCHEDULE_OPTIONAL_TIMEOUTS()
 
@@ -957,16 +958,17 @@ Source: [work-compensate.go](../engine/internal/engine/work-compensate.go).
 
 ```text
 FLOW_ROLLS_BACK(step):
-    IF flow compensation disabled or flow not terminal: RETURN FALSE
+    IF flow compensation disabled: RETURN FALSE
     IF flow FAILED: RETURN TRUE
-    RETURN step is outside the winning goal set's dependency scope
+    RETURN step is outside GOAL_SCOPE(KEPT_GOALS())
 
 COMPENSATE_FLOW():
-    IF compensation disabled or flow not terminal: RETURN
+    IF compensation disabled: RETURN
     IF any compensation item is COMP_PENDING or COMPENSATING: RETURN
-    pending := steps with SUCCEEDED work, a compensator,
+    running := ACTIVE steps with FLOW_ROLLS_BACK(step)
+    pending := non-ACTIVE steps with SUCCEEDED work, a compensator,
                and FLOW_ROLLS_BACK(step)
-    wave := pending steps with no downstream pending step,
+    wave := pending steps with no downstream step in pending or running,
             including downstream steps reached transitively
     FOR each step in wave: START_STEP_COMPENSATIONS(step)
 
@@ -984,11 +986,13 @@ START_STEP_COMPENSATIONS(step):
 ON_COMPENSATION_SUCCESS(step, token):
     IF item not COMP_PENDING or COMPENSATING: RETURN
     EMIT comp_succeeded(token)
+    COMPENSATE_FLOW()
     MAYBE_DEACTIVATE()
 
 ON_COMPENSATION_FAILURE(step, token, permanentError):
     IF item not COMP_PENDING or COMPENSATING: RETURN
     EMIT comp_failed(token, permanentError)
+    COMPENSATE_FLOW()
     MAYBE_DEACTIVATE()
 
 REQUEST_COMPENSATION_RETRY(step, token, retryableError):
@@ -1013,7 +1017,7 @@ ON_COMPENSATION_RETRY(step, token):
     AFTER_COMMIT invoke compensator using reconstructed compensation arguments
 ```
 
-Step failure also compensates that step's already-succeeded work when a compensator exists, independently of whole-flow rollback. Flow rollback proceeds from downstream consumers toward upstream providers, one settled wave at a time. Ordinary work and compensation use the item's recorded retry counter and the same retry configuration.
+Step failure also compensates that step's already-succeeded work when a compensator exists, independently of whole-flow rollback. Flow rollback proceeds from downstream consumers toward upstream providers, one settled wave at a time. Rollback starts before the flow is terminal: once a goal set fails, steps that no remaining fallback set can reach unwind while the fallback runs. Goal sets fail only forward, so that set of steps only grows, and every consumer of such a step belongs to it too. A step still running in that set holds back its own wave and its providers' waves until it settles. Ordinary work and compensation use the item's recorded retry counter and the same retry configuration.
 
 ## Startup, replay, and recovery
 
