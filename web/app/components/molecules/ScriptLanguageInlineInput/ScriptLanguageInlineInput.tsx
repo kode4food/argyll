@@ -3,6 +3,7 @@ import { SCRIPT_LANGUAGE_ARGYLL, SCRIPT_LANGUAGE_LUA } from "@/app/api";
 import useDropdown from "@/app/hooks/useDropdown";
 import { useT } from "@/app/i18n";
 import dropdownStyles from "@/app/styles/components/dropdown.module.css";
+import ScriptLanguageLogo from "@/app/components/atoms/ScriptLanguageLogo";
 import SegmentedGroup from "@/app/components/molecules/SegmentedGroup";
 import styles from "./ScriptLanguageInlineInput.module.css";
 
@@ -62,7 +63,10 @@ const ScriptLanguageInlineInput: React.FC<ScriptLanguageInlineInputProps> = ({
           aria-expanded={open}
           aria-haspopup="listbox"
         >
-          {activeOption ? t(activeOption.labelKey) : activeLanguage}
+          <ScriptLanguageLogo
+            language={activeLanguage}
+            name={activeOption ? t(activeOption.labelKey) : activeLanguage}
+          />
         </button>
         {open && (
           <div
@@ -84,7 +88,11 @@ const ScriptLanguageInlineInput: React.FC<ScriptLanguageInlineInputProps> = ({
                 }}
               >
                 <span className={dropdownStyles.itemLabel}>
-                  {t(opt.labelKey)}
+                  <ScriptLanguageLogo
+                    language={opt.value}
+                    name={t(opt.labelKey)}
+                    showName
+                  />
                 </span>
               </button>
             ))}

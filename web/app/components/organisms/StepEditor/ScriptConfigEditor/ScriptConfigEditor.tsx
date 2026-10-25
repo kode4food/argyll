@@ -1,6 +1,7 @@
 import React from "react";
 import SegmentedControl from "@/app/components/atoms/SegmentedControl";
 import { SCRIPT_LANGUAGE_LUA } from "@/app/api";
+import ScriptLanguageLogo from "@/app/components/atoms/ScriptLanguageLogo";
 import ScriptEditor from "@/app/components/molecules/ScriptEditor";
 import { type LucideIcon } from "@/utils/iconRegistry";
 import formStyles from "../StepEditorForm.module.css";
@@ -59,7 +60,13 @@ const ScriptConfigEditor: React.FC<ScriptConfigEditorProps> = ({
           <SegmentedControl
             options={languageOptions.map((opt) => ({
               value: opt.value,
-              label: t(opt.labelKey),
+              label: (
+                <ScriptLanguageLogo
+                  language={opt.value}
+                  name={t(opt.labelKey)}
+                  showName
+                />
+              ),
             }))}
             value={language}
             onChange={onLanguageChange}

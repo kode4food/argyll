@@ -109,7 +109,9 @@ describe("ScriptConfigEditor", () => {
         ]}
       />
     );
-    const luaButton = screen.getByText(t("script.language.lua"));
+    const luaButton = screen.getByRole("button", {
+      name: t("script.language.lua"),
+    });
     expect(luaButton).toHaveAttribute("aria-pressed", "true");
   });
 

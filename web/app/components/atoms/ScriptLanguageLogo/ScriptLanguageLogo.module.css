@@ -1,0 +1,15 @@
+.logo {
+  display: block;
+  flex-shrink: 0;
+  width: var(--text-xl);
+  height: var(--text-xl);
+  object-fit: contain;
+}
+
+.withName {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  line-height: 1;
+  vertical-align: middle;
+}

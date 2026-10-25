@@ -3,7 +3,7 @@ import styles from "./SegmentedControl.module.css";
 
 export interface SegmentedControlOption {
   value: string;
-  label: string;
+  label: React.ReactNode;
 }
 
 interface SegmentedControlProps {
