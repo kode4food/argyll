@@ -34,7 +34,8 @@ import { useFitView } from "@/app/hooks/useFitView";
 import { useFullDetailMinZoom } from "@/app/hooks/useFullDetailMinZoom";
 import useFocusWithin from "@/app/hooks/useFocusWithin";
 import { useLayoutPlan } from "./useLayoutPlan";
-import { activeGoalSet } from "@/utils/goalSets";
+import { activeGoalSet, upstreamSteps } from "@/utils/goalSets";
+import { getStepsFromPlan } from "@/utils/planUtils";
 import {
   MIN_DIAGRAM_ZOOM,
   diagramDetailForZoom,
@@ -56,7 +57,6 @@ const OverviewDiagramViewInner: React.FC<OverviewDiagramViewProps> = ({
   const t = useT();
   const { goalSteps, setGoalSteps } = useDiagramSelection();
   const goalStepIds = React.useMemo(() => goalSteps.flat(), [goalSteps]);
-  const activeGoalStepId = activeGoalSet(goalSteps).at(-1) ?? null;
   const reactFlowInstance = useReactFlow();
   const { zoom } = useViewport();
   const fullDetailMinZoom = useFullDetailMinZoom();
@@ -66,7 +66,14 @@ const OverviewDiagramViewInner: React.FC<OverviewDiagramViewProps> = ({
     focusedPreviewAttribute,
     updatePreviewPlan,
     spaceId,
+    hoveredGoalSet,
   } = useUI();
+  const previewGoalIndex = hoveredGoalSet ?? Math.max(0, goalSteps.length - 1);
+  const previewGoals = React.useMemo(
+    () => goalSteps[previewGoalIndex] ?? [],
+    [goalSteps, previewGoalIndex]
+  );
+  const activeGoalStepId = activeGoalSet(goalSteps).at(-1) ?? null;
   const spaceSelection = useSpaceSelection();
   const selected = spaceId ? spaceSelection[spaceId] : null;
   const viewportKey = spaceId ? `space:${spaceId}` : "overview";
@@ -75,8 +82,11 @@ const OverviewDiagramViewInner: React.FC<OverviewDiagramViewProps> = ({
     [spaceId]
   );
   const fitView = useFitView();
-  const { previewPlan, handleStepClick, clearPreview } =
-    useExecutionPlanPreview(steps, goalSteps, setGoalSteps);
+  const { previewPlan, handleStepClick } = useExecutionPlanPreview(
+    steps,
+    goalSteps,
+    setGoalSteps
+  );
 
   const goalStepsRef = React.useRef(goalSteps);
   const previewPlanRef = React.useRef(previewPlan);
@@ -97,11 +107,20 @@ const OverviewDiagramViewInner: React.FC<OverviewDiagramViewProps> = ({
     selected
   );
 
+  const focusedStepIds = React.useMemo(() => {
+    if (!previewPlan) return previewStepIds;
+    const plannedSteps = getStepsFromPlan(previewPlan);
+    return new Set([
+      ...previewGoals,
+      ...upstreamSteps(plannedSteps, previewGoals),
+    ]);
+  }, [previewGoals, previewPlan, previewStepIds]);
+
   const initialNodes = useNodeCalculation(
     visibleSteps,
-    goalStepIds,
+    previewGoals,
     previewPlan,
-    previewStepIds,
+    focusedStepIds,
     handleStepClick,
     diagramContainerRef,
     positionScope
@@ -109,7 +128,7 @@ const OverviewDiagramViewInner: React.FC<OverviewDiagramViewProps> = ({
 
   const initialEdges = useEdgeCalculation(
     visibleSteps,
-    previewStepIds,
+    focusedStepIds,
     focusedPreviewAttribute
   );
   const visibleEdges = React.useMemo(
@@ -118,9 +137,7 @@ const OverviewDiagramViewInner: React.FC<OverviewDiagramViewProps> = ({
   );
 
   const { plan } = useLayoutPlan(visibleSteps, [], positionScope);
-  const previewStepCount = previewPlan
-    ? Object.keys(previewPlan.steps).length
-    : 0;
+  const previewStepCount = focusedStepIds?.size ?? 0;
   const showPreviewHud = !!previewPlan && goalStepIds.length > 0;
 
   const arrangedNodes = useAutoLayout(initialNodes, initialEdges, plan);
@@ -284,7 +301,6 @@ const OverviewDiagramViewInner: React.FC<OverviewDiagramViewProps> = ({
       edges={visibleEdges}
       nodeTypes={nodeTypes}
       onNodesChange={handleNodesChange}
-      onPaneClick={clearPreview}
       onNodeDragStart={handleNodeDragStart}
       nodesConnectable={false}
       nodesDraggable={true}
@@ -304,10 +320,14 @@ const OverviewDiagramViewInner: React.FC<OverviewDiagramViewProps> = ({
           sections={[
             <DiagramHudText nowrap>
               {t("overview.previewLabel")}
+              {" · "}
+              {previewGoalIndex === 0
+                ? t("goals.primary")
+                : t("goals.fallback", { count: previewGoalIndex })}
             </DiagramHudText>,
             <DiagramHudText>
               {t("overview.previewGoals", {
-                count: goalStepIds.length,
+                count: previewGoals.length,
               })}
             </DiagramHudText>,
             <DiagramHudText>

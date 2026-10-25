@@ -76,6 +76,29 @@ describe("UIContext", () => {
     expect(result.current.focusedPreviewAttribute).toBeNull();
   });
 
+  test("group focus preserves Goals and preview without requesting a plan", () => {
+    const { result } = renderHook(() => useUI(), { wrapper });
+    const goals = [["primary"], ["fallback"]];
+    act(() => result.current.setGoalSteps(goals));
+    act(() => result.current.setHoveredGoalSet(0));
+    expect(result.current.hoveredGoalSet).toBe(0);
+    expect(result.current.goalSteps).toBe(goals);
+    act(() => result.current.setHoveredGoalSet(null));
+    expect(result.current.hoveredGoalSet).toBeNull();
+    expect(mockApi.getExecutionPlan).not.toHaveBeenCalled();
+  });
+
+  test("hover preview resets after Goals or Space change", () => {
+    const { result } = renderHook(() => useUI(), { wrapper });
+    act(() => result.current.setGoalSteps([["primary"], ["fallback"]]));
+    act(() => result.current.setHoveredGoalSet(0));
+    act(() => result.current.setGoalSteps([["primary"]]));
+    expect(result.current.hoveredGoalSet).toBeNull();
+    act(() => result.current.setHoveredGoalSet(0));
+    act(() => result.current.setSpaceId("risk"));
+    expect(result.current.hoveredGoalSet).toBeNull();
+  });
+
   test("updatePreviewPlan calls API and updates state", async () => {
     const mockPlan = {
       steps: {},

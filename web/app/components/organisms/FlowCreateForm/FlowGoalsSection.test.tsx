@@ -1,7 +1,15 @@
+import React from "react";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { AttributeRole, AttributeType, Step } from "@/app/api";
 import { t } from "@/app/testUtils/i18n";
-import FlowGoalsSection from "./FlowGoalsSection";
+import FlowGoalsSectionComponent from "./FlowGoalsSection";
+
+const FlowGoalsSection = (
+  props: Omit<
+    React.ComponentProps<typeof FlowGoalsSectionComponent>,
+    "onPreviewGoalSet"
+  >
+) => <FlowGoalsSectionComponent {...props} onPreviewGoalSet={jest.fn()} />;
 
 describe("FlowGoalsSection", () => {
   const steps: Step[] = [
@@ -202,11 +210,13 @@ describe("FlowGoalsSection", () => {
 
     const renderGoals = (
       goalSteps: string[][],
-      onGoalStepsChange = jest.fn()
+      onGoalStepsChange = jest.fn(),
+      onPreviewGoalSet = jest.fn()
     ) =>
       render(
-        <FlowGoalsSection
+        <FlowGoalsSectionComponent
           goalSteps={goalSteps}
+          onPreviewGoalSet={onPreviewGoalSet}
           blockedByStep={new Map()}
           missingByStep={new Map()}
           onGoalStepsChange={onGoalStepsChange}
@@ -247,11 +257,11 @@ describe("FlowGoalsSection", () => {
         onGoalStepsChange
       );
 
-      expect(screen.getByTestId("goal-set-summary")).toHaveTextContent(
+      expect(screen.getAllByTestId("goal-set-summary")[0]).toHaveTextContent(
         "notification-sender"
       );
       expect(
-        screen.getByTestId("goal-set-summary").parentElement
+        screen.getAllByTestId("goal-set-summary")[0].parentElement
       ).toContainElement(screen.getByText(t("goals.or")));
       expect(stockItem()).toHaveAttribute("aria-disabled", "false");
       fireEvent.click(screen.getByText("Stock Reservation"));
@@ -261,7 +271,7 @@ describe("FlowGoalsSection", () => {
       ]);
     });
 
-    test("removes a frozen goal set", () => {
+    test("removes an earlier goal set", () => {
       const onGoalStepsChange = jest.fn();
       renderGoals(
         [["notification-sender"], ["stock-reservation"], []],
@@ -275,6 +285,47 @@ describe("FlowGoalsSection", () => {
         ["stock-reservation"],
         [],
       ]);
+    });
+
+    test("hover previews an earlier group while the list edits only the last", () => {
+      const onChange = jest.fn();
+      const onPreview = jest.fn();
+      renderGoals(
+        [["notification-sender"], ["eligibility-checker"]],
+        onChange,
+        onPreview
+      );
+      const group = screen.getByTestId("goal-set-summary");
+      fireEvent.pointerEnter(group);
+      expect(onPreview).toHaveBeenLastCalledWith(0);
+      fireEvent.click(group);
+      expect(onChange).not.toHaveBeenCalled();
+      expect(stockItem()).toHaveAttribute("aria-disabled", "false");
+      fireEvent.click(screen.getByText("Stock Reservation"));
+      expect(onChange).toHaveBeenCalledWith([
+        ["notification-sender"],
+        ["eligibility-checker", "stock-reservation"],
+      ]);
+      fireEvent.pointerLeave(group);
+      expect(onPreview).toHaveBeenLastCalledWith(null);
+    });
+
+    test("keyboard focus previews completed groups without a duplicate active card", () => {
+      const onChange = jest.fn();
+      const onPreview = jest.fn();
+      renderGoals(
+        [["notification-sender"], ["eligibility-checker"]],
+        onChange,
+        onPreview
+      );
+      const group = screen.getByTestId("goal-set-summary");
+      expect(screen.getAllByTestId("goal-set-summary")).toHaveLength(1);
+      expect(group).not.toHaveTextContent("eligibility-checker");
+      fireEvent.focus(group);
+      expect(onPreview).toHaveBeenLastCalledWith(0);
+      expect(onChange).not.toHaveBeenCalled();
+      fireEvent.blur(group);
+      expect(onPreview).toHaveBeenLastCalledWith(null);
     });
 
     test("OR starts a new set only when the active set has goals", () => {

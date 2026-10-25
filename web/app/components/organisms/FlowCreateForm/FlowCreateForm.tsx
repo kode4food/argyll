@@ -75,6 +75,7 @@ const FlowCreateForm: React.FC<FlowCreateFormProps> = ({ onCreateStep }) => {
   const {
     previewPlan,
     goalSteps,
+    setHoveredGoalSet,
     focusedPreviewAttribute,
     setFocusedPreviewAttribute,
     spaceId,
@@ -294,6 +295,7 @@ const FlowCreateForm: React.FC<FlowCreateFormProps> = ({ onCreateStep }) => {
 
             <FlowGoalsSection
               goalSteps={goalSteps}
+              onPreviewGoalSet={setHoveredGoalSet}
               blockedByStep={blockedByStep}
               missingByStep={missingByStep}
               onCreateStep={handleCreateStep}

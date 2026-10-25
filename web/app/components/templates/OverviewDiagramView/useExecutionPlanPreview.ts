@@ -15,7 +15,6 @@ export interface UseExecutionPlanPreviewReturn {
     stepId: string,
     options?: { additive?: boolean }
   ) => Promise<void>;
-  clearPreview: () => void;
 }
 
 export function useExecutionPlanPreview(
@@ -25,16 +24,15 @@ export function useExecutionPlanPreview(
 ): UseExecutionPlanPreviewReturn {
   const { previewPlan, updatePreviewPlan, clearPreviewPlan } = useUI();
 
-  // The diagram edits only the active set, so committed fallback sets survive
+  // Preview focus never changes the full plan used to create the Flow
   const applyActiveSet = useCallback(
     async (set: string[]) => {
       const nextGoals = withActiveGoalSet(goalSteps, set);
+      setGoalSteps(nextGoals);
       if (nonEmptyGoalSets(nextGoals).length === 0) {
-        setGoalSteps([]);
         clearPreviewPlan();
         return;
       }
-      setGoalSteps(nextGoals);
       await updatePreviewPlan(nextGoals, {});
     },
     [goalSteps, setGoalSteps, updatePreviewPlan, clearPreviewPlan]
@@ -64,13 +62,8 @@ export function useExecutionPlanPreview(
     [goalSteps, applyActiveSet, steps]
   );
 
-  const clearPreview = useCallback(() => {
-    void applyActiveSet([]);
-  }, [applyActiveSet]);
-
   return {
     previewPlan,
     handleStepClick,
-    clearPreview,
   };
 }

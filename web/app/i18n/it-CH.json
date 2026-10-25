@@ -1,4 +1,6 @@
 {
+  "goals.primary": "Principale",
+  "goals.fallback": "Riserva {count}",
   "common.backToOverview": "Torna alla panoramica",
   "common.countOf": "{resolved} di {total}",
   "common.durationMs": "{duration} ms",

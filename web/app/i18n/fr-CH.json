@@ -1,4 +1,6 @@
 {
+  "goals.primary": "Principal",
+  "goals.fallback": "Repli {count}",
   "common.backToOverview": "Retour à la vue d'ensemble",
   "common.countOf": "{resolved} sur {total}",
   "common.durationMs": "{duration} ms",

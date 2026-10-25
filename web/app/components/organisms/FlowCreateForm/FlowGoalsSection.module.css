@@ -175,11 +175,42 @@
 }
 
 .goalSetPanel {
-  composes: flowGoalSets from "../StepEditor/StepEditorControls.module.css";
+  display: flex;
+  gap: var(--spacing-sm);
+  box-sizing: border-box;
+  flex-shrink: 0;
+  flex-direction: column;
+  flex-wrap: nowrap;
+  align-items: stretch;
 }
 
 .goalSetSummary {
   composes: flowGoalGroup from "../StepEditor/StepEditorControls.module.css";
+  composes: hoverFill focusFill focusRing from "@/app/styles/components/interaction.module.css";
+  --control-hover-bg: var(--panel-hover);
+  align-items: stretch;
+  padding: 0;
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-md);
+  flex-shrink: 0;
+  cursor: default;
+}
+
+.goalSetSummary:focus-within {
+  background-color: var(--panel-hover);
+}
+
+.goalSetContent {
+  display: flex;
+  flex: 1;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-2xs);
+  min-width: 0;
+  padding: var(--spacing-xs) calc(var(--spacing-xs) * 2 + var(--text-xs))
+    var(--spacing-xs) var(--spacing-xs);
+  color: var(--panel-text);
+  text-align: left;
 }
 
 .goalPill {
@@ -192,6 +223,30 @@
 
 .orDivider {
   composes: flowGoalFallback from "../StepEditor/StepEditorControls.module.css";
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 1rem;
+  box-sizing: border-box;
+  line-height: 1;
+  position: absolute;
+  bottom: calc(var(--spacing-sm) / -2);
+  left: 50%;
+  transform: translate(-50%, 50%);
+  padding: var(--spacing-2xs) var(--spacing-xs);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-md);
+  background-color: var(--panel-surface);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.orLabel {
+  text-box: trim-both ex alphabetic;
+}
+
+.orLabel:lang(de) {
+  text-box-edge: cap alphabetic;
 }
 
 /* Floats outside the list so the list's bottom fade mask never hides it */

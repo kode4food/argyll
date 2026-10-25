@@ -4,12 +4,14 @@ import OverviewDiagramView from "./OverviewDiagramView";
 import { t } from "@/app/testUtils/i18n";
 import { DiagramSelectionProvider } from "@/app/contexts/DiagramSelectionContext";
 import { useEdgeCalculation } from "@/app/hooks/useEdgeCalculation";
+import { AttributeRole, AttributeType, Step } from "@/app/api";
 
 const reactFlowMock = jest.fn(({ children }: any) => (
   <div data-testid="react-flow">{children}</div>
 ));
 const previewHookState = {
   previewPlan: null as any,
+  hoveredGoalSet: null as number | null,
 };
 let viewportZoom = 1;
 
@@ -57,6 +59,7 @@ jest.mock("@/utils/stepUtils", () => ({
 jest.mock("@/app/contexts/UIContext", () => ({
   UIProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
   useUI: () => ({
+    hoveredGoalSet: previewHookState.hoveredGoalSet,
     goalSteps: [],
     setGoalSteps: jest.fn(),
     focusedPreviewAttribute: null,
@@ -103,14 +106,13 @@ jest.mock("./useExecutionPlanPreview", () => ({
   useExecutionPlanPreview: () => ({
     previewPlan: previewHookState.previewPlan,
     handleStepClick: jest.fn(),
-    clearPreview: jest.fn(),
   }),
 }));
 
 jest.mock("./useStepVisibility", () => ({
-  useStepVisibility: (steps: any) => ({
+  useStepVisibility: (steps: Step[]) => ({
     visibleSteps: steps,
-    previewStepIds: new Set(),
+    previewStepIds: new Set(steps.map((step) => step.id)),
   }),
 }));
 
@@ -137,6 +139,7 @@ describe("OverviewDiagramView", () => {
     jest.clearAllMocks();
     useEdgeCalculationMock.mockReturnValue([]);
     previewHookState.previewPlan = null;
+    previewHookState.hoveredGoalSet = null;
     viewportZoom = 1;
   });
 
@@ -224,12 +227,14 @@ describe("OverviewDiagramView", () => {
       </DiagramSelectionProvider>
     );
 
-    expect(screen.getByText(t("overview.previewLabel"))).toBeInTheDocument();
+    expect(
+      screen.getByText(`${t("overview.previewLabel")} · ${t("goals.primary")}`)
+    ).toBeInTheDocument();
     expect(
       screen.getByText(t("overview.previewGoals", { count: 1 }))
     ).toBeInTheDocument();
     expect(
-      screen.getByText(t("overview.previewSteps", { count: 2 }))
+      screen.getByText(t("overview.previewSteps", { count: 1 }))
     ).toBeInTheDocument();
   });
 
@@ -255,6 +260,62 @@ describe("OverviewDiagramView", () => {
     expect(reactFlowMock).toHaveBeenCalled();
     const props = reactFlowMock.mock.calls[0][0];
     expect(props.edges).toBe(initialEdges);
+  });
+
+  it("previews hovered branches and returns to the last group on leave", () => {
+    const steps: Step[] = [
+      {
+        id: "source",
+        name: "Source",
+        type: "service",
+        attributes: {
+          value: { role: AttributeRole.Output, type: AttributeType.String },
+        },
+      },
+      {
+        id: "primary",
+        name: "Primary",
+        type: "service",
+        attributes: {
+          value: { role: AttributeRole.Required, type: AttributeType.String },
+        },
+      },
+      { id: "fallback", name: "Fallback", type: "service", attributes: {} },
+    ];
+    previewHookState.previewPlan = {
+      steps: Object.fromEntries(steps.map((step) => [step.id, step])),
+    };
+    const selection = {
+      goalSteps: [["primary"], ["fallback"]],
+      setGoalSteps: jest.fn(),
+    };
+    const view = () => (
+      <DiagramSelectionProvider value={selection}>
+        <OverviewDiagramView steps={steps} />
+      </DiagramSelectionProvider>
+    );
+    const { rerender } = render(view());
+    expect(useEdgeCalculationMock).toHaveBeenLastCalledWith(
+      steps,
+      new Set(["fallback"]),
+      null
+    );
+    previewHookState.hoveredGoalSet = 0;
+    rerender(view());
+    expect(useEdgeCalculationMock).toHaveBeenLastCalledWith(
+      steps,
+      new Set(["primary", "source"]),
+      null
+    );
+    previewHookState.hoveredGoalSet = null;
+    rerender(view());
+    expect(useEdgeCalculationMock).toHaveBeenLastCalledWith(
+      steps,
+      new Set(["fallback"]),
+      null
+    );
+    expect(reactFlowMock.mock.calls.at(-1)![0].onPaneClick).toBeUndefined();
+    expect(selection.setGoalSteps).not.toHaveBeenCalled();
   });
 
   it("uses macOS-style trackpad gestures", () => {

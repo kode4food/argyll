@@ -41,6 +41,8 @@ describe("useExecutionPlanPreview", () => {
       diagramContainerRef: { current: null },
       panelRef: { current: null },
       goalSteps: [],
+      hoveredGoalSet: 0,
+      setHoveredGoalSet: jest.fn(),
       setGoalSteps: jest.fn(),
       spaceId: null,
       setSpaceId: jest.fn(),
@@ -63,7 +65,6 @@ describe("useExecutionPlanPreview", () => {
 
     expect(result.current.previewPlan).toBeNull();
     expect(typeof result.current.handleStepClick).toBe("function");
-    expect(typeof result.current.clearPreview).toBe("function");
   });
 
   test("handleStepClick updates preview when no flow", async () => {
@@ -90,7 +91,7 @@ describe("useExecutionPlanPreview", () => {
       await result.current.handleStepClick("step-1");
     });
 
-    expect(setGoalSteps).toHaveBeenCalledWith([]);
+    expect(setGoalSteps).toHaveBeenCalledWith([[]]);
     expect(mockClearPreviewPlan).toHaveBeenCalled();
     expect(mockUpdatePreviewPlan).not.toHaveBeenCalled();
   });
@@ -151,20 +152,6 @@ describe("useExecutionPlanPreview", () => {
     expect(mockUpdatePreviewPlan).toHaveBeenCalledWith([["upstream"]], {});
   });
 
-  test("clearPreview clears plan and selection", () => {
-    const setGoalSteps = jest.fn();
-    const { result } = renderHook(() =>
-      useExecutionPlanPreview(catalog, [["step-1"]], setGoalSteps)
-    );
-
-    act(() => {
-      result.current.clearPreview();
-    });
-
-    expect(mockClearPreviewPlan).toHaveBeenCalled();
-    expect(setGoalSteps).toHaveBeenCalledWith([]);
-  });
-
   test("normal click keeps committed fallback sets", async () => {
     const setGoalSteps = jest.fn();
     const { result } = renderHook(() =>
@@ -194,20 +181,6 @@ describe("useExecutionPlanPreview", () => {
     expect(mockClearPreviewPlan).not.toHaveBeenCalled();
   });
 
-  test("clearPreview keeps committed fallback sets", async () => {
-    const setGoalSteps = jest.fn();
-    const { result } = renderHook(() =>
-      useExecutionPlanPreview(catalog, [["goal"], ["step-1"]], setGoalSteps)
-    );
-
-    await act(async () => {
-      result.current.clearPreview();
-    });
-
-    expect(setGoalSteps).toHaveBeenCalledWith([["goal"], []]);
-    expect(mockClearPreviewPlan).not.toHaveBeenCalled();
-  });
-
   test("returns preview plan from context", () => {
     const mockPlan: ExecutionPlan = {
       goals: { steps: ["step-1"] },
@@ -222,5 +195,20 @@ describe("useExecutionPlanPreview", () => {
     );
 
     expect(result.current.previewPlan).toEqual(mockPlan);
+  });
+
+  test("diagram edits the last group even while an earlier group is hovered", async () => {
+    const setGoals = jest.fn();
+    const { result } = renderHook(() =>
+      useExecutionPlanPreview(catalog, [["upstream"], ["fallback"]], setGoals)
+    );
+    await act(async () =>
+      result.current.handleStepClick("goal", { additive: true })
+    );
+    expect(setGoals).toHaveBeenCalledWith([["upstream"], ["fallback", "goal"]]);
+    expect(mockUpdatePreviewPlan).toHaveBeenCalledWith(
+      [["upstream"], ["fallback", "goal"]],
+      {}
+    );
   });
 });

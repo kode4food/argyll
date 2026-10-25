@@ -66,6 +66,8 @@ describe("FlowCreateForm", () => {
   };
 
   const defaultUIContext = {
+    hoveredGoalSet: null,
+    setHoveredGoalSet: jest.fn(),
     focusedPreviewAttribute: null,
     setFocusedPreviewAttribute: jest.fn(),
     diagramContainerRef: { current: null },

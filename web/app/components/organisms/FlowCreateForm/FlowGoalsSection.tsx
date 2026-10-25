@@ -10,6 +10,7 @@ import {
 import StepTypeLabel from "@/app/components/atoms/StepTypeLabel";
 import useArrowFocus from "@/app/hooks/useArrowFocus";
 import { useT } from "@/app/i18n";
+import { useLocale } from "@/app/store/i18nStore";
 import { buildItemClassName } from "./flowFormUtils";
 import { deriveStepGoalState, getGoalTooltip } from "@/utils/flowGoalStepState";
 import {
@@ -22,6 +23,7 @@ import styles from "./FlowGoalsSection.module.css";
 
 interface FlowGoalsSectionProps {
   goalSteps: GoalSets;
+  onPreviewGoalSet: (index: number | null) => void;
   blockedByStep: Map<string, string[]>;
   missingByStep: Map<string, string[]>;
   onCreateStep?: (fromGoals: boolean) => void;
@@ -37,6 +39,7 @@ interface FlowGoalsSectionProps {
 
 const FlowGoalsSection: React.FC<FlowGoalsSectionProps> = ({
   goalSteps,
+  onPreviewGoalSet,
   blockedByStep,
   missingByStep,
   onCreateStep,
@@ -50,6 +53,7 @@ const FlowGoalsSection: React.FC<FlowGoalsSectionProps> = ({
   stepsCount,
 }) => {
   const t = useT();
+  const locale = useLocale();
   const handleArrowFocus = useArrowFocus();
   const [shiftHeld, setShiftHeld] = React.useState(false);
   const activeSet = activeGoalSet(goalSteps);
@@ -119,11 +123,23 @@ const FlowGoalsSection: React.FC<FlowGoalsSectionProps> = ({
       {committedSets.length > 0 && (
         <div className={styles.goalSetPanel}>
           {committedSets.map((set, idx) => (
-            <React.Fragment key={idx}>
-              <div
-                className={styles.goalSetSummary}
-                data-testid="goal-set-summary"
-              >
+            <div
+              key={idx}
+              className={styles.goalSetSummary}
+              data-testid="goal-set-summary"
+              tabIndex={0}
+              onPointerEnter={() => onPreviewGoalSet(idx)}
+              onPointerLeave={() => onPreviewGoalSet(null)}
+              onFocus={() => onPreviewGoalSet(idx)}
+              onBlur={(e) => {
+                if (!e.currentTarget.contains(e.relatedTarget))
+                  onPreviewGoalSet(null);
+              }}
+            >
+              <span className={styles.orDivider} lang={locale}>
+                <span className={styles.orLabel}>{t("goals.or")}</span>
+              </span>
+              <span className={styles.goalSetContent}>
                 {set.map((id) => {
                   const step = sortedSteps.find((s) => s.id === id);
                   return (
@@ -133,22 +149,20 @@ const FlowGoalsSection: React.FC<FlowGoalsSectionProps> = ({
                     </span>
                   );
                 })}
-                <button
-                  type="button"
-                  className={styles.goalSetRemove}
-                  aria-label={t("goals.removeSet")}
-                  title={t("goals.removeSet")}
-                  onClick={() =>
-                    void onGoalStepsChange(
-                      goalSteps.filter((_, i) => i !== idx)
-                    )
-                  }
-                >
-                  <IconClose aria-hidden="true" />
-                </button>
-              </div>
-              <span className={styles.orDivider}>{t("goals.or")}</span>
-            </React.Fragment>
+              </span>
+              <button
+                type="button"
+                className={styles.goalSetRemove}
+                aria-label={t("goals.removeSet")}
+                title={t("goals.removeSet")}
+                onClick={() => {
+                  onPreviewGoalSet(null);
+                  void onGoalStepsChange(goalSteps.filter((_, i) => i !== idx));
+                }}
+              >
+                <IconClose aria-hidden="true" />
+              </button>
+            </div>
           ))}
         </div>
       )}
@@ -229,7 +243,10 @@ const FlowGoalsSection: React.FC<FlowGoalsSectionProps> = ({
           disabled={activeSet.length === 0}
           aria-label={t("goals.addFallback")}
           title={t("goals.addFallback")}
-          onClick={() => void onGoalStepsChange([...goalSteps, []])}
+          onClick={() => {
+            void onGoalStepsChange([...goalSteps, []]);
+            onPreviewGoalSet(null);
+          }}
         >
           <IconGoalFallback size={16} aria-hidden="true" />
         </button>

@@ -19,6 +19,8 @@ interface UIContextType {
   previewPlan: ExecutionPlan | null;
   setPreviewPlan: (plan: ExecutionPlan | null) => void;
   goalSteps: GoalSets;
+  hoveredGoalSet: number | null;
+  setHoveredGoalSet: (index: number | null) => void;
   setGoalSteps: (goals: GoalSets) => void;
   spaceId: string | null;
   setSpaceId: (spaceId: string | null) => void;
@@ -41,6 +43,7 @@ export const UIProvider: React.FC<{ children: React.ReactNode }> = ({
     string | null
   >(null);
   const [goalSteps, setGoalStepsState] = useState<GoalSets>([]);
+  const [hoveredGoalSet, setHoveredGoalSet] = useState<number | null>(null);
   const [spaceId, setSpaceIdState] = useState<string | null>(null);
   const spaces = useSpaces();
   const diagramContainerRef = useRef<HTMLDivElement>(null);
@@ -60,6 +63,7 @@ export const UIProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const setGoalSteps = useCallback((goals: GoalSets) => {
     setGoalStepsState(goals);
+    setHoveredGoalSet(null);
   }, []);
 
   const updatePreviewPlan = useCallback(
@@ -113,6 +117,7 @@ export const UIProvider: React.FC<{ children: React.ReactNode }> = ({
     spaceIdRef.current = nextSpaceId;
     setSpaceIdState(nextSpaceId);
     setGoalStepsState([]);
+    setHoveredGoalSet(null);
     setPreviewPlanState(null);
     setFocusedPreviewAttributeState(null);
   }, []);
@@ -156,6 +161,8 @@ export const UIProvider: React.FC<{ children: React.ReactNode }> = ({
       previewPlan,
       setPreviewPlan,
       goalSteps,
+      hoveredGoalSet,
+      setHoveredGoalSet,
       updatePreviewPlan,
       clearPreviewPlan,
       setGoalSteps,
@@ -168,6 +175,7 @@ export const UIProvider: React.FC<{ children: React.ReactNode }> = ({
       previewPlan,
       setPreviewPlan,
       goalSteps,
+      hoveredGoalSet,
       updatePreviewPlan,
       clearPreviewPlan,
       setGoalSteps,
