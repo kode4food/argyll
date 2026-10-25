@@ -179,7 +179,7 @@ var attrSetters = map[string]setter[api.AttributeSpec]{
 		if err != nil {
 			return err
 		}
-		cfg := &api.ScriptConfig{Language: api.ScriptLangLua}
+		cfg := &api.ScriptConfig{Language: api.ScriptLangArgyll}
 		if !parseScript(cfg, v) {
 			return fmt.Errorf("%w: %q needs a script", ErrBadProp,
 				mappingTag)

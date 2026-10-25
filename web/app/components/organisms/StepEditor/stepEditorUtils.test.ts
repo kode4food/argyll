@@ -199,7 +199,7 @@ describe("stepEditorUtils", () => {
         role: "output",
         name: "output",
         dataType: AttributeType.Object,
-        mappingScript: " return output.result ",
+        mappingScript: " output.result ",
       }),
     ]);
 
@@ -221,8 +221,8 @@ describe("stepEditorUtils", () => {
     expect(result.constant.const).toEqual({ value: '"fixed"' });
     expect(result.metadata.meta).toEqual({ key: "request_id" });
     expect(result.output.output?.mapping?.script).toEqual({
-      language: "lua",
-      script: "return output.result",
+      language: "argyll",
+      script: "output.result",
     });
   });
 

@@ -128,7 +128,7 @@ function buildMappingConfig(a: Attribute): MappingConfig | undefined {
   if (mappingName) config.name = mappingName;
   if (mappingScript) {
     config.script = {
-      language: a.mappingLanguage?.trim() || "lua",
+      language: a.mappingLanguage?.trim() || SCRIPT_LANGUAGE_ARGYLL,
       script: mappingScript,
     };
   }

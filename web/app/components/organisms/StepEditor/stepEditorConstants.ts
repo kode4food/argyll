@@ -48,12 +48,12 @@ const matchScriptPlaceholderKeys: Record<string, string> = {
 
 export const getMappingScriptPlaceholderKey = (language?: string): string => {
   if (!language) {
-    return mappingScriptPlaceholderKeys[SCRIPT_LANGUAGE_LUA];
+    return mappingScriptPlaceholderKeys[SCRIPT_LANGUAGE_ARGYLL];
   }
 
   return (
     mappingScriptPlaceholderKeys[language] ||
-    mappingScriptPlaceholderKeys[SCRIPT_LANGUAGE_LUA]
+    mappingScriptPlaceholderKeys[SCRIPT_LANGUAGE_ARGYLL]
   );
 };
 

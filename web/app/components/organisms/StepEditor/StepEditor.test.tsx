@@ -745,10 +745,10 @@ describe("StepEditor", () => {
     });
 
     const scriptInput = await screen.findByPlaceholderText(
-      t("stepEditor.mappingScriptPlaceholderLua")
+      t("stepEditor.mappingScriptPlaceholderArgyll")
     );
     fireEvent.change(scriptInput, {
-      target: { value: "return request_payload.payload.input" },
+      target: { value: "request_payload.payload.input" },
     });
 
     const saveButton = screen.getByText(t("stepEditor.save"));
@@ -764,8 +764,8 @@ describe("StepEditor", () => {
                 mapping: {
                   name: "request_payload",
                   script: {
-                    language: "lua",
-                    script: "return request_payload.payload.input",
+                    language: "argyll",
+                    script: "request_payload.payload.input",
                   },
                 },
               },
@@ -790,7 +790,7 @@ describe("StepEditor", () => {
 
     expect(
       await screen.findByPlaceholderText(
-        t("stepEditor.mappingScriptPlaceholderLua")
+        t("stepEditor.mappingScriptPlaceholderArgyll")
       )
     ).toBeInTheDocument();
 
@@ -799,20 +799,20 @@ describe("StepEditor", () => {
     );
 
     fireEvent.click(mappingLanguageSelect);
+    fireEvent.click(screen.getByRole("option", { name: "Lua" }));
+    await waitFor(() => {
+      expect(
+        screen.getByPlaceholderText(t("stepEditor.mappingScriptPlaceholderLua"))
+      ).toBeInTheDocument();
+    });
+
+    fireEvent.click(mappingLanguageSelect);
     fireEvent.click(screen.getByRole("option", { name: "Argyll" }));
     await waitFor(() => {
       expect(
         screen.getByPlaceholderText(
           t("stepEditor.mappingScriptPlaceholderArgyll")
         )
-      ).toBeInTheDocument();
-    });
-
-    fireEvent.click(mappingLanguageSelect);
-    fireEvent.click(screen.getByRole("option", { name: "Lua" }));
-    await waitFor(() => {
-      expect(
-        screen.getByPlaceholderText(t("stepEditor.mappingScriptPlaceholderLua"))
       ).toBeInTheDocument();
     });
   });

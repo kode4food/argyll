@@ -1,5 +1,5 @@
 import React from "react";
-import { SCRIPT_LANGUAGE_LUA, StepType } from "@/app/api";
+import { SCRIPT_LANGUAGE_ARGYLL, StepType } from "@/app/api";
 import ScriptLanguageInlineInput from "@/app/components/molecules/ScriptLanguageInlineInput";
 import SegmentedGroup from "@/app/components/molecules/SegmentedGroup";
 import { useT } from "@/app/i18n";
@@ -100,7 +100,7 @@ const AttributeMappingPanel: React.FC<AttributeMappingPanelProps> = ({
       <ScriptLanguageInlineInput
         ariaLabel={t("stepEditor.mappingLanguageLabel")}
         className={formStyles.mappingScriptInlineInput}
-        language={attr.mappingLanguage || SCRIPT_LANGUAGE_LUA}
+        language={attr.mappingLanguage || SCRIPT_LANGUAGE_ARGYLL}
         onLanguageChange={(language) =>
           updateAttribute(attr.id, "mappingLanguage", language)
         }

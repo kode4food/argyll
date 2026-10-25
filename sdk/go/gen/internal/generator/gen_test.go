@@ -321,7 +321,7 @@ func TestMappingName(t *testing.T) {
 func TestAttributeScripts(t *testing.T) {
 	src := "type In struct {\n" +
 		"Default string `argyll-match:\"value.ready\" " +
-		"argyll-mapping:\"value = value; return value\"`\n" +
+		"argyll-mapping:\"value\"`\n" +
 		"Lua string `argyll-match:\"lua:value = true; return value\"`\n" +
 		"}\n" +
 		"type Out struct { Value string " +
@@ -332,10 +332,7 @@ func TestAttributeScripts(t *testing.T) {
 		&api.ScriptConfig{Language: "argyll", Script: "value.ready"},
 		attrs["default"].Required.Match)
 	assert.Equal(t,
-		&api.ScriptConfig{
-			Language: "lua",
-			Script:   "value = value; return value",
-		},
+		&api.ScriptConfig{Language: "argyll", Script: "value"},
 		attrs["default"].Required.Mapping.Script)
 	assert.Equal(t,
 		&api.ScriptConfig{
