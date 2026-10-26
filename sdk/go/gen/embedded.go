@@ -12,7 +12,7 @@ import (
 // runs in process, converting its values in memory
 func EmbeddedSync[I, O any](
 	in convert.Converter[I], out convert.Converter[O], fn func(I) (O, error),
-) step.InvokeFunc {
+) step.WorkFunc {
 	return func(
 		rt step.Runtime, st *api.Step, inputs api.Args, tkn api.Token,
 	) error {
@@ -36,7 +36,7 @@ func EmbeddedSync[I, O any](
 // in-process compensation
 func EmbeddedCompensate[I any](
 	in convert.Converter[I], fn func(I) error,
-) step.CompensateFunc {
+) step.WorkFunc {
 	return func(
 		rt step.Runtime, _ *api.Step, args api.Args, tkn api.Token,
 	) error {

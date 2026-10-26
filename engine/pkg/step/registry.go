@@ -23,22 +23,19 @@ type (
 	// reruns on retry, so it must be pure, bounded, and free of I/O
 	Handler struct {
 		Validate   ValidateFunc
-		Invoke     InvokeFunc
+		Invoke     WorkFunc
 		Health     HealthFunc
 		Children   ChildrenFunc
-		Compensate CompensateFunc
+		Compensate WorkFunc
 		Inline     bool
 	}
 
 	// ValidateFunc validates step-type-specific configuration
 	ValidateFunc func(*api.Step) error
 
-	// InvokeFunc runs a step's work item
-	InvokeFunc func(Runtime, *api.Step, api.Args, api.Token) error
-
-	// CompensateFunc reverses a completed work item, receiving only its
-	// compensated attributes. It settles the way an InvokeFunc does
-	CompensateFunc func(Runtime, *api.Step, api.Args, api.Token) error
+	// WorkFunc runs a step's work item, or reverses a completed one when it
+	// compensates, in which case it receives only the compensated attributes
+	WorkFunc func(Runtime, *api.Step, api.Args, api.Token) error
 
 	// Runtime exposes engine services available during work execution
 	Runtime interface {
@@ -111,7 +108,7 @@ func (r *Registry) Children(st *api.Step) (*api.Goals, error) {
 }
 
 // Compensator returns the step's compensation, nil when it has none
-func (r *Registry) Compensator(st *api.Step) (CompensateFunc, error) {
+func (r *Registry) Compensator(st *api.Step) (WorkFunc, error) {
 	handler, err := r.Lookup(st.Type)
 	if err != nil || !st.CanCompensate() {
 		return nil, err

@@ -35,7 +35,7 @@ func validateHTTP(callback CallbackURL) step.ValidateFunc {
 	}
 }
 
-func compensateHTTP(client Client, callback CallbackURL) step.CompensateFunc {
+func compensateHTTP(client Client, callback CallbackURL) step.WorkFunc {
 	return func(
 		rt step.Runtime, st *api.Step, args api.Args, token api.Token,
 	) error {
@@ -57,7 +57,7 @@ func compensateHTTP(client Client, callback CallbackURL) step.CompensateFunc {
 	}
 }
 
-func invokeHTTP(client Client, callback CallbackURL) step.InvokeFunc {
+func invokeHTTP(client Client, callback CallbackURL) step.WorkFunc {
 	return func(
 		rt step.Runtime, st *api.Step, inputs api.Args, token api.Token,
 	) error {
