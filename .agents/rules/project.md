@@ -53,22 +53,14 @@ examples/        # Sample step implementations
 
 ### Step Request/Response
 
+The request body is the input arguments. Execution context travels in headers: `Argyll-Flow-ID`, `Argyll-Step-ID`, `Argyll-Receipt-Token`, and `Argyll-Webhook-URL` for async actions. A 2xx response returns the outputs directly. A failure returns non-2xx with `application/problem+json`, where `5xx` retries and other statuses fail permanently.
+
 ```json
 // Request
-{
-  "arguments": { "key": "value" },
-  "metadata": {
-    "flow_id": "wf-123",
-    "step_id": "unique-id",
-    "receipt_token": "tok-abc123"
-  }
-}
+{ "key": "value" }
 
 // Response
-{
-  "success": true,
-  "outputs": { "result": "value" }
-}
+{ "result": "value" }
 ```
 
 ## Web UI
