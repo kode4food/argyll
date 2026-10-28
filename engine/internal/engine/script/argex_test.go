@@ -72,6 +72,21 @@ func TestArgExPredicateType(t *testing.T) {
 	assert.ErrorIs(t, err, argex.ErrArithmetic)
 }
 
+func TestArgExCheckPredicate(t *testing.T) {
+	env := script.NewArgExEnv()
+	for _, source := range []string{"1 + 2", `"x"`, "[]", "{}", "null"} {
+		err := env.CheckPredicate(&api.ScriptConfig{Script: source})
+		assert.ErrorIs(t, err, script.ErrArgExNotBoolean)
+	}
+	for _, source := range []string{
+		"flag ?? false", "value.ok", `case { a: true, 1 }`, "1 < 2",
+	} {
+		assert.NoError(t, env.CheckPredicate(&api.ScriptConfig{
+			Script: source,
+		}))
+	}
+}
+
 func TestArgExMatch(t *testing.T) {
 	env := script.NewArgExEnv()
 	compiled, err := env.Compile(script.MatchStep, &api.ScriptConfig{

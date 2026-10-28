@@ -3,13 +3,13 @@ import { SCRIPT_LANGUAGE_ARGYLL, SCRIPT_LANGUAGE_LUA } from "@/app/api";
 import ScriptLanguageLogo from "./ScriptLanguageLogo";
 
 describe("ScriptLanguageLogo", () => {
-  test("renders Argyll logo with name as alt", () => {
+  test("renders Argyll Expressions logo with name as alt", () => {
     render(
       <ScriptLanguageLogo language={SCRIPT_LANGUAGE_ARGYLL} name="Argyll" />
     );
     expect(screen.getByAltText("Argyll")).toHaveAttribute(
       "src",
-      "/argyll-logo.png"
+      "/icons/argex-logo.svg"
     );
   });
 

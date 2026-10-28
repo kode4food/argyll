@@ -17,8 +17,11 @@ type ArgExEnv struct {
 const argExCacheSize = 10240
 
 var (
-	ErrArgExCompile = errors.New("ArgEx compile error")
-	ErrArgExNoValue = errors.New("ArgEx produced no value")
+	ErrArgExCompile    = errors.New("ArgEx compile error")
+	ErrArgExNoValue    = errors.New("ArgEx produced no value")
+	ErrArgExNotBoolean = errors.New(
+		"must return " + argex.TypeSet(argex.TypeBool).String(),
+	)
 )
 
 // NewArgExEnv creates an Argyll Expressions evaluation environment
@@ -67,6 +70,19 @@ func (*ArgExEnv) EvaluatePredicate(
 // EvaluateMatch exposes a single candidate as value to a Boolean expression
 func (e *ArgExEnv) EvaluateMatch(c Compiled, input any) (bool, error) {
 	return e.EvaluatePredicate(c, nil, api.Args{matchValue: input})
+}
+
+// CheckPredicate rejects an expression whose result can never be a Boolean
+func (*ArgExEnv) CheckPredicate(cfg *api.ScriptConfig) error {
+	expr, err := argex.Parse(cfg.Script)
+	if err != nil {
+		return fmt.Errorf("%w: %w", ErrArgExCompile, err)
+	}
+	result := expr.StaticType()
+	if result.Known() && !result.Has(argex.TypeBool) {
+		return fmt.Errorf("%w, not %s", ErrArgExNotBoolean, result)
+	}
+	return nil
 }
 
 func compileArgEx(source string) (argex.Program, error) {

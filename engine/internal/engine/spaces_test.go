@@ -7,6 +7,7 @@ import (
 
 	"github.com/kode4food/argyll/engine/internal/assert/helpers"
 	"github.com/kode4food/argyll/engine/internal/engine"
+	"github.com/kode4food/argyll/engine/internal/engine/script"
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
@@ -255,6 +256,18 @@ func TestSpacesRejectInvalid(t *testing.T) {
 		})
 		assert.ErrorIs(t, err, api.ErrInvalidSpace)
 		assert.ErrorIs(t, err, api.ErrInvalidScriptLanguage)
+
+		err = eng.RegisterSpace(api.Space{
+			ID: "non-boolean", Name: "Non-Boolean",
+			Selector: &api.ScriptConfig{
+				Language: api.ScriptLangArgyll,
+				Script:   "value.tags + 1",
+			},
+		})
+		assert.ErrorIs(t, err, api.ErrInvalidSpace)
+		assert.ErrorIs(t, err, script.ErrArgExNotBoolean)
+		assert.EqualError(t, err, "invalid space: selector: "+
+			"must return bool, not number|string")
 
 		err = eng.UnregisterSpace("missing")
 		assert.ErrorIs(t, err, api.ErrSpaceNotFound)

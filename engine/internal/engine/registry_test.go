@@ -66,6 +66,47 @@ func TestRegisterEmptyScripts(t *testing.T) {
 	}
 }
 
+func TestRegisterNonBooleanPredicates(t *testing.T) {
+	tests := []struct {
+		kind    string
+		message string
+	}{
+		{
+			kind:    "predicate",
+			message: "invalid step: predicate: must return bool, not number",
+		},
+		{
+			kind: "match",
+			message: `invalid step: attribute "input" match: ` +
+				"must return bool, not number",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.kind, func(t *testing.T) {
+			helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+				st := helpers.NewStepWithOutputs("non-boolean", "result")
+				cfg := &api.ScriptConfig{
+					Language: api.ScriptLangArgyll, Script: "1 + 2",
+				}
+				if tt.kind == "predicate" {
+					st.Predicate = cfg
+				} else {
+					st.Attributes["input"] = &api.AttributeSpec{
+						Role:     api.RoleRequired,
+						Required: &api.RequiredConfig{Match: cfg},
+					}
+				}
+				err := env.Engine.RegisterStep(st)
+				assert.ErrorIs(t, err, script.ErrArgExNotBoolean)
+				assert.EqualError(t, err, tt.message)
+				cat, err := env.Engine.GetCatalogState()
+				assert.NoError(t, err)
+				assert.NotContains(t, cat.Steps, st.ID)
+			})
+		})
+	}
+}
+
 func TestRegisterStep(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
 		st := &api.Step{

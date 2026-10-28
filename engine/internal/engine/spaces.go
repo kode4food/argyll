@@ -127,7 +127,7 @@ func (e *Engine) matchingSpaceIDs(
 	for id, sp := range cat.Spaces.Defined {
 		matches, err := e.spaceMatches(sp, st)
 		if err != nil {
-			return nil, errors.Join(api.ErrInvalidSpace, err)
+			return nil, fmt.Errorf("%w: %w", api.ErrInvalidSpace, err)
 		}
 		if matches {
 			res = append(res, id)
@@ -143,7 +143,7 @@ func (e *Engine) prepareSpace(sp api.Space) (api.Space, error) {
 		return api.Space{}, err
 	}
 	if err := sp.Validate(); err != nil {
-		return api.Space{}, errors.Join(api.ErrInvalidSpace, err)
+		return api.Space{}, fmt.Errorf("%w: %w", api.ErrInvalidSpace, err)
 	}
 	return sp, nil
 }
@@ -154,11 +154,12 @@ func (e *Engine) prepareSelector(sp api.Space) (api.Space, error) {
 		sp.Selector = script.QBESelector(sp.QBE)
 	}
 	if err := sp.ValidateSelector(); err != nil {
-		return api.Space{}, errors.Join(api.ErrInvalidSpace, err)
+		return api.Space{}, fmt.Errorf("%w: %w", api.ErrInvalidSpace, err)
 	}
-	_, err := e.scripts.Compile(script.MatchStep, sp.Selector)
+	err := e.scripts.ValidatePredicate(script.MatchStep, sp.Selector)
 	if err != nil {
-		return api.Space{}, errors.Join(api.ErrInvalidSpace, err)
+		return api.Space{}, fmt.Errorf("%w: selector: %w",
+			api.ErrInvalidSpace, err)
 	}
 	return sp, nil
 }

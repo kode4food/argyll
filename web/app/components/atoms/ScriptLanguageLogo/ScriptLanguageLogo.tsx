@@ -9,7 +9,7 @@ export interface ScriptLanguageLogoProps {
 }
 
 const LOGO_SOURCES: Record<string, string> = {
-  [SCRIPT_LANGUAGE_ARGYLL]: "/argyll-logo.png",
+  [SCRIPT_LANGUAGE_ARGYLL]: "/icons/argex-logo.svg",
   [SCRIPT_LANGUAGE_LUA]: "/icons/lua-logo.svg",
 };
 

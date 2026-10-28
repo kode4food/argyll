@@ -51,6 +51,10 @@ type (
 	compiledValue interface {
 		*CompiledLua | argex.Program
 	}
+
+	predicateChecker interface {
+		CheckPredicate(*api.ScriptConfig) error
+	}
 )
 
 const (
@@ -102,11 +106,11 @@ func (r *Registry) Get(language string) (Environment, error) {
 }
 
 // ValidateStep checks that a step's predicate and attribute match scripts
-// compile successfully against the registry
+// compile successfully against the registry and can return a Boolean
 func (r *Registry) ValidateStep(st *api.Step) error {
 	if st.Predicate != nil {
-		if _, err := r.Compile(st, st.Predicate); err != nil {
-			return err
+		if err := r.ValidatePredicate(st, st.Predicate); err != nil {
+			return fmt.Errorf("predicate: %w", err)
 		}
 	}
 	for name, attr := range st.Attributes {
@@ -114,9 +118,8 @@ func (r *Registry) ValidateStep(st *api.Step) error {
 		if cfg == nil {
 			continue
 		}
-		if _, err := r.Compile(MatchStep, cfg); err != nil {
-			return fmt.Errorf("%w for attribute %q: %w",
-				api.ErrInvalidScriptLanguage, name, err)
+		if err := r.ValidatePredicate(MatchStep, cfg); err != nil {
+			return fmt.Errorf("attribute %q match: %w", name, err)
 		}
 	}
 	return nil
@@ -134,6 +137,20 @@ func (r *Registry) Compile(
 		return nil, err
 	}
 	return env.Compile(st, cfg)
+}
+
+// ValidatePredicate compiles a predicate or matcher script and checks that it
+// can return a Boolean
+func (r *Registry) ValidatePredicate(
+	st *api.Step, cfg *api.ScriptConfig,
+) error {
+	if _, err := r.Compile(st, cfg); err != nil {
+		return err
+	}
+	if pc, ok := r.envs[cfg.Language].(predicateChecker); ok {
+		return pc.CheckPredicate(cfg)
+	}
+	return nil
 }
 
 func (c *compiler[T]) Validate(st *api.Step, script string) error {

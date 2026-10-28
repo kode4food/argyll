@@ -142,7 +142,7 @@ func (e *Engine) validateStep(st *api.Step) error {
 		call.WithArg(e.scripts.ValidateStep, st),
 		call.WithArg(e.steps.Validate, st),
 	); err != nil {
-		return errors.Join(api.ErrInvalidStep, err)
+		return fmt.Errorf("%w: %w", api.ErrInvalidStep, err)
 	}
 	return nil
 }
@@ -203,7 +203,7 @@ func (e *Engine) validateStepUpsert(
 		call.WithArgs(e.validateSpaceSubFlows, cat, newStep),
 		func() error { return detectStepCycles(cat, newStep, children) },
 	); err != nil {
-		return errors.Join(api.ErrInvalidStep, err)
+		return fmt.Errorf("%w: %w", api.ErrInvalidStep, err)
 	}
 	return nil
 }
