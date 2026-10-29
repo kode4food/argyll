@@ -32,13 +32,13 @@ func TestArgExPredicate(t *testing.T) {
 	})
 	assert.NoError(t, err)
 	for _, value := range []any{true, false, nil} {
-		passed, err := env.EvaluatePredicate(compiled, nil, api.Args{
+		passed, err := evalPredicate(env, compiled, nil, api.Args{
 			"flag": value,
 		})
 		assert.NoError(t, err)
 		assert.Equal(t, value == true, passed)
 	}
-	passed, err := env.EvaluatePredicate(compiled, nil, api.Args{})
+	passed, err := evalPredicate(env, compiled, nil, api.Args{})
 	assert.NoError(t, err)
 	assert.False(t, passed)
 }
@@ -50,7 +50,7 @@ func TestArgExPredicateInputs(t *testing.T) {
 	})
 	assert.NoError(t, err)
 	for _, name := range []string{"Professional Laptop", "Basic Laptop"} {
-		passed, err := env.EvaluatePredicate(compiled, nil, api.Args{
+		passed, err := evalPredicate(env, compiled, nil, api.Args{
 			"product_info": map[string]any{"name": name},
 		})
 		assert.NoError(t, err)
@@ -60,15 +60,19 @@ func TestArgExPredicateInputs(t *testing.T) {
 
 func TestArgExPredicateType(t *testing.T) {
 	env := script.NewArgExEnv()
-	for _, source := range []string{"null", "1", `"x"`, "[]", "{}", "missing"} {
+	for _, source := range []string{"null", "1", `"x"`, "[]", "{}"} {
 		compiled, err := env.Compile(nil, &api.ScriptConfig{Script: source})
 		assert.NoError(t, err)
-		_, err = env.EvaluatePredicate(compiled, nil, nil)
-		assert.ErrorIs(t, err, argex.ErrType)
+		_, err = evalPredicate(env, compiled, nil, nil)
+		assert.ErrorIs(t, err, script.ErrNotBoolean)
 	}
-	compiled, err := env.Compile(nil, &api.ScriptConfig{Script: "1/0"})
+	compiled, err := env.Compile(nil, &api.ScriptConfig{Script: "missing"})
 	assert.NoError(t, err)
-	_, err = env.EvaluatePredicate(compiled, nil, nil)
+	_, err = evalPredicate(env, compiled, nil, nil)
+	assert.ErrorIs(t, err, script.ErrArgExNoValue)
+	compiled, err = env.Compile(nil, &api.ScriptConfig{Script: "1/0"})
+	assert.NoError(t, err)
+	_, err = evalPredicate(env, compiled, nil, nil)
 	assert.ErrorIs(t, err, argex.ErrArithmetic)
 }
 
@@ -76,7 +80,7 @@ func TestArgExCheckPredicate(t *testing.T) {
 	env := script.NewArgExEnv()
 	for _, source := range []string{"1 + 2", `"x"`, "[]", "{}", "null"} {
 		err := env.CheckPredicate(&api.ScriptConfig{Script: source})
-		assert.ErrorIs(t, err, script.ErrArgExNotBoolean)
+		assert.ErrorIs(t, err, script.ErrNotBoolean)
 	}
 	for _, source := range []string{
 		"flag ?? false", "value.ok", `case { a: true, 1 }`, "1 < 2",
@@ -94,18 +98,18 @@ func TestArgExMatch(t *testing.T) {
 	})
 	assert.NoError(t, err)
 	for _, kind := range []string{"email", "postal"} {
-		matched, err := env.EvaluateMatch(compiled, api.Args{"kind": kind})
+		matched, err := evalMatch(env, compiled, api.Args{"kind": kind})
 		assert.NoError(t, err)
 		assert.Equal(t, kind == "email", matched)
 	}
-	matched, err := env.EvaluateMatch(compiled, nil)
+	matched, err := evalMatch(env, compiled, nil)
 	assert.NoError(t, err)
 	assert.False(t, matched)
 	compiled, err = env.Compile(script.MatchStep, &api.ScriptConfig{
 		Script: "value == null",
 	})
 	assert.NoError(t, err)
-	matched, err = env.EvaluateMatch(compiled, nil)
+	matched, err = evalMatch(env, compiled, nil)
 	assert.NoError(t, err)
 	assert.True(t, matched)
 }
@@ -116,11 +120,24 @@ func TestArgExScript(t *testing.T) {
 		Script: "input.foo",
 	})
 	assert.NoError(t, err)
-	outputs, err := env.EvaluateScript(compiled, nil, api.Args{
+	outputs, err := evalScript(env, compiled, nil, api.Args{
 		"input": api.Args{"foo": "bar"},
 	})
 	assert.NoError(t, err)
-	assert.Equal(t, api.Args{"value": "bar"}, outputs)
+	assert.Equal(t, api.Args{"result": "bar"}, outputs)
+}
+
+func TestArgExScriptObject(t *testing.T) {
+	env := script.NewArgExEnv()
+	compiled, err := env.Compile(nil, &api.ScriptConfig{
+		Script: "{foo: input.foo, n: 1}",
+	})
+	assert.NoError(t, err)
+	outputs, err := evalScript(env, compiled, nil, api.Args{
+		"input": api.Args{"foo": "bar"},
+	})
+	assert.NoError(t, err)
+	assert.Equal(t, api.Args{"foo": "bar", "n": 1.0}, outputs)
 }
 
 func TestArgExScriptArray(t *testing.T) {
@@ -133,7 +150,7 @@ func TestArgExScriptArray(t *testing.T) {
 		{}, {api.Args{"book": "A"}},
 		{api.Args{"book": "A"}, api.Args{"book": "B"}},
 	} {
-		outputs, err := env.EvaluateScript(compiled, nil, api.Args{
+		outputs, err := evalScript(env, compiled, nil, api.Args{
 			"output": api.Args{"books": books},
 		})
 		assert.NoError(t, err)
@@ -141,7 +158,7 @@ func TestArgExScriptArray(t *testing.T) {
 		for i, book := range books {
 			want[i] = book.(api.Args)["book"]
 		}
-		assert.Equal(t, want, outputs["value"])
+		assert.Equal(t, want, outputs["result"])
 	}
 }
 
@@ -151,14 +168,14 @@ func TestArgExScriptMissing(t *testing.T) {
 		Script: "input?.missing",
 	})
 	assert.NoError(t, err)
-	outputs, err := env.EvaluateScript(compiled, nil, api.Args{
+	outputs, err := evalScript(env, compiled, nil, api.Args{
 		"input": api.Args{"foo": "bar"},
 	})
 	assert.ErrorIs(t, err, script.ErrArgExNoValue)
 	assert.Nil(t, outputs)
 	compiled, err = env.Compile(nil, &api.ScriptConfig{Script: "1/0"})
 	assert.NoError(t, err)
-	_, err = env.EvaluateScript(compiled, nil, nil)
+	_, err = evalScript(env, compiled, nil, nil)
 	assert.ErrorIs(t, err, argex.ErrArithmetic)
 }
 
@@ -168,7 +185,7 @@ func TestArgExScriptNull(t *testing.T) {
 		Script: "input?.missing ?? null",
 	})
 	assert.NoError(t, err)
-	outputs, err := env.EvaluateScript(compiled, nil, api.Args{})
+	outputs, err := evalScript(env, compiled, nil, api.Args{})
 	assert.NoError(t, err)
-	assert.Equal(t, api.Args{"value": nil}, outputs)
+	assert.Equal(t, api.Args{"result": nil}, outputs)
 }

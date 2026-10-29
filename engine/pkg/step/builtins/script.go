@@ -2,7 +2,6 @@ package builtins
 
 import (
 	"errors"
-	"fmt"
 
 	"github.com/kode4food/argyll/engine/internal/engine/script"
 	"github.com/kode4food/argyll/engine/pkg/api"
@@ -10,11 +9,10 @@ import (
 )
 
 var (
-	ErrLangNotValid        = errors.New("invalid language")
 	ErrScriptCompileFailed = errors.New("script compile failed")
 )
 
-// Script returns the standard Lua script handler
+// Script returns the standard script handler
 func Script() *step.Handler {
 	scripts := script.NewRegistry()
 	return &step.Handler{
@@ -22,9 +20,6 @@ func Script() *step.Handler {
 		Validate: func(st *api.Step) error {
 			if st.Script == nil {
 				return api.ErrScriptRequired
-			}
-			if st.Script.Language == api.ScriptLangArgyll {
-				return fmt.Errorf("%w: %s", ErrLangNotValid, st.Script.Language)
 			}
 			_, err := scripts.Compile(st, st.Script)
 			return err
@@ -53,13 +48,13 @@ func Script() *step.Handler {
 			if err != nil {
 				return err
 			}
-			outputs, err := env.EvaluateScript(compiled, st, inputs)
+			res, err := env.Evaluate(compiled, st, inputs)
 			if err != nil {
 				return errors.Join(
 					err, rt.UpdateHealth(api.HealthUnhealthy, err.Error()),
 				)
 			}
-			if err := rt.CompleteWork(token, outputs); err != nil {
+			if err := rt.CompleteWork(token, script.Outputs(res)); err != nil {
 				return err
 			}
 			return rt.UpdateHealth(api.HealthHealthy, "")

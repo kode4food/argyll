@@ -1,7 +1,6 @@
 import React from "react";
 import { SCRIPT_LANGUAGE_ARGYLL, ScriptConfig } from "@/app/api";
 import ScriptConfigEditor from "@/app/components/organisms/StepEditor/ScriptConfigEditor";
-import { predicateLanguageOptions } from "@/app/components/organisms/StepEditor/stepEditorConstants";
 import { useT } from "@/app/i18n";
 import { IconPredicate } from "@/utils/iconRegistry";
 import styles from "./SpaceManager.module.css";
@@ -40,7 +39,6 @@ const SpaceManagerReviewStep: React.FC<SpaceManagerReviewStepProps> = ({
         onChange={onScriptChange}
         language={language}
         onLanguageChange={onLanguageChange}
-        languageOptions={predicateLanguageOptions}
         readOnly={!isScriptMode}
       />
       {!isScriptMode && (

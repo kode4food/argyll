@@ -17,11 +17,8 @@ type ArgExEnv struct {
 const argExCacheSize = 10240
 
 var (
-	ErrArgExCompile    = errors.New("ArgEx compile error")
-	ErrArgExNoValue    = errors.New("ArgEx produced no value")
-	ErrArgExNotBoolean = errors.New(
-		"must return " + argex.TypeSet(argex.TypeBool).String(),
-	)
+	ErrArgExCompile = errors.New("ArgEx compile error")
+	ErrArgExNoValue = errors.New("ArgEx produced no value")
 )
 
 // NewArgExEnv creates an Argyll Expressions evaluation environment
@@ -36,10 +33,10 @@ func NewArgExEnv() *ArgExEnv {
 	}
 }
 
-// EvaluateScript evaluates an expression against named mapping inputs
-func (*ArgExEnv) EvaluateScript(
+// Evaluate evaluates an expression against named inputs
+func (*ArgExEnv) Evaluate(
 	c Compiled, _ *api.Step, inputs api.Args,
-) (api.Args, error) {
+) (any, error) {
 	value, err := c.(argex.Program)(marshalArgExValue(inputs).(map[string]any))
 	if err != nil {
 		return nil, err
@@ -47,29 +44,7 @@ func (*ArgExEnv) EvaluateScript(
 	if argex.IsMissing(value) {
 		return nil, ErrArgExNoValue
 	}
-	return api.Args{"value": value}, nil
-}
-
-// EvaluatePredicate evaluates a Boolean expression against Step inputs
-func (*ArgExEnv) EvaluatePredicate(
-	c Compiled, _ *api.Step, inputs api.Args,
-) (bool, error) {
-	value, err := c.(argex.Program)(marshalArgExValue(inputs).(map[string]any))
-	if err != nil {
-		return false, err
-	}
-	result, ok := value.(bool)
-	if !ok {
-		return false, fmt.Errorf(
-			"%w: predicate must return Boolean", argex.ErrType,
-		)
-	}
-	return result, nil
-}
-
-// EvaluateMatch exposes a single candidate as value to a Boolean expression
-func (e *ArgExEnv) EvaluateMatch(c Compiled, input any) (bool, error) {
-	return e.EvaluatePredicate(c, nil, api.Args{matchValue: input})
+	return value, nil
 }
 
 // CheckPredicate rejects an expression whose result can never be a Boolean
@@ -80,7 +55,7 @@ func (*ArgExEnv) CheckPredicate(cfg *api.ScriptConfig) error {
 	}
 	result := expr.StaticType()
 	if result.Known() && !result.Has(argex.TypeBool) {
-		return fmt.Errorf("%w, not %s", ErrArgExNotBoolean, result)
+		return fmt.Errorf("%w, not %s", ErrNotBoolean, result)
 	}
 	return nil
 }

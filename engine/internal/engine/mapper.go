@@ -59,11 +59,11 @@ func (m *Mapper) MapValue(
 		return nil, false
 	}
 
-	result, err := env.EvaluateScript(compiled, st, api.Args{name: value})
+	result, err := env.Evaluate(compiled, st, api.Args{name: value})
 	if err != nil {
 		return nil, false
 	}
-	return extractScriptResult(result), true
+	return result, true
 }
 
 // MapInput maps a step input value and falls back to original value
@@ -134,19 +134,4 @@ func outputByName(st *api.Step, name api.Name, outputs api.Args) (any, bool) {
 	mapped, _ := st.MappedName(name)
 	value, ok := outputs[mapped]
 	return value, ok
-}
-
-func extractScriptResult(result api.Args) any {
-	if len(result) == 0 {
-		return nil
-	}
-	if val, ok := result["value"]; ok {
-		return val
-	}
-	if len(result) == 1 {
-		for _, value := range result {
-			return value
-		}
-	}
-	return result
 }

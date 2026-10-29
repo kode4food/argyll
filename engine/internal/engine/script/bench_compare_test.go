@@ -151,9 +151,9 @@ func TestBenchCasesAgree(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			luaC := compileFor(t, lua, script.MatchStep, c.lua)
 			jpC := compileFor(t, jp, script.MatchStep, c.argEx)
-			luaRes, err := lua.EvaluateMatch(luaC, matchDoc)
+			luaRes, err := evalMatch(lua, luaC, matchDoc)
 			assert.NoError(t, err)
-			jpRes, err := jp.EvaluateMatch(jpC, matchDoc)
+			jpRes, err := evalMatch(jp, jpC, matchDoc)
 			assert.NoError(t, err)
 			assert.Equal(t, luaRes, jpRes)
 		})
@@ -163,10 +163,10 @@ func TestBenchCasesAgree(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			luaC := compileFor(t, lua, predicateStep, c.lua)
 			jpC := compileFor(t, jp, predicateStep, c.argEx)
-			luaRes, err := lua.EvaluatePredicate(luaC,
+			luaRes, err := evalPredicate(lua, luaC,
 				predicateStep, predicateArgs)
 			assert.NoError(t, err)
-			jpRes, err := jp.EvaluatePredicate(jpC,
+			jpRes, err := evalPredicate(jp, jpC,
 				predicateStep, predicateArgs)
 			assert.NoError(t, err)
 			assert.Equal(t, luaRes, jpRes)
@@ -185,7 +185,7 @@ func BenchmarkMatch(b *testing.B) {
 		b.Run(c.name+"/lua", func(b *testing.B) {
 			b.ReportAllocs()
 			for b.Loop() {
-				if _, err := lua.EvaluateMatch(luaC, matchDoc); err != nil {
+				if _, err := evalMatch(lua, luaC, matchDoc); err != nil {
 					b.Fatal(err)
 				}
 			}
@@ -193,7 +193,7 @@ func BenchmarkMatch(b *testing.B) {
 		b.Run(c.name+"/argex", func(b *testing.B) {
 			b.ReportAllocs()
 			for b.Loop() {
-				if _, err := jp.EvaluateMatch(jpC, matchDoc); err != nil {
+				if _, err := evalMatch(jp, jpC, matchDoc); err != nil {
 					b.Fatal(err)
 				}
 			}
@@ -212,7 +212,7 @@ func BenchmarkPredicate(b *testing.B) {
 		b.Run(c.name+"/lua", func(b *testing.B) {
 			b.ReportAllocs()
 			for b.Loop() {
-				_, err := lua.EvaluatePredicate(luaC, predicateStep,
+				_, err := evalPredicate(lua, luaC, predicateStep,
 					predicateArgs)
 				if err != nil {
 					b.Fatal(err)
@@ -222,7 +222,7 @@ func BenchmarkPredicate(b *testing.B) {
 		b.Run(c.name+"/argex", func(b *testing.B) {
 			b.ReportAllocs()
 			for b.Loop() {
-				_, err := jp.EvaluatePredicate(jpC, predicateStep,
+				_, err := evalPredicate(jp, jpC, predicateStep,
 					predicateArgs)
 				if err != nil {
 					b.Fatal(err)
@@ -245,7 +245,7 @@ func BenchmarkMatchParallel(b *testing.B) {
 		b.ReportAllocs()
 		b.RunParallel(func(pb *testing.PB) {
 			for pb.Next() {
-				if _, err := lua.EvaluateMatch(luaC, matchDoc); err != nil {
+				if _, err := evalMatch(lua, luaC, matchDoc); err != nil {
 					b.Error(err)
 					return
 				}
@@ -256,7 +256,7 @@ func BenchmarkMatchParallel(b *testing.B) {
 		b.ReportAllocs()
 		b.RunParallel(func(pb *testing.PB) {
 			for pb.Next() {
-				if _, err := jp.EvaluateMatch(jpC, matchDoc); err != nil {
+				if _, err := evalMatch(jp, jpC, matchDoc); err != nil {
 					b.Error(err)
 					return
 				}

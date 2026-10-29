@@ -88,6 +88,17 @@ func TestMapperMappingValue(t *testing.T) {
 		})
 	})
 
+	t.Run("returns single-key object as-is", func(t *testing.T) {
+		withMapper(t, func(m *engine.Mapper) {
+			value, ok := m.MapValue(
+				nil, "input", argExCfg("{value: input.foo}"),
+				api.Args{"foo": "bar"},
+			)
+			assert.True(t, ok)
+			assert.Equal(t, map[string]any{"value": "bar"}, value)
+		})
+	})
+
 	t.Run("executes lua mapping", func(t *testing.T) {
 		withMapper(t, func(m *engine.Mapper) {
 			st := mappingStep("amount")

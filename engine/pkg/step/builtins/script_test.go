@@ -21,10 +21,13 @@ func TestScriptValidationArgEx(t *testing.T) {
 		Type: api.StepTypeScript,
 		Script: &api.ScriptConfig{
 			Language: api.ScriptLangArgyll,
-			Script:   "x",
+			Script:   "{result: 42}",
+		},
+		Attributes: api.AttributeSpecs{
+			"result": {Role: api.RoleOutput},
 		},
 	})
-	assert.ErrorIs(t, err, builtins.ErrLangNotValid)
+	assert.NoError(t, err)
 }
 
 func TestScriptValidationLua(t *testing.T) {
@@ -96,6 +99,33 @@ func TestScriptOutput(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, 1, calls.completeCalls)
 	assert.Equal(t, api.Args{"result": 42}, calls.completeOut)
+	assert.Equal(t, api.HealthHealthy, calls.healthStatus)
+}
+
+func TestScriptOutputArgEx(t *testing.T) {
+	reg := newRegistry(&testClient{})
+	handler, err := reg.Lookup(api.StepTypeScript)
+	assert.NoError(t, err)
+
+	rt, calls := newRuntime("flow-1", "step-1", nil)
+	st := &api.Step{
+		ID:   "step-1",
+		Type: api.StepTypeScript,
+		Script: &api.ScriptConfig{
+			Language: api.ScriptLangArgyll,
+			Script:   `{total: x * 2, label: "n"}`,
+		},
+		Attributes: api.AttributeSpecs{
+			"x":     {Role: api.RoleRequired},
+			"total": {Role: api.RoleOutput},
+			"label": {Role: api.RoleOutput},
+		},
+	}
+
+	err = handler.Invoke(rt, st, api.Args{"x": 21.0}, "token-1")
+	assert.NoError(t, err)
+	assert.Equal(t, 1, calls.completeCalls)
+	assert.Equal(t, api.Args{"total": 42.0, "label": "n"}, calls.completeOut)
 	assert.Equal(t, api.HealthHealthy, calls.healthStatus)
 }
 

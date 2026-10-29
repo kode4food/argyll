@@ -26,14 +26,9 @@ type (
 		// Compile compiles a script and returns the compiled form
 		Compile(*api.Step, *api.ScriptConfig) (Compiled, error)
 
-		// EvaluateScript executes a compiled script with the given inputs
-		EvaluateScript(Compiled, *api.Step, api.Args) (api.Args, error)
-
-		// EvaluatePredicate evaluates a compiled predicate with given inputs
-		EvaluatePredicate(Compiled, *api.Step, api.Args) (bool, error)
-
-		// EvaluateMatch evaluates a compiled matcher with a single input
-		EvaluateMatch(c Compiled, input any) (bool, error)
+		// Evaluate executes a compiled script with the given inputs and
+		// returns its JSON-shaped result
+		Evaluate(Compiled, *api.Step, api.Args) (any, error)
 	}
 
 	// Compiled represents a compiled script for any supported language
@@ -67,18 +62,22 @@ const (
 	MatchAttributeRole        = "role"
 	MatchAttributeCompensated = "compensated"
 
-	matchValue = api.Name("value")
+	// MatchValue names the candidate passed to a match script
+	MatchValue = api.Name("value")
+
+	scriptResult = api.Name("result")
 )
 
 var (
-	ErrInvalidCompiledScript = errors.New("invalid compiled script")
+	ErrInvalidScript = errors.New("invalid script")
+	ErrNotBoolean    = errors.New("must return boolean")
 )
 
 // MatchStep returns the minimal synthetic step used as the compilation context
 // for a required match predicate, exposing only the candidate value
 var MatchStep = &api.Step{
 	Attributes: api.AttributeSpecs{
-		matchValue: {Role: api.RoleRequired, Type: api.TypeAny},
+		MatchValue: {Role: api.RoleRequired, Type: api.TypeAny},
 	},
 }
 
@@ -90,6 +89,28 @@ func NewRegistry() *Registry {
 			api.ScriptLangLua:    NewLuaEnv(),
 		},
 	}
+}
+
+// Bool returns a predicate, match, or selector result as a Boolean
+func Bool(value any) (bool, error) {
+	if res, ok := value.(bool); ok {
+		return res, nil
+	}
+	return false, ErrNotBoolean
+}
+
+// Outputs returns an object result as the output arguments of a Script Step,
+// and any other result as the output named result
+func Outputs(value any) api.Args {
+	obj, ok := value.(map[string]any)
+	if !ok {
+		return api.Args{scriptResult: value}
+	}
+	outputs := make(api.Args, len(obj))
+	for key, elem := range obj {
+		outputs[api.Name(key)] = elem
+	}
+	return outputs
 }
 
 func (r *Registry) Register(language string, env Environment) {
@@ -174,7 +195,7 @@ func (c *compiler[T]) Compile(
 			return compiled, err
 		}
 		if compiled == nil {
-			return compiled, ErrInvalidCompiledScript
+			return compiled, ErrInvalidScript
 		}
 		return compiled, nil
 	})

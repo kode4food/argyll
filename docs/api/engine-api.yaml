@@ -25,7 +25,7 @@ info:
       control
     - **Real-Time Updates**: WebSocket streaming for live flow monitoring
     - **Three Step Types**: Service (HTTP, sync or async via webhooks), Script
-      (Lua), and Flow (sub-flow execution)
+      (Argyll Expressions or Lua), and Flow (sub-flow execution)
 
     ## Step Implementation
 
@@ -219,7 +219,7 @@ paths:
         - **Service**: HTTP endpoints. Each action (`invoke`, `compensate`)
           returns results immediately by default, or completes later via webhook
           when its `mode` is `async`
-        - **Script**: Lua scripts executed in-engine
+        - **Script**: Argyll Expressions or Lua scripts executed in-engine
         - **Flow**: Sub-flow execution using child flow goals and attribute
           mappings
       operationId: registerStep
@@ -1472,7 +1472,7 @@ components:
             - `service`: HTTP endpoint. The `invoke` action's `mode` controls
               whether it returns results immediately or completes later via
               webhook
-            - `script`: Lua script executed in-engine
+            - `script`: Argyll Expression or Lua script executed in-engine
             - `flow`: Sub-flow executed by the engine using child flow goals
           example: "service"
         attributes:
@@ -1656,7 +1656,7 @@ components:
           description: |
             Optional predicate evaluated against each candidate value before
             collection. Both Lua and Argyll Expressions receive one candidate
-            as `value`. Argyll Expressions must return a boolean. Collect
+            as `value`, and must return a boolean. Collect
             semantics are then applied over matching candidates: `some`
             requires at least one match, `all` requires every upstream candidate
             to match, and `none` requires no candidate to match. With
@@ -1880,14 +1880,15 @@ components:
         Configuration for script-based steps, predicates, attribute mappings,
         and Space selectors.
 
-        For step execution (`type: script`), `lua` is supported. For predicates
-        and attribute mappings, all registered languages are valid (`lua`,
-        `argyll` in the default engine). Space selectors use the same languages
-        and evaluate stable Step metadata. A selector generated from `qbe` is
-        emitted as `argyll`. Predicates receive named Step inputs. Attribute
-        matches and Space selectors receive the candidate as `value`.
-        Predicates, matches, and selectors in Argyll Expressions must return
-        a boolean.
+        Step execution (`type: script`), predicates, and attribute mappings
+        accept all registered languages (`lua`, `argyll` in the default
+        engine). Space selectors use the same languages and evaluate stable
+        Step metadata. A selector generated from `qbe` is emitted as `argyll`.
+        Predicates receive named Step inputs. Attribute matches and Space
+        selectors receive the candidate as `value`. Predicates, matches, and
+        selectors must return a boolean. A Script Step returns an object whose
+        keys name its outputs, and any other result becomes the output named
+        `result`. A mapping returns its result unchanged.
       required:
         - language
         - script
@@ -1919,7 +1920,7 @@ components:
       properties:
         language:
           type: string
-          enum: ["lua"]
+          enum: ["lua", "argyll"]
           description: Script language for step execution
           example: "lua"
         script:

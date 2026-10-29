@@ -73,12 +73,12 @@ func TestRegisterNonBooleanPredicates(t *testing.T) {
 	}{
 		{
 			kind:    "predicate",
-			message: "invalid step: predicate: must return bool, not number",
+			message: "invalid step: predicate: must return boolean, not number",
 		},
 		{
 			kind: "match",
 			message: `invalid step: attribute "input" match: ` +
-				"must return bool, not number",
+				"must return boolean, not number",
 		},
 	}
 	for _, tt := range tests {
@@ -97,7 +97,7 @@ func TestRegisterNonBooleanPredicates(t *testing.T) {
 					}
 				}
 				err := env.Engine.RegisterStep(st)
-				assert.ErrorIs(t, err, script.ErrArgExNotBoolean)
+				assert.ErrorIs(t, err, script.ErrNotBoolean)
 				assert.EqualError(t, err, tt.message)
 				cat, err := env.Engine.GetCatalogState()
 				assert.NoError(t, err)
@@ -318,7 +318,7 @@ func TestRegisterStepArgExValid(t *testing.T) {
 	})
 }
 
-func TestArgExNotValidForScripts(t *testing.T) {
+func TestArgExValidForScripts(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
 		st := &api.Step{
 			ID:   "argex-script-step",
@@ -335,8 +335,7 @@ func TestArgExNotValidForScripts(t *testing.T) {
 		}
 
 		err := eng.RegisterStep(st)
-		assert.ErrorIs(t, err, api.ErrInvalidStep)
-		assert.ErrorIs(t, err, api.ErrInvalidScriptLanguage)
+		assert.NoError(t, err)
 	})
 }
 

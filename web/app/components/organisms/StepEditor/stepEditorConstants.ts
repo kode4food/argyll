@@ -31,7 +31,7 @@ export const inputCollectTypes: InputCollect[] = [
   "none",
 ];
 
-export const predicateLanguageOptions = [
+export const SCRIPT_LANGUAGE_OPTIONS = [
   { value: SCRIPT_LANGUAGE_ARGYLL, labelKey: "script.language.argyll" },
   { value: SCRIPT_LANGUAGE_LUA, labelKey: "script.language.lua" },
 ];

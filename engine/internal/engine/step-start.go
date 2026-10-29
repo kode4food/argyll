@@ -47,7 +47,13 @@ func (e *Engine) Matcher(cfg *api.ScriptConfig, value any) (bool, error) {
 		return false, errors.Join(ErrScriptEnvFailed, err)
 	}
 
-	matched, err := env.EvaluateMatch(comp, value)
+	res, err := env.Evaluate(
+		comp, script.MatchStep, api.Args{script.MatchValue: value},
+	)
+	if err != nil {
+		return false, errors.Join(ErrMatchEvalFailed, err)
+	}
+	matched, err := script.Bool(res)
 	if err != nil {
 		return false, errors.Join(ErrMatchEvalFailed, err)
 	}
@@ -173,11 +179,15 @@ func (e *Engine) evaluateStepPredicate(
 		return false, errors.Join(ErrScriptEnvFailed, err)
 	}
 
-	shouldExecute, err := env.EvaluatePredicate(comp, st, inputs)
+	res, err := env.Evaluate(comp, st, inputs)
 	if err != nil {
 		return false, errors.Join(ErrPredicateEvalFailed, err)
 	}
 
+	shouldExecute, err := script.Bool(res)
+	if err != nil {
+		return false, errors.Join(ErrPredicateEvalFailed, err)
+	}
 	return shouldExecute, nil
 }
 

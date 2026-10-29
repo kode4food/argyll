@@ -194,6 +194,7 @@ var (
 	)
 
 	validScriptLanguages = util.SetOf(
+		ScriptLangArgyll,
 		ScriptLangLua,
 	)
 

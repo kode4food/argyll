@@ -19,7 +19,6 @@ import StepEditorAttributesSection from "./StepEditorAttributesSection";
 import StepEditorFlowConfiguration from "./StepEditorFlowConfiguration";
 import StepEditorHttpConfiguration from "./StepEditorHttpConfiguration";
 import StepEditorFooter from "./StepEditorFooter";
-import { predicateLanguageOptions } from "./stepEditorConstants";
 import { useScrollFade } from "@/app/hooks/useScrollFade";
 import { stepAttributeCompletions } from "@/utils/scriptCompletions";
 
@@ -254,7 +253,6 @@ const StepEditor: React.FC<StepEditorProps> = ({
                 onChange={setPredicate}
                 language={predicateLanguage}
                 onLanguageChange={setPredicateLanguage}
-                languageOptions={predicateLanguageOptions}
                 containerClassName={formStyles.predicateEditorContainer}
               />
 

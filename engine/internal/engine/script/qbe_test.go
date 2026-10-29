@@ -59,7 +59,7 @@ func TestQBESelectorMatches(t *testing.T) {
 	matches := func(qbe api.SpaceQuery, tags api.Tags) bool {
 		comp, err := env.Compile(script.MatchStep, script.QBESelector(qbe))
 		assert.NoError(t, err)
-		res, err := env.EvaluateMatch(comp, doc(tags))
+		res, err := evalMatch(env, comp, doc(tags))
 		assert.NoError(t, err)
 		return res
 	}
@@ -118,7 +118,7 @@ func TestQBESelectorEscapes(t *testing.T) {
 	env := script.NewArgExEnv()
 	comp, err := env.Compile(script.MatchStep, cfg)
 	assert.NoError(t, err)
-	matched, err := env.EvaluateMatch(comp, map[string]any{
+	matched, err := evalMatch(env, comp, map[string]any{
 		script.MatchTags: []any{tag},
 	})
 	assert.NoError(t, err)
@@ -132,7 +132,7 @@ func TestQBESelectorEscapesMarkup(t *testing.T) {
 	env := script.NewArgExEnv()
 	comp, err := env.Compile(script.MatchStep, cfg)
 	assert.NoError(t, err)
-	matched, err := env.EvaluateMatch(comp, map[string]any{
+	matched, err := evalMatch(env, comp, map[string]any{
 		script.MatchTags: []any{tag},
 	})
 	assert.NoError(t, err)
@@ -150,7 +150,7 @@ func TestQBESelectorEscapesControlChars(t *testing.T) {
 	env := script.NewArgExEnv()
 	comp, err := env.Compile(script.MatchStep, cfg)
 	assert.NoError(t, err)
-	matched, err := env.EvaluateMatch(comp, map[string]any{
+	matched, err := evalMatch(env, comp, map[string]any{
 		script.MatchTags: []any{tag},
 	})
 	assert.NoError(t, err)

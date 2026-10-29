@@ -1,16 +1,11 @@
 import React from "react";
 import SegmentedControl from "@/app/components/atoms/SegmentedControl";
-import { SCRIPT_LANGUAGE_LUA } from "@/app/api";
 import ScriptLanguageLogo from "@/app/components/atoms/ScriptLanguageLogo";
 import ScriptEditor from "@/app/components/molecules/ScriptEditor";
 import { type LucideIcon } from "@/utils/iconRegistry";
 import formStyles from "../StepEditorForm.module.css";
+import { SCRIPT_LANGUAGE_OPTIONS } from "@/app/components/organisms/StepEditor/stepEditorConstants";
 import { useT } from "@/app/i18n";
-
-interface ScriptLanguageOption {
-  value: string;
-  labelKey: string;
-}
 
 interface ScriptConfigEditorProps {
   Icon: LucideIcon;
@@ -20,14 +15,9 @@ interface ScriptConfigEditorProps {
   completions?: readonly string[];
   language: string;
   onLanguageChange: (language: string) => void;
-  languageOptions?: ScriptLanguageOption[];
   readOnly?: boolean;
   containerClassName?: string;
 }
-
-const defaultLanguageOptions: ScriptLanguageOption[] = [
-  { value: SCRIPT_LANGUAGE_LUA, labelKey: "script.language.lua" },
-];
 
 /**
  * Unified editor for script configurations (both step scripts and predicates).
@@ -41,7 +31,6 @@ const ScriptConfigEditor: React.FC<ScriptConfigEditorProps> = ({
   completions,
   language,
   onLanguageChange,
-  languageOptions = defaultLanguageOptions,
   readOnly = false,
   containerClassName = formStyles.scriptEditorContainer,
 }) => {
@@ -58,7 +47,7 @@ const ScriptConfigEditor: React.FC<ScriptConfigEditorProps> = ({
         </label>
         {!readOnly && (
           <SegmentedControl
-            options={languageOptions.map((opt) => ({
+            options={SCRIPT_LANGUAGE_OPTIONS.map((opt) => ({
               value: opt.value,
               label: (
                 <ScriptLanguageLogo

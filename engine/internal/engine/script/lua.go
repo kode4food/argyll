@@ -85,48 +85,15 @@ func NewLuaEnv() *LuaEnv {
 	return luaEnv
 }
 
-// EvaluateScript runs a compiled Lua script with the provided inputs and
-// returns the output arguments
-func (e *LuaEnv) EvaluateScript(
+// Evaluate runs a compiled Lua script with the provided inputs and returns its
+// result
+func (e *LuaEnv) Evaluate(
 	c Compiled, _ *api.Step, inputs api.Args,
-) (api.Args, error) {
-	var result api.Args
+) (any, error) {
+	var result any
 	err := e.withCompiledResult(c, inputs,
 		func(L *lua.State) {
-			if L.IsTable(-1) {
-				result = luaTableToMap(L, -1)
-			} else {
-				value := luaToGo(L, -1)
-				result = api.Args{"result": value}
-			}
-			L.Pop(1)
-		},
-	)
-	return result, err
-}
-
-// EvaluatePredicate executes a compiled Lua predicate with the provided inputs
-// and returns the boolean result
-func (e *LuaEnv) EvaluatePredicate(
-	c Compiled, _ *api.Step, inputs api.Args,
-) (bool, error) {
-	result := false
-	err := e.withCompiledResult(c, inputs,
-		func(L *lua.State) {
-			result = L.ToBoolean(-1)
-			L.Pop(1)
-		},
-	)
-	return result, err
-}
-
-// EvaluateMatch executes a compiled Lua matcher with a single input and returns
-// the boolean result
-func (e *LuaEnv) EvaluateMatch(c Compiled, input any) (bool, error) {
-	result := false
-	err := e.withCompiledResult(c, api.Args{matchValue: input},
-		func(L *lua.State) {
-			result = L.ToBoolean(-1)
+			result = luaToGo(L, -1)
 			L.Pop(1)
 		},
 	)
@@ -405,22 +372,6 @@ func luaToGo(L *lua.State, index int) any {
 	default:
 		return nil
 	}
-}
-
-func luaTableToMap(L *lua.State, index int) api.Args {
-	result := api.Args{}
-	absIndex := luaAbsIndex(L, index)
-
-	L.PushNil()
-	for L.Next(absIndex) {
-		if L.IsString(-2) {
-			key, _ := L.ToString(-2)
-			result[api.Name(key)] = luaToGo(L, -1)
-		}
-		L.Pop(1)
-	}
-
-	return result
 }
 
 func luaTableToAny(L *lua.State, index int) any {

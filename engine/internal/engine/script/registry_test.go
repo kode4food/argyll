@@ -23,19 +23,9 @@ func (r registryTestEnv) Compile(
 	return "compiled", nil
 }
 
-func (r registryTestEnv) EvaluateScript(
+func (r registryTestEnv) Evaluate(
 	script.Compiled, *api.Step, api.Args,
-) (api.Args, error) {
-	return api.Args{}, nil
-}
-
-func (r registryTestEnv) EvaluatePredicate(
-	script.Compiled, *api.Step, api.Args,
-) (bool, error) {
-	return true, nil
-}
-
-func (r registryTestEnv) EvaluateMatch(script.Compiled, any) (bool, error) {
+) (any, error) {
 	return true, nil
 }
 
@@ -65,7 +55,7 @@ func TestRegistryCompilation(t *testing.T) {
 		assert.NotNil(t, comp)
 
 		inputs := api.Args{"x": float64(21)}
-		outputs, err := env.EvaluateScript(comp, st, inputs)
+		outputs, err := evalScript(env, comp, st, inputs)
 		assert.NoError(t, err)
 		assert.Equal(t, 42, outputs["result"])
 	})
@@ -97,7 +87,7 @@ func TestLuaCompilation(t *testing.T) {
 		assert.NotNil(t, comp)
 
 		inputs := api.Args{"x": float64(21)}
-		outputs, err := env.EvaluateScript(comp, st, inputs)
+		outputs, err := evalScript(env, comp, st, inputs)
 		assert.NoError(t, err)
 		assert.Equal(t, 42, outputs["result"])
 	})
@@ -130,7 +120,7 @@ func TestRegistryPredicateTrue(t *testing.T) {
 		assert.NoError(t, err)
 
 		inputs := api.Args{"x": float64(15)}
-		result, err := env.EvaluatePredicate(comp, st, inputs)
+		result, err := evalPredicate(env, comp, st, inputs)
 		assert.NoError(t, err)
 		assert.True(t, result)
 	})
@@ -163,7 +153,7 @@ func TestRegistryPredicateFalse(t *testing.T) {
 		assert.NoError(t, err)
 
 		inputs := api.Args{"x": float64(5)}
-		result, err := env.EvaluatePredicate(comp, st, inputs)
+		result, err := evalPredicate(env, comp, st, inputs)
 		assert.NoError(t, err)
 		assert.False(t, result)
 	})
@@ -196,7 +186,7 @@ func TestLuaPredicateTrue(t *testing.T) {
 		assert.NoError(t, err)
 
 		inputs := api.Args{"x": float64(15)}
-		result, err := env.EvaluatePredicate(comp, st, inputs)
+		result, err := evalPredicate(env, comp, st, inputs)
 		assert.NoError(t, err)
 		assert.True(t, result)
 	})
@@ -229,7 +219,7 @@ func TestLuaPredicateFalse(t *testing.T) {
 		assert.NoError(t, err)
 
 		inputs := api.Args{"x": float64(5)}
-		result, err := env.EvaluatePredicate(comp, st, inputs)
+		result, err := evalPredicate(env, comp, st, inputs)
 		assert.NoError(t, err)
 		assert.False(t, result)
 	})
@@ -253,7 +243,7 @@ func TestArgExPredicateMatches(t *testing.T) {
 		comp, err := env.Compile(st, st.Predicate)
 		assert.NoError(t, err)
 
-		passed, err := env.EvaluatePredicate(comp, st, api.Args{
+		passed, err := evalPredicate(env, comp, st, api.Args{
 			"flag": nil,
 		})
 		assert.NoError(t, err)
@@ -275,7 +265,7 @@ func TestArgExPredicateNoMatch(t *testing.T) {
 		comp, err := env.Compile(st, st.Predicate)
 		assert.NoError(t, err)
 
-		passed, err := env.EvaluatePredicate(comp, st, api.Args{})
+		passed, err := evalPredicate(env, comp, st, api.Args{})
 		assert.NoError(t, err)
 		assert.False(t, passed)
 	})
@@ -312,11 +302,11 @@ func TestArgExEvaluateScript(t *testing.T) {
 		comp, err := env.Compile(st, st.Predicate)
 		assert.NoError(t, err)
 
-		outputs, err := env.EvaluateScript(comp, nil, api.Args{
+		outputs, err := evalScript(env, comp, nil, api.Args{
 			"input": map[string]any{"foo": "bar"},
 		})
 		assert.NoError(t, err)
-		assert.Equal(t, "bar", outputs["value"])
+		assert.Equal(t, "bar", outputs["result"])
 	})
 }
 
@@ -409,7 +399,7 @@ func TestRegistryComplexScript(t *testing.T) {
 			"name": "World",
 		}
 
-		outputs, err := env.EvaluateScript(comp, st, inputs)
+		outputs, err := evalScript(env, comp, st, inputs)
 		assert.NoError(t, err)
 		assert.Equal(t, 15, outputs["sum"])
 		assert.Equal(t, 50, outputs["product"])
@@ -457,7 +447,7 @@ func TestLuaComplexScript(t *testing.T) {
 			"name": "World",
 		}
 
-		outputs, err := env.EvaluateScript(comp, st, inputs)
+		outputs, err := evalScript(env, comp, st, inputs)
 		assert.NoError(t, err)
 		assert.Equal(t, 15, outputs["sum"])
 		assert.Equal(t, 50, outputs["product"])
@@ -506,4 +496,32 @@ func TestScriptRegistryRegister(t *testing.T) {
 	got, err := registry.Get("test")
 	assert.NoError(t, err)
 	assert.Equal(t, env, got)
+}
+
+func evalScript(
+	env script.Environment, c script.Compiled, st *api.Step, args api.Args,
+) (api.Args, error) {
+	res, err := env.Evaluate(c, st, args)
+	if err != nil {
+		return nil, err
+	}
+	return script.Outputs(res), nil
+}
+
+func evalPredicate(
+	env script.Environment, c script.Compiled, st *api.Step, args api.Args,
+) (bool, error) {
+	res, err := env.Evaluate(c, st, args)
+	if err != nil {
+		return false, err
+	}
+	return script.Bool(res)
+}
+
+func evalMatch(
+	env script.Environment, c script.Compiled, value any,
+) (bool, error) {
+	return evalPredicate(
+		env, c, script.MatchStep, api.Args{script.MatchValue: value},
+	)
 }

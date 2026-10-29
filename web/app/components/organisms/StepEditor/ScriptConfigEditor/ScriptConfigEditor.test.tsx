@@ -43,53 +43,21 @@ describe("ScriptConfigEditor", () => {
     expect(screen.getByText("Test Script")).toBeInTheDocument();
   });
 
-  test("renders a single language option", () => {
+  test("renders Argyll and Lua language options by default", () => {
     render(<ScriptConfigEditor {...defaultProps} />);
+    expect(screen.getByText(t("script.language.argyll"))).toBeInTheDocument();
     expect(screen.getByText(t("script.language.lua"))).toBeInTheDocument();
   });
 
   test("does not render language buttons when readOnly", () => {
-    render(
-      <ScriptConfigEditor
-        {...defaultProps}
-        readOnly
-        languageOptions={[
-          { value: SCRIPT_LANGUAGE_LUA, labelKey: "script.language.lua" },
-          { value: SCRIPT_LANGUAGE_ARGYLL, labelKey: "script.language.argyll" },
-        ]}
-      />
-    );
+    render(<ScriptConfigEditor {...defaultProps} readOnly />);
     expect(
       screen.queryByText(t("script.language.lua"))
     ).not.toBeInTheDocument();
   });
 
-  test("renders custom language options when provided", () => {
-    render(
-      <ScriptConfigEditor
-        {...defaultProps}
-        languageOptions={[
-          { value: SCRIPT_LANGUAGE_LUA, labelKey: "script.language.lua" },
-          { value: SCRIPT_LANGUAGE_ARGYLL, labelKey: "script.language.argyll" },
-        ]}
-      />
-    );
-
-    expect(screen.getByText(t("script.language.argyll"))).toBeInTheDocument();
-    expect(screen.getByText(t("script.language.lua"))).toBeInTheDocument();
-  });
-
-  test("calls onLanguageChange with custom language when clicked", () => {
-    render(
-      <ScriptConfigEditor
-        {...defaultProps}
-        language={SCRIPT_LANGUAGE_LUA}
-        languageOptions={[
-          { value: SCRIPT_LANGUAGE_LUA, labelKey: "script.language.lua" },
-          { value: SCRIPT_LANGUAGE_ARGYLL, labelKey: "script.language.argyll" },
-        ]}
-      />
-    );
+  test("calls onLanguageChange when clicked", () => {
+    render(<ScriptConfigEditor {...defaultProps} />);
 
     const button = screen.getByText(t("script.language.argyll"));
     fireEvent.click(button);
@@ -99,16 +67,7 @@ describe("ScriptConfigEditor", () => {
   });
 
   test("marks Lua button as active when language is Lua", () => {
-    render(
-      <ScriptConfigEditor
-        {...defaultProps}
-        language={SCRIPT_LANGUAGE_LUA}
-        languageOptions={[
-          { value: SCRIPT_LANGUAGE_LUA, labelKey: "script.language.lua" },
-          { value: SCRIPT_LANGUAGE_ARGYLL, labelKey: "script.language.argyll" },
-        ]}
-      />
-    );
+    render(<ScriptConfigEditor {...defaultProps} />);
     const luaButton = screen.getByRole("button", {
       name: t("script.language.lua"),
     });

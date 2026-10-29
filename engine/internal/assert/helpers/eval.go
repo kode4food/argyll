@@ -18,6 +18,12 @@ func Matcher() api.Matcher {
 		if err != nil {
 			return false, err
 		}
-		return env.EvaluateMatch(comp, value)
+		res, err := env.Evaluate(
+			comp, script.MatchStep, api.Args{script.MatchValue: value},
+		)
+		if err != nil {
+			return false, err
+		}
+		return script.Bool(res)
 	}
 }

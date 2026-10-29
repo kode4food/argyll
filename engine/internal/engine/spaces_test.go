@@ -265,9 +265,9 @@ func TestSpacesRejectInvalid(t *testing.T) {
 			},
 		})
 		assert.ErrorIs(t, err, api.ErrInvalidSpace)
-		assert.ErrorIs(t, err, script.ErrArgExNotBoolean)
-		assert.EqualError(t, err, "invalid space: selector: "+
-			"must return bool, not number|string")
+		assert.ErrorIs(t, err, script.ErrNotBoolean)
+		assert.EqualError(t, err,
+			"invalid space: selector: must return boolean, not number|string")
 
 		err = eng.UnregisterSpace("missing")
 		assert.ErrorIs(t, err, api.ErrSpaceNotFound)
