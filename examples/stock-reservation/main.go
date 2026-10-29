@@ -57,8 +57,8 @@ func newInventory() *inventory {
 
 //argyll:wrap stock-reservation;name:Stock Reservation
 //argyll:compensate releaseStock
-//argyll:labels description: reserve inventory for an order
-//argyll:labels domain: inventory; capability: reserve; example: true
+//argyll:description reserve inventory for an order
+//argyll:tags domain:inventory; capability:reserve; example
 func reserveStock(order Order) (reservation StockReservation, err error) {
 	orderID := order.ID
 	productID := order.ProductID

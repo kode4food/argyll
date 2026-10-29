@@ -43,8 +43,8 @@ type (
 //go:generate go tool argyll-gen -server .
 
 //argyll:step
-//argyll:labels description: send order confirmation notifications
-//argyll:labels domain: notifications; capability: send; example: true
+//argyll:description send order confirmation notifications
+//argyll:tags domain:notifications; capability:send; example
 func NotificationSender(args NotificationArgs) error {
 	payment := args.PaymentResult
 	user := args.UserInfo

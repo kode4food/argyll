@@ -40,7 +40,7 @@ export const useFlowCreation = () => {
 
   const [newID, setNewID] = useState("");
   const [initialState, setInitialState] = useState("{}");
-  const [compensate, setCompensate] = useState(false);
+  const [compensate, setCompensate] = useState(true);
   const [creating, setCreating] = useState(false);
   const [idManuallyEdited, setIDManuallyEdited] = useState(false);
   const initializedGoalsRef = useRef(false);

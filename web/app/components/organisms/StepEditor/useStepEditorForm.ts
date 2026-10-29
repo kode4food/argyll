@@ -81,7 +81,7 @@ export function useStepEditorForm({
     toGoalSets(seed?.flow?.goals)
   );
   const [flowCompensate, setFlowCompensate] = useState(
-    seed?.flow?.compensate || false
+    seed?.flow?.compensate ?? isCreateMode
   );
   const [flowSpaceId, setFlowSpaceId] = useState(seed?.flow?.space_id || "");
   const [handling, setHandling] = useState<Handling>(
