@@ -160,7 +160,6 @@ describe("useStepEditorForm", () => {
         type: "flow",
         flow: {
           goals: { steps: ["goal-1", "goal-2"], else: { steps: ["goal-3"] } },
-          compensate: true,
         },
         attributes: expect.objectContaining({
           input: expect.objectContaining({

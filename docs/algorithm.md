@@ -11,7 +11,6 @@ Flow:
     plan, init attributes, executions, metadata, tags
     status = ACTIVE | COMPLETED | FAILED
     createdAt, completedAt, deactivatedAt, error
-    compensate
 
 Step execution:
     status = PENDING | ACTIVE | COMPLETED | FAILED | SKIPPED
@@ -228,8 +227,7 @@ An init key is a declaration of intent. Its presence states that the listed valu
 START_FLOW(request):
     validate request
     plan := CREATE_PLAN(request)
-    START_PLAN(request.id, plan, request.init, request.tags,
-               request.compensate)
+    START_PLAN(request.id, plan, request.init, request.tags)
 
 START_PLAN(id, plan, options):
     TRANSACT:
@@ -238,7 +236,7 @@ START_PLAN(id, plan, options):
         IF flow already exists:
             IF original start matches id, goal sets, and init: RETURN
             RETURN flow-already-exists error
-        EMIT flow_started(plan, init, metadata, tags, compensate)
+        EMIT flow_started(plan, init, metadata, tags)
         ADVANCE_FLOW()
 ```
 
@@ -881,7 +879,6 @@ START_CHILD_FLOW(step, token, workInputs):
     childID := deterministic ID from parent flow ID, step ID, and work token
     childInit := each work input wrapped as one init value
     childMetadata := inherited metadata plus parent flow/step/token
-    childCompensate := step's configured child-flow compensation option
     join child aggregate in current transaction
     START_PLAN(childID, precomputed child plan, child options)
 
@@ -958,12 +955,10 @@ Source: [work-compensate.go](../engine/internal/engine/work-compensate.go).
 
 ```text
 FLOW_ROLLS_BACK(step):
-    IF flow compensation disabled: RETURN FALSE
     IF flow FAILED: RETURN TRUE
     RETURN step is outside GOAL_SCOPE(KEPT_GOALS())
 
 COMPENSATE_FLOW():
-    IF compensation disabled: RETURN
     IF any compensation item is COMP_PENDING or COMPENSATING: RETURN
     running := ACTIVE steps with FLOW_ROLLS_BACK(step)
     pending := non-ACTIVE steps with SUCCEEDED work, a compensator,
@@ -1017,7 +1012,7 @@ ON_COMPENSATION_RETRY(step, token):
     AFTER_COMMIT invoke compensator using reconstructed compensation arguments
 ```
 
-Step failure also compensates that step's already-succeeded work when a compensator exists, independently of whole-flow rollback. Flow rollback proceeds from downstream consumers toward upstream providers, one settled wave at a time. Rollback starts before the flow is terminal: once a goal set fails, steps that no remaining fallback set can reach unwind while the fallback runs. Goal sets fail only forward, so that set of steps only grows, and every consumer of such a step belongs to it too. A step still running in that set holds back its own wave and its providers' waves until it settles. Ordinary work and compensation use the item's recorded retry counter and the same retry configuration.
+Compensation is automatic wherever a step declares a compensator, including in child flows. Step failure compensates that step's already-succeeded work, independently of whole-flow rollback. Flow rollback proceeds from downstream consumers toward upstream providers, one settled wave at a time. Rollback starts before the flow is terminal: once a goal set fails, steps that no remaining fallback set can reach unwind while the fallback runs. Goal sets fail only forward, so that set of steps only grows, and every consumer of such a step belongs to it too. A step still running in that set holds back its own wave and its providers' waves until it settles. Ordinary work and compensation use the item's recorded retry counter and the same retry configuration.
 
 ## Startup, replay, and recovery
 

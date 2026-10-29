@@ -58,8 +58,6 @@ describe("FlowCreateForm", () => {
     handleStepChange: jest.fn(),
     initialState: "{}",
     setInitialState: jest.fn(),
-    compensate: false,
-    setCompensate: jest.fn(),
     creating: false,
     handleCreateFlow: jest.fn(),
     steps: [mockStep],

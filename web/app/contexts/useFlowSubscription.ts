@@ -10,7 +10,6 @@ type SocketClient = ReturnType<typeof useWebSocketClient>;
 type FlowStatePayload = {
   id: string;
   status: FlowContext["status"];
-  compensate?: boolean;
   attributes?: Record<string, unknown>;
   plan?: ExecutionPlan;
   executions?: Record<string, unknown>;

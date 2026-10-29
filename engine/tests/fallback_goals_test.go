@@ -121,59 +121,52 @@ func TestFallbackGoals(t *testing.T) {
 	})
 
 	t.Run("rolls back only abandoned work", func(t *testing.T) {
-		for _, compensate := range []bool{true, false} {
-			helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-				assert.NoError(t, env.Engine.Start())
-				registerSteps(t, env,
-					compensatingStep("shared", nil, "s"),
-					compensatingStep("stock", []api.Name{"s"}, "reservation"),
-					goalStep("notify", []api.Name{"reservation"}, "sent"),
-					goalStep("degrade", []api.Name{"s"}, "degraded"),
-				)
-				env.MockClient.SetResponse("shared", api.Args{"s": "x"})
-				env.MockClient.SetResponse("stock",
-					api.Args{"reservation": "r"},
-				)
-				env.MockClient.SetError("notify", errors.New("boom"))
-				env.MockClient.SetResponse("degrade", api.Args{"degraded": "y"})
+		helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+			assert.NoError(t, env.Engine.Start())
+			registerSteps(t, env,
+				compensatingStep("shared", nil, "s"),
+				compensatingStep("stock", []api.Name{"s"}, "reservation"),
+				goalStep("notify", []api.Name{"reservation"}, "sent"),
+				goalStep("degrade", []api.Name{"s"}, "degraded"),
+			)
+			env.MockClient.SetResponse("shared", api.Args{"s": "x"})
+			env.MockClient.SetResponse("stock",
+				api.Args{"reservation": "r"},
+			)
+			env.MockClient.SetError("notify", errors.New("boom"))
+			env.MockClient.SetResponse("degrade", api.Args{"degraded": "y"})
 
-				var mu sync.Mutex
-				var undone []api.StepID
-				record := func(s *api.Step, _ api.Args, _ api.Metadata) error {
-					mu.Lock()
-					defer mu.Unlock()
-					undone = append(undone, s.ID)
-					return nil
-				}
-				env.MockClient.SetCompensate("shared", record)
-				env.MockClient.SetCompensate("stock", record)
-
-				fid := api.FlowID("fallback-rollback")
-				req := api.CreateFlowRequest{
-					ID:         fid,
-					Compensate: compensate,
-					Goals: api.Goals{
-						Steps: []api.StepID{"notify"},
-						Else:  &api.Goals{Steps: []api.StepID{"degrade"}},
-					},
-				}
-				env.WaitFor(wait.FlowDeactivated(fid), func() {
-					assert.NoError(t, env.Engine.StartFlow(req))
-				})
-
-				fl, err := env.Engine.GetFlowState(fid)
-				assert.NoError(t, err)
-				assert.Equal(t, api.FlowCompleted, fl.Status)
-
+			var mu sync.Mutex
+			var undone []api.StepID
+			record := func(s *api.Step, _ api.Args, _ api.Metadata) error {
 				mu.Lock()
 				defer mu.Unlock()
-				if compensate {
-					assert.Equal(t, []api.StepID{"stock"}, undone)
-				} else {
-					assert.Empty(t, undone)
-				}
+				undone = append(undone, s.ID)
+				return nil
+			}
+			env.MockClient.SetCompensate("shared", record)
+			env.MockClient.SetCompensate("stock", record)
+
+			fid := api.FlowID("fallback-rollback")
+			req := api.CreateFlowRequest{
+				ID: fid,
+				Goals: api.Goals{
+					Steps: []api.StepID{"notify"},
+					Else:  &api.Goals{Steps: []api.StepID{"degrade"}},
+				},
+			}
+			env.WaitFor(wait.FlowDeactivated(fid), func() {
+				assert.NoError(t, env.Engine.StartFlow(req))
 			})
-		}
+
+			fl, err := env.Engine.GetFlowState(fid)
+			assert.NoError(t, err)
+			assert.Equal(t, api.FlowCompleted, fl.Status)
+
+			mu.Lock()
+			defer mu.Unlock()
+			assert.Equal(t, []api.StepID{"stock"}, undone)
+		})
 	})
 
 	t.Run("required inputs cover every set", func(t *testing.T) {

@@ -11,7 +11,6 @@ import {
 export interface FlowStateUpdate {
   id: string;
   status: FlowContext["status"];
-  compensate?: boolean;
   attributes?: Record<string, any>;
   plan?: ExecutionPlan;
   executions?: Record<string, any>;
@@ -167,7 +166,6 @@ export function buildFlowContext(state: FlowStateUpdate): FlowContext {
   return {
     id: state.id,
     status: state.status,
-    compensate: state.compensate,
     state: attrs,
     error_state: errorState,
     plan,

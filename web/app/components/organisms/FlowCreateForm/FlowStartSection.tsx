@@ -1,28 +1,23 @@
 import React from "react";
-import { IconCompensate, IconRetry, IconStartFlow } from "@/utils/iconRegistry";
+import { IconRetry, IconStartFlow } from "@/utils/iconRegistry";
 import Spinner from "@/app/components/atoms/Spinner";
-import IconCheckbox from "@/app/components/molecules/IconCheckbox";
 import SegmentedGroup from "@/app/components/molecules/SegmentedGroup";
 import { useT } from "@/app/i18n";
 import styles from "./FlowStartSection.module.css";
 
 interface FlowStartSectionProps {
-  compensate: boolean;
   creating: boolean;
   disabled: boolean;
   flowId: string;
-  onCompensateChange: (value: boolean) => void;
   onCreateFlow: () => void | Promise<void>;
   onFlowIdChange: (value: string) => void;
   onGenerateId: () => void;
 }
 
 const FlowStartSection: React.FC<FlowStartSectionProps> = ({
-  compensate,
   creating,
   disabled,
   flowId,
-  onCompensateChange,
   onCreateFlow,
   onFlowIdChange,
   onGenerateId,
@@ -38,13 +33,6 @@ const FlowStartSection: React.FC<FlowStartSectionProps> = ({
           </span>
           {t("flowCreate.startFlowLabel")}
         </label>
-        <IconCheckbox
-          checked={compensate}
-          Icon={IconCompensate}
-          label={t("flowCreate.compensateLabel")}
-          onChange={onCompensateChange}
-          title={t("flowCreate.compensateTitle")}
-        />
       </div>
       <div className={styles.footerRow}>
         <SegmentedGroup className={styles.idGroup}>

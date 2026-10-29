@@ -83,7 +83,7 @@ func seedCompensatingWebhook(
 	}
 	events := []helpers.FlowEvent{
 		{Type: api.EventTypeFlowStarted, Data: api.FlowStartedEvent{
-			FlowID: id, Plan: pl, Init: api.InitArgs{}, Compensate: true,
+			FlowID: id, Plan: pl, Init: api.InitArgs{},
 		}},
 		{Type: api.EventTypeStepStarted, Data: api.StepStartedEvent{
 			FlowID: id, StepID: st.ID, Inputs: api.Args{},

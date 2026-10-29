@@ -40,7 +40,6 @@ export const useFlowCreation = () => {
 
   const [newID, setNewID] = useState("");
   const [initialState, setInitialState] = useState("{}");
-  const [compensate, setCompensate] = useState(true);
   const [creating, setCreating] = useState(false);
   const [idManuallyEdited, setIDManuallyEdited] = useState(false);
   const initializedGoalsRef = useRef(false);
@@ -49,7 +48,6 @@ export const useFlowCreation = () => {
     setNewID("");
     setGoalSteps([]);
     setInitialState("{}");
-    setCompensate(false);
     setIDManuallyEdited(false);
     clearPreviewPlan();
     initializedGoalsRef.current = false;
@@ -134,7 +132,6 @@ export const useFlowCreation = () => {
         id: flowId,
         goalSteps: planGoals,
         initialState: parsedState,
-        compensate,
         spaceId: spaceId ?? undefined,
       });
       await loadFlows();
@@ -158,7 +155,6 @@ export const useFlowCreation = () => {
     removeFlow,
     initialState,
     steps,
-    compensate,
     spaceId,
     resetForm,
     t,
@@ -171,8 +167,6 @@ export const useFlowCreation = () => {
     handleStepChange,
     initialState,
     setInitialState,
-    compensate,
-    setCompensate,
     creating,
     handleCreateFlow,
     steps,

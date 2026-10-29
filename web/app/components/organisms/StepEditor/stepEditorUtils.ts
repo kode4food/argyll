@@ -53,7 +53,6 @@ export function buildStepPayload({
   compensateMode,
   httpTimeout,
   flowGoals,
-  flowCompensate,
   flowSpaceId,
   handling,
 }: {
@@ -77,7 +76,6 @@ export function buildStepPayload({
   compensateMode: ActionMode;
   httpTimeout: number;
   flowGoals: GoalSets;
-  flowCompensate: boolean;
   flowSpaceId: string;
   handling: Handling;
 }): Step {
@@ -100,7 +98,6 @@ export function buildStepPayload({
   if (stepType === "flow") {
     stepData.flow = {
       goals: fromGoalSets(nonEmptyGoalSets(flowGoals)),
-      compensate: flowCompensate,
       space_id: flowSpaceId || undefined,
     };
     stepData.http = undefined;

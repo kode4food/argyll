@@ -4,11 +4,9 @@ import FlowStartSection from "./FlowStartSection";
 
 describe("FlowStartSection", () => {
   const baseProps = {
-    compensate: false,
     creating: false,
     disabled: false,
     flowId: "flow-1",
-    onCompensateChange: jest.fn(),
     onCreateFlow: jest.fn(),
     onFlowIdChange: jest.fn(),
     onGenerateId: jest.fn(),
@@ -46,18 +44,15 @@ describe("FlowStartSection", () => {
     expect(baseProps.onCreateFlow).toHaveBeenCalled();
   });
 
-  test("toggles compensate", () => {
+  test("does not offer a compensation opt-out", () => {
     render(<FlowStartSection {...baseProps} />);
 
-    fireEvent.click(screen.getByRole("checkbox"));
-
-    expect(baseProps.onCompensateChange).toHaveBeenCalledWith(true);
+    expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
   });
 
   test("disables the whole section when disabled", () => {
     render(<FlowStartSection {...baseProps} disabled={true} />);
 
-    expect(screen.getByRole("checkbox")).toBeDisabled();
     expect(
       screen.getByPlaceholderText(t("flowCreate.flowIdPlaceholder"))
     ).toBeDisabled();
@@ -75,7 +70,6 @@ describe("FlowStartSection", () => {
     expect(
       screen.getByPlaceholderText(t("flowCreate.flowIdPlaceholder"))
     ).toBeEnabled();
-    expect(screen.getByRole("checkbox")).toBeEnabled();
     expect(
       screen.getByRole("button", { name: t("common.start") })
     ).toBeDisabled();

@@ -222,9 +222,8 @@ func TestLocalCompensation(t *testing.T) {
 				},
 			}))
 			assert.NoError(t, eng.StartFlow(api.CreateFlowRequest{
-				ID:         "rollback",
-				Goals:      api.Goals{Steps: []api.StepID{"fail"}},
-				Compensate: true,
+				ID:    "rollback",
+				Goals: api.Goals{Steps: []api.StepID{"fail"}},
 			}))
 			var call compensateCall
 			select {

@@ -3,12 +3,10 @@ import { ExecutionPlan, GoalSets, Step } from "@/app/api";
 import { useT } from "@/app/i18n";
 import {
   IconClose,
-  IconCompensate,
   IconFlowGoals,
   IconGoalFallback,
   IconSpace,
 } from "@/utils/iconRegistry";
-import IconCheckbox from "@/app/components/molecules/IconCheckbox";
 import StepTypeLabel from "@/app/components/atoms/StepTypeLabel";
 import SelectField from "@/app/components/molecules/SelectField";
 import ComboInput from "@/app/components/molecules/ComboInput";
@@ -94,12 +92,10 @@ const GoalSetLine: React.FC<GoalSetLineProps> = ({
 
 interface StepEditorFlowConfigurationProps {
   clearPreviewPlan: () => void;
-  flowCompensate: boolean;
   flowGoals: GoalSets;
   flowInitialState: string;
   flowSpaceId: string;
   previewPlan: ExecutionPlan | null;
-  setFlowCompensate: (value: boolean) => void;
   setFlowGoals: (value: GoalSets) => void;
   setFlowInitialState: (value: string) => void;
   setFlowSpaceId: (value: string) => void;
@@ -116,12 +112,10 @@ const StepEditorFlowConfiguration: React.FC<
   StepEditorFlowConfigurationProps
 > = ({
   clearPreviewPlan,
-  flowCompensate,
   flowGoals,
   flowInitialState,
   flowSpaceId,
   previewPlan,
-  setFlowCompensate,
   setFlowGoals,
   setFlowInitialState,
   setFlowSpaceId,
@@ -276,13 +270,6 @@ const StepEditorFlowConfiguration: React.FC<
               </span>
               {t("stepEditor.flowGoalsLabel")}
             </label>
-            <IconCheckbox
-              checked={flowCompensate}
-              Icon={IconCompensate}
-              label={t("stepEditor.flowCompensateLabel")}
-              onChange={setFlowCompensate}
-              title={t("stepEditor.flowCompensateTitle")}
-            />
           </div>
           {lines.length > 1 && (
             <div className={localStyles.flowGoalSets}>

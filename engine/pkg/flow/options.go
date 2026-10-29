@@ -8,10 +8,9 @@ import (
 type (
 	// Options contains optional parameters for starting a flow
 	Options struct {
-		Init       api.InitArgs
-		Metadata   api.Metadata
-		Tags       api.Tags
-		Compensate bool
+		Init     api.InitArgs
+		Metadata api.Metadata
+		Tags     api.Tags
 	}
 
 	// Applier mutates the Options a flow starts with
@@ -56,13 +55,5 @@ func WithParent(parent api.FlowStep, tkn api.Token) Applier {
 func WithTags(tags api.Tags) Applier {
 	return func(opt *Options) {
 		opt.Tags = tags
-	}
-}
-
-// WithCompensate requests compensation of every succeeded work item in the
-// flow if the flow fails
-func WithCompensate(compensate bool) Applier {
-	return func(opt *Options) {
-		opt.Compensate = compensate
 	}
 }

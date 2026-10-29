@@ -56,7 +56,7 @@ func (e *Engine) NotCompleteCompensation(
 // every flow advance and compensation outcome to drive the next
 func (tx *flowTx) compensateFlow() error {
 	fl := tx.Value()
-	if !fl.Compensate || compensationActive(&fl) {
+	if compensationActive(&fl) {
 		return nil
 	}
 	wave, err := tx.nextCompensationWave(&fl)
@@ -465,9 +465,6 @@ func (w *compensationWaveWalk) dependentPending(
 // flowRollsBack reports whether the flow undoes the step's work: every step
 // once the flow failed, otherwise steps no kept goal can still use
 func flowRollsBack(fl *api.FlowState, sid api.StepID) bool {
-	if !fl.Compensate {
-		return false
-	}
 	if fl.Status == api.FlowFailed {
 		return true
 	}

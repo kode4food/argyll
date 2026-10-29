@@ -87,69 +87,66 @@ func TestCompensationSucceeds(t *testing.T) {
 }
 
 func TestLateSuccessCompensates(t *testing.T) {
-	for _, enabled := range []bool{false, true} {
-		helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-			assert.NoError(t, env.Engine.Start())
-			st := newCompensatingStep("late-success")
-			st.WorkConfig = &api.WorkConfig{Parallelism: 2}
-			st.HTTP.Invoke.Mode = api.ActionModeAsync
-			st.HTTP.Compensate.Mode = api.ActionModeAsync
-			st.Attributes["items"] = &api.AttributeSpec{
-				Role: api.RoleRequired,
-				Required: &api.RequiredConfig{
-					ForEach: true,
-					Collect: api.InputCollectAll,
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		assert.NoError(t, env.Engine.Start())
+		st := newCompensatingStep("late-success")
+		st.WorkConfig = &api.WorkConfig{Parallelism: 2}
+		st.HTTP.Invoke.Mode = api.ActionModeAsync
+		st.HTTP.Compensate.Mode = api.ActionModeAsync
+		st.Attributes["items"] = &api.AttributeSpec{
+			Role: api.RoleRequired,
+			Required: &api.RequiredConfig{
+				ForEach: true,
+				Collect: api.InputCollectAll,
+			},
+		}
+		assert.NoError(t, env.Engine.RegisterStep(st))
+		env.MockClient.SetResponse(st.ID, api.Args{})
+		pl := &api.ExecutionPlan{
+			Goals: api.Goals{Steps: []api.StepID{st.ID}},
+			Steps: api.Steps{st.ID: st},
+			Attributes: api.AttributeGraph{
+				"items": &api.AttributeEdges{
+					Consumers: []api.StepID{st.ID},
 				},
+			},
+		}
+		assert.NoError(t,
+			env.Engine.StartPlan("late-success", pl,
+				flow.WithInit(api.InitArgs{
+					"items": {"fail", "late"},
+				})))
+		fl, err := env.Engine.GetFlowState("late-success")
+		assert.NoError(t, err)
+		var failed api.Token
+		var late api.Token
+		for tkn, work := range fl.Executions[st.ID].WorkItems {
+			assert.Equal(t, api.WorkActive, work.Status)
+			if work.Inputs["items"] == "fail" {
+				failed = tkn
+			} else {
+				late = tkn
 			}
-			assert.NoError(t, env.Engine.RegisterStep(st))
-			env.MockClient.SetResponse(st.ID, api.Args{})
-			pl := &api.ExecutionPlan{
-				Goals: api.Goals{Steps: []api.StepID{st.ID}},
-				Steps: api.Steps{st.ID: st},
-				Attributes: api.AttributeGraph{
-					"items": &api.AttributeEdges{
-						Consumers: []api.StepID{st.ID},
-					},
-				},
-			}
-			assert.NoError(t,
-				env.Engine.StartPlan("late-success", pl,
-					flow.WithCompensate(enabled),
-					flow.WithInit(api.InitArgs{
-						"items": {"fail", "late"},
-					})))
-			fl, err := env.Engine.GetFlowState("late-success")
-			assert.NoError(t, err)
-			var failed api.Token
-			var late api.Token
-			for tkn, work := range fl.Executions[st.ID].WorkItems {
-				assert.Equal(t, api.WorkActive, work.Status)
-				if work.Inputs["items"] == "fail" {
-					failed = tkn
-				} else {
-					late = tkn
-				}
-			}
-			fs := api.FlowStep{FlowID: fl.ID, StepID: st.ID}
-			assert.NoError(t, env.Engine.FailWork(fs, failed, "failed"))
-			assert.NoError(t, env.Engine.CompleteWork(fs, late, api.Args{}))
-			fl, err = env.Engine.GetFlowState(fl.ID)
-			assert.NoError(t, err)
-			assert.Equal(t, api.FlowFailed, fl.Status)
-			assert.True(t, fl.DeactivatedAt.IsZero())
-			work := fl.Executions[st.ID].WorkItems[late]
-			if !assert.Equal(t, api.WorkCompensating, work.Status) {
-				return
-			}
-			env.WaitFor(wait.FlowDeactivated(fl.ID), func() {
-				assert.NoError(t, env.Engine.CompleteCompensation(fs, late))
-			})
-			fl, err = env.Engine.GetFlowState(fl.ID)
-			assert.NoError(t, err)
-			work = fl.Executions[st.ID].WorkItems[late]
-			assert.Equal(t, api.WorkCompensated, work.Status)
+		}
+		fs := api.FlowStep{FlowID: fl.ID, StepID: st.ID}
+		assert.NoError(t, env.Engine.FailWork(fs, failed, "failed"))
+		assert.NoError(t, env.Engine.CompleteWork(fs, late, api.Args{}))
+		fl, err = env.Engine.GetFlowState(fl.ID)
+		assert.NoError(t, err)
+		assert.Equal(t, api.FlowFailed, fl.Status)
+		assert.True(t, fl.DeactivatedAt.IsZero())
+		work := fl.Executions[st.ID].WorkItems[late]
+		if !assert.Equal(t, api.WorkCompensating, work.Status) {
+			return
+		}
+		env.WaitFor(wait.FlowDeactivated(fl.ID), func() {
+			assert.NoError(t, env.Engine.CompleteCompensation(fs, late))
 		})
-	}
+		fl, err = env.Engine.GetFlowState(fl.ID)
+		assert.NoError(t, err)
+		work = fl.Executions[st.ID].WorkItems[late]
+		assert.Equal(t, api.WorkCompensated, work.Status)
+	})
 }
 
 func TestCompensationAsyncAwaitsCallback(t *testing.T) {
@@ -896,9 +893,7 @@ func TestFlowCompensation(t *testing.T) {
 			pl := newFlowCompPlan(steps)
 
 			env.WaitFor(wait.FlowDeactivated(id), func() {
-				assert.NoError(t, env.Engine.StartPlan(id, pl,
-					flow.WithCompensate(true),
-				))
+				assert.NoError(t, env.Engine.StartPlan(id, pl))
 			})
 
 			fl, err := env.Engine.GetFlowState(id)
@@ -967,9 +962,7 @@ func TestFlowCompensation(t *testing.T) {
 			}
 
 			env.WaitFor(wait.FlowDeactivated(id), func() {
-				assert.NoError(t, env.Engine.StartPlan(id, pl,
-					flow.WithCompensate(true),
-				))
+				assert.NoError(t, env.Engine.StartPlan(id, pl))
 			})
 
 			mu.Lock()
@@ -1035,9 +1028,7 @@ func TestFlowCompensation(t *testing.T) {
 			}
 
 			env.WaitFor(wait.FlowDeactivated(id), func() {
-				assert.NoError(t, env.Engine.StartPlan(id, pl,
-					flow.WithCompensate(true),
-				))
+				assert.NoError(t, env.Engine.StartPlan(id, pl))
 			})
 
 			fl, err := env.Engine.GetFlowState(id)
@@ -1151,7 +1142,7 @@ func TestFlowCompensation(t *testing.T) {
 			env.WithConsumer(func(consumer *event.Consumer) {
 				w := wait.On(t, consumer)
 				assert.NoError(t,
-					env.Engine.StartPlan(id, pl, flow.WithCompensate(true)))
+					env.Engine.StartPlan(id, pl))
 				w.ForEvent(wait.CompSucceeded(fs))
 
 				fl, err := env.Engine.GetFlowState(id)
@@ -1249,7 +1240,7 @@ func TestFlowCompensation(t *testing.T) {
 
 			env.WaitFor(wait.FlowDeactivated(id), func() {
 				assert.NoError(t,
-					env.Engine.StartPlan(id, pl, flow.WithCompensate(true)))
+					env.Engine.StartPlan(id, pl))
 			})
 
 			fl, err := env.Engine.GetFlowState(id)
@@ -1340,9 +1331,7 @@ func TestFlowCompensation(t *testing.T) {
 			}
 
 			env.WaitFor(wait.FlowDeactivated(id), func() {
-				assert.NoError(t, env.Engine.StartPlan(id, pl,
-					flow.WithCompensate(true),
-				))
+				assert.NoError(t, env.Engine.StartPlan(id, pl))
 			})
 
 			fl, err := env.Engine.GetFlowState(id)
@@ -1353,11 +1342,11 @@ func TestFlowCompensation(t *testing.T) {
 		})
 	})
 
-	t.Run("leaves succeeded steps alone when unset", func(t *testing.T) {
+	t.Run("compensates succeeded work in a failed child flow", func(t *testing.T) {
 		helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 			assert.NoError(t, env.Engine.Start())
 
-			steps := newFlowCompStep("no-flow-comp")
+			steps := newFlowCompStep("child-comp")
 			assert.NoError(t, env.Engine.RegisterStep(steps.producer))
 			assert.NoError(t, env.Engine.RegisterStep(steps.consumer))
 
@@ -1365,18 +1354,39 @@ func TestFlowCompensation(t *testing.T) {
 				api.Args{"value": "abc"})
 			env.MockClient.SetError(steps.consumer.ID, errors.New("permanent"))
 
-			id := api.FlowID("wf-no-flow-comp")
-			pl := newFlowCompPlan(steps)
+			parent := &api.Step{
+				ID: "sub", Name: "Sub Flow", Type: api.StepTypeFlow,
+				Flow: &api.FlowConfig{
+					Goals: api.Goals{Steps: []api.StepID{steps.consumer.ID}},
+				},
+			}
+			assert.NoError(t, env.Engine.RegisterStep(parent))
+			id := api.FlowID("wf-child-comp")
 
 			env.WaitFor(wait.FlowDeactivated(id), func() {
-				assert.NoError(t, env.Engine.StartPlan(id, pl))
+				assert.NoError(t, env.Engine.StartFlow(api.CreateFlowRequest{
+					ID: id, Goals: api.Goals{Steps: []api.StepID{parent.ID}},
+				}))
 			})
 
 			fl, err := env.Engine.GetFlowState(id)
 			assert.NoError(t, err)
 			assert.Equal(t, api.FlowFailed, fl.Status)
-			for _, work := range fl.Executions[steps.producer.ID].WorkItems {
-				assert.Equal(t, api.WorkSucceeded, work.Status)
+			for tkn := range fl.Executions[parent.ID].WorkItems {
+				child := helpers.WaitForFlowState(t, env.Engine,
+					helpers.FlowStateQuery{
+						FlowID:  api.FlowID(string(id) + ":sub:" + string(tkn)),
+						Timeout: wait.DefaultTimeout,
+						Accept: func(child api.FlowState) bool {
+							return !child.DeactivatedAt.IsZero()
+						},
+					})
+				assert.Equal(t, api.FlowFailed, child.Status)
+				work := child.Executions[steps.producer.ID].WorkItems
+				assert.Len(t, work, 1)
+				for _, item := range work {
+					assert.Equal(t, api.WorkCompensated, item.Status)
+				}
 			}
 		})
 	})
@@ -1410,10 +1420,9 @@ func setupPartlyUnwoundFlow(args setupPartlyUnwoundFlowArgs) {
 		{
 			Type: api.EventTypeFlowStarted,
 			Data: api.FlowStartedEvent{
-				FlowID:     id,
-				Plan:       pl,
-				Init:       api.InitArgs{},
-				Compensate: true,
+				FlowID: id,
+				Plan:   pl,
+				Init:   api.InitArgs{},
 			},
 		},
 	}

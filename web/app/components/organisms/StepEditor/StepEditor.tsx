@@ -102,8 +102,6 @@ const StepEditor: React.FC<StepEditorProps> = ({
     setHttpTimeout,
     flowGoals,
     setFlowGoals,
-    flowCompensate,
-    setFlowCompensate,
     flowSpaceId,
     setFlowSpaceId,
   } = useStepEditorForm({ step, onUpdate, onClose, defaultTags, draft });
@@ -274,12 +272,10 @@ const StepEditor: React.FC<StepEditorProps> = ({
               ) : formStepType === "flow" ? (
                 <StepEditorFlowConfiguration
                   clearPreviewPlan={clearFlowPreviewPlan}
-                  flowCompensate={flowCompensate}
                   flowGoals={flowGoals}
                   flowInitialState={flowInitialState}
                   flowSpaceId={flowSpaceId}
                   previewPlan={flowPreviewPlan}
-                  setFlowCompensate={setFlowCompensate}
                   setFlowGoals={setFlowGoals}
                   setFlowInitialState={setFlowInitialState}
                   setFlowSpaceId={setFlowSpaceId}

@@ -80,9 +80,6 @@ export function useStepEditorForm({
   const [flowGoals, setFlowGoals] = useState<GoalSets>(
     toGoalSets(seed?.flow?.goals)
   );
-  const [flowCompensate, setFlowCompensate] = useState(
-    seed?.flow?.compensate ?? isCreateMode
-  );
   const [flowSpaceId, setFlowSpaceId] = useState(seed?.flow?.space_id || "");
   const [handling, setHandling] = useState<Handling>(
     step?.handling || "standard"
@@ -142,7 +139,6 @@ export function useStepEditorForm({
       compensateMode,
       httpTimeout,
       flowGoals,
-      flowCompensate,
       flowSpaceId,
       handling,
     });
@@ -154,7 +150,6 @@ export function useStepEditorForm({
     compensateTimeout,
     compensateMode,
     endpoint,
-    flowCompensate,
     flowGoals,
     flowSpaceId,
     healthCheck,
@@ -185,7 +180,6 @@ export function useStepEditorForm({
       setScript(stepData.script?.script || "");
       setScriptLanguage(stepData.script?.language || SCRIPT_LANGUAGE_LUA);
       setFlowGoals(toGoalSets(stepData.flow?.goals));
-      setFlowCompensate(Boolean(stepData.flow?.compensate));
       setFlowSpaceId(stepData.flow?.space_id || "");
       setEndpoint(stepData.http?.invoke?.endpoint || "");
       setHttpMethod(normalizeHttpMethod(stepData.http?.invoke?.method));
@@ -256,8 +250,6 @@ export function useStepEditorForm({
       setHttpTimeout,
       flowGoals,
       setFlowGoals,
-      flowCompensate,
-      setFlowCompensate,
       handling,
       setHandling: changeHandling,
     }),
@@ -280,7 +272,6 @@ export function useStepEditorForm({
       compensateMode,
       httpTimeout,
       flowGoals,
-      flowCompensate,
       handling,
       changeHandling,
       changeStepType,
@@ -324,8 +315,6 @@ export function useStepEditorForm({
     setScriptLanguage,
     flowGoals,
     setFlowGoals,
-    flowCompensate,
-    setFlowCompensate,
     flowSpaceId,
     setFlowSpaceId,
     handling,

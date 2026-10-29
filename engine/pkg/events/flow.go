@@ -142,7 +142,6 @@ func flowStarted(
 		Attributes:  attributes,
 		Init:        slices.Sorted(maps.Keys(data.Init)),
 		Executions:  execs,
-		Compensate:  data.Compensate,
 		CreatedAt:   ev.Timestamp,
 		LastUpdated: ev.Timestamp,
 	}

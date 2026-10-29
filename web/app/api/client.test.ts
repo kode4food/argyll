@@ -65,7 +65,6 @@ describe("ArgyllApi", () => {
         id: "wf-1",
         goalSteps: [["step-1"], ["step-2"]],
         initialState: { input: ["value"] },
-        compensate: true,
       })
     ).resolves.toEqual(response);
     expect(fetchMock).toHaveBeenCalledWith(
@@ -76,7 +75,6 @@ describe("ArgyllApi", () => {
           id: "wf-1",
           goals: { steps: ["step-1"], else: { steps: ["step-2"] } },
           init: { input: ["value"] },
-          compensate: true,
         }),
       })
     );

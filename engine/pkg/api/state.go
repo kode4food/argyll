@@ -64,7 +64,6 @@ type (
 		ID            FlowID          `json:"id"`
 		Status        FlowStatus      `json:"status"`
 		Error         string          `json:"error,omitempty"`
-		Compensate    bool            `json:"compensate,omitempty"`
 	}
 
 	// Executions contains the execution progress of multiple steps

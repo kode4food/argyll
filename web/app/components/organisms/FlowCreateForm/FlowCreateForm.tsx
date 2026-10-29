@@ -66,8 +66,6 @@ const FlowCreateForm: React.FC<FlowCreateFormProps> = ({ onCreateStep }) => {
     handleStepChange,
     initialState,
     setInitialState,
-    compensate,
-    setCompensate,
     creating,
     handleCreateFlow,
     steps,
@@ -244,14 +242,13 @@ const FlowCreateForm: React.FC<FlowCreateFormProps> = ({ onCreateStep }) => {
               attributes: {},
               flow: {
                 goals: fromGoalSets(planGoals),
-                compensate,
                 ...(spaceId && { space_id: spaceId }),
               },
             }
           : undefined
       );
     },
-    [compensate, planGoals, onCreateStep, spaceId]
+    [planGoals, onCreateStep, spaceId]
   );
 
   const handleEditorModeChange = React.useCallback(
@@ -328,11 +325,9 @@ const FlowCreateForm: React.FC<FlowCreateFormProps> = ({ onCreateStep }) => {
 
           <div className={styles.panelFooter}>
             <FlowStartSection
-              compensate={compensate}
               creating={creating}
               disabled={isStartSectionDisabled}
               flowId={newID}
-              onCompensateChange={setCompensate}
               onCreateFlow={handleCreateFlow}
               onFlowIdChange={(value) => {
                 setNewID(value);

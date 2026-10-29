@@ -1023,7 +1023,6 @@ describe("flowStore", () => {
     const failedFlow = {
       id: "flow-1",
       status: "failed",
-      compensate: true,
       state: {},
       started_at: "2024-01-01T00:00:00Z",
     } as FlowContext;
@@ -1052,10 +1051,6 @@ describe("flowStore", () => {
         deactivated_at: "0001-01-01T00:00:00Z",
       };
       expect(compensatingFor(notDeactivated)).toBe(true);
-    });
-
-    test("ignores flows not started with compensation", () => {
-      expect(compensatingFor({ ...failedFlow, compensate: false })).toBe(false);
     });
 
     test("ignores flows that have not failed", () => {

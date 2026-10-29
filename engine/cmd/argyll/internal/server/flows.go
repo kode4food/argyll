@@ -132,7 +132,7 @@ func (s *Server) startFlow(c *gin.Context) {
 	if pl == nil {
 		return
 	}
-	apps := []flow.Applier{flow.WithCompensate(req.Compensate)}
+	var apps []flow.Applier
 	if req.Init != nil {
 		apps = append(apps, flow.WithInit(req.Init))
 	}

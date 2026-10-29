@@ -60,9 +60,8 @@ type (
 
 	// FlowConfig configures flow-based step execution
 	FlowConfig struct {
-		Goals      Goals   `json:"goals"`
-		SpaceID    SpaceID `json:"space_id,omitempty"`
-		Compensate bool    `json:"compensate,omitempty"`
+		Goals   Goals   `json:"goals"`
+		SpaceID SpaceID `json:"space_id,omitempty"`
 	}
 
 	// WorkConfig configures retry and parallelism behavior for steps with
@@ -442,7 +441,6 @@ func (c *FlowConfig) Equal(other *FlowConfig) bool {
 		return c == other
 	}
 	return c.SpaceID == other.SpaceID &&
-		c.Compensate == other.Compensate &&
 		c.Goals.Equal(&other.Goals)
 }
 

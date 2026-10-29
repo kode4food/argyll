@@ -465,9 +465,7 @@ if (isDevHost) {
 }
 
 const isCompensating = (flow: FlowContext | null): boolean =>
-  flow?.status === "failed" &&
-  !!flow.compensate &&
-  !isValidTimestamp(flow.deactivated_at);
+  flow?.status === "failed" && !isValidTimestamp(flow.deactivated_at);
 
 // State selectors
 export const useSteps = () => useFlowStore((state) => state.steps);

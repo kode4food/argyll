@@ -15,7 +15,6 @@ export interface StartFlowRequest {
   id: string;
   goalSteps: GoalSets;
   initialState: Record<string, unknown[]>;
-  compensate?: boolean;
   spaceId?: string;
 }
 
@@ -113,20 +112,13 @@ export class ArgyllApi {
   }
 
   async startFlow(request: StartFlowRequest): Promise<unknown> {
-    const {
-      id,
-      goalSteps,
-      initialState,
-      compensate = false,
-      spaceId,
-    } = request;
+    const { id, goalSteps, initialState, spaceId } = request;
     return this.request("/engine/flows", {
       method: "POST",
       body: JSON.stringify({
         id,
         goals: fromGoalSets(goalSteps),
         init: initialState,
-        compensate,
         ...(spaceId && { space_id: spaceId }),
       }),
     });

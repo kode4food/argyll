@@ -35,7 +35,7 @@ func (e *Engine) StartFlow(req api.CreateFlowRequest) error {
 		return err
 	}
 
-	apps := []flow.Applier{flow.WithCompensate(req.Compensate)}
+	var apps []flow.Applier
 	if req.Init != nil {
 		apps = append(apps, flow.WithInit(req.Init))
 	}
@@ -130,12 +130,11 @@ func (tx *flowTx) startPlan(pl *api.ExecutionPlan, opts *flow.Options) error {
 	}
 	if err := events.Raise(tx.FlowAggregator, api.EventTypeFlowStarted,
 		api.FlowStartedEvent{
-			FlowID:     tx.flowID,
-			Plan:       pl,
-			Init:       opts.Init,
-			Metadata:   opts.Metadata,
-			Tags:       opts.Tags,
-			Compensate: opts.Compensate,
+			FlowID:   tx.flowID,
+			Plan:     pl,
+			Init:     opts.Init,
+			Metadata: opts.Metadata,
+			Tags:     opts.Tags,
 		},
 	); err != nil {
 		return err
@@ -147,7 +146,6 @@ func (tx *flowTx) startChildFlow(
 	sid api.StepID, tkn api.Token, inputs api.Args,
 ) error {
 	fl := tx.Value()
-	st := fl.Plan.Steps[sid]
 	fs := api.FlowStep{FlowID: fl.ID, StepID: sid}
 	init := api.InitArgs{}
 	for name, value := range inputs {
@@ -157,7 +155,6 @@ func (tx *flowTx) startChildFlow(
 		flow.WithInit(init),
 		flow.WithMetadata(fl.Metadata),
 		flow.WithParent(fs, tkn),
-		flow.WithCompensate(st.Flow != nil && st.Flow.Compensate),
 	)
 	_, err := tx.flowTx(childFlowID(fs, tkn), func(child *flowTx) error {
 		return child.startPlan(fl.Plan.Children[sid], opts)

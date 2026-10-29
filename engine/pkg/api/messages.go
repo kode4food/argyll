@@ -28,9 +28,8 @@ type (
 	// CreateFlowRequest contains parameters for starting a new flow
 	CreateFlowRequest struct {
 		ExecutionPlanRequest
-		ID         FlowID `json:"id"`
-		Tags       Tags   `json:"tags,omitempty"`
-		Compensate bool   `json:"compensate,omitempty"`
+		ID   FlowID `json:"id"`
+		Tags Tags   `json:"tags,omitempty"`
 	}
 
 	// ExecutionPlanRequest contains parameters for creating an execution plan

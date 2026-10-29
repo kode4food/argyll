@@ -128,7 +128,6 @@ export interface Goals {
 
 export interface FlowConfig {
   goals: Goals;
-  compensate?: boolean;
   space_id?: string;
 }
 
@@ -179,7 +178,6 @@ export interface ExecutionPlan {
 export interface FlowContext {
   id: string;
   status: FlowStatus;
-  compensate?: boolean;
   state: Record<string, AttributeValue[]>;
   error_state?: {
     message: string;

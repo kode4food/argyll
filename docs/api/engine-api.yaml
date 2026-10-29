@@ -1952,7 +1952,9 @@ components:
 
     FlowConfig:
       type: object
-      description: Configuration for flow-based steps (sub-flows)
+      description: |
+        Configuration for flow-based steps (sub-flows). Declared compensators
+        run automatically when work must be rolled back, including in child flows.
       required:
         - goals
       properties:
@@ -1964,15 +1966,6 @@ components:
             Optional Space that restricts planning for the child flow. Every
             goal must be a current member of the Space.
           example: "payments"
-        compensate:
-          type: boolean
-          description: |
-            Enable Rollback on Failure for the child flow. Every completed work
-            item is compensated if the child flow fails. Once a goal set fails,
-            completed work that no remaining fallback set can use is
-            compensated while the fallback runs. Not inherited from the parent
-            flow.
-          example: true
 
     WorkConfig:
       type: object
@@ -2265,6 +2258,11 @@ components:
 
     CreateFlowRequest:
       type: object
+      description: |
+        Starts a flow with automatic compensation. If the flow fails, succeeded
+        work with a declared compensator is rolled back. Once a goal set fails,
+        work that no remaining fallback set can use is rolled back while the
+        fallback runs.
       required:
         - id
         - goals
@@ -2299,14 +2297,6 @@ components:
           description: Optional labels for the flow
           additionalProperties:
             type: string
-        compensate:
-          type: boolean
-          description: |
-            Enable Rollback on Failure. If the flow fails, every completed
-            work item in the flow is compensated. Once a goal set fails,
-            completed work that no remaining fallback set can use is
-            compensated while the fallback runs.
-          example: true
 
     FlowStartedResponse:
       type: object
