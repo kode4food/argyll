@@ -83,35 +83,28 @@ return {
 		os.Exit(1)
 	}
 
-	// Example 3: Conditional logic (Lua script)
-	eligibilityCheckerScript := `local eligible = false
-local reason = ""
-
-if age < 18 then
-	reason = "age below minimum (18)"
-elseif age > 75 then
-	reason = "age above maximum (75)"
-elseif income < 30000 then
-	reason = "income below minimum ($30,000)"
-elseif credit_score < 600 then
-	reason = "credit score below minimum (600)"
-else
-	eligible = true
-	reason = "all criteria met"
-end
-
-return {
-	eligible = eligible,
-	reason = reason,
-	risk_level = credit_score >= 750 and "low" or
-				(credit_score >= 650 and "medium" or "high")
+	// Example 3: Conditional logic (ArgEx script)
+	eligibilityCheckerScript := `let reason = case {
+	age < 18: "age below minimum (18)",
+	age > 75: "age above maximum (75)",
+	income < 30000: "income below minimum ($30,000)",
+	credit_score < 600: "credit score below minimum (600)",
+	"all criteria met",
+}: {
+	eligible: reason == "all criteria met",
+	reason: reason,
+	risk_level: case {
+		credit_score >= 750: "low",
+		credit_score >= 650: "medium",
+		"high",
+	},
 }`
 
 	err = client.NewStep().WithName("Eligibility Checker").
 		WithID("eligibility-checker").
 		WithDescription("evaluate eligibility based on risk inputs").
 		WithTags(
-			"domain:risk", "capability:decision", "language:lua", "example",
+			"domain:risk", "capability:decision", "language:argex", "example",
 		).
 		Required("age", api.TypeNumber).
 		Required("income", api.TypeNumber).
@@ -120,7 +113,7 @@ return {
 		Output("reason", api.TypeString).
 		Output("risk_level", api.TypeString).
 		WithScript(api.ScriptConfig{
-			Language: api.ScriptLangLua,
+			Language: api.ScriptLangArgyll,
 			Script:   eligibilityCheckerScript,
 		}).
 		Register(context.Background())

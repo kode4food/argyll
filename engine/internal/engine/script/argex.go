@@ -11,7 +11,7 @@ import (
 
 // ArgExEnv evaluates Argyll Expressions
 type ArgExEnv struct {
-	*compiler[argex.Program]
+	*compiler[*argex.Program]
 }
 
 const argExCacheSize = 10240
@@ -26,7 +26,7 @@ func NewArgExEnv() *ArgExEnv {
 	return &ArgExEnv{
 		compiler: newCompiler(
 			argExCacheSize,
-			func(_ *api.Step, cfg *api.ScriptConfig) (argex.Program, error) {
+			func(_ *api.Step, cfg *api.ScriptConfig) (*argex.Program, error) {
 				return compileArgEx(cfg.Script)
 			},
 		),
@@ -37,7 +37,7 @@ func NewArgExEnv() *ArgExEnv {
 func (*ArgExEnv) Evaluate(
 	c Compiled, _ *api.Step, inputs api.Args,
 ) (any, error) {
-	value, err := c.(argex.Program)(marshalArgExValue(inputs).(map[string]any))
+	value, err := c.(*argex.Program).Eval(marshalArgExValue(inputs))
 	if err != nil {
 		return nil, err
 	}
@@ -48,24 +48,20 @@ func (*ArgExEnv) Evaluate(
 }
 
 // CheckPredicate rejects an expression whose result can never be a Boolean
-func (*ArgExEnv) CheckPredicate(cfg *api.ScriptConfig) error {
-	expr, err := argex.Parse(cfg.Script)
-	if err != nil {
-		return fmt.Errorf("%w: %w", ErrArgExCompile, err)
-	}
-	result := expr.StaticType()
+func (*ArgExEnv) CheckPredicate(c Compiled) error {
+	result := c.(*argex.Program).StaticType()
 	if result.Known() && !result.Has(argex.TypeBool) {
 		return fmt.Errorf("%w, not %s", ErrNotBoolean, result)
 	}
 	return nil
 }
 
-func compileArgEx(source string) (argex.Program, error) {
+func compileArgEx(source string) (*argex.Program, error) {
 	expr, err := argex.Parse(source)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %w", ErrArgExCompile, err)
 	}
-	program, err := argex.Compile(expr)
+	program, err := argex.DefaultEnv().Compile(expr)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %w", ErrArgExCompile, err)
 	}

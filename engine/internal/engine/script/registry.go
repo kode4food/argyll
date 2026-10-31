@@ -44,11 +44,11 @@ type (
 	) (T, error)
 
 	compiledValue interface {
-		*CompiledLua | argex.Program
+		*CompiledLua | *argex.Program
 	}
 
 	predicateChecker interface {
-		CheckPredicate(*api.ScriptConfig) error
+		CheckPredicate(Compiled) error
 	}
 )
 
@@ -165,11 +165,12 @@ func (r *Registry) Compile(
 func (r *Registry) ValidatePredicate(
 	st *api.Step, cfg *api.ScriptConfig,
 ) error {
-	if _, err := r.Compile(st, cfg); err != nil {
+	compiled, err := r.Compile(st, cfg)
+	if err != nil {
 		return err
 	}
 	if pc, ok := r.envs[cfg.Language].(predicateChecker); ok {
-		return pc.CheckPredicate(cfg)
+		return pc.CheckPredicate(compiled)
 	}
 	return nil
 }

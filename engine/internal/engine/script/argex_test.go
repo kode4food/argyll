@@ -19,7 +19,7 @@ func TestArgExCompile(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, compiled)
 	assert.NoError(t, env.Validate(nil, "input.foo"))
-	for _, source := range []string{"value[", "unknown()"} {
+	for _, source := range []string{"value[", "unknown()", "length(1)"} {
 		_, err := env.Compile(nil, &api.ScriptConfig{Script: source})
 		assert.ErrorIs(t, err, script.ErrArgExCompile)
 	}
@@ -78,16 +78,27 @@ func TestArgExPredicateType(t *testing.T) {
 
 func TestArgExCheckPredicate(t *testing.T) {
 	env := script.NewArgExEnv()
-	for _, source := range []string{"1 + 2", `"x"`, "[]", "{}", "null"} {
-		err := env.CheckPredicate(&api.ScriptConfig{Script: source})
+	for _, source := range []string{
+		"1 + 2", `"x"`, "[]", "{}", "null", "length", "length([])",
+	} {
+		compiled, err := env.Compile(nil, &api.ScriptConfig{Script: source})
+		if !assert.NoError(t, err) {
+			return
+		}
+		err = env.CheckPredicate(compiled)
 		assert.ErrorIs(t, err, script.ErrNotBoolean)
 	}
 	for _, source := range []string{
 		"flag ?? false", "value.ok", `case { a: true, 1 }`, "1 < 2",
+		"let size = length: size([1]) == 1", "max(...[1, 2]) == 2",
 	} {
-		assert.NoError(t, env.CheckPredicate(&api.ScriptConfig{
+		compiled, err := env.Compile(nil, &api.ScriptConfig{
 			Script: source,
-		}))
+		})
+		if !assert.NoError(t, err) {
+			return
+		}
+		assert.NoError(t, env.CheckPredicate(compiled))
 	}
 }
 
@@ -138,6 +149,22 @@ func TestArgExScriptObject(t *testing.T) {
 	})
 	assert.NoError(t, err)
 	assert.Equal(t, api.Args{"foo": "bar", "n": 1.0}, outputs)
+}
+
+func TestArgExFunctionValues(t *testing.T) {
+	env := script.NewArgExEnv()
+	compiled, err := env.Compile(nil, &api.ScriptConfig{
+		Script: `let size = length, count = size(input.items):
+			{count, peak: max(...input.items)}`,
+	})
+	if !assert.NoError(t, err) {
+		return
+	}
+	outputs, err := evalScript(env, compiled, nil, api.Args{
+		"input": api.Args{"items": []any{1.0, 3.0}},
+	})
+	assert.NoError(t, err)
+	assert.Equal(t, api.Args{"count": 2.0, "peak": 3.0}, outputs)
 }
 
 func TestArgExScriptArray(t *testing.T) {
