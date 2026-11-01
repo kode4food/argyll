@@ -31,15 +31,18 @@ func TestArgExPredicate(t *testing.T) {
 		Script: "flag ?? false",
 	})
 	assert.NoError(t, err)
-	for _, value := range []any{true, false, nil} {
+	for _, value := range []bool{true, false} {
 		passed, err := evalPredicate(env, compiled, nil, api.Args{
 			"flag": value,
 		})
 		assert.NoError(t, err)
-		assert.Equal(t, value == true, passed)
+		assert.Equal(t, value, passed)
 	}
 	passed, err := evalPredicate(env, compiled, nil, api.Args{})
 	assert.NoError(t, err)
+	assert.False(t, passed)
+	passed, err = evalPredicate(env, compiled, nil, api.Args{"flag": nil})
+	assert.ErrorIs(t, err, script.ErrNotBoolean)
 	assert.False(t, passed)
 }
 
@@ -113,8 +116,11 @@ func TestArgExMatch(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, kind == "email", matched)
 	}
-	matched, err := evalMatch(env, compiled, nil)
+	matched, err := evalMatch(env, compiled, api.Args{})
 	assert.NoError(t, err)
+	assert.False(t, matched)
+	matched, err = evalMatch(env, compiled, nil)
+	assert.ErrorIs(t, err, argex.ErrMissing)
 	assert.False(t, matched)
 	compiled, err = env.Compile(script.MatchStep, &api.ScriptConfig{
 		Script: "value == null",

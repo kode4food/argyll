@@ -22,7 +22,7 @@ An Attribute match receives one payment result as `value`. Normalize an optional
 lower(trim(value?.status ?? "")) == "approved"
 ```
 
-Both `"APPROVED"` and `" approved "` pass. A missing or null status becomes an empty string and fails the match. A status of the wrong type raises an error.
+Both `"APPROVED"` and `" approved "` pass. A missing status fails the match. A null or non-string status raises an error.
 
 ## Require every check to pass
 
