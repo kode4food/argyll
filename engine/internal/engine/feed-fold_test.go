@@ -68,6 +68,22 @@ func TestFeedFoldsOnCompletion(t *testing.T) {
 	})
 }
 
+func TestFeedFoldsMemoizedResult(t *testing.T) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		charge := newChargeStep("charge")
+		charge.Handling = api.HandlingMemoized
+		assert.NoError(t, env.Engine.RegisterStep(charge))
+		assert.NoError(t, env.Engine.RegisterFeed(newTestFeed()))
+		env.MockClient.SetResponse(charge.ID, api.Args{"amount": testCharge})
+
+		runChargeFlow(env, "flow-1", charge.ID)
+		fl := runChargeFlow(env, "flow-2", charge.ID)
+		assert.Equal(t, api.FlowCompleted, fl.Status)
+		assert.Len(t, env.MockClient.GetInvocations(), 1)
+		assert.EqualValues(t, 2*testCharge, feedTotal(t, env))
+	})
+}
+
 func TestFeedFoldsEveryProvider(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		charge := newChargeStep("charge")
