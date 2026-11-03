@@ -68,6 +68,17 @@ func spaceSubFlow(
 	return "", false
 }
 
+func spaceFeed(
+	cat *api.CatalogState, spaceID api.SpaceID,
+) (api.FeedID, bool) {
+	for id, f := range cat.Feeds {
+		if f.SpaceID == spaceID {
+			return id, true
+		}
+	}
+	return "", false
+}
+
 func spaceSubFlowGoal(
 	cat *api.CatalogState, goalID api.StepID,
 ) (api.StepID, bool) {

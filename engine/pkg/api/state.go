@@ -28,6 +28,7 @@ type (
 		LastUpdated time.Time      `json:"last_updated"`
 		Steps       Steps          `json:"steps"`
 		Spaces      Spaces         `json:"spaces"`
+		Feeds       Feeds          `json:"feeds"`
 		Attributes  AttributeGraph `json:"attributes"`
 	}
 
@@ -58,6 +59,7 @@ type (
 		Metadata      Metadata        `json:"metadata,omitempty"`
 		Tags          Tags            `json:"tags,omitempty"`
 		Attributes    AttributeValues `json:"attributes"`
+		Feeds         FeedValues      `json:"feeds,omitempty"`
 		Init          Slice[Name]     `json:"init,omitempty"`
 		DeactivatedAt time.Time       `json:"deactivated_at"`
 		Executions    Executions      `json:"executions"`
@@ -243,6 +245,33 @@ func (c CatalogState) SetSpace(id SpaceID, space Space) CatalogState {
 func (c CatalogState) DeleteSpace(id SpaceID) CatalogState {
 	c.Spaces.Defined = c.Spaces.Defined.Delete(id)
 	return c
+}
+
+// SetFeed returns a new CatalogState with the specified feed registered
+func (c CatalogState) SetFeed(id FeedID, feed *Feed) CatalogState {
+	c.Feeds = c.Feeds.Set(id, feed)
+	return c
+}
+
+// DeleteFeed returns a new CatalogState with the specified feed removed
+func (c CatalogState) DeleteFeed(id FeedID) CatalogState {
+	c.Feeds = c.Feeds.Delete(id)
+	return c
+}
+
+// FeedConsumers returns the registered Steps whose Attributes read the Feed
+func (c *CatalogState) FeedConsumers(id FeedID) []StepID {
+	var res []StepID
+	for sid, st := range c.Steps {
+		for _, attr := range st.Attributes {
+			if attr != nil && attr.IsFeed() && attr.FeedID() == id {
+				res = append(res, sid)
+				break
+			}
+		}
+	}
+	slices.Sort(res)
+	return res
 }
 
 // SetLastUpdated returns a new CatalogState with the last updated timestamp set

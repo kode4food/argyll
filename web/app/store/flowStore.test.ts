@@ -11,7 +11,13 @@ import {
   useFlowLoading,
   useFlowError,
 } from "./flowStore";
-import type { Step, FlowContext, ExecutionResult, FlowSummary } from "../api";
+import type {
+  Step,
+  Feed,
+  FlowContext,
+  ExecutionResult,
+  FlowSummary,
+} from "../api";
 
 jest.mock("../api", () => ({
   ...jest.requireActual("../api"),
@@ -162,6 +168,54 @@ describe("flowStore", () => {
       expect(useFlowStore.getState().spaceSelection.risk.has("step-1")).toBe(
         true
       );
+    });
+  });
+
+  describe("Feed management", () => {
+    const feed = (id: string, name: string): Feed => ({
+      id,
+      name,
+      value: "0",
+      fold: { language: "lua", script: "return feed" },
+      attributes: ["amount"],
+    });
+
+    test("setCatalogState sorts Feeds by name", () => {
+      useFlowStore
+        .getState()
+        .setCatalogState(
+          {},
+          {},
+          { b: feed("b", "Beta"), a: feed("a", "Alpha") }
+        );
+
+      expect(useFlowStore.getState().feeds.map((f) => f.id)).toEqual([
+        "a",
+        "b",
+      ]);
+    });
+
+    test("setFeed replaces and removeFeed drops", () => {
+      const store = useFlowStore.getState();
+      store.setCatalogState({}, {}, { a: feed("a", "Alpha") });
+
+      useFlowStore.getState().setFeed(feed("a", "Renamed"));
+      useFlowStore.getState().setFeed(feed("c", "Gamma"));
+      expect(useFlowStore.getState().feeds.map((f) => f.name)).toEqual([
+        "Gamma",
+        "Renamed",
+      ]);
+
+      useFlowStore.getState().removeFeed("c");
+      expect(useFlowStore.getState().feeds.map((f) => f.id)).toEqual(["a"]);
+    });
+
+    test("setWatchedFeed stores the viewed value", () => {
+      const state = { id: "a", version: "v1", value: 3, last_updated: "" };
+      useFlowStore.getState().setWatchedFeed(state);
+      expect(useFlowStore.getState().watchedFeed).toEqual(state);
+      useFlowStore.getState().setWatchedFeed(null);
+      expect(useFlowStore.getState().watchedFeed).toBeNull();
     });
   });
 

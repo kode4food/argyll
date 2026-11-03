@@ -43,7 +43,9 @@ const applyAttributeFieldSideEffects = (
     if (value === "const") {
       updated.collect = "first";
     }
-    if (value === "output" || value === "meta") {
+    const isUncollected =
+      value === "output" || value === "meta" || value === "feed";
+    if (isUncollected) {
       updated.forEach = false;
       updated.collect = "first";
     }

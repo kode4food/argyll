@@ -113,3 +113,9 @@ func WorkRollbackSettled(status api.WorkStatus) bool {
 		status == api.WorkCompensated ||
 		status == api.WorkCompFailed
 }
+
+// WorkEffectStands reports whether a work item's effect remains in place,
+// which includes work whose compensation failed
+func WorkEffectStands(status api.WorkStatus) bool {
+	return WorkSucceeded(status) || status == api.WorkCompFailed
+}

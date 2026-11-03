@@ -28,6 +28,7 @@ export const roleArgType: Record<AttributeRole, ArgType> = {
   optional: "optional",
   const: "const",
   meta: "meta",
+  feed: "feed",
   output: "output",
 };
 
@@ -43,6 +44,7 @@ export const getSortedAttributes = (
     ...sortedByName.filter((a) => a.spec.role === AttributeRole.Const),
     ...sortedByName.filter((a) => a.spec.role === AttributeRole.Optional),
     ...sortedByName.filter((a) => a.spec.role === AttributeRole.Meta),
+    ...sortedByName.filter((a) => a.spec.role === AttributeRole.Feed),
     ...sortedByName.filter((a) => a.spec.role === AttributeRole.Output),
   ];
 };

@@ -136,6 +136,8 @@ func (s *Server) lookupSubscriptionState(
 		return s.engine.GetClusterStateSeq()
 	case events.IsFlowEventID(id):
 		return s.engine.GetFlowStateSeq(api.FlowID(id.Key))
+	case events.IsFeedEventID(id):
+		return s.engine.GetFeedStateSeq(id)
 	}
 	return nil, 0, nil
 }

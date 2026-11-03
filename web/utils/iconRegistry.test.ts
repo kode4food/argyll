@@ -38,6 +38,12 @@ describe("iconRegistry", () => {
       expect(result.className).toBe("arg-icon const");
     });
 
+    test('returns Rss icon for "feed" type', () => {
+      const result = getArgIcon("feed");
+      expect(result.Icon).toBeDefined();
+      expect(result.className).toBe("arg-icon feed");
+    });
+
     test('returns ArrowLeft icon for "output" type', () => {
       const result = getArgIcon("output");
       expect(result.Icon).toBeDefined();

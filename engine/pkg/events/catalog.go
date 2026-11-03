@@ -22,6 +22,7 @@ func NewCatalogState() api.CatalogState {
 			Defined:  api.Map[api.SpaceID, api.Space]{},
 			Selected: api.Map[api.SpaceID, api.Slice[api.StepID]]{},
 		},
+		Feeds:      api.Feeds{},
 		Attributes: api.AttributeGraph{},
 	}
 }
@@ -44,7 +45,34 @@ func makeCatalogAppliers() timebox.Appliers[api.CatalogState] {
 		api.EventTypeSpaceRegistered:   timebox.MakeApplier(spaceRegistered),
 		api.EventTypeSpaceUpdated:      timebox.MakeApplier(spaceUpdated),
 		api.EventTypeSpaceUnregistered: timebox.MakeApplier(spaceUnregistered),
+		api.EventTypeFeedRegistered:    timebox.MakeApplier(feedRegistered),
+		api.EventTypeFeedUpdated:       timebox.MakeApplier(feedUpdated),
+		api.EventTypeFeedUnregistered:  timebox.MakeApplier(feedUnregistered),
 	})
+}
+
+func feedRegistered(
+	cat api.CatalogState, ev *timebox.Event, data api.FeedRegisteredEvent,
+) api.CatalogState {
+	return cat.
+		SetFeed(data.Feed.ID, data.Feed).
+		SetLastUpdated(ev.Timestamp)
+}
+
+func feedUpdated(
+	cat api.CatalogState, ev *timebox.Event, data api.FeedUpdatedEvent,
+) api.CatalogState {
+	return cat.
+		SetFeed(data.Feed.ID, data.Feed).
+		SetLastUpdated(ev.Timestamp)
+}
+
+func feedUnregistered(
+	cat api.CatalogState, ev *timebox.Event, data api.FeedUnregisteredEvent,
+) api.CatalogState {
+	return cat.
+		DeleteFeed(data.FeedID).
+		SetLastUpdated(ev.Timestamp)
 }
 
 func stepRegistered(

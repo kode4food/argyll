@@ -114,6 +114,9 @@ func (e *Engine) UnregisterSpace(spaceID api.SpaceID) error {
 		if ref, ok := spaceSubFlow(&cat, spaceID); ok {
 			return fmt.Errorf("%w: %s", ErrSpaceInUse, ref)
 		}
+		if ref, ok := spaceFeed(&cat, spaceID); ok {
+			return fmt.Errorf("%w: feed %s", ErrSpaceInUse, ref)
+		}
 		return events.Raise(tx.ag, api.EventTypeSpaceUnregistered,
 			api.SpaceUnregisteredEvent{SpaceID: spaceID},
 		)

@@ -406,6 +406,10 @@
   color: var(--arg-icon-meta);
 }
 
+.arg-icon.feed {
+  color: var(--arg-icon-feed);
+}
+
 .arg-icon.output {
   color: var(--arg-icon-output);
 }

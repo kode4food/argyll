@@ -11,6 +11,7 @@ type (
 	Engine interface {
 		Steps
 		Spaces
+		Feeds
 		Flows
 		Work
 
@@ -67,6 +68,24 @@ type (
 
 		// PreviewSpace normalizes an unsaved space and reports what it selects
 		PreviewSpace(api.Space) (api.SpacePreviewResponse, error)
+	}
+
+	// Feeds folds settled Step outputs into Catalog-wide values
+	Feeds interface {
+		// ListFeeds returns every registered Feed
+		ListFeeds() ([]*api.Feed, error)
+
+		// RegisterFeed adds a Feed to the catalog
+		RegisterFeed(*api.Feed) error
+
+		// UpdateFeed replaces an existing Feed's definition
+		UpdateFeed(*api.Feed) error
+
+		// UnregisterFeed removes a Feed
+		UnregisterFeed(api.FeedID) error
+
+		// GetFeed returns a Feed definition and its current value
+		GetFeed(api.FeedID) (api.FeedResponse, error)
 	}
 
 	// Flows plans work and starts and reports on the flows that run it

@@ -124,6 +124,9 @@ func (tx *flowTx) deactivate(parent api.FlowState) error {
 	); err != nil {
 		return err
 	}
+	if err := tx.foldSettledFeeds(); err != nil {
+		return err
+	}
 	return tx.releaseChildFlows()
 }
 

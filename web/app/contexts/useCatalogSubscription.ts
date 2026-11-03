@@ -1,5 +1,5 @@
 import { useCallback, useEffect } from "react";
-import { Step } from "@/app/api";
+import { Feed, Step } from "@/app/api";
 import { CatalogSpaces, useFlowStore } from "@/app/store/flowStore";
 import { WebSocketEvent, WebSocketSubscribed } from "@/app/types/websocket";
 import type { useWebSocketClient } from "@/app/hooks/useWebSocketClient";
@@ -7,6 +7,7 @@ import type { useWebSocketClient } from "@/app/hooks/useWebSocketClient";
 type CatalogPayload = {
   steps?: Record<string, Step>;
   spaces?: CatalogSpaces;
+  feeds?: Record<string, Feed>;
 };
 
 type SocketClient = ReturnType<typeof useWebSocketClient>;
@@ -18,6 +19,9 @@ const catalogEventTypes = [
   "space_registered",
   "space_unregistered",
   "space_updated",
+  "feed_registered",
+  "feed_unregistered",
+  "feed_updated",
 ];
 
 export function useCatalogSubscription(socketClient: SocketClient) {
@@ -27,6 +31,8 @@ export function useCatalogSubscription(socketClient: SocketClient) {
   const setStepSpaces = useFlowStore((state) => state.setStepSpaces);
   const setSpace = useFlowStore((state) => state.setSpace);
   const removeSpace = useFlowStore((state) => state.removeSpace);
+  const setFeed = useFlowStore((state) => state.setFeed);
+  const removeFeed = useFlowStore((state) => state.removeFeed);
 
   const handleCatalogEvent = useCallback(
     (event: WebSocketEvent | WebSocketSubscribed) => {
@@ -34,7 +40,11 @@ export function useCatalogSubscription(socketClient: SocketClient) {
         const { setCatalogState } = useFlowStore.getState();
         const payload = (event as WebSocketSubscribed).items[0]?.data as
           CatalogPayload | undefined;
-        setCatalogState(payload?.steps ?? {}, payload?.spaces ?? {});
+        setCatalogState(
+          payload?.steps ?? {},
+          payload?.spaces ?? {},
+          payload?.feeds ?? {}
+        );
         return;
       }
 
@@ -77,11 +87,22 @@ export function useCatalogSubscription(socketClient: SocketClient) {
           if (spaceId) removeSpace(spaceId);
           break;
         }
+        case "feed_registered":
+        case "feed_updated": {
+          const feed = wsEvent.data?.feed;
+          if (feed) setFeed(feed);
+          break;
+        }
+        case "feed_unregistered": {
+          const feedId = wsEvent.data?.feed_id;
+          if (feedId) removeFeed(feedId);
+          break;
+        }
         default:
           break;
       }
     },
-    [addStep, removeStep, updateStep, setStepSpaces]
+    [addStep, removeStep, updateStep, setStepSpaces, setFeed, removeFeed]
   );
 
   useEffect(() => {

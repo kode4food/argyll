@@ -1,6 +1,8 @@
 import { apiConfig } from "@/constants/common";
 import {
   ExecutionPlan,
+  Feed,
+  FeedResponse,
   QueryFlowsResponse,
   QueryFlowsRequest,
   Space,
@@ -109,6 +111,33 @@ export class ArgyllApi {
 
   async unregisterSpace(spaceId: string): Promise<void> {
     await this.request(`/engine/spaces/${spaceId}`, { method: "DELETE" });
+  }
+
+  async getFeed(feedId: string): Promise<FeedResponse> {
+    return this.request(`/engine/feeds/${feedId}`);
+  }
+
+  async registerFeed(feed: Feed): Promise<Feed> {
+    const response = await this.request<{ feed: Feed }>("/engine/feeds", {
+      method: "POST",
+      body: JSON.stringify(feed),
+    });
+    return response.feed;
+  }
+
+  async updateFeed(feedId: string, feed: Feed): Promise<Feed> {
+    const response = await this.request<{ feed: Feed }>(
+      `/engine/feeds/${feedId}`,
+      {
+        method: "PUT",
+        body: JSON.stringify(feed),
+      }
+    );
+    return response.feed;
+  }
+
+  async unregisterFeed(feedId: string): Promise<void> {
+    await this.request(`/engine/feeds/${feedId}`, { method: "DELETE" });
   }
 
   async startFlow(request: StartFlowRequest): Promise<unknown> {

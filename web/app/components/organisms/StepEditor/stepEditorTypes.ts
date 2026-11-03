@@ -1,7 +1,7 @@
 import { AttributeType, InputCollect } from "@/app/api";
 
 export type AttributeRoleType =
-  "required" | "optional" | "const" | "meta" | "output";
+  "required" | "optional" | "const" | "meta" | "feed" | "output";
 
 export interface Label {
   id: string;
@@ -21,6 +21,7 @@ export interface Attribute {
   matchLanguage?: string;
   matchScript?: string;
   metaKey?: string;
+  feedId?: string;
   mappingName?: string;
   mappingLanguage?: string;
   mappingScript?: string;

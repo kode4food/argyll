@@ -1,5 +1,5 @@
 import { ArgyllApi } from "./client";
-import { AttributeRole, AttributeType, Space, Step } from "./types";
+import { AttributeRole, AttributeType, Feed, Space, Step } from "./types";
 
 const fetchMock = jest.fn() as jest.MockedFunction<typeof fetch>;
 global.fetch = fetchMock;
@@ -29,6 +29,14 @@ const space: Space = {
     language: "argyll",
     script: '"domain:risk" in value.tags',
   },
+};
+
+const feed: Feed = {
+  id: "total",
+  name: "Total",
+  value: "0",
+  fold: { language: "lua", script: "return feed + amount" },
+  attributes: ["amount"],
 };
 
 describe("ArgyllApi", () => {
@@ -77,6 +85,48 @@ describe("ArgyllApi", () => {
           init: { input: ["value"] },
         }),
       })
+    );
+  });
+
+  test.each([
+    ["registers", () => api.registerFeed(feed), "POST", "/engine/feeds"],
+    [
+      "updates",
+      () => api.updateFeed(feed.id, feed),
+      "PUT",
+      `/engine/feeds/${feed.id}`,
+    ],
+  ])("%s a Feed", async (_, request, method, path) => {
+    respond({ feed, message: "ok" });
+
+    await expect(request()).resolves.toEqual(feed);
+    expect(fetchMock).toHaveBeenCalledWith(
+      `http://localhost:8080${path}`,
+      expect.objectContaining({ method, body: JSON.stringify(feed) })
+    );
+  });
+
+  test("gets a Feed", async () => {
+    const response = {
+      feed,
+      state: { id: feed.id, version: "v1", value: 3, last_updated: "" },
+    };
+    respond(response);
+
+    await expect(api.getFeed(feed.id)).resolves.toEqual(response);
+    expect(fetchMock).toHaveBeenCalledWith(
+      "http://localhost:8080/engine/feeds/total",
+      expect.anything()
+    );
+  });
+
+  test("unregisters a Feed", async () => {
+    respond({ message: "ok" });
+
+    await api.unregisterFeed(feed.id);
+    expect(fetchMock).toHaveBeenCalledWith(
+      "http://localhost:8080/engine/feeds/total",
+      expect.objectContaining({ method: "DELETE" })
     );
   });
 

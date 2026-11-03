@@ -57,6 +57,11 @@ func TestWorkStatusPolicy(t *testing.T) {
 	assert.True(t, policy.WorkCompUnsettled(api.WorkCompPending))
 	assert.True(t, policy.WorkCompUnsettled(api.WorkCompensating))
 	assert.False(t, policy.WorkCompUnsettled(api.WorkCompensated))
+
+	assert.True(t, policy.WorkEffectStands(api.WorkSucceeded))
+	assert.True(t, policy.WorkEffectStands(api.WorkCompFailed))
+	assert.False(t, policy.WorkEffectStands(api.WorkCompensated))
+	assert.False(t, policy.WorkEffectStands(api.WorkFailed))
 }
 
 func TestTransitionPolicy(t *testing.T) {

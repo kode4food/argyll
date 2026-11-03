@@ -62,6 +62,39 @@ describe("StepEditorAttributesSection", () => {
     );
   });
 
+  test("edits the Feed a feed attribute reads", () => {
+    render(
+      <StepEditorAttributesSection
+        {...baseProps}
+        attributes={[
+          {
+            id: "total",
+            role: "feed" as const,
+            name: "total",
+            dataType: AttributeType.Number,
+            feedId: "order-total",
+          },
+        ]}
+      />
+    );
+
+    const input = screen.getByPlaceholderText(
+      t("stepEditor.feedIdPlaceholder")
+    );
+    expect(input).toHaveValue("order-total");
+    fireEvent.change(input, { target: { value: "grand-total" } });
+    expect(baseProps.updateAttribute).toHaveBeenCalledWith(
+      "total",
+      "feedId",
+      "grand-total"
+    );
+    expect(
+      screen.queryByRole("button", {
+        name: `${t("stepEditor.mappingLabel")} total`,
+      })
+    ).not.toBeInTheDocument();
+  });
+
   test("blocks a duplicate selected inner name", () => {
     render(
       <StepEditorAttributesSection

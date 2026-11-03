@@ -43,6 +43,10 @@ jest.mock("@/app/store/flowStore", () => ({
     setStepSpaces: jest.fn(),
     setSpace: jest.fn(),
     removeSpace: jest.fn(),
+    setFeed: jest.fn(),
+    removeFeed: jest.fn(),
+    setWatchedFeed: jest.fn(),
+    watchedFeed: null,
     initializeExecutions: jest.fn(),
     updateExecution: jest.fn(),
     updateWorkItem: jest.fn(),
@@ -111,6 +115,9 @@ describe("WebSocketProvider", () => {
           "space_registered",
           "space_unregistered",
           "space_updated",
+          "feed_registered",
+          "feed_unregistered",
+          "feed_updated",
         ],
       },
       expect.any(Function)
@@ -295,8 +302,30 @@ describe("WebSocketProvider", () => {
           },
         },
         selected: { risk: ["step-1"] },
-      }
+      },
+      {}
     );
+  });
+
+  test("dispatches catalog events to feed handlers", () => {
+    const client = makeClient();
+    useWebSocketClientMock.mockReturnValue(client);
+
+    render(
+      <WebSocketProvider>
+        <div>child</div>
+      </WebSocketProvider>
+    );
+
+    const catalogHandler = client.subscribe.mock.calls[0][1];
+    catalogHandler({ type: "feed_registered", data: { feed: { id: "a" } } });
+    catalogHandler({ type: "feed_updated", data: { feed: { id: "b" } } });
+    catalogHandler({ type: "feed_unregistered", data: { feed_id: "c" } });
+
+    const flowStore = require("@/app/store/flowStore");
+    expect(flowStore.__storeState.setFeed).toHaveBeenCalledWith({ id: "a" });
+    expect(flowStore.__storeState.setFeed).toHaveBeenCalledWith({ id: "b" });
+    expect(flowStore.__storeState.removeFeed).toHaveBeenCalledWith("c");
   });
 
   test("initializes health from cluster subscribed state", () => {

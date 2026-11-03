@@ -17,6 +17,7 @@ export const argTypeTitleKey: Record<ArgType, string> = {
   optional: "attribute.roleOptional",
   const: "attribute.roleConst",
   meta: "attribute.roleMeta",
+  feed: "attribute.roleFeed",
   output: "attribute.roleOutput",
 };
 

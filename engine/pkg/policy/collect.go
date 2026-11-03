@@ -80,10 +80,10 @@ func StepOutputsSatisfied(st *api.Step, satisfied func(api.Name) bool) bool {
 }
 
 // StepInputGuaranteed reports whether an input is guaranteed to have a value
-// when planning a child flow. Required inputs, const inputs, meta inputs, and
-// optional inputs with defaults are guaranteed
+// when planning a child flow. Required inputs, const inputs, meta inputs, feed
+// inputs, and optional inputs with defaults are guaranteed
 func StepInputGuaranteed(attr *api.AttributeSpec) bool {
-	if attr.IsRequired() || attr.IsConst() || attr.IsMeta() {
+	if attr.IsRequired() || attr.IsConst() || attr.IsMeta() || attr.IsFeed() {
 		return true
 	}
 	return attr.IsOptional() && attr.OptionalDefault() != ""

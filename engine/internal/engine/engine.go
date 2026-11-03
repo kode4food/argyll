@@ -28,6 +28,7 @@ type (
 		steps       *step.Registry
 		mapper      *Mapper
 		flowExec    *FlowExecutor
+		feedExec    *FeedExecutor
 		engStore    *timebox.Store
 		flowStore   *timebox.Store
 		config      *config.Config
@@ -73,6 +74,12 @@ type (
 
 	// FlowAggregator aggregates flow state from events
 	FlowAggregator = timebox.Aggregator[api.FlowState]
+
+	// FeedExecutor manages the folded value of one Feed definition version
+	FeedExecutor = timebox.Executor[api.FeedState]
+
+	// FeedAggregator aggregates Feed state from events
+	FeedAggregator = timebox.Aggregator[api.FeedState]
 )
 
 const storeReadyTimeout = 5 * time.Second
@@ -180,6 +187,9 @@ func (e *Engine) openStores(open OpenBackend) error {
 	)
 	e.flowExec = flowStore.Executor(
 		events.NewFlowState, events.FlowAppliers.Reduce,
+	)
+	e.feedExec = flowStore.Executor(
+		events.NewFeedState, events.FeedAppliers.Reduce,
 	)
 	return nil
 }

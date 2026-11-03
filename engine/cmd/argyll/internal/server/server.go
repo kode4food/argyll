@@ -95,6 +95,13 @@ func (s *Server) SetupRoutes() *gin.Engine {
 		eng.PUT("/spaces/:space_id", s.updateSpace)
 		eng.DELETE("/spaces/:space_id", s.deleteSpace)
 
+		// Feed endpoints
+		eng.GET("/feeds", s.listFeeds)
+		eng.POST("/feeds", s.createFeed)
+		eng.GET("/feeds/:feed_id", s.getFeed)
+		eng.PUT("/feeds/:feed_id", s.updateFeed)
+		eng.DELETE("/feeds/:feed_id", s.deleteFeed)
+
 		// Health endpoints
 		eng.GET("/health", s.handleEngineHealth)
 		eng.GET("/health/:step_id", s.handleEngineHealthByID)

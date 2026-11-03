@@ -61,3 +61,19 @@ func TestSpaceSubFlowReferences(t *testing.T) {
 		assert.NoError(t, eng.UnregisterSpace(sp.ID))
 	})
 }
+
+func TestSpaceFeedReferences(t *testing.T) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		withProvider(t, env)
+		assert.NoError(t, env.Engine.RegisterSpace(billingSpace()))
+		f := newTestFeed()
+		f.SpaceID = "billing"
+		assert.NoError(t, env.Engine.RegisterFeed(f))
+
+		err := env.Engine.UnregisterSpace("billing")
+		assert.ErrorIs(t, err, engine.ErrSpaceInUse)
+
+		assert.NoError(t, env.Engine.UnregisterFeed(f.ID))
+		assert.NoError(t, env.Engine.UnregisterSpace("billing"))
+	})
+}

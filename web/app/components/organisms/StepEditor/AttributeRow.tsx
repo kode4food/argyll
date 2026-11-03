@@ -5,6 +5,7 @@ import DurationInput from "@/app/components/molecules/DurationInput";
 import ScriptLanguageInlineInput from "@/app/components/molecules/ScriptLanguageInlineInput";
 import SegmentedGroup from "@/app/components/molecules/SegmentedGroup";
 import { useT } from "@/app/i18n";
+import { useFeeds } from "@/app/store/flowStore";
 import {
   IconArrayMultiple,
   IconArraySingle,
@@ -30,6 +31,8 @@ import IconDropdown, { type IconDropdownOption } from "./IconDropdown";
 import InlineSelectDropdown, {
   type InlineSelectOption,
 } from "./InlineSelectDropdown";
+
+const NO_MAPPING_ROLES = new Set<Attribute["role"]>(["const", "meta", "feed"]);
 
 interface AttributeRowProps {
   attr: Attribute;
@@ -57,6 +60,8 @@ const AttributeRow: React.FC<AttributeRowProps> = ({
   removeAttribute,
 }) => {
   const t = useT();
+  const feeds = useFeeds();
+  const feedIds = React.useMemo(() => feeds.map((f) => f.id), [feeds]);
   const [isMappingExpanded, setIsMappingExpanded] = React.useState(false);
 
   const collect =
@@ -64,6 +69,7 @@ const AttributeRow: React.FC<AttributeRowProps> = ({
       ? attr.collect
       : "first";
   const canCollect = attr.role === "required" || attr.role === "optional";
+  const hasMapping = !NO_MAPPING_ROLES.has(attr.role);
   const hasMappingConfigured = Boolean(
     attr.mappingName?.trim() || attr.mappingScript?.trim()
   );
@@ -229,6 +235,15 @@ const AttributeRow: React.FC<AttributeRowProps> = ({
             className={formStyles.argValueInput}
           />
         )}
+        {attr.role === "feed" && (
+          <ComboInput
+            value={attr.feedId || ""}
+            suggestions={feedIds}
+            onChange={(v) => updateAttribute(attr.id, "feedId", v)}
+            placeholder={t("stepEditor.feedIdPlaceholder")}
+            className={formStyles.argValueInput}
+          />
+        )}
         {(attr.role === "required" || attr.role === "optional") && (
           <ScriptLanguageInlineInput
             ariaLabel={t("stepEditor.matchLanguageLabel")}
@@ -266,7 +281,7 @@ const AttributeRow: React.FC<AttributeRowProps> = ({
             className={`${formStyles.argInput} ${formStyles.argValueInput}`}
           />
         )}
-        {attr.role !== "const" && attr.role !== "meta" && (
+        {hasMapping && (
           <button
             type="button"
             onClick={() => setIsMappingExpanded((current) => !current)}
@@ -293,7 +308,7 @@ const AttributeRow: React.FC<AttributeRowProps> = ({
           <IconRemove className={styles.iconSm} />
         </button>
       </div>
-      {isMappingExpanded && attr.role !== "const" && attr.role !== "meta" && (
+      {isMappingExpanded && hasMapping && (
         <AttributeMappingPanel
           attr={attr}
           stepType={stepType}

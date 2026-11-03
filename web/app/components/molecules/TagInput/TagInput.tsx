@@ -8,6 +8,8 @@ const MAX_SUGGESTIONS = 8;
 const MIN_SUGGESTION_CHARACTERS = 1;
 
 export interface TagInputProps {
+  // Rejects any tag that is not one of the suggestions
+  shouldEnforceSuggestions?: boolean;
   Icon: LucideIcon;
   // Omitted when the caller heads a group of inputs with a label of its own
   label?: string;
@@ -39,6 +41,7 @@ const tagTemplate = (removeLabel: string) => (tagData: Tagify.TagData) => {
 };
 
 const TagInput: React.FC<TagInputProps> = ({
+  shouldEnforceSuggestions = false,
   Icon,
   label,
   onChange,
@@ -62,6 +65,9 @@ const TagInput: React.FC<TagInputProps> = ({
       // A repeat of a tag already there is dropped outright, rather than
       // added and then taken back a second later
       skipInvalid: true,
+      enforceWhitelist: shouldEnforceSuggestions,
+      // Seeded here, so the initial tags pass the whitelist they load against
+      whitelist: [...suggestions],
       dropdown: {
         // A dialog renders in the top layer, so a body-level dropdown would
         // come up behind it

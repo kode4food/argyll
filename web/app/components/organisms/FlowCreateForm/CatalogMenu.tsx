@@ -1,0 +1,97 @@
+import React from "react";
+import FeedManager from "@/app/components/organisms/FeedManager";
+import SpaceManager from "@/app/components/organisms/SpaceManager";
+import { useAnchoredList } from "@/app/hooks/useAnchoredList";
+import useDropdown from "@/app/hooks/useDropdown";
+import { useT } from "@/app/i18n";
+import dropdownStyles from "@/app/styles/components/dropdown.module.css";
+import { IconFeed, IconManage, IconSpace } from "@/utils/iconRegistry";
+import styles from "./FlowCreateForm.module.css";
+
+type CatalogManager = "spaces" | "feeds";
+
+const CATALOG_ITEMS = [
+  { value: "spaces", labelKey: "spaceManager.title", Icon: IconSpace },
+  { value: "feeds", labelKey: "feedManager.title", Icon: IconFeed },
+] as const;
+
+const CatalogMenu: React.FC = () => {
+  const t = useT();
+  const [manager, setManager] = React.useState<CatalogManager | null>(null);
+  const {
+    open,
+    setOpen,
+    highlightedIndex,
+    setHighlightedIndex,
+    wrapperRef,
+    handleKeyDown,
+  } = useDropdown([...CATALOG_ITEMS], "", (value) =>
+    setManager(value as CatalogManager)
+  );
+
+  const listRef = React.useRef<HTMLDivElement>(null);
+  useAnchoredList({
+    isOpen: open,
+    anchorRef: wrapperRef,
+    listRef,
+    align: "end",
+  });
+
+  return (
+    <div
+      ref={wrapperRef}
+      className={styles.catalogMenu}
+      onKeyDown={handleKeyDown}
+    >
+      <button
+        type="button"
+        className={styles.spaceManageButton}
+        onClick={() => setOpen((isOpen) => !isOpen)}
+        title={t("flowCreate.catalogMenu")}
+        aria-label={t("flowCreate.catalogMenu")}
+        aria-expanded={open}
+        aria-haspopup="menu"
+      >
+        <IconManage className={styles.spaceManageIcon} />
+      </button>
+      {open && (
+        <div
+          ref={listRef}
+          className={dropdownStyles.list}
+          role="menu"
+          data-ui-overlay="dropdown"
+        >
+          {CATALOG_ITEMS.map(({ value, labelKey, Icon }, index) => (
+            <button
+              key={value}
+              type="button"
+              role="menuitem"
+              className={`${dropdownStyles.item} ${
+                index === highlightedIndex ? dropdownStyles.itemHighlighted : ""
+              }`}
+              onMouseEnter={() => setHighlightedIndex(index)}
+              onClick={() => {
+                setManager(value);
+                setOpen(false);
+              }}
+            >
+              <span className={dropdownStyles.itemIcon}>
+                <Icon className={styles.spaceManageIcon} />
+              </span>
+              <span className={dropdownStyles.itemLabel}>{t(labelKey)}</span>
+            </button>
+          ))}
+        </div>
+      )}
+      <SpaceManager
+        isOpen={manager === "spaces"}
+        onClose={() => setManager(null)}
+      />
+      {manager === "feeds" && (
+        <FeedManager isOpen onClose={() => setManager(null)} />
+      )}
+    </div>
+  );
+};
+
+export default CatalogMenu;

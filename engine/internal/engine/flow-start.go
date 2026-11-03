@@ -128,11 +128,16 @@ func (tx *flowTx) startPlan(pl *api.ExecutionPlan, opts *flow.Options) error {
 		}
 		return api.ErrFlowExists
 	}
+	feeds, err := tx.snapshotFeeds(pl)
+	if err != nil {
+		return err
+	}
 	if err := events.Raise(tx.FlowAggregator, api.EventTypeFlowStarted,
 		api.FlowStartedEvent{
 			FlowID:   tx.flowID,
 			Plan:     pl,
 			Init:     opts.Init,
+			Feeds:    feeds,
 			Metadata: opts.Metadata,
 			Tags:     opts.Tags,
 		},

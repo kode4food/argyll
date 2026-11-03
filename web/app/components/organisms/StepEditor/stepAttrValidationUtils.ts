@@ -49,6 +49,13 @@ export function validateAttributesList(
         vars: { name: attr.name },
       };
     }
+
+    if (attr.role === "feed" && !attr.feedId?.trim()) {
+      return {
+        key: "stepEditor.feedIdRequired",
+        vars: { name: attr.name },
+      };
+    }
   }
   return null;
 }
@@ -64,10 +71,9 @@ export function validateMappings(
     const mappingScript = attr.mappingScript?.trim() || "";
     const mappingLanguage = attr.mappingLanguage?.trim() || "";
 
-    if (
-      (attr.role === "const" || attr.role === "meta") &&
-      (mappingName || mappingScript)
-    ) {
+    const isEngineSupplied =
+      attr.role === "const" || attr.role === "meta" || attr.role === "feed";
+    if (isEngineSupplied && (mappingName || mappingScript)) {
       return {
         key: "stepEditor.constMappingNotAllowed",
         vars: { name: attr.name },

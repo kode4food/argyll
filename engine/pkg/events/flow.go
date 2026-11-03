@@ -140,6 +140,7 @@ func flowStarted(
 		Metadata:    data.Metadata,
 		Tags:        data.Tags,
 		Attributes:  attributes,
+		Feeds:       data.Feeds,
 		Init:        slices.Sorted(maps.Keys(data.Init)),
 		Executions:  execs,
 		CreatedAt:   ev.Timestamp,

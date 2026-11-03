@@ -206,6 +206,10 @@ func (tx *flowTx) collectStepInputs(
 			inputs[name] = parseDefaultValue(attr.ConstValue())
 			continue
 		}
+		if attr.IsFeed() {
+			inputs[name] = fl.Feeds[attr.FeedID()]
+			continue
+		}
 		if !attr.IsInput() {
 			continue
 		}

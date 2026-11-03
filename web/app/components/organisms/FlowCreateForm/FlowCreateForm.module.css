@@ -91,6 +91,10 @@
   composes: iconBox from "@/app/styles/components/icon.module.css";
 }
 
+.catalogMenu {
+  flex-shrink: 0;
+}
+
 .panelFooter {
   display: flex;
   flex-direction: column;

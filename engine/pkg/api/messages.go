@@ -109,6 +109,24 @@ type (
 		Count  int     `json:"count"`
 	}
 
+	// FeedRegisteredResponse is returned when a Feed write succeeds
+	FeedRegisteredResponse struct {
+		Feed    *Feed  `json:"feed"`
+		Message string `json:"message"`
+	}
+
+	// FeedsListResponse contains a list of Feeds
+	FeedsListResponse struct {
+		Feeds []*Feed `json:"feeds"`
+		Count int     `json:"count"`
+	}
+
+	// FeedResponse contains a Feed definition and its current value
+	FeedResponse struct {
+		Feed  *Feed     `json:"feed"`
+		State FeedState `json:"state"`
+	}
+
 	// HealthResponse provides service health information
 	HealthResponse struct {
 		Service string         `json:"service"`

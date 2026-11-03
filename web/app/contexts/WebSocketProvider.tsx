@@ -3,6 +3,7 @@ import { useWebSocketClient } from "@/app/hooks/useWebSocketClient";
 import { useFlowStore } from "@/app/store/flowStore";
 import { useCatalogSubscription } from "./useCatalogSubscription";
 import { useClusterSubscription } from "./useClusterSubscription";
+import { useFeedSubscription } from "./useFeedSubscription";
 import { useFlowSummarySubscription } from "./useFlowSummarySubscription";
 import { useFlowSubscription } from "./useFlowSubscription";
 import { useEngineConnectionSync } from "./useEngineConnectionSync";
@@ -15,6 +16,7 @@ const WebSocketProvider = ({ children }: { children: React.ReactNode }) => {
 
   useCatalogSubscription(socketClient);
   useClusterSubscription(socketClient);
+  useFeedSubscription(socketClient);
   useFlowSummarySubscription(socketClient, visibleFlowIDs);
   useFlowSubscription(socketClient, selectedFlow);
   useEngineConnectionSync(socketClient);

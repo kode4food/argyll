@@ -37,6 +37,7 @@ import {
   Play,
   Plus,
   RefreshCw,
+  Rss,
   Search,
   Server,
   Split,
@@ -57,7 +58,8 @@ import {
 } from "lucide-react";
 import { Step, StepType } from "@/app/api";
 
-export type ArgType = "required" | "optional" | "const" | "meta" | "output";
+export type ArgType =
+  "required" | "optional" | "const" | "meta" | "feed" | "output";
 
 export interface ArgIconConfig {
   Icon: LucideIcon;
@@ -111,9 +113,11 @@ export const IconAttributeRequired = ArrowRight;
 export const IconAttributeOptional = CircleHelp;
 export const IconAttributeConst = Lock;
 export const IconAttributeMeta = Tag;
+export const IconAttributeFeed = Rss;
 export const IconAttributeOutput = ArrowLeft;
 export const IconAttributeLabel = Tags;
 export const IconSpace = Boxes;
+export const IconFeed = Rss;
 export const IconManage = Ellipsis;
 
 /* Step editor section headers */
@@ -145,6 +149,7 @@ const ARG_ICON_MAP: Record<ArgType, ArgIconConfig> = {
   optional: { Icon: IconAttributeOptional, className: "arg-icon optional" },
   const: { Icon: IconAttributeConst, className: "arg-icon const" },
   meta: { Icon: IconAttributeMeta, className: "arg-icon meta" },
+  feed: { Icon: IconAttributeFeed, className: "arg-icon feed" },
   output: { Icon: IconAttributeOutput, className: "arg-icon output" },
 };
 

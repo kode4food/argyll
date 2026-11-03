@@ -21,6 +21,7 @@ const ATTR_ROLE_TYPE: Record<AttributeRole, AttributeRoleType> = {
   [AttributeRole.Optional]: "optional",
   [AttributeRole.Const]: "const",
   [AttributeRole.Meta]: "meta",
+  [AttributeRole.Feed]: "feed",
   [AttributeRole.Output]: "output",
 };
 
@@ -29,6 +30,7 @@ const ATTR_ID_PREFIX: Record<AttributeRole, string> = {
   [AttributeRole.Optional]: "optional",
   [AttributeRole.Const]: "const",
   [AttributeRole.Meta]: "meta",
+  [AttributeRole.Feed]: "feed",
   [AttributeRole.Output]: "output",
 };
 
@@ -71,6 +73,7 @@ function buildSingleAttribute(
     matchLanguage: inputConfig?.match?.language,
     matchScript: inputConfig?.match?.script,
     metaKey: spec.role === AttributeRole.Meta ? spec.meta?.key : undefined,
+    feedId: spec.role === AttributeRole.Feed ? spec.feed?.id : undefined,
     mappingName: mappingConfig?.name,
     mappingLanguage: mappingConfig?.script?.language,
     mappingScript: mappingConfig?.script?.script,
@@ -140,6 +143,7 @@ const ROLE_MAP: Record<AttributeRoleType, AttributeRole> = {
   optional: AttributeRole.Optional,
   const: AttributeRole.Const,
   meta: AttributeRole.Meta,
+  feed: AttributeRole.Feed,
   output: AttributeRole.Output,
 };
 
@@ -163,6 +167,8 @@ export function createStepAttributes(
       if (a.defaultValue?.trim()) spec.const = { value: a.defaultValue.trim() };
     } else if (a.role === "meta") {
       if (a.metaKey?.trim()) spec.meta = { key: a.metaKey.trim() };
+    } else if (a.role === "feed") {
+      if (a.feedId?.trim()) spec.feed = { id: a.feedId.trim() };
     } else if (a.role === "output") {
       if (mapping) spec.output = { mapping };
     }

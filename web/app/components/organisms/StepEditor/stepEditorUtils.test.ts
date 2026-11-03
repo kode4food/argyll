@@ -50,6 +50,11 @@ describe("stepEditorUtils", () => {
           type: AttributeType.String,
           meta: { key: "request_id" },
         },
+        feed_arg: {
+          role: AttributeRole.Feed,
+          type: AttributeType.Number,
+          feed: { id: "order-total" },
+        },
         output_arg: {
           role: AttributeRole.Output,
           type: AttributeType.String,
@@ -85,6 +90,9 @@ describe("stepEditorUtils", () => {
       })
     );
     expect(result.meta_arg.metaKey).toBe("request_id");
+    expect(result.feed_arg).toEqual(
+      expect.objectContaining({ role: "feed", feedId: "order-total" })
+    );
     expect(result.output_arg.mappingName).toBe("child_out");
     expect(buildAttributesFromStep(null)).toEqual([]);
   });
@@ -148,6 +156,11 @@ describe("stepEditorUtils", () => {
       { key: "stepEditor.constDefaultRequired", vars: { name: "flag" } },
     ],
     [
+      "missing Feed IDs",
+      [attribute({ role: "feed", name: "total", feedId: " " })],
+      { key: "stepEditor.feedIdRequired", vars: { name: "total" } },
+    ],
+    [
       "optional attributes without defaults",
       [attribute({ role: "optional", name: "maybe" })],
       null,
@@ -195,6 +208,12 @@ describe("stepEditorUtils", () => {
         metaKey: " request_id ",
       }),
       attribute({
+        id: "attr-6",
+        role: "feed",
+        name: "total",
+        feedId: " order-total ",
+      }),
+      attribute({
         id: "attr-5",
         role: "output",
         name: "output",
@@ -220,6 +239,11 @@ describe("stepEditorUtils", () => {
     expect(result.optional.optional).toEqual({ default: "10", deadline: 3000 });
     expect(result.constant.const).toEqual({ value: '"fixed"' });
     expect(result.metadata.meta).toEqual({ key: "request_id" });
+    expect(result.total).toEqual({
+      role: AttributeRole.Feed,
+      type: AttributeType.String,
+      feed: { id: "order-total" },
+    });
     expect(result.output.output?.mapping?.script).toEqual({
       language: "argyll",
       script: "output.result",
@@ -329,6 +353,20 @@ describe("stepEditorUtils", () => {
         ],
       },
       { key: "stepEditor.constMappingNotAllowed", vars: { name: "constant" } },
+    ],
+    [
+      "Feed mappings",
+      {
+        attributes: [
+          attribute({
+            role: "feed",
+            name: "total",
+            feedId: "order-total",
+            mappingName: "illegal",
+          }),
+        ],
+      },
+      { key: "stepEditor.constMappingNotAllowed", vars: { name: "total" } },
     ],
     [
       "missing mapping language",

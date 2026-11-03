@@ -201,6 +201,7 @@ func (e *Engine) validateStepUpsert(
 	if err := call.Perform(
 		call.WithArgs(validateAttributeTypes, cat, newStep),
 		call.WithArgs(e.validateSpaceSubFlows, cat, newStep),
+		call.WithArgs(validateStepFeeds, cat, newStep),
 		func() error { return detectStepCycles(cat, newStep, children) },
 	); err != nil {
 		return fmt.Errorf("%w: %w", api.ErrInvalidStep, err)

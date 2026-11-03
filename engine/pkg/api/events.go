@@ -38,6 +38,38 @@ type (
 		SpaceID SpaceID `json:"space_id"`
 	}
 
+	// FeedRegisteredEvent is emitted when a Feed is registered
+	FeedRegisteredEvent struct {
+		Feed *Feed `json:"feed"`
+	}
+
+	// FeedUpdatedEvent is emitted when a Feed definition is replaced
+	FeedUpdatedEvent struct {
+		Feed *Feed `json:"feed"`
+	}
+
+	// FeedUnregisteredEvent is emitted when a Feed is removed
+	FeedUnregisteredEvent struct {
+		FeedID FeedID `json:"feed_id"`
+	}
+
+	// FeedFoldedEvent records the value one contribution produced
+	FeedFoldedEvent struct {
+		Value   any    `json:"value"`
+		FeedID  FeedID `json:"feed_id"`
+		Version string `json:"version"`
+	}
+
+	// FeedFoldFailedEvent records a contribution the fold rejected
+	FeedFoldFailedEvent struct {
+		Outputs Args   `json:"outputs"`
+		FeedID  FeedID `json:"feed_id"`
+		Version string `json:"version"`
+		FlowID  FlowID `json:"flow_id"`
+		StepID  StepID `json:"step_id"`
+		Error   string `json:"error"`
+	}
+
 	// StepHealthChangedEvent is emitted when a step's health status changes
 	StepHealthChangedEvent struct {
 		NodeID NodeID       `json:"node_id"`
@@ -50,6 +82,7 @@ type (
 	FlowStartedEvent struct {
 		Plan     *ExecutionPlan `json:"plan"`
 		Init     InitArgs       `json:"init"`
+		Feeds    FeedValues     `json:"feeds,omitempty"`
 		Metadata Metadata       `json:"metadata,omitempty"`
 		Tags     Tags           `json:"tags,omitempty"`
 		FlowID   FlowID         `json:"flow_id"`
@@ -207,6 +240,11 @@ const (
 	EventTypeSpaceRegistered    EventType = "space_registered"
 	EventTypeSpaceUpdated       EventType = "space_updated"
 	EventTypeSpaceUnregistered  EventType = "space_unregistered"
+	EventTypeFeedRegistered     EventType = "feed_registered"
+	EventTypeFeedUpdated        EventType = "feed_updated"
+	EventTypeFeedUnregistered   EventType = "feed_unregistered"
+	EventTypeFeedFolded         EventType = "feed_folded"
+	EventTypeFeedFoldFailed     EventType = "feed_fold_failed"
 	EventTypeStepHealthChanged  EventType = "step_health_changed"
 	EventTypeFlowDeactivated    EventType = "flow_deactivated"
 	EventTypeFlowStarted        EventType = "flow_started"

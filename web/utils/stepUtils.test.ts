@@ -33,6 +33,7 @@ describe("stepUtils", () => {
       const1: attr(AttributeRole.Const),
       optional1: attr(AttributeRole.Optional),
       meta1: attr(AttributeRole.Meta),
+      feed1: attr(AttributeRole.Feed),
       zOutput: attr(AttributeRole.Output),
       aOutput: attr(AttributeRole.Output),
     };
@@ -45,6 +46,7 @@ describe("stepUtils", () => {
       "const1",
       "optional1",
       "meta1",
+      "feed1",
       "aOutput",
       "zOutput",
     ]);

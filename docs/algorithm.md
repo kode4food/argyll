@@ -90,6 +90,7 @@ REDUCE(flow, event):
         create ACTIVE flow and PENDING execution for each planned step
         record every init name, including names declared with zero values
         append each init value with SetAt = event.timestamp and no producer
+        record the Feed snapshot carried by the event
         set createdAt and lastUpdated
     step_started:
         freeze step inputs and create PENDING work items with assigned tokens
@@ -236,7 +237,8 @@ START_PLAN(id, plan, options):
         IF flow already exists:
             IF original start matches id, goal sets, and init: RETURN
             RETURN flow-already-exists error
-        EMIT flow_started(plan, init, metadata, tags)
+        feeds := SNAPSHOT_FEEDS(plan)
+        EMIT flow_started(plan, init, feeds, metadata, tags)
         ADVANCE_FLOW()
 ```
 
@@ -756,6 +758,7 @@ CHECK_STEP_COMPLETION(step):
         EMIT attribute_set(step, name, value)
     EMIT step_completed(retained outputs,
                         duration = MAX(0, tx.now - step.startedAt))
+    FOLD_COMPLETED_FEEDS(step, outputs)
     RETURN SETTLED
 
 COLLECT_STEP_OUTPUTS(step):
@@ -937,6 +940,7 @@ MAYBE_DEACTIVATE():
     IF succeeded work still requires supported compensation: RETURN
     IF parent has not released this child: RETURN
     EMIT flow_deactivated(current terminal status)
+    FOLD_SETTLED_FEEDS()
     FOR each child identified by a nested-flow work token:
         join child in the same transaction
         MAYBE_DEACTIVATE(child)
@@ -948,6 +952,56 @@ PARENT_RELEASED(child, parent):
 ```
 
 A terminal flow has an outcome. A deactivated flow also has no outstanding work, compensation, or parent retention. Successful child flows can remain retained while the parent may still request rollback.
+
+## Feeds
+
+Sources: [feed-fold.go](../engine/internal/engine/feed-fold.go), [feeds.go](../engine/internal/engine/feeds.go), [plan feeds](../engine/pkg/plan/feeds.go).
+
+A Feed folds settled values of its output Attributes, from every Flow, into one Catalog-wide value. Any Step that outputs one of them contributes, limited to a Space's Steps when the Feed names one. Steps read a Feed through a `feed` Attribute. A Step can't register against an undefined Feed, and a Feed or Space that something refers to can't be unregistered. Feeds never retract, so only uncompensatable outputs fold.
+
+```text
+FEED_KEY(feed): the Feed ID joined with a hash of its seed, fold, sorted
+    Attributes, and Space
+    a definition change starts a new key whose value begins at the seed
+    flows planned under the old definition keep folding into the old key
+
+PLAN_FEEDS(catalog, steps):
+    FOR each planned Step with a feed Attribute:
+        the Feed it names, which registration guarantees, joins the plan
+    FOR each Feed in the catalog:
+        sources := planned Steps that output one of the Feed's Attributes
+            and, when the Feed names a Space, that the Space selects
+        IF sources is not empty: the Feed joins the plan with its sources
+
+SNAPSHOT_FEEDS(plan):
+    FOR each Feed read by a planned Step through a feed Attribute:
+        value := the Feed's value at FEED_KEY, or its seed if it never folded
+    RETURN values by Feed ID
+
+FOLD_COMPLETED_FEEDS(step, produced):
+    IF the plan has no Feeds: RETURN
+    IF step has a compensator: RETURN
+    FOLD_FEEDS(step, produced)
+
+FOLD_SETTLED_FEEDS():
+    FOR each COMPLETED step with a compensator:
+        kept := work items that are SUCCEEDED or COMP_FAILED
+        FOLD_FEEDS(step, COLLECT_STEP_OUTPUTS over kept)
+
+FOLD_FEEDS(step, produced):
+    FOR each Feed in the plan, in ID order:
+        IF step is not among the Feed's planned sources: CONTINUE
+        outputs := produced values whose names are Feed Attributes
+        IF outputs is empty: CONTINUE
+        join the Feed's aggregate in this transaction
+        current := its value, or the seed if it never folded
+        result := evaluate fold once with feed bound to current
+            and all matching outputs bound by name
+        IF evaluation or serialization failed: EMIT feed_fold_failed(outputs, error)
+        ELSE IF result differs from current: EMIT feed_folded(result)
+```
+
+Folds commit with `step_completed` or `flow_deactivated`, so each contribution lands once. They use the Step's produced outputs, since the Flow drops outputs nothing consumes. A failed fold leaves the value as it was and the Flow unaffected. A Step with a compensator contributes at deactivation, and only its uncompensated work. Each Flow, child Flows included, reads the snapshot it took at start, and folds under the Space membership it was planned with.
 
 ## Compensation
 

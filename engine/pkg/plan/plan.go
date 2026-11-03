@@ -171,6 +171,7 @@ func build(args planArgs) (*api.ExecutionPlan, error) {
 		Required:   pb.getRequiredInputs(),
 		Steps:      pb.steps,
 		Attributes: pb.attributes,
+		Feeds:      planFeeds(&args.catalog, pb.steps),
 		Excluded:   excluded,
 	}, nil
 }

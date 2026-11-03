@@ -60,6 +60,10 @@ describe("attributeUtils", () => {
       expect(getAttributeTooltipTitle("output")).toBe("liveStep.outputValue");
     });
 
+    it("returns key for feed attributes", () => {
+      expect(getAttributeTooltipTitle("feed")).toBe("liveStep.feedValue");
+    });
+
     it("returns key for const attributes", () => {
       expect(getAttributeTooltipTitle("const")).toBe("liveStep.defaultValue");
     });

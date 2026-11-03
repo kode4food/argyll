@@ -36,8 +36,8 @@ func (tx *flowTx) checkStepCompletion(sid api.StepID) (bool, error) {
 	}
 
 	st := fl.Plan.Steps[sid]
-	outputs := tx.collectStepOutputs(ex.WorkItems, st)
-	outputs = tx.consumedOutputs(st, outputs, &fl)
+	produced := tx.collectStepOutputs(ex.WorkItems, st)
+	outputs := tx.consumedOutputs(st, produced, &fl)
 	dur := max(tx.Now().Sub(ex.StartedAt).Milliseconds(), int64(0))
 
 	for key, value := range outputs {
@@ -56,14 +56,17 @@ func (tx *flowTx) checkStepCompletion(sid api.StepID) (bool, error) {
 		}
 	}
 
-	return true, events.Raise(tx.FlowAggregator, api.EventTypeStepCompleted,
+	if err := events.Raise(tx.FlowAggregator, api.EventTypeStepCompleted,
 		api.StepCompletedEvent{
 			FlowID:   tx.flowID,
 			StepID:   sid,
 			Outputs:  outputs,
 			Duration: dur,
 		},
-	)
+	); err != nil {
+		return false, err
+	}
+	return true, tx.foldCompletedFeeds(st, produced)
 }
 
 func (tx *flowTx) consumedOutputs(

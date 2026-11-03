@@ -3,6 +3,8 @@ import { devtools } from "zustand/middleware";
 import {
   ExecutionPlan,
   ExecutionResult,
+  Feed,
+  FeedState,
   FlowContext,
   FlowSummary,
   Space,
@@ -45,6 +47,8 @@ export interface CatalogSpaces {
   selected?: Record<string, string[]>;
 }
 
+const compareFeeds = (a: Feed, b: Feed) => a.name.localeCompare(b.name);
+
 declare global {
   interface Window {
     flowStore?: typeof useFlowStore;
@@ -56,6 +60,9 @@ interface FlowState {
   spaces: Space[];
   // Step IDs each Space selects, projected by the engine
   spaceSelection: Record<string, Set<string>>;
+  feeds: Feed[];
+  // The one Feed whose folded value is streamed while it is being viewed
+  watchedFeed: FeedState | null;
   healthByNode: Record<string, Record<string, StepHealthInfo>>;
   stepHealth: Record<string, StepHealthInfo>;
   healthNodeIds: string[];
@@ -102,9 +109,13 @@ interface FlowState {
   setStepSpaces: (stepId: string, spaces: string[]) => void;
   setSpace: (space: Space, stepIds: string[]) => void;
   removeSpace: (spaceId: string) => void;
+  setFeed: (feed: Feed) => void;
+  removeFeed: (feedId: string) => void;
+  setWatchedFeed: (state: FeedState | null) => void;
   setCatalogState: (
     steps: Record<string, Step>,
-    spaces?: CatalogSpaces
+    spaces?: CatalogSpaces,
+    feeds?: Record<string, Feed>
   ) => void;
   setHealthState: (
     healthByNode: Record<string, Record<string, StepHealthInfo>>
@@ -118,6 +129,8 @@ export const useFlowStore = create<FlowState>()(
       steps: [],
       spaces: [],
       spaceSelection: {},
+      feeds: [],
+      watchedFeed: null,
       healthByNode: {},
       stepHealth: {},
       healthNodeIds: [],
@@ -374,6 +387,24 @@ export const useFlowStore = create<FlowState>()(
         });
       },
 
+      setFeed: (feed: Feed) => {
+        set((state) => ({
+          feeds: [...state.feeds.filter((f) => f.id !== feed.id), feed].sort(
+            compareFeeds
+          ),
+        }));
+      },
+
+      removeFeed: (feedId: string) => {
+        set((state) => ({
+          feeds: state.feeds.filter((f) => f.id !== feedId),
+        }));
+      },
+
+      setWatchedFeed: (watchedFeed: FeedState | null) => {
+        set({ watchedFeed });
+      },
+
       setStepSpaces: (stepId: string, spaces: string[]) => {
         set((state) => {
           const next: Record<string, Set<string>> = {};
@@ -401,10 +432,11 @@ export const useFlowStore = create<FlowState>()(
         set({ visibleFlowIDs: flowIDs });
       },
 
-      setCatalogState: (steps, spaces) => {
+      setCatalogState: (steps, spaces, feeds) => {
         const nextSteps = Object.values(steps).sort(compareSteps);
         set({
           steps: nextSteps,
+          ...(feeds && { feeds: Object.values(feeds).sort(compareFeeds) }),
           ...(spaces && {
             spaces: Object.values(spaces.defined ?? {}).sort((a, b) =>
               a.name.localeCompare(b.name)
@@ -470,6 +502,8 @@ const isCompensating = (flow: FlowContext | null): boolean =>
 // State selectors
 export const useSteps = () => useFlowStore((state) => state.steps);
 export const useSpaces = () => useFlowStore((state) => state.spaces);
+export const useFeeds = () => useFlowStore((state) => state.feeds);
+export const useWatchedFeed = () => useFlowStore((state) => state.watchedFeed);
 export const useSpaceSelection = () =>
   useFlowStore((state) => state.spaceSelection);
 export const useFlows = () => useFlowStore((state) => state.flows);

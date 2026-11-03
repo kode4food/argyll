@@ -20,6 +20,7 @@ jest.mock("@/app/store/flowStore", () => ({
   useSteps: () => stepsInStore,
   useSpaces: () => spacesInStore,
   useSpaceSelection: () => ({}),
+  useFeeds: () => [],
 }));
 
 jest.mock("@/app/api", () => ({

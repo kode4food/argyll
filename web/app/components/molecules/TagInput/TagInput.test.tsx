@@ -5,7 +5,7 @@ import {
   screen,
   waitFor,
 } from "@testing-library/react";
-import { TAGIFY_SETTLE_DELAY_MS } from "@/app/testUtils/tags";
+import { addTag, TAGIFY_SETTLE_DELAY_MS } from "@/app/testUtils/tags";
 import { IconAttributeLabel } from "@/utils/iconRegistry";
 import TagInput from "./TagInput";
 
@@ -37,6 +37,27 @@ describe("TagInput", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+  });
+
+  test("rejects tags outside its suggestions when enforced", async () => {
+    const { container } = render(
+      <TagInput
+        shouldEnforceSuggestions
+        Icon={IconAttributeLabel}
+        label="Tags"
+        onChange={onChange}
+        placeholder="add tag"
+        removeLabel="Remove"
+        suggestions={suggestions}
+        tags={["alpha"]}
+      />
+    );
+    expect(tagTexts(container)).toEqual(["alpha"]);
+
+    await addTag(screen.getByLabelText("add tag"), "zeta");
+    await addTag(screen.getByLabelText("add tag"), "beta");
+
+    expect(tagTexts(container)).toEqual(["alpha", "beta"]);
   });
 
   test("renders the tags it was given", () => {

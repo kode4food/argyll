@@ -37,6 +37,13 @@ describe("SelectField", () => {
     expect(face()).toHaveTextContent("missing");
   });
 
+  test("anchors the list to the viewport", () => {
+    renderField();
+    fireEvent.click(face());
+
+    expect(screen.getByRole("listbox")).toHaveStyle({ position: "fixed" });
+  });
+
   test("opens and closes the list", () => {
     renderField();
     expect(screen.queryByRole("listbox")).not.toBeInTheDocument();

@@ -67,6 +67,8 @@ export const getAttributeTooltipTitle = (
       return "liveStep.defaultValue";
     case "meta":
       return "liveStep.inputValue";
+    case "feed":
+      return "liveStep.feedValue";
     case "output":
       return "liveStep.outputValue";
   }

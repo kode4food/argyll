@@ -1,4 +1,5 @@
 import React from "react";
+import { useAnchoredList } from "@/app/hooks/useAnchoredList";
 import useDropdown from "@/app/hooks/useDropdown";
 import { type LucideIcon } from "@/utils/iconRegistry";
 import dropdownStyles from "@/app/styles/components/dropdown.module.css";
@@ -40,6 +41,14 @@ const SelectField: React.FC<SelectFieldProps> = ({
   const selected = options.find((option) => option.value === value);
   const SelectedIcon = selected?.Icon;
 
+  const listRef = React.useRef<HTMLDivElement>(null);
+  useAnchoredList({
+    isOpen: open,
+    anchorRef: wrapperRef,
+    listRef,
+    shouldMatchWidth: true,
+  });
+
   return (
     <div className={[styles.field, className].filter(Boolean).join(" ")}>
       {label && <label className={styles.label}>{label}</label>}
@@ -61,6 +70,7 @@ const SelectField: React.FC<SelectFieldProps> = ({
         </button>
         {open && (
           <div
+            ref={listRef}
             className={`${dropdownStyles.list} ${styles.list}`}
             role="listbox"
             data-ui-overlay="dropdown"

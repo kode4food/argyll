@@ -20,6 +20,7 @@ export const attributeRoleTypes: AttributeRoleType[] = [
   "optional",
   "const",
   "meta",
+  "feed",
   "output",
 ];
 

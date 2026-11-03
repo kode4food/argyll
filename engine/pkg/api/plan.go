@@ -14,6 +14,7 @@ type (
 		Steps      Steps                     `json:"steps"`
 		Children   map[StepID]*ExecutionPlan `json:"children,omitempty"`
 		Attributes AttributeGraph            `json:"attributes"`
+		Feeds      PlanFeeds                 `json:"feeds,omitempty"`
 		Goals      Goals                     `json:"goals"`
 		Required   []Name                    `json:"required"`
 	}

@@ -30,6 +30,7 @@ export enum AttributeRole {
   Optional = "optional",
   Const = "const",
   Meta = "meta",
+  Feed = "feed",
   Output = "output",
 }
 
@@ -86,6 +87,10 @@ export interface MetaConfig {
   key: string;
 }
 
+export interface FeedConfig {
+  id: string;
+}
+
 export interface OutputConfig {
   mapping?: MappingConfig;
 }
@@ -97,6 +102,7 @@ export interface AttributeSpec {
   optional?: OptionalConfig;
   const?: ConstConfig;
   meta?: MetaConfig;
+  feed?: FeedConfig;
   output?: OutputConfig;
   compensated?: boolean;
 }
@@ -241,6 +247,28 @@ export interface Space {
 export interface SpacePreviewResponse {
   space: Space & { selector: ScriptConfig };
   step_ids: string[];
+}
+
+export interface Feed {
+  id: string;
+  name: string;
+  description?: string;
+  value: string;
+  fold: ScriptConfig;
+  attributes: string[];
+  space_id?: string;
+}
+
+export interface FeedState {
+  id: string;
+  version: string;
+  value: any;
+  last_updated: string;
+}
+
+export interface FeedResponse {
+  feed: Feed;
+  state: FeedState;
 }
 
 export interface AttributeValue {

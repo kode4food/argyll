@@ -1,0 +1,31 @@
+/* Fields share rows the way the Step editor lays them out */
+.row {
+  composes: row from "@/app/components/organisms/StepEditor/StepEditorForm.module.css";
+}
+
+.flex1 {
+  composes: flex1 from "@/app/components/organisms/StepEditor/StepEditorForm.module.css";
+}
+
+.flex2 {
+  composes: flex2 from "@/app/components/organisms/StepEditor/StepEditorForm.module.css";
+}
+
+/* Styled like the manager's inputs, but growing with multi-line values, so it
+   cannot compose input: its fixed height would win the cascade */
+.value {
+  display: flex;
+  align-items: center;
+  min-height: 32px;
+  margin: 0;
+  padding: var(--spacing-xs) 10px;
+  background-color: var(--overlay-dark-30);
+  border: 1px solid var(--color-dark-border);
+  border-radius: var(--radius-md);
+  box-sizing: border-box;
+  color: var(--panel-text);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}

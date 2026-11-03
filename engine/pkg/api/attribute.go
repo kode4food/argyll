@@ -15,6 +15,7 @@ type (
 		Optional    *OptionalConfig `json:"optional,omitempty"`
 		Const       *ConstConfig    `json:"const,omitempty"`
 		Meta        *MetaConfig     `json:"meta,omitempty"`
+		Feed        *FeedConfig     `json:"feed,omitempty"`
 		Output      *OutputConfig   `json:"output,omitempty"`
 		Role        AttributeRole   `json:"role"`
 		Type        AttributeType   `json:"type,omitempty"`
@@ -47,6 +48,11 @@ type (
 	// MetaConfig carries the metadata key for a meta attribute
 	MetaConfig struct {
 		Key string `json:"key"`
+	}
+
+	// FeedConfig names the Feed a feed attribute reads
+	FeedConfig struct {
+		ID FeedID `json:"id"`
 	}
 
 	// OutputConfig configures an output attribute
@@ -82,6 +88,7 @@ const (
 	RoleOptional AttributeRole = "optional"
 	RoleConst    AttributeRole = "const"
 	RoleMeta     AttributeRole = "meta"
+	RoleFeed     AttributeRole = "feed"
 	RoleOutput   AttributeRole = "output"
 )
 
@@ -115,6 +122,9 @@ var (
 	ErrMetaKeyRequired = errors.New(
 		"meta key required for meta attribute",
 	)
+	ErrFeedIDRequired = errors.New(
+		"feed ID required for feed attribute",
+	)
 	ErrForEachRequiresCollect = errors.New(
 		"for_each processing requires collect all or some",
 	)
@@ -146,6 +156,7 @@ var (
 		RoleOptional,
 		RoleConst,
 		RoleMeta,
+		RoleFeed,
 		RoleOutput,
 	)
 
@@ -193,6 +204,8 @@ func (s *AttributeSpec) Validate(name Name) error {
 		return s.validateConst(name)
 	case RoleMeta:
 		return s.validateMeta(name)
+	case RoleFeed:
+		return s.validateFeed(name)
 	case RoleOutput:
 		return s.validateOutput(name)
 	}
@@ -205,6 +218,7 @@ func (s *AttributeSpec) validateRoleConfig(name Name) error {
 		RoleOptional: s.Optional != nil,
 		RoleConst:    s.Const != nil,
 		RoleMeta:     s.Meta != nil,
+		RoleFeed:     s.Feed != nil,
 		RoleOutput:   s.Output != nil,
 	}
 	for role, set := range hasConfig {
@@ -282,6 +296,14 @@ func (s *AttributeSpec) validateMeta(name Name) error {
 	return nil
 }
 
+func (s *AttributeSpec) validateFeed(name Name) error {
+	if s.Feed == nil || s.Feed.ID == "" {
+		return fmt.Errorf("%w: %s for attribute %q",
+			ErrFeedIDRequired, s.Role, name)
+	}
+	return nil
+}
+
 func (s *AttributeSpec) validateOutput(name Name) error {
 	if s.Output == nil {
 		return nil
@@ -296,7 +318,7 @@ func (s *AttributeSpec) IsInput() bool {
 
 // IsRuntimeInput returns true if the attribute is passed into a step
 func (s *AttributeSpec) IsRuntimeInput() bool {
-	return s.IsInput() || s.IsConst() || s.IsMeta()
+	return s.IsInput() || s.IsConst() || s.IsMeta() || s.IsFeed()
 }
 
 // IsOutput returns true if the attribute is an output
@@ -322,6 +344,11 @@ func (s *AttributeSpec) IsConst() bool {
 // IsMeta returns true if the attribute is a metadata input
 func (s *AttributeSpec) IsMeta() bool {
 	return s.Role == RoleMeta
+}
+
+// IsFeed returns true if the attribute reads a Feed
+func (s *AttributeSpec) IsFeed() bool {
+	return s.Role == RoleFeed
 }
 
 // Mapping returns the mapping for the attribute, if any
@@ -382,6 +409,14 @@ func (s *AttributeSpec) MetaKey() string {
 	return s.Meta.Key
 }
 
+// FeedID returns the ID of the Feed a feed attribute reads
+func (s *AttributeSpec) FeedID() FeedID {
+	if s.Feed == nil {
+		return ""
+	}
+	return s.Feed.ID
+}
+
 func (s *AttributeSpec) OptionalDefault() string {
 	if s.Optional == nil {
 		return ""
@@ -419,6 +454,7 @@ func (s *AttributeSpec) Equal(other *AttributeSpec) bool {
 		s.Optional.equal(other.Optional) &&
 		s.Const.equal(other.Const) &&
 		s.Meta.equal(other.Meta) &&
+		s.Feed.equal(other.Feed) &&
 		s.Output.equal(other.Output)
 }
 
@@ -482,6 +518,16 @@ func (c *MetaConfig) equal(other *MetaConfig) bool {
 		return false
 	}
 	return c.Key == other.Key
+}
+
+func (c *FeedConfig) equal(other *FeedConfig) bool {
+	if c == nil && other == nil {
+		return true
+	}
+	if c == nil || other == nil {
+		return false
+	}
+	return c.ID == other.ID
 }
 
 func (c *OutputConfig) equal(other *OutputConfig) bool {

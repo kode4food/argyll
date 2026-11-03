@@ -549,7 +549,141 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
         "409":
-          description: Space in use
+          description: A Feed or a Flow Step names the Space
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /engine/feeds:
+    get:
+      summary: List Feeds
+      description: Retrieve all Feeds
+      operationId: listFeeds
+      tags:
+        - Feeds
+      responses:
+        "200":
+          description: List of Feeds
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FeedsListResponse"
+        "500":
+          description: Failed to list Feeds
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    post:
+      summary: Register Feed
+      description: Register a Catalog-wide value folded from Step outputs
+      operationId: registerFeed
+      tags:
+        - Feeds
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Feed"
+      responses:
+        "201":
+          description: Feed registered successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FeedRegisteredResponse"
+        "400":
+          description: Invalid Feed definition
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Feed already exists with this ID
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /engine/feeds/{feed_id}:
+    parameters:
+      - name: feed_id
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      summary: Get Feed
+      description: Retrieve a Feed definition and the value of its current version
+      operationId: getFeed
+      tags:
+        - Feeds
+      responses:
+        "200":
+          description: Feed definition and value
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FeedResponse"
+        "404":
+          description: Feed not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    put:
+      summary: Update Feed
+      description: Replace a Feed definition. A new version restarts at the seed
+      operationId: updateFeed
+      tags:
+        - Feeds
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Feed"
+      responses:
+        "200":
+          description: Feed updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FeedRegisteredResponse"
+        "400":
+          description: Invalid Feed definition or ID mismatch
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Feed not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      summary: Unregister Feed
+      operationId: unregisterFeed
+      tags:
+        - Feeds
+      responses:
+        "200":
+          description: Feed unregistered successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+        "404":
+          description: Feed not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: A registered Step reads the Feed
           content:
             application/json:
               schema:
@@ -1575,12 +1709,14 @@ components:
             - `const`: Input fixed to a constant value
             - `meta`: Input drawn from step/flow execution metadata at
               invocation time
+            - `feed`: Feed value captured at Flow start
             - `output`: Value the step may produce during execution
           enum:
             - required
             - optional
             - const
             - meta
+            - feed
             - output
           example: "required"
         type:
@@ -1605,6 +1741,8 @@ components:
           $ref: "#/components/schemas/ConstConfig"
         meta:
           $ref: "#/components/schemas/MetaConfig"
+        feed:
+          $ref: "#/components/schemas/FeedConfig"
         output:
           $ref: "#/components/schemas/OutputConfig"
         compensated:
@@ -1753,6 +1891,19 @@ components:
             The metadata key to inject (e.g. flow_id, step_id, receipt_token,
             webhook_url)
           example: "webhook_url"
+
+    FeedConfig:
+      type: object
+      description: |
+        Configuration for a feed attribute, the named Feed's value at Flow
+        start
+      required:
+        - id
+      properties:
+        id:
+          type: string
+          description: ID of the Feed to read
+          example: "order-total"
 
     OutputConfig:
       type: object
@@ -2130,6 +2281,116 @@ components:
           type: integer
           description: Total number of spaces
 
+    FeedsListResponse:
+      type: object
+      required:
+        - feeds
+        - count
+      properties:
+        feeds:
+          type: array
+          items:
+            $ref: "#/components/schemas/Feed"
+        count:
+          type: integer
+          description: Total number of Feeds
+
+    Feed:
+      type: object
+      description: Catalog-wide value folded from settled Step outputs
+      required:
+        - id
+        - name
+        - value
+        - fold
+        - attributes
+      properties:
+        id:
+          type: string
+          description: Stable Feed identifier
+          example: "order-total"
+        name:
+          type: string
+          description: Human-readable Feed name
+          example: "Settled Order Total"
+        description:
+          type: string
+          description: Optional Feed description
+        value:
+          type: string
+          description: Seed value, as a JSON literal
+          example: "0"
+        fold:
+          allOf:
+            - $ref: "#/components/schemas/ScriptConfig"
+          description: |
+            Runs once per contributing Step with `feed` bound to the current
+            value and all matching outputs bound by name. Returning the current
+            value leaves the Feed event sequence unchanged.
+        attributes:
+          type: array
+          minItems: 1
+          uniqueItems: true
+          description: Step output Attributes to fold
+          items:
+            type: string
+          example: ["order_amount", "refund_amount"]
+        space_id:
+          type: string
+          description: Limits contributors to this Space's Steps
+          example: "billing"
+
+    PlanFeed:
+      type: object
+      required:
+        - feed
+      properties:
+        feed:
+          $ref: "#/components/schemas/Feed"
+        sources:
+          type: array
+          description: Planned Steps that fold into the Feed
+          items:
+            type: string
+
+    FeedState:
+      type: object
+      description: Folded value of one Feed version
+      properties:
+        id:
+          type: string
+        version:
+          type: string
+          description: Definition version the value belongs to
+        value:
+          description: Current value, or the seed
+        last_updated:
+          type: string
+          format: date-time
+
+    FeedResponse:
+      type: object
+      required:
+        - feed
+        - state
+      properties:
+        feed:
+          $ref: "#/components/schemas/Feed"
+        state:
+          $ref: "#/components/schemas/FeedState"
+
+    FeedRegisteredResponse:
+      type: object
+      required:
+        - message
+        - feed
+      properties:
+        message:
+          type: string
+          example: "Feed registered"
+        feed:
+          $ref: "#/components/schemas/Feed"
+
     ExecutionPlanRequest:
       type: object
       required:
@@ -2190,6 +2451,11 @@ components:
             Map of attribute names to their provider/consumer dependencies
           additionalProperties:
             $ref: "#/components/schemas/Dependencies"
+        feeds:
+          type: object
+          description: Feeds the plan reads or folds into, by Feed ID
+          additionalProperties:
+            $ref: "#/components/schemas/PlanFeed"
         excluded:
           allOf:
             - $ref: "#/components/schemas/ExcludedSteps"
@@ -2500,6 +2766,11 @@ components:
             type: array
             items:
               $ref: "#/components/schemas/AttributeValue"
+        feeds:
+          type: object
+          description: |
+            Value of each Feed the Flow's Steps read, captured when the Flow
+            started
         init:
           type: array
           description: |
@@ -2687,6 +2958,8 @@ tags:
     description: Step registration and management
   - name: Spaces
     description: Dynamic planning scopes over registered Steps
+  - name: Feeds
+    description: Catalog-wide values folded from settled Step outputs
   - name: Health
     description: Health monitoring for steps and engine
   - name: Flows

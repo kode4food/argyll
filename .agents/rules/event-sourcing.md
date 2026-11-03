@@ -324,6 +324,14 @@ func reconstructState(aggregateID ID) State {
 - `step_registered` - Step added to registry
 - `step_unregistered` - Step deleted from registry
 - `step_updated` - Step definition modified
+- `feed_registered` - Feed added to the catalog
+- `feed_updated` - Feed definition replaced
+- `feed_unregistered` - Feed removed from the catalog
+
+**Feed aggregate events** (folded value of one Feed definition version, in the flow store):
+
+- `feed_folded` - A settled Step output was folded into the value
+- `feed_fold_failed` - A fold script failed, leaving the value unchanged
 
 **Cluster aggregate events** (node health tracking):
 

@@ -18,8 +18,8 @@ import {
 import { generateFlowId } from "@/utils/flowUtils";
 import { sortStepsByType } from "@/utils/stepUtils";
 import { nonEmptyGoalSets } from "@/utils/goalSets";
-import { IconManage, IconSpace } from "@/utils/iconRegistry";
-import SpaceManager from "@/app/components/organisms/SpaceManager";
+import { IconSpace } from "@/utils/iconRegistry";
+import CatalogMenu from "./CatalogMenu";
 import { useSpaces, useSpaceSelection } from "@/app/store/flowStore";
 import FlowGoalsSection from "./FlowGoalsSection";
 import SelectField from "@/app/components/molecules/SelectField";
@@ -82,7 +82,6 @@ const FlowCreateForm: React.FC<FlowCreateFormProps> = ({ onCreateStep }) => {
   const spaces = useSpaces();
   const t = useT();
 
-  const [isManagingSpaces, setManagingSpaces] = React.useState(false);
   const [jsonError, setJsonError] = React.useState<string | null>(null);
   const [editorMode, setEditorMode] = React.useState<"basic" | "json">("basic");
   const [flowInputDraftValues, setFlowInputDraftValues] = React.useState<
@@ -274,21 +273,8 @@ const FlowCreateForm: React.FC<FlowCreateFormProps> = ({ onCreateStep }) => {
                 options={spaceOptions}
                 value={spaceId ?? ""}
               />
-              <button
-                type="button"
-                className={styles.spaceManageButton}
-                onClick={() => setManagingSpaces(true)}
-                title={t("spaceManager.title")}
-                aria-label={t("spaceManager.title")}
-              >
-                <IconManage className={styles.spaceManageIcon} />
-              </button>
+              <CatalogMenu />
             </div>
-
-            <SpaceManager
-              isOpen={isManagingSpaces}
-              onClose={() => setManagingSpaces(false)}
-            />
 
             <FlowGoalsSection
               goalSteps={goalSteps}
