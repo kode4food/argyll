@@ -40,20 +40,6 @@ export const getInputName = (name: string, spec: AttributeSpec): string => {
 export const getExecutionInputName = (arg: UnifiedArg): string =>
   getInputName(arg.name, arg.spec);
 
-export const formatAttributeValue = (val: any): string => {
-  if (val === null) return "null";
-  if (val === undefined) return "undefined";
-  if (typeof val === "string") return `"${val}"`;
-  if (typeof val === "object") {
-    try {
-      return JSON.stringify(val, null, 2);
-    } catch {
-      return String(val);
-    }
-  }
-  return String(val);
-};
-
 export const getAttributeTooltipTitle = (
   argType: ArgType,
   wasDefaulted?: boolean

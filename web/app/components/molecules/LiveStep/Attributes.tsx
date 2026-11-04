@@ -5,13 +5,13 @@ import TooltipSection from "@/app/components/atoms/TooltipSection";
 import { useT } from "@/app/i18n";
 import { getArgIcon } from "@/utils/iconRegistry";
 import { parseInputValue } from "@/utils/inputParseUtils";
+import { formatJSON } from "@/utils/jsonUtils";
 import {
   getAttributeModifiers,
   getSortedAttributes,
   roleArgType,
 } from "@/utils/stepUtils";
 import {
-  formatAttributeValue,
   getExecutionInputName,
   getAttributeTooltipTitle,
   getAttributeValue,
@@ -136,7 +136,7 @@ const AttributeItem: React.FC<AttributeItemProps> = ({
     ? {
         title: t(getAttributeTooltipTitle(arg.argType, wasDefaulted)),
         icon: <Icon className={`${className} ${styles.tooltipIcon}`} />,
-        content: formatAttributeValue(value),
+        content: formatJSON(value),
         monospace: true,
       }
     : null;

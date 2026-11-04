@@ -1,9 +1,12 @@
 import React from "react";
 import Modal from "@/app/components/molecules/Modal";
+import ValuePreview from "@/app/components/molecules/ValuePreview";
 import { useT } from "@/app/i18n";
+import { useWatchedFeeds } from "@/app/store/flowStore";
 import FeedManagerForm from "./FeedManagerForm";
 import { FeedEditor, useFeedEditor } from "./useFeedEditor";
 import styles from "@/app/styles/components/manager.module.css";
+import feedStyles from "./FeedManager.module.css";
 
 interface FeedManagerProps {
   isOpen: boolean;
@@ -74,6 +77,7 @@ const FeedManager: React.FC<FeedManagerProps> = ({ isOpen, onClose }) => {
   const t = useT();
   const editor = useFeedEditor(onClose);
   const { editingId, error, feeds, isEditing } = editor;
+  const watchedFeeds = useWatchedFeeds();
 
   return (
     <Modal
@@ -83,29 +87,44 @@ const FeedManager: React.FC<FeedManagerProps> = ({ isOpen, onClose }) => {
       width={760}
       footer={<FeedManagerFooter editor={editor} />}
     >
-      {isEditing ? (
-        <div className={styles.editor}>
+      <div className={isEditing ? styles.editor : styles.list}>
+        {isEditing ? (
           <FeedManagerForm editor={editor} />
-          {error && <div className={styles.error}>{error}</div>}
-        </div>
-      ) : (
-        <div className={styles.list}>
-          {feeds.length === 0 && (
-            <div className={styles.empty}>{t("feedManager.empty")}</div>
-          )}
-          {feeds.map((feed) => (
-            <button
-              key={feed.id}
-              type="button"
-              className={styles.listItem}
-              onClick={() => editor.openEditor(feed)}
-            >
-              <span>{feed.name}</span>
-              <span className={styles.listItemId}>{feed.id}</span>
-            </button>
-          ))}
-        </div>
-      )}
+        ) : feeds.length === 0 ? (
+          <div className={styles.empty}>{t("feedManager.empty")}</div>
+        ) : (
+          <div className={feedStyles.table}>
+            <div className={feedStyles.header}>
+              <span className={styles.label}>{t("feedManager.nameLabel")}</span>
+              <span className={styles.label}>
+                {t("feedManager.currentValueLabel")}
+              </span>
+            </div>
+            {feeds.map((feed) => (
+              <button
+                key={feed.id}
+                type="button"
+                className={`${styles.listItem} ${feedStyles.row}`}
+                onClick={() => editor.openEditor(feed)}
+              >
+                <span className={feedStyles.cell}>
+                  <span>{feed.name}</span>
+                  <span className={styles.listItemId}>{feed.id}</span>
+                </span>
+                {feed.id in watchedFeeds ? (
+                  <ValuePreview
+                    title={t("feedManager.currentValueLabel")}
+                    value={watchedFeeds[feed.id].value}
+                  />
+                ) : (
+                  <span />
+                )}
+              </button>
+            ))}
+          </div>
+        )}
+        {error && <div className={styles.error}>{error}</div>}
+      </div>
     </Modal>
   );
 };

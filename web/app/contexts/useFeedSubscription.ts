@@ -9,37 +9,43 @@ type SocketClient = ReturnType<typeof useWebSocketClient>;
 const FEED_PREFIX = "feed";
 const FEED_EVENT_TYPES = ["feed_folded"];
 
-const watchedFeedKey = (state: ReturnType<typeof useFlowStore.getState>) =>
-  state.watchedFeed
-    ? `${state.watchedFeed.id}:${state.watchedFeed.version}`
-    : null;
+const feedKey = (feed: FeedState) => `${feed.id}:${feed.version}`;
 
-// Streams the folded value of the watched Feed. The subscription starts from
-// the aggregate's state, which holds no version until something folds, so the
-// seed the Feed was opened with stands until then
+// Serialized so the selector result compares by value across store updates
+const watchedFeedKeys = (state: ReturnType<typeof useFlowStore.getState>) =>
+  JSON.stringify(Object.values(state.watchedFeeds).map(feedKey).sort());
+
+const watchedFeedFor = (aggregateId: string[] | undefined) =>
+  Object.values(useFlowStore.getState().watchedFeeds).find(
+    (feed) => feedKey(feed) === aggregateId?.[1]
+  );
+
+// Streams the folded values of the watched Feeds. A subscription starts from
+// each aggregate's state, which holds no version until something folds, so
+// the seed a Feed was opened with stands until then
 export function useFeedSubscription(socketClient: SocketClient) {
-  const feedKey = useFlowStore(watchedFeedKey);
+  const keys = useFlowStore(watchedFeedKeys);
   const setWatchedFeed = useFlowStore((state) => state.setWatchedFeed);
 
   const handleFeedEvent = useCallback(
     (event: WebSocketEvent | WebSocketSubscribed) => {
-      const current = useFlowStore.getState().watchedFeed;
-      if (!current) return;
-
       if (event.type === "subscribed") {
-        const state = (event as WebSocketSubscribed).items[0]?.data as
-          FeedState | undefined;
-        if (state?.version) {
+        (event as WebSocketSubscribed).items.forEach((item) => {
+          const current = watchedFeedFor(item.id);
+          const state = item.data as FeedState | undefined;
+          if (!current || !state?.version) return;
           setWatchedFeed({
             ...current,
             value: state.value,
             last_updated: state.last_updated,
           });
-        }
+        });
         return;
       }
 
       const wsEvent = event as WebSocketEvent;
+      const current = watchedFeedFor(wsEvent.id);
+      if (!current) return;
       setWatchedFeed({
         ...current,
         value: wsEvent.data?.value,
@@ -50,10 +56,11 @@ export function useFeedSubscription(socketClient: SocketClient) {
   );
 
   useEffect(() => {
-    if (!feedKey) return;
+    const aggregateKeys: string[] = JSON.parse(keys);
+    if (aggregateKeys.length === 0) return;
     const subscriptionId = socketClient.subscribe(
       {
-        aggregate_ids: [[FEED_PREFIX, feedKey]],
+        aggregate_ids: aggregateKeys.map((key) => [FEED_PREFIX, key]),
         include_state: true,
         event_types: FEED_EVENT_TYPES,
       },
@@ -62,10 +69,5 @@ export function useFeedSubscription(socketClient: SocketClient) {
     return () => {
       socketClient.unsubscribe(subscriptionId);
     };
-  }, [
-    feedKey,
-    handleFeedEvent,
-    socketClient.subscribe,
-    socketClient.unsubscribe,
-  ]);
+  }, [keys, handleFeedEvent, socketClient.subscribe, socketClient.unsubscribe]);
 }

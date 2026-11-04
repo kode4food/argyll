@@ -11,6 +11,42 @@
   composes: flex2 from "@/app/components/organisms/StepEditor/StepEditorForm.module.css";
 }
 
+/* The list reads as a table: each Feed beside its live value. Rows share the
+   table's columns, so the names take only the width they need, up to a third */
+.table {
+  display: grid;
+  grid-template-columns: fit-content(33.333%) minmax(0, 1fr);
+  column-gap: var(--spacing-lg);
+  row-gap: var(--spacing-xs);
+}
+
+/* Qualified to outrank the list item's own flex display and gap */
+.table > .header,
+.table > .row {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: subgrid;
+  column-gap: var(--spacing-lg);
+  align-items: start;
+}
+
+.header {
+  padding: 0 var(--spacing-sm);
+}
+
+.cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.cell > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 /* Styled like the manager's inputs, but growing with multi-line values, so it
    cannot compose input: its fixed height would win the cascade */
 .value {

@@ -22,6 +22,11 @@ export interface TagInputProps {
   tags: string[];
 }
 
+// Present on Tagify's dropdown, though its type declarations leave it out
+interface DropdownInternals {
+  highlightOption: (elm: Element) => void;
+}
+
 const valuesOf = (tagify: Tagify) => tagify.value.map((tag) => tag.value);
 
 // The same close icon the rest of the app uses, since Tagify's own "×" glyph
@@ -88,6 +93,19 @@ const TagInput: React.FC<TagInputProps> = ({
     tagify.on("click", () => {
       tagify.DOM.input.focus();
       tagify.setRangeAtStartEnd(false, tagify.DOM.input);
+    });
+    // Tab completes only from a highlighted suggestion, and Tagify reads that
+    // off the window, so highlighting the first one here, at the input, lets
+    // Tab complete in every field while Enter still keeps the typed text
+    tagify.DOM.input.addEventListener("keydown", (e) => {
+      const { classNames } = tagify.settings;
+      const list = tagify.DOM.dropdown;
+      if (e.key !== "Tab" || !list.isConnected) return;
+      if (list.querySelector(`.${classNames.dropdownItemActive}`)) return;
+      const first = list.querySelector(`.${classNames.dropdownItem}`);
+      const dropdown = tagify.dropdown as typeof tagify.dropdown &
+        DropdownInternals;
+      if (first) dropdown.highlightOption(first);
     });
     tagifyRef.current = tagify;
     if (shouldFocus) tagify.DOM.input.focus();

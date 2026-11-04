@@ -82,6 +82,3 @@ export const foldCompletions = (draft: FeedDraft): string[] => [
   FEED_CURRENT,
   ...draft.attributes,
 ];
-
-export const formatFeedValue = (value: unknown): string =>
-  JSON.stringify(value, null, 2) ?? "null";

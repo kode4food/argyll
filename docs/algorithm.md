@@ -1001,7 +1001,7 @@ FOLD_FEEDS(step, produced):
         ELSE IF result differs from current: EMIT feed_folded(result)
 ```
 
-Folds commit with `step_completed` or `flow_deactivated`, so each contribution lands once. They use the Step's produced outputs, since the Flow drops outputs nothing consumes. A failed fold leaves the value as it was and the Flow unaffected. A Step with a compensator contributes at deactivation, and only its uncompensated work. Each Flow, child Flows included, reads the snapshot it took at start, and folds under the Space membership it was planned with.
+Folds commit with `step_completed` or `flow_deactivated`, so each contribution lands once. They use the Step's produced outputs, since the Flow drops outputs nothing consumes. A failed fold leaves the value as it was and the Flow unaffected. A Step with a compensator contributes at deactivation, and only its uncompensated work. Contributions apply in the order their transactions commit, which can differ from the order Steps completed, so a fold suits Feeds best when its result is independent of that order. Each Flow, child Flows included, reads the snapshot it took at start, and folds under the Space membership it was planned with.
 
 ## Compensation
 

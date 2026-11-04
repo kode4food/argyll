@@ -37,52 +37,58 @@ const CatalogMenu: React.FC = () => {
     align: "end",
   });
 
+  // The managers sit outside the wrapper: their dialogs render in place, so
+  // keys typed in them would bubble into the menu's key handling
   return (
-    <div
-      ref={wrapperRef}
-      className={styles.catalogMenu}
-      onKeyDown={handleKeyDown}
-    >
-      <button
-        type="button"
-        className={styles.spaceManageButton}
-        onClick={() => setOpen((isOpen) => !isOpen)}
-        title={t("flowCreate.catalogMenu")}
-        aria-label={t("flowCreate.catalogMenu")}
-        aria-expanded={open}
-        aria-haspopup="menu"
+    <>
+      <div
+        ref={wrapperRef}
+        className={styles.catalogMenu}
+        onKeyDown={handleKeyDown}
       >
-        <IconManage className={styles.spaceManageIcon} />
-      </button>
-      {open && (
-        <div
-          ref={listRef}
-          className={dropdownStyles.list}
-          role="menu"
-          data-ui-overlay="dropdown"
+        <button
+          type="button"
+          className={styles.spaceManageButton}
+          onClick={() => setOpen((isOpen) => !isOpen)}
+          title={t("flowCreate.catalogMenu")}
+          aria-label={t("flowCreate.catalogMenu")}
+          aria-expanded={open}
+          aria-haspopup="menu"
         >
-          {CATALOG_ITEMS.map(({ value, labelKey, Icon }, index) => (
-            <button
-              key={value}
-              type="button"
-              role="menuitem"
-              className={`${dropdownStyles.item} ${
-                index === highlightedIndex ? dropdownStyles.itemHighlighted : ""
-              }`}
-              onMouseEnter={() => setHighlightedIndex(index)}
-              onClick={() => {
-                setManager(value);
-                setOpen(false);
-              }}
-            >
-              <span className={dropdownStyles.itemIcon}>
-                <Icon className={styles.spaceManageIcon} />
-              </span>
-              <span className={dropdownStyles.itemLabel}>{t(labelKey)}</span>
-            </button>
-          ))}
-        </div>
-      )}
+          <IconManage className={styles.spaceManageIcon} />
+        </button>
+        {open && (
+          <div
+            ref={listRef}
+            className={dropdownStyles.list}
+            role="menu"
+            data-ui-overlay="dropdown"
+          >
+            {CATALOG_ITEMS.map(({ value, labelKey, Icon }, index) => (
+              <button
+                key={value}
+                type="button"
+                role="menuitem"
+                className={`${dropdownStyles.item} ${
+                  index === highlightedIndex
+                    ? dropdownStyles.itemHighlighted
+                    : ""
+                }`}
+                onMouseEnter={() => setHighlightedIndex(index)}
+                onClick={() => {
+                  setManager(value);
+                  setOpen(false);
+                }}
+              >
+                <span className={dropdownStyles.itemIcon}>
+                  <Icon className={styles.spaceManageIcon} />
+                </span>
+                <span className={dropdownStyles.itemLabel}>{t(labelKey)}</span>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
       <SpaceManager
         isOpen={manager === "spaces"}
         onClose={() => setManager(null)}
@@ -90,7 +96,7 @@ const CatalogMenu: React.FC = () => {
       {manager === "feeds" && (
         <FeedManager isOpen onClose={() => setManager(null)} />
       )}
-    </div>
+    </>
   );
 };
 

@@ -1,0 +1,12 @@
+/* Compact JSON, wrapped at any character and clamped to two lines */
+.value {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+  white-space: pre-wrap;
+  word-break: break-all;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+}

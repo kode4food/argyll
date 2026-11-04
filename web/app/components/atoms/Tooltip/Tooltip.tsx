@@ -12,10 +12,13 @@ const Tooltip: React.FC<TooltipProps> = ({ trigger, children }) => {
   const [isVisible, setIsVisible] = useState(false);
   const [tooltipPosition, setTooltipPosition] = useState({ top: 0, left: 0 });
   const [showBelow, setShowBelow] = useState(false);
+  const [portalRoot, setPortalRoot] = useState<Element>(document.body);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const handleMouseEnter = () => {
     if (containerRef.current) {
+      // A modal dialog sits in the top layer, above anything portalled to body
+      setPortalRoot(containerRef.current.closest("dialog") ?? document.body);
       const rect = containerRef.current.getBoundingClientRect();
       const tooltipHeight = 120;
       const spaceBelow = window.innerHeight - rect.bottom;
@@ -78,7 +81,7 @@ const Tooltip: React.FC<TooltipProps> = ({ trigger, children }) => {
       >
         {trigger}
       </div>
-      {createPortal(tooltip, document.body)}
+      {createPortal(tooltip, portalRoot)}
     </>
   );
 };

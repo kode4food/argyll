@@ -1,56 +1,7 @@
-import {
-  formatAttributeValue,
-  getAttributeTooltipTitle,
-  getAttributeValue,
-} from "./attributeUtils";
+import { getAttributeTooltipTitle, getAttributeValue } from "./attributeUtils";
 import { ExecutionResult, AttributeRole, AttributeType } from "@/app/api";
 
 describe("attributeUtils", () => {
-  describe("formatAttributeValue", () => {
-    it("formats null correctly", () => {
-      expect(formatAttributeValue(null)).toBe("null");
-    });
-
-    it("formats undefined correctly", () => {
-      expect(formatAttributeValue(undefined)).toBe("undefined");
-    });
-
-    it("formats strings with quotes", () => {
-      expect(formatAttributeValue("hello")).toBe('"hello"');
-    });
-
-    it("formats numbers as strings", () => {
-      expect(formatAttributeValue(42)).toBe("42");
-      expect(formatAttributeValue(3.14)).toBe("3.14");
-    });
-
-    it("formats objects as formatted JSON", () => {
-      const result = formatAttributeValue({ key: "value", nested: { a: 1 } });
-      expect(result).toContain('"key"');
-      expect(result).toContain('"value"');
-      expect(result).toContain('"nested"');
-    });
-
-    it("formats arrays as JSON", () => {
-      const result = formatAttributeValue([1, 2, 3]);
-      expect(result).toContain("1");
-      expect(result).toContain("2");
-      expect(result).toContain("3");
-    });
-
-    it("handles objects that cannot be stringified", () => {
-      const circular: any = { a: 1 };
-      circular.self = circular;
-      const result = formatAttributeValue(circular);
-      expect(typeof result).toBe("string");
-    });
-
-    it("formats booleans correctly", () => {
-      expect(formatAttributeValue(true)).toBe("true");
-      expect(formatAttributeValue(false)).toBe("false");
-    });
-  });
-
   describe("getAttributeTooltipTitle", () => {
     it("returns key for required attributes", () => {
       expect(getAttributeTooltipTitle("required")).toBe("liveStep.inputValue");

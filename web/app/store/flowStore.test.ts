@@ -210,12 +210,23 @@ describe("flowStore", () => {
       expect(useFlowStore.getState().feeds.map((f) => f.id)).toEqual(["a"]);
     });
 
-    test("setWatchedFeed stores the viewed value", () => {
-      const state = { id: "a", version: "v1", value: 3, last_updated: "" };
-      useFlowStore.getState().setWatchedFeed(state);
-      expect(useFlowStore.getState().watchedFeed).toEqual(state);
-      useFlowStore.getState().setWatchedFeed(null);
-      expect(useFlowStore.getState().watchedFeed).toBeNull();
+    test("setWatchedFeeds replaces the viewed values", () => {
+      const a = { id: "a", version: "v1", value: 3, last_updated: "" };
+      useFlowStore.getState().setWatchedFeeds({ a });
+      expect(useFlowStore.getState().watchedFeeds).toEqual({ a });
+      useFlowStore.getState().setWatchedFeeds({});
+      expect(useFlowStore.getState().watchedFeeds).toEqual({});
+    });
+
+    test("setWatchedFeed updates one viewed value", () => {
+      const a = { id: "a", version: "v1", value: 3, last_updated: "" };
+      const b = { id: "b", version: "v1", value: 1, last_updated: "" };
+      useFlowStore.getState().setWatchedFeeds({ a, b });
+      useFlowStore.getState().setWatchedFeed({ ...a, value: 4 });
+      expect(useFlowStore.getState().watchedFeeds).toEqual({
+        a: { ...a, value: 4 },
+        b,
+      });
     });
   });
 

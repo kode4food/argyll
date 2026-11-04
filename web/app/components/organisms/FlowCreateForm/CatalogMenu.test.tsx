@@ -67,4 +67,17 @@ describe("CatalogMenu", () => {
 
     expect(screen.getByText("Feeds open")).toBeInTheDocument();
   });
+
+  test.each([
+    ["spaceManager.title", "Spaces open"],
+    ["feedManager.title", "Feeds open"],
+  ])("keeps keys typed in %s away from the menu", (labelKey, opened) => {
+    render(<CatalogMenu />);
+    openMenu();
+    fireEvent.click(screen.getByRole("menuitem", { name: t(labelKey) }));
+
+    fireEvent.keyDown(screen.getByText(opened), { key: " " });
+    fireEvent.keyDown(screen.getByText(opened), { key: "Enter" });
+    expect(screen.queryByRole("menu")).toBeNull();
+  });
 });

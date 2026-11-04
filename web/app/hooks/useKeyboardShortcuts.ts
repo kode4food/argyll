@@ -54,6 +54,8 @@ export const useKeyboardShortcuts = (
   const handleKeyDown = useCallback(
     (event: KeyboardEvent) => {
       if (!enabled) return;
+      // Nothing behind a modal reacts, even with focus outside the dialog
+      if (document.querySelector('[data-ui-overlay="modal"]')) return;
       const shortcutsBlocked =
         document.querySelector("[data-ui-overlay]") !== null;
       const activeElement = document.activeElement;

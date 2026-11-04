@@ -61,8 +61,8 @@ interface FlowState {
   // Step IDs each Space selects, projected by the engine
   spaceSelection: Record<string, Set<string>>;
   feeds: Feed[];
-  // The one Feed whose folded value is streamed while it is being viewed
-  watchedFeed: FeedState | null;
+  // Feeds whose folded values are streamed while they are being viewed, by ID
+  watchedFeeds: Record<string, FeedState>;
   healthByNode: Record<string, Record<string, StepHealthInfo>>;
   stepHealth: Record<string, StepHealthInfo>;
   healthNodeIds: string[];
@@ -111,7 +111,8 @@ interface FlowState {
   removeSpace: (spaceId: string) => void;
   setFeed: (feed: Feed) => void;
   removeFeed: (feedId: string) => void;
-  setWatchedFeed: (state: FeedState | null) => void;
+  setWatchedFeeds: (states: Record<string, FeedState>) => void;
+  setWatchedFeed: (state: FeedState) => void;
   setCatalogState: (
     steps: Record<string, Step>,
     spaces?: CatalogSpaces,
@@ -130,7 +131,7 @@ export const useFlowStore = create<FlowState>()(
       spaces: [],
       spaceSelection: {},
       feeds: [],
-      watchedFeed: null,
+      watchedFeeds: {},
       healthByNode: {},
       stepHealth: {},
       healthNodeIds: [],
@@ -401,8 +402,14 @@ export const useFlowStore = create<FlowState>()(
         }));
       },
 
-      setWatchedFeed: (watchedFeed: FeedState | null) => {
-        set({ watchedFeed });
+      setWatchedFeeds: (watchedFeeds: Record<string, FeedState>) => {
+        set({ watchedFeeds });
+      },
+
+      setWatchedFeed: (feed: FeedState) => {
+        set((state) => ({
+          watchedFeeds: { ...state.watchedFeeds, [feed.id]: feed },
+        }));
       },
 
       setStepSpaces: (stepId: string, spaces: string[]) => {
@@ -503,7 +510,8 @@ const isCompensating = (flow: FlowContext | null): boolean =>
 export const useSteps = () => useFlowStore((state) => state.steps);
 export const useSpaces = () => useFlowStore((state) => state.spaces);
 export const useFeeds = () => useFlowStore((state) => state.feeds);
-export const useWatchedFeed = () => useFlowStore((state) => state.watchedFeed);
+export const useWatchedFeeds = () =>
+  useFlowStore((state) => state.watchedFeeds);
 export const useSpaceSelection = () =>
   useFlowStore((state) => state.spaceSelection);
 export const useFlows = () => useFlowStore((state) => state.flows);

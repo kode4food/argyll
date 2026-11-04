@@ -258,10 +258,10 @@ describe("useKeyboardShortcuts", () => {
     document.body.removeChild(blocker);
   });
 
-  test("does not block non-modal shortcuts when blocking UI is present", () => {
-    const blocker = document.createElement("div");
-    blocker.setAttribute("data-ui-overlay", "modal");
-    document.body.appendChild(blocker);
+  test("keeps other shortcuts while a dropdown is open", () => {
+    const dropdown = document.createElement("div");
+    dropdown.setAttribute("data-ui-overlay", "dropdown");
+    document.body.appendChild(dropdown);
 
     renderHook(() =>
       useKeyboardShortcuts([
@@ -274,7 +274,30 @@ describe("useKeyboardShortcuts", () => {
 
     expect(handler1).toHaveBeenCalledTimes(1);
 
-    document.body.removeChild(blocker);
+    document.body.removeChild(dropdown);
+  });
+
+  test("blocks every shortcut while a modal is open", () => {
+    const modal = document.createElement("div");
+    modal.setAttribute("data-ui-overlay", "modal");
+    document.body.appendChild(modal);
+
+    renderHook(() =>
+      useKeyboardShortcuts([
+        { key: "a", description: "Test", handler: handler1 },
+        { key: "Escape", description: "Close", handler: handler2 },
+      ])
+    );
+
+    const keyA = new KeyboardEvent("keydown", { key: "a", cancelable: true });
+    document.dispatchEvent(keyA);
+    document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
+
+    expect(handler1).not.toHaveBeenCalled();
+    expect(handler2).not.toHaveBeenCalled();
+    expect(keyA.defaultPrevented).toBe(false);
+
+    document.body.removeChild(modal);
   });
 
   test("triggers Escape even when input is focused", () => {

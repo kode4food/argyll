@@ -151,4 +151,19 @@ describe("Tooltip", () => {
       expect(tooltip?.className).not.toContain("visible");
     });
   });
+
+  test("shows inside an enclosing dialog, above the page", () => {
+    render(
+      <dialog open>
+        <Tooltip trigger={<button>Hover me</button>}>
+          <div>Tooltip content</div>
+        </Tooltip>
+      </dialog>
+    );
+
+    fireEvent.mouseEnter(screen.getByText("Hover me").parentElement!);
+    expect(
+      screen.getByText("Tooltip content").closest("dialog")
+    ).not.toBeNull();
+  });
 });

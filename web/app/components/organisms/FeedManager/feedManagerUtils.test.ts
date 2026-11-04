@@ -2,7 +2,6 @@ import { AttributeRole, Feed } from "@/app/api";
 import {
   emptyDraft,
   foldCompletions,
-  formatFeedValue,
   isDraftValid,
   outputNames,
   toDraft,
@@ -80,10 +79,5 @@ describe("feedManagerUtils", () => {
   test("completes the fold bindings", () => {
     const draft = { ...toDraft(FEED), attributes: ["amount", "refunded"] };
     expect(foldCompletions(draft)).toEqual(["feed", "amount", "refunded"]);
-  });
-
-  test("formats values", () => {
-    expect(formatFeedValue({ a: 1 })).toBe('{\n  "a": 1\n}');
-    expect(formatFeedValue(undefined)).toBe("null");
   });
 });

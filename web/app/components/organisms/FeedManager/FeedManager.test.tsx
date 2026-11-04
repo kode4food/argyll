@@ -87,7 +87,7 @@ describe("FeedManager", () => {
       feeds: [TOTAL],
       steps: STEPS,
       spaces: [BILLING],
-      watchedFeed: null,
+      watchedFeeds: {},
     });
     mockApi.getFeed.mockResolvedValue({
       feed: TOTAL,
@@ -116,6 +116,27 @@ describe("FeedManager", () => {
     open();
     expect(screen.getByText("Order Total")).toBeInTheDocument();
     expect(screen.getByText("total")).toBeInTheDocument();
+  });
+
+  test("lists each Feed's live value", async () => {
+    open();
+    expect(mockApi.getFeed).toHaveBeenCalledWith("total");
+    expect(
+      screen.getByText(t("feedManager.currentValueLabel"))
+    ).toBeInTheDocument();
+    expect(await screen.findAllByText("42")).not.toHaveLength(0);
+
+    act(() => {
+      useFlowStore.getState().setWatchedFeed({
+        id: "total",
+        version: "v1",
+        value: { sum: 43 },
+        last_updated: "",
+      });
+    });
+    const exact = { normalizer: (s: string) => s };
+    expect(screen.getByText('{"sum":43}', exact).tagName).toBe("CODE");
+    expect(screen.getByText('{\n  "sum": 43\n}', exact)).toBeInTheDocument();
   });
 
   test("shows empty state", () => {
@@ -173,7 +194,6 @@ describe("FeedManager", () => {
 
   test("edits a Feed and shows its current value", async () => {
     await openTotal();
-    expect(mockApi.getFeed).toHaveBeenCalledWith("total");
     expect(screen.getByDisplayValue("total")).toBeDisabled();
 
     typeInto("feedManager.namePlaceholder", "Grand Total");
@@ -185,7 +205,6 @@ describe("FeedManager", () => {
         name: "Grand Total",
       })
     );
-    expect(useFlowStore.getState().watchedFeed).toBeNull();
   });
 
   test("loads a Feed's Attributes as tags", async () => {
@@ -212,7 +231,6 @@ describe("FeedManager", () => {
   test("shows load errors", async () => {
     mockApi.getFeed.mockRejectedValue(new Error(""));
     open();
-    fireEvent.click(screen.getByText("Order Total"));
     expect(
       await screen.findByText(t("feedManager.loadFailed"))
     ).toBeInTheDocument();
@@ -225,26 +243,23 @@ describe("FeedManager", () => {
         finish = resolve;
       })
     );
-    open();
-    fireEvent.click(screen.getByText("Order Total"));
-    fireEvent.click(button("feedManager.cancel"));
+    open().unmount();
     await act(async () => {
       finish({
         feed: TOTAL,
         state: { id: TOTAL.id, version: "v1", value: 42, last_updated: "" },
       });
     });
-    expect(useFlowStore.getState().watchedFeed).toBeNull();
+    expect(useFlowStore.getState().watchedFeeds).toEqual({});
   });
 
   test("closes and stops watching", async () => {
     const onClose = jest.fn();
-    render(<FeedManager isOpen onClose={onClose} />);
-    fireEvent.click(screen.getByText("Order Total"));
-    await screen.findByText("42");
-    fireEvent.click(button("feedManager.cancel"));
+    const { unmount } = render(<FeedManager isOpen onClose={onClose} />);
+    await screen.findAllByText("42");
     fireEvent.click(button("feedManager.close"));
     expect(onClose).toHaveBeenCalled();
-    expect(useFlowStore.getState().watchedFeed).toBeNull();
+    unmount();
+    expect(useFlowStore.getState().watchedFeeds).toEqual({});
   });
 });

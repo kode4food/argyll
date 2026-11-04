@@ -15,36 +15,38 @@ export type FeedEditor = ReturnType<typeof useFeedEditor>;
 export const useFeedEditor = (onClose: () => void) => {
   const t = useT();
   const feeds = useFeeds();
-  const setWatchedFeed = useFlowStore((state) => state.setWatchedFeed);
+  const setWatchedFeeds = useFlowStore((state) => state.setWatchedFeeds);
   const [draft, setDraft] = React.useState<FeedDraft>(emptyDraft);
   const [editingId, setEditingId] = React.useState<string | null>(null);
   const [isEditing, setEditing] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [isSaving, setSaving] = React.useState(false);
 
+  // Watches every Feed while the manager is open, reloading when a definition
+  // change starts a new version
   React.useEffect(() => {
-    if (!editingId) return;
     let active = true;
-    api
-      .getFeed(editingId)
-      .then(({ state }) => {
-        if (active) setWatchedFeed(state);
+    Promise.all(feeds.map((feed) => api.getFeed(feed.id)))
+      .then((responses) => {
+        if (!active) return;
+        setWatchedFeeds(
+          Object.fromEntries(responses.map(({ state }) => [state.id, state]))
+        );
       })
       .catch((err: any) => {
         if (active) setError(err?.message || t("feedManager.loadFailed"));
       });
     return () => {
       active = false;
-      setWatchedFeed(null);
+      setWatchedFeeds({});
     };
-  }, [editingId, setWatchedFeed, t]);
+  }, [feeds, setWatchedFeeds, t]);
 
   const clearEditor = () => {
     setDraft(emptyDraft());
     setEditingId(null);
     setError(null);
     setEditing(false);
-    setWatchedFeed(null);
   };
 
   const handleClose = () => {
@@ -57,7 +59,6 @@ export const useFeedEditor = (onClose: () => void) => {
     setEditingId(existing?.id ?? null);
     setError(null);
     setEditing(true);
-    setWatchedFeed(null);
   };
 
   const run = async (action: () => Promise<unknown>, failure: string) => {
