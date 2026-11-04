@@ -1,5 +1,6 @@
 import React from "react";
 import { api, Feed, ScriptConfig } from "@/app/api";
+import { useCatalogAction } from "@/app/hooks/useCatalogAction";
 import { useT } from "@/app/i18n";
 import { useFeeds, useFlowStore } from "@/app/store/flowStore";
 import {
@@ -20,7 +21,7 @@ export const useFeedEditor = (onClose: () => void) => {
   const [editingId, setEditingId] = React.useState<string | null>(null);
   const [isEditing, setEditing] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
-  const [isSaving, setSaving] = React.useState(false);
+  const { isSaving, run } = useCatalogAction(setError);
 
   // Watches every Feed while the manager is open, reloading when a definition
   // change starts a new version
@@ -61,31 +62,23 @@ export const useFeedEditor = (onClose: () => void) => {
     setEditing(true);
   };
 
-  const run = async (action: () => Promise<unknown>, failure: string) => {
-    setSaving(true);
-    setError(null);
-    try {
-      await action();
-      clearEditor();
-    } catch (err: any) {
-      setError(err?.message || t(failure));
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleSave = () => {
+  const handleSave = async () => {
     const feed = toFeed(draft);
-    return run(
+    const saved = await run(
       () =>
         editingId ? api.updateFeed(editingId, feed) : api.registerFeed(feed),
       "feedManager.saveFailed"
     );
+    if (saved) clearEditor();
   };
 
-  const handleDelete = () => {
-    if (!editingId) return Promise.resolve();
-    return run(() => api.unregisterFeed(editingId), "feedManager.deleteFailed");
+  const handleDelete = async () => {
+    if (!editingId) return;
+    const deleted = await run(
+      () => api.unregisterFeed(editingId),
+      "feedManager.deleteFailed"
+    );
+    if (deleted) clearEditor();
   };
 
   const patchDraft = (patch: Partial<FeedDraft>) => {

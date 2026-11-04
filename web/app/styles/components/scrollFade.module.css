@@ -1,0 +1,34 @@
+.fadeTop:not(.fadeBottom) {
+  mask-image: linear-gradient(to bottom, transparent 0, black 60px);
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, black 60px);
+}
+
+.fadeBottom:not(.fadeTop) {
+  mask-image: linear-gradient(
+    to bottom,
+    black calc(100% - 60px),
+    transparent 100%
+  );
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    black calc(100% - 60px),
+    transparent 100%
+  );
+}
+
+.fadeTop.fadeBottom {
+  mask-image: linear-gradient(
+    to bottom,
+    transparent 0,
+    black 60px,
+    black calc(100% - 60px),
+    transparent 100%
+  );
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    transparent 0,
+    black 60px,
+    black calc(100% - 60px),
+    transparent 100%
+  );
+}

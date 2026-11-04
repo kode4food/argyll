@@ -15,6 +15,7 @@
 }
 
 .field {
+  composes: focusWithinRing from "@/app/styles/components/interaction.module.css";
   /* The line box the tags and the caret share inside the control */
   --tag-line: 1.25rem;
   --tag-caret-width: 1px;
@@ -32,11 +33,6 @@
   border-radius: var(--radius-md);
   box-sizing: border-box;
   transition: var(--transition-fast);
-}
-
-.field:focus-within {
-  border-color: var(--color-info);
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-info) 40%, transparent);
 }
 
 /* Inline in a row of fixed-height controls, so the tags scroll sideways

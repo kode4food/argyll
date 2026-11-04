@@ -4,6 +4,7 @@ import Tooltip from "@/app/components/atoms/Tooltip";
 import TooltipSection from "@/app/components/atoms/TooltipSection";
 import { useT } from "@/app/i18n";
 import { getArgIcon } from "@/utils/iconRegistry";
+import { valuesEqual } from "@/utils/inputFormatUtils";
 import { parseInputValue } from "@/utils/inputParseUtils";
 import { formatJSON } from "@/utils/jsonUtils";
 import {
@@ -44,15 +45,7 @@ const defaultMatchesExecutionInput = (
   executionValue: unknown
 ): boolean => {
   if (typeof rawDefault !== "string") return false;
-
-  const defaultValue = parseInputValue(rawDefault);
-  if (Object.is(defaultValue, executionValue)) return true;
-
-  try {
-    return JSON.stringify(defaultValue) === JSON.stringify(executionValue);
-  } catch {
-    return false;
-  }
+  return valuesEqual(parseInputValue(rawDefault), executionValue);
 };
 
 const AttributeItem: React.FC<AttributeItemProps> = ({

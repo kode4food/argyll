@@ -5,6 +5,7 @@ import ScriptConfigEditor from "./ScriptConfigEditor";
 import ScriptEditor from "@/app/components/molecules/ScriptEditor";
 import styles from "./StepEditor.module.css";
 import formStyles from "./StepEditorForm.module.css";
+import fadeStyles from "@/app/styles/components/scrollFade.module.css";
 import { useStepEditorForm } from "./useStepEditorForm";
 import { useModalDimensions } from "./useModalDimensions";
 import { useT } from "@/app/i18n";
@@ -211,8 +212,8 @@ const StepEditor: React.FC<StepEditorProps> = ({
           ref={scrollRef}
           className={`${formStyles.formContainer} ${
             editorMode === "json" ? formStyles.formContainerJsonMode : ""
-          } ${showTopFade ? formStyles.fadeTop : ""} ${
-            showBottomFade ? formStyles.fadeBottom : ""
+          } ${showTopFade ? fadeStyles.fadeTop : ""} ${
+            showBottomFade ? fadeStyles.fadeBottom : ""
           }`}
         >
           {editorMode === "basic" ? (

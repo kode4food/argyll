@@ -1,4 +1,5 @@
 import React from "react";
+import DropdownOption from "@/app/components/atoms/DropdownOption";
 import useDropdown from "@/app/hooks/useDropdown";
 import dropdownStyles from "@/app/styles/components/dropdown.module.css";
 import styles from "./ComboInput.module.css";
@@ -104,20 +105,18 @@ const ComboInput: React.FC<ComboInputProps> = ({
           }
         >
           {shown.map((s, index) => (
-            <button
+            <DropdownOption
               key={s}
-              type="button"
-              role="option"
-              aria-selected={s === value}
-              className={`${dropdownStyles.item} ${s === value ? dropdownStyles.itemActive : ""} ${index === highlightedIndex ? dropdownStyles.itemHighlighted : ""}`}
-              onMouseEnter={() => setHighlightedIndex(index)}
-              onClick={() => {
+              isActive={s === value}
+              isHighlighted={index === highlightedIndex}
+              onHover={() => setHighlightedIndex(index)}
+              onSelect={() => {
                 onChange(s);
                 setOpen(false);
               }}
             >
-              <span className={dropdownStyles.itemLabel}>{s}</span>
-            </button>
+              {s}
+            </DropdownOption>
           ))}
         </div>
       )}

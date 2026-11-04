@@ -12,6 +12,14 @@
   );
 }
 
+.focusWithinRing:focus-within {
+  border-color: var(--control-focus-border, var(--color-info));
+  box-shadow: var(
+    --control-focus-shadow,
+    0 0 0 1px color-mix(in srgb, var(--color-info) 40%, transparent)
+  );
+}
+
 .hoverFill:hover:not(:disabled):not([aria-disabled="true"]) {
   background-color: var(--control-hover-bg, var(--color-dark-hover));
   border-color: var(

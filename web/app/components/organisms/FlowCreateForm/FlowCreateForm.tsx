@@ -19,6 +19,7 @@ import { generateFlowId } from "@/utils/flowUtils";
 import { sortStepsByType } from "@/utils/stepUtils";
 import { nonEmptyGoalSets } from "@/utils/goalSets";
 import { IconSpace } from "@/utils/iconRegistry";
+import { formatJSON } from "@/utils/jsonUtils";
 import CatalogMenu from "./CatalogMenu";
 import { useSpaces, useSpaceSelection } from "@/app/store/flowStore";
 import FlowGoalsSection from "./FlowGoalsSection";
@@ -204,7 +205,7 @@ const FlowCreateForm: React.FC<FlowCreateFormProps> = ({ onCreateStep }) => {
       flowInputNames
     );
 
-    setInitialState(JSON.stringify(nextState, null, 2));
+    setInitialState(formatJSON(nextState));
     setFlowInputDraftValues({});
   }, [
     flowInputDraftValues,

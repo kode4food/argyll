@@ -1,5 +1,6 @@
 import { useCallback, useState } from "react";
 import { ArgyllApi, toGoalSets, Step } from "@/app/api";
+import { formatJSON } from "@/utils/jsonUtils";
 import {
   buildAttributesFromStep,
   getValidationError,
@@ -142,7 +143,7 @@ export function useStepPersistence({
   );
 
   const getSerializedStepData = useCallback(
-    () => JSON.stringify(buildStepData(), null, 2),
+    () => formatJSON(buildStepData()),
     [buildStepData]
   );
 

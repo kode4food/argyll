@@ -1,7 +1,7 @@
 import React from "react";
 import { api, Space } from "@/app/api";
-import { useT } from "@/app/i18n";
 import { useUI } from "@/app/contexts/UIContext";
+import { useCatalogAction } from "@/app/hooks/useCatalogAction";
 
 export interface UseSpaceActionsOptions {
   editingId: string | null;
@@ -24,23 +24,8 @@ export const useSpaceActions = ({
   setError,
   space,
 }: UseSpaceActionsOptions): SpaceActions => {
-  const t = useT();
   const { setSpaceId } = useUI();
-  const [saving, setSaving] = React.useState(false);
-
-  const run = async (action: () => Promise<unknown>, failure: string) => {
-    setSaving(true);
-    setError(null);
-    try {
-      await action();
-      return true;
-    } catch (err: any) {
-      setError(err?.message || t(failure));
-      return false;
-    } finally {
-      setSaving(false);
-    }
-  };
+  const { isSaving: saving, run } = useCatalogAction(setError);
 
   const handleSave = async () => {
     const saved = await run(async () => {

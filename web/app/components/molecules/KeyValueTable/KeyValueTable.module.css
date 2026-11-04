@@ -44,14 +44,5 @@
 }
 
 .iconSm {
-  width: 0.875rem;
-  height: 0.875rem;
-  display: flex;
-  align-items: center;
-  flex-shrink: 0;
-}
-
-.iconSm svg {
-  width: 100%;
-  height: 100%;
+  composes: iconBoxSm from "@/app/styles/components/icon.module.css";
 }

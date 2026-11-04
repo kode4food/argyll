@@ -1,4 +1,5 @@
 import React from "react";
+import DropdownOption from "@/app/components/atoms/DropdownOption";
 import FeedManager from "@/app/components/organisms/FeedManager";
 import SpaceManager from "@/app/components/organisms/SpaceManager";
 import { useAnchoredList } from "@/app/hooks/useAnchoredList";
@@ -65,26 +66,19 @@ const CatalogMenu: React.FC = () => {
             data-ui-overlay="dropdown"
           >
             {CATALOG_ITEMS.map(({ value, labelKey, Icon }, index) => (
-              <button
+              <DropdownOption
                 key={value}
-                type="button"
                 role="menuitem"
-                className={`${dropdownStyles.item} ${
-                  index === highlightedIndex
-                    ? dropdownStyles.itemHighlighted
-                    : ""
-                }`}
-                onMouseEnter={() => setHighlightedIndex(index)}
-                onClick={() => {
+                icon={<Icon className={styles.spaceManageIcon} />}
+                isHighlighted={index === highlightedIndex}
+                onHover={() => setHighlightedIndex(index)}
+                onSelect={() => {
                   setManager(value);
                   setOpen(false);
                 }}
               >
-                <span className={dropdownStyles.itemIcon}>
-                  <Icon className={styles.spaceManageIcon} />
-                </span>
-                <span className={dropdownStyles.itemLabel}>{t(labelKey)}</span>
-              </button>
+                {t(labelKey)}
+              </DropdownOption>
             ))}
           </div>
         )}

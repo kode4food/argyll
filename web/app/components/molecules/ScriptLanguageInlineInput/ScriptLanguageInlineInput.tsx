@@ -3,6 +3,7 @@ import { SCRIPT_LANGUAGE_ARGYLL, SCRIPT_LANGUAGE_LUA } from "@/app/api";
 import useDropdown from "@/app/hooks/useDropdown";
 import { useT } from "@/app/i18n";
 import dropdownStyles from "@/app/styles/components/dropdown.module.css";
+import DropdownOption from "@/app/components/atoms/DropdownOption";
 import ScriptLanguageLogo from "@/app/components/atoms/ScriptLanguageLogo";
 import SegmentedGroup from "@/app/components/molecules/SegmentedGroup";
 import styles from "./ScriptLanguageInlineInput.module.css";
@@ -75,26 +76,22 @@ const ScriptLanguageInlineInput: React.FC<ScriptLanguageInlineInputProps> = ({
             data-ui-overlay="dropdown"
           >
             {scriptLanguageOptions.map((opt, index) => (
-              <button
+              <DropdownOption
                 key={opt.value}
-                type="button"
-                role="option"
-                aria-selected={opt.value === activeLanguage}
-                className={`${dropdownStyles.item} ${opt.value === activeLanguage ? dropdownStyles.itemActive : ""} ${index === highlightedIndex ? dropdownStyles.itemHighlighted : ""}`}
-                onMouseEnter={() => setHighlightedIndex(index)}
-                onClick={() => {
+                isActive={opt.value === activeLanguage}
+                isHighlighted={index === highlightedIndex}
+                onHover={() => setHighlightedIndex(index)}
+                onSelect={() => {
                   onLanguageChange(opt.value);
                   setOpen(false);
                 }}
               >
-                <span className={dropdownStyles.itemLabel}>
-                  <ScriptLanguageLogo
-                    language={opt.value}
-                    name={t(opt.labelKey)}
-                    showName
-                  />
-                </span>
-              </button>
+                <ScriptLanguageLogo
+                  language={opt.value}
+                  name={t(opt.labelKey)}
+                  showName
+                />
+              </DropdownOption>
             ))}
           </div>
         )}

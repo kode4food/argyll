@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { devtools, persist, createJSONStorage } from "zustand/middleware";
+import { isDevHost } from "@/utils/env";
 
 const supportedLocales = ["en-US", "de-CH", "fr-CH", "it-CH"] as const;
 const defaultLocale = supportedLocales[0];
@@ -32,11 +33,6 @@ const useI18nStore = create<I18nState>()(
     { name: "i18nStore" }
   )
 );
-
-const isDevHost =
-  typeof window !== "undefined" &&
-  (window.location.hostname === "localhost" ||
-    window.location.hostname === "127.0.0.1");
 
 if (isDevHost) {
   window.i18nStore = useI18nStore;

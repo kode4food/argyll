@@ -22,6 +22,8 @@ export type ActionMode = "sync" | "async";
 export type Handling = "standard" | "memoized" | "compensated";
 export type HTTPMethod = "GET" | "POST" | "PUT" | "DELETE";
 
+export const DEFAULT_HTTP_METHOD: HTTPMethod = "POST";
+
 export const SCRIPT_LANGUAGE_ARGYLL = "argyll";
 export const SCRIPT_LANGUAGE_LUA = "lua";
 

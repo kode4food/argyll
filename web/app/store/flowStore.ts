@@ -13,6 +13,7 @@ import {
 } from "../api";
 import { ConnectionStatus } from "../types/websocket";
 import { isValidTimestamp } from "@/utils/dates";
+import { isDevHost } from "@/utils/env";
 import {
   buildExecutionList,
   buildFlowContext,
@@ -493,11 +494,6 @@ export const useFlowStore = create<FlowState>()(
     { name: "FlowStore" }
   )
 );
-
-const isDevHost =
-  typeof window !== "undefined" &&
-  (window.location.hostname === "localhost" ||
-    window.location.hostname === "127.0.0.1");
 
 if (isDevHost) {
   window.flowStore = useFlowStore;

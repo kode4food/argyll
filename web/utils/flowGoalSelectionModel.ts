@@ -6,8 +6,7 @@ import {
 } from "@/utils/stateUtils";
 import { generatePadded } from "@/utils/flowUtils";
 import { nonEmptyGoalSets } from "@/utils/goalSets";
-
-const JSON_INDENT_SPACES = 2;
+import { formatJSON } from "@/utils/jsonUtils";
 
 export interface ApplyFlowGoalSelectionChangeParams {
   goals: GoalSets;
@@ -45,7 +44,7 @@ export async function applyFlowGoalSelectionChange({
   const planGoals = nonEmptyGoalSets(goals);
 
   if (planGoals.length === 0) {
-    setInitialState(JSON.stringify(nonDefaultState, null, JSON_INDENT_SPACES));
+    setInitialState(formatJSON(nonDefaultState));
     setPreviewPlan?.(null);
     clearPreviewPlan();
     setGoalSteps(goals);
@@ -65,9 +64,7 @@ export async function applyFlowGoalSelectionChange({
       executionPlan
     );
 
-    setInitialState(
-      JSON.stringify(stateWithDefaults, null, JSON_INDENT_SPACES)
-    );
+    setInitialState(formatJSON(stateWithDefaults));
 
     if (!idManuallyEdited && setNewID) {
       const lastGoalId = planGoals.flat().at(-1)!;

@@ -1,24 +1,23 @@
 import React, { useMemo } from "react";
-import { toGoalSets, Step, HealthStatus, NodeStepHealth } from "@/app/api";
+import {
+  DEFAULT_HTTP_METHOD,
+  Step,
+  HealthStatus,
+  NodeStepHealth,
+} from "@/app/api";
 import { getHealthIconClass } from "@/utils/healthUtils";
-import { formatGoals } from "@/utils/goalSets";
 import Tooltip from "@/app/components/atoms/Tooltip";
 import HealthDot from "@/app/components/atoms/HealthDot";
 import TooltipSection from "@/app/components/atoms/TooltipSection";
 import styles from "../StepShared/StepFooter.module.css";
+import { formatScriptForTooltip } from "@/utils/stepFooterUtils";
 import {
-  formatScriptPreview,
-  formatScriptForTooltip,
-} from "@/utils/stepFooterUtils";
-import {
-  getStepActionIcon,
   IconCompensate,
   IconEndpoint,
   IconHealthCheck,
 } from "@/utils/iconRegistry";
-import StepInfoDisplay, {
-  type DisplayInfo,
-} from "../StepShared/StepInfoDisplay";
+import StepInfoDisplay from "../StepShared/StepInfoDisplay";
+import { flowGoalsText, stepDisplayInfo } from "../StepShared/stepDisplayInfo";
 import tooltipStyles from "@/app/components/atoms/TooltipSection/TooltipSection.module.css";
 import { useT } from "@/app/i18n";
 
@@ -57,33 +56,8 @@ const Footer: React.FC<FooterProps> = ({
   );
 
   const { displayInfo, tooltipSections } = useMemo(() => {
-    let displayInfo: DisplayInfo = null;
-
-    const TypeIcon = getStepActionIcon(step);
-
-    if (step.type === "script" && step.script) {
-      const scriptPreview = formatScriptPreview(
-        step.script.script,
-        step.script.language
-      );
-      displayInfo = {
-        icon: TypeIcon,
-        text: scriptPreview,
-        className: "endpoint-script",
-      };
-    } else if (step.type === "flow" && step.flow?.goals?.steps.length) {
-      displayInfo = {
-        icon: TypeIcon,
-        text: formatGoals(toGoalSets(step.flow.goals)),
-      };
-    } else if (step.http) {
-      const method = step.http.invoke?.method || "POST";
-      displayInfo = {
-        icon: TypeIcon,
-        text: `${method} ${step.http.invoke?.endpoint}`,
-      };
-    }
-
+    const displayInfo = stepDisplayInfo(step);
+    const goals = flowGoalsText(step);
     const sections: React.ReactElement[] = [];
 
     if (step.type === "script" && step.script) {
@@ -109,14 +83,14 @@ const Footer: React.FC<FooterProps> = ({
           </div>
         </TooltipSection>
       );
-    } else if (step.type === "flow" && step.flow?.goals?.steps.length) {
+    } else if (goals) {
       sections.push(
         <TooltipSection key="goals" title={t("stepFooter.flowGoals")}>
-          {formatGoals(toGoalSets(step.flow.goals))}
+          {goals}
         </TooltipSection>
       );
     } else if (step.http) {
-      const method = step.http.invoke?.method || "POST";
+      const method = step.http.invoke?.method || DEFAULT_HTTP_METHOD;
       sections.push(
         <TooltipSection key="method" title={t("overviewStep.httpMethod")}>
           {method}
@@ -134,7 +108,8 @@ const Footer: React.FC<FooterProps> = ({
       );
 
       if (step.http.compensate) {
-        const compensateMethod = step.http.compensate.method || "POST";
+        const compensateMethod =
+          step.http.compensate.method || DEFAULT_HTTP_METHOD;
         sections.push(
           <TooltipSection
             key="compensate"

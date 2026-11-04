@@ -1,4 +1,5 @@
 import React from "react";
+import DropdownOption from "@/app/components/atoms/DropdownOption";
 import { useAnchoredList } from "@/app/hooks/useAnchoredList";
 import useDropdown from "@/app/hooks/useDropdown";
 import { type LucideIcon } from "@/utils/iconRegistry";
@@ -76,33 +77,21 @@ const SelectField: React.FC<SelectFieldProps> = ({
             data-ui-overlay="dropdown"
           >
             {options.map((option, index) => (
-              <button
+              <DropdownOption
                 key={option.value}
-                type="button"
-                role="option"
-                aria-selected={value === option.value}
                 title={option.title ?? option.label}
-                disabled={option.disabled}
-                className={`${dropdownStyles.item} ${
-                  value === option.value ? dropdownStyles.itemActive : ""
-                } ${option.disabled ? dropdownStyles.itemDisabled : ""} ${
-                  index === highlightedIndex
-                    ? dropdownStyles.itemHighlighted
-                    : ""
-                }`}
-                onMouseEnter={() => setHighlightedIndex(index)}
-                onClick={() => {
+                icon={option.Icon && <option.Icon className={styles.icon} />}
+                isActive={value === option.value}
+                isDisabled={option.disabled}
+                isHighlighted={index === highlightedIndex}
+                onHover={() => setHighlightedIndex(index)}
+                onSelect={() => {
                   onChange(option.value);
                   setOpen(false);
                 }}
               >
-                {option.Icon && (
-                  <span className={dropdownStyles.itemIcon}>
-                    <option.Icon className={styles.icon} />
-                  </span>
-                )}
-                <span className={dropdownStyles.itemLabel}>{option.label}</span>
-              </button>
+                {option.label}
+              </DropdownOption>
             ))}
           </div>
         )}

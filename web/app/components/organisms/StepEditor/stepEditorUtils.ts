@@ -1,6 +1,7 @@
 import {
   ActionMode,
   AttributeSpec,
+  DEFAULT_HTTP_METHOD,
   fromGoalSets,
   GoalSets,
   Handling,
@@ -24,12 +25,10 @@ export {
   validateAttributesList,
 } from "./stepValidationUtils";
 
-const HTTP_METHOD_POST: HTTPMethod = "POST";
-
 export function normalizeHttpMethod(method?: string): HTTPMethod {
   return method === "GET" || method === "PUT" || method === "DELETE"
     ? method
-    : HTTP_METHOD_POST;
+    : DEFAULT_HTTP_METHOD;
 }
 
 export function buildStepPayload({

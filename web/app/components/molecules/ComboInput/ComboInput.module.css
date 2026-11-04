@@ -1,4 +1,5 @@
 .wrapper {
+  composes: focusWithinRing from "@/app/styles/components/interaction.module.css";
   position: relative;
   display: flex;
   height: 32px;
@@ -7,11 +8,6 @@
   border-radius: var(--radius-md);
   box-sizing: border-box;
   transition: var(--transition-fast);
-}
-
-.wrapper:focus-within {
-  border-color: var(--color-info);
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-info) 40%, transparent);
 }
 
 .input {

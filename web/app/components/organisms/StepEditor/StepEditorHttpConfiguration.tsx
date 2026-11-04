@@ -18,7 +18,6 @@ import localStyles from "./StepEditorHttpConfiguration.module.css";
 import InlineSelectDropdown, {
   type InlineSelectOption,
 } from "./InlineSelectDropdown";
-import IconDropdown, { type IconDropdownOption } from "./IconDropdown";
 
 const METHOD_OPTIONS: InlineSelectOption[] = [
   { value: "POST", label: "POST" },
@@ -29,7 +28,7 @@ const METHOD_OPTIONS: InlineSelectOption[] = [
 
 const actionModeOptions = (
   t: (key: string) => string
-): IconDropdownOption[] => [
+): InlineSelectOption[] => [
   {
     value: "sync",
     label: t("stepEditor.actionMode.sync"),
@@ -111,7 +110,7 @@ const StepEditorHttpActionFields: React.FC<StepEditorHttpActionFieldsProps> = ({
   return (
     <div className={formStyles.row}>
       <SegmentedGroup className={formStyles.iconDropdownGroup}>
-        <IconDropdown
+        <InlineSelectDropdown
           ariaLabel={t("stepEditor.actionModeLabel")}
           faceIcon={selectedMode.icon}
           value={current}

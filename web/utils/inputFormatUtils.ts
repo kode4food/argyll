@@ -55,7 +55,7 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
   );
 }
 
-function valuesEqual(left: unknown, right: unknown): boolean {
+export function valuesEqual(left: unknown, right: unknown): boolean {
   if (left === right) return true;
   if (
     typeof left === "number" &&

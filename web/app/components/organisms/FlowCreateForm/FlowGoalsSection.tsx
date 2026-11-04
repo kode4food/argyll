@@ -20,6 +20,7 @@ import {
   withActiveGoalSet,
 } from "@/utils/goalSets";
 import styles from "./FlowGoalsSection.module.css";
+import fadeStyles from "@/app/styles/components/scrollFade.module.css";
 
 interface FlowGoalsSectionProps {
   goalSteps: GoalSets;
@@ -171,8 +172,8 @@ const FlowGoalsSection: React.FC<FlowGoalsSectionProps> = ({
           ref={sidebarListRef}
           onKeyDown={handleArrowFocus}
           className={`${styles.sidebarList} ${
-            showTopFade ? styles.fadeTop : ""
-          } ${showBottomFade ? styles.fadeBottom : ""}`}
+            showTopFade ? fadeStyles.fadeTop : ""
+          } ${showBottomFade ? fadeStyles.fadeBottom : ""}`}
         >
           {sortedSteps.map((step) => {
             const state = deriveStepGoalState(step.id, activeSet, {

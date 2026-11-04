@@ -77,3 +77,82 @@ describe("InlineSelectDropdown", () => {
     expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
   });
 });
+
+describe("InlineSelectDropdown with an icon face", () => {
+  const options: InlineSelectOption[] = [
+    { value: "a", label: "Alpha", icon: <span>A</span> },
+    { value: "b", label: "Beta", icon: <span>B</span> },
+    { value: "c", label: "Gamma", icon: <span>C</span> },
+  ];
+  const onChange = jest.fn();
+  const faceIcon = <span>icon</span>;
+
+  const renderIconFace = (value: string) =>
+    render(
+      <InlineSelectDropdown
+        ariaLabel="choose role"
+        faceIcon={faceIcon}
+        value={value}
+        options={options}
+        onChange={onChange}
+      />
+    );
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  test("renders the icon as its face, titled with the choice", () => {
+    renderIconFace("a");
+    const face = screen.getByRole("button", { name: "choose role" });
+    expect(face).toHaveTextContent("icon");
+    expect(face).toHaveAttribute("title", "Alpha");
+    expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
+  });
+
+  test("lists each option with its icon", () => {
+    renderIconFace("b");
+    fireEvent.click(screen.getByRole("button", { name: "choose role" }));
+    expect(screen.getByRole("listbox", { name: "choose role" })).toBeVisible();
+    expect(screen.getAllByRole("option")).toHaveLength(3);
+    expect(screen.getByRole("option", { name: /Beta/ })).toHaveAttribute(
+      "aria-selected",
+      "true"
+    );
+  });
+
+  test("calls onChange and closes on option click", () => {
+    renderIconFace("a");
+    fireEvent.click(screen.getByRole("button", { name: "choose role" }));
+    fireEvent.click(screen.getByRole("option", { name: /Gamma/ }));
+    expect(onChange).toHaveBeenCalledWith("c");
+    expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
+  });
+
+  test("closes on outside mousedown", () => {
+    render(
+      <div>
+        <InlineSelectDropdown
+          ariaLabel="choose role"
+          faceIcon={faceIcon}
+          value="a"
+          options={options}
+          onChange={onChange}
+        />
+        <button data-testid="outside">outside</button>
+      </div>
+    );
+    fireEvent.click(screen.getByRole("button", { name: "choose role" }));
+    fireEvent.mouseDown(screen.getByTestId("outside"));
+    expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
+  });
+
+  test("toggle closes open list", () => {
+    renderIconFace("a");
+    const face = screen.getByRole("button", { name: "choose role" });
+    fireEvent.click(face);
+    expect(screen.getByRole("listbox")).toBeInTheDocument();
+    fireEvent.click(face);
+    expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
+  });
+});

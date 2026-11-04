@@ -1,16 +1,12 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { toGoalSets, Step, ExecutionResult, WorkState } from "@/app/api";
+import { Step, ExecutionResult, WorkState } from "@/app/api";
 import { getProgressIcon } from "@/utils/progressUtils";
 import { useStepProgress } from "@/app/hooks/useStepProgress";
 import TooltipSection from "@/app/components/atoms/TooltipSection";
 import Tooltip from "@/app/components/atoms/Tooltip";
 import styles from "../StepShared/StepFooter.module.css";
-import { formatScriptPreview } from "@/utils/stepFooterUtils";
-import { formatGoals } from "@/utils/goalSets";
-import { getStepActionIcon } from "@/utils/iconRegistry";
-import StepInfoDisplay, {
-  type DisplayInfo,
-} from "../StepShared/StepInfoDisplay";
+import StepInfoDisplay from "../StepShared/StepInfoDisplay";
+import { flowGoalsText, stepDisplayInfo } from "../StepShared/stepDisplayInfo";
 import { useT } from "@/app/i18n";
 
 interface FooterProps {
@@ -93,26 +89,6 @@ const workTimerTiming = (work: WorkState, step: Step) => {
   return undefined;
 };
 
-const computeDisplayInfo = (step: Step): DisplayInfo => {
-  const TypeIcon = getStepActionIcon(step);
-
-  if (step.type === "script" && step.script) {
-    return {
-      icon: TypeIcon,
-      text: formatScriptPreview(step.script.script, step.script.language),
-      className: "endpoint-script",
-    };
-  }
-  if (step.type === "flow" && step.flow?.goals?.steps.length) {
-    return { icon: TypeIcon, text: formatGoals(toGoalSets(step.flow.goals)) };
-  }
-  if (step.http) {
-    const method = step.http.invoke?.method || "POST";
-    return { icon: TypeIcon, text: `${method} ${step.http.invoke?.endpoint}` };
-  }
-  return null;
-};
-
 const skippedReason = (
   execution: ExecutionResult,
   step: Step,
@@ -146,11 +122,12 @@ const buildTooltipSections = (
 ): React.ReactElement[] => {
   const { execution, flowId, progressState } = ctx;
   const sections: React.ReactElement[] = [];
+  const goals = flowGoalsText(step);
 
-  if (step.type === "flow" && step.flow?.goals?.steps.length) {
+  if (goals) {
     sections.push(
       <TooltipSection key="goals" title={t("stepFooter.flowGoals")}>
-        {formatGoals(toGoalSets(step.flow.goals))}
+        {goals}
       </TooltipSection>
     );
   }
@@ -230,7 +207,7 @@ const Footer: React.FC<FooterProps> = ({ step, flowId, execution }) => {
   const t = useT();
   const progressState = useStepProgress(step.id, flowId, execution);
 
-  const displayInfo = useMemo(() => computeDisplayInfo(step), [step]);
+  const displayInfo = useMemo(() => stepDisplayInfo(step), [step]);
   const tooltipSections = useMemo(
     () => buildTooltipSections(step, { execution, flowId, progressState }, t),
     [execution, flowId, progressState, step, t]

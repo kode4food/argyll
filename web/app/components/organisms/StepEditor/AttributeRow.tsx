@@ -27,7 +27,6 @@ import {
 } from "./stepEditorConstants";
 import AttributeMappingPanel from "./AttributeMappingPanel";
 import ComboInput from "@/app/components/molecules/ComboInput";
-import IconDropdown, { type IconDropdownOption } from "./IconDropdown";
 import InlineSelectDropdown, {
   type InlineSelectOption,
 } from "./InlineSelectDropdown";
@@ -77,7 +76,7 @@ const AttributeRow: React.FC<AttributeRowProps> = ({
   const hasCompensationConflict =
     !attr.compensated && compensatedInnerNames.has(innerName);
 
-  const roleOptions: IconDropdownOption[] = attributeRoleTypes.map((type) => {
+  const roleOptions: InlineSelectOption[] = attributeRoleTypes.map((type) => {
     const { Icon, className } = getArgIcon(type);
     return {
       value: type,
@@ -86,7 +85,7 @@ const AttributeRow: React.FC<AttributeRowProps> = ({
     };
   });
 
-  const collectOptions: IconDropdownOption[] = inputCollectTypes.map((c) => ({
+  const collectOptions: InlineSelectOption[] = inputCollectTypes.map((c) => ({
     value: c,
     label: t(`stepEditor.collect.${c}`),
     icon: (
@@ -126,7 +125,7 @@ const AttributeRow: React.FC<AttributeRowProps> = ({
 
   const nameControl = canCollect ? (
     <SegmentedGroup className={nameClass}>
-      <IconDropdown
+      <InlineSelectDropdown
         ariaLabel={t("stepEditor.collectSelect")}
         faceIcon={
           <span
@@ -149,7 +148,7 @@ const AttributeRow: React.FC<AttributeRowProps> = ({
         className={formStyles.argNameInputInline}
       />
       {showForEach && (
-        <IconDropdown
+        <InlineSelectDropdown
           ariaLabel={t("stepEditor.forEachSelect")}
           faceIcon={
             attr.forEach ? (
@@ -189,7 +188,7 @@ const AttributeRow: React.FC<AttributeRowProps> = ({
     <div className={formStyles.attrRow}>
       <div className={formStyles.attrRowInputs}>
         <SegmentedGroup className={formStyles.iconDropdownGroup}>
-          <IconDropdown
+          <InlineSelectDropdown
             ariaLabel={t("stepEditor.attrTypeSelect")}
             faceIcon={
               <RoleIcon className={`${styles.iconMd} ${roleClassName}`} />

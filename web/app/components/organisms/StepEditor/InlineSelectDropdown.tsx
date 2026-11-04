@@ -1,4 +1,5 @@
 import React from "react";
+import DropdownOption from "@/app/components/atoms/DropdownOption";
 import useDropdown from "@/app/hooks/useDropdown";
 import dropdownStyles from "@/app/styles/components/dropdown.module.css";
 import sharedFormStyles from "@/app/styles/components/form.module.css";
@@ -7,6 +8,7 @@ import formStyles from "./StepEditorForm.module.css";
 export interface InlineSelectOption {
   value: string;
   label: string;
+  icon?: React.ReactNode;
   disabled?: boolean;
   highlight?: boolean;
 }
@@ -15,6 +17,7 @@ interface InlineSelectDropdownProps {
   ariaLabel?: string;
   className?: string;
   disabled?: boolean;
+  faceIcon?: React.ReactNode;
   onChange: (value: string) => void;
   options: InlineSelectOption[];
   placeholder?: string;
@@ -25,6 +28,7 @@ const InlineSelectDropdown: React.FC<InlineSelectDropdownProps> = ({
   ariaLabel,
   className,
   disabled,
+  faceIcon,
   onChange,
   options,
   placeholder,
@@ -40,12 +44,17 @@ const InlineSelectDropdown: React.FC<InlineSelectDropdownProps> = ({
   } = useDropdown(options, value, onChange);
 
   const selected = options.find((o) => o.value === value);
-  const label = selected?.label ?? placeholder ?? value;
+  const hasIconFace = faceIcon !== undefined;
 
   return (
     <div
       ref={wrapperRef}
-      className={[formStyles.inlineSelectWrapper, className]
+      className={[
+        hasIconFace
+          ? formStyles.iconDropdownWrapper
+          : formStyles.inlineSelectWrapper,
+        className,
+      ]
         .filter(Boolean)
         .join(" ")}
       onKeyDown={disabled ? undefined : handleKeyDown}
@@ -53,38 +62,49 @@ const InlineSelectDropdown: React.FC<InlineSelectDropdownProps> = ({
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className={`${formStyles.inlineSelectButton} ${open ? formStyles.inlineSelectButtonOpen : ""} ${disabled ? sharedFormStyles.disabledField : ""}`}
+        className={[
+          hasIconFace
+            ? formStyles.iconDropdownFace
+            : formStyles.inlineSelectButton,
+          open &&
+            (hasIconFace
+              ? formStyles.iconDropdownFaceOpen
+              : formStyles.inlineSelectButtonOpen),
+          disabled && sharedFormStyles.disabledField,
+        ]
+          .filter(Boolean)
+          .join(" ")}
         aria-label={ariaLabel}
         aria-expanded={open}
         aria-haspopup="listbox"
+        title={hasIconFace ? selected?.label : undefined}
         disabled={disabled}
       >
-        {label}
+        {hasIconFace ? faceIcon : (selected?.label ?? placeholder ?? value)}
       </button>
       {open && !disabled && (
         <div
           className={dropdownStyles.list}
           role="listbox"
+          aria-label={hasIconFace ? ariaLabel : undefined}
           data-ui-overlay="dropdown"
         >
           {options.map((opt, index) => (
-            <button
+            <DropdownOption
               key={opt.value}
-              type="button"
-              role="option"
-              aria-selected={opt.value === value}
-              disabled={opt.disabled}
-              className={`${dropdownStyles.item} ${opt.value === value ? dropdownStyles.itemActive : ""} ${opt.highlight ? dropdownStyles.itemHighlight : ""} ${opt.disabled ? dropdownStyles.itemDisabled : ""} ${index === highlightedIndex ? dropdownStyles.itemHighlighted : ""}`}
-              onMouseEnter={() => setHighlightedIndex(index)}
-              onClick={() => {
-                if (!opt.disabled) {
-                  onChange(opt.value);
-                  setOpen(false);
-                }
+              icon={opt.icon}
+              isActive={opt.value === value}
+              isDisabled={opt.disabled}
+              isEmphasized={opt.highlight}
+              isHighlighted={index === highlightedIndex}
+              onHover={() => setHighlightedIndex(index)}
+              onSelect={() => {
+                onChange(opt.value);
+                setOpen(false);
               }}
             >
-              <span className={dropdownStyles.itemLabel}>{opt.label}</span>
-            </button>
+              {opt.label}
+            </DropdownOption>
           ))}
         </div>
       )}

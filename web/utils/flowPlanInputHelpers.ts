@@ -1,4 +1,5 @@
 import { AttributeType } from "@/app/api";
+import { getDefaultValueForType } from "@/utils/stateUtils";
 
 export interface FlowInputMeta {
   hasRequiredSpec: boolean;
@@ -7,19 +8,13 @@ export interface FlowInputMeta {
   hasConflictingDefaults: boolean;
 }
 
-const typeDefaultMap: Partial<Record<AttributeType, string>> = {
-  [AttributeType.Number]: "0",
-  [AttributeType.Boolean]: "false",
-  [AttributeType.Object]: "{}",
-  [AttributeType.Array]: "[]",
-  [AttributeType.Null]: "null",
-};
+const BLANK_DEFAULT_TYPES = [AttributeType.String, AttributeType.Any];
 
 export function getTypeDefaultValue(
   attrType?: AttributeType
 ): string | undefined {
-  if (!attrType) return undefined;
-  return typeDefaultMap[attrType];
+  if (!attrType || BLANK_DEFAULT_TYPES.includes(attrType)) return undefined;
+  return JSON.stringify(getDefaultValueForType(attrType));
 }
 
 export function mergeInputType(

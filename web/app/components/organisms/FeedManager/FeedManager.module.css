@@ -12,8 +12,10 @@
 }
 
 /* The list reads as a table: each Feed beside its live value. Rows share the
-   table's columns, so the names take only the width they need, up to a third */
+   table's columns, so the names take only the width they need, between an
+   eighth and a third */
 .table {
+  container-type: inline-size;
   display: grid;
   grid-template-columns: fit-content(33.333%) minmax(0, 1fr);
   column-gap: var(--spacing-lg);
@@ -38,7 +40,12 @@
   display: flex;
   flex-direction: column;
   gap: 2px;
-  min-width: 0;
+}
+
+/* fit-content() takes no minimum, so the name cells hold the column open.
+   Qualified to outrank the list item's min-width reset on its spans */
+.row > .cell {
+  min-width: 12.5cqi;
 }
 
 .cell > span {
