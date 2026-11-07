@@ -27,9 +27,7 @@ func TestScriptStepError(t *testing.T) {
 		)
 		stepB.Attributes["valueA"] = &api.AttributeSpec{
 			Role: api.RoleRequired,
-			Type: api.TypeString,
 		}
-		stepB.Attributes["valueB"].Type = api.TypeString
 
 		// Step C: Depends on step B's output (won't execute)
 		stepC := helpers.NewTestStepWithArgs(
@@ -39,7 +37,6 @@ func TestScriptStepError(t *testing.T) {
 		stepC.ID = "step-c"
 		stepC.Attributes["result"] = &api.AttributeSpec{
 			Role: api.RoleOutput,
-			Type: api.TypeString,
 		}
 
 		assert.NoError(t, env.Engine.RegisterStep(stepA))
@@ -116,9 +113,7 @@ func TestScriptStepErrorLua(t *testing.T) {
 		)
 		stepB.Attributes["valueA"] = &api.AttributeSpec{
 			Role: api.RoleRequired,
-			Type: api.TypeString,
 		}
-		stepB.Attributes["valueB"].Type = api.TypeString
 
 		// Step C: Depends on step B's output (won't execute)
 		stepC := helpers.NewTestStepWithArgs(
@@ -128,7 +123,6 @@ func TestScriptStepErrorLua(t *testing.T) {
 		stepC.ID = "step-c"
 		stepC.Attributes["result"] = &api.AttributeSpec{
 			Role: api.RoleOutput,
-			Type: api.TypeString,
 		}
 
 		assert.NoError(t, env.Engine.RegisterStep(stepA))

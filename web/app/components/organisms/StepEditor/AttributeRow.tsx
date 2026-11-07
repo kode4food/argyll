@@ -21,7 +21,6 @@ import formStyles from "./StepEditorForm.module.css";
 import type { Attribute } from "./stepEditorUtils";
 import {
   attributeRoleTypes,
-  attributeTypes,
   getMatchScriptPlaceholderKey,
   inputCollectTypes,
 } from "./stepEditorConstants";
@@ -99,11 +98,6 @@ const AttributeRow: React.FC<AttributeRowProps> = ({
     ),
   }));
 
-  const dataTypeOptions: InlineSelectOption[] = attributeTypes.map((type) => ({
-    value: type,
-    label: type,
-  }));
-
   const { Icon: RoleIcon, className: roleClassName } = getArgIcon(attr.role);
 
   const showForEach = canCollect && (collect === "all" || collect === "some");
@@ -113,33 +107,8 @@ const AttributeRow: React.FC<AttributeRowProps> = ({
     ? formStyles.argNameInputFixed
     : formStyles.argNameInput;
 
-  const typeControl = (
-    <SegmentedGroup className={formStyles.argType}>
-      <InlineSelectDropdown
-        value={attr.dataType}
-        options={dataTypeOptions}
-        onChange={(v) => updateAttribute(attr.id, "dataType", v)}
-      />
-    </SegmentedGroup>
-  );
-
   const nameControl = canCollect ? (
     <SegmentedGroup className={nameClass}>
-      <InlineSelectDropdown
-        ariaLabel={t("stepEditor.collectSelect")}
-        faceIcon={
-          <span
-            className={formStyles.collectIcon}
-            style={{
-              maskImage: `url(/icons/collect-${collect}.svg)`,
-              WebkitMaskImage: `url(/icons/collect-${collect}.svg)`,
-            }}
-          />
-        }
-        onChange={(v) => updateAttribute(attr.id, "collect", v)}
-        options={collectOptions}
-        value={collect}
-      />
       <input
         type="text"
         value={attr.name}
@@ -173,6 +142,21 @@ const AttributeRow: React.FC<AttributeRowProps> = ({
           value={attr.forEach ? "multi" : "single"}
         />
       )}
+      <InlineSelectDropdown
+        ariaLabel={t("stepEditor.collectSelect")}
+        faceIcon={
+          <span
+            className={formStyles.collectIcon}
+            style={{
+              maskImage: `url(/icons/collect-${collect}.svg)`,
+              WebkitMaskImage: `url(/icons/collect-${collect}.svg)`,
+            }}
+          />
+        }
+        onChange={(v) => updateAttribute(attr.id, "collect", v)}
+        options={collectOptions}
+        value={collect}
+      />
     </SegmentedGroup>
   ) : (
     <input
@@ -223,7 +207,6 @@ const AttributeRow: React.FC<AttributeRowProps> = ({
             </button>
           )}
         </SegmentedGroup>
-        {typeControl}
         {nameControl}
         {attr.role === "meta" && (
           <ComboInput

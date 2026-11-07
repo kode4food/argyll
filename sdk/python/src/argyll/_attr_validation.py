@@ -1,22 +1,9 @@
 """Attribute-level validation logic."""
 
 import json
-from typing import Union
 
 from .errors import StepValidationError
-from .types import (
-    AttributeRole,
-    AttributeSpec,
-    AttributeType,
-)
-
-_TYPE_CHECKS: dict[AttributeType, tuple[Union[type, tuple[type, ...]], str]] = {
-    AttributeType.STRING: (str, "JSON string"),
-    AttributeType.NUMBER: ((int, float), "JSON number"),
-    AttributeType.BOOLEAN: (bool, "JSON boolean"),
-    AttributeType.OBJECT: (dict, "JSON object"),
-    AttributeType.ARRAY: (list, "JSON array"),
-}
+from .types import AttributeRole, AttributeSpec
 
 _ROLE_EXCLUSIVE = {
     AttributeRole.REQUIRED: ("optional", "const", "meta", "output"),
@@ -54,26 +41,8 @@ def check_attribute_default(name: str, spec: AttributeSpec) -> None:
         return
 
     try:
-        parsed = json.loads(default)
+        json.loads(default)
     except json.JSONDecodeError as e:
         raise StepValidationError(
             f"Invalid default JSON for {name}: {e}"
         ) from e
-
-    if spec.type in _TYPE_CHECKS:
-        expected_type, label = _TYPE_CHECKS[spec.type]
-        if not isinstance(parsed, expected_type):
-            raise StepValidationError(f"Default for {name} must be {label}")
-    elif spec.type == AttributeType.NULL and parsed is not None:
-        raise StepValidationError(f"Default for {name} must be JSON null")
-
-
-def check_attribute_for_each(name: str, spec: AttributeSpec) -> None:
-    for_each = False
-    if spec.role == AttributeRole.REQUIRED and spec.required:
-        for_each = spec.required.for_each
-    elif spec.role == AttributeRole.OPTIONAL and spec.optional:
-        for_each = spec.optional.for_each
-
-    if for_each and spec.type not in {AttributeType.ARRAY, AttributeType.ANY}:
-        raise StepValidationError(f"ForEach requires array/any type for {name}")

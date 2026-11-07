@@ -54,16 +54,13 @@ The spec's own example (from `StepRegistration.attributes`):
 ```yaml
 input_text:
   role: required
-  type: string
 user_email:
   role: required
-  type: string
   required:
     mapping:
       name: email          # renames planner attr → service field
 user_data:
   role: output
-  type: object
   output:
     mapping:
       script:
@@ -79,7 +76,6 @@ In JSON, an attribute with both a match discriminator and a field rename looks l
 
 ```json
 "channel": {
-  "type": "string",
   "role": "required",
   "required": {
     "match":   { "language": "argyll", "script": "value == \"email\"" },

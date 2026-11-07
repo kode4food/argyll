@@ -5,6 +5,7 @@ import { getArgIcon } from "@/utils/iconRegistry";
 import {
   getAttributeModifiers,
   getSortedAttributes,
+  getSpecPreview,
   roleArgType,
 } from "@/utils/stepUtils";
 import ArgModifiers, { argTypeTitleKey } from "../StepShared/ArgModifiers";
@@ -23,9 +24,9 @@ const Attributes: React.FC<AttributesProps> = ({
   const unifiedArgs = getSortedAttributes(step.attributes || {}).map(
     ({ name, spec }) => ({
       name,
-      type: spec.type || "any",
       argType: roleArgType[spec.role],
       modifiers: getAttributeModifiers(spec),
+      preview: getSpecPreview(spec),
     })
   );
 
@@ -64,9 +65,11 @@ const Attributes: React.FC<AttributesProps> = ({
               {arg.name}
               <ArgModifiers modifiers={arg.modifiers} t={t} />
             </span>
-            <div className={styles.argTypeContainer}>
-              <span className={styles.argType}>{arg.type}</span>
-            </div>
+            {arg.preview && (
+              <span className={styles.argPreview} title={arg.preview}>
+                {arg.preview}
+              </span>
+            )}
           </div>
         );
       })}

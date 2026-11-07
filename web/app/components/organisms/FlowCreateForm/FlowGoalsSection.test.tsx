@@ -1,6 +1,6 @@
 import React from "react";
 import { fireEvent, render, screen } from "@testing-library/react";
-import { AttributeRole, AttributeType, Step } from "@/app/api";
+import { AttributeRole, Step } from "@/app/api";
 import { t } from "@/app/testUtils/i18n";
 import FlowGoalsSectionComponent from "./FlowGoalsSection";
 
@@ -18,7 +18,7 @@ describe("FlowGoalsSection", () => {
       name: "Step One",
       type: "service",
       attributes: {
-        input1: { role: AttributeRole.Required, type: AttributeType.String },
+        input1: { role: AttributeRole.Required },
       },
       http: { endpoint: "http://localhost:8080/test", timeout: 5000 },
     },
@@ -185,7 +185,6 @@ describe("FlowGoalsSection", () => {
         attributes: {
           reservation: {
             role: AttributeRole.Output,
-            type: AttributeType.String,
           },
         },
       },
@@ -196,7 +195,6 @@ describe("FlowGoalsSection", () => {
         attributes: {
           reservation: {
             role: AttributeRole.Required,
-            type: AttributeType.String,
           },
         },
       },

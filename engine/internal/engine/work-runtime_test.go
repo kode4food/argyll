@@ -23,8 +23,8 @@ func TestInlineScriptChain(t *testing.T) {
 				Script:   "return { y = x * 2 }",
 			},
 			Attributes: api.AttributeSpecs{
-				"x": {Role: api.RoleRequired, Type: api.TypeNumber},
-				"y": {Role: api.RoleOutput, Type: api.TypeNumber},
+				"x": {Role: api.RoleRequired},
+				"y": {Role: api.RoleOutput},
 			},
 		}
 		bad := &api.Step{
@@ -36,8 +36,8 @@ func TestInlineScriptChain(t *testing.T) {
 				Script:   "error('boom')",
 			},
 			Attributes: api.AttributeSpecs{
-				"y": {Role: api.RoleRequired, Type: api.TypeNumber},
-				"z": {Role: api.RoleOutput, Type: api.TypeNumber},
+				"y": {Role: api.RoleRequired},
+				"z": {Role: api.RoleOutput},
 			},
 		}
 		assert.NoError(t, env.Engine.RegisterStep(double))

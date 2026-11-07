@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import FlowStats from "./FlowStats";
 import type { Step } from "@/app/api";
-import { AttributeRole, AttributeType } from "@/app/api";
+import { AttributeRole } from "@/app/api";
 import { t } from "@/app/testUtils/i18n";
 
 describe("FlowStats", () => {
@@ -15,19 +15,16 @@ describe("FlowStats", () => {
     requiredArgs.forEach((name) => {
       attributes[name] = {
         role: AttributeRole.Required,
-        type: AttributeType.String,
       };
     });
     optionalArgs.forEach((name) => {
       attributes[name] = {
         role: AttributeRole.Optional,
-        type: AttributeType.String,
       };
     });
     outputs.forEach((name) => {
       attributes[name] = {
         role: AttributeRole.Output,
-        type: AttributeType.String,
       };
     });
 

@@ -22,15 +22,12 @@ func NewTestStep() *api.Step {
 		Attributes: api.AttributeSpecs{
 			"input": {
 				Role: api.RoleRequired,
-				Type: api.TypeString,
 			},
 			"optional": {
 				Role: api.RoleOptional,
-				Type: api.TypeString,
 			},
 			"output": {
 				Role: api.RoleOutput,
-				Type: api.TypeString,
 			},
 		},
 	}
@@ -45,14 +42,12 @@ func NewTestStepWithArgs(required []api.Name, optional []api.Name) *api.Step {
 	for _, arg := range required {
 		st.Attributes[arg] = &api.AttributeSpec{
 			Role: api.RoleRequired,
-			Type: api.TypeString,
 		}
 	}
 
 	for _, arg := range optional {
 		st.Attributes[arg] = &api.AttributeSpec{
 			Role: api.RoleOptional,
-			Type: api.TypeString,
 		}
 	}
 
@@ -82,7 +77,6 @@ func NewStepWithOutputs(id api.StepID, outputs ...api.Name) *api.Step {
 	for _, name := range outputs {
 		st.Attributes[name] = &api.AttributeSpec{
 			Role: api.RoleOutput,
-			Type: api.TypeString,
 		}
 	}
 	return st

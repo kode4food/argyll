@@ -1,6 +1,6 @@
 import { renderHook } from "@testing-library/react";
 import { useNodeData } from "./useNodeData";
-import { AttributeRole, AttributeType, ExecutionResult } from "@/app/api";
+import { AttributeRole, ExecutionResult } from "@/app/api";
 
 describe("useNodeData", () => {
   const mockStep = {
@@ -10,12 +10,10 @@ describe("useNodeData", () => {
     attributes: {
       input1: {
         role: AttributeRole.Required,
-        type: AttributeType.String,
         description: "",
       },
       output1: {
         role: AttributeRole.Output,
-        type: AttributeType.String,
         description: "",
       },
     },
@@ -248,17 +246,14 @@ describe("useNodeData", () => {
       attributes: {
         input1: {
           role: AttributeRole.Required,
-          type: AttributeType.String,
           description: "",
         },
         input2: {
           role: AttributeRole.Required,
-          type: AttributeType.String,
           description: "",
         },
         optional1: {
           role: AttributeRole.Optional,
-          type: AttributeType.String,
           description: "",
         },
       },

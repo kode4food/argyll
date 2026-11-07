@@ -35,9 +35,9 @@ func main() {
 		WithTags(
 			"domain:text", "capability:transform", "language:lua", "example",
 		).
-		Required("text", api.TypeString).
-		Required("name", api.TypeString).
-		Output("formatted_text", api.TypeString).
+		Required("text").
+		Required("name").
+		Output("formatted_text").
 		WithScript(api.ScriptConfig{
 			Language: api.ScriptLangLua,
 			Script:   textFormatterScript,
@@ -66,12 +66,12 @@ return {
 		WithTags(
 			"domain:pricing", "capability:calculate", "language:lua", "example",
 		).
-		Required("quantity", api.TypeNumber).
-		Required("unit_price", api.TypeNumber).
-		Output("subtotal", api.TypeNumber).
-		Output("tax", api.TypeNumber).
-		Output("shipping", api.TypeNumber).
-		Output("total", api.TypeNumber).
+		Required("quantity").
+		Required("unit_price").
+		Output("subtotal").
+		Output("tax").
+		Output("shipping").
+		Output("total").
 		WithScript(api.ScriptConfig{
 			Language: api.ScriptLangLua,
 			Script:   priceCalculatorScript,
@@ -106,12 +106,12 @@ return {
 		WithTags(
 			"domain:risk", "capability:decision", "language:argex", "example",
 		).
-		Required("age", api.TypeNumber).
-		Required("income", api.TypeNumber).
-		Required("credit_score", api.TypeNumber).
-		Output("eligible", api.TypeBoolean).
-		Output("reason", api.TypeString).
-		Output("risk_level", api.TypeString).
+		Required("age").
+		Required("income").
+		Required("credit_score").
+		Output("eligible").
+		Output("reason").
+		Output("risk_level").
 		WithScript(api.ScriptConfig{
 			Language: api.ScriptLangArgyll,
 			Script:   eligibilityCheckerScript,

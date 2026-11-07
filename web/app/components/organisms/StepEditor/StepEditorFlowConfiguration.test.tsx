@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { AttributeRole, AttributeType, Step } from "@/app/api";
+import { AttributeRole, Step } from "@/app/api";
 import { t } from "@/app/testUtils/i18n";
 import StepEditorFlowConfiguration from "./StepEditorFlowConfiguration";
 
@@ -44,7 +44,7 @@ describe("StepEditorFlowConfiguration", () => {
       name: "Stock Reservation",
       type: "service",
       attributes: {
-        reservation: { role: AttributeRole.Output, type: AttributeType.String },
+        reservation: { role: AttributeRole.Output },
       },
     },
     {
@@ -54,7 +54,6 @@ describe("StepEditorFlowConfiguration", () => {
       attributes: {
         reservation: {
           role: AttributeRole.Required,
-          type: AttributeType.String,
         },
       },
     },

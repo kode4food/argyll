@@ -1,7 +1,7 @@
 import { renderHook } from "@testing-library/react";
 import { useAutoLayout } from "./useAutoLayout";
 import { Node, Edge } from "@xyflow/react";
-import { ExecutionPlan, AttributeRole, AttributeType } from "@/app/api";
+import { ExecutionPlan, AttributeRole } from "@/app/api";
 import { stepLayout } from "@/constants/layout";
 
 // Mock dagre
@@ -158,8 +158,8 @@ describe("useAutoLayout", () => {
 
   test("calculates height for node with required attributes", () => {
     const node = createNode("step-1", {
-      input1: { role: AttributeRole.Required, type: AttributeType.String },
-      input2: { role: AttributeRole.Required, type: AttributeType.String },
+      input1: { role: AttributeRole.Required },
+      input2: { role: AttributeRole.Required },
     });
     const plan: ExecutionPlan = {
       steps: {},
@@ -183,7 +183,7 @@ describe("useAutoLayout", () => {
 
   test("calculates height for node with optional attributes", () => {
     const node = createNode("step-1", {
-      opt1: { role: AttributeRole.Optional, type: AttributeType.String },
+      opt1: { role: AttributeRole.Optional },
     });
     const plan: ExecutionPlan = {
       steps: {},
@@ -207,9 +207,9 @@ describe("useAutoLayout", () => {
 
   test("calculates height for node with output attributes", () => {
     const node = createNode("step-1", {
-      out1: { role: AttributeRole.Output, type: AttributeType.String },
-      out2: { role: AttributeRole.Output, type: AttributeType.String },
-      out3: { role: AttributeRole.Output, type: AttributeType.String },
+      out1: { role: AttributeRole.Output },
+      out2: { role: AttributeRole.Output },
+      out3: { role: AttributeRole.Output },
     });
     const plan: ExecutionPlan = {
       steps: {},
@@ -233,9 +233,9 @@ describe("useAutoLayout", () => {
 
   test("calculates height for node with mixed attributes", () => {
     const node = createNode("step-1", {
-      req1: { role: AttributeRole.Required, type: AttributeType.String },
-      opt1: { role: AttributeRole.Optional, type: AttributeType.String },
-      out1: { role: AttributeRole.Output, type: AttributeType.String },
+      req1: { role: AttributeRole.Required },
+      opt1: { role: AttributeRole.Optional },
+      out1: { role: AttributeRole.Output },
     });
     const plan: ExecutionPlan = {
       steps: {},

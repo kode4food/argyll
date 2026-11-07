@@ -27,7 +27,7 @@ jest.mock("../api", () => ({
   },
 }));
 
-import { api, AttributeRole, AttributeType } from "../api";
+import { api, AttributeRole } from "../api";
 
 const mockApi = api as jest.Mocked<typeof api>;
 
@@ -236,8 +236,8 @@ describe("flowStore", () => {
       name: "Test Step",
       type: "service",
       attributes: {
-        input1: { role: AttributeRole.Required, type: AttributeType.String },
-        result: { role: AttributeRole.Output, type: AttributeType.String },
+        input1: { role: AttributeRole.Required },
+        result: { role: AttributeRole.Output },
       },
       http: {
         endpoint: "http://localhost:8080/test",

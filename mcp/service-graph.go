@@ -1,7 +1,6 @@
 package mcp
 
 import (
-	"maps"
 	"slices"
 	"strings"
 
@@ -69,9 +68,6 @@ func existingCatalogPayload(steps []openapi.Step) []catalogStep {
 func landscapeNodes(existing []openapi.Step) []serviceNode {
 	nodes := make([]serviceNode, 0, len(existing))
 	for _, st := range existing {
-		types := map[string]string{}
-		maps.Copy(types, st.InputsByType)
-		maps.Copy(types, st.OutputsByType)
 		nodes = append(nodes, serviceNode{
 			Service: "registered",
 			ID:      st.ID,
@@ -79,7 +75,6 @@ func landscapeNodes(existing []openapi.Step) []serviceNode {
 			Source:  st.Source,
 			Inputs:  slices.Clone(st.Required),
 			Outputs: slices.Clone(st.Outputs),
-			Types:   types,
 		})
 	}
 	return nodes

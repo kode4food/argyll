@@ -193,7 +193,6 @@ func (e *Engine) spaceMatches(sp api.Space, st *api.Step) (bool, error) {
 	for name, attr := range st.Attributes {
 		attrs[string(name)] = map[string]any{
 			script.MatchAttributeRole:        string(attr.Role),
-			script.MatchType:                 string(attr.Type),
 			script.MatchAttributeCompensated: attr.Compensated,
 		}
 	}

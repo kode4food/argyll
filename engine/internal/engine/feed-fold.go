@@ -187,13 +187,10 @@ func (e *Engine) evaluateFold(f *api.Feed, args api.Args) (any, error) {
 // Feed's current value and each of its Attributes
 func feedFoldStep(f *api.Feed) *api.Step {
 	attrs := api.AttributeSpecs{
-		api.FeedCurrent: {Role: api.RoleRequired, Type: api.TypeAny},
+		api.FeedCurrent: {Role: api.RoleRequired},
 	}
 	for _, name := range f.Attributes {
-		attrs[name] = &api.AttributeSpec{
-			Role: api.RoleRequired,
-			Type: api.TypeAny,
-		}
+		attrs[name] = &api.AttributeSpec{Role: api.RoleRequired}
 	}
 	return &api.Step{
 		ID:         api.StepID("feed:" + string(f.ID)),

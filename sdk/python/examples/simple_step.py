@@ -1,6 +1,6 @@
 """Simple sync step example."""
 
-from argyll import AttributeType, Client, StepContext
+from argyll import Client, StepContext
 
 client = Client("http://localhost:8080")
 
@@ -15,7 +15,7 @@ def handle_greeting(ctx: StepContext, args: dict) -> dict:
 
 if __name__ == "__main__":
     client.new_step().with_name("Greeting") \
-        .required("name", AttributeType.STRING) \
-        .output("greeting", AttributeType.STRING) \
+        .required("name") \
+        .output("greeting") \
         .with_tags("category:demo") \
         .start(handle_greeting)

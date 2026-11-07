@@ -1,6 +1,5 @@
 import {
   AttributeRole,
-  AttributeType,
   Feed,
   SCRIPT_LANGUAGE_ARGYLL,
   ScriptConfig,
@@ -59,8 +58,7 @@ export const toFeed = (draft: FeedDraft): Feed => {
 export const isDraftValid = (draft: FeedDraft): boolean => {
   const hasDetails = !!draft.id.trim() && !!draft.name.trim();
   const hasSeed =
-    !!draft.value.trim() &&
-    validateDefaultValue(draft.value, AttributeType.Any).valid;
+    !!draft.value.trim() && validateDefaultValue(draft.value).valid;
   const hasAttributes =
     draft.attributes.length > 0 && !draft.attributes.includes(FEED_CURRENT);
   return hasDetails && hasSeed && hasAttributes && !!draft.fold.script.trim();

@@ -6,7 +6,7 @@ import threading
 import time
 from datetime import datetime
 
-from argyll import AsyncContext, AttributeType, Client, StepContext
+from argyll import AsyncContext, Client, StepContext
 from argyll.errors import HTTPError
 
 # Get engine URL from environment
@@ -101,8 +101,8 @@ if __name__ == "__main__":
             "execution:async",
             "example",
         ) \
-        .required("order", AttributeType.OBJECT) \
-        .output("payment_result", AttributeType.OBJECT) \
+        .required("order") \
+        .output("payment_result") \
         .with_async_invoke() \
         .with_timeout(300000) \
         .start(handle_payment)

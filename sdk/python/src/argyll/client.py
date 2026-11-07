@@ -145,7 +145,6 @@ class Client:
             ActionMode,
             AttributeRole,
             AttributeSpec,
-            AttributeType,
             BackoffType,
             ConstConfig,
             FlowConfig,
@@ -189,7 +188,6 @@ class Client:
         attributes = {}
         for name, spec_data in data.get("attributes", {}).items():
             role = AttributeRole(spec_data["role"])
-            attr_type = AttributeType(spec_data["type"])
             required = None
             optional = None
             const = None
@@ -225,7 +223,6 @@ class Client:
                 )
             attributes[name] = AttributeSpec(
                 role=role,
-                type=attr_type,
                 required=required,
                 optional=optional,
                 const=const,

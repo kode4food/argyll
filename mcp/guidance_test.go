@@ -72,7 +72,7 @@ func TestStepTemplate(t *testing.T) {
 	})
 
 	assert.Contains(t, text, "WithMethod(\\\"GET\\\")")
-	assert.Contains(t, text, "Required(\\\"user_id\\\", api.TypeString)")
+	assert.Contains(t, text, "Required(\\\"user_id\\\")")
 	assert.Contains(t, text, "Register(\\n\\t\\tcontext.Background(),")
 }
 

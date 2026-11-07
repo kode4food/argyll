@@ -12,7 +12,6 @@ from .types import (
     Args,
     AttributeRole,
     AttributeSpec,
-    AttributeType,
     ConstConfig,
     FlowConfig,
     FlowID,
@@ -78,34 +77,26 @@ class StepBuilder:
             updates["_id"] = _to_kebab_case(name)
         return self._copy(**updates)
 
-    def required(self, name: str, attr_type: AttributeType) -> "StepBuilder":
+    def required(self, name: str) -> "StepBuilder":
         """Add required input attribute."""
         new_attrs = dict(self._attributes)
-        new_attrs[name] = AttributeSpec(
-            role=AttributeRole.REQUIRED, type=attr_type
-        )
+        new_attrs[name] = AttributeSpec(role=AttributeRole.REQUIRED)
         return self._copy(_attributes=new_attrs)
 
-    def optional(
-        self, name: str, attr_type: AttributeType, default: str
-    ) -> "StepBuilder":
+    def optional(self, name: str, default: str) -> "StepBuilder":
         """Add optional input attribute with default value."""
         new_attrs = dict(self._attributes)
         new_attrs[name] = AttributeSpec(
             role=AttributeRole.OPTIONAL,
-            type=attr_type,
             optional=OptionalConfig(default=default),
         )
         return self._copy(_attributes=new_attrs)
 
-    def const(
-        self, name: str, attr_type: AttributeType, value: str
-    ) -> "StepBuilder":
+    def const(self, name: str, value: str) -> "StepBuilder":
         """Add const input attribute with fixed value."""
         new_attrs = dict(self._attributes)
         new_attrs[name] = AttributeSpec(
             role=AttributeRole.CONST,
-            type=attr_type,
             const=ConstConfig(value=value),
         )
         return self._copy(_attributes=new_attrs)
@@ -115,17 +106,14 @@ class StepBuilder:
         new_attrs = dict(self._attributes)
         new_attrs[name] = AttributeSpec(
             role=AttributeRole.META,
-            type=AttributeType.ANY,
             meta=MetaConfig(key=meta_key),
         )
         return self._copy(_attributes=new_attrs)
 
-    def output(self, name: str, attr_type: AttributeType) -> "StepBuilder":
+    def output(self, name: str) -> "StepBuilder":
         """Declare output attribute."""
         new_attrs = dict(self._attributes)
-        new_attrs[name] = AttributeSpec(
-            role=AttributeRole.OUTPUT, type=attr_type
-        )
+        new_attrs[name] = AttributeSpec(role=AttributeRole.OUTPUT)
         return self._copy(_attributes=new_attrs)
 
     def with_for_each(self, *names: str) -> "StepBuilder":

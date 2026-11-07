@@ -27,7 +27,6 @@ func TestInitialFlowInputs(t *testing.T) {
 		stepA.ID = "step-a"
 		stepA.Attributes["result"] = &api.AttributeSpec{
 			Role: api.RoleOutput,
-			Type: api.TypeString,
 		}
 
 		assert.NoError(t, env.Engine.RegisterStep(stepA))
@@ -107,7 +106,6 @@ func TestRequiredInputsMissing(t *testing.T) {
 		st.ID = "requires-input"
 		st.Attributes["result"] = &api.AttributeSpec{
 			Role: api.RoleOutput,
-			Type: api.TypeString,
 		}
 
 		assert.NoError(t, eng.RegisterStep(st))

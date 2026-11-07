@@ -296,7 +296,7 @@ func TestPlanPreviewSpace(t *testing.T) {
 		outside := helpers.NewSimpleStep("outside")
 		outside.Tags = api.Tags{"domain:orders"}
 		outside.Attributes = api.AttributeSpecs{
-			"data": {Role: api.RoleOutput, Type: api.TypeString},
+			"data": {Role: api.RoleOutput},
 		}
 		assert.NoError(t, env.Engine.RegisterStep(steps.provider))
 		assert.NoError(t, env.Engine.RegisterStep(steps.goal))
@@ -359,13 +359,13 @@ func spaceSteps() spaceStepsRes {
 	provider := helpers.NewSimpleStep("provider")
 	provider.Tags = api.Tags{"domain:payments"}
 	provider.Attributes = api.AttributeSpecs{
-		"data": {Role: api.RoleOutput, Type: api.TypeString},
+		"data": {Role: api.RoleOutput},
 	}
 	goal := helpers.NewSimpleStep("goal")
 	goal.Tags = api.Tags{"domain:payments"}
 	goal.Attributes = api.AttributeSpecs{
-		"data":   {Role: api.RoleRequired, Type: api.TypeString},
-		"result": {Role: api.RoleOutput, Type: api.TypeString},
+		"data":   {Role: api.RoleRequired},
+		"result": {Role: api.RoleOutput},
 	}
 	return spaceStepsRes{provider: provider, goal: goal}
 }

@@ -347,11 +347,9 @@ func newScriptStep() *api.Step {
 		Attributes: api.AttributeSpecs{
 			"input": {
 				Role: api.RoleRequired,
-				Type: api.TypeString,
 			},
 			"result": {
 				Role: api.RoleOutput,
-				Type: api.TypeString,
 			},
 		},
 		Script: &api.ScriptConfig{

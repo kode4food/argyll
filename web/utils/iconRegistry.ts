@@ -15,6 +15,7 @@ import {
   CheckCircle2,
   CircleDashed,
   CircleDot,
+  CircleEqual,
   CircleHelp,
   CircleSlash,
   Clock,
@@ -136,6 +137,7 @@ export const IconAttributeStatusPending = CircleDashed;
 export const IconAttributeStatusProvided = CheckCircle;
 export const IconAttributeStatusDefaulted = CircleDot;
 export const IconAttributeStatusSkipped = CircleSlash;
+export const IconAttributeStatusFlowStart = CircleEqual;
 
 export const IconStepTypeService = Server;
 export const IconStepTypeScript = FileCode2;

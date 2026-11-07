@@ -4,7 +4,6 @@ from argyll.types import (
     ActionMode,
     AttributeRole,
     AttributeSpec,
-    AttributeType,
     ConstConfig,
     Handling,
     HTTPAction,
@@ -24,21 +23,19 @@ from argyll.types import (
 
 
 def test_attribute_spec_to_dict():
-    spec = AttributeSpec(role=AttributeRole.REQUIRED, type=AttributeType.STRING)
+    spec = AttributeSpec(role=AttributeRole.REQUIRED)
     result = spec.to_dict()
-    assert result == {"role": "required", "type": "string"}
+    assert result == {"role": "required"}
 
 
 def test_attribute_spec_with_default():
     spec = AttributeSpec(
         role=AttributeRole.OPTIONAL,
-        type=AttributeType.NUMBER,
         optional=OptionalConfig(default="42"),
     )
     result = spec.to_dict()
     assert result == {
         "role": "optional",
-        "type": "number",
         "optional": {"default": "42"},
     }
 
@@ -46,13 +43,11 @@ def test_attribute_spec_with_default():
 def test_attribute_spec_with_for_each():
     spec = AttributeSpec(
         role=AttributeRole.REQUIRED,
-        type=AttributeType.ARRAY,
         required=RequiredConfig(for_each=True),
     )
     result = spec.to_dict()
     assert result == {
         "role": "required",
-        "type": "array",
         "required": {"for_each": True},
     }
 
@@ -60,13 +55,11 @@ def test_attribute_spec_with_for_each():
 def test_attribute_spec_with_collect():
     spec = AttributeSpec(
         role=AttributeRole.REQUIRED,
-        type=AttributeType.ARRAY,
         required=RequiredConfig(collect=InputCollect.SOME),
     )
     result = spec.to_dict()
     assert result == {
         "role": "required",
-        "type": "array",
         "required": {"collect": "some"},
     }
 
@@ -74,13 +67,11 @@ def test_attribute_spec_with_collect():
 def test_attribute_spec_with_const():
     spec = AttributeSpec(
         role=AttributeRole.CONST,
-        type=AttributeType.STRING,
         const=ConstConfig(value='"fixed"'),
     )
     result = spec.to_dict()
     assert result == {
         "role": "const",
-        "type": "string",
         "const": {"value": '"fixed"'},
     }
 
@@ -88,13 +79,11 @@ def test_attribute_spec_with_const():
 def test_attribute_spec_with_mapping():
     spec = AttributeSpec(
         role=AttributeRole.REQUIRED,
-        type=AttributeType.STRING,
         required=RequiredConfig(mapping=MappingConfig(name="email")),
     )
     result = spec.to_dict()
     assert result == {
         "role": "required",
-        "type": "string",
         "required": {"mapping": {"name": "email"}},
     }
 
@@ -102,7 +91,6 @@ def test_attribute_spec_with_mapping():
 def test_attribute_spec_with_match():
     spec = AttributeSpec(
         role=AttributeRole.REQUIRED,
-        type=AttributeType.OBJECT,
         required=RequiredConfig(
             match=ScriptConfig(
                 language=ScriptLanguage.ARGYLL, script="value.product_type"
@@ -112,7 +100,6 @@ def test_attribute_spec_with_match():
     result = spec.to_dict()
     assert result == {
         "role": "required",
-        "type": "object",
         "required": {
             "match": {
                 "language": "argyll",
@@ -187,11 +174,7 @@ def test_step_to_dict():
         id="test-step",
         name="Test Step",
         type=StepType.SERVICE,
-        attributes={
-            "input": AttributeSpec(
-                role=AttributeRole.REQUIRED, type=AttributeType.STRING
-            )
-        },
+        attributes={"input": AttributeSpec(role=AttributeRole.REQUIRED)},
         http=HTTPConfig(
             invoke=HTTPAction(endpoint="http://localhost:8081/test")
         ),
@@ -228,7 +211,6 @@ def test_step_enums():
     assert StepType.SERVICE.value == "service"
     assert StepType.SCRIPT.value == "script"
     assert AttributeRole.REQUIRED.value == "required"
-    assert AttributeType.STRING.value == "string"
     assert ScriptLanguage.LUA.value == "lua"
     assert ScriptLanguage.ARGYLL.value == "argyll"
 
@@ -284,11 +266,7 @@ def test_step_with_all_fields():
         id="test-step",
         name="Test Step",
         type=StepType.SERVICE,
-        attributes={
-            "input": AttributeSpec(
-                role=AttributeRole.REQUIRED, type=AttributeType.STRING
-            )
-        },
+        attributes={"input": AttributeSpec(role=AttributeRole.REQUIRED)},
         tags=["env:test"],
         http=HTTPConfig(
             invoke=HTTPAction(
@@ -327,9 +305,9 @@ def test_step_with_all_fields():
 
 
 def test_attribute_spec_no_optional_fields():
-    spec = AttributeSpec(role=AttributeRole.OUTPUT, type=AttributeType.NUMBER)
+    spec = AttributeSpec(role=AttributeRole.OUTPUT)
     result = spec.to_dict()
-    assert result == {"role": "output", "type": "number"}
+    assert result == {"role": "output"}
     assert "required" not in result
     assert "optional" not in result
     assert "const" not in result
@@ -340,7 +318,6 @@ def test_nested_optional_fields():
     script = ScriptConfig(language=ScriptLanguage.LUA, script="return value")
     optional = AttributeSpec(
         role=AttributeRole.OPTIONAL,
-        type=AttributeType.STRING,
         optional=OptionalConfig(
             collect=InputCollect.ALL,
             for_each=True,
@@ -350,12 +327,10 @@ def test_nested_optional_fields():
     )
     meta = AttributeSpec(
         role=AttributeRole.META,
-        type=AttributeType.STRING,
         meta=MetaConfig(key="flow_id"),
     )
     output = AttributeSpec(
         role=AttributeRole.OUTPUT,
-        type=AttributeType.STRING,
         output=OutputConfig(mapping=MappingConfig(name="result")),
     )
 

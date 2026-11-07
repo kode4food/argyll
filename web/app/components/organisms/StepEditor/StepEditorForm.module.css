@@ -137,10 +137,6 @@
   min-width: 0;
 }
 
-.argType {
-  flex: 0 0 92px;
-}
-
 .removeButtonStyle {
   composes: removeButton from "@/app/styles/components/form.module.css";
 }

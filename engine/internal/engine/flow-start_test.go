@@ -207,7 +207,6 @@ func TestStartMissingInput(t *testing.T) {
 		st := helpers.NewSimpleStep("step-needs-input")
 		st.Attributes["required_value"] = &api.AttributeSpec{
 			Role: api.RoleRequired,
-			Type: api.TypeString,
 		}
 
 		pl := &api.ExecutionPlan{
@@ -247,7 +246,7 @@ func TestStartFlowSimple(t *testing.T) {
 			Name: "Goal",
 			Type: api.StepTypeService,
 			Attributes: api.AttributeSpecs{
-				"result": {Role: api.RoleOutput, Type: api.TypeString},
+				"result": {Role: api.RoleOutput},
 			},
 			HTTP: &api.HTTPConfig{
 				Invoke: api.HTTPAction{Endpoint: "http://test:8080"},
@@ -307,7 +306,7 @@ func TestStartChildFlowUsesPlan(t *testing.T) {
 		updated := helpers.NewSimpleStep(child.ID)
 		updated.HTTP.Invoke.Mode = api.ActionModeAsync
 		updated.Attributes["new-input"] = &api.AttributeSpec{
-			Role: api.RoleRequired, Type: api.TypeString,
+			Role: api.RoleRequired,
 		}
 		assert.NoError(t, env.Engine.UpdateStep(updated))
 		assert.NoError(t, env.Engine.Start())
@@ -343,7 +342,7 @@ func TestCreatePlanEmbedsChildPlans(t *testing.T) {
 			Name: "Child",
 			Type: api.StepTypeService,
 			Attributes: api.AttributeSpecs{
-				"result": {Role: api.RoleOutput, Type: api.TypeString},
+				"result": {Role: api.RoleOutput},
 			},
 			HTTP: &api.HTTPConfig{
 				Invoke: api.HTTPAction{
@@ -364,7 +363,6 @@ func TestCreatePlanEmbedsChildPlans(t *testing.T) {
 			Attributes: api.AttributeSpecs{
 				"wrapped": {
 					Role: api.RoleOutput,
-					Type: api.TypeString,
 					Output: &api.OutputConfig{
 						Mapping: &api.MappingConfig{Name: "result"},
 					},
@@ -397,14 +395,14 @@ func TestCreatePlanRestrictsChildFlowToSpace(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
 		provider := helpers.NewSimpleStep("provider")
 		provider.Attributes = api.AttributeSpecs{
-			"input": {Role: api.RoleOutput, Type: api.TypeString},
+			"input": {Role: api.RoleOutput},
 		}
 		assert.NoError(t, eng.RegisterStep(provider))
 
 		goal := helpers.NewSimpleStep("goal")
 		goal.Tags = api.Tags{"domain:payments"}
 		goal.Attributes = api.AttributeSpecs{
-			"input": {Role: api.RoleRequired, Type: api.TypeString},
+			"input": {Role: api.RoleRequired},
 		}
 		assert.NoError(t, eng.RegisterStep(goal))
 

@@ -852,11 +852,11 @@ func TestFlowCompensation(t *testing.T) {
 	newFlowCompStep := func(id api.StepID) flowCompSteps {
 		producer := newCompensatingStep(id + "-producer")
 		producer.Attributes = api.AttributeSpecs{
-			"value": {Role: api.RoleOutput, Type: api.TypeString},
+			"value": {Role: api.RoleOutput},
 		}
 		consumer := helpers.NewSimpleStep(id + "-consumer")
 		consumer.Attributes = api.AttributeSpecs{
-			"value": {Role: api.RoleRequired, Type: api.TypeString},
+			"value": {Role: api.RoleRequired},
 		}
 		return flowCompSteps{producer: producer, consumer: consumer}
 	}
@@ -911,16 +911,16 @@ func TestFlowCompensation(t *testing.T) {
 
 			first := newCompensatingStep("saga-first")
 			first.Attributes = api.AttributeSpecs{
-				"one": {Role: api.RoleOutput, Type: api.TypeString},
+				"one": {Role: api.RoleOutput},
 			}
 			second := newCompensatingStep("saga-second")
 			second.Attributes = api.AttributeSpecs{
-				"one": {Role: api.RoleRequired, Type: api.TypeString},
-				"two": {Role: api.RoleOutput, Type: api.TypeString},
+				"one": {Role: api.RoleRequired},
+				"two": {Role: api.RoleOutput},
 			}
 			last := helpers.NewSimpleStep("saga-last")
 			last.Attributes = api.AttributeSpecs{
-				"two": {Role: api.RoleRequired, Type: api.TypeString},
+				"two": {Role: api.RoleRequired},
 			}
 
 			for _, st := range []*api.Step{first, second, last} {
@@ -977,16 +977,16 @@ func TestFlowCompensation(t *testing.T) {
 
 			left := newCompensatingStep("saga-left")
 			left.Attributes = api.AttributeSpecs{
-				"one": {Role: api.RoleOutput, Type: api.TypeString},
+				"one": {Role: api.RoleOutput},
 			}
 			right := newCompensatingStep("saga-right")
 			right.Attributes = api.AttributeSpecs{
-				"two": {Role: api.RoleOutput, Type: api.TypeString},
+				"two": {Role: api.RoleOutput},
 			}
 			last := helpers.NewSimpleStep("saga-join")
 			last.Attributes = api.AttributeSpecs{
-				"one": {Role: api.RoleRequired, Type: api.TypeString},
-				"two": {Role: api.RoleRequired, Type: api.TypeString},
+				"one": {Role: api.RoleRequired},
+				"two": {Role: api.RoleRequired},
 			}
 
 			for _, st := range []*api.Step{left, right, last} {
@@ -1049,29 +1049,29 @@ func TestFlowCompensation(t *testing.T) {
 			// fallback, and kept also feeds the last fallback
 			reserve := newCompensatingStep("else-reserve")
 			reserve.Attributes = api.AttributeSpecs{
-				"hold": {Role: api.RoleOutput, Type: api.TypeString},
+				"hold": {Role: api.RoleOutput},
 			}
 			shared := newCompensatingStep("else-shared")
 			shared.Attributes = api.AttributeSpecs{
-				"share": {Role: api.RoleOutput, Type: api.TypeString},
+				"share": {Role: api.RoleOutput},
 			}
 			kept := newCompensatingStep("else-kept")
 			kept.Attributes = api.AttributeSpecs{
-				"keep": {Role: api.RoleOutput, Type: api.TypeString},
+				"keep": {Role: api.RoleOutput},
 			}
 			pay := helpers.NewSimpleStep("else-pay")
 			pay.Attributes = api.AttributeSpecs{
-				"hold":  {Role: api.RoleRequired, Type: api.TypeString},
-				"share": {Role: api.RoleRequired, Type: api.TypeString},
-				"keep":  {Role: api.RoleRequired, Type: api.TypeString},
+				"hold":  {Role: api.RoleRequired},
+				"share": {Role: api.RoleRequired},
+				"keep":  {Role: api.RoleRequired},
 			}
 			alt := helpers.NewSimpleStep("else-alt")
 			alt.Attributes = api.AttributeSpecs{
-				"share": {Role: api.RoleRequired, Type: api.TypeString},
+				"share": {Role: api.RoleRequired},
 			}
 			last := helpers.NewSimpleStep("else-last")
 			last.Attributes = api.AttributeSpecs{
-				"keep": {Role: api.RoleRequired, Type: api.TypeString},
+				"keep": {Role: api.RoleRequired},
 			}
 
 			for _, st := range []*api.Step{
@@ -1172,15 +1172,15 @@ func TestFlowCompensation(t *testing.T) {
 
 			reserve := newCompensatingStep("hold-reserve")
 			reserve.Attributes = api.AttributeSpecs{
-				"hold": {Role: api.RoleOutput, Type: api.TypeString},
+				"hold": {Role: api.RoleOutput},
 			}
 			slow := newCompensatingStep("hold-slow")
 			slow.Attributes = api.AttributeSpecs{
-				"hold": {Role: api.RoleRequired, Type: api.TypeString},
+				"hold": {Role: api.RoleRequired},
 			}
 			fail := helpers.NewSimpleStep("hold-fail")
 			fail.Attributes = api.AttributeSpecs{
-				"hold": {Role: api.RoleRequired, Type: api.TypeString},
+				"hold": {Role: api.RoleRequired},
 			}
 			alt := helpers.NewSimpleStep("hold-alt")
 
@@ -1259,11 +1259,11 @@ func TestFlowCompensation(t *testing.T) {
 
 			first := newCompensatingStep("saga-resume-first")
 			first.Attributes = api.AttributeSpecs{
-				"one": {Role: api.RoleOutput, Type: api.TypeString},
+				"one": {Role: api.RoleOutput},
 			}
 			second := newCompensatingStep("saga-resume-second")
 			second.Attributes = api.AttributeSpecs{
-				"one": {Role: api.RoleRequired, Type: api.TypeString},
+				"one": {Role: api.RoleRequired},
 			}
 			assert.NoError(t, env.Engine.RegisterStep(first))
 			assert.NoError(t, env.Engine.RegisterStep(second))
@@ -1307,7 +1307,7 @@ func TestFlowCompensation(t *testing.T) {
 			producer := helpers.NewStepWithOutputs("plain-producer", "value")
 			consumer := helpers.NewSimpleStep("plain-consumer")
 			consumer.Attributes = api.AttributeSpecs{
-				"value": {Role: api.RoleRequired, Type: api.TypeString},
+				"value": {Role: api.RoleRequired},
 			}
 			assert.NoError(t, env.Engine.RegisterStep(producer))
 			assert.NoError(t, env.Engine.RegisterStep(consumer))

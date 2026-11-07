@@ -34,7 +34,6 @@ func TestRegisterSharedGraph(t *testing.T) {
 				last := steps[len(steps)-1]
 				first.Attributes[api.Name(last.ID)] = &api.AttributeSpec{
 					Role: api.RoleRequired,
-					Type: api.TypeString,
 				}
 				assert.ErrorIs(t,
 					eng.UpdateStep(first), api.ErrCircularDependency)
@@ -47,28 +46,28 @@ func TestUpdateStepCycles(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
 		stepA := helpers.NewSimpleStep("step-a")
 		stepA.Attributes = api.AttributeSpecs{
-			"foo": {Role: api.RoleOutput, Type: api.TypeString},
+			"foo": {Role: api.RoleOutput},
 		}
 		assert.NoError(t, eng.RegisterStep(stepA))
 
 		stepB := helpers.NewSimpleStep("step-b")
 		stepB.Attributes = api.AttributeSpecs{
-			"foo": {Role: api.RoleRequired, Type: api.TypeString},
-			"bar": {Role: api.RoleOutput, Type: api.TypeString},
+			"foo": {Role: api.RoleRequired},
+			"bar": {Role: api.RoleOutput},
 		}
 		assert.NoError(t, eng.RegisterStep(stepB))
 
 		stepC := helpers.NewSimpleStep("step-c")
 		stepC.Attributes = api.AttributeSpecs{
-			"bar": {Role: api.RoleRequired, Type: api.TypeString},
-			"baz": {Role: api.RoleOutput, Type: api.TypeString},
+			"bar": {Role: api.RoleRequired},
+			"baz": {Role: api.RoleOutput},
 		}
 		assert.NoError(t, eng.RegisterStep(stepC))
 
 		updatedA := helpers.NewSimpleStep("step-a")
 		updatedA.Attributes = api.AttributeSpecs{
-			"baz": {Role: api.RoleRequired, Type: api.TypeString},
-			"qux": {Role: api.RoleOutput, Type: api.TypeString},
+			"baz": {Role: api.RoleRequired},
+			"qux": {Role: api.RoleOutput},
 		}
 
 		assert.NoError(t, eng.UpdateStep(updatedA))
@@ -188,7 +187,6 @@ func sharedGraphSteps() []*api.Step {
 					name := api.Name(fmt.Sprintf("layer%d_%d", layer-1, j))
 					st.Attributes[name] = &api.AttributeSpec{
 						Role: api.RoleRequired,
-						Type: api.TypeString,
 					}
 				}
 			}

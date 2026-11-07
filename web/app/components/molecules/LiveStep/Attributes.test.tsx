@@ -1,8 +1,11 @@
 import { render, screen } from "@testing-library/react";
 import Attributes from "./Attributes";
 import type { Step, ExecutionResult } from "@/app/api";
-import { AttributeRole, AttributeType } from "@/app/api";
+import { AttributeRole } from "@/app/api";
 import { t } from "@/app/testUtils/i18n";
+
+// Values also show in the row preview, so these queries target the tooltip
+const IGNORE_PREVIEW = ".argPreview, script, style";
 
 jest.mock("@/app/components/atoms/Tooltip", () => ({
   __esModule: true,
@@ -37,19 +40,16 @@ describe("Attributes", () => {
     requiredArgs.forEach((name) => {
       attributes[name] = {
         role: AttributeRole.Required,
-        type: AttributeType.String,
       };
     });
     optionalArgs.forEach((name) => {
       attributes[name] = {
         role: AttributeRole.Optional,
-        type: AttributeType.String,
       };
     });
     outputArgs.forEach((name) => {
       attributes[name] = {
         role: AttributeRole.Output,
-        type: AttributeType.String,
       };
     });
 
@@ -179,7 +179,9 @@ describe("Attributes", () => {
       />
     );
 
-    expect(screen.getByText(/"test value"/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/"test value"/, { ignore: IGNORE_PREVIEW })
+    ).toBeInTheDocument();
   });
 
   test("renders execution output values in tooltip", () => {
@@ -202,7 +204,9 @@ describe("Attributes", () => {
       />
     );
 
-    expect(screen.getByText(/"output value"/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/"output value"/, { ignore: IGNORE_PREVIEW })
+    ).toBeInTheDocument();
   });
 
   test("formats different value types correctly", () => {
@@ -229,9 +233,15 @@ describe("Attributes", () => {
       />
     );
 
-    expect(screen.getByText(/"string"/)).toBeInTheDocument();
-    expect(screen.getByText("42")).toBeInTheDocument();
-    expect(screen.getByText("null")).toBeInTheDocument();
+    expect(
+      screen.getByText(/"string"/, { ignore: IGNORE_PREVIEW })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("42", { ignore: IGNORE_PREVIEW })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("null", { ignore: IGNORE_PREVIEW })
+    ).toBeInTheDocument();
   });
 
   test("displays timeout for optional args", () => {
@@ -240,7 +250,7 @@ describe("Attributes", () => {
       name: "Test",
       type: "service",
       attributes: {
-        opt1: { role: AttributeRole.Optional, type: AttributeType.String },
+        opt1: { role: AttributeRole.Optional },
       },
       http: {
         endpoint: "http://test",
@@ -284,7 +294,9 @@ describe("Attributes", () => {
       />
     );
 
-    expect(screen.getByText(/"value1"/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/"value1"/, { ignore: IGNORE_PREVIEW })
+    ).toBeInTheDocument();
     expect(
       container.querySelector('[data-arg-name="input2"]')
     ).toBeInTheDocument();
@@ -352,8 +364,12 @@ describe("Attributes", () => {
       />
     );
 
-    expect(screen.getByText(/"nested"/)).toBeInTheDocument();
-    expect(screen.getByText(/"array"/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/"nested"/, { ignore: IGNORE_PREVIEW })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/"array"/, { ignore: IGNORE_PREVIEW })
+    ).toBeInTheDocument();
   });
 
   test("shows attributeProvenance for outputs", () => {
@@ -440,7 +456,6 @@ describe("Attributes", () => {
       attributes: {
         opt1: {
           role: AttributeRole.Optional,
-          type: AttributeType.String,
           optional: { default: "default-value" },
         },
       },
@@ -481,14 +496,12 @@ describe("Attributes", () => {
       attributes: {
         gate: {
           role: AttributeRole.Required,
-          type: AttributeType.String,
           required: {
             match: { language: "lua", script: "return value == 'match'" },
           },
         },
         opt1: {
           role: AttributeRole.Optional,
-          type: AttributeType.String,
           optional: { default: "fallback value" },
         },
       },
@@ -527,7 +540,6 @@ describe("Attributes", () => {
       attributes: {
         opt1: {
           role: AttributeRole.Optional,
-          type: AttributeType.String,
           optional: {
             default: `"default-value"`,
             mapping: { name: "mapped_opt" },
@@ -556,7 +568,9 @@ describe("Attributes", () => {
     );
 
     expect(screen.getByText(t("liveStep.defaultValue"))).toBeInTheDocument();
-    expect(screen.getByText('"default-value"')).toBeInTheDocument();
+    expect(
+      screen.getByText('"default-value"', { ignore: IGNORE_PREVIEW })
+    ).toBeInTheDocument();
     expect(screen.queryByText("undefined")).not.toBeInTheDocument();
   });
 
@@ -568,7 +582,6 @@ describe("Attributes", () => {
       attributes: {
         opt1: {
           role: AttributeRole.Optional,
-          type: AttributeType.String,
           optional: { default: "default-value" },
         },
       },
@@ -626,7 +639,7 @@ describe("Attributes", () => {
       name: "Test",
       type: "service",
       attributes: {
-        result: { role: AttributeRole.Output, type: AttributeType.String },
+        result: { role: AttributeRole.Output },
       },
       http: {
         endpoint: "http://test",
@@ -675,7 +688,9 @@ describe("Attributes", () => {
     );
 
     // Should render without crashing, even though JSON.stringify would throw
-    expect(screen.getByText(/\[object Object\]/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/\[object Object\]/, { ignore: IGNORE_PREVIEW })
+    ).toBeInTheDocument();
   });
 
   test("shows 'Default Value' tooltip title for defaulted optional args", () => {
@@ -686,7 +701,6 @@ describe("Attributes", () => {
       attributes: {
         opt1: {
           role: AttributeRole.Optional,
-          type: AttributeType.String,
           optional: { default: "default-value" },
         },
       },
@@ -707,5 +721,57 @@ describe("Attributes", () => {
     );
 
     expect(screen.getByText(t("liveStep.defaultValue"))).toBeInTheDocument();
+  });
+
+  test("previews the live value, then the declared value", () => {
+    const step: Step = {
+      ...createStep(["input1"], [], []),
+      attributes: {
+        input1: { role: AttributeRole.Required },
+        total: { role: AttributeRole.Feed, feed: { id: "order-total" } },
+      },
+    };
+    const execution: ExecutionResult = {
+      step_id: "step-1",
+      flow_id: "wf-1",
+      status: "completed",
+      inputs: { input1: { id: 7 } },
+      started_at: "2024-01-01T00:00:00Z",
+    };
+
+    const { container } = render(
+      <Attributes step={step} satisfiedArgs={new Set()} execution={execution} />
+    );
+    const preview = (name: string) =>
+      container.querySelector(`[data-arg-name="${name}"] .argPreview`)
+        ?.textContent;
+
+    expect(preview("input1")).toBe('{"id":7}');
+    expect(preview("total")).toBe("order-total");
+  });
+
+  test("shows the flow start badge for a feed value", () => {
+    const step: Step = {
+      ...createStep([], [], []),
+      attributes: {
+        total: { role: AttributeRole.Feed, feed: { id: "order-total" } },
+      },
+    };
+    const execution: ExecutionResult = {
+      step_id: "step-1",
+      flow_id: "wf-1",
+      status: "completed",
+      inputs: { total: 12 },
+      started_at: "2024-01-01T00:00:00Z",
+    };
+
+    const { container } = render(
+      <Attributes step={step} satisfiedArgs={new Set()} execution={execution} />
+    );
+
+    expect(
+      container.querySelector('[data-arg-name="total"] .arg-status-badge')
+        ?.className
+    ).toContain("flowStart");
   });
 });

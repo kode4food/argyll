@@ -1,57 +1,6 @@
-import { AttributeType, ExecutionPlan, Step } from "@/app/api";
+import { ExecutionPlan } from "@/app/api";
 
-export const getDefaultValueForType = (type?: AttributeType): unknown => {
-  switch (type) {
-    case AttributeType.Boolean:
-      return false;
-    case AttributeType.Number:
-      return 0;
-    case AttributeType.String:
-      return "";
-    case AttributeType.Object:
-      return {};
-    case AttributeType.Array:
-      return [];
-    case AttributeType.Null:
-      return null;
-    default:
-      return "";
-  }
-};
-
-export const isDefaultValue = (value: any, type?: AttributeType): boolean => {
-  if (type === undefined) {
-    return isUntypedDefaultValue(value);
-  }
-
-  const defaultForType = getDefaultValueForType(type);
-
-  if (Array.isArray(value)) {
-    return value.length === 0;
-  }
-
-  // Handle null explicitly (typeof null === "object" in JS)
-  if (defaultForType === null) {
-    return value === null;
-  }
-
-  // For objects and arrays, need deep comparison
-  if (typeof defaultForType === "object") {
-    if (Array.isArray(defaultForType)) {
-      return Array.isArray(value) && value.length === 0;
-    }
-    return (
-      typeof value === "object" &&
-      value !== null &&
-      !Array.isArray(value) &&
-      Object.keys(value).length === 0
-    );
-  }
-
-  return value === defaultForType;
-};
-
-export const isUntypedDefaultValue = (value: any): boolean => {
+export const isDefaultValue = (value: any): boolean => {
   if (value === "" || value === null) return true;
   if (value === false) return true;
   if (value === 0) return true;
@@ -73,32 +22,13 @@ export const parseState = (stateJson: string): Record<string, any> => {
 };
 
 export const filterDefaultValues = (
-  state: Record<string, any>,
-  steps?: Step[]
+  state: Record<string, any>
 ): Record<string, any> => {
   const filtered: Record<string, any> = {};
 
   Object.keys(state).forEach((key) => {
     if (state[key] === "") return;
-    if (Array.isArray(state[key])) {
-      filtered[key] = state[key];
-      return;
-    }
-    let attributeType: AttributeType | undefined;
-
-    // Find the type from the global step registry
-    if (steps) {
-      for (const step of steps) {
-        if (step.attributes?.[key]) {
-          attributeType = step.attributes[key].type;
-          break;
-        }
-      }
-    }
-
-    const isDefault = isDefaultValue(state[key], attributeType);
-
-    if (!isDefault) {
+    if (Array.isArray(state[key]) || !isDefaultValue(state[key])) {
       filtered[key] = state[key];
     }
   });

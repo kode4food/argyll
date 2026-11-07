@@ -7,7 +7,6 @@ from argyll import Client, StepContext, handlers
 from argyll.builder import StepBuilder
 from argyll.errors import HTTPError, WebhookError
 from argyll.handlers import AsyncContext, _invoke_with_recovery
-from argyll.types import AttributeType
 
 
 def test_step_context_creation():
@@ -365,8 +364,8 @@ def test_step_server_compensate_handler(monkeypatch):
     client = _DummyClient()
     builder = (
         StepBuilder(client=client, name="Test Step")
-        .required("order", AttributeType.OBJECT)
-        .output("reservation", AttributeType.OBJECT)
+        .required("order")
+        .output("reservation")
         .compensated("order")
         .compensated("reservation")
     )

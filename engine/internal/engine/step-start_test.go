@@ -23,16 +23,13 @@ func TestOptionalDefaults(t *testing.T) {
 		st.Attributes = api.AttributeSpecs{
 			"input": {
 				Role: api.RoleRequired,
-				Type: api.TypeString,
 			},
 			"optional": {
 				Role:     api.RoleOptional,
-				Type:     api.TypeString,
 				Optional: &api.OptionalConfig{Default: `"fallback"`},
 			},
 			"result": {
 				Role: api.RoleOutput,
-				Type: api.TypeString,
 			},
 		}
 
@@ -76,11 +73,9 @@ func TestCollectFirst(t *testing.T) {
 		st.Attributes = api.AttributeSpecs{
 			"input": {
 				Role: api.RoleRequired,
-				Type: api.TypeAny,
 			},
 			"result": {
 				Role: api.RoleOutput,
-				Type: api.TypeString,
 			},
 		}
 
@@ -228,13 +223,12 @@ func TestCollectNone(t *testing.T) {
 			Attributes: api.AttributeSpecs{
 				"data": {
 					Role: api.RoleOptional,
-					Type: api.TypeAny,
 					Optional: &api.OptionalConfig{
 						Collect: api.InputCollectNone,
 						Default: `"fallback"`,
 					},
 				},
-				"result": {Role: api.RoleOutput, Type: api.TypeString},
+				"result": {Role: api.RoleOutput},
 			},
 			HTTP: &api.HTTPConfig{
 				Invoke: api.HTTPAction{Endpoint: "http://example.com"},
@@ -289,12 +283,11 @@ func TestCollectNoneProviderNoValue(t *testing.T) {
 			Attributes: api.AttributeSpecs{
 				"data": {
 					Role: api.RoleRequired,
-					Type: api.TypeString,
 					Required: &api.RequiredConfig{
 						Collect: api.InputCollectNone,
 					},
 				},
-				"result": {Role: api.RoleOutput, Type: api.TypeString},
+				"result": {Role: api.RoleOutput},
 			},
 			HTTP: &api.HTTPConfig{
 				Invoke: api.HTTPAction{Endpoint: "http://example.com"},
@@ -337,12 +330,11 @@ func TestCollectNoneNoProvider(t *testing.T) {
 			Attributes: api.AttributeSpecs{
 				"data": {
 					Role: api.RoleRequired,
-					Type: api.TypeAny,
 					Required: &api.RequiredConfig{
 						Collect: api.InputCollectNone,
 					},
 				},
-				"result": {Role: api.RoleOutput, Type: api.TypeString},
+				"result": {Role: api.RoleOutput},
 			},
 			HTTP: &api.HTTPConfig{
 				Invoke: api.HTTPAction{Endpoint: "http://example.com"},
@@ -381,12 +373,11 @@ func TestCollectSomeInit(t *testing.T) {
 			Attributes: api.AttributeSpecs{
 				"data": {
 					Role: api.RoleRequired,
-					Type: api.TypeAny,
 					Required: &api.RequiredConfig{
 						Collect: api.InputCollectSome,
 					},
 				},
-				"result": {Role: api.RoleOutput, Type: api.TypeString},
+				"result": {Role: api.RoleOutput},
 			},
 			HTTP: &api.HTTPConfig{
 				Invoke: api.HTTPAction{Endpoint: "http://example.com"},
@@ -439,12 +430,11 @@ func TestEmptyInit(t *testing.T) {
 					Attributes: api.AttributeSpecs{
 						"data": {
 							Role: api.RoleRequired,
-							Type: api.TypeAny,
 							Required: &api.RequiredConfig{
 								Collect: tt.collect,
 							},
 						},
-						"result": {Role: api.RoleOutput, Type: api.TypeString},
+						"result": {Role: api.RoleOutput},
 					},
 					HTTP: &api.HTTPConfig{
 						Invoke: api.HTTPAction{Endpoint: "http://example.com"},
@@ -489,7 +479,6 @@ func TestInitFrozen(t *testing.T) {
 		consumer.Attributes = api.AttributeSpecs{
 			"data": {
 				Role: api.RoleRequired,
-				Type: api.TypeString,
 				Required: &api.RequiredConfig{
 					Collect: api.InputCollectAll,
 				},
@@ -528,12 +517,10 @@ func TestConstObject(t *testing.T) {
 		st.Attributes = api.AttributeSpecs{
 			"config": {
 				Role:  api.RoleConst,
-				Type:  api.TypeObject,
 				Const: &api.ConstConfig{Value: `{"name":"cfg","count":2}`},
 			},
 			"result": {
 				Role: api.RoleOutput,
-				Type: api.TypeString,
 			},
 		}
 
@@ -570,12 +557,10 @@ func TestConstNullDefault(t *testing.T) {
 		st.Attributes = api.AttributeSpecs{
 			"config": {
 				Role:  api.RoleConst,
-				Type:  api.TypeAny,
 				Const: &api.ConstConfig{Value: "null"},
 			},
 			"result": {
 				Role: api.RoleOutput,
-				Type: api.TypeString,
 			},
 		}
 
@@ -608,14 +593,12 @@ func TestOptionalNullDefault(t *testing.T) {
 		st.Attributes = api.AttributeSpecs{
 			"opt": {
 				Role: api.RoleOptional,
-				Type: api.TypeAny,
 				Optional: &api.OptionalConfig{
 					Default: "null",
 				},
 			},
 			"result": {
 				Role: api.RoleOutput,
-				Type: api.TypeString,
 			},
 		}
 
@@ -648,7 +631,6 @@ func TestInputMapping(t *testing.T) {
 		st.Attributes = api.AttributeSpecs{
 			"input": {
 				Role: api.RoleRequired,
-				Type: api.TypeObject,
 				Required: &api.RequiredConfig{
 					Mapping: &api.MappingConfig{
 						Script: &api.ScriptConfig{
@@ -660,7 +642,6 @@ func TestInputMapping(t *testing.T) {
 			},
 			"result": {
 				Role: api.RoleOutput,
-				Type: api.TypeString,
 			},
 		}
 
@@ -695,14 +676,12 @@ func TestInputRename(t *testing.T) {
 		st.Attributes = api.AttributeSpecs{
 			"user_email": {
 				Role: api.RoleRequired,
-				Type: api.TypeString,
 				Required: &api.RequiredConfig{
 					Mapping: &api.MappingConfig{Name: "email"},
 				},
 			},
 			"result": {
 				Role: api.RoleOutput,
-				Type: api.TypeString,
 			},
 		}
 
@@ -829,7 +808,6 @@ func TestArgExNullMatch(t *testing.T) {
 		)
 		st.Attributes["flag"] = &api.AttributeSpec{
 			Role: api.RoleOptional,
-			Type: api.TypeAny,
 		}
 
 		assert.NoError(t, env.Engine.RegisterStep(st))
@@ -1111,7 +1089,6 @@ func TestOptionalMatchAllFallsBack(t *testing.T) {
 		pl := fixture.plan
 		consumer.Attributes["data"] = &api.AttributeSpec{
 			Role: api.RoleOptional,
-			Type: api.TypeAny,
 			Optional: &api.OptionalConfig{
 				Collect: api.InputCollectAll,
 				Default: `"fallback"`,
@@ -1150,11 +1127,9 @@ func TestMatchSkipInputs(t *testing.T) {
 		consumer.Attributes = api.AttributeSpecs{
 			"user_info": {
 				Role: api.RoleRequired,
-				Type: api.TypeString,
 			},
 			"payment_result": {
 				Role: api.RoleRequired,
-				Type: api.TypeString,
 				Required: &api.RequiredConfig{
 					Match: &api.ScriptConfig{
 						Language: api.ScriptLangLua,
@@ -1198,7 +1173,6 @@ func TestInputLua(t *testing.T) {
 		st.Attributes = api.AttributeSpecs{
 			"amount": {
 				Role: api.RoleRequired,
-				Type: api.TypeNumber,
 				Required: &api.RequiredConfig{
 					Mapping: &api.MappingConfig{
 						Script: &api.ScriptConfig{
@@ -1210,7 +1184,6 @@ func TestInputLua(t *testing.T) {
 			},
 			"result": {
 				Role: api.RoleOutput,
-				Type: api.TypeNumber,
 			},
 		}
 
@@ -1360,7 +1333,6 @@ func routingSteps() routingStepsRes {
 		Attributes: api.AttributeSpecs{
 			"notification_type": {
 				Role: api.RoleOutput,
-				Type: api.TypeString,
 			},
 		},
 		HTTP: &api.HTTPConfig{
@@ -1374,11 +1346,9 @@ func routingSteps() routingStepsRes {
 		Attributes: api.AttributeSpecs{
 			"customer_id": {
 				Role: api.RoleRequired,
-				Type: api.TypeString,
 			},
 			"customer": {
 				Role: api.RoleOutput,
-				Type: api.TypeObject,
 			},
 		},
 		HTTP: &api.HTTPConfig{
@@ -1392,7 +1362,6 @@ func routingSteps() routingStepsRes {
 		Attributes: api.AttributeSpecs{
 			"notification_type": {
 				Role: api.RoleRequired,
-				Type: api.TypeString,
 				Required: &api.RequiredConfig{
 					Match: &api.ScriptConfig{
 						Language: api.ScriptLangLua,
@@ -1402,11 +1371,9 @@ func routingSteps() routingStepsRes {
 			},
 			"email_address": {
 				Role: api.RoleRequired,
-				Type: api.TypeString,
 			},
 			"email_result": {
 				Role: api.RoleOutput,
-				Type: api.TypeString,
 			},
 		},
 		HTTP: &api.HTTPConfig{
@@ -1420,7 +1387,6 @@ func routingSteps() routingStepsRes {
 		Attributes: api.AttributeSpecs{
 			"notification_type": {
 				Role: api.RoleRequired,
-				Type: api.TypeString,
 				Required: &api.RequiredConfig{
 					Match: &api.ScriptConfig{
 						Language: api.ScriptLangLua,
@@ -1430,11 +1396,9 @@ func routingSteps() routingStepsRes {
 			},
 			"customer": {
 				Role: api.RoleRequired,
-				Type: api.TypeObject,
 			},
 			"postal_result": {
 				Role: api.RoleOutput,
-				Type: api.TypeString,
 			},
 		},
 		HTTP: &api.HTTPConfig{
@@ -1468,10 +1432,9 @@ func collectPlan(
 		Attributes: api.AttributeSpecs{
 			"data": {
 				Role:     api.RoleRequired,
-				Type:     api.TypeAny,
 				Required: &api.RequiredConfig{Collect: collect},
 			},
-			"result": {Role: api.RoleOutput, Type: api.TypeString},
+			"result": {Role: api.RoleOutput},
 		},
 		HTTP: &api.HTTPConfig{
 			Invoke: api.HTTPAction{Endpoint: "http://example.com"},
@@ -1509,7 +1472,7 @@ func collectProvider(id api.StepID) *api.Step {
 		Name: "Provider",
 		Type: api.StepTypeService,
 		Attributes: api.AttributeSpecs{
-			"data": {Role: api.RoleOutput, Type: api.TypeAny},
+			"data": {Role: api.RoleOutput},
 		},
 		HTTP: &api.HTTPConfig{
 			Invoke: api.HTTPAction{Endpoint: "http://example.com"},

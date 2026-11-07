@@ -11,7 +11,6 @@ export interface ArgValueResult {
 
 export interface UnifiedArg {
   name: string;
-  type: string;
   argType: ArgType;
   spec: AttributeSpec;
   modifiers: AttributeModifier[];

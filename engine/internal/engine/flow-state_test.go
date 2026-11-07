@@ -49,7 +49,7 @@ func TestCompletableProvider(t *testing.T) {
 					Name: "Provider",
 					Type: api.StepTypeService,
 					Attributes: api.AttributeSpecs{
-						"input": {Role: api.RoleOutput, Type: api.TypeString},
+						"input": {Role: api.RoleOutput},
 					},
 				},
 			},
@@ -79,7 +79,7 @@ func TestFailedProvider(t *testing.T) {
 					Name: "Provider",
 					Type: api.StepTypeService,
 					Attributes: api.AttributeSpecs{
-						"input": {Role: api.RoleOutput, Type: api.TypeString},
+						"input": {Role: api.RoleOutput},
 					},
 				},
 			},
@@ -106,7 +106,6 @@ func TestGoalBlocked(t *testing.T) {
 					Attributes: api.AttributeSpecs{
 						"required": {
 							Role: api.RoleRequired,
-							Type: api.TypeString,
 						},
 					},
 				},
@@ -117,7 +116,6 @@ func TestGoalBlocked(t *testing.T) {
 					Attributes: api.AttributeSpecs{
 						"required": {
 							Role: api.RoleOutput,
-							Type: api.TypeString,
 						},
 					},
 				},
@@ -163,12 +161,10 @@ func TestIsFlowFailed(t *testing.T) {
 		assert.NoError(t, env.Engine.Start())
 
 		stepA := helpers.NewStepWithOutputs("step-a", "value")
-		stepA.Attributes["value"].Type = api.TypeString
 
 		stepB := helpers.NewSimpleStep("step-b")
 		stepB.Attributes["value"] = &api.AttributeSpec{
 			Role: api.RoleRequired,
-			Type: api.TypeString,
 		}
 
 		pl := &api.ExecutionPlan{
@@ -228,7 +224,6 @@ func TestHasInputProvider(t *testing.T) {
 		stepB := helpers.NewSimpleStep("step-b")
 		stepB.Attributes["value"] = &api.AttributeSpec{
 			Role: api.RoleRequired,
-			Type: api.TypeString,
 		}
 
 		pl := &api.ExecutionPlan{
@@ -264,7 +259,6 @@ func TestHasInputProviderNone(t *testing.T) {
 		st := helpers.NewSimpleStep("step-alone")
 		st.Attributes["missing"] = &api.AttributeSpec{
 			Role: api.RoleRequired,
-			Type: api.TypeString,
 		}
 
 		pl := &api.ExecutionPlan{
@@ -409,7 +403,7 @@ func TestGetAttribute(t *testing.T) {
 
 		st := helpers.NewSimpleStep("attr-step")
 		st.Attributes = api.AttributeSpecs{
-			"result": {Role: api.RoleOutput, Type: api.TypeString},
+			"result": {Role: api.RoleOutput},
 		}
 		assert.NoError(t, env.Engine.RegisterStep(st))
 		env.MockClient.SetResponse(st.ID, api.Args{"result": "ok"})

@@ -77,7 +77,7 @@ var (
 // for a required match predicate, exposing only the candidate value
 var MatchStep = &api.Step{
 	Attributes: api.AttributeSpecs{
-		MatchValue: {Role: api.RoleRequired, Type: api.TypeAny},
+		MatchValue: {Role: api.RoleRequired},
 	},
 }
 

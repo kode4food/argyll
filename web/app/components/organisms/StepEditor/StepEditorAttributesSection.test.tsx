@@ -1,5 +1,4 @@
 import { fireEvent, render, screen } from "@testing-library/react";
-import { AttributeType } from "@/app/api";
 import { t } from "@/app/testUtils/i18n";
 import StepEditorAttributesSection from "./StepEditorAttributesSection";
 
@@ -9,13 +8,11 @@ describe("StepEditorAttributesSection", () => {
       id: "request",
       role: "required" as const,
       name: "request",
-      dataType: AttributeType.String,
     },
     {
       id: "result",
       role: "output" as const,
       name: "result",
-      dataType: AttributeType.String,
     },
   ];
   const baseProps = {
@@ -71,7 +68,6 @@ describe("StepEditorAttributesSection", () => {
             id: "total",
             role: "feed" as const,
             name: "total",
-            dataType: AttributeType.Number,
             feedId: "order-total",
           },
         ]}

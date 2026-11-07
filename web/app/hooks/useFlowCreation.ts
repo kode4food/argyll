@@ -92,10 +92,10 @@ export const useFlowCreation = () => {
     }
 
     const currentState = parseState(throttledInitialState);
-    const nonDefaultState = filterDefaultValues(currentState, steps);
+    const nonDefaultState = filterDefaultValues(currentState);
 
     updatePreviewPlan(planGoals, nonDefaultState).catch(() => {});
-  }, [throttledInitialState, planGoals, steps, updatePreviewPlan]);
+  }, [throttledInitialState, planGoals, updatePreviewPlan]);
 
   useEffect(() => {
     if (planGoals.length === 0) {
@@ -113,7 +113,7 @@ export const useFlowCreation = () => {
 
     const flowId = newID.trim();
     // Blank fields are absent; explicit lists declare resolved values
-    const parsedState = filterDefaultValues(parseState(initialState), steps);
+    const parsedState = filterDefaultValues(parseState(initialState));
 
     snapshotFlowPositions(
       flowId,

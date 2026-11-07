@@ -61,7 +61,7 @@ func TestDefaultTimeoutBeforeProvider(t *testing.T) {
 			Name: "Provider",
 			Type: api.StepTypeService,
 			Attributes: api.AttributeSpecs{
-				"opt": {Role: api.RoleOutput, Type: api.TypeString},
+				"opt": {Role: api.RoleOutput},
 			},
 			HTTP: &api.HTTPConfig{
 				Invoke: api.HTTPAction{Endpoint: "http://example.com"},
@@ -74,17 +74,15 @@ func TestDefaultTimeoutBeforeProvider(t *testing.T) {
 			Attributes: api.AttributeSpecs{
 				"seed": {
 					Role: api.RoleRequired,
-					Type: api.TypeString,
 				},
 				"opt": {
 					Role: api.RoleOptional,
-					Type: api.TypeString,
 					Optional: &api.OptionalConfig{
 						Default:  `"fallback"`,
 						Deadline: 50,
 					},
 				},
-				"result": {Role: api.RoleOutput, Type: api.TypeString},
+				"result": {Role: api.RoleOutput},
 			},
 			HTTP: &api.HTTPConfig{
 				Invoke: api.HTTPAction{Endpoint: "http://example.com"},
@@ -158,7 +156,7 @@ func TestTimeoutZeroFallsBackImmediately(t *testing.T) {
 			Name: "Provider",
 			Type: api.StepTypeService,
 			Attributes: api.AttributeSpecs{
-				"opt": {Role: api.RoleOutput, Type: api.TypeString},
+				"opt": {Role: api.RoleOutput},
 			},
 			HTTP: &api.HTTPConfig{
 				Invoke: api.HTTPAction{Endpoint: "http://example.com"},
@@ -171,11 +169,9 @@ func TestTimeoutZeroFallsBackImmediately(t *testing.T) {
 			Attributes: api.AttributeSpecs{
 				"seed": {
 					Role: api.RoleRequired,
-					Type: api.TypeString,
 				},
 				"opt": {
 					Role: api.RoleOptional,
-					Type: api.TypeString,
 					Optional: &api.OptionalConfig{
 						Default:  `"fallback"`,
 						Deadline: 0,
@@ -183,18 +179,16 @@ func TestTimeoutZeroFallsBackImmediately(t *testing.T) {
 				},
 				"opt2": {
 					Role:     api.RoleOptional,
-					Type:     api.TypeString,
 					Optional: &api.OptionalConfig{Deadline: 0},
 				},
 				"opt3": {
 					Role: api.RoleOptional,
-					Type: api.TypeString,
 					Optional: &api.OptionalConfig{
 						Default:  `"fallback3"`,
 						Deadline: 60000,
 					},
 				},
-				"result": {Role: api.RoleOutput, Type: api.TypeString},
+				"result": {Role: api.RoleOutput},
 			},
 			HTTP: &api.HTTPConfig{
 				Invoke: api.HTTPAction{Endpoint: "http://example.com"},
@@ -267,7 +261,7 @@ func TestTimeoutDefaultIsStepLocal(t *testing.T) {
 			Name: "Provider",
 			Type: api.StepTypeService,
 			Attributes: api.AttributeSpecs{
-				"opt": {Role: api.RoleOutput, Type: api.TypeString},
+				"opt": {Role: api.RoleOutput},
 			},
 			HTTP: &api.HTTPConfig{
 				Invoke: api.HTTPAction{Endpoint: "http://example.com"},
@@ -280,17 +274,15 @@ func TestTimeoutDefaultIsStepLocal(t *testing.T) {
 			Attributes: api.AttributeSpecs{
 				"seed": {
 					Role: api.RoleRequired,
-					Type: api.TypeString,
 				},
 				"opt": {
 					Role: api.RoleOptional,
-					Type: api.TypeString,
 					Optional: &api.OptionalConfig{
 						Default:  `"fallback"`,
 						Deadline: 50,
 					},
 				},
-				"fast_done": {Role: api.RoleOutput, Type: api.TypeString},
+				"fast_done": {Role: api.RoleOutput},
 			},
 			HTTP: &api.HTTPConfig{
 				Invoke: api.HTTPAction{Endpoint: "http://example.com"},
@@ -301,8 +293,8 @@ func TestTimeoutDefaultIsStepLocal(t *testing.T) {
 			Name: "Strict",
 			Type: api.StepTypeService,
 			Attributes: api.AttributeSpecs{
-				"opt":         {Role: api.RoleRequired, Type: api.TypeString},
-				"strict_done": {Role: api.RoleOutput, Type: api.TypeString},
+				"opt":         {Role: api.RoleRequired},
+				"strict_done": {Role: api.RoleOutput},
 			},
 			HTTP: &api.HTTPConfig{
 				Invoke: api.HTTPAction{Endpoint: "http://example.com"},
@@ -391,7 +383,7 @@ func TestTimeoutRequiredsGateFallback(t *testing.T) {
 			Name: "User Provider",
 			Type: api.StepTypeService,
 			Attributes: api.AttributeSpecs{
-				"user_info": {Role: api.RoleOutput, Type: api.TypeString},
+				"user_info": {Role: api.RoleOutput},
 			},
 			HTTP: &api.HTTPConfig{
 				Invoke: api.HTTPAction{Endpoint: "http://example.com"},
@@ -402,7 +394,7 @@ func TestTimeoutRequiredsGateFallback(t *testing.T) {
 			Name: "Product Provider",
 			Type: api.StepTypeService,
 			Attributes: api.AttributeSpecs{
-				"product_info": {Role: api.RoleOutput, Type: api.TypeString},
+				"product_info": {Role: api.RoleOutput},
 			},
 			HTTP: &api.HTTPConfig{
 				Invoke: api.HTTPAction{Endpoint: "http://example.com"},
@@ -413,16 +405,15 @@ func TestTimeoutRequiredsGateFallback(t *testing.T) {
 			Name: "Order Creator",
 			Type: api.StepTypeService,
 			Attributes: api.AttributeSpecs{
-				"product_info": {Role: api.RoleRequired, Type: api.TypeString},
+				"product_info": {Role: api.RoleRequired},
 				"user_info": {
 					Role: api.RoleOptional,
-					Type: api.TypeString,
 					Optional: &api.OptionalConfig{
 						Default:  `"guest"`,
 						Deadline: 50,
 					},
 				},
-				"result": {Role: api.RoleOutput, Type: api.TypeString},
+				"result": {Role: api.RoleOutput},
 			},
 			HTTP: &api.HTTPConfig{
 				Invoke: api.HTTPAction{Endpoint: "http://example.com"},
@@ -526,7 +517,7 @@ func TestTimeoutWaitsForLaterOptional(t *testing.T) {
 			Name: "Provider A",
 			Type: api.StepTypeService,
 			Attributes: api.AttributeSpecs{
-				"opt_a": {Role: api.RoleOutput, Type: api.TypeString},
+				"opt_a": {Role: api.RoleOutput},
 			},
 			HTTP: &api.HTTPConfig{
 				Invoke: api.HTTPAction{Endpoint: "http://example.com"},
@@ -537,7 +528,7 @@ func TestTimeoutWaitsForLaterOptional(t *testing.T) {
 			Name: "Provider B",
 			Type: api.StepTypeService,
 			Attributes: api.AttributeSpecs{
-				"opt_b": {Role: api.RoleOutput, Type: api.TypeString},
+				"opt_b": {Role: api.RoleOutput},
 			},
 			HTTP: &api.HTTPConfig{
 				Invoke: api.HTTPAction{Endpoint: "http://example.com"},
@@ -548,10 +539,9 @@ func TestTimeoutWaitsForLaterOptional(t *testing.T) {
 			Name: "Consumer",
 			Type: api.StepTypeService,
 			Attributes: api.AttributeSpecs{
-				"seed": {Role: api.RoleRequired, Type: api.TypeString},
+				"seed": {Role: api.RoleRequired},
 				"opt_a": {
 					Role: api.RoleOptional,
-					Type: api.TypeString,
 					Optional: &api.OptionalConfig{
 						Default:  `"fallback-a"`,
 						Deadline: 50,
@@ -559,13 +549,12 @@ func TestTimeoutWaitsForLaterOptional(t *testing.T) {
 				},
 				"opt_b": {
 					Role: api.RoleOptional,
-					Type: api.TypeString,
 					Optional: &api.OptionalConfig{
 						Default:  `"fallback-b"`,
 						Deadline: 120,
 					},
 				},
-				"result": {Role: api.RoleOutput, Type: api.TypeString},
+				"result": {Role: api.RoleOutput},
 			},
 			HTTP: &api.HTTPConfig{
 				Invoke: api.HTTPAction{Endpoint: "http://example.com"},
@@ -658,7 +647,7 @@ func TestTimeoutStepReadyAnchor(t *testing.T) {
 			Name: "Gate",
 			Type: api.StepTypeService,
 			Attributes: api.AttributeSpecs{
-				"kickoff": {Role: api.RoleOutput, Type: api.TypeString},
+				"kickoff": {Role: api.RoleOutput},
 			},
 			HTTP: &api.HTTPConfig{
 				Invoke: api.HTTPAction{Endpoint: "http://example.com"},
@@ -669,8 +658,8 @@ func TestTimeoutStepReadyAnchor(t *testing.T) {
 			Name: "User Provider",
 			Type: api.StepTypeService,
 			Attributes: api.AttributeSpecs{
-				"kickoff":   {Role: api.RoleRequired, Type: api.TypeString},
-				"user_info": {Role: api.RoleOutput, Type: api.TypeString},
+				"kickoff":   {Role: api.RoleRequired},
+				"user_info": {Role: api.RoleOutput},
 			},
 			HTTP: &api.HTTPConfig{
 				Invoke: api.HTTPAction{Endpoint: "http://example.com"},
@@ -681,16 +670,15 @@ func TestTimeoutStepReadyAnchor(t *testing.T) {
 			Name: "Order Creator",
 			Type: api.StepTypeService,
 			Attributes: api.AttributeSpecs{
-				"product_info": {Role: api.RoleRequired, Type: api.TypeString},
+				"product_info": {Role: api.RoleRequired},
 				"user_info": {
 					Role: api.RoleOptional,
-					Type: api.TypeString,
 					Optional: &api.OptionalConfig{
 						Default:  `"guest"`,
 						Deadline: 50,
 					},
 				},
-				"result": {Role: api.RoleOutput, Type: api.TypeString},
+				"result": {Role: api.RoleOutput},
 			},
 			HTTP: &api.HTTPConfig{
 				Invoke: api.HTTPAction{Endpoint: "http://example.com"},
@@ -777,7 +765,7 @@ func TestTimeoutAfterRequireds(t *testing.T) {
 			Name: "Req Provider",
 			Type: api.StepTypeService,
 			Attributes: api.AttributeSpecs{
-				"req": {Role: api.RoleOutput, Type: api.TypeString},
+				"req": {Role: api.RoleOutput},
 			},
 			HTTP: &api.HTTPConfig{
 				Invoke: api.HTTPAction{Endpoint: "http://example.com"},
@@ -788,7 +776,7 @@ func TestTimeoutAfterRequireds(t *testing.T) {
 			Name: "Opt Provider",
 			Type: api.StepTypeService,
 			Attributes: api.AttributeSpecs{
-				"opt": {Role: api.RoleOutput, Type: api.TypeString},
+				"opt": {Role: api.RoleOutput},
 			},
 			HTTP: &api.HTTPConfig{
 				Invoke: api.HTTPAction{Endpoint: "http://example.com"},
@@ -799,16 +787,15 @@ func TestTimeoutAfterRequireds(t *testing.T) {
 			Name: "Consumer",
 			Type: api.StepTypeService,
 			Attributes: api.AttributeSpecs{
-				"req": {Role: api.RoleRequired, Type: api.TypeString},
+				"req": {Role: api.RoleRequired},
 				"opt": {
 					Role: api.RoleOptional,
-					Type: api.TypeString,
 					Optional: &api.OptionalConfig{
 						Default:  `"fallback"`,
 						Deadline: 50,
 					},
 				},
-				"result": {Role: api.RoleOutput, Type: api.TypeString},
+				"result": {Role: api.RoleOutput},
 			},
 			HTTP: &api.HTTPConfig{
 				Invoke: api.HTTPAction{Endpoint: "http://example.com"},
@@ -901,12 +888,10 @@ func TestFinalityDeadline(t *testing.T) {
 				consumer := helpers.NewStepWithOutputs("consumer", "result")
 				consumer.Attributes["req"] = &api.AttributeSpec{
 					Role:     api.RoleRequired,
-					Type:     api.TypeString,
 					Required: &api.RequiredConfig{Collect: collect},
 				}
 				consumer.Attributes["opt"] = &api.AttributeSpec{
 					Role: api.RoleOptional,
-					Type: api.TypeString,
 					Optional: &api.OptionalConfig{
 						Default:  `"fallback"`,
 						Deadline: optionalShortWindowMS,
@@ -970,12 +955,10 @@ func TestImmediateAfterProviders(t *testing.T) {
 				consumer := helpers.NewStepWithOutputs("consumer", "result")
 				consumer.Attributes["req"] = &api.AttributeSpec{
 					Role:     api.RoleRequired,
-					Type:     api.TypeString,
 					Required: &api.RequiredConfig{Collect: collect},
 				}
 				consumer.Attributes["opt"] = &api.AttributeSpec{
 					Role:     api.RoleOptional,
-					Type:     api.TypeString,
 					Optional: &api.OptionalConfig{Default: `"fallback"`},
 				}
 				for _, st := range []*api.Step{early, late, optional} {
@@ -1108,7 +1091,6 @@ func TestClosedWindowSkipsProvider(t *testing.T) {
 		addOptionalHold(pl)
 		pl.Steps["c"].Attributes["gate"] = &api.AttributeSpec{
 			Role: api.RoleRequired,
-			Type: api.TypeString,
 		}
 		pl.Steps["gate"] = helpers.NewStepWithOutputs("gate", "gate")
 		pl.Attributes["gate"] = &api.AttributeEdges{
@@ -1176,12 +1158,10 @@ func TestOptionalZeroInline(t *testing.T) {
 				}
 				provider.Attributes["other"] = &api.AttributeSpec{
 					Role: api.RoleOutput,
-					Type: api.TypeString,
 				}
 				other := helpers.NewStepWithOutputs("other", "done")
 				other.Attributes["other"] = &api.AttributeSpec{
 					Role: api.RoleRequired,
-					Type: api.TypeString,
 				}
 				pl.Steps[other.ID] = other
 				pl.Goals.Steps = append(pl.Goals.Steps, other.ID)
@@ -1192,7 +1172,6 @@ func TestOptionalZeroInline(t *testing.T) {
 				if collect != api.InputCollectNone {
 					other.Attributes["opt"] = &api.AttributeSpec{
 						Role: api.RoleRequired,
-						Type: api.TypeString,
 					}
 					pl.Attributes["opt"].Consumers = append(
 						pl.Attributes["opt"].Consumers, other.ID,
@@ -1257,7 +1236,6 @@ func TestOptionalZeroAtRequired(t *testing.T) {
 				provider.HTTP = nil
 				provider.Attributes["seed"] = &api.AttributeSpec{
 					Role: api.RoleOutput,
-					Type: api.TypeString,
 				}
 				source := `return {seed = "ready", opt = "early"}`
 				if collect == api.InputCollectNone {
@@ -1328,7 +1306,6 @@ func TestOptionalNoneInit(t *testing.T) {
 			st := helpers.NewStepWithOutputs("consumer", "result")
 			st.Attributes["opt"] = &api.AttributeSpec{
 				Role: api.RoleOptional,
-				Type: api.TypeString,
 				Optional: &api.OptionalConfig{
 					Collect:  api.InputCollectNone,
 					Deadline: optionalLongWindowMS,
@@ -1439,20 +1416,18 @@ func TestTimeoutAfterProviderFails(t *testing.T) {
 			Attributes: api.AttributeSpecs{
 				"gate": {
 					Role: api.RoleRequired,
-					Type: api.TypeString,
 					Required: &api.RequiredConfig{
 						Collect: api.InputCollectNone,
 					},
 				},
 				"opt": {
 					Role: api.RoleOptional,
-					Type: api.TypeString,
 					Optional: &api.OptionalConfig{
 						Default:  `"fallback"`,
 						Deadline: 200,
 					},
 				},
-				"result": {Role: api.RoleOutput, Type: api.TypeString},
+				"result": {Role: api.RoleOutput},
 			},
 			HTTP: &api.HTTPConfig{
 				Invoke: api.HTTPAction{Endpoint: "http://example.com"},
@@ -1540,7 +1515,7 @@ func collectTimeoutPlan(collect api.InputCollect) collectTimeoutPlanRes {
 		Name: "Provider A",
 		Type: api.StepTypeService,
 		Attributes: api.AttributeSpecs{
-			"opt": {Role: api.RoleOutput, Type: api.TypeAny},
+			"opt": {Role: api.RoleOutput},
 		},
 		HTTP: &api.HTTPConfig{
 			Invoke: api.HTTPAction{Endpoint: "http://example.com"},
@@ -1551,8 +1526,8 @@ func collectTimeoutPlan(collect api.InputCollect) collectTimeoutPlanRes {
 		Name: "Provider B",
 		Type: api.StepTypeService,
 		Attributes: api.AttributeSpecs{
-			"missing": {Role: api.RoleRequired, Type: api.TypeString},
-			"opt":     {Role: api.RoleOutput, Type: api.TypeAny},
+			"missing": {Role: api.RoleRequired},
+			"opt":     {Role: api.RoleOutput},
 		},
 		HTTP: &api.HTTPConfig{
 			Invoke: api.HTTPAction{Endpoint: "http://example.com"},
@@ -1563,17 +1538,16 @@ func collectTimeoutPlan(collect api.InputCollect) collectTimeoutPlanRes {
 		Name: "Consumer",
 		Type: api.StepTypeService,
 		Attributes: api.AttributeSpecs{
-			"seed": {Role: api.RoleRequired, Type: api.TypeString},
+			"seed": {Role: api.RoleRequired},
 			"opt": {
 				Role: api.RoleOptional,
-				Type: api.TypeAny,
 				Optional: &api.OptionalConfig{
 					Collect:  collect,
 					Default:  `"fallback"`,
 					Deadline: 50,
 				},
 			},
-			"result": {Role: api.RoleOutput, Type: api.TypeString},
+			"result": {Role: api.RoleOutput},
 		},
 		HTTP: &api.HTTPConfig{
 			Invoke: api.HTTPAction{Endpoint: "http://example.com"},
@@ -1619,11 +1593,9 @@ func optionalWindowPlan(
 	consumer := helpers.NewStepWithOutputs("consumer", "result")
 	consumer.Attributes["seed"] = &api.AttributeSpec{
 		Role: api.RoleRequired,
-		Type: api.TypeString,
 	}
 	consumer.Attributes["opt"] = &api.AttributeSpec{
 		Role: api.RoleOptional,
-		Type: api.TypeString,
 		Optional: &api.OptionalConfig{
 			Collect:  collect,
 			Deadline: timeout,
@@ -1650,7 +1622,6 @@ func optionalWindowPlan(
 func addOptionalHold(pl *api.ExecutionPlan) {
 	pl.Steps["consumer"].Attributes["hold"] = &api.AttributeSpec{
 		Role: api.RoleOptional,
-		Type: api.TypeString,
 		Optional: &api.OptionalConfig{
 			Deadline: optionalLongWindowMS,
 			Default:  `"missing"`,

@@ -18,7 +18,6 @@ type catalogTx struct {
 
 var (
 	ErrSubFlowGoalInUse = errors.New("goal in use")
-	ErrTypeConflict     = errors.New("attribute type conflict")
 )
 
 // UnregisterStep removes a step from the engine registry
@@ -199,7 +198,6 @@ func (e *Engine) validateStepUpsert(
 	children func(*api.Step) (*api.Goals, error),
 ) error {
 	if err := call.Perform(
-		call.WithArgs(validateAttributeTypes, cat, newStep),
 		call.WithArgs(e.validateSpaceSubFlows, cat, newStep),
 		call.WithArgs(validateStepFeeds, cat, newStep),
 		func() error { return detectStepCycles(cat, newStep, children) },
@@ -215,39 +213,6 @@ func resetStepHealth(tx storeTx, st *api.Step) error {
 		return err
 	}
 	return updateStepHealth(tx, st.ID, h.Status, h.Error)
-}
-
-func validateAttributeTypes(cat *api.CatalogState, newStep *api.Step) error {
-	attributeTypes := collectAttributeTypes(cat, newStep.ID)
-	return checkAttributeConflicts(newStep.Attributes, attributeTypes)
-}
-
-func collectAttributeTypes(
-	cat *api.CatalogState, excludeID api.StepID,
-) api.AttributeTypes {
-	attributeTypes := make(api.AttributeTypes)
-	for sid, st := range cat.Steps {
-		if sid == excludeID {
-			continue
-		}
-		for name, attr := range st.Attributes {
-			attributeTypes[name] = attr.Type
-		}
-	}
-	return attributeTypes
-}
-
-func checkAttributeConflicts(
-	attrs api.AttributeSpecs, types api.AttributeTypes,
-) error {
-	for name, attr := range attrs {
-		if existingType, ok := types[name]; ok {
-			if existingType != attr.Type {
-				return fmt.Errorf("%w: %s", ErrTypeConflict, name)
-			}
-		}
-	}
-	return nil
 }
 
 func stepsIncluding(cat *api.CatalogState, newStep *api.Step) api.Steps {

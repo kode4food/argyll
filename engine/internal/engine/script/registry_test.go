@@ -42,8 +42,8 @@ func TestRegistryCompilation(t *testing.T) {
 				Script:   "return {result = x * 2}",
 			},
 			Attributes: api.AttributeSpecs{
-				"x":      {Role: api.RoleRequired, Type: api.TypeNumber},
-				"result": {Role: api.RoleOutput, Type: api.TypeNumber},
+				"x":      {Role: api.RoleRequired},
+				"result": {Role: api.RoleOutput},
 			},
 		}
 
@@ -74,8 +74,8 @@ func TestLuaCompilation(t *testing.T) {
 				Script:   "return {result = x * 2}",
 			},
 			Attributes: api.AttributeSpecs{
-				"x":      {Role: api.RoleRequired, Type: api.TypeNumber},
-				"result": {Role: api.RoleOutput, Type: api.TypeNumber},
+				"x":      {Role: api.RoleRequired},
+				"result": {Role: api.RoleOutput},
 			},
 		}
 
@@ -109,7 +109,7 @@ func TestRegistryPredicateTrue(t *testing.T) {
 				Script:   "return x > 10",
 			},
 			Attributes: api.AttributeSpecs{
-				"x": {Role: api.RoleRequired, Type: api.TypeNumber},
+				"x": {Role: api.RoleRequired},
 			},
 		}
 
@@ -142,7 +142,7 @@ func TestRegistryPredicateFalse(t *testing.T) {
 				Script:   "return x > 10",
 			},
 			Attributes: api.AttributeSpecs{
-				"x": {Role: api.RoleRequired, Type: api.TypeNumber},
+				"x": {Role: api.RoleRequired},
 			},
 		}
 
@@ -175,7 +175,7 @@ func TestLuaPredicateTrue(t *testing.T) {
 				Script:   "return x > 10",
 			},
 			Attributes: api.AttributeSpecs{
-				"x": {Role: api.RoleRequired, Type: api.TypeNumber},
+				"x": {Role: api.RoleRequired},
 			},
 		}
 
@@ -208,7 +208,7 @@ func TestLuaPredicateFalse(t *testing.T) {
 				Script:   "return x > 10",
 			},
 			Attributes: api.AttributeSpecs{
-				"x": {Role: api.RoleRequired, Type: api.TypeNumber},
+				"x": {Role: api.RoleRequired},
 			},
 		}
 
@@ -234,7 +234,6 @@ func TestArgExPredicateMatches(t *testing.T) {
 		)
 		st.Attributes["flag"] = &api.AttributeSpec{
 			Role: api.RoleOptional,
-			Type: api.TypeAny,
 		}
 
 		env, err := registry.Get(api.ScriptLangArgyll)
@@ -378,12 +377,12 @@ func TestRegistryComplexScript(t *testing.T) {
 			}`,
 			},
 			Attributes: api.AttributeSpecs{
-				"a":        {Role: api.RoleRequired, Type: api.TypeNumber},
-				"b":        {Role: api.RoleRequired, Type: api.TypeNumber},
-				"name":     {Role: api.RoleRequired, Type: api.TypeString},
-				"sum":      {Role: api.RoleOutput, Type: api.TypeNumber},
-				"product":  {Role: api.RoleOutput, Type: api.TypeNumber},
-				"greeting": {Role: api.RoleOutput, Type: api.TypeString},
+				"a":        {Role: api.RoleRequired},
+				"b":        {Role: api.RoleRequired},
+				"name":     {Role: api.RoleRequired},
+				"sum":      {Role: api.RoleOutput},
+				"product":  {Role: api.RoleOutput},
+				"greeting": {Role: api.RoleOutput},
 			},
 		}
 
@@ -426,12 +425,12 @@ func TestLuaComplexScript(t *testing.T) {
 			`,
 			},
 			Attributes: api.AttributeSpecs{
-				"a":        {Role: api.RoleRequired, Type: api.TypeNumber},
-				"b":        {Role: api.RoleRequired, Type: api.TypeNumber},
-				"name":     {Role: api.RoleRequired, Type: api.TypeString},
-				"sum":      {Role: api.RoleOutput, Type: api.TypeNumber},
-				"product":  {Role: api.RoleOutput, Type: api.TypeNumber},
-				"greeting": {Role: api.RoleOutput, Type: api.TypeString},
+				"a":        {Role: api.RoleRequired},
+				"b":        {Role: api.RoleRequired},
+				"name":     {Role: api.RoleRequired},
+				"sum":      {Role: api.RoleOutput},
+				"product":  {Role: api.RoleOutput},
+				"greeting": {Role: api.RoleOutput},
 			},
 		}
 

@@ -30,10 +30,10 @@ var matchDoc = map[string]any{
 	"handling": "standard",
 	"attributes": map[string]any{
 		"score": map[string]any{
-			"role": "output", "type": "number", "compensated": false,
+			"role": "output", "compensated": false,
 		},
 		"amount": map[string]any{
-			"role": "required", "type": "number", "compensated": false,
+			"role": "required", "compensated": false,
 		},
 	},
 }
@@ -53,9 +53,9 @@ var predicateArgs = api.Args{
 // predicateStep names the args so the Lua wrapper binds them as locals
 var predicateStep = &api.Step{
 	Attributes: api.AttributeSpecs{
-		"user_info":    {Role: api.RoleRequired, Type: api.TypeObject},
-		"product_info": {Role: api.RoleRequired, Type: api.TypeObject},
-		"quantity":     {Role: api.RoleRequired, Type: api.TypeNumber},
+		"user_info":    {Role: api.RoleRequired},
+		"product_info": {Role: api.RoleRequired},
+		"quantity":     {Role: api.RoleRequired},
 	},
 }
 
@@ -102,20 +102,18 @@ var matchCases = []benchCase{
 		lua: `local score = value.attributes.score
 return has(value.tags, "domain:payments") and score and
     value.type == "service" and value.handling == "standard" and
-    score.role == "output" and score.type == "number" and
-    score.compensated == false`,
+    score.role == "output" and score.compensated == false`,
 		argEx: `"domain:payments" in value.tags && ` +
 			`value.type=="service" && value.handling=="standard" && ` +
 			`value.attributes.score.role=="output" && ` +
-			`value.attributes.score.type=="number" && ` +
 			`value.attributes.score.compensated==false`,
 	},
 	{
-		name: "AttributeTypes",
-		lua: `return value.attributes.score.type == "number" or ` +
-			`value.attributes.amount.type == "number"`,
-		argEx: `value.attributes.score.type == "number" || ` +
-			`value.attributes.amount.type == "number"`,
+		name: "AttributeRoles",
+		lua: `return value.attributes.score.role == "output" or ` +
+			`value.attributes.amount.role == "required"`,
+		argEx: `value.attributes.score.role == "output" || ` +
+			`value.attributes.amount.role == "required"`,
 	},
 }
 

@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import StepHeader from "./StepHeader";
 import type { Step } from "@/app/api";
-import { AttributeRole, AttributeType } from "@/app/api";
+import { AttributeRole } from "@/app/api";
 import { t } from "@/app/testUtils/i18n";
 
 describe("StepHeader", () => {
@@ -16,12 +16,10 @@ describe("StepHeader", () => {
     attributes: {
       ...(hasInputs
         ? {
-            input: { role: AttributeRole.Required, type: AttributeType.String },
+            input: { role: AttributeRole.Required },
           }
         : {}),
-      ...(hasOutputs
-        ? { output: { role: AttributeRole.Output, type: AttributeType.String } }
-        : {}),
+      ...(hasOutputs ? { output: { role: AttributeRole.Output } } : {}),
     },
     http: {
       endpoint: "http://test",

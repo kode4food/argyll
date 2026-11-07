@@ -3,7 +3,7 @@ import {
   generateHandleId,
   buildProvenanceMap,
 } from "./stepNodeUtils";
-import { AttributeRole, AttributeType } from "@/app/api";
+import { AttributeRole } from "@/app/api";
 
 describe("stepNodeUtils", () => {
   describe("groupAttributesByRole", () => {
@@ -11,17 +11,14 @@ describe("stepNodeUtils", () => {
       const attributes = {
         input1: {
           role: AttributeRole.Required,
-          type: AttributeType.String,
           description: "",
         },
         input2: {
           role: AttributeRole.Optional,
-          type: AttributeType.String,
           description: "",
         },
         output1: {
           role: AttributeRole.Output,
-          type: AttributeType.String,
           description: "",
         },
       };
@@ -37,17 +34,14 @@ describe("stepNodeUtils", () => {
       const attributes = {
         zebra: {
           role: AttributeRole.Required,
-          type: AttributeType.String,
           description: "",
         },
         apple: {
           role: AttributeRole.Required,
-          type: AttributeType.String,
           description: "",
         },
         banana: {
           role: AttributeRole.Required,
-          type: AttributeType.String,
           description: "",
         },
       };
@@ -61,7 +55,6 @@ describe("stepNodeUtils", () => {
       const attributes = {
         input1: {
           role: AttributeRole.Required,
-          type: AttributeType.String,
           description: "",
         },
       };

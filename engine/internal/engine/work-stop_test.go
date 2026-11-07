@@ -261,7 +261,6 @@ func TestLateResultsAfterFlowFails(t *testing.T) {
 		}
 		st.Attributes["result"] = &api.AttributeSpec{
 			Role: api.RoleOutput,
-			Type: api.TypeString,
 		}
 		assert.NoError(t, env.Engine.RegisterStep(st))
 		env.MockClient.SetResponse(st.ID, api.Args{})

@@ -55,7 +55,6 @@ func TestMissingOutputFailsFlow(t *testing.T) {
 		consumer := helpers.NewSimpleStep("order-creator")
 		consumer.Attributes["inventory"] = &api.AttributeSpec{
 			Role: api.RoleRequired,
-			Type: api.TypeString,
 			Required: &api.RequiredConfig{
 				Collect: api.InputCollectFirst,
 			},
@@ -144,7 +143,6 @@ func TestMissingOutputOtherProvider(t *testing.T) {
 		consumer := helpers.NewSimpleStep("order-creator")
 		consumer.Attributes["inventory"] = &api.AttributeSpec{
 			Role: api.RoleRequired,
-			Type: api.TypeString,
 			Required: &api.RequiredConfig{
 				Collect: api.InputCollectFirst,
 			},
@@ -242,7 +240,7 @@ func TestUndeclaredOutputsIgnored(t *testing.T) {
 			Name: "Producer",
 			Type: api.StepTypeService,
 			Attributes: api.AttributeSpecs{
-				"value": {Role: api.RoleOutput, Type: api.TypeString},
+				"value": {Role: api.RoleOutput},
 			},
 			HTTP: &api.HTTPConfig{
 				Invoke: api.HTTPAction{Endpoint: "http://example.com"},
@@ -253,8 +251,8 @@ func TestUndeclaredOutputsIgnored(t *testing.T) {
 			Name: "Consumer",
 			Type: api.StepTypeService,
 			Attributes: api.AttributeSpecs{
-				"value":  {Role: api.RoleRequired, Type: api.TypeString},
-				"result": {Role: api.RoleOutput, Type: api.TypeString},
+				"value":  {Role: api.RoleRequired},
+				"result": {Role: api.RoleOutput},
 			},
 			HTTP: &api.HTTPConfig{
 				Invoke: api.HTTPAction{Endpoint: "http://example.com"},
@@ -311,8 +309,8 @@ func TestUnconsumedOutputsDiscarded(t *testing.T) {
 		producer := helpers.NewStepWithOutputs("producer", "used", "unused")
 		consumer := helpers.NewSimpleStep("consumer")
 		consumer.Attributes = api.AttributeSpecs{
-			"used":   {Role: api.RoleRequired, Type: api.TypeString},
-			"result": {Role: api.RoleOutput, Type: api.TypeString},
+			"used":   {Role: api.RoleRequired},
+			"result": {Role: api.RoleOutput},
 		}
 
 		testify.NoError(t, env.Engine.RegisterStep(producer))
@@ -364,11 +362,9 @@ func TestOutputMapping(t *testing.T) {
 		st.Attributes = api.AttributeSpecs{
 			"input": {
 				Role: api.RoleRequired,
-				Type: api.TypeString,
 			},
 			"result": {
 				Role: api.RoleOutput,
-				Type: api.TypeAny,
 				Output: &api.OutputConfig{
 					Mapping: &api.MappingConfig{
 						Script: &api.ScriptConfig{
@@ -412,11 +408,9 @@ func TestOutputMappingWithRename(t *testing.T) {
 		st.Attributes = api.AttributeSpecs{
 			"input": {
 				Role: api.RoleRequired,
-				Type: api.TypeString,
 			},
 			"status": {
 				Role: api.RoleOutput,
-				Type: api.TypeString,
 				Output: &api.OutputConfig{
 					Mapping: &api.MappingConfig{Name: "success"},
 				},

@@ -103,22 +103,21 @@ func TestNameKeepsID(t *testing.T) {
 func TestRequiredArg(t *testing.T) {
 	st, err := testClient().NewStep().WithName("Test").
 		WithEndpoint("http://example.com").
-		Required("input1", api.TypeString).
-		Required("input2", api.TypeNumber).
+		Required("input1").
+		Required("input2").
 		Build()
 
 	assert.NoError(t, err)
 	assert.Len(t, st.Attributes, 2)
 	assert.Contains(t, st.Attributes, api.Name("input1"))
-	assert.EqualValues(t, api.TypeString, st.Attributes["input1"].Type)
 	assert.EqualValues(t, api.RoleRequired, st.Attributes["input1"].Role)
 }
 
 func TestOptionalArg(t *testing.T) {
 	st, err := testClient().NewStep().WithName("Test").
 		WithEndpoint("http://example.com").
-		Optional("optional1", api.TypeString, "").
-		Optional("optional2", api.TypeNumber, "42").
+		Optional("optional1", "").
+		Optional("optional2", "42").
 		Build()
 
 	assert.NoError(t, err)
@@ -131,7 +130,7 @@ func TestOptionalArg(t *testing.T) {
 func TestConstArg(t *testing.T) {
 	st, err := testClient().NewStep().WithName("Test").
 		WithEndpoint("http://example.com").
-		Const("const1", api.TypeString, `"fixed"`).
+		Const("const1", `"fixed"`).
 		Build()
 
 	assert.NoError(t, err)
@@ -150,21 +149,19 @@ func TestMetaArg(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, st.Attributes, 1)
 	assert.EqualValues(t, api.RoleMeta, st.Attributes["flow_id"].Role)
-	assert.EqualValues(t, api.TypeAny, st.Attributes["flow_id"].Type)
 	assert.Equal(t, api.MetaFlowID, st.Attributes["flow_id"].Meta.Key)
 }
 
 func TestOutputArg(t *testing.T) {
 	st, err := testClient().NewStep().WithName("Test").
 		WithEndpoint("http://example.com").
-		Output("output1", api.TypeString).
-		Output("output2", api.TypeNumber).
+		Output("output1").
+		Output("output2").
 		Build()
 
 	assert.NoError(t, err)
 	assert.Len(t, st.Attributes, 2)
 	assert.Contains(t, st.Attributes, api.Name("output1"))
-	assert.EqualValues(t, api.TypeString, st.Attributes["output1"].Type)
 	assert.EqualValues(t, api.RoleOutput, st.Attributes["output1"].Role)
 }
 
@@ -320,7 +317,7 @@ func TestWithMatch(t *testing.T) {
 	t.Run("required attribute", func(t *testing.T) {
 		st, err := testClient().NewStep().WithName("Test").
 			WithEndpoint("http://example.com").
-			Required("kind", api.TypeString).
+			Required("kind").
 			WithMatch("kind", api.ScriptConfig{
 				Language: api.ScriptLangLua,
 				Script:   script,
@@ -338,7 +335,7 @@ func TestWithMatch(t *testing.T) {
 	t.Run("optional attribute", func(t *testing.T) {
 		st, err := testClient().NewStep().WithName("Test").
 			WithEndpoint("http://example.com").
-			Optional("kind", api.TypeString, `""`).
+			Optional("kind", `""`).
 			WithMatch("kind", api.ScriptConfig{
 				Language: api.ScriptLangLua,
 				Script:   script,
@@ -357,8 +354,8 @@ func TestWithMatch(t *testing.T) {
 func TestBuildValidHTTPStep(t *testing.T) {
 	st, err := testClient().NewStep().WithName("Test Step").
 		WithEndpoint("http://example.com/step").
-		Required("input", api.TypeString).
-		Output("output", api.TypeString).
+		Required("input").
+		Output("output").
 		Build()
 
 	assert.NoError(t, err)
@@ -372,8 +369,8 @@ func TestBuildValidScriptStep(t *testing.T) {
 			Language: api.ScriptLangLua,
 			Script:   "return {result = 42}",
 		}).
-		Required("input", api.TypeString).
-		Output("result", api.TypeNumber).
+		Required("input").
+		Output("result").
 		Build()
 
 	assert.NoError(t, err)
@@ -392,11 +389,11 @@ func TestChaining(t *testing.T) {
 		WithEndpoint("http://example.com/step").
 		WithHealthCheck("http://example.com/health").
 		WithTimeout(45*api.Second).
-		Required("req1", api.TypeString).
-		Required("req2", api.TypeNumber).
-		Optional("opt1", api.TypeBoolean, "").
-		Output("out1", api.TypeString).
-		Output("out2", api.TypeNumber).
+		Required("req1").
+		Required("req2").
+		Optional("opt1", "").
+		Output("out1").
+		Output("out2").
 		WithAsyncInvoke().
 		Build()
 
@@ -417,8 +414,8 @@ func TestImmutability(t *testing.T) {
 
 	modified := original.
 		WithID("custom-id").
-		Required("input", api.TypeString).
-		Output("output", api.TypeString).
+		Required("input").
+		Output("output").
 		WithEndpoint("http://example.com").
 		WithTimeout(60 * api.Second)
 
@@ -438,8 +435,8 @@ func TestImmutabilityMaps(t *testing.T) {
 	base := testClient().NewStep().WithName("Test").
 		WithEndpoint("http://example.com")
 
-	builder1 := base.Required("arg1", api.TypeString)
-	builder2 := base.Required("arg2", api.TypeNumber)
+	builder1 := base.Required("arg1")
+	builder2 := base.Required("arg2")
 
 	step1, err1 := builder1.Build()
 	assert.NoError(t, err1)
@@ -491,7 +488,7 @@ func TestBuildValidationErrors(t *testing.T) {
 	t.Run("invalid_attribute_spec", func(t *testing.T) {
 		_, err := testClient().NewStep().WithName("Test").
 			WithEndpoint("http://example.com").
-			Required("", api.TypeString).
+			Required("").
 			Build()
 		assert.Error(t, err)
 	})
@@ -529,11 +526,11 @@ func TestStepBuilderChaining(t *testing.T) {
 			WithEndpoint("http://example.com/process").
 			WithHealthCheck("http://example.com/health").
 			WithTimeout(60000).
-			Required("user_id", api.TypeString).
-			Required("data", api.TypeObject).
-			Optional("metadata", api.TypeObject, "{}").
-			Output("result", api.TypeString).
-			Output("status", api.TypeNumber).
+			Required("user_id").
+			Required("data").
+			Optional("metadata", "{}").
+			Output("result").
+			Output("status").
 			WithAsyncInvoke().
 			Build()
 
@@ -590,15 +587,14 @@ func TestStepBuilderWithForEach(t *testing.T) {
 	t.Run("multiple attributes", func(t *testing.T) {
 		st, err := testClient().NewStep().WithName("Batch Step").
 			WithEndpoint("http://example.com").
-			Required("users", api.TypeArray).
-			Optional("groups", api.TypeArray, "[]").
+			Required("users").
+			Optional("groups", "[]").
 			WithCollect(api.InputCollectAll, "users", "groups").
 			WithForEach("users", "groups").
-			Output("results", api.TypeArray).
+			Output("results").
 			Build()
 
 		assert.NoError(t, err)
-		assert.Equal(t, api.TypeArray, st.Attributes["users"].Type)
 		assert.True(t, st.Attributes["users"].Required.ForEach)
 		assert.True(t, st.Attributes["groups"].Optional.ForEach)
 	})
@@ -676,8 +672,8 @@ func TestWithCompensate(t *testing.T) {
 	compensate := "http://example.com/compensate"
 	st, err := testClient().NewStep().WithName("Test").
 		WithEndpoint("http://example.com/work").
-		Required("request", api.TypeString).
-		Output("result", api.TypeString).
+		Required("request").
+		Output("result").
 		WithCompensate(compensate).
 		WithCompensated("request", "result").
 		Build()

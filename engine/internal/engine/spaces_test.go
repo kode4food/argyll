@@ -68,7 +68,6 @@ func TestSpaceScriptSelectors(t *testing.T) {
 		risk.Tags = api.Tags{"domain:risk"}
 		risk.Attributes["score"] = &api.AttributeSpec{
 			Role: api.RoleOutput,
-			Type: api.TypeNumber,
 		}
 		trading := helpers.NewSimpleStep("trading")
 		trading.Tags = api.Tags{"domain:trading"}
@@ -82,8 +81,7 @@ func TestSpaceScriptSelectors(t *testing.T) {
 				Script: `local score = value.attributes.score
 return has(value.tags, "domain:risk") and score and
     value.type == "service" and value.handling == "standard" and
-    score.role == "output" and score.type == "number" and
-    score.compensated == false`,
+    score.role == "output" and score.compensated == false`,
 			},
 		}
 		argExSpace := api.Space{
@@ -110,7 +108,6 @@ func TestSpaceMetadataSelectors(t *testing.T) {
 		risk := helpers.NewSimpleStep("risk")
 		risk.Attributes["risk_score"] = &api.AttributeSpec{
 			Role: api.RoleOutput,
-			Type: api.TypeNumber,
 		}
 		reversible := helpers.NewSimpleStep("reversible")
 		reversible.Handling = api.HandlingCompensated
@@ -132,9 +129,8 @@ func TestSpaceMetadataSelectors(t *testing.T) {
 				expected: []api.StepID{reversible.ID},
 			},
 			{
-				name: "attribute contract",
-				script: `value.attributes?.risk_score?.role == "output" &&
-    value.attributes?.risk_score?.type == "number"`,
+				name:     "attribute contract",
+				script:   `value.attributes?.risk_score?.role == "output"`,
 				expected: []api.StepID{risk.ID},
 			},
 		}

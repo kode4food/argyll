@@ -5,13 +5,12 @@ import {
   getValidationError,
   validateAttributesList,
 } from "./stepEditorUtils";
-import { AttributeRole, AttributeType, Step } from "@/app/api";
+import { AttributeRole, Step } from "@/app/api";
 
 const attribute = (overrides: Partial<Attribute> = {}): Attribute => ({
   id: "attr-1",
   role: "required",
   name: "param",
-  dataType: AttributeType.String,
   ...overrides,
 });
 
@@ -24,7 +23,6 @@ describe("stepEditorUtils", () => {
       attributes: {
         required_arg: {
           role: AttributeRole.Required,
-          type: AttributeType.String,
           required: {
             collect: "all",
             for_each: true,
@@ -37,27 +35,22 @@ describe("stepEditorUtils", () => {
         },
         const_arg: {
           role: AttributeRole.Const,
-          type: AttributeType.String,
           const: { value: '"fixed"' },
         },
         optional_arg: {
           role: AttributeRole.Optional,
-          type: AttributeType.Number,
           optional: { collect: "some", default: "42", deadline: 3000 },
         },
         meta_arg: {
           role: AttributeRole.Meta,
-          type: AttributeType.String,
           meta: { key: "request_id" },
         },
         feed_arg: {
           role: AttributeRole.Feed,
-          type: AttributeType.Number,
           feed: { id: "order-total" },
         },
         output_arg: {
           role: AttributeRole.Output,
-          type: AttributeType.String,
           output: { mapping: { name: "child_out" } },
         },
       },
@@ -124,7 +117,6 @@ describe("stepEditorUtils", () => {
         attribute({
           role: "optional",
           name: "count",
-          dataType: AttributeType.Number,
           defaultValue: "not-a-number",
         }),
       ],
@@ -150,7 +142,6 @@ describe("stepEditorUtils", () => {
         attribute({
           role: "const",
           name: "flag",
-          dataType: AttributeType.Boolean,
         }),
       ],
       { key: "stepEditor.constDefaultRequired", vars: { name: "flag" } },
@@ -191,7 +182,6 @@ describe("stepEditorUtils", () => {
         id: "attr-2",
         role: "optional",
         name: "optional",
-        dataType: AttributeType.Number,
         defaultValue: " 10 ",
         deadline: 3000,
       }),
@@ -217,14 +207,12 @@ describe("stepEditorUtils", () => {
         id: "attr-5",
         role: "output",
         name: "output",
-        dataType: AttributeType.Object,
         mappingScript: " output.result ",
       }),
     ]);
 
     expect(result.input).toEqual({
       role: AttributeRole.Required,
-      type: AttributeType.String,
       compensated: true,
       required: {
         collect: "last",
@@ -238,10 +226,11 @@ describe("stepEditorUtils", () => {
     });
     expect(result.optional.optional).toEqual({ default: "10", deadline: 3000 });
     expect(result.constant.const).toEqual({ value: '"fixed"' });
+    expect(result.constant.type).toBeUndefined();
     expect(result.metadata.meta).toEqual({ key: "request_id" });
+    expect(result.metadata.type).toBeUndefined();
     expect(result.total).toEqual({
       role: AttributeRole.Feed,
-      type: AttributeType.String,
       feed: { id: "order-total" },
     });
     expect(result.output.output?.mapping?.script).toEqual({

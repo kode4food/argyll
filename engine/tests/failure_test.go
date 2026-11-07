@@ -31,7 +31,6 @@ func TestPartialFlowFailure(t *testing.T) {
 		}
 		stepB.Attributes["outputB"] = &api.AttributeSpec{
 			Role: api.RoleOutput,
-			Type: api.TypeString,
 		}
 
 		// Step C: Requires "valueC", should complete successfully
@@ -39,7 +38,6 @@ func TestPartialFlowFailure(t *testing.T) {
 		stepC.ID = "step-c"
 		stepC.Attributes["outputC"] = &api.AttributeSpec{
 			Role: api.RoleOutput,
-			Type: api.TypeString,
 		}
 
 		// Step D (Goal): Requires both "outputB" and "outputC"
@@ -49,7 +47,6 @@ func TestPartialFlowFailure(t *testing.T) {
 		stepD.ID = "step-d"
 		stepD.Attributes["result"] = &api.AttributeSpec{
 			Role: api.RoleOutput,
-			Type: api.TypeString,
 		}
 
 		assert.NoError(t, env.Engine.RegisterStep(stepA))
@@ -218,7 +215,6 @@ func TestUnreachableStep(t *testing.T) {
 		stepB.ID = "consumer-step"
 		stepB.Attributes["result"] = &api.AttributeSpec{
 			Role: api.RoleOutput,
-			Type: api.TypeString,
 		}
 
 		assert.NoError(t, env.Engine.RegisterStep(stepA))
@@ -267,7 +263,6 @@ func TestSkippedProviderCascade(t *testing.T) {
 		orderCreator := helpers.NewStepWithPredicate(
 			"order-creator", api.ScriptLangLua, "return false", "order",
 		)
-		orderCreator.Attributes["order"].Type = api.TypeString
 
 		paymentProcessor := helpers.NewTestStepWithArgs(
 			[]api.Name{"order"}, nil,
@@ -275,7 +270,6 @@ func TestSkippedProviderCascade(t *testing.T) {
 		paymentProcessor.ID = "payment-processor"
 		paymentProcessor.Attributes["payment"] = &api.AttributeSpec{
 			Role: api.RoleOutput,
-			Type: api.TypeString,
 		}
 
 		stockReservation := helpers.NewTestStepWithArgs(
@@ -284,7 +278,6 @@ func TestSkippedProviderCascade(t *testing.T) {
 		stockReservation.ID = "stock-reservation"
 		stockReservation.Attributes["reservation"] = &api.AttributeSpec{
 			Role: api.RoleOutput,
-			Type: api.TypeString,
 		}
 
 		notificationSender := helpers.NewTestStepWithArgs(
@@ -293,7 +286,6 @@ func TestSkippedProviderCascade(t *testing.T) {
 		notificationSender.ID = "notification-sender"
 		notificationSender.Attributes["notified"] = &api.AttributeSpec{
 			Role: api.RoleOutput,
-			Type: api.TypeString,
 		}
 
 		assert.NoError(t, env.Engine.RegisterStep(orderCreator))

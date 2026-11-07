@@ -3,6 +3,7 @@ import {
   IconAttributeStatusBlocked,
   IconAttributeStatusDefaulted,
   IconAttributeStatusFailed,
+  IconAttributeStatusFlowStart,
   IconAttributeStatusNotWinner,
   IconAttributeStatusPending,
   IconAttributeStatusProvided,
@@ -55,17 +56,13 @@ const optionalStatusBadge = (
   return pendingBadge();
 };
 
-const constStatusBadge = (
+// The engine supplies these values, so nothing upstream is ever awaited
+const flowStartStatusBadge = (
   context: StatusBadgeContext
-): React.ReactElement | null => {
-  if (!context.executionStatus || context.executionStatus === "pending") {
-    return context.isAvailable ? progressBadge() : pendingBadge();
-  }
-  if (context.executionStatus === "skipped") return skippedBadge();
-  if (context.wasDefaulted || context.isSatisfied)
-    return badge("defaulted", IconAttributeStatusDefaulted);
-  return pendingBadge();
-};
+): React.ReactElement | null =>
+  context.executionStatus === "skipped"
+    ? skippedBadge()
+    : badge("flowStart", IconAttributeStatusFlowStart);
 
 const requiredStatusBadge = (
   context: StatusBadgeContext
@@ -121,7 +118,9 @@ export const useAttributeStatusBadge = () => {
           case "optional":
             return optionalStatusBadge(context);
           case "const":
-            return constStatusBadge(context);
+          case "meta":
+          case "feed":
+            return flowStartStatusBadge(context);
           case "required":
             return requiredStatusBadge(context);
           case "output":

@@ -283,11 +283,5 @@
   "stepPredicate.title": "Predicate ({language})",
   "tooltip.stepId": "Step-ID",
   "tooltip.stepName": "Step-Name",
-  "validation.jsonArray": "Muss ein gültiges JSON-Array sein",
-  "validation.jsonBoolean": "Muss \"true\" oder \"false\" sein",
-  "validation.jsonInvalid": "Muss gültiges JSON sein",
-  "validation.jsonNull": "Muss \"null\" sein",
-  "validation.jsonNumber": "Muss eine gültige Zahl sein",
-  "validation.jsonObject": "Muss ein gültiges JSON-Objekt sein",
-  "validation.jsonString": "Muss eine gültige JSON-Zeichenkette sein"
+  "validation.jsonInvalid": "Muss gültiges JSON sein"
 }

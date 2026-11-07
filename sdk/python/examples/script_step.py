@@ -1,14 +1,14 @@
 """Script step example."""
 
-from argyll import Client, AttributeType, ScriptConfig, ScriptLanguage
+from argyll import Client, ScriptConfig, ScriptLanguage
 
 client = Client("http://localhost:8080")
 
 if __name__ == "__main__":
     # Lua script that doubles a number
     client.new_step().with_name("Double") \
-        .required("value", AttributeType.NUMBER) \
-        .output("result", AttributeType.NUMBER) \
+        .required("value") \
+        .output("result") \
         .with_script(ScriptConfig(
             language=ScriptLanguage.LUA,
             script="return {result = value * 2}",

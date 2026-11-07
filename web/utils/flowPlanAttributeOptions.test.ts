@@ -1,4 +1,4 @@
-import { AttributeRole, AttributeType, ExecutionPlan, Step } from "@/app/api";
+import { AttributeRole, ExecutionPlan, Step } from "@/app/api";
 import { getFlowPlanAttributeOptions } from "./flowPlanAttributeOptions";
 
 describe("flowPlanAttributeOptions", () => {
@@ -22,19 +22,15 @@ describe("flowPlanAttributeOptions", () => {
           attributes: {
             order_id: {
               role: AttributeRole.Required,
-              type: AttributeType.String,
             },
             quantity: {
               role: AttributeRole.Required,
-              type: AttributeType.Number,
             },
             notes: {
               role: AttributeRole.Optional,
-              type: AttributeType.String,
             },
             total_price: {
               role: AttributeRole.Output,
-              type: AttributeType.Number,
             },
           },
           http: { endpoint: "http://localhost:8080/goal", timeout: 5000 },
@@ -46,7 +42,6 @@ describe("flowPlanAttributeOptions", () => {
           attributes: {
             quantity: {
               role: AttributeRole.Output,
-              type: AttributeType.Number,
             },
           },
           http: { endpoint: "http://localhost:8080/up", timeout: 5000 },
@@ -56,13 +51,11 @@ describe("flowPlanAttributeOptions", () => {
 
     expect(getFlowPlanAttributeOptions(plan)).toEqual({
       flowInputOptions: [
-        { name: "order_id", required: true, type: AttributeType.String },
-        { name: "notes", required: false, type: AttributeType.String },
+        { name: "order_id", required: true },
+        { name: "notes", required: false },
         {
           name: "quantity",
           required: false,
-          type: AttributeType.Number,
-          defaultValue: "0",
           satisfiedByOutput: true,
         },
       ],
@@ -83,7 +76,6 @@ describe("flowPlanAttributeOptions", () => {
           attributes: {
             user_id: {
               role: AttributeRole.Required,
-              type: AttributeType.String,
             },
           },
           http: { endpoint: "http://localhost:8080/a", timeout: 5000 },
@@ -95,7 +87,6 @@ describe("flowPlanAttributeOptions", () => {
           attributes: {
             user_id: {
               role: AttributeRole.Optional,
-              type: AttributeType.String,
             },
           },
           http: { endpoint: "http://localhost:8080/b", timeout: 5000 },
@@ -104,7 +95,7 @@ describe("flowPlanAttributeOptions", () => {
     };
 
     expect(getFlowPlanAttributeOptions(plan).flowInputOptions).toEqual([
-      { name: "user_id", required: true, type: AttributeType.String },
+      { name: "user_id", required: true },
     ]);
   });
 
@@ -121,16 +112,13 @@ describe("flowPlanAttributeOptions", () => {
           attributes: {
             required_with_default: {
               role: AttributeRole.Required,
-              type: AttributeType.String,
             },
             optional_with_default: {
               role: AttributeRole.Optional,
-              type: AttributeType.Number,
               optional: { default: "42" },
             },
             optional_without_default: {
               role: AttributeRole.Optional,
-              type: AttributeType.String,
             },
           },
           http: { endpoint: "http://localhost:8080/a", timeout: 5000 },
@@ -142,17 +130,14 @@ describe("flowPlanAttributeOptions", () => {
       {
         name: "required_with_default",
         required: true,
-        type: AttributeType.String,
       },
       {
         name: "optional_without_default",
         required: false,
-        type: AttributeType.String,
       },
       {
         name: "optional_with_default",
         required: false,
-        type: AttributeType.Number,
         defaultValue: "42",
       },
     ]);
@@ -171,15 +156,12 @@ describe("flowPlanAttributeOptions", () => {
           attributes: {
             order_id: {
               role: AttributeRole.Required,
-              type: AttributeType.String,
             },
             notes: {
               role: AttributeRole.Optional,
-              type: AttributeType.String,
             },
             quantity: {
               role: AttributeRole.Required,
-              type: AttributeType.Number,
             },
           },
           http: { endpoint: "http://localhost:8080/goal", timeout: 5000 },
@@ -191,7 +173,6 @@ describe("flowPlanAttributeOptions", () => {
           attributes: {
             quantity: {
               role: AttributeRole.Output,
-              type: AttributeType.Number,
             },
           },
           http: { endpoint: "http://localhost:8080/up", timeout: 5000 },
@@ -200,19 +181,17 @@ describe("flowPlanAttributeOptions", () => {
     };
 
     expect(getFlowPlanAttributeOptions(plan).flowInputOptions).toEqual([
-      { name: "order_id", required: true, type: AttributeType.String },
-      { name: "notes", required: false, type: AttributeType.String },
+      { name: "order_id", required: true },
+      { name: "notes", required: false },
       {
         name: "quantity",
         required: false,
-        type: AttributeType.Number,
-        defaultValue: "0",
         satisfiedByOutput: true,
       },
     ]);
   });
 
-  it("treats type-based defaults as optional-without-spec-default for sorting", () => {
+  it("sorts optional inputs without a spec default first", () => {
     const plan: ExecutionPlan = {
       goals: { steps: ["goal-step"] },
       required: [],
@@ -225,11 +204,9 @@ describe("flowPlanAttributeOptions", () => {
           attributes: {
             alpha_number: {
               role: AttributeRole.Optional,
-              type: AttributeType.Number,
             },
             beta_with_default: {
               role: AttributeRole.Optional,
-              type: AttributeType.String,
               optional: { default: '"fallback"' },
             },
           },
@@ -242,13 +219,10 @@ describe("flowPlanAttributeOptions", () => {
       {
         name: "alpha_number",
         required: false,
-        type: AttributeType.Number,
-        defaultValue: "0",
       },
       {
         name: "beta_with_default",
         required: false,
-        type: AttributeType.String,
         defaultValue: "fallback",
       },
     ]);
@@ -267,7 +241,6 @@ describe("flowPlanAttributeOptions", () => {
           attributes: {
             quantity: {
               role: AttributeRole.Required,
-              type: AttributeType.Number,
             },
           },
           http: { endpoint: "http://localhost:8080/price", timeout: 5000 },
@@ -279,7 +252,6 @@ describe("flowPlanAttributeOptions", () => {
           attributes: {
             quantity: {
               role: AttributeRole.Optional,
-              type: AttributeType.Number,
               optional: { default: "1" },
             },
           },
@@ -292,7 +264,6 @@ describe("flowPlanAttributeOptions", () => {
       {
         name: "quantity",
         required: true,
-        type: AttributeType.Number,
         defaultValue: "1",
       },
     ]);
@@ -309,10 +280,9 @@ describe("flowPlanAttributeOptions", () => {
           name: "Goal Step",
           type: "service",
           attributes: {
-            alpha: { role: AttributeRole.Optional, type: AttributeType.String },
+            alpha: { role: AttributeRole.Optional },
             shared: {
               role: AttributeRole.Optional,
-              type: AttributeType.Number,
             },
           },
           http: { endpoint: "http://localhost:8080/goal", timeout: 5000 },
@@ -324,7 +294,6 @@ describe("flowPlanAttributeOptions", () => {
           attributes: {
             shared: {
               role: AttributeRole.Required,
-              type: AttributeType.Number,
             },
           },
           http: { endpoint: "http://localhost:8080/validator", timeout: 5000 },
@@ -336,10 +305,8 @@ describe("flowPlanAttributeOptions", () => {
       {
         name: "shared",
         required: true,
-        type: AttributeType.Number,
-        defaultValue: "0",
       },
-      { name: "alpha", required: false, type: AttributeType.String },
+      { name: "alpha", required: false },
     ]);
   });
 
@@ -356,7 +323,6 @@ describe("flowPlanAttributeOptions", () => {
           attributes: {
             order_id: {
               role: AttributeRole.Required,
-              type: AttributeType.String,
             },
           },
           http: { endpoint: "http://localhost:8080/goal", timeout: 5000 },
@@ -377,7 +343,6 @@ describe("flowPlanAttributeOptions", () => {
         attributes: {
           order_id: {
             role: AttributeRole.Required,
-            type: AttributeType.String,
           },
         },
       },
@@ -388,15 +353,12 @@ describe("flowPlanAttributeOptions", () => {
         attributes: {
           age: {
             role: AttributeRole.Required,
-            type: AttributeType.Number,
           },
           income: {
             role: AttributeRole.Required,
-            type: AttributeType.Number,
           },
           result: {
             role: AttributeRole.Output,
-            type: AttributeType.Object,
           },
         },
       },
@@ -404,17 +366,15 @@ describe("flowPlanAttributeOptions", () => {
 
     const result = getFlowPlanAttributeOptions(plan, catalogSteps);
     expect(result.flowInputOptions).toEqual([
-      { name: "order_id", required: true, type: AttributeType.String },
+      { name: "order_id", required: true },
       {
         name: "age",
         required: false,
-        type: AttributeType.Number,
         unreachable: true,
       },
       {
         name: "income",
         required: false,
-        type: AttributeType.Number,
         unreachable: true,
       },
     ]);
@@ -433,7 +393,6 @@ describe("flowPlanAttributeOptions", () => {
           attributes: {
             shared: {
               role: AttributeRole.Required,
-              type: AttributeType.String,
             },
           },
           http: { endpoint: "http://localhost:8080/goal", timeout: 5000 },
@@ -454,7 +413,6 @@ describe("flowPlanAttributeOptions", () => {
         attributes: {
           shared: {
             role: AttributeRole.Required,
-            type: AttributeType.String,
           },
         },
       },
@@ -465,11 +423,9 @@ describe("flowPlanAttributeOptions", () => {
         attributes: {
           shared: {
             role: AttributeRole.Required,
-            type: AttributeType.String,
           },
           extra: {
             role: AttributeRole.Required,
-            type: AttributeType.Object,
           },
         },
       },

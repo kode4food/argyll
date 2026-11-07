@@ -12,7 +12,7 @@ import goalStyles from "./FlowGoalsSection.module.css";
 import styles from "./FlowCreateForm.module.css";
 import { t } from "@/app/testUtils/i18n";
 import { useUI } from "@/app/contexts/UIContext";
-import { Step, AttributeRole, AttributeType } from "@/app/api";
+import { Step, AttributeRole } from "@/app/api";
 import { useFlowCreation } from "@/app/hooks/useFlowCreation";
 import { sortStepsByType } from "@/utils/stepUtils";
 
@@ -42,8 +42,8 @@ describe("FlowCreateForm", () => {
     name: "Test Step",
     type: "service",
     attributes: {
-      input1: { role: AttributeRole.Required, type: AttributeType.String },
-      output1: { role: AttributeRole.Output, type: AttributeType.String },
+      input1: { role: AttributeRole.Required },
+      output1: { role: AttributeRole.Output },
     },
     http: {
       endpoint: "http://localhost:8080/test",
@@ -389,7 +389,7 @@ describe("FlowCreateForm", () => {
     ).not.toBeInTheDocument();
   });
 
-  test("shows per-type default placeholders in value inputs", () => {
+  test("shows spec default placeholders in value inputs", () => {
     const previewPlan = {
       goals: { steps: ["goal-step"] },
       required: [],
@@ -402,27 +402,9 @@ describe("FlowCreateForm", () => {
           attributes: {
             quantity: {
               role: AttributeRole.Required,
-              type: AttributeType.Number,
-            },
-            payload: {
-              role: AttributeRole.Optional,
-              type: AttributeType.Object,
-            },
-            tags: {
-              role: AttributeRole.Optional,
-              type: AttributeType.Array,
-            },
-            enabled: {
-              role: AttributeRole.Optional,
-              type: AttributeType.Boolean,
-            },
-            nickname: {
-              role: AttributeRole.Optional,
-              type: AttributeType.String,
             },
             retry_count: {
               role: AttributeRole.Optional,
-              type: AttributeType.Number,
               optional: { default: "5" },
             },
           },
@@ -442,38 +424,13 @@ describe("FlowCreateForm", () => {
     const quantityRow = screen
       .getByText("quantity")
       .closest(`.${attributeStyles.attributeListItem}`);
-    const payloadRow = screen
-      .getByText("payload")
-      .closest(`.${attributeStyles.attributeListItem}`);
-    const tagsRow = screen
-      .getByText("tags")
-      .closest(`.${attributeStyles.attributeListItem}`);
-    const enabledRow = screen
-      .getByText("enabled")
-      .closest(`.${attributeStyles.attributeListItem}`);
-    const nicknameRow = screen
-      .getByText("nickname")
-      .closest(`.${attributeStyles.attributeListItem}`);
     const retryRow = screen
       .getByText("retry_count")
       .closest(`.${attributeStyles.attributeListItem}`);
 
     expect(
       within(quantityRow as HTMLElement).getByRole("textbox")
-    ).toHaveAttribute("placeholder", "0");
-    expect(
-      within(payloadRow as HTMLElement).getByRole("textbox")
-    ).toHaveAttribute("placeholder", "{}");
-    expect(within(tagsRow as HTMLElement).getByRole("textbox")).toHaveAttribute(
-      "placeholder",
-      "[]"
-    );
-    expect(
-      within(enabledRow as HTMLElement).getByRole("textbox")
-    ).toHaveAttribute("placeholder", "false");
-    expect(
-      within(nicknameRow as HTMLElement).getByRole("textbox")
-    ).toHaveAttribute("placeholder", '""');
+    ).toHaveAttribute("placeholder", "");
     expect(
       within(retryRow as HTMLElement).getByRole("textbox")
     ).toHaveAttribute("placeholder", "5");
@@ -482,7 +439,7 @@ describe("FlowCreateForm", () => {
   test("shows defaulted values as placeholders in basic mode while keeping JSON defaults", () => {
     const previewPlan = {
       goals: { steps: ["goal-step"] },
-      required: ["quantity"],
+      required: [],
       attributes: {},
       steps: {
         "goal-step": {
@@ -491,8 +448,8 @@ describe("FlowCreateForm", () => {
           type: "service" as const,
           attributes: {
             quantity: {
-              role: AttributeRole.Required,
-              type: AttributeType.Number,
+              role: AttributeRole.Optional,
+              optional: { default: "0" },
             },
           },
           http: { endpoint: "http://localhost:8080/goal", timeout: 5000 },
@@ -539,11 +496,9 @@ describe("FlowCreateForm", () => {
           attributes: {
             quantity: {
               role: AttributeRole.Required,
-              type: AttributeType.Number,
             },
             note: {
               role: AttributeRole.Required,
-              type: AttributeType.String,
             },
           },
           http: { endpoint: "http://localhost:8080/goal", timeout: 5000 },
@@ -597,7 +552,6 @@ describe("FlowCreateForm", () => {
           attributes: {
             unit_price: {
               role: AttributeRole.Required,
-              type: AttributeType.Number,
             },
           },
           http: { endpoint: "http://localhost:8080/goal", timeout: 5000 },
@@ -613,7 +567,11 @@ describe("FlowCreateForm", () => {
 
     render(<StatefulForm initialState='{"unit_price":[]}' />);
 
-    const input = screen.getByPlaceholderText("0") as HTMLInputElement;
+    const input = within(
+      screen
+        .getByText("unit_price")
+        .closest(`.${attributeStyles.attributeListItem}`) as HTMLElement
+    ).getByRole("textbox") as HTMLInputElement;
     fireEvent.change(input, { target: { value: "90," } });
     expect(input.value).toBe("90,");
 
@@ -641,7 +599,6 @@ describe("FlowCreateForm", () => {
           attributes: {
             note: {
               role: AttributeRole.Required,
-              type: AttributeType.String,
             },
           },
           http: { endpoint: "http://localhost:8080/goal", timeout: 5000 },
@@ -657,7 +614,10 @@ describe("FlowCreateForm", () => {
 
     render(<StatefulForm initialState='{"note":[]}' />);
 
-    fireEvent.change(screen.getByPlaceholderText('""'), {
+    const noteRow = screen
+      .getByText("note")
+      .closest(`.${attributeStyles.attributeListItem}`);
+    fireEvent.change(within(noteRow as HTMLElement).getByRole("textbox"), {
       target: { value: "'hello, world'" },
     });
     fireEvent.click(
@@ -688,7 +648,6 @@ describe("FlowCreateForm", () => {
           attributes: {
             quantity: {
               role: AttributeRole.Required,
-              type: AttributeType.Number,
             },
           },
           http: { endpoint: "http://localhost:8080/goal", timeout: 5000 },
@@ -739,7 +698,6 @@ describe("FlowCreateForm", () => {
           attributes: {
             quantity: {
               role: AttributeRole.Required,
-              type: AttributeType.Number,
             },
           },
           http: { endpoint: "http://localhost:8080/goal", timeout: 5000 },
@@ -755,7 +713,10 @@ describe("FlowCreateForm", () => {
 
     render(<StatefulForm initialState='{"quantity":[]}' />);
 
-    fireEvent.change(screen.getByPlaceholderText("0"), {
+    const quantityRow = screen
+      .getByText("quantity")
+      .closest(`.${attributeStyles.attributeListItem}`);
+    fireEvent.change(within(quantityRow as HTMLElement).getByRole("textbox"), {
       target: { value: "1" },
     });
     fireEvent.click(
@@ -779,7 +740,6 @@ describe("FlowCreateForm", () => {
           attributes: {
             quantity: {
               role: AttributeRole.Required,
-              type: AttributeType.Number,
             },
           },
           http: { endpoint: "http://localhost:8080/goal", timeout: 5000 },
@@ -833,7 +793,6 @@ describe("FlowCreateForm", () => {
             attributes: {
               quantity: {
                 role: AttributeRole.Required,
-                type: AttributeType.Number,
               },
             },
             http: { endpoint: "http://localhost:8080/goal", timeout: 5000 },
@@ -977,11 +936,9 @@ describe("FlowCreateForm", () => {
           attributes: {
             order_id: {
               role: AttributeRole.Required,
-              type: AttributeType.String,
             },
             quantity: {
               role: AttributeRole.Required,
-              type: AttributeType.Number,
             },
           },
           http: { endpoint: "http://localhost:8080/goal", timeout: 5000 },
@@ -993,7 +950,6 @@ describe("FlowCreateForm", () => {
           attributes: {
             quantity: {
               role: AttributeRole.Output,
-              type: AttributeType.Number,
             },
           },
           http: { endpoint: "http://localhost:8080/upstream", timeout: 5000 },
@@ -1043,11 +999,9 @@ describe("FlowCreateForm", () => {
           attributes: {
             order_id: {
               role: AttributeRole.Required,
-              type: AttributeType.String,
             },
             quantity: {
               role: AttributeRole.Required,
-              type: AttributeType.Number,
             },
           },
           http: { endpoint: "http://localhost:8080/goal", timeout: 5000 },
@@ -1059,7 +1013,6 @@ describe("FlowCreateForm", () => {
           attributes: {
             quantity: {
               role: AttributeRole.Output,
-              type: AttributeType.Number,
             },
           },
           http: { endpoint: "http://localhost:8080/upstream", timeout: 5000 },
@@ -1110,7 +1063,6 @@ describe("FlowCreateForm", () => {
           attributes: {
             order_id: {
               role: AttributeRole.Optional,
-              type: AttributeType.String,
               optional: { default: '"guest"' },
             },
           },
@@ -1151,7 +1103,6 @@ describe("FlowCreateForm", () => {
           attributes: {
             order_id: {
               role: AttributeRole.Optional,
-              type: AttributeType.String,
               optional: { default: '"guest"' },
             },
           },
@@ -1197,7 +1148,6 @@ describe("FlowCreateForm", () => {
           attributes: {
             quantity: {
               role: AttributeRole.Required,
-              type: AttributeType.Number,
             },
           },
           http: { endpoint: "http://localhost:8080/goal", timeout: 5000 },

@@ -1,7 +1,7 @@
 import { renderHook } from "@testing-library/react";
 import { useNodeCalculation } from "./useNodeCalculation";
 import type { Step } from "@/app/api";
-import { AttributeRole, AttributeType } from "@/app/api";
+import { AttributeRole } from "@/app/api";
 
 jest.mock("@/utils/nodePositioning", () => ({
   loadNodePositions: jest.fn(() => ({})),
@@ -13,7 +13,7 @@ describe("useNodeCalculation", () => {
     name: `Step ${id}`,
     type: "service",
     attributes: {
-      out: { role: AttributeRole.Output, type: AttributeType.String },
+      out: { role: AttributeRole.Output },
     },
     http: {
       endpoint: "http://test",

@@ -642,7 +642,7 @@ func newAttr(
 		return nil, fmt.Errorf("%w: an output takes no role %q",
 			ErrBadProp, role)
 	}
-	spec := &api.AttributeSpec{Type: attributeType(t)}
+	spec := &api.AttributeSpec{}
 	if err := setRole(spec, role); err != nil {
 		return nil, err
 	}
@@ -655,7 +655,7 @@ func newAttr(
 			return nil, fmt.Errorf("%w: unknown property %q",
 				ErrBadProp, o.Key)
 		}
-		if err := set(spec, o.Value); err != nil {
+		if err := set(spec, jsonValue(t, o)); err != nil {
 			return nil, err
 		}
 	}
@@ -680,33 +680,12 @@ func declaredRole(
 	}
 }
 
-func attributeType(t types.Type) api.AttributeType {
+func isString(t types.Type) bool {
 	if p, ok := t.(*types.Pointer); ok {
-		return attributeType(p.Elem())
+		return isString(p.Elem())
 	}
-	switch u := t.Underlying().(type) {
-	case *types.Basic:
-		return basicType(u.Info())
-	case *types.Slice:
-		return api.TypeArray
-	case *types.Struct, *types.Map:
-		return api.TypeObject
-	default:
-		return api.TypeAny
-	}
-}
-
-func basicType(info types.BasicInfo) api.AttributeType {
-	switch {
-	case info&types.IsString != 0:
-		return api.TypeString
-	case info&types.IsBoolean != 0:
-		return api.TypeBoolean
-	case info&(types.IsInteger|types.IsFloat) != 0:
-		return api.TypeNumber
-	default:
-		return api.TypeAny
-	}
+	b, ok := t.Underlying().(*types.Basic)
+	return ok && b.Info()&types.IsString != 0
 }
 
 func isPointer(t types.Type) bool {

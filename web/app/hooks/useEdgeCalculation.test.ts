@@ -1,7 +1,7 @@
 import { renderHook } from "@testing-library/react";
 import { useEdgeCalculation } from "./useEdgeCalculation";
 import type { Step } from "@/app/api";
-import { AttributeRole, AttributeType } from "@/app/api";
+import { AttributeRole } from "@/app/api";
 import { stepLayout } from "@/constants/layout";
 
 describe("useEdgeCalculation", () => {
@@ -15,19 +15,16 @@ describe("useEdgeCalculation", () => {
     requiredInputs.forEach((name) => {
       attributes[name] = {
         role: AttributeRole.Required,
-        type: AttributeType.String,
       };
     });
     optionalInputs.forEach((name) => {
       attributes[name] = {
         role: AttributeRole.Optional,
-        type: AttributeType.String,
       };
     });
     outputs.forEach((name) => {
       attributes[name] = {
         role: AttributeRole.Output,
-        type: AttributeType.String,
       };
     });
 

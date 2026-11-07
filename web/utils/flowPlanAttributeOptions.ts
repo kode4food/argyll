@@ -1,18 +1,15 @@
-import { AttributeRole, AttributeType, ExecutionPlan, Step } from "@/app/api";
+import { AttributeRole, ExecutionPlan, Step } from "@/app/api";
 import {
   FlowInputMeta,
   getInputPriorityRank,
   getOrCreateFlowInputMeta,
-  getTypeDefaultValue,
   mergeExplicitDefault,
-  mergeInputType,
   normalizeDefaultValue,
 } from "./flowPlanInputHelpers";
 
 export interface FlowInputOption {
   name: string;
   required: boolean;
-  type?: AttributeType;
   defaultValue?: string;
   unreachable?: boolean;
   satisfiedByOutput?: boolean;
@@ -42,7 +39,6 @@ const processInputAttribute = (
   name: string,
   spec: {
     role: AttributeRole;
-    type?: AttributeType;
     optional?: { default?: string };
   },
   ctx: AttributeCollectionContext
@@ -51,7 +47,6 @@ const processInputAttribute = (
   const existing = inputMap.get(name);
   const meta = getOrCreateFlowInputMeta(inputMetaMap, name);
   const isRequired = requiredInputs.has(name);
-  const mergedType = mergeInputType(existing?.type, spec.type);
   meta.hasRequiredSpec =
     meta.hasRequiredSpec || spec.role === AttributeRole.Required;
   if (spec.optional?.default !== undefined) {
@@ -60,14 +55,12 @@ const processInputAttribute = (
       normalizeDefaultValue(spec.optional.default) ?? "";
     mergeExplicitDefault(meta, normalizedSpecDefault);
   }
-  const fallbackTypeDefault = getTypeDefaultValue(mergedType);
   const resolvedDefault = meta.hasConflictingDefaults
-    ? fallbackTypeDefault
-    : (meta.explicitDefault ?? fallbackTypeDefault);
+    ? undefined
+    : meta.explicitDefault;
   const nextInput: FlowInputOption = {
     name,
     required: existing?.required === true || isRequired,
-    type: mergedType,
   };
   if (resolvedDefault !== undefined) {
     nextInput.defaultValue = resolvedDefault;
@@ -160,16 +153,7 @@ const collectUnreachableInputs = (
         continue;
       }
       seen.add(name);
-      const spec = step.attributes[name];
-      const option: FlowInputOption = {
-        name,
-        required: false,
-        unreachable: true,
-      };
-      if (spec?.type) {
-        option.type = spec.type;
-      }
-      result.push(option);
+      result.push({ name, required: false, unreachable: true });
     }
   }
 

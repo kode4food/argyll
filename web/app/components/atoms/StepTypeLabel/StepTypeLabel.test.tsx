@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import StepTypeLabel from "./StepTypeLabel";
 import type { Step } from "@/app/api";
-import { AttributeRole, AttributeType } from "@/app/api";
+import { AttributeRole } from "@/app/api";
 
 describe("StepTypeLabel", () => {
   const createStep = (hasInputs: boolean, hasOutputs: boolean): Step => ({
@@ -11,12 +11,10 @@ describe("StepTypeLabel", () => {
     attributes: {
       ...(hasInputs
         ? {
-            input: { role: AttributeRole.Required, type: AttributeType.String },
+            input: { role: AttributeRole.Required },
           }
         : {}),
-      ...(hasOutputs
-        ? { output: { role: AttributeRole.Output, type: AttributeType.String } }
-        : {}),
+      ...(hasOutputs ? { output: { role: AttributeRole.Output } } : {}),
     },
     http: {
       endpoint: "http://test",

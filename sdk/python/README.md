@@ -9,7 +9,7 @@ pip install argyll-sdk
 Define and serve a Step with the fluent builder:
 
 ```python
-from argyll import AttributeType, Client, StepContext
+from argyll import Client, StepContext
 
 client = Client("http://localhost:8080")
 
@@ -19,8 +19,8 @@ def greet(ctx: StepContext, args: dict) -> dict:
 
 
 client.new_step().with_name("Greeting") \
-    .required("name", AttributeType.STRING) \
-    .output("greeting", AttributeType.STRING) \
+    .required("name") \
+    .output("greeting") \
     .start(greet)
 ```
 

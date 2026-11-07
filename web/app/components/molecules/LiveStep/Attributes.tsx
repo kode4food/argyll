@@ -6,10 +6,11 @@ import { useT } from "@/app/i18n";
 import { getArgIcon } from "@/utils/iconRegistry";
 import { valuesEqual } from "@/utils/inputFormatUtils";
 import { parseInputValue } from "@/utils/inputParseUtils";
-import { formatJSON } from "@/utils/jsonUtils";
+import { formatCompactJSON, formatJSON } from "@/utils/jsonUtils";
 import {
   getAttributeModifiers,
   getSortedAttributes,
+  getSpecPreview,
   roleArgType,
 } from "@/utils/stepUtils";
 import {
@@ -60,6 +61,9 @@ const AttributeItem: React.FC<AttributeItemProps> = ({
   const renderStatusBadge = useAttributeStatusBadge();
 
   const { hasValue, value } = getAttributeValue(arg, execution);
+  const preview = hasValue
+    ? formatCompactJSON(value)
+    : getSpecPreview(arg.spec);
   const isWinner = attributeProvenance.get(arg.name) === stepId;
   const isConst = arg.argType === "const";
   const isUnsatisfied = execution?.unsatisfied?.includes(arg.name) ?? false;
@@ -118,7 +122,7 @@ const AttributeItem: React.FC<AttributeItemProps> = ({
         <ArgModifiers modifiers={arg.modifiers} t={t} />
       </span>
       <div className={styles.argTypeContainer}>
-        <span className={styles.argType}>{arg.type}</span>
+        {preview && <span className={styles.argPreview}>{preview}</span>}
         {statusBadge}
       </div>
     </div>
@@ -160,7 +164,6 @@ const Attributes: React.FC<AttributesProps> = ({
     step.attributes || {}
   ).map(({ name, spec }) => ({
     name,
-    type: spec.type || "any",
     argType: roleArgType[spec.role],
     spec,
     modifiers: getAttributeModifiers(spec),

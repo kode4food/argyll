@@ -133,7 +133,6 @@ func TestScriptUsesMappedName(t *testing.T) {
 			Attributes: api.AttributeSpecs{
 				"amount": {
 					Role: api.RoleRequired,
-					Type: api.TypeNumber,
 					Required: &api.RequiredConfig{
 						Mapping: &api.MappingConfig{
 							Name: "value",
@@ -223,7 +222,6 @@ func TestMapInput(t *testing.T) {
 			st := mappingStep("input")
 			attr := &api.AttributeSpec{
 				Role: api.RoleRequired,
-				Type: api.TypeString,
 			}
 			result := m.MapInput(st, "input", attr, "hello")
 			assert.Equal(t, "hello", result)
@@ -235,7 +233,6 @@ func TestMapInput(t *testing.T) {
 			st := mappingStep("input")
 			attr := &api.AttributeSpec{
 				Role: api.RoleRequired,
-				Type: api.TypeString,
 				Required: &api.RequiredConfig{
 					Mapping: &api.MappingConfig{Name: "renamed"},
 				},
@@ -250,7 +247,6 @@ func TestMapInput(t *testing.T) {
 			st := mappingStep("input")
 			attr := &api.AttributeSpec{
 				Role: api.RoleRequired,
-				Type: api.TypeString,
 				Required: &api.RequiredConfig{
 					Mapping: &api.MappingConfig{
 						Script: argExCfg("input.key"),
@@ -268,7 +264,6 @@ func TestMapInput(t *testing.T) {
 			st := mappingStep("input")
 			attr := &api.AttributeSpec{
 				Role: api.RoleRequired,
-				Type: api.TypeString,
 				Required: &api.RequiredConfig{
 					Mapping: &api.MappingConfig{
 						Script: argExCfg("input?.missing"),
@@ -296,7 +291,6 @@ func mappingStep(name api.Name) *api.Step {
 		Attributes: api.AttributeSpecs{
 			name: {
 				Role: api.RoleRequired,
-				Type: api.TypeNumber,
 			},
 		},
 	}

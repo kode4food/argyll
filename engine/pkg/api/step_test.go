@@ -138,7 +138,7 @@ func TestStepValidation(t *testing.T) {
 					},
 				},
 				Attributes: api.AttributeSpecs{
-					"": {Role: api.RoleRequired, Type: api.TypeString},
+					"": {Role: api.RoleRequired},
 				},
 			},
 			expectError:   true,
@@ -156,7 +156,7 @@ func TestStepValidation(t *testing.T) {
 					},
 				},
 				Attributes: api.AttributeSpecs{
-					"": {Role: api.RoleOptional, Type: api.TypeString},
+					"": {Role: api.RoleOptional},
 				},
 			},
 			expectError:   true,
@@ -420,7 +420,7 @@ func TestHTTPMethodValidation(t *testing.T) {
 					},
 				},
 				Attributes: api.AttributeSpecs{
-					"item_id": {Role: api.RoleRequired, Type: api.TypeString},
+					"item_id": {Role: api.RoleRequired},
 				},
 			})
 
@@ -435,7 +435,7 @@ func TestHTTPMethodValidation(t *testing.T) {
 					},
 				},
 				Attributes: api.AttributeSpecs{
-					"item_id": {Role: api.RoleRequired, Type: api.TypeString},
+					"item_id": {Role: api.RoleRequired},
 				},
 			})
 
@@ -452,7 +452,6 @@ func TestHTTPMethodValidation(t *testing.T) {
 				Attributes: api.AttributeSpecs{
 					"item_id": {
 						Role: api.RoleRequired,
-						Type: api.TypeString,
 						Required: &api.RequiredConfig{
 							Mapping: &api.MappingConfig{Name: "external_id"},
 						},
@@ -471,7 +470,7 @@ func TestHTTPMethodValidation(t *testing.T) {
 					},
 				},
 				Attributes: api.AttributeSpecs{
-					"item_id": {Role: api.RoleRequired, Type: api.TypeString},
+					"item_id": {Role: api.RoleRequired},
 				},
 			}, "unknown parameter")
 
@@ -486,7 +485,7 @@ func TestHTTPMethodValidation(t *testing.T) {
 					},
 				},
 				Attributes: api.AttributeSpecs{
-					"item_id": {Role: api.RoleOptional, Type: api.TypeString},
+					"item_id": {Role: api.RoleOptional},
 				},
 			}, "unknown parameter")
 		})
@@ -503,7 +502,7 @@ func TestHTTPMethodValidation(t *testing.T) {
 			},
 		},
 		Attributes: api.AttributeSpecs{
-			"item_id": {Role: api.RoleRequired, Type: api.TypeString},
+			"item_id": {Role: api.RoleRequired},
 		},
 	}, "invalid HTTP method")
 }
@@ -522,9 +521,9 @@ func TestStepOutputArgs(t *testing.T) {
 				},
 			},
 			Attributes: api.AttributeSpecs{
-				"result1":  {Role: api.RoleOutput, Type: api.TypeString},
-				"result2":  {Role: api.RoleOutput, Type: api.TypeNumber},
-				"metadata": {Role: api.RoleOutput, Type: api.TypeObject},
+				"result1":  {Role: api.RoleOutput},
+				"result2":  {Role: api.RoleOutput},
+				"metadata": {Role: api.RoleOutput},
 			},
 		}
 		outputs := st.GetOutputArgs()
@@ -545,7 +544,7 @@ func TestStepOutputArgs(t *testing.T) {
 				},
 			},
 			Attributes: api.AttributeSpecs{
-				"data": {Role: api.RoleRequired, Type: api.TypeString},
+				"data": {Role: api.RoleRequired},
 			},
 		}
 		as.Empty(st.GetOutputArgs())
@@ -565,13 +564,12 @@ func TestSortedArgNames(t *testing.T) {
 			},
 		},
 		Attributes: api.AttributeSpecs{
-			"zebra":  {Role: api.RoleRequired, Type: api.TypeString},
-			"apple":  {Role: api.RoleRequired, Type: api.TypeString},
-			"mango":  {Role: api.RoleOptional, Type: api.TypeString},
-			"banana": {Role: api.RoleOptional, Type: api.TypeString},
+			"zebra":  {Role: api.RoleRequired},
+			"apple":  {Role: api.RoleRequired},
+			"mango":  {Role: api.RoleOptional},
+			"banana": {Role: api.RoleOptional},
 			"carrot": {
 				Role:  api.RoleConst,
-				Type:  api.TypeString,
 				Const: &api.ConstConfig{Value: `"fixed"`},
 			},
 		},
@@ -601,21 +599,18 @@ func TestMappedArgNames(t *testing.T) {
 		Attributes: api.AttributeSpecs{
 			"outer_b": {
 				Role: api.RoleRequired,
-				Type: api.TypeString,
 				Required: &api.RequiredConfig{
 					Mapping: &api.MappingConfig{Name: "inner_b"},
 				},
 			},
 			"outer_a": {
 				Role: api.RoleOptional,
-				Type: api.TypeString,
 				Optional: &api.OptionalConfig{
 					Mapping: &api.MappingConfig{Name: "inner_a"},
 				},
 			},
 			"plain": {
 				Role: api.RoleRequired,
-				Type: api.TypeString,
 			},
 		},
 	}
@@ -639,21 +634,17 @@ func TestMultiArgNames(t *testing.T) {
 		Attributes: api.AttributeSpecs{
 			"users": {
 				Role:     api.RoleRequired,
-				Type:     api.TypeArray,
 				Required: &api.RequiredConfig{ForEach: true},
 			},
 			"items": {
 				Role:     api.RoleOptional,
-				Type:     api.TypeArray,
 				Optional: &api.OptionalConfig{ForEach: true},
 			},
 			"config": {
 				Role: api.RoleRequired,
-				Type: api.TypeObject,
 			},
 			"messages": {
 				Role:     api.RoleOptional,
-				Type:     api.TypeArray,
 				Optional: &api.OptionalConfig{ForEach: true},
 			},
 		},
@@ -680,10 +671,10 @@ func TestGetRequiredArgs(t *testing.T) {
 			},
 		},
 		Attributes: api.AttributeSpecs{
-			"user_id": {Role: api.RoleRequired, Type: api.TypeString},
-			"email":   {Role: api.RoleRequired, Type: api.TypeString},
-			"name":    {Role: api.RoleOptional, Type: api.TypeString},
-			"result":  {Role: api.RoleOutput, Type: api.TypeString},
+			"user_id": {Role: api.RoleRequired},
+			"email":   {Role: api.RoleRequired},
+			"name":    {Role: api.RoleOptional},
+			"result":  {Role: api.RoleOutput},
 		},
 	}
 
@@ -708,10 +699,10 @@ func TestGetOptionalArgs(t *testing.T) {
 			},
 		},
 		Attributes: api.AttributeSpecs{
-			"user_id": {Role: api.RoleRequired, Type: api.TypeString},
-			"email":   {Role: api.RoleOptional, Type: api.TypeString},
-			"name":    {Role: api.RoleOptional, Type: api.TypeString},
-			"result":  {Role: api.RoleOutput, Type: api.TypeString},
+			"user_id": {Role: api.RoleRequired},
+			"email":   {Role: api.RoleOptional},
+			"name":    {Role: api.RoleOptional},
+			"result":  {Role: api.RoleOutput},
 		},
 	}
 
@@ -870,7 +861,7 @@ func TestEqualStep(t *testing.T) {
 			},
 		},
 		Attributes: api.AttributeSpecs{
-			"arg1": {Role: api.RoleRequired, Type: api.TypeString},
+			"arg1": {Role: api.RoleRequired},
 		},
 	}
 
@@ -885,7 +876,7 @@ func TestEqualStep(t *testing.T) {
 			},
 		},
 		Attributes: api.AttributeSpecs{
-			"arg1": {Role: api.RoleRequired, Type: api.TypeString},
+			"arg1": {Role: api.RoleRequired},
 		},
 	}
 
@@ -899,7 +890,7 @@ func TestEqualStep(t *testing.T) {
 			},
 		},
 		Attributes: api.AttributeSpecs{
-			"arg1": {Role: api.RoleRequired, Type: api.TypeString},
+			"arg1": {Role: api.RoleRequired},
 		},
 	}
 
@@ -970,7 +961,6 @@ func TestCompensateConfig(t *testing.T) {
 		Attributes: api.AttributeSpecs{
 			"input": {
 				Role:        api.RoleRequired,
-				Type:        api.TypeString,
 				Compensated: true,
 				Required: &api.RequiredConfig{
 					Mapping: &api.MappingConfig{Name: "input"},
@@ -978,12 +968,10 @@ func TestCompensateConfig(t *testing.T) {
 			},
 			"result": {
 				Role:        api.RoleOutput,
-				Type:        api.TypeString,
 				Compensated: true,
 			},
 			"fixed": {
 				Role:  api.RoleConst,
-				Type:  api.TypeString,
 				Const: &api.ConstConfig{Value: `"fixed"`},
 			},
 		},
@@ -1303,7 +1291,6 @@ func TestStepCopy(t *testing.T) {
 			Attributes: api.AttributeSpecs{
 				"input": {
 					Role: api.RoleRequired,
-					Type: api.TypeString,
 					Required: &api.RequiredConfig{
 						Mapping: &api.MappingConfig{
 							Name: "arg_input",
@@ -1331,7 +1318,6 @@ func TestStepCopy(t *testing.T) {
 		cpy.Predicate.Script = "return false"
 		cpy.WorkConfig.MaxRetries = 9
 		cpy.Tags[0] = "team:platform"
-		cpy.Attributes["input"].Type = api.TypeNumber
 		cpy.Attributes["input"].Required.Mapping.Name = "changed"
 		cpy.Attributes["input"].Required.Mapping.Script.Script = "changed"
 
@@ -1341,7 +1327,6 @@ func TestStepCopy(t *testing.T) {
 		as.Equal("return false", st.Predicate.Script)
 		as.Equal(9, st.WorkConfig.MaxRetries)
 		as.Equal(api.Tags{"team:platform"}, st.Tags)
-		as.Equal(api.TypeNumber, st.Attributes["input"].Type)
 		as.Equal("changed", st.Attributes["input"].Required.Mapping.Name)
 		as.Equal(
 			"changed", st.Attributes["input"].Required.Mapping.Script.Script,
@@ -1362,7 +1347,7 @@ func TestStepEqualEdgeCases(t *testing.T) {
 			},
 		},
 		Attributes: api.AttributeSpecs{
-			"arg1": {Role: api.RoleRequired, Type: api.TypeString},
+			"arg1": {Role: api.RoleRequired},
 		},
 	}
 
@@ -1456,7 +1441,7 @@ func TestStepEqualEdgeCases(t *testing.T) {
 				},
 			},
 			Attributes: api.AttributeSpecs{
-				"arg1": {Role: api.RoleRequired, Type: api.TypeString},
+				"arg1": {Role: api.RoleRequired},
 			},
 		}
 		as.False(baseStep.Equal(step2))
@@ -1473,7 +1458,7 @@ func TestStepEqualEdgeCases(t *testing.T) {
 				},
 			},
 			Attributes: api.AttributeSpecs{
-				"arg1": {Role: api.RoleOptional, Type: api.TypeString},
+				"arg1": {Role: api.RoleOptional},
 			},
 		}
 		as.False(baseStep.Equal(step2))

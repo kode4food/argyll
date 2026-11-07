@@ -20,7 +20,6 @@ const testCharge = 5.0
 
 func newChargeStep(id api.StepID) *api.Step {
 	st := helpers.NewStepWithOutputs(id, "amount")
-	st.Attributes["amount"].Type = api.TypeNumber
 	return st
 }
 
@@ -28,7 +27,6 @@ func newCompensatedChargeStep(id api.StepID) *api.Step {
 	st := newCompensatingStep(id)
 	st.Attributes["amount"] = &api.AttributeSpec{
 		Role: api.RoleOutput,
-		Type: api.TypeNumber,
 	}
 	return st
 }
@@ -149,12 +147,10 @@ func TestFeedFoldIgnoresUnconsumedOutput(t *testing.T) {
 		charge := newChargeStep("charge")
 		charge.Attributes["tag"] = &api.AttributeSpec{
 			Role: api.RoleOutput,
-			Type: api.TypeString,
 		}
 		reader := helpers.NewStepWithOutputs("reader", "ran")
 		reader.Attributes["tag"] = &api.AttributeSpec{
 			Role: api.RoleRequired,
-			Type: api.TypeString,
 		}
 		assert.NoError(t, env.Engine.RegisterSteps(charge, reader))
 		assert.NoError(t, env.Engine.RegisterFeed(newTestFeed()))
@@ -205,11 +201,9 @@ func TestFeedSkipsCompensatedWork(t *testing.T) {
 		fail := helpers.NewSimpleStep("fail")
 		fail.Attributes["amount"] = &api.AttributeSpec{
 			Role: api.RoleRequired,
-			Type: api.TypeNumber,
 		}
 		fail.Attributes["done"] = &api.AttributeSpec{
 			Role: api.RoleOutput,
-			Type: api.TypeString,
 		}
 		assert.NoError(t, env.Engine.RegisterSteps(charge, fail))
 		assert.NoError(t, env.Engine.RegisterFeed(newTestFeed()))
@@ -371,7 +365,7 @@ func TestFeedChildFlowSnapshot(t *testing.T) {
 				Goals: api.Goals{Steps: []api.StepID{reader.ID}},
 			},
 			Attributes: api.AttributeSpecs{
-				"amount": {Role: api.RoleRequired, Type: api.TypeNumber},
+				"amount": {Role: api.RoleRequired},
 			},
 		}
 		peek := helpers.NewStepWithOutputs("peek", "ran")

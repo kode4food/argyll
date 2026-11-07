@@ -106,13 +106,22 @@
 
 .argTypeContainer {
   display: flex;
+  flex: 1;
+  min-width: 0;
+  justify-content: flex-end;
   align-items: center;
   gap: var(--spacing-xs);
 }
 
-.argType {
-  color: var(--color-pending);
+.argPreview {
+  font-family: var(--font-mono);
   font-size: var(--text-xs);
+  color: var(--color-pending);
+  opacity: var(--opacity-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-left: var(--spacing-sm);
 }
 
 .argStatusBadge {
@@ -156,6 +165,10 @@
 
 .argStatusBadge.waiting .spinner {
   animation: spin 2s linear infinite;
+}
+
+.argStatusBadge.flowStart {
+  background-color: var(--color-success);
 }
 
 .argStatusBadge.notWinner {

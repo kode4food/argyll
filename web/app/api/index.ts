@@ -44,7 +44,6 @@ export {
   DEFAULT_HTTP_METHOD,
   SCRIPT_LANGUAGE_ARGYLL,
   SCRIPT_LANGUAGE_LUA,
-  AttributeType,
   AttributeRole,
   META_KEYS,
 } from "./types";

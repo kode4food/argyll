@@ -1,7 +1,7 @@
 import React from "react";
 import { renderHook } from "@testing-library/react";
 import { useHandlePositions } from "./useHandlePositions";
-import { AttributeRole, AttributeType } from "@/app/api";
+import { AttributeRole } from "@/app/api";
 
 describe("useHandlePositions", () => {
   it("initializes with empty handle positions", () => {
@@ -29,17 +29,14 @@ describe("useHandlePositions", () => {
       attributes: {
         req1: {
           role: AttributeRole.Required,
-          type: AttributeType.String,
           description: "",
         },
         opt1: {
           role: AttributeRole.Optional,
-          type: AttributeType.String,
           description: "",
         },
         out1: {
           role: AttributeRole.Output,
-          type: AttributeType.String,
           description: "",
         },
       },
@@ -98,7 +95,6 @@ describe("useHandlePositions", () => {
       attributes: {
         req1: {
           role: AttributeRole.Required,
-          type: AttributeType.String,
           description: "",
         },
       },
@@ -121,7 +117,6 @@ describe("useHandlePositions", () => {
       attributes: {
         req1: {
           role: AttributeRole.Required,
-          type: AttributeType.String,
           description: "",
         },
       },
@@ -134,12 +129,10 @@ describe("useHandlePositions", () => {
       attributes: {
         req1: {
           role: AttributeRole.Required,
-          type: AttributeType.String,
           description: "",
         },
         req2: {
           role: AttributeRole.Required,
-          type: AttributeType.String,
           description: "",
         },
       },
@@ -165,7 +158,6 @@ describe("useHandlePositions", () => {
       attributes: {
         username: {
           role: AttributeRole.Required,
-          type: AttributeType.String,
           description: "",
         },
       },
@@ -194,12 +186,10 @@ describe("useHandlePositions", () => {
       attributes: {
         input1: {
           role: AttributeRole.Required,
-          type: AttributeType.String,
           description: "",
         },
         output1: {
           role: AttributeRole.Output,
-          type: AttributeType.String,
           description: "",
         },
       },
@@ -237,12 +227,10 @@ describe("useHandlePositions", () => {
       attributes: {
         req1: {
           role: AttributeRole.Required,
-          type: AttributeType.String,
           description: "",
         },
         req2: {
           role: AttributeRole.Required,
-          type: AttributeType.String,
           description: "",
         },
       },
@@ -272,7 +260,6 @@ describe("useHandlePositions", () => {
       attributes: {
         arg: {
           role: AttributeRole.Required,
-          type: AttributeType.String,
           description: "",
         },
       },
@@ -322,7 +309,6 @@ describe("useHandlePositions", () => {
       attributes: {
         req1: {
           role: AttributeRole.Required,
-          type: AttributeType.String,
           description: "",
         },
       },
@@ -335,12 +321,10 @@ describe("useHandlePositions", () => {
       attributes: {
         req1: {
           role: AttributeRole.Required,
-          type: AttributeType.String,
           description: "",
         },
         opt1: {
           role: AttributeRole.Optional,
-          type: AttributeType.String,
           description: "",
         },
       },
@@ -373,12 +357,10 @@ describe("useHandlePositions", () => {
       attributes: {
         req1: {
           role: AttributeRole.Required,
-          type: AttributeType.String,
           description: "",
         },
         req2: {
           role: AttributeRole.Required,
-          type: AttributeType.String,
           description: "",
         },
       },

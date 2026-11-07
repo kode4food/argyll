@@ -28,10 +28,8 @@ func TestOptionalInputsWithDefaults(t *testing.T) {
 		stepB.Attributes["config"].Optional = &api.OptionalConfig{
 			Default: `{"key": "default"}`,
 		}
-		stepB.Attributes["config"].Type = api.TypeObject
 		stepB.Attributes["result"] = &api.AttributeSpec{
 			Role: api.RoleOutput,
-			Type: api.TypeString,
 		}
 
 		assert.NoError(t, env.Engine.RegisterStep(stepA))

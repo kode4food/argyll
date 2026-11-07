@@ -4,7 +4,7 @@ import OverviewDiagramView from "./OverviewDiagramView";
 import { t } from "@/app/testUtils/i18n";
 import { DiagramSelectionProvider } from "@/app/contexts/DiagramSelectionContext";
 import { useEdgeCalculation } from "@/app/hooks/useEdgeCalculation";
-import { AttributeRole, AttributeType, Step } from "@/app/api";
+import { AttributeRole, Step } from "@/app/api";
 
 const reactFlowMock = jest.fn(({ children }: any) => (
   <div data-testid="react-flow">{children}</div>
@@ -269,7 +269,7 @@ describe("OverviewDiagramView", () => {
         name: "Source",
         type: "service",
         attributes: {
-          value: { role: AttributeRole.Output, type: AttributeType.String },
+          value: { role: AttributeRole.Output },
         },
       },
       {
@@ -277,7 +277,7 @@ describe("OverviewDiagramView", () => {
         name: "Primary",
         type: "service",
         attributes: {
-          value: { role: AttributeRole.Required, type: AttributeType.String },
+          value: { role: AttributeRole.Required },
         },
       },
       { id: "fallback", name: "Fallback", type: "service", attributes: {} },

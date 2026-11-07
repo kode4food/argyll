@@ -51,7 +51,6 @@ def test_list_steps_with_data():
                     "attributes": {
                         "input": {
                             "role": "required",
-                            "type": "string",
                         }
                     },
                 }
@@ -82,7 +81,6 @@ def test_list_steps_with_list_payload():
                 "attributes": {
                     "input": {
                         "role": "required",
-                        "type": "string",
                     }
                 },
             }
@@ -343,7 +341,6 @@ def test_parse_step_with_all_fields():
                     "attributes": {
                         "input": {
                             "role": "required",
-                            "type": "string",
                             "required": {
                                 "collect": "all",
                                 "for_each": True,
@@ -362,7 +359,6 @@ def test_parse_step_with_all_fields():
                         },
                         "optional": {
                             "role": "optional",
-                            "type": "string",
                             "optional": {
                                 "default": '"fallback"',
                                 "deadline": 1000,
@@ -370,17 +366,14 @@ def test_parse_step_with_all_fields():
                         },
                         "const": {
                             "role": "const",
-                            "type": "string",
                             "const": {"value": '"fixed"'},
                         },
                         "meta": {
                             "role": "meta",
-                            "type": "string",
                             "meta": {"key": "flow_id"},
                         },
                         "output": {
                             "role": "output",
-                            "type": "number",
                             "compensated": True,
                             "output": {"mapping": {"name": "result"}},
                         },

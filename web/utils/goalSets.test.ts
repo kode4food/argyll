@@ -1,4 +1,4 @@
-import { AttributeRole, AttributeType, Step, StepStatus } from "@/app/api";
+import { AttributeRole, Step, StepStatus } from "@/app/api";
 import {
   activeGoalSet,
   addGoal,
@@ -20,7 +20,7 @@ export const goalSetSteps: Step[] = [
     name: "Stock Reservation",
     type: "service",
     attributes: {
-      reservation: { role: AttributeRole.Output, type: AttributeType.String },
+      reservation: { role: AttributeRole.Output },
     },
   },
   {
@@ -30,9 +30,8 @@ export const goalSetSteps: Step[] = [
     attributes: {
       reservation: {
         role: AttributeRole.Required,
-        type: AttributeType.String,
       },
-      notified: { role: AttributeRole.Output, type: AttributeType.Boolean },
+      notified: { role: AttributeRole.Output },
     },
   },
   {
@@ -40,7 +39,7 @@ export const goalSetSteps: Step[] = [
     name: "Eligibility Checker",
     type: "service",
     attributes: {
-      eligible: { role: AttributeRole.Output, type: AttributeType.Boolean },
+      eligible: { role: AttributeRole.Output },
     },
   },
 ];

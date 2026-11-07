@@ -1,5 +1,5 @@
 import { getAttributeTooltipTitle, getAttributeValue } from "./attributeUtils";
-import { ExecutionResult, AttributeRole, AttributeType } from "@/app/api";
+import { ExecutionResult, AttributeRole } from "@/app/api";
 
 describe("attributeUtils", () => {
   describe("getAttributeTooltipTitle", () => {
@@ -53,7 +53,6 @@ describe("attributeUtils", () => {
         type: "string",
         argType: "required" as const,
         spec: {
-          type: AttributeType.String,
           role: AttributeRole.Required,
           description: "",
         },
@@ -74,7 +73,6 @@ describe("attributeUtils", () => {
         type: "string",
         argType: "output" as const,
         spec: {
-          type: AttributeType.String,
           role: AttributeRole.Output,
           description: "",
         },
@@ -91,7 +89,6 @@ describe("attributeUtils", () => {
         type: "string",
         argType: "required" as const,
         spec: {
-          type: AttributeType.String,
           role: AttributeRole.Required,
           description: "",
         },
@@ -108,7 +105,6 @@ describe("attributeUtils", () => {
         type: "string",
         argType: "required" as const,
         spec: {
-          type: AttributeType.String,
           role: AttributeRole.Required,
           description: "",
         },
@@ -128,7 +124,6 @@ describe("attributeUtils", () => {
         type: "string",
         argType: "optional" as const,
         spec: {
-          type: AttributeType.String,
           role: AttributeRole.Optional,
           optional: { default: "fallback value" },
           description: "",
@@ -150,7 +145,6 @@ describe("attributeUtils", () => {
         type: "string",
         argType: "required" as const,
         spec: {
-          type: AttributeType.String,
           role: AttributeRole.Required,
           required: { mapping: { name: "mapped_input" } },
           description: "",
@@ -172,7 +166,6 @@ describe("attributeUtils", () => {
         type: "string",
         argType: "required" as const,
         spec: {
-          type: AttributeType.String,
           role: AttributeRole.Required,
           description: "",
         },
@@ -189,7 +182,6 @@ describe("attributeUtils", () => {
         type: "string",
         argType: "required" as const,
         spec: {
-          type: AttributeType.String,
           role: AttributeRole.Required,
           description: "",
         },
@@ -226,7 +218,6 @@ describe("attributeUtils", () => {
         type: "string",
         argType: "required" as const,
         spec: {
-          type: AttributeType.String,
           role: AttributeRole.Required,
           description: "",
         },
@@ -248,7 +239,6 @@ describe("attributeUtils", () => {
         type: "number",
         argType: "output" as const,
         spec: {
-          type: AttributeType.Number,
           role: AttributeRole.Output,
           description: "",
         },

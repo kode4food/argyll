@@ -1,7 +1,7 @@
 import React from "react";
 import { render, fireEvent } from "@testing-library/react";
 import Node from "./Node";
-import { Step, AttributeRole, AttributeType } from "@/app/api";
+import { Step, AttributeRole } from "@/app/api";
 import {
   DiagramSelectionProvider,
   DiagramSelectionContextValue,
@@ -88,9 +88,9 @@ describe("Node", () => {
     name: "Test Step",
     type: "service",
     attributes: {
-      input1: { role: AttributeRole.Required, type: AttributeType.String },
-      input2: { role: AttributeRole.Optional, type: AttributeType.String },
-      output1: { role: AttributeRole.Output, type: AttributeType.String },
+      input1: { role: AttributeRole.Required },
+      input2: { role: AttributeRole.Optional },
+      output1: { role: AttributeRole.Output },
     },
     http: {
       endpoint: "http://localhost:8080/test",

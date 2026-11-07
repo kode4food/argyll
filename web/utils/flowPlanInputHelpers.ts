@@ -1,33 +1,8 @@
-import { AttributeType } from "@/app/api";
-import { getDefaultValueForType } from "@/utils/stateUtils";
-
 export interface FlowInputMeta {
   hasRequiredSpec: boolean;
   hasSpecDefault: boolean;
   explicitDefault?: string;
   hasConflictingDefaults: boolean;
-}
-
-const BLANK_DEFAULT_TYPES = [AttributeType.String, AttributeType.Any];
-
-export function getTypeDefaultValue(
-  attrType?: AttributeType
-): string | undefined {
-  if (!attrType || BLANK_DEFAULT_TYPES.includes(attrType)) return undefined;
-  return JSON.stringify(getDefaultValueForType(attrType));
-}
-
-export function mergeInputType(
-  existingType: AttributeType | undefined,
-  nextType: AttributeType | undefined
-): AttributeType | undefined {
-  if (!existingType) {
-    return nextType;
-  }
-  if (!nextType || existingType === nextType) {
-    return existingType;
-  }
-  return AttributeType.Any;
 }
 
 export function normalizeDefaultValue(

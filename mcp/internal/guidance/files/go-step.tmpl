@@ -30,8 +30,8 @@ func main() {
 
 {{ end }}	step := client.NewStep().
 		WithName({{ quote .StepName }}){{ range .Inputs }}.
-		Required({{ quote . }}, api.TypeString){{ end }}{{ range .Outputs }}.
-		Output({{ quote . }}, api.TypeString){{ end }}{{ if .IsAsync }}.
+		Required({{ quote . }}){{ end }}{{ range .Outputs }}.
+		Output({{ quote . }}){{ end }}{{ if .IsAsync }}.
 		WithAsyncInvoke(){{ end }}{{ if .IsExternal }}.
 {{ if .HasNonPostMethod }}		WithMethod({{ quote .Method }}).
 {{ end }}		WithEndpoint("http://localhost:8081/step"){{ end }}

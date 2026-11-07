@@ -241,7 +241,6 @@ func goalStep(
 	for _, name := range inputs {
 		st.Attributes[name] = &api.AttributeSpec{
 			Role: api.RoleRequired,
-			Type: api.TypeString,
 		}
 	}
 	return st

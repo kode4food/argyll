@@ -1,5 +1,5 @@
 import { renderHook } from "@testing-library/react";
-import { AttributeRole, AttributeType, ExecutionPlan, Step } from "@/app/api";
+import { AttributeRole, ExecutionPlan, Step } from "@/app/api";
 import { useFlowFormStepFiltering } from "./useFlowFormStepFiltering";
 
 const buildStep = (id: string, attributes: Step["attributes"]): Step => ({
@@ -12,15 +12,15 @@ const buildStep = (id: string, attributes: Step["attributes"]): Step => ({
 describe("useFlowFormStepFiltering", () => {
   const steps: Step[] = [
     buildStep("step-1", {
-      input: { role: AttributeRole.Required, type: AttributeType.String },
-      outputA: { role: AttributeRole.Output, type: AttributeType.String },
+      input: { role: AttributeRole.Required },
+      outputA: { role: AttributeRole.Output },
     }),
     buildStep("step-2", {
-      outputB: { role: AttributeRole.Output, type: AttributeType.String },
-      outputC: { role: AttributeRole.Output, type: AttributeType.String },
+      outputB: { role: AttributeRole.Output },
+      outputC: { role: AttributeRole.Output },
     }),
     buildStep("step-3", {
-      optional: { role: AttributeRole.Optional, type: AttributeType.Number },
+      optional: { role: AttributeRole.Optional },
     }),
   ];
 

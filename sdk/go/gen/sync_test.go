@@ -288,11 +288,9 @@ func sumStep() gen.StepDef {
 			Attributes: api.AttributeSpecs{
 				"left": {
 					Role: api.RoleRequired,
-					Type: api.TypeNumber,
 				},
 				"total": {
 					Role: api.RoleOutput,
-					Type: api.TypeNumber,
 				},
 			},
 		},

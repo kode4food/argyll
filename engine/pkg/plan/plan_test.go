@@ -32,7 +32,7 @@ func TestSimpleResolver(t *testing.T) {
 		Name: "Resolver",
 		Type: api.StepTypeService,
 		Attributes: api.AttributeSpecs{
-			"data": {Role: api.RoleOutput, Type: api.TypeString},
+			"data": {Role: api.RoleOutput},
 		},
 		HTTP: &api.HTTPConfig{
 			Invoke: api.HTTPAction{
@@ -62,8 +62,8 @@ func TestProcessorWithInit(t *testing.T) {
 		Name: "Processor",
 		Type: api.StepTypeService,
 		Attributes: api.AttributeSpecs{
-			"input":  {Role: api.RoleRequired, Type: api.TypeString},
-			"output": {Role: api.RoleOutput, Type: api.TypeString},
+			"input":  {Role: api.RoleRequired},
+			"output": {Role: api.RoleOutput},
 		},
 		HTTP: &api.HTTPConfig{
 			Invoke: api.HTTPAction{
@@ -90,8 +90,8 @@ func TestInitSatisfiedExcluded(t *testing.T) {
 		Name: "Provider",
 		Type: api.StepTypeService,
 		Attributes: api.AttributeSpecs{
-			"seed": {Role: api.RoleRequired, Type: api.TypeString},
-			"data": {Role: api.RoleOutput, Type: api.TypeString},
+			"seed": {Role: api.RoleRequired},
+			"data": {Role: api.RoleOutput},
 		},
 		HTTP: &api.HTTPConfig{
 			Invoke: api.HTTPAction{
@@ -106,8 +106,8 @@ func TestInitSatisfiedExcluded(t *testing.T) {
 		Name: "Consumer",
 		Type: api.StepTypeService,
 		Attributes: api.AttributeSpecs{
-			"data":   {Role: api.RoleRequired, Type: api.TypeString},
-			"result": {Role: api.RoleOutput, Type: api.TypeString},
+			"data":   {Role: api.RoleRequired},
+			"result": {Role: api.RoleOutput},
 		},
 		HTTP: &api.HTTPConfig{
 			Invoke: api.HTTPAction{
@@ -170,12 +170,11 @@ func TestBlockedProviderNoDownstream(t *testing.T) {
 		Attributes: api.AttributeSpecs{
 			"flag": {
 				Role: api.RoleRequired,
-				Type: api.TypeString,
 				Required: &api.RequiredConfig{
 					Collect: api.InputCollectNone,
 				},
 			},
-			"data": {Role: api.RoleOutput, Type: api.TypeString},
+			"data": {Role: api.RoleOutput},
 		},
 		HTTP: &api.HTTPConfig{
 			Invoke: api.HTTPAction{
@@ -265,7 +264,6 @@ func TestInitFreezesProvidedName(t *testing.T) {
 	provider := planProvider("provider", "data")
 	provider.Attributes["other"] = &api.AttributeSpec{
 		Role: api.RoleOutput,
-		Type: api.TypeString,
 	}
 	consumer := planConsumer("consumer", "data", api.InputCollectAll)
 	other := planConsumer("other-consumer", "other", api.InputCollectFirst)
@@ -351,8 +349,8 @@ func TestProcessorNoInit(t *testing.T) {
 		Name: "Processor",
 		Type: api.StepTypeService,
 		Attributes: api.AttributeSpecs{
-			"input":  {Role: api.RoleRequired, Type: api.TypeString},
-			"output": {Role: api.RoleOutput, Type: api.TypeString},
+			"input":  {Role: api.RoleRequired},
+			"output": {Role: api.RoleOutput},
 		},
 		HTTP: &api.HTTPConfig{
 			Invoke: api.HTTPAction{
@@ -378,7 +376,7 @@ func TestChained(t *testing.T) {
 		Name: "Resolver",
 		Type: api.StepTypeService,
 		Attributes: api.AttributeSpecs{
-			"data": {Role: api.RoleOutput, Type: api.TypeString},
+			"data": {Role: api.RoleOutput},
 		},
 		HTTP: &api.HTTPConfig{
 			Invoke: api.HTTPAction{
@@ -393,8 +391,8 @@ func TestChained(t *testing.T) {
 		Name: "Processor",
 		Type: api.StepTypeService,
 		Attributes: api.AttributeSpecs{
-			"data":   {Role: api.RoleRequired, Type: api.TypeString},
-			"result": {Role: api.RoleOutput, Type: api.TypeString},
+			"data":   {Role: api.RoleRequired},
+			"result": {Role: api.RoleOutput},
 		},
 		HTTP: &api.HTTPConfig{
 			Invoke: api.HTTPAction{
@@ -409,7 +407,7 @@ func TestChained(t *testing.T) {
 		Name: "Collector",
 		Type: api.StepTypeService,
 		Attributes: api.AttributeSpecs{
-			"result": {Role: api.RoleRequired, Type: api.TypeString},
+			"result": {Role: api.RoleRequired},
 		},
 		HTTP: &api.HTTPConfig{
 			Invoke: api.HTTPAction{
@@ -442,7 +440,7 @@ func TestMultipleGoals(t *testing.T) {
 		Name: "Step 1",
 		Type: api.StepTypeService,
 		Attributes: api.AttributeSpecs{
-			"output1": {Role: api.RoleOutput, Type: api.TypeString},
+			"output1": {Role: api.RoleOutput},
 		},
 		HTTP: &api.HTTPConfig{
 			Invoke: api.HTTPAction{
@@ -457,7 +455,7 @@ func TestMultipleGoals(t *testing.T) {
 		Name: "Step 2",
 		Type: api.StepTypeService,
 		Attributes: api.AttributeSpecs{
-			"output2": {Role: api.RoleOutput, Type: api.TypeString},
+			"output2": {Role: api.RoleOutput},
 		},
 		HTTP: &api.HTTPConfig{
 			Invoke: api.HTTPAction{
@@ -486,7 +484,7 @@ func TestExistingOutputs(t *testing.T) {
 		Name: "Step",
 		Type: api.StepTypeService,
 		Attributes: api.AttributeSpecs{
-			"data": {Role: api.RoleOutput, Type: api.TypeString},
+			"data": {Role: api.RoleOutput},
 		},
 		HTTP: &api.HTTPConfig{
 			Invoke: api.HTTPAction{
@@ -512,7 +510,7 @@ func TestComplexGraph(t *testing.T) {
 		Name: "Resolver 1",
 		Type: api.StepTypeService,
 		Attributes: api.AttributeSpecs{
-			"a": {Role: api.RoleOutput, Type: api.TypeString},
+			"a": {Role: api.RoleOutput},
 		},
 		HTTP: &api.HTTPConfig{
 			Invoke: api.HTTPAction{
@@ -527,7 +525,7 @@ func TestComplexGraph(t *testing.T) {
 		Name: "Resolver 2",
 		Type: api.StepTypeService,
 		Attributes: api.AttributeSpecs{
-			"b": {Role: api.RoleOutput, Type: api.TypeString},
+			"b": {Role: api.RoleOutput},
 		},
 		HTTP: &api.HTTPConfig{
 			Invoke: api.HTTPAction{
@@ -542,9 +540,9 @@ func TestComplexGraph(t *testing.T) {
 		Name: "Processor 1",
 		Type: api.StepTypeService,
 		Attributes: api.AttributeSpecs{
-			"a": {Role: api.RoleRequired, Type: api.TypeString},
-			"b": {Role: api.RoleRequired, Type: api.TypeString},
-			"c": {Role: api.RoleOutput, Type: api.TypeString},
+			"a": {Role: api.RoleRequired},
+			"b": {Role: api.RoleRequired},
+			"c": {Role: api.RoleOutput},
 		},
 		HTTP: &api.HTTPConfig{
 			Invoke: api.HTTPAction{
@@ -559,8 +557,8 @@ func TestComplexGraph(t *testing.T) {
 		Name: "Processor 2",
 		Type: api.StepTypeService,
 		Attributes: api.AttributeSpecs{
-			"c": {Role: api.RoleRequired, Type: api.TypeString},
-			"d": {Role: api.RoleOutput, Type: api.TypeString},
+			"c": {Role: api.RoleRequired},
+			"d": {Role: api.RoleOutput},
 		},
 		HTTP: &api.HTTPConfig{
 			Invoke: api.HTTPAction{
@@ -597,7 +595,7 @@ func TestReceipts(t *testing.T) {
 		Name: "Step",
 		Type: api.StepTypeService,
 		Attributes: api.AttributeSpecs{
-			"data": {Role: api.RoleOutput, Type: api.TypeString},
+			"data": {Role: api.RoleOutput},
 		},
 		HTTP: &api.HTTPConfig{
 			Invoke: api.HTTPAction{
@@ -624,8 +622,8 @@ func TestMissingDependency(t *testing.T) {
 		Name: "Step",
 		Type: api.StepTypeService,
 		Attributes: api.AttributeSpecs{
-			"nonexistent": {Role: api.RoleRequired, Type: api.TypeString},
-			"output":      {Role: api.RoleOutput, Type: api.TypeString},
+			"nonexistent": {Role: api.RoleRequired},
+			"output":      {Role: api.RoleOutput},
 		},
 		HTTP: &api.HTTPConfig{
 			Invoke: api.HTTPAction{
@@ -651,7 +649,7 @@ func TestOptionalInput(t *testing.T) {
 		Name: "Resolver",
 		Type: api.StepTypeService,
 		Attributes: api.AttributeSpecs{
-			"optional_data": {Role: api.RoleOutput, Type: api.TypeString},
+			"optional_data": {Role: api.RoleOutput},
 		},
 		HTTP: &api.HTTPConfig{
 			Invoke: api.HTTPAction{
@@ -666,8 +664,8 @@ func TestOptionalInput(t *testing.T) {
 		Name: "Processor",
 		Type: api.StepTypeService,
 		Attributes: api.AttributeSpecs{
-			"optional_data": {Role: api.RoleOptional, Type: api.TypeString},
-			"result":        {Role: api.RoleOutput, Type: api.TypeString},
+			"optional_data": {Role: api.RoleOptional},
+			"result":        {Role: api.RoleOutput},
 		},
 		HTTP: &api.HTTPConfig{
 			Invoke: api.HTTPAction{
@@ -698,8 +696,8 @@ func TestOptionalMissing(t *testing.T) {
 		Name: "Processor",
 		Type: api.StepTypeService,
 		Attributes: api.AttributeSpecs{
-			"optional_data": {Role: api.RoleOptional, Type: api.TypeString},
-			"result":        {Role: api.RoleOutput, Type: api.TypeString},
+			"optional_data": {Role: api.RoleOptional},
+			"result":        {Role: api.RoleOutput},
 		},
 		HTTP: &api.HTTPConfig{
 			Invoke: api.HTTPAction{
@@ -727,8 +725,8 @@ func TestProvidersWithInit(t *testing.T) {
 		Name: "Provider With Input",
 		Type: api.StepTypeService,
 		Attributes: api.AttributeSpecs{
-			"product_id":   {Role: api.RoleRequired, Type: api.TypeString},
-			"product_info": {Role: api.RoleOutput, Type: api.TypeString},
+			"product_id":   {Role: api.RoleRequired},
+			"product_info": {Role: api.RoleOutput},
 		},
 		HTTP: &api.HTTPConfig{
 			Invoke: api.HTTPAction{
@@ -743,7 +741,7 @@ func TestProvidersWithInit(t *testing.T) {
 		Name: "Provider Without Input",
 		Type: api.StepTypeService,
 		Attributes: api.AttributeSpecs{
-			"product_info": {Role: api.RoleOutput, Type: api.TypeString},
+			"product_info": {Role: api.RoleOutput},
 		},
 		HTTP: &api.HTTPConfig{
 			Invoke: api.HTTPAction{
@@ -758,8 +756,8 @@ func TestProvidersWithInit(t *testing.T) {
 		Name: "Consumer",
 		Type: api.StepTypeService,
 		Attributes: api.AttributeSpecs{
-			"product_info": {Role: api.RoleRequired, Type: api.TypeString},
-			"result":       {Role: api.RoleOutput, Type: api.TypeString},
+			"product_info": {Role: api.RoleRequired},
+			"result":       {Role: api.RoleOutput},
 		},
 		HTTP: &api.HTTPConfig{
 			Invoke: api.HTTPAction{
@@ -819,8 +817,8 @@ func TestPreviewShowsUnsatisfiedPath(t *testing.T) {
 		Name: "Intake",
 		Type: api.StepTypeService,
 		Attributes: api.AttributeSpecs{
-			"seed":  {Role: api.RoleRequired, Type: api.TypeString},
-			"input": {Role: api.RoleOutput, Type: api.TypeString},
+			"seed":  {Role: api.RoleRequired},
+			"input": {Role: api.RoleOutput},
 		},
 		HTTP: &api.HTTPConfig{
 			Invoke: api.HTTPAction{
@@ -835,8 +833,8 @@ func TestPreviewShowsUnsatisfiedPath(t *testing.T) {
 		Name: "Processor",
 		Type: api.StepTypeService,
 		Attributes: api.AttributeSpecs{
-			"input":  {Role: api.RoleRequired, Type: api.TypeString},
-			"result": {Role: api.RoleOutput, Type: api.TypeString},
+			"input":  {Role: api.RoleRequired},
+			"result": {Role: api.RoleOutput},
 		},
 		HTTP: &api.HTTPConfig{
 			Invoke: api.HTTPAction{
@@ -866,7 +864,7 @@ func TestMixedInputs(t *testing.T) {
 		Name: "Resolver 1",
 		Type: api.StepTypeService,
 		Attributes: api.AttributeSpecs{
-			"required_data": {Role: api.RoleOutput, Type: api.TypeString},
+			"required_data": {Role: api.RoleOutput},
 		},
 		HTTP: &api.HTTPConfig{
 			Invoke: api.HTTPAction{
@@ -881,7 +879,7 @@ func TestMixedInputs(t *testing.T) {
 		Name: "Resolver 2",
 		Type: api.StepTypeService,
 		Attributes: api.AttributeSpecs{
-			"optional_data": {Role: api.RoleOutput, Type: api.TypeString},
+			"optional_data": {Role: api.RoleOutput},
 		},
 		HTTP: &api.HTTPConfig{
 			Invoke: api.HTTPAction{
@@ -896,9 +894,9 @@ func TestMixedInputs(t *testing.T) {
 		Name: "Processor",
 		Type: api.StepTypeService,
 		Attributes: api.AttributeSpecs{
-			"required_data": {Role: api.RoleRequired, Type: api.TypeString},
-			"optional_data": {Role: api.RoleOptional, Type: api.TypeString},
-			"result":        {Role: api.RoleOutput, Type: api.TypeString},
+			"required_data": {Role: api.RoleRequired},
+			"optional_data": {Role: api.RoleOptional},
+			"result":        {Role: api.RoleOutput},
 		},
 		HTTP: &api.HTTPConfig{
 			Invoke: api.HTTPAction{
@@ -934,7 +932,6 @@ func TestRequiredMatchUnknownOnlyRequiresGate(t *testing.T) {
 		Attributes: api.AttributeSpecs{
 			"notification_type": {
 				Role: api.RoleRequired,
-				Type: api.TypeString,
 				Required: &api.RequiredConfig{
 					Match: &api.ScriptConfig{
 						Language: api.ScriptLangLua,
@@ -942,8 +939,8 @@ func TestRequiredMatchUnknownOnlyRequiresGate(t *testing.T) {
 					},
 				},
 			},
-			"customer": {Role: api.RoleRequired, Type: api.TypeObject},
-			"result":   {Role: api.RoleOutput, Type: api.TypeString},
+			"customer": {Role: api.RoleRequired},
+			"result":   {Role: api.RoleOutput},
 		},
 		HTTP: &api.HTTPConfig{
 			Invoke: api.HTTPAction{
@@ -971,8 +968,8 @@ func TestRequiredMatchInitMismatchPrunesNormalInputs(t *testing.T) {
 		Name: "Customer Lookup",
 		Type: api.StepTypeService,
 		Attributes: api.AttributeSpecs{
-			"customer_id": {Role: api.RoleRequired, Type: api.TypeString},
-			"customer":    {Role: api.RoleOutput, Type: api.TypeObject},
+			"customer_id": {Role: api.RoleRequired},
+			"customer":    {Role: api.RoleOutput},
 		},
 		HTTP: &api.HTTPConfig{
 			Invoke: api.HTTPAction{
@@ -988,7 +985,6 @@ func TestRequiredMatchInitMismatchPrunesNormalInputs(t *testing.T) {
 		Attributes: api.AttributeSpecs{
 			"notification_type": {
 				Role: api.RoleRequired,
-				Type: api.TypeString,
 				Required: &api.RequiredConfig{
 					Match: &api.ScriptConfig{
 						Language: api.ScriptLangLua,
@@ -996,8 +992,8 @@ func TestRequiredMatchInitMismatchPrunesNormalInputs(t *testing.T) {
 					},
 				},
 			},
-			"customer": {Role: api.RoleRequired, Type: api.TypeObject},
-			"result":   {Role: api.RoleOutput, Type: api.TypeString},
+			"customer": {Role: api.RoleRequired},
+			"result":   {Role: api.RoleOutput},
 		},
 		HTTP: &api.HTTPConfig{
 			Invoke: api.HTTPAction{
@@ -1030,7 +1026,6 @@ func TestRequiredMatchInitMismatchPrunesProviders(t *testing.T) {
 		Attributes: api.AttributeSpecs{
 			"notification_type": {
 				Role: api.RoleRequired,
-				Type: api.TypeString,
 				Required: &api.RequiredConfig{
 					Match: &api.ScriptConfig{
 						Language: api.ScriptLangLua,
@@ -1038,7 +1033,7 @@ func TestRequiredMatchInitMismatchPrunesProviders(t *testing.T) {
 					},
 				},
 			},
-			"result": {Role: api.RoleOutput, Type: api.TypeString},
+			"result": {Role: api.RoleOutput},
 		},
 		HTTP: &api.HTTPConfig{
 			Invoke: api.HTTPAction{
@@ -1101,7 +1096,7 @@ func planProvider(id api.StepID, output api.Name) *api.Step {
 		Name: api.Name(id),
 		Type: api.StepTypeService,
 		Attributes: api.AttributeSpecs{
-			output: {Role: api.RoleOutput, Type: api.TypeString},
+			output: {Role: api.RoleOutput},
 		},
 		HTTP: &api.HTTPConfig{
 			Invoke: api.HTTPAction{
@@ -1122,12 +1117,11 @@ func planConsumer(
 		Attributes: api.AttributeSpecs{
 			input: {
 				Role: api.RoleRequired,
-				Type: api.TypeString,
 				Required: &api.RequiredConfig{
 					Collect: collect,
 				},
 			},
-			"result": {Role: api.RoleOutput, Type: api.TypeString},
+			"result": {Role: api.RoleOutput},
 		},
 		HTTP: &api.HTTPConfig{
 			Invoke: api.HTTPAction{

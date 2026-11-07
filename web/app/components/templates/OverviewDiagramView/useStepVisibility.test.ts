@@ -1,7 +1,7 @@
 import { renderHook } from "@testing-library/react";
 import { useStepVisibility } from "./useStepVisibility";
 import type { Step, ExecutionPlan } from "@/app/api";
-import { AttributeRole, AttributeType } from "@/app/api";
+import { AttributeRole } from "@/app/api";
 
 describe("useStepVisibility", () => {
   const createStep = (id: string): Step => ({
@@ -9,7 +9,7 @@ describe("useStepVisibility", () => {
     name: `Step ${id}`,
     type: "service",
     attributes: {
-      out: { role: AttributeRole.Output, type: AttributeType.String },
+      out: { role: AttributeRole.Output },
     },
     http: {
       endpoint: "http://test",

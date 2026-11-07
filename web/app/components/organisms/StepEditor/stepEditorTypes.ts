@@ -1,4 +1,4 @@
-import { AttributeType, InputCollect } from "@/app/api";
+import { InputCollect } from "@/app/api";
 
 export type AttributeRoleType =
   "required" | "optional" | "const" | "meta" | "feed" | "output";
@@ -13,7 +13,6 @@ export interface Attribute {
   id: string;
   role: AttributeRoleType;
   name: string;
-  dataType: AttributeType;
   collect?: InputCollect;
   defaultValue?: string;
   deadline?: number;

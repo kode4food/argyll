@@ -11,7 +11,6 @@ from argyll.types import (
     ActionMode,
     AttributeRole,
     AttributeSpec,
-    AttributeType,
     ConstConfig,
     FlowConfig,
     Goals,
@@ -74,13 +73,12 @@ def test_step_builder_required():
     builder = (
         client.new_step()
         .with_name("Test")
-        .required("name", AttributeType.STRING)
+        .required("name")
         .with_endpoint("http://localhost:8081/test")
     )
     step = builder.build()
     assert "name" in step.attributes
     assert step.attributes["name"].role == AttributeRole.REQUIRED
-    assert step.attributes["name"].type == AttributeType.STRING
 
 
 def test_step_builder_optional():
@@ -88,7 +86,7 @@ def test_step_builder_optional():
     builder = (
         client.new_step()
         .with_name("Test")
-        .optional("count", AttributeType.NUMBER, "0")
+        .optional("count", "0")
         .with_endpoint("http://localhost:8081/test")
     )
     step = builder.build()
@@ -103,7 +101,7 @@ def test_step_builder_output():
     builder = (
         client.new_step()
         .with_name("Test")
-        .output("result", AttributeType.STRING)
+        .output("result")
         .with_endpoint("http://localhost:8081/test")
     )
     step = builder.build()
@@ -116,8 +114,8 @@ def test_step_builder_with_for_each():
     builder = (
         client.new_step()
         .with_name("Test")
-        .required("items", AttributeType.ARRAY)
-        .optional("groups", AttributeType.ARRAY, "[]")
+        .required("items")
+        .optional("groups", "[]")
         .with_for_each("items", "groups")
         .with_endpoint("http://localhost:8081/test")
     )
@@ -356,8 +354,8 @@ def test_step_builder_with_compensate():
         client.new_step()
         .with_name("Test")
         .with_endpoint("http://localhost:8081/test")
-        .required("request", AttributeType.STRING)
-        .output("result", AttributeType.STRING)
+        .required("request")
+        .output("result")
         .with_compensate(compensate_url)
         .compensated("request", "result")
     )
@@ -429,8 +427,8 @@ def test_step_builder_chaining():
         client.new_step()
         .with_name("Test")
         .with_id("custom-id")
-        .required("input", AttributeType.STRING)
-        .output("output", AttributeType.STRING)
+        .required("input")
+        .output("output")
         .with_tags("env:test")
         .with_method("PUT")
         .with_endpoint("http://localhost:8081/test")
@@ -552,8 +550,8 @@ def test_step_builder_build():
     builder = (
         client.new_step()
         .with_name("Test")
-        .required("input", AttributeType.STRING)
-        .output("output", AttributeType.STRING)
+        .required("input")
+        .output("output")
         .with_endpoint("http://localhost:8081/test")
     )
     step = builder.build()
@@ -581,7 +579,7 @@ def test_step_builder_const():
     builder = (
         client.new_step()
         .with_name("Test")
-        .const("api_key", AttributeType.STRING, '"secret"')
+        .const("api_key", '"secret"')
         .with_endpoint("http://localhost:8081/test")
     )
     step = builder.build()
@@ -726,7 +724,6 @@ def _make_step(**overrides):
             attributes={
                 "request": AttributeSpec(
                     role=AttributeRole.REQUIRED,
-                    type=AttributeType.STRING,
                     compensated=True,
                 ),
             },
@@ -740,7 +737,6 @@ def _make_step(**overrides):
             attributes={
                 "request": AttributeSpec(
                     role=AttributeRole.REQUIRED,
-                    type=AttributeType.STRING,
                     compensated=True,
                     required=RequiredConfig(
                         mapping=MappingConfig(name="value")
@@ -748,7 +744,6 @@ def _make_step(**overrides):
                 ),
                 "result": AttributeSpec(
                     role=AttributeRole.OUTPUT,
-                    type=AttributeType.STRING,
                     compensated=True,
                     output=OutputConfig(mapping=MappingConfig(name="value")),
                 ),
@@ -765,7 +760,6 @@ def _make_step(**overrides):
             attributes={
                 "": AttributeSpec(
                     role=AttributeRole.REQUIRED,
-                    type=AttributeType.STRING,
                 )
             }
         ),
@@ -774,7 +768,6 @@ def _make_step(**overrides):
             attributes={
                 "const": AttributeSpec(
                     role=AttributeRole.CONST,
-                    type=AttributeType.STRING,
                 )
             }
         ),
@@ -783,7 +776,6 @@ def _make_step(**overrides):
             attributes={
                 "baddefault": AttributeSpec(
                     role=AttributeRole.REQUIRED,
-                    type=AttributeType.STRING,
                     optional=OptionalConfig(default="1"),
                 )
             }
@@ -793,18 +785,7 @@ def _make_step(**overrides):
             attributes={
                 "badjson": AttributeSpec(
                     role=AttributeRole.OPTIONAL,
-                    type=AttributeType.STRING,
                     optional=OptionalConfig(default="{"),
-                )
-            }
-        ),
-        # optional with type mismatch default
-        _make_step(
-            attributes={
-                "badtype": AttributeSpec(
-                    role=AttributeRole.OPTIONAL,
-                    type=AttributeType.STRING,
-                    optional=OptionalConfig(default="1"),
                 )
             }
         ),
@@ -813,17 +794,6 @@ def _make_step(**overrides):
             attributes={
                 "output": AttributeSpec(
                     role=AttributeRole.OUTPUT,
-                    type=AttributeType.STRING,
-                    required=RequiredConfig(for_each=True),
-                )
-            }
-        ),
-        # required STRING with for_each (wrong type)
-        _make_step(
-            attributes={
-                "items": AttributeSpec(
-                    role=AttributeRole.REQUIRED,
-                    type=AttributeType.STRING,
                     required=RequiredConfig(for_each=True),
                 )
             }
@@ -833,7 +803,6 @@ def _make_step(**overrides):
             attributes={
                 "const": AttributeSpec(
                     role=AttributeRole.CONST,
-                    type=AttributeType.STRING,
                     const=ConstConfig(value='"fixed"'),
                     required=RequiredConfig(collect=InputCollect.SOME),
                 )
@@ -844,7 +813,6 @@ def _make_step(**overrides):
             attributes={
                 "required": AttributeSpec(
                     role=AttributeRole.REQUIRED,
-                    type=AttributeType.STRING,
                     optional=OptionalConfig(deadline=1000),
                 )
             }
@@ -876,7 +844,7 @@ def test_step_builder_with_for_each_optional():
         client.new_step()
         .with_name("Test")
         .with_endpoint("http://localhost:8081/test")
-        .optional("tags", AttributeType.ARRAY, "[]")
+        .optional("tags", "[]")
         .with_for_each("tags")
     )
     step = builder.build()
@@ -884,26 +852,11 @@ def test_step_builder_with_for_each_optional():
     assert step.attributes["tags"].optional.for_each is True
 
 
-def test_validate_step_null_default_not_null():
-    step = _make_step(
-        attributes={
-            "flag": AttributeSpec(
-                role=AttributeRole.OPTIONAL,
-                type=AttributeType.NULL,
-                optional=OptionalConfig(default='"not-null"'),
-            )
-        }
-    )
-    with pytest.raises(StepValidationError):
-        _validate_step(step)
-
-
 def test_validate_step_meta_missing_key():
     step = _make_step(
         attributes={
             "meta": AttributeSpec(
                 role=AttributeRole.META,
-                type=AttributeType.ANY,
                 meta=MetaConfig(key=""),
             )
         }
@@ -917,7 +870,6 @@ def test_validate_step_const_for_each():
         attributes={
             "const": AttributeSpec(
                 role=AttributeRole.CONST,
-                type=AttributeType.ARRAY,
                 const=ConstConfig(value='["fixed"]'),
             )
         }

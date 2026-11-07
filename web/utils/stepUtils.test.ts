@@ -1,11 +1,12 @@
 import {
   getAttributeModifiers,
   getSortedAttributes,
+  getSpecPreview,
   getStepType,
   sortStepsByType,
   validateDefaultValue,
 } from "./stepUtils";
-import { AttributeRole, AttributeSpec, AttributeType, Step } from "@/app/api";
+import { AttributeRole, AttributeSpec, Step } from "@/app/api";
 import {
   IconArrayMultiple,
   IconAttributeMatch,
@@ -16,7 +17,7 @@ import {
 const attr = (
   role: AttributeRole,
   config: Partial<AttributeSpec> = {}
-): AttributeSpec => ({ role, type: AttributeType.String, ...config });
+): AttributeSpec => ({ role, ...config });
 
 const step = (
   id: string,
@@ -217,38 +218,41 @@ describe("stepUtils", () => {
   });
 
   test.each([
-    [AttributeType.String, '"hello"', true, undefined],
-    [AttributeType.String, "hello", false, "validation.jsonInvalid"],
-    [AttributeType.String, "42", false, "validation.jsonString"],
-    [AttributeType.Number, "42", true, undefined],
-    [AttributeType.Number, "3.14", true, undefined],
-    [AttributeType.Number, '"42"', false, "validation.jsonNumber"],
-    [AttributeType.Number, "abc", false, "validation.jsonInvalid"],
-    [AttributeType.Boolean, "true", true, undefined],
-    [AttributeType.Boolean, "false", true, undefined],
-    [AttributeType.Boolean, '"yes"', false, "validation.jsonBoolean"],
-    [AttributeType.Object, '{"a":1}', true, undefined],
-    [AttributeType.Object, "[]", false, "validation.jsonObject"],
-    [AttributeType.Object, "{bad", false, "validation.jsonInvalid"],
-    [AttributeType.Array, "[]", true, undefined],
-    [AttributeType.Array, "{}", false, "validation.jsonArray"],
-    [AttributeType.Array, "[bad", false, "validation.jsonInvalid"],
-    [AttributeType.Null, "null", true, undefined],
-    [AttributeType.Null, "nil", false, "validation.jsonInvalid"],
-    [AttributeType.Null, '"null"', false, "validation.jsonNull"],
-    [AttributeType.Any, '"value"', true, undefined],
-    [AttributeType.Any, "42", true, undefined],
-    [AttributeType.Any, "{}", true, undefined],
-    [AttributeType.Any, "[]", true, undefined],
-    [AttributeType.Any, "invalid", false, "validation.jsonInvalid"],
-  ])("validates %s value %s", (type, value, valid, errorKey) => {
-    expect(validateDefaultValue(value, type)).toEqual(
+    ['"hello"', true, undefined],
+    ["42", true, undefined],
+    ["3.14", true, undefined],
+    ["true", true, undefined],
+    ['{"a":1}', true, undefined],
+    ["[]", true, undefined],
+    ["null", true, undefined],
+    ["hello", false, "validation.jsonInvalid"],
+    ["abc", false, "validation.jsonInvalid"],
+    ["{bad", false, "validation.jsonInvalid"],
+    ["[bad", false, "validation.jsonInvalid"],
+    ["nil", false, "validation.jsonInvalid"],
+  ])("validates value %s", (value, valid, errorKey) => {
+    expect(validateDefaultValue(value)).toEqual(
       errorKey ? { valid, errorKey } : { valid }
     );
   });
 
-  test.each(Object.values(AttributeType))("allows empty %s values", (type) => {
-    expect(validateDefaultValue("", type)).toEqual({ valid: true });
-    expect(validateDefaultValue("   ", type)).toEqual({ valid: true });
+  test("allows empty values", () => {
+    expect(validateDefaultValue("")).toEqual({ valid: true });
+    expect(validateDefaultValue("   ")).toEqual({ valid: true });
   });
+
+  test.each([
+    [{ role: AttributeRole.Required }, undefined],
+    [{ role: AttributeRole.Output }, undefined],
+    [{ role: AttributeRole.Optional }, undefined],
+    [{ role: AttributeRole.Optional, optional: { default: "1" } }, "1"],
+    [{ role: AttributeRole.Const, const: { value: '"x"' } }, '"x"'],
+    [{ role: AttributeRole.Meta, meta: { key: "flow_id" } }, "flow_id"],
+    [{ role: AttributeRole.Feed, feed: { id: "total" } }, "total"],
+  ] as [AttributeSpec, string | undefined][])(
+    "previews %j as %s",
+    (spec, expected) => {
+      expect(getSpecPreview(spec)).toBe(expected);
+    }
+  );
 });

@@ -3,6 +3,7 @@ package generator
 import (
 	"errors"
 	"fmt"
+	"go/types"
 	"strconv"
 	"strings"
 
@@ -101,14 +102,14 @@ var attrSetters = map[string]setter[api.AttributeSpec]{
 		if s.Optional == nil {
 			return roleError(defaultProp, api.RoleOptional)
 		}
-		s.Optional.Default = jsonValue(s.Type, v)
+		s.Optional.Default = v
 		return nil
 	},
 	valueProp: func(s *api.AttributeSpec, v string) error {
 		if s.Const == nil {
 			return roleError(valueProp, api.RoleConst)
 		}
-		s.Const.Value = jsonValue(s.Type, v)
+		s.Const.Value = v
 		return nil
 	},
 	keyProp: func(s *api.AttributeSpec, v string) error {
@@ -142,8 +143,6 @@ var attrSetters = map[string]setter[api.AttributeSpec]{
 		if err != nil || !on {
 			return err
 		}
-		// the Go field carries the element type, the attribute the array
-		s.Type = api.TypeArray
 		switch {
 		case s.Required != nil:
 			s.Required.ForEach = true
@@ -214,11 +213,11 @@ func setRole(s *api.AttributeSpec, role api.AttributeRole) error {
 }
 
 // default and const values reach the engine as JSON
-func jsonValue(t api.AttributeType, v string) string {
-	if t == api.TypeString {
-		return strconv.Quote(v)
+func jsonValue(t types.Type, o Option) string {
+	if (o.Key == defaultProp || o.Key == valueProp) && isString(t) {
+		return strconv.Quote(o.Value)
 	}
-	return v
+	return o.Value
 }
 
 func roleError(prop string, role api.AttributeRole) error {

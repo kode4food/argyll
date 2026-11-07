@@ -1,5 +1,5 @@
 import { act, renderHook } from "@testing-library/react";
-import { AttributeType, SCRIPT_LANGUAGE_LUA, Step } from "@/app/api";
+import { SCRIPT_LANGUAGE_LUA, Step } from "@/app/api";
 import { useStepEditorForm } from "./useStepEditorForm";
 import { t } from "@/app/testUtils/i18n";
 
@@ -198,8 +198,7 @@ describe("useStepEditorForm", () => {
     act(() => {
       result.current.updateAttribute(attrId, "name", "value");
       result.current.updateAttribute(attrId, "role", "optional");
-      result.current.updateAttribute(attrId, "dataType", AttributeType.Number);
-      result.current.updateAttribute(attrId, "defaultValue", '"abc"');
+      result.current.updateAttribute(attrId, "defaultValue", "abc");
     });
 
     await act(async () => {
@@ -208,7 +207,7 @@ describe("useStepEditorForm", () => {
 
     const expectedError = t("stepEditor.invalidDefaultValue", {
       name: "value",
-      reason: t("validation.jsonNumber"),
+      reason: t("validation.jsonInvalid"),
     });
     expect(result.current.error).toBe(expectedError);
     expect(registerStep).not.toHaveBeenCalled();
@@ -250,12 +249,10 @@ describe("useStepEditorForm", () => {
       attributes: {
         request: {
           role: "required",
-          type: AttributeType.String,
           compensated: true,
         },
         result: {
           role: "output",
-          type: AttributeType.String,
           compensated: true,
         },
       },
@@ -286,7 +283,6 @@ describe("useStepEditorForm", () => {
       attributes: {
         request: {
           role: "required",
-          type: AttributeType.String,
           compensated: true,
         },
       },
@@ -310,7 +306,6 @@ describe("useStepEditorForm", () => {
       attributes: {
         request: {
           role: "required",
-          type: AttributeType.String,
           compensated: true,
         },
       },
@@ -440,11 +435,6 @@ describe("useStepEditorForm", () => {
       act(() => {
         result.current.updateAttribute(attrId, "name", "test");
         result.current.updateAttribute(attrId, "role", "optional");
-        result.current.updateAttribute(
-          attrId,
-          "dataType",
-          AttributeType.Number
-        );
         result.current.updateAttribute(attrId, "defaultValue", "invalid");
       });
 
@@ -473,16 +463,7 @@ describe("useStepEditorForm", () => {
       act(() => {
         result.current.updateAttribute(attrId, "name", "count");
         result.current.updateAttribute(attrId, "role", "optional");
-        result.current.updateAttribute(
-          attrId,
-          "dataType",
-          AttributeType.Number
-        );
-        result.current.updateAttribute(
-          attrId,
-          "defaultValue",
-          '"not-a-number"'
-        );
+        result.current.updateAttribute(attrId, "defaultValue", "not-json");
       });
 
       expect(result.current.attributes[0].validationError).toBeDefined();
@@ -504,11 +485,6 @@ describe("useStepEditorForm", () => {
       act(() => {
         result.current.updateAttribute(attrId, "name", "count");
         result.current.updateAttribute(attrId, "role", "optional");
-        result.current.updateAttribute(
-          attrId,
-          "dataType",
-          AttributeType.Number
-        );
         result.current.updateAttribute(attrId, "defaultValue", "42");
       });
 

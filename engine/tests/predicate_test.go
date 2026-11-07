@@ -25,9 +25,7 @@ func TestPredicateSkipping(t *testing.T) {
 		)
 		stepB.Attributes["valueA"] = &api.AttributeSpec{
 			Role: api.RoleRequired,
-			Type: api.TypeString,
 		}
-		stepB.Attributes["valueB"].Type = api.TypeString
 
 		// Set mock responses (though B won't execute due to predicate)
 		env.MockClient.SetResponse("step-a", api.Args{"valueA": "from-A"})

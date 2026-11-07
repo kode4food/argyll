@@ -6,14 +6,14 @@ Imports:
 
 Hosted sync HTTP step:
 client.NewStep().WithName("Greeting").
-    Required("name", api.TypeString).
-    Output("greeting", api.TypeString).
+    Required("name").
+    Output("greeting").
     Start(handler)
 
 Sync step backed by an existing HTTP GET endpoint:
 client.NewStep().WithName("Lookup User").
-    Required("user_id", api.TypeString).
-    Output("user", api.TypeObject).
+    Required("user_id").
+    Output("user").
     WithMethod("GET").
     WithEndpoint("http://localhost:8081/users/{user_id}").
     Register(ctx)

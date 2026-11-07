@@ -1,7 +1,6 @@
 import {
   AttributeRole,
   AttributeSpec,
-  AttributeType,
   MappingConfig,
   OptionalConfig,
   RequiredConfig,
@@ -57,7 +56,6 @@ function buildSingleAttribute(
     id: `${prefix}-${index}-${timestamp}`,
     role: attrType,
     name,
-    dataType: spec.type || AttributeType.String,
     defaultValue:
       spec.role === AttributeRole.Optional && spec.optional?.default
         ? spec.optional.default
@@ -153,7 +151,7 @@ export function createStepAttributes(
   const stepAttributes: Record<string, AttributeSpec> = {};
   attributes.forEach((a) => {
     const role = ROLE_MAP[a.role];
-    const spec: AttributeSpec = { role, type: a.dataType };
+    const spec: AttributeSpec = { role };
     if (a.compensated) spec.compensated = true;
     const mapping = buildMappingConfig(a);
 

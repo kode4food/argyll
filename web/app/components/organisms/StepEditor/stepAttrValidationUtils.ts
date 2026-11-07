@@ -31,7 +31,7 @@ export function validateAttributesList(
       (attr.role === "optional" || attr.role === "const") &&
       attr.defaultValue
     ) {
-      const validation = validateDefaultValue(attr.defaultValue, attr.dataType);
+      const validation = validateDefaultValue(attr.defaultValue);
       if (!validation.valid) {
         return {
           key: "stepEditor.invalidDefaultValue",

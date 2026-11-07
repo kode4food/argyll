@@ -2,7 +2,7 @@ import React from "react";
 import StepEditor from "./StepEditor";
 import { t } from "@/app/testUtils/i18n";
 import { addTag } from "@/app/testUtils/tags";
-import { ArgyllApi, AttributeRole, AttributeType } from "@/app/api";
+import { ArgyllApi, AttributeRole } from "@/app/api";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import type { Space, Step } from "@/app/api";
 
@@ -77,9 +77,9 @@ describe("StepEditor", () => {
     name: "Test HTTP Step",
     type: "service",
     attributes: {
-      input1: { role: AttributeRole.Required, type: AttributeType.String },
-      input2: { role: AttributeRole.Optional, type: AttributeType.Number },
-      result: { role: AttributeRole.Output, type: AttributeType.String },
+      input1: { role: AttributeRole.Required },
+      input2: { role: AttributeRole.Optional },
+      result: { role: AttributeRole.Output },
     },
     http: {
       invoke: { endpoint: "http://localhost:8080/test", timeout: 5000 },
@@ -96,8 +96,8 @@ describe("StepEditor", () => {
     name: "Test Script Step",
     type: "script",
     attributes: {
-      input1: { role: AttributeRole.Required, type: AttributeType.String },
-      result: { role: AttributeRole.Output, type: AttributeType.String },
+      input1: { role: AttributeRole.Required },
+      result: { role: AttributeRole.Output },
     },
     script: {
       language: "lua",
@@ -136,8 +136,8 @@ describe("StepEditor", () => {
     name: "Test Flow Step",
     type: "flow",
     attributes: {
-      input1: { role: AttributeRole.Required, type: AttributeType.String },
-      output1: { role: AttributeRole.Output, type: AttributeType.String },
+      input1: { role: AttributeRole.Required },
+      output1: { role: AttributeRole.Output },
     },
     flow: {
       goals: { steps: [] },
@@ -151,7 +151,6 @@ describe("StepEditor", () => {
     attributes: {
       color: {
         role: AttributeRole.Const,
-        type: AttributeType.String,
         const: { value: "blue" },
       },
     },
@@ -509,8 +508,8 @@ describe("StepEditor", () => {
           name: "Child Step",
           type: "service",
           attributes: {
-            in1: { role: AttributeRole.Required, type: AttributeType.String },
-            out1: { role: AttributeRole.Output, type: AttributeType.String },
+            in1: { role: AttributeRole.Required },
+            out1: { role: AttributeRole.Output },
           },
         },
       },
@@ -583,11 +582,9 @@ describe("StepEditor", () => {
           attributes: {
             input1: {
               role: AttributeRole.Required,
-              type: AttributeType.String,
             },
             output1: {
               role: AttributeRole.Output,
-              type: AttributeType.String,
             },
           },
         },

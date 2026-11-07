@@ -59,32 +59,23 @@ func (s Step) WithName(name api.Name) Step {
 }
 
 // Required declares a required input attribute for the step
-func (s Step) Required(name api.Name, argType api.AttributeType) Step {
-	return s.withAttribute(name, &api.AttributeSpec{
-		Role: api.RoleRequired,
-		Type: argType,
-	})
+func (s Step) Required(name api.Name) Step {
+	return s.withAttribute(name, &api.AttributeSpec{Role: api.RoleRequired})
 }
 
 // Optional declares an optional input attribute with a default value
-func (s Step) Optional(
-	name api.Name, argType api.AttributeType, defaultValue string,
-) Step {
+func (s Step) Optional(name api.Name, defaultValue string) Step {
 	return s.withAttribute(name, &api.AttributeSpec{
 		Role:     api.RoleOptional,
-		Type:     argType,
 		Optional: &api.OptionalConfig{Default: defaultValue},
 	})
 }
 
 // Const declares a const input attribute with a fixed value
-func (s Step) Const(
-	name api.Name, argType api.AttributeType, defaultValue string,
-) Step {
+func (s Step) Const(name api.Name, value string) Step {
 	return s.withAttribute(name, &api.AttributeSpec{
 		Role:  api.RoleConst,
-		Type:  argType,
-		Const: &api.ConstConfig{Value: defaultValue},
+		Const: &api.ConstConfig{Value: value},
 	})
 }
 
@@ -93,17 +84,13 @@ func (s Step) Const(
 func (s Step) Meta(name api.Name, metaKey string) Step {
 	return s.withAttribute(name, &api.AttributeSpec{
 		Role: api.RoleMeta,
-		Type: api.TypeAny,
 		Meta: &api.MetaConfig{Key: metaKey},
 	})
 }
 
 // Output declares an output attribute that the step will produce
-func (s Step) Output(name api.Name, argType api.AttributeType) Step {
-	return s.withAttribute(name, &api.AttributeSpec{
-		Role: api.RoleOutput,
-		Type: argType,
-	})
+func (s Step) Output(name api.Name) Step {
+	return s.withAttribute(name, &api.AttributeSpec{Role: api.RoleOutput})
 }
 
 // WithCollect sets the collect policy for input attributes

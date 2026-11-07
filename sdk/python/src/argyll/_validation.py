@@ -2,7 +2,6 @@
 
 from ._attr_validation import (
     check_attribute_default,
-    check_attribute_for_each,
     check_attribute_role_config,
 )
 from .errors import StepValidationError
@@ -88,7 +87,6 @@ def _check_attributes(step: Step) -> None:
             raise StepValidationError("Attribute name cannot be empty")
         check_attribute_role_config(name, spec)
         check_attribute_default(name, spec)
-        check_attribute_for_each(name, spec)
 
 
 def _check_compensation(step: Step) -> None:

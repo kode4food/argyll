@@ -45,14 +45,14 @@ func main() {
 	err := client.NewStep().WithName("Order Creator").
 		WithDescription("create order records and validate business rules").
 		WithTags("domain:orders", "capability:create", "example").
-		Required("user_info", api.TypeObject).
-		Required("product_info", api.TypeObject).
-		Optional("quantity", api.TypeNumber, "1").
+		Required("user_info").
+		Required("product_info").
+		Optional("quantity", "1").
 		WithPredicate(api.ScriptConfig{
 			Language: api.ScriptLangArgyll,
 			Script:   `product_info.name == "Professional Laptop"`,
 		}).
-		Output("order", api.TypeObject).
+		Output("order").
 		Start(handle)
 
 	if err != nil {

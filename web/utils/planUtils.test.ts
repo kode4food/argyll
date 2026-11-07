@@ -1,5 +1,5 @@
 import { getStepsFromPlan } from "./planUtils";
-import { ExecutionPlan, Step, AttributeRole, AttributeType } from "@/app/api";
+import { ExecutionPlan, Step, AttributeRole } from "@/app/api";
 
 describe("planUtils", () => {
   describe("getStepsFromPlan", () => {
@@ -8,7 +8,7 @@ describe("planUtils", () => {
       name: "Test Step",
       type: "service",
       attributes: {
-        input1: { role: AttributeRole.Required, type: AttributeType.String },
+        input1: { role: AttributeRole.Required },
       },
       http: {
         endpoint: "http://localhost:8080/test",

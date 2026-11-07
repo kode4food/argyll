@@ -26,16 +26,13 @@ func TestMixedStepTypes(t *testing.T) {
 		)
 		stepB.Attributes["valueA"] = &api.AttributeSpec{
 			Role: api.RoleRequired,
-			Type: api.TypeString,
 		}
-		stepB.Attributes["valueB"].Type = api.TypeString
 
 		// Step C (Sync HTTP): Requires "valueB", produces "result"
 		stepC := helpers.NewTestStepWithArgs([]api.Name{"valueB"}, nil)
 		stepC.ID = "step-c"
 		stepC.Attributes["result"] = &api.AttributeSpec{
 			Role: api.RoleOutput,
-			Type: api.TypeString,
 		}
 
 		assert.NoError(t, env.Engine.RegisterStep(stepA))

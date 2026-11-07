@@ -33,7 +33,6 @@ func TestForEachWorkItems(t *testing.T) {
 		}
 		stepB.Attributes["result"] = &api.AttributeSpec{
 			Role: api.RoleOutput,
-			Type: api.TypeString,
 		}
 
 		assert.NoError(t, env.Engine.RegisterStep(stepA1))

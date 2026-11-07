@@ -192,24 +192,24 @@ func TestBuildDependencies(t *testing.T) {
 			ID:   "step-a",
 			Name: "Step A",
 			Attributes: api.AttributeSpecs{
-				"input1": {Role: api.RoleRequired, Type: api.TypeString},
-				"result": {Role: api.RoleOutput, Type: api.TypeString},
+				"input1": {Role: api.RoleRequired},
+				"result": {Role: api.RoleOutput},
 			},
 		},
 		"step-b": &api.Step{
 			ID:   "step-b",
 			Name: "Step B",
 			Attributes: api.AttributeSpecs{
-				"result": {Role: api.RoleRequired, Type: api.TypeString},
-				"final":  {Role: api.RoleOutput, Type: api.TypeString},
+				"result": {Role: api.RoleRequired},
+				"final":  {Role: api.RoleOutput},
 			},
 		},
 		"step-c": &api.Step{
 			ID:   "step-c",
 			Name: "Step C",
 			Attributes: api.AttributeSpecs{
-				"input1": {Role: api.RoleRequired, Type: api.TypeString},
-				"data":   {Role: api.RoleOutput, Type: api.TypeString},
+				"input1": {Role: api.RoleRequired},
+				"data":   {Role: api.RoleOutput},
 			},
 		},
 	}
@@ -246,14 +246,14 @@ func TestMultipleProviders(t *testing.T) {
 			ID:   "step-a",
 			Name: "Step A",
 			Attributes: api.AttributeSpecs{
-				"data": {Role: api.RoleOutput, Type: api.TypeString},
+				"data": {Role: api.RoleOutput},
 			},
 		},
 		"step-b": &api.Step{
 			ID:   "step-b",
 			Name: "Step B",
 			Attributes: api.AttributeSpecs{
-				"data": {Role: api.RoleOutput, Type: api.TypeString},
+				"data": {Role: api.RoleOutput},
 			},
 		},
 	}
@@ -291,8 +291,8 @@ func TestAddStep(t *testing.T) {
 		ID:   "step-a",
 		Name: "Step A",
 		Attributes: api.AttributeSpecs{
-			"input":  {Role: api.RoleRequired, Type: api.TypeString},
-			"output": {Role: api.RoleOutput, Type: api.TypeString},
+			"input":  {Role: api.RoleRequired},
+			"output": {Role: api.RoleOutput},
 		},
 	}
 
@@ -323,7 +323,7 @@ func TestAddStepExisting(t *testing.T) {
 		ID:   "step-b",
 		Name: "Step B",
 		Attributes: api.AttributeSpecs{
-			"data": {Role: api.RoleRequired, Type: api.TypeString},
+			"data": {Role: api.RoleRequired},
 		},
 	}
 
@@ -351,8 +351,8 @@ func TestRemoveStep(t *testing.T) {
 		ID:   "step-a",
 		Name: "Step A",
 		Attributes: api.AttributeSpecs{
-			"input":  {Role: api.RoleRequired, Type: api.TypeString},
-			"output": {Role: api.RoleOutput, Type: api.TypeString},
+			"input":  {Role: api.RoleRequired},
+			"output": {Role: api.RoleOutput},
 		},
 	}
 
@@ -382,7 +382,7 @@ func TestRemoveStepDeletesEdges(t *testing.T) {
 		ID:   "step-a",
 		Name: "Step A",
 		Attributes: api.AttributeSpecs{
-			"data": {Role: api.RoleOutput, Type: api.TypeString},
+			"data": {Role: api.RoleOutput},
 		},
 	}
 
@@ -403,7 +403,7 @@ func TestRemoveStepNotFound(t *testing.T) {
 		ID:   "step-b",
 		Name: "Step B",
 		Attributes: api.AttributeSpecs{
-			"other": {Role: api.RoleOutput, Type: api.TypeString},
+			"other": {Role: api.RoleOutput},
 		},
 	}
 
@@ -428,8 +428,8 @@ func TestAddStepIdempotent(t *testing.T) {
 		ID:   "step-a",
 		Name: "Step A",
 		Attributes: api.AttributeSpecs{
-			"input":  {Role: api.RoleRequired, Type: api.TypeString},
-			"output": {Role: api.RoleOutput, Type: api.TypeString},
+			"input":  {Role: api.RoleRequired},
+			"output": {Role: api.RoleOutput},
 		},
 	}
 
@@ -455,8 +455,8 @@ func TestRemoveStepNotInEdges(t *testing.T) {
 		ID:   "step-b",
 		Name: "Step B",
 		Attributes: api.AttributeSpecs{
-			"input":  {Role: api.RoleRequired, Type: api.TypeString},
-			"output": {Role: api.RoleOutput, Type: api.TypeString},
+			"input":  {Role: api.RoleRequired},
+			"output": {Role: api.RoleOutput},
 		},
 	}
 

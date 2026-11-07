@@ -20,7 +20,7 @@ func TestLinearFlowCompletes(t *testing.T) {
 			Name: "Producer",
 			Type: api.StepTypeService,
 			Attributes: api.AttributeSpecs{
-				"value": {Role: api.RoleOutput, Type: api.TypeString},
+				"value": {Role: api.RoleOutput},
 			},
 			HTTP: &api.HTTPConfig{
 				Invoke: api.HTTPAction{Endpoint: "http://example.com"},
@@ -31,8 +31,8 @@ func TestLinearFlowCompletes(t *testing.T) {
 			Name: "Consumer",
 			Type: api.StepTypeService,
 			Attributes: api.AttributeSpecs{
-				"value":  {Role: api.RoleRequired, Type: api.TypeString},
-				"result": {Role: api.RoleOutput, Type: api.TypeString},
+				"value":  {Role: api.RoleRequired},
+				"result": {Role: api.RoleOutput},
 			},
 			HTTP: &api.HTTPConfig{
 				Invoke: api.HTTPAction{Endpoint: "http://example.com"},
@@ -83,7 +83,7 @@ func TestPendingUnusedSkip(t *testing.T) {
 			Name: "Provider A",
 			Type: api.StepTypeService,
 			Attributes: api.AttributeSpecs{
-				"opt": {Role: api.RoleOutput, Type: api.TypeString},
+				"opt": {Role: api.RoleOutput},
 			},
 			HTTP: &api.HTTPConfig{
 				Invoke: api.HTTPAction{Endpoint: "http://example.com"},
@@ -94,8 +94,8 @@ func TestPendingUnusedSkip(t *testing.T) {
 			Name: "Provider B",
 			Type: api.StepTypeService,
 			Attributes: api.AttributeSpecs{
-				"seed": {Role: api.RoleRequired, Type: api.TypeString},
-				"opt":  {Role: api.RoleOutput, Type: api.TypeString},
+				"seed": {Role: api.RoleRequired},
+				"opt":  {Role: api.RoleOutput},
 			},
 			HTTP: &api.HTTPConfig{
 				Invoke: api.HTTPAction{Endpoint: "http://example.com"},
@@ -106,8 +106,8 @@ func TestPendingUnusedSkip(t *testing.T) {
 			Name: "Consumer",
 			Type: api.StepTypeService,
 			Attributes: api.AttributeSpecs{
-				"opt":    {Role: api.RoleRequired, Type: api.TypeString},
-				"result": {Role: api.RoleOutput, Type: api.TypeString},
+				"opt":    {Role: api.RoleRequired},
+				"result": {Role: api.RoleOutput},
 			},
 			HTTP: &api.HTTPConfig{
 				Invoke: api.HTTPAction{Endpoint: "http://example.com"},
@@ -186,8 +186,8 @@ func TestSkipFailedAllProvider(t *testing.T) {
 			Name: "Provider A",
 			Type: api.StepTypeService,
 			Attributes: api.AttributeSpecs{
-				"seed": {Role: api.RoleRequired, Type: api.TypeString},
-				"data": {Role: api.RoleOutput, Type: api.TypeString},
+				"seed": {Role: api.RoleRequired},
+				"data": {Role: api.RoleOutput},
 			},
 			HTTP: &api.HTTPConfig{
 				Invoke: api.HTTPAction{Endpoint: "http://example.com"},
@@ -198,7 +198,7 @@ func TestSkipFailedAllProvider(t *testing.T) {
 			Name: "Provider B",
 			Type: api.StepTypeService,
 			Attributes: api.AttributeSpecs{
-				"data": {Role: api.RoleOutput, Type: api.TypeString},
+				"data": {Role: api.RoleOutput},
 			},
 			HTTP: &api.HTTPConfig{
 				Invoke: api.HTTPAction{Endpoint: "http://example.com"},
@@ -211,10 +211,9 @@ func TestSkipFailedAllProvider(t *testing.T) {
 			Attributes: api.AttributeSpecs{
 				"data": {
 					Role:     api.RoleRequired,
-					Type:     api.TypeString,
 					Required: &api.RequiredConfig{Collect: api.InputCollectAll},
 				},
-				"result": {Role: api.RoleOutput, Type: api.TypeString},
+				"result": {Role: api.RoleOutput},
 			},
 			HTTP: &api.HTTPConfig{
 				Invoke: api.HTTPAction{Endpoint: "http://example.com"},
@@ -272,7 +271,6 @@ func TestAllMissingProviderOutput(t *testing.T) {
 		st := helpers.NewStepWithOutputs("consumer", "result")
 		st.Attributes["data"] = &api.AttributeSpec{
 			Role:     api.RoleRequired,
-			Type:     api.TypeString,
 			Required: &api.RequiredConfig{Collect: api.InputCollectAll},
 		}
 		assert.NoError(t, env.Engine.RegisterSteps(first, second, st))

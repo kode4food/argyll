@@ -90,7 +90,6 @@ func TestCachedChildFlows(t *testing.T) {
 			Attributes: api.AttributeSpecs{
 				"items": {
 					Role:     api.RoleRequired,
-					Type:     api.TypeArray,
 					Required: &api.RequiredConfig{ForEach: true},
 				},
 			},
@@ -375,8 +374,8 @@ func TestScriptWorkExecutes(t *testing.T) {
 				Script:   "return { result = (x or 0) * 3 }",
 			},
 			Attributes: api.AttributeSpecs{
-				"x":      {Role: api.RoleRequired, Type: api.TypeNumber},
-				"result": {Role: api.RoleOutput, Type: api.TypeNumber},
+				"x":      {Role: api.RoleRequired},
+				"result": {Role: api.RoleOutput},
 			},
 		}
 
@@ -416,14 +415,12 @@ func TestScriptMapping(t *testing.T) {
 			Attributes: api.AttributeSpecs{
 				"amount": {
 					Role: api.RoleRequired,
-					Type: api.TypeNumber,
 					Required: &api.RequiredConfig{
 						Mapping: &api.MappingConfig{Name: "inner_amount"},
 					},
 				},
 				"result": {
 					Role: api.RoleOutput,
-					Type: api.TypeNumber,
 				},
 			},
 		}
@@ -492,7 +489,6 @@ func TestParallelWorkItems(t *testing.T) {
 		}
 		st.Attributes["result"] = &api.AttributeSpec{
 			Role: api.RoleOutput,
-			Type: api.TypeString,
 		}
 
 		assert.NoError(t, env.Engine.RegisterStep(st))
@@ -538,7 +534,6 @@ func TestWorkPredicate(t *testing.T) {
 		}
 		st.Attributes["result"] = &api.AttributeSpec{
 			Role: api.RoleOutput,
-			Type: api.TypeString,
 		}
 
 		assert.NoError(t, env.Engine.RegisterStep(st))
@@ -627,7 +622,6 @@ func TestWorkPredicateFilters(t *testing.T) {
 				case tt.optional:
 					st.Attributes["items"] = &api.AttributeSpec{
 						Role: api.RoleOptional,
-						Type: api.TypeArray,
 						Optional: &api.OptionalConfig{
 							ForEach: true,
 							Collect: api.InputCollectSome,
@@ -645,7 +639,6 @@ func TestWorkPredicateFilters(t *testing.T) {
 				default:
 					st.Attributes["items"] = &api.AttributeSpec{
 						Role:     api.RoleRequired,
-						Type:     api.TypeNumber,
 						Required: &api.RequiredConfig{},
 					}
 				}

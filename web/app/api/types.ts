@@ -36,16 +36,6 @@ export enum AttributeRole {
   Output = "output",
 }
 
-export enum AttributeType {
-  String = "string",
-  Number = "number",
-  Boolean = "boolean",
-  Object = "object",
-  Array = "array",
-  Null = "null",
-  Any = "any",
-}
-
 export interface MappingConfig {
   name?: string;
   script?: ScriptConfig;
@@ -99,7 +89,6 @@ export interface OutputConfig {
 
 export interface AttributeSpec {
   role: AttributeRole;
-  type?: AttributeType;
   required?: RequiredConfig;
   optional?: OptionalConfig;
   const?: ConstConfig;

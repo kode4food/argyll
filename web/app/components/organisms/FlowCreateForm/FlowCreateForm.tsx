@@ -1,6 +1,6 @@
 import React from "react";
 import { useUI } from "@/app/contexts/UIContext";
-import { AttributeType, fromGoalSets, Step } from "@/app/api";
+import { fromGoalSets, Step } from "@/app/api";
 import { useFlowCreation } from "@/app/hooks/useFlowCreation";
 import { useScrollFade } from "@/app/hooks/useScrollFade";
 import { useFlowFormStepFiltering } from "./useFlowFormStepFiltering";
@@ -32,32 +32,8 @@ interface FlowCreateFormProps {
   onCreateStep?: (draft?: Step) => void;
 }
 
-const getTypePlaceholder = (type?: AttributeType): string => {
-  switch (type) {
-    case AttributeType.Number:
-      return "0";
-    case AttributeType.Boolean:
-      return "false";
-    case AttributeType.Object:
-      return "{}";
-    case AttributeType.Array:
-      return "[]";
-    case AttributeType.String:
-      return '""';
-    case AttributeType.Null:
-      return "null";
-    default:
-      return "";
-  }
-};
-
-const getFlowInputPlaceholder = (option: FlowInputOption): string => {
-  if (option.defaultValue !== undefined) {
-    return option.defaultValue;
-  }
-
-  return getTypePlaceholder(option.type);
-};
+const getFlowInputPlaceholder = (option: FlowInputOption): string =>
+  option.defaultValue ?? "";
 
 const FlowCreateForm: React.FC<FlowCreateFormProps> = ({ onCreateStep }) => {
   const {

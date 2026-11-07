@@ -125,7 +125,6 @@ func TestRecoverMissingAll(t *testing.T) {
 		st := helpers.NewStepWithOutputs("consumer", "result")
 		st.Attributes["data"] = &api.AttributeSpec{
 			Role:     api.RoleRequired,
-			Type:     api.TypeString,
 			Required: &api.RequiredConfig{Collect: api.InputCollectAll},
 		}
 		fid := api.FlowID("recover-all")

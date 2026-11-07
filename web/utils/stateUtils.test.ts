@@ -1,141 +1,43 @@
 import {
-  getDefaultValueForType,
   isDefaultValue,
-  isUntypedDefaultValue,
   parseState,
   filterDefaultValues,
   addRequiredDefaults,
 } from "./stateUtils";
-import { AttributeType, AttributeRole, Step, ExecutionPlan } from "@/app/api";
+import { AttributeRole, ExecutionPlan } from "@/app/api";
 
 describe("stateUtils", () => {
-  describe("getDefaultValueForType", () => {
-    it("returns false for Boolean type", () => {
-      expect(getDefaultValueForType(AttributeType.Boolean)).toBe(false);
-    });
-
-    it("returns 0 for Number type", () => {
-      expect(getDefaultValueForType(AttributeType.Number)).toBe(0);
-    });
-
-    it("returns empty string for String type", () => {
-      expect(getDefaultValueForType(AttributeType.String)).toBe("");
-    });
-
-    it("returns empty object for Object type", () => {
-      expect(getDefaultValueForType(AttributeType.Object)).toEqual({});
-    });
-
-    it("returns empty array for Array type", () => {
-      expect(getDefaultValueForType(AttributeType.Array)).toEqual([]);
-    });
-
-    it("returns null for Null type", () => {
-      expect(getDefaultValueForType(AttributeType.Null)).toBe(null);
-    });
-
-    it("returns empty string for Any type", () => {
-      expect(getDefaultValueForType(AttributeType.Any)).toBe("");
-    });
-
-    it("returns empty string for undefined type", () => {
-      expect(getDefaultValueForType(undefined)).toBe("");
-    });
-  });
-
   describe("isDefaultValue", () => {
-    it("returns true for false with Boolean type", () => {
-      expect(isDefaultValue(false, AttributeType.Boolean)).toBe(true);
-    });
-
-    it("returns false for true with Boolean type", () => {
-      expect(isDefaultValue(true, AttributeType.Boolean)).toBe(false);
-    });
-
-    it("returns true for 0 with Number type", () => {
-      expect(isDefaultValue(0, AttributeType.Number)).toBe(true);
-    });
-
-    it("returns false for 42 with Number type", () => {
-      expect(isDefaultValue(42, AttributeType.Number)).toBe(false);
-    });
-
-    it("returns true for empty string with String type", () => {
-      expect(isDefaultValue("", AttributeType.String)).toBe(true);
-    });
-
-    it("non-empty string not default for String", () => {
-      expect(isDefaultValue("hello", AttributeType.String)).toBe(false);
-    });
-
-    it("returns true for empty object with Object type", () => {
-      expect(isDefaultValue({}, AttributeType.Object)).toBe(true);
-    });
-
-    it("non-empty object not default for Object", () => {
-      expect(isDefaultValue({ a: 1 }, AttributeType.Object)).toBe(false);
-    });
-
-    it("returns true for empty array with Array type", () => {
-      expect(isDefaultValue([], AttributeType.Array)).toBe(true);
-    });
-
-    it("non-empty array not default for Array", () => {
-      expect(isDefaultValue([1, 2], AttributeType.Array)).toBe(false);
-    });
-
-    it("returns true for null with Null type", () => {
-      expect(isDefaultValue(null, AttributeType.Null)).toBe(true);
-    });
-
-    it("treats false as non-default for Number", () => {
-      expect(isDefaultValue(false, AttributeType.Number)).toBe(false);
-    });
-
-    it("treats 0 as non-default for Boolean", () => {
-      expect(isDefaultValue(0, AttributeType.Boolean)).toBe(false);
-    });
-
-    it("uses untyped defaults when type missing", () => {
-      expect(isDefaultValue("", undefined)).toBe(true);
-      expect(isDefaultValue(false, undefined)).toBe(true);
-      expect(isDefaultValue(0, undefined)).toBe(true);
-      expect(isDefaultValue({}, undefined)).toBe(true);
-      expect(isDefaultValue([], undefined)).toBe(true);
-    });
-  });
-
-  describe("isUntypedDefaultValue", () => {
     it("returns true for empty string", () => {
-      expect(isUntypedDefaultValue("")).toBe(true);
+      expect(isDefaultValue("")).toBe(true);
     });
 
     it("returns true for null", () => {
-      expect(isUntypedDefaultValue(null)).toBe(true);
+      expect(isDefaultValue(null)).toBe(true);
     });
 
     it("returns true for false", () => {
-      expect(isUntypedDefaultValue(false)).toBe(true);
+      expect(isDefaultValue(false)).toBe(true);
     });
 
     it("returns true for 0", () => {
-      expect(isUntypedDefaultValue(0)).toBe(true);
+      expect(isDefaultValue(0)).toBe(true);
     });
 
     it("returns true for empty object", () => {
-      expect(isUntypedDefaultValue({})).toBe(true);
+      expect(isDefaultValue({})).toBe(true);
     });
 
     it("returns true for empty array", () => {
-      expect(isUntypedDefaultValue([])).toBe(true);
+      expect(isDefaultValue([])).toBe(true);
     });
 
     it("returns false for non-empty values", () => {
-      expect(isUntypedDefaultValue("hello")).toBe(false);
-      expect(isUntypedDefaultValue(true)).toBe(false);
-      expect(isUntypedDefaultValue(42)).toBe(false);
-      expect(isUntypedDefaultValue({ a: 1 })).toBe(false);
-      expect(isUntypedDefaultValue([1])).toBe(false);
+      expect(isDefaultValue("hello")).toBe(false);
+      expect(isDefaultValue(true)).toBe(false);
+      expect(isDefaultValue(42)).toBe(false);
+      expect(isDefaultValue({ a: 1 })).toBe(false);
+      expect(isDefaultValue([1])).toBe(false);
     });
   });
 
@@ -154,7 +56,7 @@ describe("stateUtils", () => {
   });
 
   describe("filterDefaultValues", () => {
-    it("filters defaults without type info", () => {
+    it("filters default values", () => {
       const state = {
         empty: "",
         zero: 0,
@@ -176,69 +78,6 @@ describe("stateUtils", () => {
         realBool: true,
       });
     });
-
-    it("filters typed defaults using step info", () => {
-      const state = {
-        boolProp: false,
-        numberProp: 0,
-        stringProp: "",
-        realBool: true,
-        realNumber: 42,
-      };
-
-      const steps: Step[] = [
-        {
-          id: "step1",
-          name: "Step 1",
-          type: "service",
-          attributes: {
-            boolProp: {
-              role: AttributeRole.Required,
-              type: AttributeType.Boolean,
-            },
-            numberProp: {
-              role: AttributeRole.Required,
-              type: AttributeType.Number,
-            },
-            stringProp: {
-              role: AttributeRole.Required,
-              type: AttributeType.String,
-            },
-          },
-        },
-      ];
-
-      const filtered = filterDefaultValues(state, steps);
-
-      expect(filtered).toEqual({
-        realBool: true,
-        realNumber: 42,
-      });
-    });
-
-    it("keeps false for number type (wrong default)", () => {
-      const state = {
-        numberProp: false,
-      };
-
-      const steps: Step[] = [
-        {
-          id: "step1",
-          name: "Step 1",
-          type: "service",
-          attributes: {
-            numberProp: {
-              role: AttributeRole.Required,
-              type: AttributeType.Number,
-            },
-          },
-        },
-      ];
-
-      const filtered = filterDefaultValues(state, steps);
-
-      expect(filtered).toEqual({ numberProp: false });
-    });
   });
 
   describe("addRequiredDefaults", () => {
@@ -256,15 +95,12 @@ describe("stateUtils", () => {
             attributes: {
               boolProp: {
                 role: AttributeRole.Required,
-                type: AttributeType.Boolean,
               },
               numberProp: {
                 role: AttributeRole.Required,
-                type: AttributeType.Number,
               },
               stringProp: {
                 role: AttributeRole.Required,
-                type: AttributeType.String,
               },
             },
           },
@@ -298,15 +134,12 @@ describe("stateUtils", () => {
             attributes: {
               boolProp: {
                 role: AttributeRole.Required,
-                type: AttributeType.Boolean,
               },
               numberProp: {
                 role: AttributeRole.Required,
-                type: AttributeType.Number,
               },
               stringProp: {
                 role: AttributeRole.Required,
-                type: AttributeType.String,
               },
             },
           },

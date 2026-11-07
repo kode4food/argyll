@@ -1,19 +1,9 @@
 import {
-  AttributeType,
   InputCollect,
   SCRIPT_LANGUAGE_ARGYLL,
   SCRIPT_LANGUAGE_LUA,
 } from "@/app/api";
 import { AttributeRoleType } from "./stepEditorTypes";
-
-export const attributeTypes: AttributeType[] = [
-  AttributeType.String,
-  AttributeType.Number,
-  AttributeType.Boolean,
-  AttributeType.Object,
-  AttributeType.Array,
-  AttributeType.Any,
-];
 
 export const attributeRoleTypes: AttributeRoleType[] = [
   "required",

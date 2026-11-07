@@ -102,8 +102,8 @@ func main() {
 		WithTags(
 			"domain:inventory", "capability:lookup", "example",
 		).
-		Optional("product_id", api.TypeString, `"prod-laptop"`).
-		Output("product_info", api.TypeObject).
+		Optional("product_id", `"prod-laptop"`).
+		Output("product_info").
 		Start(handle)
 
 	if err != nil {

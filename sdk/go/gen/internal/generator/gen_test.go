@@ -225,10 +225,6 @@ func TestContractInference(t *testing.T) {
 	assert.Equal(t, api.HandlingMemoized, st.Handling)
 
 	attrs := st.Attributes
-	assert.Equal(t, api.TypeString, attrs["customer_id"].Type)
-	assert.Equal(t, api.TypeNumber, attrs["amount"].Type)
-	assert.Equal(t, api.TypeArray, attrs["tags"].Type)
-	assert.Equal(t, api.TypeBoolean, attrs["approved"].Type)
 	assert.True(t, attrs["customer_id"].IsRequired())
 	assert.True(t, attrs["approved"].IsOutput())
 
@@ -245,7 +241,7 @@ func TestWrapContract(t *testing.T) {
 	text := string(src)
 
 	st := steps(t, "../../../example")["score-customer"]
-	assert.Equal(t, api.TypeString, st.Attributes["customer-id"].Type)
+	assert.Contains(t, st.Attributes, api.Name("customer-id"))
 	assert.Contains(t, text,
 		"r0, r1, err := ScoreCustomer(in.CustomerId, in.Amount)")
 	assert.Contains(t, text,
@@ -291,8 +287,8 @@ func TestCompositeCodecs(t *testing.T) {
 	assert.Contains(t, text, "codec.Optional(codec.Text[string]())")
 
 	attrs := steps(t, "../../../example")["enroll"].Attributes
-	assert.Equal(t, api.TypeObject, attrs["address"].Type)
-	assert.Equal(t, api.TypeObject, attrs["limits"].Type)
+	assert.Contains(t, attrs, api.Name("address"))
+	assert.Contains(t, attrs, api.Name("limits"))
 }
 
 func TestFieldTags(t *testing.T) {
@@ -301,7 +297,7 @@ func TestFieldTags(t *testing.T) {
 	text := string(src)
 
 	attrs := steps(t, "../../../example")["enroll"].Attributes
-	assert.Equal(t, api.TypeString, attrs["iso_currency"].Type)
+	assert.Contains(t, attrs, api.Name("iso_currency"))
 	assert.Contains(t, text, `codec.Field("iso_currency"`)
 
 	// a tag of "-" keeps the field off the wire entirely
@@ -348,8 +344,6 @@ func TestAttributeScripts(t *testing.T) {
 func TestAttributeProps(t *testing.T) {
 	attrs := steps(t, "../../../example")["charge-card-v2"].Attributes
 
-	// a for_each attribute is declared as an array, whatever the Go type
-	assert.Equal(t, api.TypeArray, attrs["order_id"].Type)
 	assert.True(t, attrs["order_id"].Required.ForEach)
 	assert.Equal(t, api.InputCollectAll, attrs["order_id"].Required.Collect)
 
@@ -864,7 +858,6 @@ func TestCompensate(t *testing.T) {
 	assert.Equal(t, &api.AttributeSpec{
 		Output:      &api.OutputConfig{},
 		Role:        api.RoleOutput,
-		Type:        api.TypeNumber,
 		Compensated: true,
 	}, byID["wrapped"].Attributes["result"])
 	assert.Contains(t, text, "type WrappedCompIn struct")

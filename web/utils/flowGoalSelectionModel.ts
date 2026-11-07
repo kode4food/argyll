@@ -40,7 +40,7 @@ export async function applyFlowGoalSelectionChange({
   spaceId,
 }: ApplyFlowGoalSelectionChangeParams): Promise<void> {
   const currentState = parseState(initialState);
-  const nonDefaultState = filterDefaultValues(currentState, steps);
+  const nonDefaultState = filterDefaultValues(currentState);
   const planGoals = nonEmptyGoalSets(goals);
 
   if (planGoals.length === 0) {

@@ -1,5 +1,5 @@
 import { ArgyllApi } from "./client";
-import { AttributeRole, AttributeType, Feed, Space, Step } from "./types";
+import { AttributeRole, Feed, Space, Step } from "./types";
 
 const fetchMock = jest.fn() as jest.MockedFunction<typeof fetch>;
 global.fetch = fetchMock;
@@ -173,7 +173,6 @@ describe("ArgyllApi", () => {
             attributes: {
               input1: {
                 role: AttributeRole.Output,
-                type: AttributeType.String,
               },
             },
           },

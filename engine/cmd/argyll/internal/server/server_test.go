@@ -1118,8 +1118,8 @@ func TestStartFlowMissingRequiredInputs(t *testing.T) {
 				Invoke: api.HTTPAction{Endpoint: "http://test:8080"},
 			},
 			Attributes: api.AttributeSpecs{
-				"customer_id": {Role: api.RoleRequired, Type: api.TypeString},
-				"result":      {Role: api.RoleOutput, Type: api.TypeString},
+				"customer_id": {Role: api.RoleRequired},
+				"result":      {Role: api.RoleOutput},
 			},
 		}
 
@@ -1253,8 +1253,8 @@ func TestPlanPreview(t *testing.T) {
 			Name: "Step A",
 			Type: api.StepTypeService,
 			Attributes: api.AttributeSpecs{
-				"seed":  {Role: api.RoleRequired, Type: api.TypeString},
-				"value": {Role: api.RoleOutput, Type: api.TypeString},
+				"seed":  {Role: api.RoleRequired},
+				"value": {Role: api.RoleOutput},
 			},
 			HTTP: &api.HTTPConfig{
 				Invoke: api.HTTPAction{Endpoint: "http://test:8080"},
@@ -1266,8 +1266,8 @@ func TestPlanPreview(t *testing.T) {
 			Name: "Step B",
 			Type: api.StepTypeService,
 			Attributes: api.AttributeSpecs{
-				"value":  {Role: api.RoleRequired, Type: api.TypeString},
-				"result": {Role: api.RoleOutput, Type: api.TypeString},
+				"value":  {Role: api.RoleRequired},
+				"result": {Role: api.RoleOutput},
 			},
 			HTTP: &api.HTTPConfig{
 				Invoke: api.HTTPAction{Endpoint: "http://test:8080"},

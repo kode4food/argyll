@@ -103,14 +103,12 @@ func normalizeExisting(raw any) ([]openapi.Step, []string) {
 func normalizeExistingStep(id string, st map[string]any) openapi.Step {
 	attrs, _ := asMap(st["attributes"])
 	res := openapi.Step{
-		ID:            stringValue(st["id"]),
-		Name:          stringValue(st["name"]),
-		Source:        "existing",
-		Required:      []string{},
-		Optional:      []string{},
-		Outputs:       []string{},
-		InputsByType:  map[string]string{},
-		OutputsByType: map[string]string{},
+		ID:       stringValue(st["id"]),
+		Name:     stringValue(st["name"]),
+		Source:   "existing",
+		Required: []string{},
+		Optional: []string{},
+		Outputs:  []string{},
 	}
 	if res.ID == "" {
 		res.ID = id
@@ -127,18 +125,13 @@ func normalizeExistingStep(id string, st map[string]any) openapi.Step {
 		if !ok {
 			continue
 		}
-		role := stringValue(attr["role"])
-		typ := coalesceType(stringValue(attr["type"]))
-		switch role {
+		switch stringValue(attr["role"]) {
 		case "required":
 			res.Required = append(res.Required, name)
-			res.InputsByType[name] = typ
 		case "optional":
 			res.Optional = append(res.Optional, name)
-			res.InputsByType[name] = typ
 		case "output":
 			res.Outputs = append(res.Outputs, name)
-			res.OutputsByType[name] = typ
 		}
 	}
 

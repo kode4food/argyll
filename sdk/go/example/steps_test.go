@@ -128,7 +128,6 @@ func TestRegistration(t *testing.T) {
 	assert.True(t, risk.Attributes["customer_id"].IsRequired())
 	assert.True(t, risk.Attributes["note"].IsOptional())
 	assert.True(t, risk.Attributes["score"].IsOutput())
-	assert.Equal(t, api.TypeNumber, risk.Attributes["amount"].Type)
 }
 
 func TestSemanticErrorStatus(t *testing.T) {
@@ -152,7 +151,6 @@ func TestRegisteredAttributeOptions(t *testing.T) {
 	assert.Equal(t, api.Name("Charge Card (v2)"), st.Name)
 
 	attrs := st.Attributes
-	assert.Equal(t, api.TypeArray, attrs["order_id"].Type)
 	assert.True(t, attrs["order_id"].Required.ForEach)
 	assert.True(t, attrs["note"].IsOptional())
 	assert.Equal(t, `"USD"`, attrs["currency"].Optional.Default)
@@ -199,14 +197,12 @@ func TestEmbeddedSharedType(t *testing.T) {
 		Attributes: api.AttributeSpecs{
 			"guest": {
 				Role: api.RoleRequired,
-				Type: api.TypeString,
 				Required: &api.RequiredConfig{
 					Mapping: &api.MappingConfig{Name: "name"},
 				},
 			},
 			"welcome": {
 				Role: api.RoleOutput,
-				Type: api.TypeString,
 				Output: &api.OutputConfig{
 					Mapping: &api.MappingConfig{Name: "greeting"},
 				},

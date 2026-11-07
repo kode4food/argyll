@@ -38,7 +38,6 @@ func TestForEachAggregatesOutputs(t *testing.T) {
 				},
 				"result": {
 					Role: api.RoleOutput,
-					Type: api.TypeString,
 				},
 			},
 		}
@@ -144,11 +143,9 @@ func TestOutputMappingDescendants(t *testing.T) {
 			Attributes: api.AttributeSpecs{
 				"input": {
 					Role: api.RoleRequired,
-					Type: api.TypeString,
 				},
 				"books": {
 					Role: api.RoleOutput,
-					Type: api.TypeAny,
 					Output: &api.OutputConfig{
 						Mapping: &api.MappingConfig{
 							Script: &api.ScriptConfig{
@@ -197,7 +194,6 @@ func TestForEachEmpty(t *testing.T) {
 		st := helpers.NewStepWithOutputs("empty-each", "result")
 		st.Attributes["item"] = &api.AttributeSpec{
 			Role: api.RoleOptional,
-			Type: api.TypeArray,
 			Optional: &api.OptionalConfig{
 				ForEach: true,
 				Collect: api.InputCollectSome,
@@ -242,7 +238,6 @@ func TestForEachEmptyProduct(t *testing.T) {
 		}
 		st.Attributes["item0"] = &api.AttributeSpec{
 			Role: api.RoleOptional,
-			Type: api.TypeArray,
 			Optional: &api.OptionalConfig{
 				ForEach: true,
 				Collect: api.InputCollectAll,

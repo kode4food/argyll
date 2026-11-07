@@ -19,7 +19,6 @@ func TestMemoizationHit(t *testing.T) {
 		s.Handling = api.HandlingMemoized
 		s.Attributes["out"] = &api.AttributeSpec{
 			Role: api.RoleOutput,
-			Type: api.TypeString,
 		}
 
 		assert.NoError(t, env.Engine.RegisterStep(s))
@@ -59,7 +58,6 @@ func TestMemoizationMiss(t *testing.T) {
 		s.Handling = api.HandlingMemoized
 		s.Attributes["out"] = &api.AttributeSpec{
 			Role: api.RoleOutput,
-			Type: api.TypeString,
 		}
 
 		assert.NoError(t, env.Engine.RegisterStep(s))

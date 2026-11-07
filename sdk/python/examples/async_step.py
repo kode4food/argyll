@@ -3,7 +3,7 @@
 import threading
 import time
 
-from argyll import AsyncContext, AttributeType, Client, StepContext
+from argyll import AsyncContext, Client, StepContext
 from argyll.errors import HTTPError
 
 client = Client("http://localhost:8080")
@@ -38,7 +38,7 @@ def handle_async_task(ctx: StepContext, args: dict) -> dict:
 if __name__ == "__main__":
     client.new_step().with_name("AsyncTask") \
         .with_async_invoke() \
-        .optional("duration", AttributeType.NUMBER, "5") \
-        .output("status", AttributeType.STRING) \
-        .output("duration", AttributeType.NUMBER) \
+        .optional("duration", "5") \
+        .output("status") \
+        .output("duration") \
         .start(handle_async_task)

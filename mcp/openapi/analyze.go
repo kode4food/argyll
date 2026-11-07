@@ -11,16 +11,14 @@ type (
 	}
 
 	Step struct {
-		InputsByType  map[string]string
-		OutputsByType map[string]string
-		ID            string
-		Name          string
-		Source        string
-		Method        string
-		Path          string
-		Required      []string
-		Optional      []string
-		Outputs       []string
+		ID       string
+		Name     string
+		Source   string
+		Method   string
+		Path     string
+		Required []string
+		Optional []string
+		Outputs  []string
 	}
 
 	Info struct {

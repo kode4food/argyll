@@ -68,8 +68,8 @@ func main() {
 	err := client.NewStep().WithName("User Resolver").
 		WithDescription("resolve user profile by user_id").
 		WithTags("domain:users", "capability:lookup", "example").
-		Optional("user_id", api.TypeString, `"user-123"`).
-		Output("user_info", api.TypeObject).
+		Optional("user_id", `"user-123"`).
+		Output("user_info").
 		Start(handle)
 
 	if err != nil {

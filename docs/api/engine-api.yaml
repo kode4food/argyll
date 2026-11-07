@@ -241,10 +241,8 @@ paths:
                   attributes:
                     input_text:
                       role: "required"
-                      type: "string"
                     processed_text:
                       role: "output"
-                      type: "string"
                   http:
                     invoke:
                       method: "POST"
@@ -260,10 +258,8 @@ paths:
                   attributes:
                     name:
                       role: "required"
-                      type: "string"
                     greeting:
                       role: "output"
-                      type: "string"
                   script:
                     language: "lua"
                     script: 'return {greeting = "Hello, " .. name}'
@@ -1622,30 +1618,24 @@ components:
           example:
             input_text:
               role: "required"
-              type: "string"
             user_email:
               role: "required"
-              type: "string"
               required:
                 mapping:
                   name: "email"
             optional_field:
               role: "optional"
-              type: "string"
               optional:
                 default: '"default_value"'
                 collect: "first"
             const_field:
               role: "const"
-              type: "string"
               const:
                 value: '"fixed_value"'
             processed_text:
               role: "output"
-              type: "string"
             user_data:
               role: "output"
-              type: "object"
               output:
                 mapping:
                   script:
@@ -1719,20 +1709,6 @@ components:
             - feed
             - output
           example: "required"
-        type:
-          type: string
-          description: |
-            Type hint for validation and documentation:
-            - `string`, `number`, `boolean`, `object`, `array`, `null`, `any`
-          enum:
-            - string
-            - number
-            - boolean
-            - object
-            - array
-            - null
-            - any
-          example: "string"
         required:
           $ref: "#/components/schemas/RequiredConfig"
         optional:
@@ -1843,7 +1819,7 @@ components:
         default:
           type: string
           description: |
-            Default value as a JSON string, used when the collection policy
+            Default value as a valid JSON string, used when the collection policy
             cannot be satisfied or the inactivity window expires unsatisfied. If
             omitted, the input is omitted in those cases.
           example: '"default_value"'
@@ -2211,8 +2187,8 @@ components:
             Authoritative selector, a predicate over stable Step metadata in any
             registered scripting language. The document exposes tags as an array
             under `tags`, the Step `type`, its defaulted `handling`, and
-            `attributes` keyed by name. Each attribute contains only `role`,
-            `type`, and `compensated`. In Argyll Expressions, the document is
+            `attributes` keyed by name. Each attribute carries its `role` and
+            `compensated` flag. In Argyll Expressions, the document is
             available as `value`, making a tag test read
             `"domain:risk" in value.tags`. Lua also receives it as `value` and
             gets `has(list, value)` and `has_prefix(list, prefix)`, making the

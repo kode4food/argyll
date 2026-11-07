@@ -57,18 +57,6 @@ class InputCollect(str, Enum):
     NONE = "none"
 
 
-class AttributeType(str, Enum):
-    """Attribute data type."""
-
-    STRING = "string"
-    NUMBER = "number"
-    BOOLEAN = "boolean"
-    OBJECT = "object"
-    ARRAY = "array"
-    NULL = "null"
-    ANY = "any"
-
-
 class ScriptLanguage(str, Enum):
     """Script language for script steps."""
 
@@ -191,7 +179,6 @@ class AttributeSpec:
     """Specification for a step attribute."""
 
     role: AttributeRole
-    type: AttributeType
     required: Optional[RequiredConfig] = None
     optional: Optional[OptionalConfig] = None
     const: Optional[ConstConfig] = None
@@ -201,10 +188,7 @@ class AttributeSpec:
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert to API dictionary format."""
-        result: Dict[str, Any] = {
-            "role": self.role.value,
-            "type": self.type.value,
-        }
+        result: Dict[str, Any] = {"role": self.role.value}
         if self.required is not None:
             result["required"] = self.required.to_dict()
         if self.optional is not None:

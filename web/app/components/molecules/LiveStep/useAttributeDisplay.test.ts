@@ -129,16 +129,24 @@ describe("useAttributeStatusBadge", () => {
     expect(badge?.props.className).toContain("pending");
   });
 
-  it("renders const defaulted status", () => {
-    const { result } = renderHook(() => useAttributeStatusBadge());
-    const badge = result.current("const", {
-      isSatisfied: true,
-      executionStatus: "active",
-      wasDefaulted: true,
-    });
+  it.each(["const", "meta", "feed"] as const)(
+    "renders %s flow start status",
+    (argType) => {
+      const { result } = renderHook(() => useAttributeStatusBadge());
+      const badge = result.current(argType, {
+        isSatisfied: true,
+        executionStatus: "active",
+      });
 
-    expect(badge).not.toBeNull();
-    expect(badge?.props.className).toContain("defaulted");
+      expect(badge?.props.className).toContain("flowStart");
+    }
+  );
+
+  it("renders flow start before execution", () => {
+    const { result } = renderHook(() => useAttributeStatusBadge());
+    const badge = result.current("feed", { isSatisfied: false });
+
+    expect(badge?.props.className).toContain("flowStart");
   });
 
   it("renders const skipped status", () => {

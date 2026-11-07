@@ -43,7 +43,6 @@ func TestRetryPendingParallelism(t *testing.T) {
 		}
 		st.Attributes["result"] = &api.AttributeSpec{
 			Role: api.RoleOutput,
-			Type: api.TypeString,
 		}
 
 		assert.NoError(t, env.Engine.RegisterStep(st))

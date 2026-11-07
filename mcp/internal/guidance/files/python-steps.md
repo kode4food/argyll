@@ -1,18 +1,18 @@
 # Argyll Python SDK Step Patterns
 
 Imports:
-- from argyll import Client, StepContext, AttributeType
+- from argyll import Client, StepContext
 
 Hosted sync HTTP step:
 client.new_step().with_name("Greeting") \
-    .required("name", AttributeType.STRING) \
-    .output("greeting", AttributeType.STRING) \
+    .required("name") \
+    .output("greeting") \
     .start(handle_greeting)
 
 Sync step backed by an existing HTTP GET endpoint:
 client.new_step().with_name("Lookup User") \
-    .required("user_id", AttributeType.STRING) \
-    .output("user", AttributeType.OBJECT) \
+    .required("user_id") \
+    .output("user") \
     .with_method("GET") \
     .with_endpoint("http://localhost:8081/users/{user_id}") \
     .register()

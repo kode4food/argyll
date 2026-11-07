@@ -23,7 +23,6 @@ func TestMultipleGoals(t *testing.T) {
 		stepB.ID = "step-b"
 		stepB.Attributes["valueC"] = &api.AttributeSpec{
 			Role: api.RoleOutput,
-			Type: api.TypeString,
 		}
 
 		// Step C (Goal 1): Requires "valueC", produces "resultC"
@@ -31,7 +30,6 @@ func TestMultipleGoals(t *testing.T) {
 		stepC.ID = "step-c"
 		stepC.Attributes["resultC"] = &api.AttributeSpec{
 			Role: api.RoleOutput,
-			Type: api.TypeString,
 		}
 
 		// Step D (Goal 2): Requires "valueD", produces "resultD"
@@ -39,7 +37,6 @@ func TestMultipleGoals(t *testing.T) {
 		stepD.ID = "step-d"
 		stepD.Attributes["resultD"] = &api.AttributeSpec{
 			Role: api.RoleOutput,
-			Type: api.TypeString,
 		}
 
 		// Step E: Unrelated step (should NOT execute)

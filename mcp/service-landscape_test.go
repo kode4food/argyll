@@ -136,11 +136,9 @@ func TestGenerateStepImplScript(t *testing.T) {
 			"attributes": map[string]any{
 				"customer_age": map[string]any{
 					"role": "required",
-					"type": "string",
 				},
 				"target_customer_age": map[string]any{
 					"role": "output",
-					"type": "integer",
 				},
 			},
 		},
@@ -202,12 +200,10 @@ func TestAnalyzeServiceLandscapeWithRegisteredSteps(t *testing.T) {
 							"name": "Lookup Customer By Email",
 							"attributes": {
 								"customer_email": {
-									"role": "required",
-									"type": "string"
+									"role": "required"
 								},
 								"customer_id": {
-									"role": "output",
-									"type": "string"
+									"role": "output"
 								}
 							}
 						}

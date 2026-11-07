@@ -484,8 +484,8 @@ func startCompensatingServer(
 		_ = client.NewStep().WithName(args.stepName).
 			WithID(string(args.stepID)).
 			WithSyncInvoke().
-			Required("order", api.TypeObject).
-			Output("reservation", api.TypeObject).
+			Required("order").
+			Output("reservation").
 			WithCompensated("order").
 			WithCompensated("reservation").
 			WithCompensateHandler(args.compensate).

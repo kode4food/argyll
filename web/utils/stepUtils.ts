@@ -2,7 +2,6 @@ import {
   Step,
   AttributeRole,
   AttributeSpec,
-  AttributeType,
   InputCollect,
   ScriptConfig,
 } from "@/app/api";
@@ -49,11 +48,18 @@ export const getSortedAttributes = (
   ];
 };
 
-const getJsonType = (parsed: any): string => {
-  if (parsed === null) return "null";
-  if (Array.isArray(parsed)) return "array";
-  return typeof parsed;
+const SPEC_PREVIEWS: Partial<
+  Record<AttributeRole, (spec: AttributeSpec) => string | undefined>
+> = {
+  [AttributeRole.Optional]: (spec) => spec.optional?.default,
+  [AttributeRole.Const]: (spec) => spec.const?.value,
+  [AttributeRole.Meta]: (spec) => spec.meta?.key,
+  [AttributeRole.Feed]: (spec) => spec.feed?.id,
 };
+
+// The value a Step declares for an Attribute: default, const, meta key, Feed
+export const getSpecPreview = (spec: AttributeSpec): string | undefined =>
+  SPEC_PREVIEWS[spec.role]?.(spec) || undefined;
 
 type ValidationResult = {
   valid: boolean;
@@ -61,49 +67,14 @@ type ValidationResult = {
   errorVars?: Record<string, string>;
 };
 
-export const validateDefaultValue = (
-  value: string,
-  type: AttributeType
-): ValidationResult => {
+export const validateDefaultValue = (value: string): ValidationResult => {
   if (!value.trim()) {
     return { valid: true };
   }
-
-  let parsed: any;
   try {
-    parsed = JSON.parse(value.trim());
+    JSON.parse(value.trim());
   } catch {
     return { valid: false, errorKey: "validation.jsonInvalid" };
-  }
-
-  const constraints: Partial<
-    Record<AttributeType, { jsonType: string; errorKey: string }>
-  > = {
-    [AttributeType.String]: {
-      jsonType: "string",
-      errorKey: "validation.jsonString",
-    },
-    [AttributeType.Number]: {
-      jsonType: "number",
-      errorKey: "validation.jsonNumber",
-    },
-    [AttributeType.Boolean]: {
-      jsonType: "boolean",
-      errorKey: "validation.jsonBoolean",
-    },
-    [AttributeType.Object]: {
-      jsonType: "object",
-      errorKey: "validation.jsonObject",
-    },
-    [AttributeType.Array]: {
-      jsonType: "array",
-      errorKey: "validation.jsonArray",
-    },
-    [AttributeType.Null]: { jsonType: "null", errorKey: "validation.jsonNull" },
-  };
-  const constraint = constraints[type];
-  if (constraint && getJsonType(parsed) !== constraint.jsonType) {
-    return { valid: false, errorKey: constraint.errorKey };
   }
   return { valid: true };
 };

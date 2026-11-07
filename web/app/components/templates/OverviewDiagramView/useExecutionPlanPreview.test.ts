@@ -1,7 +1,7 @@
 import { renderHook, act } from "@testing-library/react";
 import { useExecutionPlanPreview } from "./useExecutionPlanPreview";
 import { useUI } from "@/app/contexts/UIContext";
-import { AttributeRole, AttributeType } from "@/app/api";
+import { AttributeRole } from "@/app/api";
 import type { ExecutionPlan, Step } from "@/app/api";
 
 jest.mock("@/app/contexts/UIContext");
@@ -13,7 +13,7 @@ const catalog: Step[] = [
     name: "Upstream",
     type: "service",
     attributes: {
-      value: { role: AttributeRole.Output, type: AttributeType.String },
+      value: { role: AttributeRole.Output },
     },
   },
   {
@@ -21,7 +21,7 @@ const catalog: Step[] = [
     name: "Goal",
     type: "service",
     attributes: {
-      value: { role: AttributeRole.Required, type: AttributeType.String },
+      value: { role: AttributeRole.Required },
     },
   },
 ];

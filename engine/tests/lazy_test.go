@@ -24,7 +24,6 @@ func TestLazyEvaluation(t *testing.T) {
 		stepB.ID = "step-b"
 		stepB.Attributes["valueB"] = &api.AttributeSpec{
 			Role: api.RoleOutput,
-			Type: api.TypeString,
 		}
 
 		// Step C (Goal): Requires "valueB", produces "result"
@@ -32,7 +31,6 @@ func TestLazyEvaluation(t *testing.T) {
 		stepC.ID = "step-c"
 		stepC.Attributes["result"] = &api.AttributeSpec{
 			Role: api.RoleOutput,
-			Type: api.TypeString,
 		}
 
 		// Create 7 additional unrelated steps (should NOT execute)

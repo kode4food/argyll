@@ -18,7 +18,6 @@ type (
 		Feed        *FeedConfig     `json:"feed,omitempty"`
 		Output      *OutputConfig   `json:"output,omitempty"`
 		Role        AttributeRole   `json:"role"`
-		Type        AttributeType   `json:"type,omitempty"`
 		Compensated bool            `json:"compensated,omitempty"`
 	}
 
@@ -69,18 +68,12 @@ type (
 	// AttributeSpecs is a map of attribute names to their specifications
 	AttributeSpecs Map[Name, *AttributeSpec]
 
-	// AttributeTypes is a map of attribute names to their data types
-	AttributeTypes = Map[Name, AttributeType]
-
 	// AttributeRole defines whether an attribute is required, optional, const,
 	// or an output
 	AttributeRole string
 
 	// InputCollect defines how an input collects upstream provider outputs
 	InputCollect string
-
-	// AttributeType defines the data type of an attribute
-	AttributeType string
 )
 
 const (
@@ -100,19 +93,8 @@ const (
 	InputCollectNone  InputCollect = "none"
 )
 
-const (
-	TypeString  AttributeType = "string"
-	TypeNumber  AttributeType = "number"
-	TypeBoolean AttributeType = "boolean"
-	TypeObject  AttributeType = "object"
-	TypeArray   AttributeType = "array"
-	TypeNull    AttributeType = "null"
-	TypeAny     AttributeType = "any"
-)
-
 var (
 	ErrInvalidAttributeRole = errors.New("invalid attribute role")
-	ErrInvalidAttributeType = errors.New("invalid attribute type")
 	ErrWrongRoleConfig      = errors.New(
 		"config type does not match attribute role",
 	)
@@ -128,7 +110,7 @@ var (
 	ErrForEachRequiresCollect = errors.New(
 		"for_each processing requires collect all or some",
 	)
-	ErrInvalidDefaultValue      = errors.New("invalid default value for type")
+	ErrInvalidDefaultValue      = errors.New("invalid default value")
 	ErrInvalidMappingConfig     = errors.New("invalid attribute mapping")
 	ErrDuplicateInnerName       = errors.New("duplicate mapped parameter name")
 	ErrInvalidAttributeDeadline = errors.New(
@@ -136,13 +118,7 @@ var (
 	)
 	ErrInvalidInputCollect = errors.New("invalid input collect")
 
-	ErrDefaultJSON    = errors.New("must be valid JSON")
-	ErrDefaultString  = errors.New("must be a valid JSON string")
-	ErrDefaultNumber  = errors.New("must be a valid number")
-	ErrDefaultBoolean = errors.New(`must be "true" or "false"`)
-	ErrDefaultObject  = errors.New("must be valid JSON object")
-	ErrDefaultArray   = errors.New("must be valid JSON array")
-	ErrDefaultNull    = errors.New(`must be "null"`)
+	ErrDefaultJSON = errors.New("must be valid JSON")
 )
 
 const (
@@ -160,16 +136,6 @@ var (
 		RoleOutput,
 	)
 
-	validAttributeTypes = util.SetOf(
-		TypeString,
-		TypeNumber,
-		TypeBoolean,
-		TypeObject,
-		TypeArray,
-		TypeNull,
-		TypeAny,
-	)
-
 	validInputCollect = util.SetOf(
 		InputCollectFirst,
 		InputCollectLast,
@@ -184,11 +150,6 @@ func (s *AttributeSpec) Validate(name Name) error {
 	if !validAttributeRoles.Contains(s.Role) {
 		return fmt.Errorf("%w: %s for attribute %q",
 			ErrInvalidAttributeRole, s.Role, name)
-	}
-
-	if s.Type != "" && !validAttributeTypes.Contains(s.Type) {
-		return fmt.Errorf("%w: %s for attribute %q",
-			ErrInvalidAttributeType, s.Type, name)
 	}
 
 	if err := s.validateRoleConfig(name); err != nil {
@@ -251,8 +212,8 @@ func (s *AttributeSpec) validateOptional(name Name) error {
 	if cfg == nil {
 		return nil
 	}
-	if cfg.Default != "" && s.Type != "" {
-		if err := validateDefaultValue(cfg.Default, s.Type); err != nil {
+	if cfg.Default != "" {
+		if err := validateJSON(cfg.Default); err != nil {
 			return fmt.Errorf("%w for attribute %q: %w",
 				ErrInvalidDefaultValue, name, err)
 		}
@@ -278,12 +239,6 @@ func (s *AttributeSpec) validateConst(name Name) error {
 	if s.Const == nil || s.Const.Value == "" {
 		return fmt.Errorf("%w: %s for attribute %q",
 			ErrConstValueRequired, s.Role, name)
-	}
-	if s.Type != "" {
-		if err := validateDefaultValue(s.Const.Value, s.Type); err != nil {
-			return fmt.Errorf("%w for attribute %q: %w",
-				ErrInvalidDefaultValue, name, err)
-		}
 	}
 	return nil
 }
@@ -448,7 +403,6 @@ func (s *AttributeSpec) Collect() InputCollect {
 // Equal returns true if two attribute specs are equal
 func (s *AttributeSpec) Equal(other *AttributeSpec) bool {
 	return s.Role == other.Role &&
-		s.Type == other.Type &&
 		s.Compensated == other.Compensated &&
 		s.Required.equal(other.Required) &&
 		s.Optional.equal(other.Optional) &&
@@ -583,54 +537,9 @@ func validateMapping(m *MappingConfig, name Name) error {
 	return nil
 }
 
-func validateDefaultValue(data string, attrType AttributeType) error {
-	var val any
-	if err := json.Unmarshal([]byte(data), &val); err != nil {
+func validateJSON(data string) error {
+	if !json.Valid([]byte(data)) {
 		return ErrDefaultJSON
 	}
-
-	if attrType == TypeAny {
-		return nil
-	}
-
-	switch attrType {
-	case TypeString:
-		if _, ok := val.(string); !ok {
-			return ErrDefaultString
-		}
-		return nil
-
-	case TypeNumber:
-		if _, ok := val.(float64); !ok {
-			return ErrDefaultNumber
-		}
-		return nil
-
-	case TypeBoolean:
-		if _, ok := val.(bool); !ok {
-			return ErrDefaultBoolean
-		}
-		return nil
-
-	case TypeObject:
-		if _, ok := val.(map[string]any); !ok {
-			return ErrDefaultObject
-		}
-		return nil
-
-	case TypeArray:
-		if _, ok := val.([]any); !ok {
-			return ErrDefaultArray
-		}
-		return nil
-
-	case TypeNull:
-		if val != nil {
-			return ErrDefaultNull
-		}
-		return nil
-
-	default:
-		return nil
-	}
+	return nil
 }

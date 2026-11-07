@@ -36,6 +36,9 @@ examples/order-creator/order-creator
 examples/stock-reservation/stock-reservation
 examples/user-resolver/user-resolver
 
+# Python bytecode
+__pycache__/
+
 # Coverage files
 cover.out
 *.coverprofile

@@ -114,8 +114,8 @@ func TestRegisterStep(t *testing.T) {
 			Name: "Test Step",
 			Type: api.StepTypeService,
 			Attributes: api.AttributeSpecs{
-				"input":  {Role: api.RoleRequired, Type: api.TypeString},
-				"output": {Role: api.RoleOutput, Type: api.TypeString},
+				"input":  {Role: api.RoleRequired},
+				"output": {Role: api.RoleOutput},
 			},
 			HTTP: &api.HTTPConfig{
 				Invoke: api.HTTPAction{Endpoint: "http://test:8080/execute"},
@@ -210,7 +210,7 @@ func TestRegisterSteps(t *testing.T) {
 			Name: "Step A",
 			Type: api.StepTypeService,
 			Attributes: api.AttributeSpecs{
-				"foo": {Role: api.RoleOutput, Type: api.TypeString},
+				"foo": {Role: api.RoleOutput},
 			},
 			HTTP: &api.HTTPConfig{
 				Invoke: api.HTTPAction{Endpoint: "http://test:8080/a"},
@@ -221,8 +221,8 @@ func TestRegisterSteps(t *testing.T) {
 			Name: "Step B",
 			Type: api.StepTypeService,
 			Attributes: api.AttributeSpecs{
-				"foo": {Role: api.RoleRequired, Type: api.TypeString},
-				"bar": {Role: api.RoleOutput, Type: api.TypeString},
+				"foo": {Role: api.RoleRequired},
+				"bar": {Role: api.RoleOutput},
 			},
 			HTTP: &api.HTTPConfig{
 				Invoke: api.HTTPAction{Endpoint: "http://test:8080/b"},
@@ -245,7 +245,7 @@ func TestRegisterStepsRollback(t *testing.T) {
 			Name: "Step A",
 			Type: api.StepTypeService,
 			Attributes: api.AttributeSpecs{
-				"foo": {Role: api.RoleOutput, Type: api.TypeString},
+				"foo": {Role: api.RoleOutput},
 			},
 			HTTP: &api.HTTPConfig{
 				Invoke: api.HTTPAction{Endpoint: "http://test:8080/a"},
@@ -256,7 +256,17 @@ func TestRegisterStepsRollback(t *testing.T) {
 			Name: "Step B",
 			Type: api.StepTypeService,
 			Attributes: api.AttributeSpecs{
-				"foo": {Role: api.RoleOutput, Type: api.TypeNumber},
+				"foo": {
+					Role: api.RoleOutput,
+					Output: &api.OutputConfig{
+						Mapping: &api.MappingConfig{
+							Script: &api.ScriptConfig{
+								Language: api.ScriptLangArgyll,
+								Script:   "value[",
+							},
+						},
+					},
+				},
 			},
 			HTTP: &api.HTTPConfig{
 				Invoke: api.HTTPAction{Endpoint: "http://test:8080/b"},
@@ -265,7 +275,7 @@ func TestRegisterStepsRollback(t *testing.T) {
 
 		err := eng.RegisterSteps(stepA, stepB)
 		assert.ErrorIs(t, err, api.ErrInvalidStep)
-		assert.ErrorIs(t, err, engine.ErrTypeConflict)
+		assert.ErrorContains(t, err, api.ErrInvalidMappingConfig.Error())
 
 		cat, err := eng.GetCatalogState()
 		assert.NoError(t, err)
@@ -278,7 +288,6 @@ func TestRegisterStepValidatesMappings(t *testing.T) {
 		st := helpers.NewSimpleStep("bad-mapping")
 		st.Attributes["in"] = &api.AttributeSpec{
 			Role: api.RoleRequired,
-			Type: api.TypeString,
 			Required: &api.RequiredConfig{
 				Mapping: &api.MappingConfig{
 					Script: &api.ScriptConfig{
@@ -329,8 +338,8 @@ func TestArgExValidForScripts(t *testing.T) {
 				Script:   "value",
 			},
 			Attributes: api.AttributeSpecs{
-				"value":  {Role: api.RoleRequired, Type: api.TypeString},
-				"result": {Role: api.RoleOutput, Type: api.TypeString},
+				"value":  {Role: api.RoleRequired},
+				"result": {Role: api.RoleOutput},
 			},
 		}
 

@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState } from "react";
-import { AttributeType, Step } from "@/app/api";
+import { Step } from "@/app/api";
 import {
   Attribute,
   AttributeRoleType,
@@ -19,14 +19,11 @@ const applyAttributeFieldSideEffects = (
 ): Attribute => {
   const { field, value } = update;
   if (
-    (field === "defaultValue" || field === "dataType") &&
+    field === "defaultValue" &&
     (updated.role === "optional" || updated.role === "const") &&
     updated.defaultValue
   ) {
-    const validation = validateDefaultValue(
-      updated.defaultValue,
-      updated.dataType
-    );
+    const validation = validateDefaultValue(updated.defaultValue);
     updated.validationError = validation.valid
       ? undefined
       : t(validation.errorKey ?? "");
@@ -74,7 +71,6 @@ export function useAttributeList(
         id: `attr-${++attributeCounterRef.current}`,
         role: "required" as AttributeRoleType,
         name: "",
-        dataType: AttributeType.String,
       },
     ]);
   }, []);

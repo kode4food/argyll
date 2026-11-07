@@ -1,4 +1,4 @@
-from argyll import Client, StepContext, AttributeType
+from argyll import Client, StepContext
 {{ if .IsAsync }}from argyll import AsyncContext
 import threading
 {{ end }}{{ if .IsScript }}from argyll import ScriptConfig, ScriptLanguage
@@ -24,8 +24,8 @@ def invoke_step(ctx: StepContext, args: dict) -> dict:
 step = (
     client.new_step()
     .with_name({{ quote .StepName }}){{ range .Inputs }}
-    .required({{ quote . }}, AttributeType.STRING){{ end }}{{ range .Outputs }}
-    .output({{ quote . }}, AttributeType.STRING){{ end }}{{ if .IsAsync }}
+    .required({{ quote . }}){{ end }}{{ range .Outputs }}
+    .output({{ quote . }}){{ end }}{{ if .IsAsync }}
     .with_async_invoke(){{ end }}{{ if .IsExternal }}
 {{ if .HasNonPostMethod }}    .with_method({{ quote .Method }}){{ end }}
     .with_endpoint("http://localhost:8081/step"){{ end }}{{ if .IsScript }}

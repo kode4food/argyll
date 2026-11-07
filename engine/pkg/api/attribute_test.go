@@ -16,199 +16,107 @@ func TestValidateDefault(t *testing.T) {
 		expectErr bool
 	}{
 		{
-			name: "const with valid string default",
+			name: "const with valid value",
 			spec: &api.AttributeSpec{
 				Role:  api.RoleConst,
-				Type:  api.TypeString,
 				Const: &api.ConstConfig{Value: `"fixed"`},
 			},
 			attrName:  "mode",
 			expectErr: false,
 		},
 		{
-			name: "const with invalid string default",
+			name: "const with non-JSON value",
 			spec: &api.AttributeSpec{
 				Role:  api.RoleConst,
-				Type:  api.TypeString,
 				Const: &api.ConstConfig{Value: "fixed"},
 			},
 			attrName:  "mode",
-			expectErr: true,
+			expectErr: false,
 		},
 		{
-			name: "const with missing default",
+			name: "const with missing value",
 			spec: &api.AttributeSpec{
 				Role: api.RoleConst,
-				Type: api.TypeString,
 			},
 			attrName:  "mode",
 			expectErr: true,
 		},
 		{
-			name: "optional with valid number default",
+			name: "optional with number default",
 			spec: &api.AttributeSpec{
 				Role:     api.RoleOptional,
-				Type:     api.TypeNumber,
 				Optional: &api.OptionalConfig{Default: "42"},
 			},
 			attrName:  "count",
 			expectErr: false,
 		},
 		{
-			name: "optional with invalid number default",
+			name: "optional with boolean default",
 			spec: &api.AttributeSpec{
 				Role:     api.RoleOptional,
-				Type:     api.TypeNumber,
-				Optional: &api.OptionalConfig{Default: "not-a-number"},
-			},
-			attrName:  "count",
-			expectErr: true,
-		},
-		{
-			name: "optional with valid boolean true default",
-			spec: &api.AttributeSpec{
-				Role:     api.RoleOptional,
-				Type:     api.TypeBoolean,
 				Optional: &api.OptionalConfig{Default: "true"},
 			},
 			attrName:  "enabled",
 			expectErr: false,
 		},
 		{
-			name: "optional with valid boolean false default",
+			name: "optional with object default",
 			spec: &api.AttributeSpec{
 				Role:     api.RoleOptional,
-				Type:     api.TypeBoolean,
-				Optional: &api.OptionalConfig{Default: "false"},
-			},
-			attrName:  "enabled",
-			expectErr: false,
-		},
-		{
-			name: "optional with invalid boolean default",
-			spec: &api.AttributeSpec{
-				Role:     api.RoleOptional,
-				Type:     api.TypeBoolean,
-				Optional: &api.OptionalConfig{Default: "yes"},
-			},
-			attrName:  "enabled",
-			expectErr: true,
-		},
-		{
-			name: "optional with valid object default",
-			spec: &api.AttributeSpec{
-				Role:     api.RoleOptional,
-				Type:     api.TypeObject,
 				Optional: &api.OptionalConfig{Default: `{"key": "value"}`},
 			},
 			attrName:  "config",
 			expectErr: false,
 		},
 		{
-			name: "optional with invalid object default",
+			name: "optional with array default",
 			spec: &api.AttributeSpec{
 				Role:     api.RoleOptional,
-				Type:     api.TypeObject,
-				Optional: &api.OptionalConfig{Default: `[1, 2, 3]`},
-			},
-			attrName:  "config",
-			expectErr: true,
-		},
-		{
-			name: "optional with valid array default",
-			spec: &api.AttributeSpec{
-				Role:     api.RoleOptional,
-				Type:     api.TypeArray,
 				Optional: &api.OptionalConfig{Default: `[1, 2, 3]`},
 			},
 			attrName:  "items",
 			expectErr: false,
 		},
 		{
-			name: "optional with invalid array default",
+			name: "optional with string default",
 			spec: &api.AttributeSpec{
 				Role:     api.RoleOptional,
-				Type:     api.TypeArray,
-				Optional: &api.OptionalConfig{Default: `{"key": "value"}`},
-			},
-			attrName:  "items",
-			expectErr: true,
-		},
-		{
-			name: "optional with valid string default",
-			spec: &api.AttributeSpec{
-				Role:     api.RoleOptional,
-				Type:     api.TypeString,
 				Optional: &api.OptionalConfig{Default: `"hello"`},
 			},
 			attrName:  "message",
 			expectErr: false,
 		},
 		{
-			name: "optional with invalid string default - unquoted",
+			name: "optional with null default",
 			spec: &api.AttributeSpec{
 				Role:     api.RoleOptional,
-				Type:     api.TypeString,
-				Optional: &api.OptionalConfig{Default: "hello"},
-			},
-			attrName:  "message",
-			expectErr: true,
-		},
-		{
-			name: "optional with valid null default",
-			spec: &api.AttributeSpec{
-				Role:     api.RoleOptional,
-				Type:     api.TypeNull,
 				Optional: &api.OptionalConfig{Default: "null"},
 			},
 			attrName:  "optional_field",
 			expectErr: false,
 		},
 		{
-			name: "optional with invalid null default",
+			name: "optional with unquoted string default",
 			spec: &api.AttributeSpec{
 				Role:     api.RoleOptional,
-				Type:     api.TypeNull,
+				Optional: &api.OptionalConfig{Default: "hello"},
+			},
+			attrName:  "message",
+			expectErr: true,
+		},
+		{
+			name: "optional with non-JSON default",
+			spec: &api.AttributeSpec{
+				Role:     api.RoleOptional,
 				Optional: &api.OptionalConfig{Default: "nil"},
 			},
 			attrName:  "optional_field",
 			expectErr: true,
 		},
 		{
-			name: "optional with any type - valid number",
-			spec: &api.AttributeSpec{
-				Role:     api.RoleOptional,
-				Type:     api.TypeAny,
-				Optional: &api.OptionalConfig{Default: "42"},
-			},
-			attrName:  "data",
-			expectErr: false,
-		},
-		{
-			name: "optional with any type - valid object",
-			spec: &api.AttributeSpec{
-				Role:     api.RoleOptional,
-				Type:     api.TypeAny,
-				Optional: &api.OptionalConfig{Default: `{"key":"value"}`},
-			},
-			attrName:  "data",
-			expectErr: false,
-		},
-		{
-			name: "optional with any type - invalid JSON",
-			spec: &api.AttributeSpec{
-				Role:     api.RoleOptional,
-				Type:     api.TypeAny,
-				Optional: &api.OptionalConfig{Default: "not json"},
-			},
-			attrName:  "data",
-			expectErr: true,
-		},
-		{
 			name: "required with wrong role config should fail",
 			spec: &api.AttributeSpec{
 				Role:     api.RoleRequired,
-				Type:     api.TypeString,
 				Optional: &api.OptionalConfig{Default: `"value"`},
 			},
 			attrName:  "name",
@@ -218,7 +126,6 @@ func TestValidateDefault(t *testing.T) {
 			name: "output with wrong role config should fail",
 			spec: &api.AttributeSpec{
 				Role:     api.RoleOutput,
-				Type:     api.TypeString,
 				Optional: &api.OptionalConfig{Default: `"value"`},
 			},
 			attrName:  "result",
@@ -228,7 +135,6 @@ func TestValidateDefault(t *testing.T) {
 			name: "input with valid mapping",
 			spec: &api.AttributeSpec{
 				Role: api.RoleRequired,
-				Type: api.TypeObject,
 				Required: &api.RequiredConfig{
 					Mapping: &api.MappingConfig{
 						Script: &api.ScriptConfig{
@@ -245,7 +151,6 @@ func TestValidateDefault(t *testing.T) {
 			name: "output with valid mapping",
 			spec: &api.AttributeSpec{
 				Role: api.RoleOutput,
-				Type: api.TypeAny,
 				Output: &api.OutputConfig{
 					Mapping: &api.MappingConfig{
 						Script: &api.ScriptConfig{
@@ -262,7 +167,6 @@ func TestValidateDefault(t *testing.T) {
 			name: "const with wrong role config should fail",
 			spec: &api.AttributeSpec{
 				Role:  api.RoleConst,
-				Type:  api.TypeObject,
 				Const: &api.ConstConfig{Value: "{}"},
 				Output: &api.OutputConfig{
 					Mapping: &api.MappingConfig{
@@ -280,7 +184,6 @@ func TestValidateDefault(t *testing.T) {
 			name: "invalid mapping syntax is engine-level validation",
 			spec: &api.AttributeSpec{
 				Role: api.RoleOptional,
-				Type: api.TypeObject,
 				Optional: &api.OptionalConfig{
 					Mapping: &api.MappingConfig{
 						Script: &api.ScriptConfig{
@@ -310,41 +213,27 @@ func TestValidateDefault(t *testing.T) {
 func TestValidateDefaultErrorReason(t *testing.T) {
 	spec := &api.AttributeSpec{
 		Role:     api.RoleOptional,
-		Type:     api.TypeString,
 		Optional: &api.OptionalConfig{Default: "hello"},
 	}
 
 	err := spec.Validate("message")
 	assert.ErrorIs(t, err, api.ErrInvalidDefaultValue)
 	assert.ErrorIs(t, err, api.ErrDefaultJSON)
-
-	spec = &api.AttributeSpec{
-		Role:     api.RoleOptional,
-		Type:     api.TypeObject,
-		Optional: &api.OptionalConfig{Default: `[1, 2, 3]`},
-	}
-
-	err = spec.Validate("config")
-	assert.ErrorIs(t, err, api.ErrInvalidDefaultValue)
-	assert.ErrorIs(t, err, api.ErrDefaultObject)
 }
 
 func TestIsRequired(t *testing.T) {
 	required := &api.AttributeSpec{
 		Role: api.RoleRequired,
-		Type: api.TypeString,
 	}
 	assert.True(t, required.IsRequired())
 
 	optional := &api.AttributeSpec{
 		Role: api.RoleOptional,
-		Type: api.TypeString,
 	}
 	assert.False(t, optional.IsRequired())
 
 	output := &api.AttributeSpec{
 		Role: api.RoleOutput,
-		Type: api.TypeString,
 	}
 	assert.False(t, output.IsRequired())
 }
@@ -352,7 +241,6 @@ func TestIsRequired(t *testing.T) {
 func TestIsConst(t *testing.T) {
 	spec := &api.AttributeSpec{
 		Role: api.RoleConst,
-		Type: api.TypeString,
 	}
 	assert.True(t, spec.IsConst())
 	assert.False(t, spec.IsOptional())
@@ -621,17 +509,14 @@ func TestConstConfigEqual(t *testing.T) {
 func TestEqual(t *testing.T) {
 	spec1 := &api.AttributeSpec{
 		Role: api.RoleRequired,
-		Type: api.TypeString,
 	}
 
 	spec2 := &api.AttributeSpec{
 		Role: api.RoleRequired,
-		Type: api.TypeString,
 	}
 
 	spec3 := &api.AttributeSpec{
 		Role: api.RoleOptional,
-		Type: api.TypeString,
 	}
 
 	assert.True(t, spec1.Equal(spec2))
@@ -642,24 +527,10 @@ func TestEqualEdgeCases(t *testing.T) {
 	t.Run("different_for_each", func(t *testing.T) {
 		spec1 := &api.AttributeSpec{
 			Role:     api.RoleRequired,
-			Type:     api.TypeArray,
 			Required: &api.RequiredConfig{ForEach: true},
 		}
 		spec2 := &api.AttributeSpec{
 			Role: api.RoleRequired,
-			Type: api.TypeArray,
-		}
-		assert.False(t, spec1.Equal(spec2))
-	})
-
-	t.Run("different_type", func(t *testing.T) {
-		spec1 := &api.AttributeSpec{
-			Role: api.RoleRequired,
-			Type: api.TypeString,
-		}
-		spec2 := &api.AttributeSpec{
-			Role: api.RoleRequired,
-			Type: api.TypeNumber,
 		}
 		assert.False(t, spec1.Equal(spec2))
 	})
@@ -667,12 +538,10 @@ func TestEqualEdgeCases(t *testing.T) {
 	t.Run("different_default", func(t *testing.T) {
 		spec1 := &api.AttributeSpec{
 			Role:     api.RoleOptional,
-			Type:     api.TypeString,
 			Optional: &api.OptionalConfig{Default: `"value1"`},
 		}
 		spec2 := &api.AttributeSpec{
 			Role:     api.RoleOptional,
-			Type:     api.TypeString,
 			Optional: &api.OptionalConfig{Default: `"value2"`},
 		}
 		assert.False(t, spec1.Equal(spec2))
@@ -681,7 +550,6 @@ func TestEqualEdgeCases(t *testing.T) {
 	t.Run("different_mapping", func(t *testing.T) {
 		spec1 := &api.AttributeSpec{
 			Role: api.RoleOutput,
-			Type: api.TypeAny,
 			Output: &api.OutputConfig{
 				Mapping: &api.MappingConfig{
 					Script: &api.ScriptConfig{
@@ -693,7 +561,6 @@ func TestEqualEdgeCases(t *testing.T) {
 		}
 		spec2 := &api.AttributeSpec{
 			Role: api.RoleOutput,
-			Type: api.TypeAny,
 			Output: &api.OutputConfig{
 				Mapping: &api.MappingConfig{
 					Script: &api.ScriptConfig{
@@ -709,11 +576,9 @@ func TestEqualEdgeCases(t *testing.T) {
 	t.Run("all_fields_different", func(t *testing.T) {
 		spec1 := &api.AttributeSpec{
 			Role: api.RoleRequired,
-			Type: api.TypeString,
 		}
 		spec2 := &api.AttributeSpec{
 			Role: api.RoleOptional,
-			Type: api.TypeNumber,
 			Optional: &api.OptionalConfig{
 				Default: "42",
 				ForEach: true,
@@ -725,11 +590,9 @@ func TestEqualEdgeCases(t *testing.T) {
 	t.Run("empty_defaults_equal", func(t *testing.T) {
 		spec1 := &api.AttributeSpec{
 			Role: api.RoleRequired,
-			Type: api.TypeString,
 		}
 		spec2 := &api.AttributeSpec{
 			Role: api.RoleRequired,
-			Type: api.TypeString,
 		}
 		assert.True(t, spec1.Equal(spec2))
 	})
@@ -809,34 +672,9 @@ func TestEqualNilConfigs(t *testing.T) {
 	}
 }
 
-func TestDefaultTypeMismatch(t *testing.T) {
-	tests := []struct {
-		typeName api.AttributeType
-		value    string
-	}{
-		{typeName: api.TypeString, value: "1"},
-		{typeName: api.TypeBoolean, value: `"true"`},
-		{typeName: api.TypeObject, value: "[]"},
-		{typeName: api.TypeArray, value: "{}"},
-		{typeName: api.TypeNull, value: "false"},
-	}
-
-	for _, tt := range tests {
-		spec := &api.AttributeSpec{
-			Role: api.RoleOptional,
-			Type: tt.typeName,
-			Optional: &api.OptionalConfig{
-				Default: tt.value,
-			},
-		}
-		assert.ErrorIs(t, spec.Validate("value"), api.ErrInvalidDefaultValue)
-	}
-}
-
 func TestOptionalInputValidation(t *testing.T) {
 	forEach := &api.AttributeSpec{
 		Role: api.RoleOptional,
-		Type: api.TypeString,
 		Optional: &api.OptionalConfig{
 			ForEach: true,
 		},
@@ -845,7 +683,6 @@ func TestOptionalInputValidation(t *testing.T) {
 
 	collect := &api.AttributeSpec{
 		Role: api.RoleOptional,
-		Type: api.TypeString,
 		Optional: &api.OptionalConfig{
 			Collect: "invalid",
 		},
@@ -855,16 +692,16 @@ func TestOptionalInputValidation(t *testing.T) {
 
 func TestAttributeSpecsEqual(t *testing.T) {
 	specs1 := api.AttributeSpecs{
-		"arg1": {Role: api.RoleRequired, Type: api.TypeString},
-		"arg2": {Role: api.RoleOptional, Type: api.TypeNumber},
+		"arg1": {Role: api.RoleRequired},
+		"arg2": {Role: api.RoleOptional},
 	}
 	specs2 := api.AttributeSpecs{
-		"arg1": {Role: api.RoleRequired, Type: api.TypeString},
-		"arg2": {Role: api.RoleOptional, Type: api.TypeNumber},
+		"arg1": {Role: api.RoleRequired},
+		"arg2": {Role: api.RoleOptional},
 	}
 	specs3 := api.AttributeSpecs{
-		"arg1": {Role: api.RoleRequired, Type: api.TypeString},
-		"arg2": {Role: api.RoleOptional, Type: api.TypeBoolean},
+		"arg1": {Role: api.RoleRequired},
+		"arg2": {Role: api.RoleOutput},
 	}
 
 	assert.True(t, specs1.Equal(specs2))
@@ -882,7 +719,6 @@ func TestValidateEdgeCases(t *testing.T) {
 		} {
 			spec := &api.AttributeSpec{
 				Role:     api.RoleRequired,
-				Type:     api.TypeString,
 				Required: &api.RequiredConfig{Collect: collect},
 			}
 			err := spec.Validate(api.Name(collect))
@@ -893,7 +729,6 @@ func TestValidateEdgeCases(t *testing.T) {
 	t.Run("invalid_input_collect", func(t *testing.T) {
 		spec := &api.AttributeSpec{
 			Role:     api.RoleRequired,
-			Type:     api.TypeString,
 			Required: &api.RequiredConfig{Collect: "invalid"},
 		}
 		err := spec.Validate("test_arg")
@@ -903,7 +738,6 @@ func TestValidateEdgeCases(t *testing.T) {
 	t.Run("for_each_with_collect_all", func(t *testing.T) {
 		spec := &api.AttributeSpec{
 			Role: api.RoleRequired,
-			Type: api.TypeAny,
 			Required: &api.RequiredConfig{
 				ForEach: true,
 				Collect: api.InputCollectAll,
@@ -916,7 +750,6 @@ func TestValidateEdgeCases(t *testing.T) {
 	t.Run("for_each_with_collect_some", func(t *testing.T) {
 		spec := &api.AttributeSpec{
 			Role: api.RoleRequired,
-			Type: api.TypeAny,
 			Required: &api.RequiredConfig{
 				ForEach: true,
 				Collect: api.InputCollectSome,
@@ -929,7 +762,6 @@ func TestValidateEdgeCases(t *testing.T) {
 	t.Run("for_each_with_default_collect", func(t *testing.T) {
 		spec := &api.AttributeSpec{
 			Role:     api.RoleRequired,
-			Type:     api.TypeAny,
 			Required: &api.RequiredConfig{ForEach: true},
 		}
 		err := spec.Validate("test_arg")
@@ -939,7 +771,6 @@ func TestValidateEdgeCases(t *testing.T) {
 	t.Run("for_each_with_collect_first", func(t *testing.T) {
 		spec := &api.AttributeSpec{
 			Role: api.RoleRequired,
-			Type: api.TypeAny,
 			Required: &api.RequiredConfig{
 				ForEach: true,
 				Collect: api.InputCollectFirst,
@@ -952,7 +783,6 @@ func TestValidateEdgeCases(t *testing.T) {
 	t.Run("for_each_with_output_role", func(t *testing.T) {
 		spec := &api.AttributeSpec{
 			Role:     api.RoleOutput,
-			Type:     api.TypeArray,
 			Required: &api.RequiredConfig{ForEach: true},
 		}
 		err := spec.Validate("test_arg")
@@ -962,7 +792,6 @@ func TestValidateEdgeCases(t *testing.T) {
 	t.Run("for_each_with_const_not_allowed", func(t *testing.T) {
 		spec := &api.AttributeSpec{
 			Role:     api.RoleConst,
-			Type:     api.TypeArray,
 			Const:    &api.ConstConfig{Value: `["a", "b"]`},
 			Required: &api.RequiredConfig{ForEach: true},
 		}
@@ -973,25 +802,14 @@ func TestValidateEdgeCases(t *testing.T) {
 	t.Run("invalid_role", func(t *testing.T) {
 		spec := &api.AttributeSpec{
 			Role: "invalid_role",
-			Type: api.TypeString,
 		}
 		err := spec.Validate("test_arg")
 		assert.ErrorIs(t, err, api.ErrInvalidAttributeRole)
 	})
 
-	t.Run("invalid_type", func(t *testing.T) {
-		spec := &api.AttributeSpec{
-			Role: api.RoleRequired,
-			Type: "invalid_type",
-		}
-		err := spec.Validate("test_arg")
-		assert.ErrorIs(t, err, api.ErrInvalidAttributeType)
-	})
-
 	t.Run("default_with_required_role", func(t *testing.T) {
 		spec := &api.AttributeSpec{
 			Role:     api.RoleRequired,
-			Type:     api.TypeString,
 			Optional: &api.OptionalConfig{Default: `"value"`},
 		}
 		err := spec.Validate("test_arg")
@@ -1001,7 +819,6 @@ func TestValidateEdgeCases(t *testing.T) {
 	t.Run("default_with_output_role", func(t *testing.T) {
 		spec := &api.AttributeSpec{
 			Role:     api.RoleOutput,
-			Type:     api.TypeString,
 			Optional: &api.OptionalConfig{Default: `"value"`},
 		}
 		err := spec.Validate("test_arg")
@@ -1011,35 +828,14 @@ func TestValidateEdgeCases(t *testing.T) {
 	t.Run("const_requires_value", func(t *testing.T) {
 		spec := &api.AttributeSpec{
 			Role: api.RoleConst,
-			Type: api.TypeString,
 		}
 		err := spec.Validate("test_arg")
 		assert.ErrorIs(t, err, api.ErrConstValueRequired)
 	})
 
-	t.Run("empty_type_allowed", func(t *testing.T) {
-		spec := &api.AttributeSpec{
-			Role: api.RoleRequired,
-			Type: "",
-		}
-		err := spec.Validate("test_arg")
-		assert.NoError(t, err)
-	})
-
-	t.Run("default_with_mismatched_type", func(t *testing.T) {
-		spec := &api.AttributeSpec{
-			Role:     api.RoleOptional,
-			Type:     api.TypeNumber,
-			Optional: &api.OptionalConfig{Default: `"not a number"`},
-		}
-		err := spec.Validate("test_arg")
-		assert.ErrorIs(t, err, api.ErrInvalidDefaultValue)
-	})
-
 	t.Run("valid_optional_with_null_default", func(t *testing.T) {
 		spec := &api.AttributeSpec{
 			Role:     api.RoleOptional,
-			Type:     api.TypeNull,
 			Optional: &api.OptionalConfig{Default: "null"},
 		}
 		err := spec.Validate("test_arg")
@@ -1049,7 +845,6 @@ func TestValidateEdgeCases(t *testing.T) {
 	t.Run("const_with_wrong_role_config", func(t *testing.T) {
 		spec := &api.AttributeSpec{
 			Role:  api.RoleConst,
-			Type:  api.TypeObject,
 			Const: &api.ConstConfig{Value: "{}"},
 			Output: &api.OutputConfig{
 				Mapping: &api.MappingConfig{
@@ -1067,7 +862,6 @@ func TestValidateEdgeCases(t *testing.T) {
 	t.Run("invalid_mapping_syntax_is_allowed_here", func(t *testing.T) {
 		spec := &api.AttributeSpec{
 			Role: api.RoleRequired,
-			Type: api.TypeObject,
 			Required: &api.RequiredConfig{
 				Mapping: &api.MappingConfig{
 					Script: &api.ScriptConfig{
@@ -1086,7 +880,6 @@ func TestMappingConfigValidation(t *testing.T) {
 	t.Run("name_only", func(t *testing.T) {
 		spec := &api.AttributeSpec{
 			Role: api.RoleRequired,
-			Type: api.TypeString,
 			Required: &api.RequiredConfig{
 				Mapping: &api.MappingConfig{Name: "service_param"},
 			},
@@ -1097,7 +890,6 @@ func TestMappingConfigValidation(t *testing.T) {
 	t.Run("script_only", func(t *testing.T) {
 		spec := &api.AttributeSpec{
 			Role: api.RoleRequired,
-			Type: api.TypeString,
 			Required: &api.RequiredConfig{
 				Mapping: &api.MappingConfig{
 					Script: &api.ScriptConfig{
@@ -1113,7 +905,6 @@ func TestMappingConfigValidation(t *testing.T) {
 	t.Run("both_name_and_script", func(t *testing.T) {
 		spec := &api.AttributeSpec{
 			Role: api.RoleRequired,
-			Type: api.TypeString,
 			Required: &api.RequiredConfig{
 				Mapping: &api.MappingConfig{
 					Name: "api_field",
@@ -1130,7 +921,6 @@ func TestMappingConfigValidation(t *testing.T) {
 	t.Run("empty_mapping_fails", func(t *testing.T) {
 		spec := &api.AttributeSpec{
 			Role:     api.RoleRequired,
-			Type:     api.TypeString,
 			Required: &api.RequiredConfig{Mapping: &api.MappingConfig{}},
 		}
 		err := spec.Validate("test")
@@ -1142,7 +932,6 @@ func TestDeadlineValidation(t *testing.T) {
 	t.Run("optional_with_valid_deadline", func(t *testing.T) {
 		spec := &api.AttributeSpec{
 			Role: api.RoleOptional,
-			Type: api.TypeString,
 			Optional: &api.OptionalConfig{
 				Default:  `"default"`,
 				Deadline: 5000,
@@ -1155,7 +944,6 @@ func TestDeadlineValidation(t *testing.T) {
 	t.Run("optional_with_zero_deadline_allowed", func(t *testing.T) {
 		spec := &api.AttributeSpec{
 			Role: api.RoleOptional,
-			Type: api.TypeString,
 			Optional: &api.OptionalConfig{
 				Default:  `"default"`,
 				Deadline: 0,
@@ -1168,7 +956,6 @@ func TestDeadlineValidation(t *testing.T) {
 	t.Run("optional_with_max_deadline", func(t *testing.T) {
 		spec := &api.AttributeSpec{
 			Role: api.RoleOptional,
-			Type: api.TypeString,
 			Optional: &api.OptionalConfig{
 				Default:  `"default"`,
 				Deadline: api.MaxAttributeDeadline,
@@ -1181,7 +968,6 @@ func TestDeadlineValidation(t *testing.T) {
 	t.Run("optional_with_deadline_below_min", func(t *testing.T) {
 		spec := &api.AttributeSpec{
 			Role: api.RoleOptional,
-			Type: api.TypeString,
 			Optional: &api.OptionalConfig{
 				Default:  `"default"`,
 				Deadline: -1,
@@ -1194,7 +980,6 @@ func TestDeadlineValidation(t *testing.T) {
 	t.Run("optional_with_deadline_above_max", func(t *testing.T) {
 		spec := &api.AttributeSpec{
 			Role: api.RoleOptional,
-			Type: api.TypeString,
 			Optional: &api.OptionalConfig{
 				Default:  `"default"`,
 				Deadline: api.MaxAttributeDeadline + 1,
@@ -1207,7 +992,6 @@ func TestDeadlineValidation(t *testing.T) {
 	t.Run("required_with_deadline_not_allowed", func(t *testing.T) {
 		spec := &api.AttributeSpec{
 			Role:     api.RoleRequired,
-			Type:     api.TypeString,
 			Optional: &api.OptionalConfig{Deadline: 5000},
 		}
 		err := spec.Validate("test_attr")
@@ -1217,7 +1001,6 @@ func TestDeadlineValidation(t *testing.T) {
 	t.Run("const_with_wrong_role_config", func(t *testing.T) {
 		spec := &api.AttributeSpec{
 			Role:     api.RoleConst,
-			Type:     api.TypeString,
 			Const:    &api.ConstConfig{Value: `"const"`},
 			Optional: &api.OptionalConfig{Deadline: 5000},
 		}
@@ -1228,7 +1011,6 @@ func TestDeadlineValidation(t *testing.T) {
 	t.Run("output_with_deadline_not_allowed", func(t *testing.T) {
 		spec := &api.AttributeSpec{
 			Role:     api.RoleOutput,
-			Type:     api.TypeString,
 			Optional: &api.OptionalConfig{Deadline: 5000},
 		}
 		err := spec.Validate("test_attr")
@@ -1238,7 +1020,6 @@ func TestDeadlineValidation(t *testing.T) {
 	t.Run("optional_without_deadline", func(t *testing.T) {
 		spec := &api.AttributeSpec{
 			Role: api.RoleOptional,
-			Type: api.TypeString,
 			Optional: &api.OptionalConfig{
 				Default:  `"default"`,
 				Deadline: 0,
@@ -1251,7 +1032,6 @@ func TestDeadlineValidation(t *testing.T) {
 	t.Run("deadline_one_year_max", func(t *testing.T) {
 		spec := &api.AttributeSpec{
 			Role: api.RoleOptional,
-			Type: api.TypeString,
 			Optional: &api.OptionalConfig{
 				Default:  `"default"`,
 				Deadline: 365 * 24 * 60 * 60 * 1000,
@@ -1266,7 +1046,6 @@ func TestDeadlineInEqual(t *testing.T) {
 	t.Run("same_deadline_equal", func(t *testing.T) {
 		spec1 := &api.AttributeSpec{
 			Role: api.RoleOptional,
-			Type: api.TypeString,
 			Optional: &api.OptionalConfig{
 				Default:  `"hello"`,
 				Deadline: 5000,
@@ -1274,7 +1053,6 @@ func TestDeadlineInEqual(t *testing.T) {
 		}
 		spec2 := &api.AttributeSpec{
 			Role: api.RoleOptional,
-			Type: api.TypeString,
 			Optional: &api.OptionalConfig{
 				Default:  `"hello"`,
 				Deadline: 5000,
@@ -1286,7 +1064,6 @@ func TestDeadlineInEqual(t *testing.T) {
 	t.Run("different_deadline_not_equal", func(t *testing.T) {
 		spec1 := &api.AttributeSpec{
 			Role: api.RoleOptional,
-			Type: api.TypeString,
 			Optional: &api.OptionalConfig{
 				Default:  `"hello"`,
 				Deadline: 5000,
@@ -1294,7 +1071,6 @@ func TestDeadlineInEqual(t *testing.T) {
 		}
 		spec2 := &api.AttributeSpec{
 			Role: api.RoleOptional,
-			Type: api.TypeString,
 			Optional: &api.OptionalConfig{
 				Default:  `"hello"`,
 				Deadline: 10000,
@@ -1306,7 +1082,6 @@ func TestDeadlineInEqual(t *testing.T) {
 	t.Run("one_with_deadline_not_equal", func(t *testing.T) {
 		spec1 := &api.AttributeSpec{
 			Role: api.RoleOptional,
-			Type: api.TypeString,
 			Optional: &api.OptionalConfig{
 				Default:  `"hello"`,
 				Deadline: 5000,
@@ -1314,7 +1089,6 @@ func TestDeadlineInEqual(t *testing.T) {
 		}
 		spec2 := &api.AttributeSpec{
 			Role: api.RoleOptional,
-			Type: api.TypeString,
 			Optional: &api.OptionalConfig{
 				Default:  `"hello"`,
 				Deadline: 0,
@@ -1326,7 +1100,6 @@ func TestDeadlineInEqual(t *testing.T) {
 	t.Run("both_without_deadline_equal", func(t *testing.T) {
 		spec1 := &api.AttributeSpec{
 			Role: api.RoleOptional,
-			Type: api.TypeString,
 			Optional: &api.OptionalConfig{
 				Default:  `"hello"`,
 				Deadline: 0,
@@ -1334,7 +1107,6 @@ func TestDeadlineInEqual(t *testing.T) {
 		}
 		spec2 := &api.AttributeSpec{
 			Role: api.RoleOptional,
-			Type: api.TypeString,
 			Optional: &api.OptionalConfig{
 				Default:  `"hello"`,
 				Deadline: 0,

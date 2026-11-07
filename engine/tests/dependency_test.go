@@ -23,7 +23,6 @@ func TestDependencyChain(t *testing.T) {
 		stepB.ID = "step-b"
 		stepB.Attributes["valueB"] = &api.AttributeSpec{
 			Role: api.RoleOutput,
-			Type: api.TypeString,
 		}
 
 		// Step C (Goal): Requires "valueB", produces "result"
@@ -31,7 +30,6 @@ func TestDependencyChain(t *testing.T) {
 		stepC.ID = "step-c"
 		stepC.Attributes["result"] = &api.AttributeSpec{
 			Role: api.RoleOutput,
-			Type: api.TypeString,
 		}
 
 		assert.NoError(t, env.Engine.RegisterStep(stepA))
@@ -103,7 +101,6 @@ func TestDiamondDependencies(t *testing.T) {
 		stepB.ID = "step-b"
 		stepB.Attributes["outputB"] = &api.AttributeSpec{
 			Role: api.RoleOutput,
-			Type: api.TypeString,
 		}
 
 		// Step C: Requires "valueC", produces "outputC"
@@ -111,7 +108,6 @@ func TestDiamondDependencies(t *testing.T) {
 		stepC.ID = "step-c"
 		stepC.Attributes["outputC"] = &api.AttributeSpec{
 			Role: api.RoleOutput,
-			Type: api.TypeString,
 		}
 
 		// Step D (Goal): Requires both "outputB" and "outputC"
@@ -121,7 +117,6 @@ func TestDiamondDependencies(t *testing.T) {
 		stepD.ID = "step-d"
 		stepD.Attributes["final"] = &api.AttributeSpec{
 			Role: api.RoleOutput,
-			Type: api.TypeString,
 		}
 
 		assert.NoError(t, env.Engine.RegisterStep(stepA))
