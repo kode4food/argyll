@@ -157,7 +157,7 @@ describe("FlowCreateForm", () => {
   test("generates new ID when generate button clicked", () => {
     renderWithProvider();
 
-    const button = screen.getByLabelText("Generate new flow ID");
+    const button = screen.getByLabelText("Generate new Flow ID");
     fireEvent.click(button);
 
     expect(defaultProps.setNewID).toHaveBeenCalledWith(

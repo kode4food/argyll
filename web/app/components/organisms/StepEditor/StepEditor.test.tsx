@@ -676,12 +676,12 @@ describe("StepEditor", () => {
     );
 
     await waitFor(() => {
-      const removeButtons = screen.getAllByTitle("Remove attribute");
+      const removeButtons = screen.getAllByTitle("Remove Attribute");
       const initialCount = removeButtons.length;
       fireEvent.click(removeButtons[0]);
 
       waitFor(() => {
-        const updatedButtons = screen.getAllByTitle("Remove attribute");
+        const updatedButtons = screen.getAllByTitle("Remove Attribute");
         expect(updatedButtons.length).toBe(initialCount - 1);
       });
     });

@@ -16,7 +16,7 @@ describe("attributeUtils", () => {
     });
 
     it("returns key for const attributes", () => {
-      expect(getAttributeTooltipTitle("const")).toBe("liveStep.defaultValue");
+      expect(getAttributeTooltipTitle("const")).toBe("liveStep.constValue");
     });
 
     it("returns key for optional attributes that were not defaulted", () => {
@@ -50,7 +50,6 @@ describe("attributeUtils", () => {
     it("does not use flow state arrays as input values", () => {
       const arg = {
         name: "input1",
-        type: "string",
         argType: "required" as const,
         spec: {
           role: AttributeRole.Required,
@@ -70,7 +69,6 @@ describe("attributeUtils", () => {
     it("extracts output values from execution outputs", () => {
       const arg = {
         name: "output1",
-        type: "string",
         argType: "output" as const,
         spec: {
           role: AttributeRole.Output,
@@ -86,7 +84,6 @@ describe("attributeUtils", () => {
     it("returns no value when attribute is not in inputs", () => {
       const arg = {
         name: "nonexistent",
-        type: "string",
         argType: "required" as const,
         spec: {
           role: AttributeRole.Required,
@@ -102,7 +99,6 @@ describe("attributeUtils", () => {
     it("treats empty flow state arrays as absent", () => {
       const arg = {
         name: "input1",
-        type: "string",
         argType: "required" as const,
         spec: {
           role: AttributeRole.Required,
@@ -121,7 +117,6 @@ describe("attributeUtils", () => {
     it("does not use optional default when execution inputs are missing", () => {
       const arg = {
         name: "opt1",
-        type: "string",
         argType: "optional" as const,
         spec: {
           role: AttributeRole.Optional,
@@ -142,7 +137,6 @@ describe("attributeUtils", () => {
     it("extracts input values by mapped input name", () => {
       const arg = {
         name: "input1",
-        type: "string",
         argType: "required" as const,
         spec: {
           role: AttributeRole.Required,
@@ -163,7 +157,6 @@ describe("attributeUtils", () => {
     it("returns no value when execution is undefined", () => {
       const arg = {
         name: "input1",
-        type: "string",
         argType: "required" as const,
         spec: {
           role: AttributeRole.Required,
@@ -179,7 +172,6 @@ describe("attributeUtils", () => {
     it("does not use flow state values when execution inputs are missing", () => {
       const arg = {
         name: "input1",
-        type: "string",
         argType: "required" as const,
         spec: {
           role: AttributeRole.Required,
@@ -215,7 +207,6 @@ describe("attributeUtils", () => {
 
       const arg = {
         name: "input1",
-        type: "string",
         argType: "required" as const,
         spec: {
           role: AttributeRole.Required,
@@ -236,7 +227,6 @@ describe("attributeUtils", () => {
 
       const arg = {
         name: "count",
-        type: "number",
         argType: "output" as const,
         spec: {
           role: AttributeRole.Output,

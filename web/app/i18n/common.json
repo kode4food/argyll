@@ -36,7 +36,7 @@
   "stepEditor.collect.none": "None",
   "attribute.roleRequired": "Required Input",
   "attribute.roleOptional": "Optional Input",
-  "attribute.roleConst": "Constant",
+  "attribute.roleConst": "Const",
   "attribute.roleMeta": "Metadata",
   "attribute.roleFeed": "Feed",
   "attribute.roleOutput": "Output",

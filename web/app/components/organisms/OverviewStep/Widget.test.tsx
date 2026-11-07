@@ -300,7 +300,7 @@ describe("Widget", () => {
     const { container } = render(<Widget step={step} />);
 
     const widget = container.querySelector(".step-widget") as HTMLElement;
-    expect(widget?.title).toBe("Double-click to edit step");
+    expect(widget?.title).toBe("Double-click to edit Step");
   });
 
   test("shows edit title for HTTP steps", () => {
@@ -309,7 +309,7 @@ describe("Widget", () => {
     const { container } = render(<Widget step={step} />);
 
     const widget = container.querySelector(".step-widget") as HTMLElement;
-    expect(widget?.title).toBe("Double-click to edit step");
+    expect(widget?.title).toBe("Double-click to edit Step");
   });
 
   test("listens for openStepEditor custom event", async () => {

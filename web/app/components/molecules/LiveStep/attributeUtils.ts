@@ -49,7 +49,7 @@ export const getAttributeTooltipTitle = (
     case "optional":
       return wasDefaulted ? "liveStep.defaultValue" : "liveStep.inputValue";
     case "const":
-      return "liveStep.defaultValue";
+      return "liveStep.constValue";
     case "meta":
       return "liveStep.inputValue";
     case "feed":

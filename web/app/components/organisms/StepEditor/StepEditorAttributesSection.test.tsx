@@ -44,7 +44,7 @@ describe("StepEditorAttributesSection", () => {
       name: `${t("stepEditor.compensatedAttributeLabel")} request`,
     });
     const roleButton = screen.getAllByRole("button", {
-      name: t("stepEditor.attrTypeSelect"),
+      name: t("stepEditor.attrRoleSelect"),
     })[0];
 
     expect(compensateButton.parentElement).toBe(

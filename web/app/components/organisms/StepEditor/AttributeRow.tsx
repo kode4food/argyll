@@ -173,7 +173,7 @@ const AttributeRow: React.FC<AttributeRowProps> = ({
       <div className={formStyles.attrRowInputs}>
         <SegmentedGroup className={formStyles.iconDropdownGroup}>
           <InlineSelectDropdown
-            ariaLabel={t("stepEditor.attrTypeSelect")}
+            ariaLabel={t("stepEditor.attrRoleSelect")}
             faceIcon={
               <RoleIcon className={`${styles.iconMd} ${roleClassName}`} />
             }
