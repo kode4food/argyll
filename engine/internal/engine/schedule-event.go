@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/kode4food/timebox"
-	"github.com/kode4food/timebox/scheduler"
 
+	"github.com/kode4food/argyll/engine/internal/engine/scheduler"
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/events"
 )
@@ -32,6 +32,7 @@ const (
 	workDispatchRequested  timebox.EventType = "work_dispatch_requested"
 	stepTimeoutElapsed     timebox.EventType = "step_timeout_elapsed"
 	flowReconcileRequested timebox.EventType = "flow_reconcile_requested"
+	memoExpired            timebox.EventType = "memo_expired"
 )
 
 var (
@@ -41,19 +42,25 @@ var (
 func (e *Engine) processScheduled(
 	t *timebox.Transaction, msg *timebox.Message,
 ) error {
-	fid, ok := events.ParseFlowID(msg.AggregateID)
-	if !ok {
-		return fmt.Errorf("%w: %s", ErrScheduledMessageTarget,
-			msg.AggregateID.String())
+	switch msg.Type {
+	case memoExpired:
+		// consuming the scheduled task is what expires the memoized result
+		return nil
+	default:
+		fid, ok := events.ParseFlowID(msg.AggregateID)
+		if !ok {
+			return fmt.Errorf("%w: %s", ErrScheduledMessageTarget,
+				msg.AggregateID.String())
+		}
+		st := storeTx{Engine: e, Transaction: t}
+		_, err := st.flowTx(fid, func(tx *flowTx) error {
+			return tx.handleScheduled(msg)
+		})
+		if errors.Is(err, ErrDispatchUnavailable) {
+			return scheduler.ErrRetry
+		}
+		return err
 	}
-	st := storeTx{Engine: e, Transaction: t}
-	_, err := st.flowTx(fid, func(tx *flowTx) error {
-		return tx.handleScheduled(msg)
-	})
-	if errors.Is(err, ErrDispatchUnavailable) {
-		return scheduler.ErrRetry
-	}
-	return err
 }
 
 func (tx *flowTx) handleScheduled(msg *timebox.Message) error {
@@ -89,7 +96,7 @@ func (tx *flowTx) scheduleEvent(
 	if err != nil {
 		return err
 	}
-	return tx.scheduler.Schedule(tx.storeTx.Transaction, path, at,
+	return scheduler.Schedule(tx.storeTx.Transaction, path, at,
 		&timebox.Message{
 			AggregateID: events.FlowKey(tx.flowID),
 			Type:        eventType,

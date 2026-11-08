@@ -705,10 +705,8 @@ Sources: [work-stop.go](../engine/internal/engine/work-stop.go), [work-memo.go](
 COMPLETE_WORK(step, token, outputs):
     TRANSACT or reuse the current inline/parent-child transaction:
         validate work transition to SUCCEEDED
-        IF handling is memoized:
-            join the memo aggregate keyed by step hash + item input hash
-            IF it has no successful result:
-                EMIT work_succeeded(token, raw outputs) on the memo aggregate
+        IF handling is memoized and MEMO_LOOKUP(step, item inputs) misses:
+            schedule keyed memo_expired task carrying raw outputs at MEMO_DEADLINE(step)
         EMIT work_succeeded(token, raw outputs)
         SETTLE_STEP(step)
 
@@ -785,12 +783,16 @@ Raw work outputs remain recorded by `work_succeeded`. The filtered output set be
 ```text
 MEMO_LOOKUP(step, inputs):
     key := step hash + input hash
-    join the keyed memo aggregate in the current flow transaction
-    IF it has no successful result: RETURN MISS
-    RETURN raw outputs
+    load the pending memo_expired task for key in the current transaction
+    IF there is none or its deadline has passed: RETURN MISS
+    RETURN its raw outputs
+
+MEMO_DEADLINE(step):
+    IF the step's memo TTL is 0: RETURN the far future
+    RETURN now + memo TTL
 ```
 
-The memo aggregate retains the first successful work item's `work_succeeded` payload for a step definition and input set.
+A memoized result is the pending `memo_expired` task for a step definition and input set. The first recorded success wins, because the commit is checked against the task the transaction read, and its delivery at the memo TTL removes it. The memo TTL is the step's `work_config.memo_ttl`, defaulted from the engine's `MEMO_TTL`.
 
 ## Work retries and attempt deadlines
 

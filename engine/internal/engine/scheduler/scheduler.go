@@ -3,6 +3,7 @@ package scheduler
 import (
 	"context"
 	"encoding/base64"
+	"errors"
 	"strings"
 	"time"
 
@@ -34,11 +35,15 @@ type (
 	TimerConstructor = scheduler.TimerConstructor
 )
 
+var (
+	ErrRetry = errors.New("scheduled task retry requested")
+)
+
 // New creates an Argyll scheduler over a Timebox store
 func New(cfg Config) (*Scheduler, error) {
 	runnerCfg := scheduler.Config{
 		Store:            cfg.Store,
-		Processor:        cfg.Processor,
+		Processor:        retryProcessor(cfg.Processor),
 		Clock:            cfg.Clock,
 		TimerConstructor: cfg.TimerConstructor,
 	}
@@ -54,16 +59,22 @@ func Now() time.Time {
 	return time.Now()
 }
 
-// Run processes due scheduled tasks until ctx ends
-func (s *Scheduler) Run(ctx context.Context) error {
-	return s.runner.Run(ctx)
+// Load returns the pending scheduled task for path, or nil if there is none.
+// The transaction's commit is checked against what it read
+func Load(tx *timebox.Transaction, path []string) (*timebox.Schedule, error) {
+	return tx.LoadSchedule(encodePath(path))
 }
 
 // Schedule creates or replaces a durable scheduled task
-func (s *Scheduler) Schedule(
+func Schedule(
 	tx *timebox.Transaction, path []string, at time.Time, msg *timebox.Message,
 ) error {
 	return tx.Schedule(encodePath(path), at, msg)
+}
+
+// Run processes due scheduled tasks until ctx ends
+func (s *Scheduler) Run(ctx context.Context) error {
+	return s.runner.Run(ctx)
 }
 
 func encodePath(path []string) timebox.ScheduleKey {
@@ -73,4 +84,14 @@ func encodePath(path []string) timebox.ScheduleKey {
 		b.WriteByte('/')
 	}
 	return timebox.ScheduleKey(b.String())
+}
+
+func retryProcessor(proc scheduler.Processor) scheduler.Processor {
+	return func(tx *timebox.Transaction, msg *timebox.Message) error {
+		err := proc(tx, msg)
+		if errors.Is(err, ErrRetry) {
+			return scheduler.ErrRetry
+		}
+		return err
+	}
 }

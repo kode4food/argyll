@@ -281,9 +281,10 @@ class Client:
                 backoff_type=BackoffType(
                     work_data.get("backoff_type", "fixed")
                 ),
-                backoff=work_data.get("backoff", 0),
+                init_backoff=work_data.get("init_backoff", 0),
                 max_backoff=work_data.get("max_backoff", 0),
                 parallelism=work_data.get("parallelism", 0),
+                memo_ttl=work_data.get("memo_ttl", 0),
             )
 
         # Parse flow config

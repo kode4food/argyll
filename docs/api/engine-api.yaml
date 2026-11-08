@@ -2132,6 +2132,12 @@ components:
             Maximum parallel executions for for_each steps. If omitted or <= 0,
             execution defaults to sequential (`1`).
           example: 10
+        memo_ttl:
+          type: integer
+          format: int64
+          description: |
+            How long memoized outputs stay reusable, in milliseconds. `0` means use global default.
+          example: 86400000
 
     StepRegisteredResponse:
       type: object

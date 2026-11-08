@@ -229,13 +229,13 @@ def test_work_config_to_dict():
     config = WorkConfig(
         max_retries=5,
         backoff_type=BackoffType.EXPONENTIAL,
-        backoff=100,
+        init_backoff=100,
         max_backoff=5000,
     )
     result = config.to_dict()
     assert result["max_retries"] == 5
     assert result["backoff_type"] == "exponential"
-    assert result["backoff"] == 100
+    assert result["init_backoff"] == 100
     assert result["max_backoff"] == 5000
 
 
@@ -284,7 +284,7 @@ def test_step_with_all_fields():
         work_config=WorkConfig(
             max_retries=3,
             backoff_type=BackoffType.LINEAR,
-            backoff=1000,
+            init_backoff=1000,
             max_backoff=10000,
         ),
         flow=FlowConfig(goals=Goals(steps=["step-1"])),

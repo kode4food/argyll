@@ -6,6 +6,7 @@ import (
 
 	"github.com/kode4food/timebox"
 
+	"github.com/kode4food/argyll/engine/internal/engine/scheduler"
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/events"
 	"github.com/kode4food/argyll/engine/pkg/log"
@@ -92,7 +93,7 @@ func (tx *flowTx) recoverFlow() error {
 // duplicate requests collapse into one task
 func (e *Engine) scheduleFlowReconcile(fid api.FlowID, at time.Time) error {
 	return e.flowStore.Transact(func(tx *timebox.Transaction) error {
-		return e.scheduler.Schedule(tx, reconcileKey(fid), at,
+		return scheduler.Schedule(tx, reconcileKey(fid), at,
 			&timebox.Message{
 				AggregateID: events.FlowKey(fid),
 				Type:        flowReconcileRequested,

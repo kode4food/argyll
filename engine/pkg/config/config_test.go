@@ -67,6 +67,13 @@ func TestConfigValidation(t *testing.T) {
 			},
 			errorContains: "invalid retry backoff type",
 		},
+		{
+			name: "negative_memo_ttl",
+			configMod: func(c *config.Config) {
+				c.Work.MemoTTL = -1
+			},
+			errorContains: "memo ttl cannot be negative",
+		},
 	}
 
 	for _, tt := range tests {

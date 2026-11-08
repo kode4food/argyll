@@ -38,6 +38,7 @@ const (
 	MaxStepTimeout      = 365 * 24 * 60 * api.Minute // 1 year in ms
 	MaxRetryInitBackoff = 24 * 60 * api.Minute       // 1 day in ms
 	MaxRetryMaxBackoff  = MaxRetryInitBackoff
+	MaxMemoTTL          = MaxStepTimeout
 )
 
 var (
@@ -134,6 +135,14 @@ func loadEngineConfig(rc raft.Config) (*config.Config, error) {
 		dst: &cfg.Work.MaxBackoff,
 		min: 0,
 		max: MaxRetryMaxBackoff,
+	}); err != nil {
+		return nil, err
+	}
+	if err := loadEnvInt(loadEnvIntArgs[int64]{
+		key: "MEMO_TTL",
+		dst: &cfg.Work.MemoTTL,
+		min: 0,
+		max: MaxMemoTTL,
 	}); err != nil {
 		return nil, err
 	}

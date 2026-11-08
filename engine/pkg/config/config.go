@@ -50,6 +50,7 @@ var (
 		"retry max backoff must be >= retry initial backoff",
 	)
 	ErrInvalidRetryBackoffType = errors.New("invalid retry backoff type")
+	ErrInvalidMemoTTL          = errors.New("memo ttl cannot be negative")
 )
 
 // NewDefaultConfig creates a configuration with sensible defaults for all
@@ -140,6 +141,10 @@ func (c *Config) Validate() error {
 		c.Work.BackoffType != api.BackoffTypeExponential {
 		return fmt.Errorf("%w: %s", ErrInvalidRetryBackoffType,
 			c.Work.BackoffType)
+	}
+
+	if c.Work.MemoTTL < 0 {
+		return ErrInvalidMemoTTL
 	}
 	return nil
 }

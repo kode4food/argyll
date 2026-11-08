@@ -15,14 +15,6 @@ import (
 
 func TestPaths(t *testing.T) {
 	store := newStore(t)
-	runner, err := scheduler.New(scheduler.Config{
-		Store: store,
-		Processor: func(*timebox.Transaction, *timebox.Message) error {
-			return nil
-		},
-		Clock: scheduler.Now,
-	})
-	assert.NoError(t, err)
 	message := newMessage()
 	at := scheduler.Now().Add(time.Hour)
 
@@ -35,7 +27,7 @@ func TestPaths(t *testing.T) {
 	}
 	assert.NoError(t, store.Transact(func(tx *timebox.Transaction) error {
 		for _, path := range paths {
-			if err := runner.Schedule(tx, path, at, message); err != nil {
+			if err := scheduler.Schedule(tx, path, at, message); err != nil {
 				return err
 			}
 		}
@@ -58,7 +50,7 @@ func TestDelivery(t *testing.T) {
 	assert.NoError(t, err)
 	message := newMessage()
 	assert.NoError(t, store.Transact(func(tx *timebox.Transaction) error {
-		return runner.Schedule(
+		return scheduler.Schedule(
 			tx, []string{"due"}, scheduler.Now().Add(-time.Second), message,
 		)
 	}))

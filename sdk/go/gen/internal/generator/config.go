@@ -21,6 +21,7 @@ const (
 	initBackoffProp = "init_backoff"
 	maxBackoffProp  = "max_backoff"
 	parallelismProp = "parallelism"
+	memoTTLProp     = "memo_ttl"
 
 	roleProp        = "role"
 	defaultProp     = "default"
@@ -87,6 +88,14 @@ var workSetters = map[string]setter[api.WorkConfig]{
 			return err
 		}
 		w.Parallelism = n
+		return nil
+	},
+	memoTTLProp: func(w *api.WorkConfig, v string) error {
+		ms, err := parseMillis(Option{Key: memoTTLProp, Value: v})
+		if err != nil {
+			return err
+		}
+		w.MemoTTL = ms
 		return nil
 	},
 }

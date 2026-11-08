@@ -120,6 +120,15 @@ func TestLoadConfig(t *testing.T) {
 			},
 		},
 		{
+			name: "load_memo_ttl",
+			envVars: map[string]string{
+				"MEMO_TTL": "3600000",
+			},
+			check: func(t *testing.T, c app.Config) {
+				assert.Equal(t, int64(3600000), c.Engine.Work.MemoTTL)
+			},
+		},
+		{
 			name: "load_retry_backoff_type",
 			envVars: map[string]string{
 				"RETRY_BACKOFF_TYPE": "exponential",
@@ -190,6 +199,13 @@ func TestLoadConfig(t *testing.T) {
 				"RETRY_MAX_BACKOFF": "bad_value",
 			},
 			wantErr: app.ErrInvalidEnvValue,
+		},
+		{
+			name: "negative_memo_ttl_errors",
+			envVars: map[string]string{
+				"MEMO_TTL": "-1",
+			},
+			wantErr: app.ErrEnvOutOfRange,
 		},
 	}
 

@@ -149,6 +149,7 @@ func (tx *flowTx) checkTerminal() error {
 - Executor: Handles conflict retries automatically (no manual retry needed)
 - Atomicity: Events and projections commit together
 - Scheduled tasks are never cancelled. Every handler rechecks the flow's state when its task fires and does nothing when the task no longer applies
+- Memoized results are `memo_expired` scheduled tasks keyed by Step hash and input hash. Lookups and records read the pending task within the flow's transaction, so the first success wins, and its delivery at the memo TTL removes it
 
 ## Stale References After Event Raise
 
@@ -332,10 +333,6 @@ func reconstructState(aggregateID ID) State {
 
 - `feed_folded` - A settled Step output was folded into the value
 - `feed_fold_failed` - A fold script failed, leaving the value unchanged
-
-**Memo aggregate events** (first successful result of one Step definition and input set, in the flow store):
-
-- `work_succeeded` - A memoized work item succeeded for these inputs
 
 **Cluster aggregate events** (node health tracking):
 

@@ -34,7 +34,6 @@ type (
 		cancel      context.CancelFunc
 		catalogExec *CatalogExecutor
 		clusterExec *ClusterExecutor
-		memoExec    *MemoExecutor
 		scheduler   *scheduler.Scheduler
 		clock       scheduler.Clock
 		eventHub    *event.Hub
@@ -79,12 +78,6 @@ type (
 
 	// FeedAggregator aggregates Feed state from events
 	FeedAggregator = timebox.Aggregator[api.FeedState]
-
-	// MemoExecutor manages memoized results persistence and event sourcing
-	MemoExecutor = timebox.Executor[*api.WorkSucceededEvent]
-
-	// MemoAggregator aggregates memoized results from events
-	MemoAggregator = timebox.Aggregator[*api.WorkSucceededEvent]
 )
 
 const storeReadyTimeout = 5 * time.Second
@@ -194,9 +187,6 @@ func (e *Engine) openStores(open OpenBackend) error {
 	)
 	e.feedExec = flowStore.Executor(
 		events.NewFeedState, events.FeedAppliers.Reduce,
-	)
-	e.memoExec = flowStore.Executor(
-		events.NewMemoState, events.MemoAppliers.Reduce,
 	)
 	return nil
 }

@@ -72,6 +72,7 @@ type (
 		InitBackoff int64  `json:"init_backoff,omitempty"`
 		MaxBackoff  int64  `json:"max_backoff,omitempty"`
 		Parallelism int    `json:"parallelism,omitempty"`
+		MemoTTL     int64  `json:"memo_ttl,omitempty"`
 	}
 
 	// StepType defines the execution mode for a step (sync, async, or script)
@@ -169,6 +170,7 @@ var (
 	ErrAttributeNil          = errors.New("attribute has nil definition")
 	ErrNegativeBackoff       = errors.New("backoff cannot be negative")
 	ErrMaxBackoffTooSmall    = errors.New("max_backoff must be >= backoff")
+	ErrNegativeMemoTTL       = errors.New("memo_ttl cannot be negative")
 	ErrWorkNotCompleted      = errors.New("work not completed")
 	ErrMarshalStep           = errors.New("failed to marshal step definition")
 	ErrInvalidHandling       = errors.New("invalid step handling")
@@ -265,6 +267,9 @@ func (s *Step) WithWorkDefaults(defaults *WorkConfig) *Step {
 	}
 	if work.BackoffType == "" {
 		work.BackoffType = defaults.BackoffType
+	}
+	if work.MemoTTL == 0 {
+		work.MemoTTL = defaults.MemoTTL
 	}
 	res.WorkConfig = work
 	return res
@@ -455,7 +460,7 @@ func (c *WorkConfig) Equal(other *WorkConfig) bool {
 	sameBackoff := c.InitBackoff == other.InitBackoff &&
 		c.MaxBackoff == other.MaxBackoff &&
 		c.BackoffType == other.BackoffType
-	return sameLimits && sameBackoff
+	return sameLimits && sameBackoff && c.MemoTTL == other.MemoTTL
 }
 
 // Equal returns true if two normalized tag sets are equal
@@ -712,6 +717,10 @@ func (s *Step) validateWorkConfig() error {
 	if s.WorkConfig.BackoffType != "" &&
 		!validBackoffTypes.Contains(s.WorkConfig.BackoffType) {
 		return ErrInvalidBackoffType
+	}
+
+	if s.WorkConfig.MemoTTL < 0 {
+		return ErrNegativeMemoTTL
 	}
 
 	return nil

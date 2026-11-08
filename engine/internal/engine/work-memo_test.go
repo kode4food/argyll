@@ -1,17 +1,21 @@
 package engine_test
 
 import (
+	"encoding/base64"
 	"errors"
+	"strings"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/kode4food/timebox"
 	"github.com/kode4food/timebox/memory"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/kode4food/argyll/engine/internal/assert/helpers"
+	"github.com/kode4food/argyll/engine/internal/assert/wait"
+	"github.com/kode4food/argyll/engine/internal/engine"
 	"github.com/kode4food/argyll/engine/pkg/api"
-	"github.com/kode4food/argyll/engine/pkg/events"
 	"github.com/kode4food/argyll/engine/pkg/flow"
 )
 
@@ -20,7 +24,12 @@ type memoRejectBackend struct {
 	reject atomic.Bool
 }
 
-const memoConcurrentWriters = 2
+const (
+	memoConcurrentWriters = 2
+	memoTTL               = 1000
+	memoShortTTL          = 500
+	memoPollInterval      = 10 * time.Millisecond
+)
 
 var (
 	ErrMemoAppend = errors.New("rejected memo success")
@@ -97,8 +106,10 @@ func TestMemoizedConcurrentResults(t *testing.T) {
 		defer func() { assert.NoError(t, other.Stop()) }()
 		first := api.FlowStep{FlowID: "first", StepID: st.ID}
 		second := api.FlowStep{FlowID: "second", StepID: st.ID}
+		late := api.FlowStep{FlowID: "late", StepID: st.ID}
 		assert.NoError(t, env.SeedStartedWork(first, pl, "first"))
 		assert.NoError(t, env.SeedStartedWork(second, pl, "second"))
+		assert.NoError(t, env.SeedStartedWork(late, pl, "late"))
 		ready := make(chan struct{})
 		done := make(chan error, memoConcurrentWriters)
 		go func() {
@@ -112,24 +123,98 @@ func TestMemoizedConcurrentResults(t *testing.T) {
 		close(ready)
 		assert.NoError(t, <-done)
 		assert.NoError(t, <-done)
-		key, err := events.MemoKey(st, api.Args{})
-		assert.NoError(t, err)
-		rec, err := backend.LoadEvents(timebox.LoadEventsRequest{ID: key})
-		if !assert.NoError(t, err) || !assert.Len(t, rec.Events, 1) {
-			return
-		}
-		winner, err := rec.Events[0].GetValue[api.WorkSucceededEvent]()
-		assert.NoError(t, err)
+		assert.NoError(t,
+			env.Engine.CompleteWork(late, "late", api.Args{"raw": 3}),
+		)
 		assert.NoError(t, env.Engine.StartPlan("reuse-first", pl))
 		assert.NoError(t, other.StartPlan("reuse-second", pl))
+		var reused []any
 		for _, fid := range []api.FlowID{"reuse-first", "reuse-second"} {
 			fl := env.WaitForTerminalFlow(fid)
 			for _, work := range fl.Executions[st.ID].WorkItems {
-				assert.EqualValues(t,
-					winner.Outputs["raw"], work.Outputs["raw"])
+				reused = append(reused, work.Outputs["raw"])
 			}
 		}
+		if assert.Len(t, reused, 2) {
+			assert.Contains(t, []any{1.0, 2.0}, reused[0])
+			assert.Equal(t, reused[0], reused[1])
+		}
 		assert.Empty(t, env.MockClient.GetInvocations())
+	})
+}
+
+func TestMemoizedTTL(t *testing.T) {
+	var elapsed atomic.Int64
+	base := time.Date(2026, 11, 8, 12, 0, 0, 0, time.UTC)
+	helpers.WithTestEnvDeps(t, engine.Dependencies{
+		Clock: func() time.Time {
+			return base.Add(time.Duration(elapsed.Load()))
+		},
+	}, func(env *helpers.TestEngineEnv) {
+		st := helpers.NewSimpleStep("ttl-memo")
+		st.Handling = api.HandlingMemoized
+		st.WorkConfig = &api.WorkConfig{MemoTTL: memoTTL}
+		pl := &api.ExecutionPlan{
+			Goals: api.Goals{Steps: []api.StepID{st.ID}},
+			Steps: api.Steps{st.ID: st},
+		}
+		assert.NoError(t, env.Engine.RegisterStep(st))
+
+		run := func(fid api.FlowID, after time.Duration, raw string) {
+			elapsed.Store(int64(after))
+			env.MockClient.SetResponse(st.ID, api.Args{"raw": raw})
+			assert.NoError(t, env.Engine.StartPlan(fid, pl))
+			fl := env.WaitForTerminalFlow(fid)
+			for _, work := range fl.Executions[st.ID].WorkItems {
+				assert.Equal(t, "first", work.Outputs["raw"])
+			}
+		}
+		run("first", 0, "first")
+		run("within", memoTTL*time.Millisecond/2, "second")
+		assert.Len(t, env.MockClient.GetInvocations(), 1)
+
+		elapsed.Store(int64(memoTTL * time.Millisecond))
+		env.MockClient.SetResponse(st.ID, api.Args{"raw": "fresh"})
+		assert.NoError(t, env.Engine.StartPlan("expired", pl))
+		fl := env.WaitForTerminalFlow("expired")
+		for _, work := range fl.Executions[st.ID].WorkItems {
+			assert.Equal(t, "fresh", work.Outputs["raw"])
+		}
+		assert.Len(t, env.MockClient.GetInvocations(), 2)
+	})
+}
+
+func TestMemoizedExpiryConsumed(t *testing.T) {
+	if testing.Short() {
+		t.Skip("waits on a real scheduler timer")
+	}
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		st := helpers.NewSimpleStep("expiring-memo")
+		st.Handling = api.HandlingMemoized
+		st.WorkConfig = &api.WorkConfig{MemoTTL: memoShortTTL}
+		pl := &api.ExecutionPlan{
+			Goals: api.Goals{Steps: []api.StepID{st.ID}},
+			Steps: api.Steps{st.ID: st},
+		}
+		assert.NoError(t, env.Engine.RegisterStep(st))
+		assert.NoError(t, env.Engine.Start())
+		assert.NoError(t, env.Engine.StartPlan("expiring", pl))
+		env.WaitForTerminalFlow("expiring")
+		memoPrefix := base64.RawURLEncoding.EncodeToString([]byte("memo"))
+		hasMemo := func() bool {
+			keys, err := env.ScheduleKeys()
+			assert.NoError(t, err)
+			for key := range keys {
+				if strings.HasPrefix(string(key), memoPrefix+"/") {
+					return true
+				}
+			}
+			return false
+		}
+		assert.True(t, hasMemo())
+		assert.Eventually(t, func() bool {
+			return !hasMemo()
+		}, wait.DefaultTimeout, memoPollInterval)
 	})
 }
 

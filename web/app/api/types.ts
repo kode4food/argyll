@@ -134,6 +134,7 @@ export interface WorkConfig {
   max_backoff?: number;
   backoff_type?: "fixed" | "linear" | "exponential";
   parallelism?: number;
+  memo_ttl?: number;
 }
 
 export interface Step {

@@ -405,6 +405,7 @@ func TestWorkConfig(t *testing.T) {
 	src := "//argyll:step\n" +
 		"//argyll:work backoff_type:exponential;max_retries:3\n" +
 		"//argyll:work init_backoff:100;max_backoff:5000;parallelism:4\n" +
+		"//argyll:work memo_ttl:60000\n" +
 		"func Run() {}\n"
 	assert.Equal(t, &api.WorkConfig{
 		BackoffType: "exponential",
@@ -412,6 +413,7 @@ func TestWorkConfig(t *testing.T) {
 		InitBackoff: 100,
 		MaxBackoff:  5000,
 		Parallelism: 4,
+		MemoTTL:     60000,
 	}, sourceSteps(t, src)["run"].WorkConfig)
 }
 

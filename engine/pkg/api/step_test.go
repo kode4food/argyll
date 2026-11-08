@@ -843,6 +843,8 @@ func TestEqualWorkConfig(t *testing.T) {
 
 	as.True(config1.Equal(config2))
 	as.False(config1.Equal(config3))
+	config2.MemoTTL = 1000
+	as.False(config1.Equal(config2))
 	as.True((*api.WorkConfig)(nil).Equal(nil))
 	as.False(config1.Equal(nil))
 }
@@ -1138,6 +1140,21 @@ func TestValidateWorkConfig(t *testing.T) {
 		as.StepInvalid(st, "max_backoff")
 	})
 
+	t.Run("negative_memo_ttl", func(t *testing.T) {
+		st := &api.Step{
+			ID:   "test",
+			Name: "Test",
+			Type: api.StepTypeService,
+			HTTP: &api.HTTPConfig{
+				Invoke: api.HTTPAction{
+					Endpoint: "http://localhost:8080",
+				},
+			},
+			WorkConfig: &api.WorkConfig{MemoTTL: -1},
+		}
+		as.StepInvalid(st, "memo_ttl cannot be negative")
+	})
+
 	t.Run("missing_backoff_type_uses_default", func(t *testing.T) {
 		st := &api.Step{
 			ID:   "test",
@@ -1202,6 +1219,7 @@ func TestStepWithDefaults(t *testing.T) {
 		InitBackoff: 1000,
 		MaxBackoff:  60000,
 		BackoffType: api.BackoffTypeExponential,
+		MemoTTL:     3600000,
 	}
 
 	t.Run("nil_work_config", func(t *testing.T) {
@@ -1213,6 +1231,7 @@ func TestStepWithDefaults(t *testing.T) {
 		as.Equal(int64(1000), res.WorkConfig.InitBackoff)
 		as.Equal(int64(60000), res.WorkConfig.MaxBackoff)
 		as.Equal(api.BackoffTypeExponential, res.WorkConfig.BackoffType)
+		as.Equal(int64(3600000), res.WorkConfig.MemoTTL)
 	})
 
 	t.Run("fills_retry_fields_only", func(t *testing.T) {
@@ -1248,6 +1267,7 @@ func TestStepWithDefaults(t *testing.T) {
 				InitBackoff: 250,
 				MaxBackoff:  5000,
 				BackoffType: api.BackoffTypeLinear,
+				MemoTTL:     60000,
 			},
 		}
 		res := st.WithWorkDefaults(defaults)
@@ -1256,6 +1276,7 @@ func TestStepWithDefaults(t *testing.T) {
 		as.Equal(int64(250), res.WorkConfig.InitBackoff)
 		as.Equal(int64(5000), res.WorkConfig.MaxBackoff)
 		as.Equal(api.BackoffTypeLinear, res.WorkConfig.BackoffType)
+		as.Equal(int64(60000), res.WorkConfig.MemoTTL)
 	})
 }
 

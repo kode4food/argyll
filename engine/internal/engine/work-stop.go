@@ -48,17 +48,16 @@ func (tx *flowTx) completeWork(
 		return err
 	}
 
-	data := api.WorkSucceededEvent{
-		FlowID:  tx.flowID,
-		StepID:  sid,
-		Token:   tkn,
-		Outputs: outputs,
-	}
-	if err := tx.recordMemoized(data); err != nil {
+	if err := tx.recordMemoized(sid, tkn, outputs); err != nil {
 		return err
 	}
-	if err := events.Raise(
-		tx.FlowAggregator, api.EventTypeWorkSucceeded, data,
+	if err := events.Raise(tx.FlowAggregator, api.EventTypeWorkSucceeded,
+		api.WorkSucceededEvent{
+			FlowID:  tx.flowID,
+			StepID:  sid,
+			Token:   tkn,
+			Outputs: outputs,
+		},
 	); err != nil {
 		return err
 	}

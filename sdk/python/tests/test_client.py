@@ -398,7 +398,7 @@ def test_parse_step_with_all_fields():
                     "work_config": {
                         "max_retries": 3,
                         "backoff_type": "exponential",
-                        "backoff": 1000,
+                        "init_backoff": 1000,
                         "max_backoff": 10000,
                         "parallelism": 2,
                     },

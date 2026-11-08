@@ -261,9 +261,10 @@ class WorkConfig:
 
     max_retries: int = 0
     backoff_type: BackoffType = BackoffType.FIXED
-    backoff: int = 0
+    init_backoff: int = 0
     max_backoff: int = 0
     parallelism: int = 0
+    memo_ttl: int = 0
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert to API dictionary format."""
@@ -272,12 +273,14 @@ class WorkConfig:
             result["max_retries"] = self.max_retries
         if self.backoff_type:
             result["backoff_type"] = self.backoff_type.value
-        if self.backoff > 0:
-            result["backoff"] = self.backoff
+        if self.init_backoff > 0:
+            result["init_backoff"] = self.init_backoff
         if self.max_backoff > 0:
             result["max_backoff"] = self.max_backoff
         if self.parallelism > 0:
             result["parallelism"] = self.parallelism
+        if self.memo_ttl > 0:
+            result["memo_ttl"] = self.memo_ttl
         return result
 
 
