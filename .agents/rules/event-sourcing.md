@@ -333,6 +333,10 @@ func reconstructState(aggregateID ID) State {
 - `feed_folded` - A settled Step output was folded into the value
 - `feed_fold_failed` - A fold script failed, leaving the value unchanged
 
+**Memo aggregate events** (first successful result of one Step definition and input set, in the flow store):
+
+- `work_succeeded` - A memoized work item succeeded for these inputs
+
 **Cluster aggregate events** (node health tracking):
 
 - `step_health_changed` - Step availability changed

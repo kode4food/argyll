@@ -21,7 +21,7 @@ func TestMemoizedParallelWork(t *testing.T) {
 		items       []any
 		invocations int
 	}{
-		{name: "cached", items: []any{"a", "b"}, invocations: 2},
+		{name: "memoized", items: []any{"a", "b"}, invocations: 2},
 		{name: "mixed", items: []any{"a", "b", "c", "d"}, invocations: 4},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
@@ -54,13 +54,13 @@ func TestMemoizedParallelWork(t *testing.T) {
 				assert.Equal(t, api.FlowCompleted, fl.Status)
 				assert.Len(t, env.MockClient.GetInvocations(), 2)
 
-				err := env.Engine.StartPlan("cached-items", pl,
+				err := env.Engine.StartPlan("memoized-items", pl,
 					flow.WithInit(api.InitArgs{"items": tt.items}),
 				)
 				if !assert.NoError(t, err) {
 					return
 				}
-				fl = env.WaitForTerminalFlow("cached-items")
+				fl = env.WaitForTerminalFlow("memoized-items")
 				assert.Equal(t, api.FlowCompleted, fl.Status)
 				assert.Len(t, env.MockClient.GetInvocations(), tt.invocations)
 			})
@@ -68,10 +68,10 @@ func TestMemoizedParallelWork(t *testing.T) {
 	}
 }
 
-func TestCachedChildFlows(t *testing.T) {
+func TestMemoizedChildFlows(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		assert.NoError(t, env.Engine.Start())
-		leaf := helpers.NewSimpleStep("cached-leaf")
+		leaf := helpers.NewSimpleStep("memoized-leaf")
 		leaf.Handling = api.HandlingMemoized
 		assert.NoError(t, env.Engine.RegisterStep(leaf))
 		env.MockClient.SetResponse(leaf.ID, api.Args{})
@@ -85,7 +85,7 @@ func TestCachedChildFlows(t *testing.T) {
 		assert.Equal(t, api.FlowCompleted, fl.Status)
 
 		sub := &api.Step{
-			ID:   "cached-sub",
+			ID:   "memoized-sub",
 			Type: api.StepTypeFlow,
 			Attributes: api.AttributeSpecs{
 				"items": {
@@ -100,13 +100,13 @@ func TestCachedChildFlows(t *testing.T) {
 			Steps:    api.Steps{sub.ID: sub},
 			Children: map[api.StepID]*api.ExecutionPlan{sub.ID: child},
 		}
-		err := env.Engine.StartPlan("cached-parent", pl,
+		err := env.Engine.StartPlan("memoized-parent", pl,
 			flow.WithInit(api.InitArgs{"items": {[]any{"a", "b"}}}),
 		)
 		if !assert.NoError(t, err) {
 			return
 		}
-		fl, err = env.Engine.GetFlowState("cached-parent")
+		fl, err = env.Engine.GetFlowState("memoized-parent")
 		assert.NoError(t, err)
 		assert.Equal(t, api.FlowCompleted, fl.Status)
 		assert.Len(t, env.MockClient.GetInvocations(), 1)
@@ -165,7 +165,7 @@ func TestMemoizedWork(t *testing.T) {
 		st.Handling = api.HandlingMemoized
 		assert.NoError(t, env.Engine.RegisterStep(st))
 
-		env.MockClient.SetResponse(st.ID, api.Args{"output": "cached"})
+		env.MockClient.SetResponse(st.ID, api.Args{"output": "memoized"})
 
 		pl := &api.ExecutionPlan{
 			Goals: api.Goals{Steps: []api.StepID{st.ID}},

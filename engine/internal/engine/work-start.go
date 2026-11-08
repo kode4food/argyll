@@ -121,10 +121,12 @@ func (tx *flowTx) startPendingWork(st *api.Step) (api.WorkItems, error) {
 		}
 
 		inputs := ex.Inputs.Apply(work.Inputs)
-		if st.DefaultedHandling() == api.HandlingMemoized {
-			if cached, ok := tx.memoCache.Get(st, inputs); ok {
-				return started, tx.handleMemoCacheHit(sid, tkn, cached)
-			}
+		outputs, ok, err := tx.lookupMemoized(st, inputs)
+		if err != nil {
+			return nil, err
+		}
+		if ok {
+			return started, tx.applyMemoized(sid, tkn, outputs)
 		}
 		if !canDispatch {
 			continue
@@ -177,6 +179,13 @@ func (tx *flowTx) startRetryWorkItem(
 	}
 
 	inputs := ex.Inputs.Apply(work.Inputs)
+	outputs, ok, err := tx.lookupMemoized(st, inputs)
+	if err != nil {
+		return nil, time.Time{}, err
+	}
+	if ok {
+		return nil, time.Time{}, tx.applyMemoized(sid, tkn, outputs)
+	}
 	if err := tx.raiseWorkStarted(sid, tkn, inputs); err != nil {
 		return nil, time.Time{}, err
 	}

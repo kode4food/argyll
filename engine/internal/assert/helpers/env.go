@@ -421,7 +421,6 @@ func newTestEngine(
 
 	cfg := config.NewDefaultConfig()
 	cfg.StepTimeout = 5 * api.Second
-	cfg.MemoCacheSize = 100
 	cfg.Work = api.WorkConfig{
 		MaxRetries:  3,
 		InitBackoff: 1000,

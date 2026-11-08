@@ -292,7 +292,7 @@ func FlowIDs(ids ...api.FlowID) EventFilter {
 	for _, fid := range ids {
 		expected.Add(fid)
 	}
-	return PredicateFilter(func(data flowEvent) bool {
+	return flowPredicate(func(data flowEvent) bool {
 		if expected.Contains(data.FlowID) {
 			expected.Remove(data.FlowID)
 			return true
@@ -312,7 +312,7 @@ func FlowSteps(steps ...api.FlowStep) EventFilter {
 	for _, st := range steps {
 		expected.Add(st)
 	}
-	return PredicateFilter(func(data stepEvent) bool {
+	return flowPredicate(func(data stepEvent) bool {
 		key := api.FlowStep{FlowID: data.FlowID, StepID: data.StepID}
 		if expected.Contains(key) {
 			expected.Remove(key)
@@ -328,7 +328,7 @@ func FlowStepAny(steps ...api.FlowStep) EventFilter {
 	for _, st := range steps {
 		expected.Add(st)
 	}
-	return PredicateFilter(func(data stepEvent) bool {
+	return flowPredicate(func(data stepEvent) bool {
 		key := api.FlowStep{FlowID: data.FlowID, StepID: data.StepID}
 		return expected.Contains(key)
 	})
@@ -337,7 +337,7 @@ func FlowStepAny(steps ...api.FlowStep) EventFilter {
 // FlowStepDistinctTokens matches each work token for the flow step once
 func FlowStepDistinctTokens(fs api.FlowStep) EventFilter {
 	seen := util.Set[api.Token]{}
-	return PredicateFilter(func(data workEvent) bool {
+	return flowPredicate(func(data workEvent) bool {
 		key := api.FlowStep{FlowID: data.FlowID, StepID: data.StepID}
 		if key != fs || seen.Contains(data.Token) {
 			return false
@@ -365,6 +365,13 @@ func PredicateFilter[T any](pred Predicate[T]) EventFilter {
 			return false
 		}
 		return pred(data)
+	}
+}
+
+func flowPredicate[T any](pred Predicate[T]) EventFilter {
+	filter := PredicateFilter(pred)
+	return func(ev *timebox.Event) bool {
+		return events.IsFlowEventID(ev.AggregateID) && filter(ev)
 	}
 }
 

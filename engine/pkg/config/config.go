@@ -13,12 +13,11 @@ import (
 
 // Config holds the settings an Engine runs with, whether embedded or served
 type Config struct {
-	Timebox       timebox.Config
-	NodeID        api.NodeID
-	Nodes         []api.NodeID
-	Work          api.WorkConfig
-	StepTimeout   int64
-	MemoCacheSize int
+	Timebox     timebox.Config
+	NodeID      api.NodeID
+	Nodes       []api.NodeID
+	Work        api.WorkConfig
+	StepTimeout int64
 }
 
 const (
@@ -26,7 +25,6 @@ const (
 
 	DefaultFlowSnapshotRatio = 2.0
 	DefaultTimeboxCacheSize  = 32768
-	DefaultMemoCacheSize     = 65536
 	DefaultNodeID            = "argyll-1"
 
 	DefaultRetryMaxRetries  = 10
@@ -66,8 +64,7 @@ func NewDefaultConfig() *Config {
 			MaxBackoff:  DefaultMaxRetryBackoff,
 			BackoffType: DefaultRetryBackoffType,
 		},
-		StepTimeout:   DefaultStepTimeout,
-		MemoCacheSize: DefaultMemoCacheSize,
+		StepTimeout: DefaultStepTimeout,
 	}
 }
 

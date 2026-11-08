@@ -88,7 +88,7 @@ func TestStartMixedSatisfiedGoals(t *testing.T) {
 	})
 }
 
-func TestStartCachedSteps(t *testing.T) {
+func TestStartMemoizedSteps(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		assert.NoError(t, env.Engine.Start())
 		a := helpers.NewSimpleStep("memo-a")
@@ -108,10 +108,10 @@ func TestStartCachedSteps(t *testing.T) {
 		assert.Equal(t, api.FlowCompleted, fl.Status)
 		assert.Len(t, env.MockClient.GetInvocations(), 2)
 
-		if !assert.NoError(t, env.Engine.StartPlan("cached-steps", pl)) {
+		if !assert.NoError(t, env.Engine.StartPlan("memoized-steps", pl)) {
 			return
 		}
-		fl, err := env.Engine.GetFlowState("cached-steps")
+		fl, err := env.Engine.GetFlowState("memoized-steps")
 		assert.NoError(t, err)
 		assert.Equal(t, api.FlowCompleted, fl.Status)
 		assert.Len(t, env.MockClient.GetInvocations(), 2)

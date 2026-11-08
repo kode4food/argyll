@@ -85,7 +85,7 @@ func (a Args) Apply(other Args) Args {
 
 // HashKey computes a deterministic SHA256 hash key of the Args. Keys are
 // sorted alphabetically to ensure consistent hashing regardless of map
-// iteration order. Returns hex string (64 chars) for use as cache key
+// iteration order. Returns hex string (64 chars) for use as memo key
 func (a Args) HashKey() (string, error) {
 	if len(a) == 0 {
 		return sha256Hex(""), nil

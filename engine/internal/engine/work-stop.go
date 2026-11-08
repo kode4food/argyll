@@ -2,13 +2,10 @@ package engine
 
 import (
 	"fmt"
-	"log/slog"
 	"time"
 
-	"github.com/kode4food/argyll/engine/internal/engine/memo"
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/events"
-	"github.com/kode4food/argyll/engine/pkg/log"
 	"github.com/kode4food/argyll/engine/pkg/policy"
 	"github.com/kode4food/argyll/engine/pkg/util/call"
 )
@@ -51,43 +48,22 @@ func (tx *flowTx) completeWork(
 		return err
 	}
 
-	tx.memoizeWorkOutput(sid, tkn, outputs)
-
-	if err := events.Raise(tx.FlowAggregator, api.EventTypeWorkSucceeded,
-		api.WorkSucceededEvent{
-			FlowID:  tx.flowID,
-			StepID:  sid,
-			Token:   tkn,
-			Outputs: outputs,
-		},
+	data := api.WorkSucceededEvent{
+		FlowID:  tx.flowID,
+		StepID:  sid,
+		Token:   tkn,
+		Outputs: outputs,
+	}
+	if err := tx.recordMemoized(data); err != nil {
+		return err
+	}
+	if err := events.Raise(
+		tx.FlowAggregator, api.EventTypeWorkSucceeded, data,
 	); err != nil {
 		return err
 	}
 
 	return tx.settleStep(sid)
-}
-
-func (tx *flowTx) memoizeWorkOutput(
-	sid api.StepID, tkn api.Token, outputs api.Args,
-) {
-	fl := tx.Value()
-	st := fl.Plan.Steps[sid]
-	if st.DefaultedHandling() != api.HandlingMemoized {
-		return
-	}
-
-	ex := fl.Executions[sid]
-	work := ex.WorkItems[tkn]
-	inputs := ex.Inputs.Apply(work.Inputs)
-	err := tx.memoCache.Put(st, memo.PutArgs{
-		Inputs:  inputs,
-		Outputs: outputs,
-	})
-	if err != nil {
-		slog.Warn("memo cache put failed",
-			log.FlowID(tx.flowID), log.StepID(sid),
-			log.Error(err))
-	}
 }
 
 func (tx *flowTx) failWork(
@@ -138,28 +114,6 @@ func (tx *flowTx) handleWorkNotCompleted(
 		call.WithArg(tx.continueStepWork, sid),
 		call.WithArg(tx.settleStep, sid),
 	)
-}
-
-// handleMemoCacheHit processes a memo cache hit by emitting WorkSucceeded
-func (tx *flowTx) handleMemoCacheHit(
-	sid api.StepID, tkn api.Token, outputs api.Args,
-) error {
-	if err := tx.checkWorkTransition(
-		sid, tkn, api.WorkSucceeded,
-	); err != nil {
-		return err
-	}
-	if err := events.Raise(tx.FlowAggregator, api.EventTypeWorkSucceeded,
-		api.WorkSucceededEvent{
-			FlowID:  tx.flowID,
-			StepID:  sid,
-			Token:   tkn,
-			Outputs: outputs,
-		},
-	); err != nil {
-		return err
-	}
-	return tx.settleStep(sid)
 }
 
 func (tx *flowTx) raiseWorkFailed(

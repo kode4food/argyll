@@ -635,8 +635,8 @@ START_PENDING_WORK(step):
         IF execution is no longer ACTIVE or active item count >= limit: BREAK
         IF item is not PENDING or its nextRetryAt > tx.now: CONTINUE
         inputs := frozen step inputs overlaid with item inputs
-        IF handling is memoized and cache contains outputs for step + inputs:
-            EMIT work_succeeded(cached outputs)
+        IF handling is memoized and MEMO_LOOKUP(step, inputs) finds outputs:
+            EMIT work_succeeded(memoized outputs)
             SETTLE_STEP(step)
             RETURN started
         IF NOT canDispatch: CONTINUE
@@ -699,13 +699,16 @@ The HTTP callback validates the flow, execution, receipt token, and action. Invo
 
 ## Work settlement and retained outputs
 
-Sources: [work-stop.go](../engine/internal/engine/work-stop.go), [step-stop.go](../engine/internal/engine/step-stop.go), [work-items.go](../engine/internal/engine/work-items.go).
+Sources: [work-stop.go](../engine/internal/engine/work-stop.go), [work-memo.go](../engine/internal/engine/work-memo.go), [step-stop.go](../engine/internal/engine/step-stop.go), [work-items.go](../engine/internal/engine/work-items.go).
 
 ```text
 COMPLETE_WORK(step, token, outputs):
     TRANSACT or reuse the current inline/parent-child transaction:
         validate work transition to SUCCEEDED
-        for memoized handling, attempt to cache raw outputs for item inputs
+        IF handling is memoized:
+            join the memo aggregate keyed by functional step hash + item input hash
+            IF it has no successful result:
+                EMIT work_succeeded(token, raw outputs) on the memo aggregate
         EMIT work_succeeded(token, raw outputs)
         SETTLE_STEP(step)
 
@@ -777,6 +780,18 @@ COLLECT_STEP_OUTPUTS(step):
 
 Raw work outputs remain recorded by `work_succeeded`. The filtered output set becomes both the step's outputs and its `attribute_set` events. A value needed only by decided optional consumers can therefore remain in work history without becoming a flow attribute. Goal-step outputs are retained except for names declared in init. Late outcomes can settle already-running work after flow failure, but cannot restart terminal steps or change frozen inputs.
 
+### Memoization
+
+```text
+MEMO_LOOKUP(step, inputs):
+    key := functional step hash + input hash
+    join the keyed memo aggregate in the current flow transaction
+    IF it has no successful result: RETURN MISS
+    RETURN raw outputs
+```
+
+The memo aggregate retains the first successful work item's `work_succeeded` payload for a functional step definition and input set. Inputs are the frozen step inputs overlaid with the work item's inputs. Reuse is independent of step and flow outcomes, including late work success after failure. Results persist across restarts and nodes.
+
 ## Work retries and attempt deadlines
 
 ```text
@@ -816,6 +831,10 @@ ON_RETRY_WAKEUP(step, token):
         re-arm retry at nextRetryAt
         RETURN
     IF parallelism is exhausted: RETURN
+    IF handling is memoized and MEMO_LOOKUP(step, item inputs) finds outputs:
+        EMIT work_succeeded(memoized outputs)
+        SETTLE_STEP(step)
+        RETURN
     START_WORK_ITEM(step, token, frozen step inputs overlaid with item inputs)
     AFTER_COMMIT execute the started work through its handler
 

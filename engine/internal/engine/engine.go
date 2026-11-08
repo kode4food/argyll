@@ -9,7 +9,6 @@ import (
 
 	"github.com/kode4food/timebox"
 
-	"github.com/kode4food/argyll/engine/internal/engine/memo"
 	"github.com/kode4food/argyll/engine/internal/engine/scheduler"
 	"github.com/kode4food/argyll/engine/internal/engine/script"
 	"github.com/kode4food/argyll/engine/internal/event"
@@ -35,7 +34,7 @@ type (
 		cancel      context.CancelFunc
 		catalogExec *CatalogExecutor
 		clusterExec *ClusterExecutor
-		memoCache   *memo.Cache
+		memoExec    *MemoExecutor
 		scheduler   *scheduler.Scheduler
 		clock       scheduler.Clock
 		eventHub    *event.Hub
@@ -80,6 +79,12 @@ type (
 
 	// FeedAggregator aggregates Feed state from events
 	FeedAggregator = timebox.Aggregator[api.FeedState]
+
+	// MemoExecutor manages memoized results persistence and event sourcing
+	MemoExecutor = timebox.Executor[*api.WorkSucceededEvent]
+
+	// MemoAggregator aggregates memoized results from events
+	MemoAggregator = timebox.Aggregator[*api.WorkSucceededEvent]
 )
 
 const storeReadyTimeout = 5 * time.Second
@@ -111,15 +116,14 @@ func New(
 
 	ctx, cancel := context.WithCancel(context.Background())
 	e := &Engine{
-		scripts:   deps.Scripts,
-		steps:     deps.Steps,
-		config:    cfg,
-		ctx:       ctx,
-		cancel:    cancel,
-		memoCache: memo.NewCache(cfg.MemoCacheSize),
-		clock:     deps.Clock,
-		eventHub:  deps.EventHub,
-		health:    map[api.StepID]api.HealthState{},
+		scripts:  deps.Scripts,
+		steps:    deps.Steps,
+		config:   cfg,
+		ctx:      ctx,
+		cancel:   cancel,
+		clock:    deps.Clock,
+		eventHub: deps.EventHub,
+		health:   map[api.StepID]api.HealthState{},
 	}
 	e.mapper = NewMapper(e)
 
@@ -190,6 +194,9 @@ func (e *Engine) openStores(open OpenBackend) error {
 	)
 	e.feedExec = flowStore.Executor(
 		events.NewFeedState, events.FeedAppliers.Reduce,
+	)
+	e.memoExec = flowStore.Executor(
+		events.NewMemoState, events.MemoAppliers.Reduce,
 	)
 	return nil
 }

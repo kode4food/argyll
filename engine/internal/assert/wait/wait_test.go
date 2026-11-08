@@ -140,6 +140,16 @@ func TestFlowStepAnyMatchesRepeated(t *testing.T) {
 	assert.True(t, filter(ev))
 }
 
+func TestFlowStepFilterIgnoresOtherAggregates(t *testing.T) {
+	fs := api.FlowStep{FlowID: "flow-a", StepID: "step-a"}
+	filter := wait.FlowStep(fs)
+	ev := newEvent(api.EventTypeWorkSucceeded,
+		timebox.NewAggregateID(events.MemoPrefix, "key"),
+		stepEvent{FlowID: fs.FlowID, StepID: fs.StepID},
+	)
+	assert.False(t, filter(ev))
+}
+
 func TestFlowStepsAndFlowStepFilter(t *testing.T) {
 	a := api.FlowStep{FlowID: "flow-a", StepID: "step-a"}
 	b := api.FlowStep{FlowID: "flow-b", StepID: "step-b"}
