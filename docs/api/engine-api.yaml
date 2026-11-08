@@ -1670,9 +1670,8 @@ components:
           default: standard
           description: |
             How completed work is handled:
-            - `standard`: execute normally without memoization or compensation
-            - `memoized`: reuse successful outputs for identical inputs, across
-              flows and restarts
+            - `standard`: execute every work item
+            - `memoized`: reuse successful outputs for identical inputs
             - `compensated`: allow completed work to be reversed through
               `http.compensate`
           example: memoized

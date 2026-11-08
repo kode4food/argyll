@@ -244,7 +244,7 @@ START_PLAN(id, plan, options):
 
 ## Collect policy and match gates
 
-Values retain their persisted arrival order. Match predicates filter candidate values without changing that order, whether the input is required or optional. A match error propagates to step preparation, which records step failure. An unmatched required input can close the step entirely. An optional input never closes the step: its filtered values are evaluated by its Collection Policy, and it falls back only when that policy is unfulfilled. When init declares the name, an optional `some` or `all` input resolves to an empty list even if its match predicate rejects every init value. Providers cannot supplement the frozen set.
+Values retain their persisted arrival order. Match predicates filter candidate values without changing that order, whether the input is required or optional. A match error propagates to step preparation, which records step failure. An unmatched required input can close the step entirely. An optional input's filtered values are evaluated by its Collection Policy, and it falls back when that policy is unfulfilled. When init declares the name, an optional `some` or `all` input resolves to its filtered init values, which can be empty.
 
 A `for_each` input is valid only with `collect: all` or `collect: some`: its resolved value is the collected candidate list itself, which step preparation fans out into one work item per element. When init declares the name with zero values, these policies resolve to an empty list and a `for_each` step settles with zero work items, unless a required match gate closes first. A required `first`, `last`, `some`, or `all` input with a match predicate and no matching candidates skips its step, including when init declares an empty list. Optional inputs have no step-level match gate.
 
@@ -483,7 +483,7 @@ OUTPUTS_NEEDED(step, goals, now):
 
 Output demand is shared across consumers: one decided optional does not remove demand from another pending consumer, including a required consumer. Only PENDING executions are eligible for the unused-provider skip.
 
-An init declaration freezes its name at the init values, regardless of collect mode. Consumers of a declared name resolve it from those values alone. When a step that runs for other reasons also outputs a declared name, that output is discarded. Without a required match predicate, an empty init array lets `some` and `all` receive an empty list, while a required `first` or `last` input fails its step. With a required match predicate, an empty init array closes the gate for all four modes and skips the step instead.
+An init declaration freezes its name at the init values for every collect mode. Consumers of a declared name resolve it from those values alone. When a step that runs for other reasons also outputs a declared name, that output is discarded. Without a required match predicate, an empty init array lets `some` and `all` receive an empty list, while a required `first` or `last` input fails its step. With a required match predicate, an empty init array closes the gate for all four modes and skips the step instead.
 
 ## Advancing a flow
 
@@ -790,7 +790,7 @@ MEMO_LOOKUP(step, inputs):
     RETURN raw outputs
 ```
 
-The memo aggregate retains the first successful work item's `work_succeeded` payload for a step definition and input set. Inputs are the frozen step inputs overlaid with the work item's inputs. Reuse is independent of step and flow outcomes, including late work success after failure. Results persist across restarts and nodes.
+The memo aggregate retains the first successful work item's `work_succeeded` payload for a step definition and input set.
 
 ## Work retries and attempt deadlines
 
