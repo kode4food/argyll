@@ -10,9 +10,9 @@ import {
   Braces,
   ChevronDown,
   ChevronUp,
-  Award,
   CheckCircle,
   CheckCircle2,
+  CircleArrowRight,
   CircleDashed,
   CircleDot,
   CircleEqual,
@@ -131,7 +131,7 @@ export const IconAttributeStatusSatisfied = CheckCircle2;
 export const IconAttributeStatusMissing = AlertCircle;
 export const IconAttributeStatusFailed = XCircle;
 export const IconAttributeStatusNotWinner = XCircle;
-export const IconAttributeStatusWinner = Award;
+export const IconAttributeStatusWinner = CircleArrowRight;
 export const IconAttributeStatusBlocked = Ban;
 export const IconAttributeStatusPending = CircleDashed;
 export const IconAttributeStatusProvided = CheckCircle;

@@ -396,7 +396,9 @@ describe("Attributes", () => {
 
     const winnerBadge = container.querySelector(".arg-status-badge.satisfied");
     expect(winnerBadge).toBeInTheDocument();
-    expect(winnerBadge?.querySelector(".lucide-award")).toBeInTheDocument();
+    expect(
+      winnerBadge?.querySelector(".lucide-circle-arrow-right")
+    ).toBeInTheDocument();
   });
 
   test("shows skipped badge for optional arg when execution is skipped", () => {
