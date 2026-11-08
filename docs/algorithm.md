@@ -706,7 +706,7 @@ COMPLETE_WORK(step, token, outputs):
     TRANSACT or reuse the current inline/parent-child transaction:
         validate work transition to SUCCEEDED
         IF handling is memoized:
-            join the memo aggregate keyed by functional step hash + item input hash
+            join the memo aggregate keyed by step hash + item input hash
             IF it has no successful result:
                 EMIT work_succeeded(token, raw outputs) on the memo aggregate
         EMIT work_succeeded(token, raw outputs)
@@ -784,13 +784,13 @@ Raw work outputs remain recorded by `work_succeeded`. The filtered output set be
 
 ```text
 MEMO_LOOKUP(step, inputs):
-    key := functional step hash + input hash
+    key := step hash + input hash
     join the keyed memo aggregate in the current flow transaction
     IF it has no successful result: RETURN MISS
     RETURN raw outputs
 ```
 
-The memo aggregate retains the first successful work item's `work_succeeded` payload for a functional step definition and input set. Inputs are the frozen step inputs overlaid with the work item's inputs. Reuse is independent of step and flow outcomes, including late work success after failure. Results persist across restarts and nodes.
+The memo aggregate retains the first successful work item's `work_succeeded` payload for a step definition and input set. Inputs are the frozen step inputs overlaid with the work item's inputs. Reuse is independent of step and flow outcomes, including late work success after failure. Results persist across restarts and nodes.
 
 ## Work retries and attempt deadlines
 
