@@ -100,6 +100,7 @@ if __name__ == "__main__":
             "capability:process",
             "execution:async",
             "example",
+            "demo:checkout",
         ) \
         .required("order") \
         .output("payment_result") \

@@ -67,7 +67,9 @@ func main() {
 
 	err := client.NewStep().WithName("User Resolver").
 		WithDescription("resolve user profile by user_id").
-		WithTags("domain:users", "capability:lookup", "example").
+		WithTags(
+			"domain:users", "capability:lookup", "example", "demo:checkout",
+		).
 		Optional("user_id", `"user-123"`).
 		Output("user_info").
 		Start(handle)

@@ -44,7 +44,7 @@ type (
 
 //argyll:step
 //argyll:description send order confirmation notifications
-//argyll:tags domain:notifications; capability:send; example
+//argyll:tags domain:notifications; capability:send; example; demo:checkout
 func NotificationSender(args NotificationArgs) error {
 	payment := args.PaymentResult
 	user := args.UserInfo

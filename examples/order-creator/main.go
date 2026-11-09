@@ -44,7 +44,9 @@ func main() {
 
 	err := client.NewStep().WithName("Order Creator").
 		WithDescription("create order records and validate business rules").
-		WithTags("domain:orders", "capability:create", "example").
+		WithTags(
+			"domain:orders", "capability:create", "example", "demo:checkout",
+		).
 		Required("user_info").
 		Required("product_info").
 		Optional("quantity", "1").

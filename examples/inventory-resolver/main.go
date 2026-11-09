@@ -101,6 +101,7 @@ func main() {
 		).
 		WithTags(
 			"domain:inventory", "capability:lookup", "example",
+			"demo:checkout",
 		).
 		Optional("product_id", `"prod-laptop"`).
 		Output("product_info").
