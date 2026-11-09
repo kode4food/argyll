@@ -315,7 +315,7 @@ func (e *TestEngineEnv) AppendEvents(
 
 // ScheduleKeys loads the keys of every active schedule
 func (e *TestEngineEnv) ScheduleKeys() (util.Set[timebox.ScheduleKey], error) {
-	schedules, err := e.flowStore.ListSchedules(time.Time{})
+	schedules, err := e.flowStore.LoadSchedules(time.Time{})
 	if err != nil {
 		return nil, err
 	}

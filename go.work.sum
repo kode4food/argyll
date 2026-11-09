@@ -830,6 +830,7 @@ github.com/kode4food/timebox v0.2.1-0.20261006051337-6da47427c2a9/go.mod h1:t+XV
 github.com/kode4food/timebox v0.3.1-0.20261019122948-0029e3bffff8/go.mod h1:2wJf0lhceRCDpjJkMEAaXxeWS2N9NEemtcYKeujApxk=
 github.com/kode4food/timebox v0.3.1-0.20261022102108-98b194636912/go.mod h1:2wJf0lhceRCDpjJkMEAaXxeWS2N9NEemtcYKeujApxk=
 github.com/kode4food/timebox v0.3.1-0.20261108193203-9ac6a7687dde/go.mod h1:2wJf0lhceRCDpjJkMEAaXxeWS2N9NEemtcYKeujApxk=
+github.com/kode4food/timebox v0.4.0/go.mod h1:2wJf0lhceRCDpjJkMEAaXxeWS2N9NEemtcYKeujApxk=
 github.com/kr/pty v1.1.1 h1:VkoXIwSboBpnk99O/KFauAEILuNHv5DVFKZMBN/gUgw=
 github.com/kylelemons/godebug v1.1.0 h1:RPNrshWIDI6G2gRW9EHilWtl7Z6Sb1BR0xunSBf0SNc=
 github.com/kylelemons/godebug v1.1.0/go.mod h1:9/0rRGxNHcop5bhtWyNeEfOS8JIWk580+fNqagV/RAw=
@@ -1169,6 +1170,7 @@ golang.org/x/term v0.43.0 h1:S4RLU2sB31O/NCl+zFN9Aru9A/Cq2aqKpTZJ6B+DwT4=
 golang.org/x/term v0.43.0/go.mod h1:lrhlHNdQJHO+1qVYiHfFKVuVioJIheAc3fBSMFYEIsk=
 golang.org/x/term v0.45.0 h1:NwWyBmoJCbfTHpxrWoZ9C6/VxOf7ic219I8xZZFdrf0=
 golang.org/x/term v0.45.0/go.mod h1:9aqxs0blBcrm/n0L9QW0aRVD+ktan8ssZromtqJC43w=
+golang.org/x/term v0.46.0 h1:3+OXuTbaKDgwk8jTi3aSLHRlmWqHEUDUtxnbFigO4YE=
 golang.org/x/term v0.46.0/go.mod h1:+K02xbkittuwc0Am4abfA3Fc+XRGXkvBXNO88NCXPoc=
 golang.org/x/term v0.47.0/go.mod h1:efAfAuG6RKABvg1ArGebRkvX6LXul14SM67o2e4mUCY=
 golang.org/x/text v0.23.0/go.mod h1:/BLNzu4aZCJ1+kcD0DNRotWKage4q2rGVAg4o22unh4=

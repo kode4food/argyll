@@ -21,7 +21,7 @@ require (
 	github.com/gobwas/ws v1.4.0 // indirect
 	github.com/gorilla/websocket v1.5.3 // indirect
 	github.com/klauspost/compress v1.19.2 // indirect
-	github.com/kode4food/timebox v0.4.0 // indirect
+	github.com/kode4food/timebox v0.4.1-0.20261109115459-8d6af13dc2a8 // indirect
 	github.com/kr/pretty v0.3.1 // indirect
 	github.com/localrivet/wilduri v0.0.0-20250504021349-6ce732e97cca // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect

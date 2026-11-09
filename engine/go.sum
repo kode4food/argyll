@@ -70,8 +70,8 @@ github.com/kode4food/caravan v0.0.0-20260905062940-5af4c3674974 h1:C/uzNNHL2FJh8
 github.com/kode4food/caravan v0.0.0-20260905062940-5af4c3674974/go.mod h1:2926EylBdGCztWOEDu1VPk8WlNnFkwxn8Q0sOEmf2E4=
 github.com/kode4food/lru v0.0.0-20260821124822-50bd9a308b71 h1:xqHrCb85JXvWEWCHRM3zsuNUWEJSNktvs7ROFEnKhIo=
 github.com/kode4food/lru v0.0.0-20260821124822-50bd9a308b71/go.mod h1:qxHo1+SIRuVcQ5s3HaZYMWw5v1B6W4kJIJ4KP/gg67c=
-github.com/kode4food/timebox v0.4.0 h1:s8piwpgyxy/BSAfaO1Z/DFXyq6e+8cdWrjWhxAwCE5k=
-github.com/kode4food/timebox v0.4.0/go.mod h1:2wJf0lhceRCDpjJkMEAaXxeWS2N9NEemtcYKeujApxk=
+github.com/kode4food/timebox v0.4.1-0.20261109115459-8d6af13dc2a8 h1:TrYE3ujU3MR8zxc4zFi3lKoe0BGycPN2uXWo5jJNKIs=
+github.com/kode4food/timebox v0.4.1-0.20261109115459-8d6af13dc2a8/go.mod h1:2wJf0lhceRCDpjJkMEAaXxeWS2N9NEemtcYKeujApxk=
 github.com/leodido/go-urn v1.5.0 h1:pLqT2kq1zpHW/1D18QMjMpdtX7cekxqtJJjg5ANyWw0=
 github.com/leodido/go-urn v1.5.0/go.mod h1:9BORnCDhdPBJNDEX+w1bJisa8yOKYi116VeO96s4ifE=
 github.com/mattn/go-isatty v0.0.24 h1:tGZZoVgT/KiqK1c8ocVLeDS8BSWMRd47J3Lbz7vsReI=
