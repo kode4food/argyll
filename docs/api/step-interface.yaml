@@ -53,9 +53,10 @@ paths:
         the idempotency key for side effects.
 
         - 2xx: a sync action succeeded, or an async action was accepted.
-        - 5xx or transport error: temporary failure. The engine retries using
-          the step's `work_config` backoff settings.
-        - 4xx: permanent failure.
+        - 400, 401, 403, 404, 405, 406, 410, 411, 413, 414, 415, 422, or 431:
+          permanent failure.
+        - Any other status or transport error: temporary failure. The engine
+          retries using the step's `work_config` backoff settings.
       operationId: handleWorkItem
       tags:
         - Step Execution
@@ -183,8 +184,9 @@ components:
   responses:
     Problem:
       description: |
-        Step failed. 4xx responses are permanent failures. 5xx responses are
-        retryable according to step retry configuration.
+        Step failed. 400, 401, 403, 404, 405, 406, 410, 411, 413, 414, 415,
+        422, and 431 are permanent failures. Other statuses are retryable
+        according to step retry configuration.
       content:
         application/problem+json:
           schema:
@@ -206,8 +208,9 @@ tags:
 x-implementation-notes: |
   Success: return 2xx with a JSON object containing output arguments, or 204
   when there are no outputs.
-  Permanent failure: return 4xx with `Content-Type: application/problem+json`.
-  Retryable failure: return 5xx, timeout, or close the connection. Argyll
+  Permanent failure: return 400, 401, 403, 404, 405, 406, 410, 411, 413, 414,
+  415, 422, or 431 with `Content-Type: application/problem+json`.
+  Retryable failure: return 5xx, 429, timeout, or close the connection. Argyll
   records the work item as not completed and applies retry policy.
   Async invocation completion: POST the success output object or problem
   details object to `Argyll-Webhook-URL`.
@@ -215,7 +218,7 @@ x-implementation-notes: |
   attributes marked `compensated` as one flattened object using
   invocation-mapped names. The same names resolve URL placeholders. Duplicate
   selected inner names are invalid. Use the receipt token as the idempotency
-  key. A sync compensation returns 2xx on success, 5xx for a retryable failure,
-  or 4xx for a permanent failure. An async compensation first returns 2xx to
+  key. A sync compensation returns 2xx on success, 5xx or 429 for a retryable
+  failure, or 422 for a permanent failure. An async compensation first returns 2xx to
   accept the work, then POSTs an empty success response or problem details to
   its `Argyll-Webhook-URL`.

@@ -17,6 +17,7 @@ import (
 	"github.com/kode4food/argyll/engine/internal/engine/scheduler"
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/log"
+	"github.com/kode4food/argyll/engine/pkg/util"
 )
 
 // httpClient invokes step handlers over HTTP
@@ -35,6 +36,22 @@ var (
 )
 
 var endpointParamPattern = regexp.MustCompile(`\{([^{}]+)\}`)
+
+var permanentHTTPStatuses = util.SetOf(
+	http.StatusBadRequest,
+	http.StatusUnauthorized,
+	http.StatusForbidden,
+	http.StatusNotFound,
+	http.StatusMethodNotAllowed,
+	http.StatusNotAcceptable,
+	http.StatusGone,
+	http.StatusLengthRequired,
+	http.StatusRequestEntityTooLarge,
+	http.StatusRequestURITooLong,
+	http.StatusUnsupportedMediaType,
+	http.StatusUnprocessableEntity,
+	http.StatusRequestHeaderFieldsTooLarge,
+)
 
 // NewHTTPClient creates a new HTTP client with the specified request timeout
 func NewHTTPClient(timeout time.Duration) Client {
@@ -263,7 +280,7 @@ func httpStatusError(status int, problem *api.ProblemDetails) error {
 }
 
 func retryableHTTPStatus(status int) bool {
-	return status >= http.StatusInternalServerError
+	return !permanentHTTPStatuses.Contains(status)
 }
 
 func problemFromBody(contentType string, body []byte) *api.ProblemDetails {

@@ -2,6 +2,7 @@ package builtins_test
 
 import (
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -396,6 +397,45 @@ func TestHTTP4xxError(t *testing.T) {
 	assert.ErrorIs(t, err, builtins.ErrHTTPError)
 	assert.NotErrorIs(t, err, api.ErrWorkNotCompleted)
 	assert.Contains(t, err.Error(), "400")
+}
+
+func TestHTTPStatusRetry(t *testing.T) {
+	tests := []struct {
+		status int
+		retry  bool
+	}{
+		{http.StatusBadRequest, false},
+		{http.StatusNotFound, false},
+		{http.StatusUnprocessableEntity, false},
+		{http.StatusRequestHeaderFieldsTooLarge, false},
+		{http.StatusTooManyRequests, true},
+		{http.StatusRequestTimeout, true},
+		{http.StatusConflict, true},
+		{http.StatusInternalServerError, true},
+	}
+	for _, tc := range tests {
+		t.Run(http.StatusText(tc.status), func(t *testing.T) {
+			server := httptest.NewServer(http.HandlerFunc(
+				func(w http.ResponseWriter, r *http.Request) {
+					w.WriteHeader(tc.status)
+				},
+			))
+			defer server.Close()
+
+			cl := builtins.NewHTTPClient(5 * time.Second)
+			st := &api.Step{
+				ID: "test-step",
+				HTTP: &api.HTTPConfig{
+					Invoke: api.HTTPAction{Endpoint: server.URL},
+				},
+			}
+
+			_, err := cl.Invoke(st, api.Args{}, api.Metadata{})
+			assert.ErrorIs(t, err, builtins.ErrHTTPError)
+			assert.Equal(t, tc.retry,
+				errors.Is(err, api.ErrWorkNotCompleted))
+		})
+	}
 }
 
 func TestGETURLParams(t *testing.T) {
