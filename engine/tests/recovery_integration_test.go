@@ -14,8 +14,8 @@ import (
 
 const recoveryTimeout = 10 * time.Second
 
-// TestBasicFlowRecovery tests that a single flow with pending work recovers
-// and completes after engine crash (new engine instance)
+// TestBasicFlowRecovery tests that a single flow with pending work recovers and completes after
+// engine crash (new engine instance)
 func TestBasicFlowRecovery(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		assert.NoError(t, env.Engine.Start())
@@ -80,8 +80,7 @@ func TestBasicFlowRecovery(t *testing.T) {
 	})
 }
 
-// TestMultipleFlowRecovery tests that multiple flows all recover after engine
-// restart
+// TestMultipleFlowRecovery tests that multiple flows all recover after engine restart
 func TestMultipleFlowRecovery(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		assert.NoError(t, env.Engine.Start())
@@ -310,8 +309,8 @@ func TestRecoveryWorkStates(t *testing.T) {
 					Error:  api.ErrWorkNotCompleted.Error(),
 				},
 			},
-			// Reporting not-completed settles into a scheduled retry, which
-			// is the state recovery actually finds at rest
+			// Reporting not-completed settles into a scheduled retry, which is the state recovery
+			// actually finds at rest
 			helpers.FlowEvent{
 				Type: api.EventTypeWorkRetryScheduled,
 				Data: api.WorkRetryScheduledEvent{
@@ -406,8 +405,8 @@ func TestRecoveryWorkStates(t *testing.T) {
 	})
 }
 
-// TestRecoveryPreservesState tests that flow state is preserved across
-// restarts (recovery picks up where it left off)
+// TestRecoveryPreservesState tests that flow state is preserved across restarts (recovery picks up
+// where it left off)
 func TestRecoveryPreservesState(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		assert.NoError(t, env.Engine.Start())
@@ -472,27 +471,21 @@ func TestRecoveryPreservesState(t *testing.T) {
 		assert.Equal(t, api.FlowCompleted, afterRestart.Status)
 
 		// Verify step completed after recovery
-		assert.Equal(t,
-			api.StepCompleted, afterRestart.Executions[st.ID].Status,
-		)
+		assert.Equal(t, api.StepCompleted, afterRestart.Executions[st.ID].Status)
 	})
 }
 
 func waitForFlowStatusWithTimeoutAfter(
-	env *helpers.TestEngineEnv, fid api.FlowID, timeout time.Duration,
-	fn func(),
+	env *helpers.TestEngineEnv, fid api.FlowID, timeout time.Duration, fn func(),
 ) api.FlowState {
 	env.T.Helper()
 
-	states := waitForFlowsStatusWithTimeoutAfter(
-		env, []api.FlowID{fid}, timeout, fn,
-	)
+	states := waitForFlowsStatusWithTimeoutAfter(env, []api.FlowID{fid}, timeout, fn)
 	return states[fid]
 }
 
 func waitForFlowsStatusWithTimeoutAfter(
-	env *helpers.TestEngineEnv, ids []api.FlowID, timeout time.Duration,
-	fn func(),
+	env *helpers.TestEngineEnv, ids []api.FlowID, timeout time.Duration, fn func(),
 ) map[api.FlowID]api.FlowState {
 	env.T.Helper()
 

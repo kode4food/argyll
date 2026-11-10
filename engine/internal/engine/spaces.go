@@ -123,9 +123,7 @@ func (e *Engine) UnregisterSpace(spaceID api.SpaceID) error {
 	})
 }
 
-func (e *Engine) matchingSpaceIDs(
-	cat *api.CatalogState, st *api.Step,
-) ([]api.SpaceID, error) {
+func (e *Engine) matchingSpaceIDs(cat *api.CatalogState, st *api.Step) ([]api.SpaceID, error) {
 	var res []api.SpaceID
 	for id, sp := range cat.Spaces.Defined {
 		matches, err := e.spaceMatches(sp, st)
@@ -161,15 +159,12 @@ func (e *Engine) prepareSelector(sp api.Space) (api.Space, error) {
 	}
 	err := e.scripts.ValidatePredicate(script.MatchStep, sp.Selector)
 	if err != nil {
-		return api.Space{}, fmt.Errorf("%w: selector: %w",
-			api.ErrInvalidSpace, err)
+		return api.Space{}, fmt.Errorf("%w: selector: %w", api.ErrInvalidSpace, err)
 	}
 	return sp, nil
 }
 
-func (e *Engine) selectSpaceSteps(
-	steps api.Steps, sp api.Space,
-) ([]api.StepID, error) {
+func (e *Engine) selectSpaceSteps(steps api.Steps, sp api.Space) ([]api.StepID, error) {
 	res := make([]api.StepID, 0)
 	for id, st := range steps {
 		matches, err := e.spaceMatches(sp, st)

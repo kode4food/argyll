@@ -239,9 +239,7 @@ func TestWaitForEngineEvents(t *testing.T) {
 			err := env.Engine.RegisterStep(st)
 			assert.NoError(t, err)
 
-			wait.On(t, consumer).ForEvent(wait.EngineEvent(
-				api.EventTypeStepRegistered,
-			))
+			wait.On(t, consumer).ForEvent(wait.EngineEvent(api.EventTypeStepRegistered))
 		})
 	})
 }
@@ -393,9 +391,7 @@ func TestWaitStepSkipped(t *testing.T) {
 		assert.NoError(t, env.Engine.Start())
 		defer func() { _ = env.Engine.Stop() }()
 
-		st := helpers.NewStepWithPredicate(
-			"skip-step", api.ScriptLangLua, "return false",
-		)
+		st := helpers.NewStepWithPredicate("skip-step", api.ScriptLangLua, "return false")
 		err := env.Engine.RegisterStep(st)
 		assert.NoError(t, err)
 
@@ -444,13 +440,9 @@ func TestWaitForCountHelper(t *testing.T) {
 
 		env.WaitForCount(
 			2, wait.EngineEvent(api.EventTypeStepRegistered), func() {
-				err := env.Engine.RegisterStep(
-					helpers.NewSimpleStep("count-step-1"),
-				)
+				err := env.Engine.RegisterStep(helpers.NewSimpleStep("count-step-1"))
 				assert.NoError(t, err)
-				err = env.Engine.RegisterStep(
-					helpers.NewSimpleStep("count-step-2"),
-				)
+				err = env.Engine.RegisterStep(helpers.NewSimpleStep("count-step-2"))
 				assert.NoError(t, err)
 			},
 		)

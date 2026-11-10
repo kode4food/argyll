@@ -14,8 +14,8 @@ var (
 	ErrUnsupportedGo = errors.New("no Go literal for kind")
 )
 
-// GoLiteral renders a value as the Go expression that rebuilds it, leaving out
-// the zero and unexported fields a literal already defaults
+// GoLiteral renders a value as the Go expression that rebuilds it, leaving out the zero and
+// unexported fields a literal already defaults
 func GoLiteral(v any) (string, error) {
 	return literalOf(reflect.ValueOf(v))
 }
@@ -50,8 +50,8 @@ func literalOf(v reflect.Value) (string, error) {
 	}
 }
 
-// an empty name renders the braces alone, for an element whose type the
-// composite around it already states
+// an empty name renders the braces alone, for an element whose type the composite around it already
+// states
 func compositeLiteral(name string, v reflect.Value) (string, error) {
 	parts, err := partsOf(v)
 	if err != nil {
@@ -124,8 +124,8 @@ func listParts(v reflect.Value) ([]string, error) {
 	return items, nil
 }
 
-// elementLiteral renders an element of a composite, leaving out the type Go
-// infers from the composite around it
+// elementLiteral renders an element of a composite, leaving out the type Go infers from the
+// composite around it
 func elementLiteral(v reflect.Value, t reflect.Type) (string, error) {
 	if t.Kind() == reflect.Pointer {
 		if v.IsNil() {
@@ -141,8 +141,8 @@ func elementLiteral(v reflect.Value, t reflect.Type) (string, error) {
 	return literalOf(v)
 }
 
-// elides reports whether a composite literal of this type states its own type
-// only when it stands alone
+// elides reports whether a composite literal of this type states its own type only when it stands
+// alone
 func elides(t reflect.Type) bool {
 	switch t.Kind() {
 	case reflect.Struct, reflect.Slice, reflect.Array, reflect.Map:
@@ -159,8 +159,8 @@ func composite(name string, parts []string) string {
 	return name + "{\n" + strings.Join(parts, "\n") + "\n}"
 }
 
-// typeName qualifies a named type by the package goimports resolves for it, and
-// spells an unnamed composite out of the types it composes
+// typeName qualifies a named type by the package goimports resolves for it, and spells an unnamed
+// composite out of the types it composes
 func typeName(t reflect.Type) (string, error) {
 	if t.Name() != "" {
 		pkg := t.PkgPath()

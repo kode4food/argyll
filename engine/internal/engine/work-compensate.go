@@ -34,26 +34,21 @@ func (e *Engine) CompleteCompensation(fs api.FlowStep, tkn api.Token) error {
 }
 
 // FailCompensation marks a compensation as permanently failed
-func (e *Engine) FailCompensation(
-	fs api.FlowStep, tkn api.Token, errMsg string,
-) error {
+func (e *Engine) FailCompensation(fs api.FlowStep, tkn api.Token, errMsg string) error {
 	return e.flowTx(fs.FlowID, func(tx *flowTx) error {
 		return tx.failCompensation(fs.StepID, tkn, errMsg)
 	})
 }
 
-// NotCompleteCompensation records a transient compensation failure and
-// schedules a retry
-func (e *Engine) NotCompleteCompensation(
-	fs api.FlowStep, tkn api.Token, errMsg string,
-) error {
+// NotCompleteCompensation records a transient compensation failure and schedules a retry
+func (e *Engine) NotCompleteCompensation(fs api.FlowStep, tkn api.Token, errMsg string) error {
 	return e.flowTx(fs.FlowID, func(tx *flowTx) error {
 		return tx.scheduleCompensationRetry(fs.StepID, tkn, errMsg)
 	})
 }
 
-// compensateFlow unwinds one wave in reverse dependency order, re-entered after
-// every flow advance and compensation outcome to drive the next
+// compensateFlow unwinds one wave in reverse dependency order, re-entered after every flow advance
+// and compensation outcome to drive the next
 func (tx *flowTx) compensateFlow() error {
 	fl := tx.Value()
 	if compensationActive(&fl) {
@@ -65,20 +60,16 @@ func (tx *flowTx) compensateFlow() error {
 	}
 	for _, sid := range wave {
 		st := fl.Plan.Steps[sid]
-		if err := tx.startPendingCompensations(
-			st, fl.Executions[sid],
-		); err != nil {
+		if err := tx.startPendingCompensations(st, fl.Executions[sid]); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-// nextCompensationWave returns the steps with succeeded work that no step
-// still running or awaiting compensation depends on
-func (tx *flowTx) nextCompensationWave(
-	fl *api.FlowState,
-) ([]api.StepID, error) {
+// nextCompensationWave returns the steps with succeeded work that no step still running or awaiting
+// compensation depends on
+func (tx *flowTx) nextCompensationWave(fl *api.FlowState) ([]api.StepID, error) {
 	pending := util.Set[api.StepID]{}
 	blocking := util.Set[api.StepID]{}
 	for sid, ex := range fl.Executions {
@@ -86,8 +77,8 @@ func (tx *flowTx) nextCompensationWave(
 		if !ok || !flowRollsBack(fl, sid) {
 			continue
 		}
-		// A step still running may yet succeed or read upstream values, so it
-		// holds back its own wave and every provider's
+		// A step still running may yet succeed or read upstream values, so it holds back its own
+		// wave and every provider's
 		if policy.StepActive(ex.Status) {
 			blocking.Add(sid)
 			continue
@@ -117,9 +108,7 @@ func (tx *flowTx) nextCompensationWave(
 	return wave, nil
 }
 
-func (tx *flowTx) startPendingCompensations(
-	st *api.Step, ex api.ExecutionState,
-) error {
+func (tx *flowTx) startPendingCompensations(st *api.Step, ex api.ExecutionState) error {
 	if !hasSucceededWork(&ex) {
 		return nil
 	}
@@ -163,15 +152,11 @@ func (tx *flowTx) completeCompensation(sid api.StepID, tkn api.Token) error {
 		return nil
 	}
 	return call.Perform(
-		call.WithArgs(tx.raiseCompSucceeded, sid, tkn),
-		tx.compensateFlow,
-		tx.maybeDeactivate,
+		call.WithArgs(tx.raiseCompSucceeded, sid, tkn), tx.compensateFlow, tx.maybeDeactivate,
 	)
 }
 
-func (tx *flowTx) failCompensation(
-	sid api.StepID, tkn api.Token, errMsg string,
-) error {
+func (tx *flowTx) failCompensation(sid api.StepID, tkn api.Token, errMsg string) error {
 	ex := tx.Value().Executions[sid]
 	if !policy.WorkCompUnsettled(ex.WorkItems[tkn].Status) {
 		return nil
@@ -182,9 +167,7 @@ func (tx *flowTx) failCompensation(
 	return call.Perform(tx.compensateFlow, tx.maybeDeactivate)
 }
 
-func (tx *flowTx) scheduleCompensationRetry(
-	sid api.StepID, tkn api.Token, errMsg string,
-) error {
+func (tx *flowTx) scheduleCompensationRetry(sid api.StepID, tkn api.Token, errMsg string) error {
 	ex := tx.Value().Executions[sid]
 	work, ok := ex.WorkItems[tkn]
 	if !ok || !policy.WorkCompActive(work.Status) {
@@ -193,9 +176,7 @@ func (tx *flowTx) scheduleCompensationRetry(
 
 	st := tx.Value().Plan.Steps[sid]
 	if tx.ShouldRetry(st, &work) {
-		nextRetryAt := tx.calculateNextRetryAt(
-			tx.Now(), st.WorkConfig, work.RetryCount,
-		)
+		nextRetryAt := tx.calculateNextRetryAt(tx.Now(), st.WorkConfig, work.RetryCount)
 		err := tx.raiseCompRetryScheduled(raiseCompRetryScheduledArgs{
 			stepID:      sid,
 			token:       tkn,
@@ -212,8 +193,8 @@ func (tx *flowTx) scheduleCompensationRetry(
 	return tx.failCompensation(sid, tkn, errMsg)
 }
 
-// CompleteWork records compensation success, so a compensator settles the same
-// way an invocation does
+// CompleteWork records compensation success, so a compensator settles the same way an invocation
+// does
 func (r compRuntime) CompleteWork(tkn api.Token, _ api.Args) error {
 	return r.engine.CompleteCompensation(r.flowStep(), tkn)
 }
@@ -229,9 +210,7 @@ func (r compRuntime) failWork(tkn api.Token, errMsg string) error {
 func (e *ExecContext) performCompensation(args api.Args, tkn api.Token) {
 	comp, err := e.engine.steps.Compensator(e.step)
 	if err != nil {
-		slog.Error("Failed to resolve step compensator",
-			log.StepID(e.stepID),
-			log.Error(err))
+		slog.Error("Failed to resolve step compensator", log.StepID(e.stepID), log.Error(err))
 		return
 	}
 	if comp == nil {
@@ -253,9 +232,7 @@ func (tx *flowTx) compensationContext(st *api.Step) *ExecContext {
 	}
 }
 
-func (tx *flowTx) scheduleCompensationTask(
-	sid api.StepID, tkn api.Token, retryAt time.Time,
-) error {
+func (tx *flowTx) scheduleCompensationTask(sid api.StepID, tkn api.Token, retryAt time.Time) error {
 	fs := api.FlowStep{FlowID: tx.flowID, StepID: sid}
 	return tx.scheduleEvent(compensateKey(fs, tkn), retryAt,
 		compensationRetryReady,
@@ -302,9 +279,7 @@ func (tx *flowTx) recoverCompensations() error {
 		}
 		comp, err := tx.Engine.steps.Compensator(st)
 		if err != nil {
-			slog.Error("Failed to resolve step compensator",
-				log.StepID(sid),
-				log.Error(err))
+			slog.Error("Failed to resolve step compensator", log.StepID(sid), log.Error(err))
 			continue
 		}
 		if comp == nil {
@@ -323,17 +298,15 @@ func (tx *flowTx) recoverStepCompensations(sid api.StepID) error {
 	now := tx.Now()
 	for tkn, work := range ex.WorkItems {
 		if retryAt, ok := policy.CompRetryAt(&work, now); ok {
-			if err := tx.scheduleCompensationTask(
-				sid, tkn, retryAt,
-			); err != nil {
+			if err := tx.scheduleCompensationTask(sid, tkn, retryAt); err != nil {
 				return err
 			}
 			continue
 		}
 		if policy.WorkSucceeded(work.Status) &&
 			(policy.StepFailed(ex.Status) || flowRollsBack(&fl, sid)) {
-			// Compensation never started, so it joins this transaction rather
-			// than a task rereading the state
+			// Compensation never started, so it joins this transaction rather than a task rereading
+			// the state
 			if flowRollsBack(&fl, sid) {
 				// Covers the whole flow, so sibling steps are redundant
 				return tx.compensateFlow()
@@ -345,9 +318,7 @@ func (tx *flowTx) recoverStepCompensations(sid api.StepID) error {
 }
 
 func (tx *flowTx) raiseCompStarted(sid api.StepID, tkn api.Token) error {
-	if err := tx.checkWorkTransition(
-		sid, tkn, api.WorkCompensating,
-	); err != nil {
+	if err := tx.checkWorkTransition(sid, tkn, api.WorkCompensating); err != nil {
 		return err
 	}
 	if err := events.Raise(tx.FlowAggregator, api.EventTypeCompStarted,
@@ -367,9 +338,7 @@ func (tx *flowTx) raiseCompStarted(sid api.StepID, tkn api.Token) error {
 }
 
 func (tx *flowTx) raiseCompSucceeded(sid api.StepID, tkn api.Token) error {
-	if err := tx.checkWorkTransition(
-		sid, tkn, api.WorkCompensated,
-	); err != nil {
+	if err := tx.checkWorkTransition(sid, tkn, api.WorkCompensated); err != nil {
 		return err
 	}
 	return events.Raise(tx.FlowAggregator, api.EventTypeCompSucceeded,
@@ -381,12 +350,8 @@ func (tx *flowTx) raiseCompSucceeded(sid api.StepID, tkn api.Token) error {
 	)
 }
 
-func (tx *flowTx) raiseCompFailed(
-	sid api.StepID, tkn api.Token, errMsg string,
-) error {
-	if err := tx.checkWorkTransition(
-		sid, tkn, api.WorkCompFailed,
-	); err != nil {
+func (tx *flowTx) raiseCompFailed(sid api.StepID, tkn api.Token, errMsg string) error {
+	if err := tx.checkWorkTransition(sid, tkn, api.WorkCompFailed); err != nil {
 		return err
 	}
 	return events.Raise(tx.FlowAggregator, api.EventTypeCompFailed,
@@ -407,12 +372,8 @@ type raiseCompRetryScheduledArgs struct {
 	nextRetryAt time.Time
 }
 
-func (tx *flowTx) raiseCompRetryScheduled(
-	args raiseCompRetryScheduledArgs,
-) error {
-	if err := tx.checkWorkTransition(
-		args.stepID, args.token, api.WorkCompPending,
-	); err != nil {
+func (tx *flowTx) raiseCompRetryScheduled(args raiseCompRetryScheduledArgs) error {
+	if err := tx.checkWorkTransition(args.stepID, args.token, api.WorkCompPending); err != nil {
 		return err
 	}
 	return events.Raise(tx.FlowAggregator, api.EventTypeCompRetryScheduled,
@@ -427,8 +388,8 @@ func (tx *flowTx) raiseCompRetryScheduled(
 	)
 }
 
-// compensationPending reports whether succeeded work still owes an unstarted
-// compensation, which a terminal flow must not deactivate out from under
+// compensationPending reports whether succeeded work still owes an unstarted compensation, which a
+// terminal flow must not deactivate out from under
 func (e *Engine) compensationPending(fl *api.FlowState) bool {
 	for sid, ex := range fl.Executions {
 		st, ok := fl.Plan.Steps[sid]
@@ -445,11 +406,9 @@ func (e *Engine) compensationPending(fl *api.FlowState) bool {
 	return false
 }
 
-// dependentPending walks consumers transitively, since a direct dependent
-// with no compensator can still sit upstream of one that has
-func (w *compensationWaveWalk) dependentPending(
-	pl *api.ExecutionPlan, sid api.StepID,
-) bool {
+// dependentPending walks consumers transitively, since a direct dependent with no compensator can
+// still sit upstream of one that has
+func (w *compensationWaveWalk) dependentPending(pl *api.ExecutionPlan, sid api.StepID) bool {
 	for _, dep := range dependents(pl, sid) {
 		if w.seen.Contains(dep) {
 			continue
@@ -462,8 +421,8 @@ func (w *compensationWaveWalk) dependentPending(
 	return false
 }
 
-// flowRollsBack reports whether the flow undoes the step's work: every step
-// once the flow failed, otherwise steps no kept goal can still use
+// flowRollsBack reports whether the flow undoes the step's work: every step once the flow failed,
+// otherwise steps no kept goal can still use
 func flowRollsBack(fl *api.FlowState, sid api.StepID) bool {
 	if fl.Status == api.FlowFailed {
 		return true
@@ -482,11 +441,9 @@ func compensationActive(fl *api.FlowState) bool {
 	return false
 }
 
-// compensationArgs selects the compensated attributes, from the inputs or the
-// outputs they belong to, so a compensator never receives the rest
-func compensationArgs(
-	st *api.Step, ex *api.ExecutionState, work *api.WorkState,
-) api.Args {
+// compensationArgs selects the compensated attributes, from the inputs or the outputs they belong
+// to, so a compensator never receives the rest
+func compensationArgs(st *api.Step, ex *api.ExecutionState, work *api.WorkState) api.Args {
 	inputs := ex.Inputs.Apply(work.Inputs)
 	res := api.Args{}
 	for name, attr := range st.Attributes {
@@ -532,7 +489,5 @@ func dependents(pl *api.ExecutionPlan, sid api.StepID) []api.StepID {
 }
 
 func compensateKey(fs api.FlowStep, tkn api.Token) []string {
-	return []string{
-		string(fs.FlowID), "comp", string(fs.StepID), string(tkn),
-	}
+	return []string{string(fs.FlowID), "comp", string(fs.StepID), string(tkn)}
 }

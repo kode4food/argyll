@@ -168,8 +168,7 @@ var attrSetters = map[string]setter[api.AttributeSpec]{
 		}
 		cfg := &api.ScriptConfig{Language: api.ScriptLangArgyll}
 		if !parseScript(cfg, v) {
-			return fmt.Errorf("%w: %q needs a script", ErrBadProp,
-				matchTag)
+			return fmt.Errorf("%w: %q needs a script", ErrBadProp, matchTag)
 		}
 		s.Required.Match = cfg
 		return nil
@@ -189,8 +188,7 @@ var attrSetters = map[string]setter[api.AttributeSpec]{
 		}
 		cfg := &api.ScriptConfig{Language: api.ScriptLangArgyll}
 		if !parseScript(cfg, v) {
-			return fmt.Errorf("%w: %q needs a script", ErrBadProp,
-				mappingTag)
+			return fmt.Errorf("%w: %q needs a script", ErrBadProp, mappingTag)
 		}
 		mapping.Script = cfg
 		return nil
@@ -236,8 +234,7 @@ func roleError(prop string, role api.AttributeRole) error {
 func parseFlag(o Option) (bool, error) {
 	flag, err := strconv.ParseBool(o.Value)
 	if err != nil {
-		return false, fmt.Errorf("%w: %q needs true or false",
-			ErrBadProp, o.Key)
+		return false, fmt.Errorf("%w: %q needs true or false", ErrBadProp, o.Key)
 	}
 	return flag, nil
 }
@@ -258,9 +255,7 @@ func parseInt(o Option) (int, error) {
 	return n, nil
 }
 
-func initMapping(
-	s *api.AttributeSpec, prop string,
-) (*api.MappingConfig, error) {
+func initMapping(s *api.AttributeSpec, prop string) (*api.MappingConfig, error) {
 	if mapping := s.Mapping(); mapping != nil {
 		return mapping, nil
 	}
@@ -291,9 +286,7 @@ func parseScript(cfg *api.ScriptConfig, value string) bool {
 	return cfg.Source != ""
 }
 
-func applyOptions[T any](
-	target *T, options Options, setters map[string]setter[T],
-) error {
+func applyOptions[T any](target *T, options Options, setters map[string]setter[T]) error {
 	for _, o := range options {
 		set, ok := setters[o.Key]
 		if !ok {

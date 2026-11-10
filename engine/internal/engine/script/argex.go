@@ -15,8 +15,8 @@ type (
 		*compiler[*compiledArgEx]
 	}
 
-	// compiledArgEx represents a compiled Argyll Expression and the derived
-	// short names it can read bare
+	// compiledArgEx represents a compiled Argyll Expression and the derived short names it can read
+	// bare
 	compiledArgEx struct {
 		*argex.Program
 		aliases []bareName
@@ -50,9 +50,7 @@ func NewArgExEnv() *ArgExEnv {
 }
 
 // Evaluate evaluates an expression against named inputs
-func (*ArgExEnv) Evaluate(
-	c Compiled, _ *api.Step, inputs api.Args,
-) (any, error) {
+func (*ArgExEnv) Evaluate(c Compiled, _ *api.Step, inputs api.Args) (any, error) {
 	proc := c.(*compiledArgEx)
 	args := withAliases(inputs, proc.aliases)
 	value, err := proc.Eval(marshalArgExValue(args))

@@ -60,15 +60,14 @@ func (e *Engine) Matcher(cfg *api.ScriptConfig, value any) (bool, error) {
 	return matched, nil
 }
 
-// prepareStep validates a step and raises its StepStarted event with the work
-// items to run, leaving dispatch to the work start path
+// prepareStep validates a step and raises its StepStarted event with the work items to run, leaving
+// dispatch to the work start path
 func (tx *flowTx) prepareStep(sid api.StepID) error {
 	fl := tx.Value()
 
 	ex := fl.Executions[sid]
 	if !policy.StepPending(ex.Status) {
-		return fmt.Errorf("%w: %s (status=%s)", ErrStepAlreadyPending,
-			sid, ex.Status)
+		return fmt.Errorf("%w: %s (status=%s)", ErrStepAlreadyPending, sid, ex.Status)
 	}
 
 	st := fl.Plan.Steps[sid]
@@ -81,9 +80,7 @@ func (tx *flowTx) prepareStep(sid api.StepID) error {
 		if err != nil {
 			return tx.handlePredicateFailure(sid, ex.Inputs, err)
 		}
-		return tx.performSkip(
-			sid, policy.RequiredMatchSkipReason, inputs, unsatisfied,
-		)
+		return tx.performSkip(sid, policy.RequiredMatchSkipReason, inputs, unsatisfied)
 	}
 
 	inputs, err := tx.collectStepInputs(st, &fl)
@@ -97,9 +94,7 @@ func (tx *flowTx) prepareStep(sid api.StepID) error {
 	}
 	workItemsMap := map[api.Token]api.Args{}
 	for _, workInputs := range workItemsList {
-		shouldExecute, err := tx.evaluateStepPredicate(
-			st, inputs.Apply(workInputs),
-		)
+		shouldExecute, err := tx.evaluateStepPredicate(st, inputs.Apply(workInputs))
 		if err != nil {
 			return tx.handlePredicateFailure(sid, inputs, err)
 		}
@@ -150,9 +145,7 @@ func (tx *flowTx) canStartStepAt(
 	return tx.newStepEval(sid, fl, when).canStart()
 }
 
-func (e *Engine) newStepEval(
-	sid api.StepID, fl *api.FlowState, when time.Time,
-) *stepEval {
+func (e *Engine) newStepEval(sid api.StepID, fl *api.FlowState, when time.Time) *stepEval {
 	return &stepEval{
 		e:      e,
 		flow:   fl,
@@ -162,9 +155,7 @@ func (e *Engine) newStepEval(
 	}
 }
 
-func (e *Engine) evaluateStepPredicate(
-	st *api.Step, inputs api.Args,
-) (bool, error) {
+func (e *Engine) evaluateStepPredicate(st *api.Step, inputs api.Args) (bool, error) {
 	if st.Predicate == nil {
 		return true, nil
 	}
@@ -191,9 +182,7 @@ func (e *Engine) evaluateStepPredicate(
 	return shouldExecute, nil
 }
 
-func (tx *flowTx) collectStepInputs(
-	st *api.Step, fl *api.FlowState,
-) (api.Args, error) {
+func (tx *flowTx) collectStepInputs(st *api.Step, fl *api.FlowState) (api.Args, error) {
 	inputs := api.Args{}
 	ev := tx.newStepEval(st.ID, fl, tx.Now())
 	anchor, err := ev.requiredReadyAt()
@@ -298,9 +287,7 @@ func (s *stepEval) canStart() (bool, time.Time) {
 	return true, time.Time{}
 }
 
-func (s *stepEval) hasOptionalReady(
-	anchor api.Completion,
-) (bool, time.Time) {
+func (s *stepEval) hasOptionalReady(anchor api.Completion) (bool, time.Time) {
 	blocked := false
 	var nextAt time.Time
 
@@ -321,9 +308,7 @@ func (s *stepEval) hasOptionalReady(
 	return !blocked, nextAt
 }
 
-func (s *stepEval) hasOptionalDecision(
-	name api.Name, attr *api.AttributeSpec,
-) bool {
+func (s *stepEval) hasOptionalDecision(name api.Name, attr *api.AttributeSpec) bool {
 	anchor, err := s.requiredReadyAt()
 	if err != nil {
 		return false
@@ -344,13 +329,9 @@ func (s *stepEval) optionalDecisionAt(
 	if attr.OptionalDeadline() == 0 {
 		return s.resolveImmediateOptional(name, attr, values, anchor)
 	}
-	values, at := policy.CollectWindow(
-		anchor.At, attr.OptionalDeadline(), values,
-	)
+	values, at := policy.CollectWindow(anchor.At, attr.OptionalDeadline(), values)
 	providers, last := providerSummaryFor(s.flow, name)
-	if policy.InputFulfilled(
-		attr.Collect(), len(values), providers, s.flow.HasInit(name),
-	) {
+	if policy.InputFulfilled(attr.Collect(), len(values), providers, s.flow.HasInit(name)) {
 		readyAt := policy.FulfilledAt(attr.Collect(), values, last.At)
 		if readyAt.Before(at) {
 			return optionalDecision{ready: true, values: values}
@@ -369,8 +350,7 @@ func (s *stepEval) optionalDecisionAt(
 }
 
 func (s *stepEval) resolveImmediateOptional(
-	name api.Name, attr *api.AttributeSpec, values []*api.AttributeValue,
-	anchor api.Completion,
+	name api.Name, attr *api.AttributeSpec, values []*api.AttributeValue, anchor api.Completion,
 ) optionalDecision {
 	accepted := make([]*api.AttributeValue, 0, len(values))
 	// Init values have no producing execution, so their sequence is zero
@@ -380,16 +360,14 @@ func (s *stepEval) resolveImmediateOptional(
 		}
 	}
 	providers, _ := providerSummaryAt(s.flow, name, anchor.Seq)
-	if policy.InputFulfilled(
-		attr.Collect(), len(accepted), providers, s.flow.HasInit(name),
-	) {
+	if policy.InputFulfilled(attr.Collect(), len(accepted), providers, s.flow.HasInit(name)) {
 		return optionalDecision{ready: true, values: accepted}
 	}
 	return optionalDecision{ready: true, fallback: true}
 }
 
-// requiredReadyAt returns when the required inputs became satisfied, or zero
-// while any is unsatisfied. collect:first counts from its first value
+// requiredReadyAt returns when the required inputs became satisfied, or zero while any is
+// unsatisfied. collect:first counts from its first value
 func (s *stepEval) requiredReadyAt() (api.Completion, error) {
 	res := api.Completion{At: s.flow.CreatedAt}
 	for name, attr := range s.step.Attributes {
@@ -401,9 +379,7 @@ func (s *stepEval) requiredReadyAt() (api.Completion, error) {
 			return api.Completion{}, err
 		}
 		providers, last := providerSummaryFor(s.flow, name)
-		if !policy.InputFulfilled(
-			attr.Collect(), len(values), providers, s.flow.HasInit(name),
-		) {
+		if !policy.InputFulfilled(attr.Collect(), len(values), providers, s.flow.HasInit(name)) {
 			return api.Completion{}, nil
 		}
 		if attr.Collect() == api.InputCollectFirst {
@@ -430,14 +406,12 @@ func parseDefaultValue(value string) any {
 	return result
 }
 
-func providerSummaryFor(
-	fl *api.FlowState, name api.Name,
-) (policy.ProviderSummary, api.Completion) {
+func providerSummaryFor(fl *api.FlowState, name api.Name) (policy.ProviderSummary, api.Completion) {
 	return providerSummaryAt(fl, name, math.MaxInt64)
 }
 
-// providerSummaryAt summarizes the providers that had finished by sequence,
-// returning the latest of their completions
+// providerSummaryAt summarizes the providers that had finished by sequence, returning the latest of
+// their completions
 func providerSummaryAt(
 	fl *api.FlowState, name api.Name, seq int64,
 ) (policy.ProviderSummary, api.Completion) {

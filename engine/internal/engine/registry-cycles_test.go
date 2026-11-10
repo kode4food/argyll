@@ -28,15 +28,12 @@ func TestRegisterSharedGraph(t *testing.T) {
 				cat, err := eng.GetCatalogState()
 				assert.NoError(t, err)
 				assert.Len(t, cat.Steps, len(steps))
-				first := helpers.NewStepWithOutputs(
-					steps[0].ID, api.Name(steps[0].ID),
-				)
+				first := helpers.NewStepWithOutputs(steps[0].ID, api.Name(steps[0].ID))
 				last := steps[len(steps)-1]
 				first.Attributes[api.Name(last.ID)] = &api.AttributeSpec{
 					Role: api.RoleRequired,
 				}
-				assert.ErrorIs(t,
-					eng.UpdateStep(first), api.ErrCircularDependency)
+				assert.ErrorIs(t, eng.UpdateStep(first), api.ErrCircularDependency)
 			})
 		})
 	}

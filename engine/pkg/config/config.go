@@ -38,25 +38,17 @@ const (
 )
 
 var (
-	ErrInvalidStepTimeout     = errors.New("step timeout must be positive")
-	ErrInvalidRetryMaxRetries = errors.New(
-		"retry max retries cannot be zero",
-	)
-	ErrInvalidRetryInitBackoff = errors.New(
-		"retry initial backoff must be positive",
-	)
-	ErrInvalidRetryMaxBackoff = errors.New(
-		"retry max backoff must be positive",
-	)
-	ErrRetryMaxBackoffTooSmall = errors.New(
-		"retry max backoff must be >= retry initial backoff",
-	)
+	ErrInvalidStepTimeout      = errors.New("step timeout must be positive")
+	ErrInvalidRetryMaxRetries  = errors.New("retry max retries cannot be zero")
+	ErrInvalidRetryInitBackoff = errors.New("retry initial backoff must be positive")
+	ErrInvalidRetryMaxBackoff  = errors.New("retry max backoff must be positive")
+	ErrRetryMaxBackoffTooSmall = errors.New("retry max backoff must be >= retry initial backoff")
 	ErrInvalidRetryBackoffType = errors.New("invalid retry backoff type")
 	ErrInvalidMemoTTL          = errors.New("memo ttl must be positive")
 )
 
-// NewDefaultConfig creates a configuration with sensible defaults for all
-// engine settings, stores, and retry behavior
+// NewDefaultConfig creates a configuration with sensible defaults for all engine settings, stores,
+// and retry behavior
 func NewDefaultConfig() *Config {
 	return &Config{
 		NodeID:  DefaultNodeID,
@@ -79,8 +71,8 @@ func DefaultTimebox() timebox.Config {
 	})
 }
 
-// EngineStoreConfig returns the engine metadata store configuration derived
-// from the shared Timebox defaults
+// EngineStoreConfig returns the engine metadata store configuration derived from the shared Timebox
+// defaults
 func (c *Config) EngineStoreConfig() timebox.Config {
 	return c.Timebox.With(timebox.Config{
 		CacheSize:     EngineStoreCacheSize,
@@ -89,8 +81,7 @@ func (c *Config) EngineStoreConfig() timebox.Config {
 	})
 }
 
-// FlowStoreConfig returns the flow store configuration derived from the shared
-// Timebox defaults
+// FlowStoreConfig returns the flow store configuration derived from the shared Timebox defaults
 func (c *Config) FlowStoreConfig() timebox.Config {
 	return c.Timebox.With(timebox.Config{
 		SnapshotRatio: DefaultFlowSnapshotRatio,
@@ -98,8 +89,8 @@ func (c *Config) FlowStoreConfig() timebox.Config {
 	})
 }
 
-// WithWorkDefaults returns a copy of the config with zero-valued work fields
-// filled in from defaults
+// WithWorkDefaults returns a copy of the config with zero-valued work fields filled in from
+// defaults
 func (c *Config) WithWorkDefaults() *Config {
 	res := util.MutableCopy(c)
 	if res.Work.MaxRetries == 0 {
@@ -145,8 +136,7 @@ func (c *Config) Validate() error {
 	if c.Work.BackoffType != api.BackoffTypeFixed &&
 		c.Work.BackoffType != api.BackoffTypeLinear &&
 		c.Work.BackoffType != api.BackoffTypeExponential {
-		return fmt.Errorf("%w: %s", ErrInvalidRetryBackoffType,
-			c.Work.BackoffType)
+		return fmt.Errorf("%w: %s", ErrInvalidRetryBackoffType, c.Work.BackoffType)
 	}
 
 	if c.Work.MemoTTL <= 0 {

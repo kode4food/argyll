@@ -132,17 +132,13 @@ func sendWebhook(userID, _ string, _ map[string]any) (string, error) {
 func sendEmail(userEmail, _ string, _ float64) (string, error) {
 	time.Sleep(time.Duration(5+rand.Intn(5)) * time.Second)
 	messageID := fmt.Sprintf("email-%d", time.Now().UnixNano())
-	slog.Info("Email sent",
-		slog.String("to", userEmail),
-		slog.String("message_id", messageID))
+	slog.Info("Email sent", slog.String("to", userEmail), slog.String("message_id", messageID))
 	return messageID, nil
 }
 
 func sendSMS(userID, _ string) (string, error) {
 	time.Sleep(time.Duration(5+rand.Intn(5)) * time.Second)
 	messageID := fmt.Sprintf("sms-%d", time.Now().UnixNano())
-	slog.Info("SMS sent",
-		slog.String("to_user", userID),
-		slog.String("message_id", messageID))
+	slog.Info("SMS sent", slog.String("to_user", userID), slog.String("message_id", messageID))
 	return messageID, nil
 }

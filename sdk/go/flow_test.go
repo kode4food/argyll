@@ -40,9 +40,7 @@ func TestFlowWithGoals(t *testing.T) {
 	defer server.Close()
 
 	client := argyll.NewClient(server.URL, 5*time.Second)
-	err := client.NewFlow("wf-1").
-		WithGoals(goals).
-		Start(context.Background())
+	err := client.NewFlow("wf-1").WithGoals(goals).Start(context.Background())
 
 	assert.NoError(t, err)
 }
@@ -97,9 +95,7 @@ func TestFlowWithGoal(t *testing.T) {
 	defer server.Close()
 
 	client := argyll.NewClient(server.URL, 5*time.Second)
-	err := client.NewFlow("wf-1").
-		WithGoal("goal-1").
-		WithGoal("goal-2").
+	err := client.NewFlow("wf-1").WithGoal("goal-1").WithGoal("goal-2").
 		WithGoals(api.Goals{
 			Steps: []api.StepID{"goal-1", "goal-2"},
 			Else:  &api.Goals{Steps: []api.StepID{"goal-3"}},
@@ -164,8 +160,7 @@ func TestFlowWithTags(t *testing.T) {
 }
 
 func TestFlowWithEmptyTags(t *testing.T) {
-	wf := argyll.NewClient("http://localhost:8080", 30*time.Second).
-		NewFlow("wf-1")
+	wf := argyll.NewClient("http://localhost:8080", 30*time.Second).NewFlow("wf-1")
 
 	assert.Equal(t, wf, wf.WithTags())
 }

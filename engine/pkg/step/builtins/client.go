@@ -38,18 +38,10 @@ var (
 var endpointParamPattern = regexp.MustCompile(`\{([^{}]+)\}`)
 
 var permanentHTTPStatuses = util.SetOf(
-	http.StatusBadRequest,
-	http.StatusUnauthorized,
-	http.StatusForbidden,
-	http.StatusNotFound,
-	http.StatusMethodNotAllowed,
-	http.StatusNotAcceptable,
-	http.StatusGone,
-	http.StatusLengthRequired,
-	http.StatusRequestEntityTooLarge,
-	http.StatusRequestURITooLong,
-	http.StatusUnsupportedMediaType,
-	http.StatusUnprocessableEntity,
+	http.StatusBadRequest, http.StatusUnauthorized, http.StatusForbidden, http.StatusNotFound,
+	http.StatusMethodNotAllowed, http.StatusNotAcceptable, http.StatusGone,
+	http.StatusLengthRequired, http.StatusRequestEntityTooLarge, http.StatusRequestURITooLong,
+	http.StatusUnsupportedMediaType, http.StatusUnprocessableEntity,
 	http.StatusRequestHeaderFieldsTooLarge,
 )
 
@@ -61,11 +53,9 @@ func NewHTTPClient(timeout time.Duration) Client {
 	}
 }
 
-// Invoke sends an HTTP POST request to the step's endpoint with the provided
-// arguments and metadata, returning the step's output arguments or an error
-func (c *httpClient) Invoke(
-	st *api.Step, args api.Args, meta api.Metadata,
-) (api.Args, error) {
+// Invoke sends an HTTP POST request to the step's endpoint with the provided arguments and
+// metadata, returning the step's output arguments or an error
+func (c *httpClient) Invoke(st *api.Step, args api.Args, meta api.Metadata) (api.Args, error) {
 	if st.HTTP == nil {
 		return nil, fmt.Errorf("%w: %s", ErrNoHTTPConfig, st.ID)
 	}
@@ -86,9 +76,7 @@ func (c *httpClient) Invoke(
 }
 
 // Compensate sends selected work attributes to the compensate endpoint
-func (c *httpClient) Compensate(
-	st *api.Step, args api.Args, meta api.Metadata,
-) error {
+func (c *httpClient) Compensate(st *api.Step, args api.Args, meta api.Metadata) error {
 	if st.HTTP == nil || st.HTTP.Compensate == nil {
 		return fmt.Errorf("%w: %s", ErrNoHTTPConfig, st.ID)
 	}
@@ -127,16 +115,12 @@ func (c *httpClient) sendRequest(
 
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
-		slog.Error("Failed to read response body",
-			log.StepID(st.ID),
-			log.Error(err))
+		slog.Error("Failed to read response body", log.StepID(st.ID), log.Error(err))
 		return nil, errors.Join(api.ErrWorkNotCompleted, err)
 	}
 
 	if resp.StatusCode/100 != 2 { // not a 2xx success response
-		return nil, httpError(
-			resp.StatusCode, resp.Header.Get("Content-Type"), respBody,
-		)
+		return nil, httpError(resp.StatusCode, resp.Header.Get("Content-Type"), respBody)
 	}
 
 	return respBody, nil
@@ -254,9 +238,7 @@ func parseResponse(st *api.Step, respBody []byte) (api.Args, error) {
 
 	var outputs api.Args
 	if err := json.Unmarshal(respBody, &outputs); err != nil {
-		slog.Error("Failed to unmarshal response",
-			log.StepID(st.ID),
-			log.Error(err))
+		slog.Error("Failed to unmarshal response", log.StepID(st.ID), log.Error(err))
 		return nil, fmt.Errorf("%w: %w", ErrInvalidOutputJSON, err)
 	}
 

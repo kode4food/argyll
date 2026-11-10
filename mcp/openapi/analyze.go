@@ -87,9 +87,7 @@ type (
 	}
 )
 
-func AnalyzeContract(
-	args Args, existing []Step, warnings []string,
-) (Result, error) {
+func AnalyzeContract(args Args, existing []Step, warnings []string) (Result, error) {
 	doc, err := parseDoc(args)
 	if err != nil {
 		return Result{}, err

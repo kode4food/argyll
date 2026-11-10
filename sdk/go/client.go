@@ -15,8 +15,8 @@ import (
 )
 
 type (
-	// Client provides functionality for interacting with the orchestrator API,
-	// including step registration, flow management, and state queries
+	// Client provides functionality for interacting with the orchestrator API, including step
+	// registration, flow management, and state queries
 	Client struct {
 		httpClient *http.Client
 		baseURL    string
@@ -54,8 +54,7 @@ var (
 	ErrGetFlowStatus = errors.New("failed to get flow status")
 )
 
-// NewClient creates a new orchestrator client with the specified base URL and
-// timeout
+// NewClient creates a new orchestrator client with the specified base URL and timeout
 func NewClient(baseURL string, timeout time.Duration) *Client {
 	return &Client{
 		baseURL: baseURL,
@@ -66,9 +65,7 @@ func NewClient(baseURL string, timeout time.Duration) *Client {
 }
 
 // ListSteps retrieves all registered steps from the orchestrator
-func (c *Client) ListSteps(
-	ctx context.Context,
-) (*api.StepsListResponse, error) {
+func (c *Client) ListSteps(ctx context.Context) (*api.StepsListResponse, error) {
 	var result api.StepsListResponse
 	err := c.doHTTPRequest(ctx, httpRequest{
 		Method:    "GET",
@@ -108,9 +105,7 @@ func (c *FlowClient) GetState(ctx context.Context) (api.FlowState, error) {
 }
 
 // GetStatus retrieves the current status of the flow
-func (c *FlowClient) GetStatus(
-	ctx context.Context,
-) (*api.FlowStatusResponse, error) {
+func (c *FlowClient) GetStatus(ctx context.Context) (*api.FlowStatusResponse, error) {
 	var result api.FlowStatusResponse
 	err := c.doHTTPRequest(ctx, httpRequest{
 		Method:    "GET",
@@ -130,8 +125,8 @@ func (c *FlowClient) FlowID() api.FlowID {
 	return c.flowID
 }
 
-// RegisterStep registers a step, updating an existing registration on conflict
-// and retrying transient failures
+// RegisterStep registers a step, updating an existing registration on conflict and retrying
+// transient failures
 func (c *Client) RegisterStep(ctx context.Context, st *api.Step) error {
 	for attempt := 1; attempt <= MaxRegistrationAttempts; attempt++ {
 		err := c.createStep(ctx, st)
@@ -150,8 +145,7 @@ func (c *Client) RegisterStep(ctx context.Context, st *api.Step) error {
 		case <-time.After(time.Duration(attempt) * BackoffMultiplier):
 		}
 	}
-	return fmt.Errorf("%w: %d attempts", ErrStepRegistration,
-		MaxRegistrationAttempts)
+	return fmt.Errorf("%w: %d attempts", ErrStepRegistration, MaxRegistrationAttempts)
 }
 
 func (c *Client) updateStep(ctx context.Context, st *api.Step) error {
@@ -185,9 +179,7 @@ func (c *Client) createStep(ctx context.Context, st *api.Step) error {
 	})
 }
 
-func (c *Client) startFlow(
-	ctx context.Context, req *api.CreateFlowRequest,
-) error {
+func (c *Client) startFlow(ctx context.Context, req *api.CreateFlowRequest) error {
 	return c.doHTTPRequest(ctx, httpRequest{
 		Method:    "POST",
 		URL:       c.url(routeFlows),
@@ -232,8 +224,7 @@ func (c *Client) doHTTPRequest(ctx context.Context, req httpRequest) error {
 	}
 
 	respBody, _ := io.ReadAll(resp.Body)
-	return fmt.Errorf("%w: status %d, body: %s",
-		req.ErrorType, resp.StatusCode, string(respBody))
+	return fmt.Errorf("%w: status %d, body: %s", req.ErrorType, resp.StatusCode, string(respBody))
 }
 
 func isRegisterConflict(err error) bool {

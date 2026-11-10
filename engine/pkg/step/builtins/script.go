@@ -39,8 +39,7 @@ func Script() *step.Handler {
 			compiled, err := scripts.Compile(st, st.Script)
 			if err != nil {
 				return errors.Join(
-					ErrScriptCompileFailed, err,
-					rt.UpdateHealth(api.HealthUnhealthy, err.Error()),
+					ErrScriptCompileFailed, err, rt.UpdateHealth(api.HealthUnhealthy, err.Error()),
 				)
 			}
 			inputs = applyMetaInputs(st, inputs, metadata(rt, token))
@@ -50,9 +49,7 @@ func Script() *step.Handler {
 			}
 			res, err := env.Evaluate(compiled, st, inputs)
 			if err != nil {
-				return errors.Join(
-					err, rt.UpdateHealth(api.HealthUnhealthy, err.Error()),
-				)
+				return errors.Join(err, rt.UpdateHealth(api.HealthUnhealthy, err.Error()))
 			}
 			if err := rt.CompleteWork(token, script.Outputs(res)); err != nil {
 				return err

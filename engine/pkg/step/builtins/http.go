@@ -21,8 +21,8 @@ func HTTP(client Client, callback CallbackURL) *step.Handler {
 	}
 }
 
-// validateHTTP refuses async work whose outcome the host cannot hear about,
-// which would otherwise register a step that never settles
+// validateHTTP refuses async work whose outcome the host cannot hear about, which would otherwise
+// register a step that never settles
 func validateHTTP(callback CallbackURL) step.ValidateFunc {
 	return func(st *api.Step) error {
 		if callback != nil {
@@ -89,9 +89,7 @@ func metadata(rt step.Runtime, token api.Token) api.Metadata {
 	})
 }
 
-func applyMetaInputs(
-	st *api.Step, inputs api.Args, meta api.Metadata,
-) api.Args {
+func applyMetaInputs(st *api.Step, inputs api.Args, meta api.Metadata) api.Args {
 	metaArgs := api.Args{}
 	for name, attr := range st.Attributes {
 		if !attr.IsMeta() {

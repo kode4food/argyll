@@ -25,8 +25,8 @@ type (
 		// Compile compiles source and returns the compiled form
 		Compile(*api.Step, *api.ScriptConfig) (Compiled, error)
 
-		// Evaluate executes compiled source with the given inputs and
-		// returns its JSON-shaped result
+		// Evaluate executes compiled source with the given inputs and returns its JSON-shaped
+		// result
 		Evaluate(Compiled, *api.Step, api.Args) (any, error)
 	}
 
@@ -72,8 +72,8 @@ var (
 	ErrNotBoolean    = errors.New("must return boolean")
 )
 
-// MatchStep returns the minimal synthetic step used as the compilation context
-// for a required match predicate, exposing only the candidate value
+// MatchStep returns the minimal synthetic step used as the compilation context for a required match
+// predicate, exposing only the candidate value
 var MatchStep = &api.Step{
 	Attributes: api.AttributeSpecs{
 		MatchValue: {Role: api.RoleRequired},
@@ -98,8 +98,8 @@ func Bool(value any) (bool, error) {
 	return false, ErrNotBoolean
 }
 
-// Outputs returns an object result as the output arguments of a Script Step,
-// and any other result as the output named result
+// Outputs returns an object result as the output arguments of a Script Step, and any other result
+// as the output named result
 func Outputs(value any) api.Args {
 	obj, ok := value.(map[string]any)
 	if !ok {
@@ -125,8 +125,8 @@ func (r *Registry) Get(language string) (Environment, error) {
 	return env, nil
 }
 
-// ValidateStep checks that a step's predicate and attribute match scripts
-// compile successfully against the registry and can return a Boolean
+// ValidateStep checks that a step's predicate and attribute match scripts compile successfully
+// against the registry and can return a Boolean
 func (r *Registry) ValidateStep(st *api.Step) error {
 	if st.Predicate != nil {
 		if err := r.ValidatePredicate(st, st.Predicate); err != nil {
@@ -146,9 +146,7 @@ func (r *Registry) ValidateStep(st *api.Step) error {
 }
 
 // Compile compiles a script config
-func (r *Registry) Compile(
-	st *api.Step, cfg *api.ScriptConfig,
-) (Compiled, error) {
+func (r *Registry) Compile(st *api.Step, cfg *api.ScriptConfig) (Compiled, error) {
 	if cfg == nil {
 		return nil, nil
 	}
@@ -159,11 +157,8 @@ func (r *Registry) Compile(
 	return env.Compile(st, cfg)
 }
 
-// ValidatePredicate compiles a predicate or matcher script and checks that it
-// can return a Boolean
-func (r *Registry) ValidatePredicate(
-	st *api.Step, cfg *api.ScriptConfig,
-) error {
+// ValidatePredicate compiles a predicate or matcher script and checks that it can return a Boolean
+func (r *Registry) ValidatePredicate(st *api.Step, cfg *api.ScriptConfig) error {
 	compiled, err := r.Compile(st, cfg)
 	if err != nil {
 		return err
@@ -179,9 +174,7 @@ func (c *compiler[T]) Validate(st *api.Step, src string) error {
 	return err
 }
 
-func (c *compiler[T]) Compile(
-	st *api.Step, cfg *api.ScriptConfig,
-) (Compiled, error) {
+func (c *compiler[T]) Compile(st *api.Step, cfg *api.ScriptConfig) (Compiled, error) {
 	if cfg == nil {
 		return nil, nil
 	}

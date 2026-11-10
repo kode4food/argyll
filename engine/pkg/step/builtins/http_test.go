@@ -71,9 +71,7 @@ func TestHTTPHandlerAsyncAddsWebhookURL(t *testing.T) {
 }
 
 func TestAsyncStepNeedsCallbackURL(t *testing.T) {
-	reg := step.NewRegistry(builtins.All(
-		&testClient{}, nil,
-	))
+	reg := step.NewRegistry(builtins.All(&testClient{}, nil))
 
 	st := &api.Step{
 		ID:   "step-1",
@@ -152,8 +150,7 @@ func TestCompensationCallback(t *testing.T) {
 	}, nil, token)
 	assert.NoError(t, err)
 	assert.Zero(t, rt.completeCalls)
-	assert.Equal(t, "https://host.test/custom/undo",
-		cl.meta[api.MetaWebhookURL])
+	assert.Equal(t, "https://host.test/custom/undo", cl.meta[api.MetaWebhookURL])
 	assert.NotContains(t, meta, api.MetaWebhookURL)
 }
 

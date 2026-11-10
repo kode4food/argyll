@@ -5,8 +5,8 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
-// Matcher returns a match evaluator backed by a new local script registry for
-// use in tests that don't have an engine instance
+// Matcher returns a match evaluator backed by a new local script registry for use in tests that
+// don't have an engine instance
 func Matcher() api.Matcher {
 	scripts := script.NewRegistry()
 	return func(cfg *api.ScriptConfig, value any) (bool, error) {

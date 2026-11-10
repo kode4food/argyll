@@ -29,8 +29,7 @@ func main() {
 
 	client := argyll.NewClient(engineURL, 30*time.Second)
 
-	err := client.NewStep().WithName("Text Formatter").
-		WithID("text-formatter").
+	err := client.NewStep().WithName("Text Formatter").WithID("text-formatter").
 		WithDescription("format text with a label").
 		WithTags(
 			"domain:text", "capability:transform", "language:lua", "example",
@@ -60,8 +59,7 @@ return {
 	total = subtotal + tax + shipping
 }`
 
-	err = client.NewStep().WithName("Price Calculator").
-		WithID("price-calculator").
+	err = client.NewStep().WithName("Price Calculator").WithID("price-calculator").
 		WithDescription("calculate pricing totals").
 		WithTags(
 			"domain:pricing", "capability:calculate", "language:lua", "example",
@@ -100,8 +98,7 @@ return {
 	},
 }`
 
-	err = client.NewStep().WithName("Eligibility Checker").
-		WithID("eligibility-checker").
+	err = client.NewStep().WithName("Eligibility Checker").WithID("eligibility-checker").
 		WithDescription("evaluate eligibility based on risk inputs").
 		WithTags(
 			"domain:risk", "capability:decision", "language:argex", "example",

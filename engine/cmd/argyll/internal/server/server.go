@@ -24,17 +24,13 @@ type Server struct {
 }
 
 // NewServer creates a new HTTP API server
-func NewServer(
-	eng *engine.Engine, hub *event.Hub, status ...StatusProvider,
-) *Server {
+func NewServer(eng *engine.Engine, hub *event.Hub, status ...StatusProvider) *Server {
 	s := &Server{
 		engine:   eng,
 		eventHub: hub,
 		sockets:  util.Set[*Client]{},
 	}
-	s.status = append([]StatusProvider{
-		NewWebSocketStatusProvider(s),
-	}, status...)
+	s.status = append([]StatusProvider{NewWebSocketStatusProvider(s)}, status...)
 	return s
 }
 
@@ -51,14 +47,8 @@ func (s *Server) SetupRoutes() *gin.Engine {
 	// CORS middleware
 	router.Use(func(c *gin.Context) {
 		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
-		c.Writer.Header().Set(
-			"Access-Control-Allow-Methods",
-			"GET, POST, PUT, DELETE, OPTIONS",
-		)
-		c.Writer.Header().Set(
-			"Access-Control-Allow-Headers",
-			"Content-Type, Authorization",
-		)
+		c.Writer.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
 
 		if c.Request.Method == "OPTIONS" {
 			c.AbortWithStatus(http.StatusOK)

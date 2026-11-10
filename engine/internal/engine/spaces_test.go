@@ -38,9 +38,7 @@ func TestSpaces(t *testing.T) {
 			ID:          "payments",
 			Name:        "Payments",
 			Description: "Production payments",
-			QBE: api.SpaceQuery{
-				{"domain:payments", "environment:production"},
-			},
+			QBE:         api.SpaceQuery{{"domain:payments", "environment:production"}},
 		}
 		_, before, err := eng.GetCatalogStateSeq()
 		assert.NoError(t, err)
@@ -52,8 +50,7 @@ func TestSpaces(t *testing.T) {
 		cat, err = eng.GetCatalogState()
 		assert.NoError(t, err)
 		assert.Equal(t, updated.QBE, cat.Spaces.Defined[sp.ID].QBE)
-		assert.Equal(t, updated.Description,
-			cat.Spaces.Defined[sp.ID].Description)
+		assert.Equal(t, updated.Description, cat.Spaces.Defined[sp.ID].Description)
 
 		assert.NoError(t, eng.UnregisterSpace(sp.ID))
 		cat, err = eng.GetCatalogState()
@@ -174,8 +171,7 @@ func TestSpaceMarketSelector(t *testing.T) {
 			},
 		})
 		assert.NoError(t, err)
-		assert.Equal(t, []api.StepID{"all", "europe", "unclassified"},
-			preview.StepIDs)
+		assert.Equal(t, []api.StepID{"all", "europe", "unclassified"}, preview.StepIDs)
 	})
 }
 
@@ -262,8 +258,7 @@ func TestSpacesRejectInvalid(t *testing.T) {
 		})
 		assert.ErrorIs(t, err, api.ErrInvalidSpace)
 		assert.ErrorIs(t, err, script.ErrNotBoolean)
-		assert.EqualError(t, err,
-			"invalid space: selector: must return boolean, not number|string")
+		assert.EqualError(t, err, "invalid space: selector: must return boolean, not number|string")
 
 		err = eng.UnregisterSpace("missing")
 		assert.ErrorIs(t, err, api.ErrSpaceNotFound)
@@ -287,8 +282,7 @@ func TestSpaceSelectionEvents(t *testing.T) {
 		assert.NoError(t, eng.RegisterSpace(domain))
 		evs, err := eng.GetCatalogEvents()
 		assert.NoError(t, err)
-		registered, err := evs[len(evs)-1].
-			GetValue[api.SpaceRegisteredEvent]()
+		registered, err := evs[len(evs)-1].GetValue[api.SpaceRegisteredEvent]()
 		assert.NoError(t, err)
 		assert.Equal(t, []api.StepID{st.ID}, registered.StepIDs)
 
@@ -304,28 +298,23 @@ func TestSpaceSelectionEvents(t *testing.T) {
 		assert.NoError(t, eng.RegisterStep(added))
 		evs, err = eng.GetCatalogEvents()
 		assert.NoError(t, err)
-		stepRegistered, err := evs[len(evs)-1].
-			GetValue[api.StepRegisteredEvent]()
+		stepRegistered, err := evs[len(evs)-1].GetValue[api.StepRegisteredEvent]()
 		assert.NoError(t, err)
-		assert.Equal(t,
-			[]api.SpaceID{"a-environment", "z-domain"},
-			stepRegistered.Spaces)
+		assert.Equal(t, []api.SpaceID{"a-environment", "z-domain"}, stepRegistered.Spaces)
 
 		updated := added.Copy()
 		updated.Tags = api.Tags{"domain:payments", "environment:staging"}
 		assert.NoError(t, eng.UpdateStep(updated))
 		evs, err = eng.GetCatalogEvents()
 		assert.NoError(t, err)
-		stepUpdated, err := evs[len(evs)-1].
-			GetValue[api.StepUpdatedEvent]()
+		stepUpdated, err := evs[len(evs)-1].GetValue[api.StepUpdatedEvent]()
 		assert.NoError(t, err)
 		assert.Equal(t, []api.SpaceID{"z-domain"}, stepUpdated.Spaces)
 
 		assert.NoError(t, eng.UnregisterStep(updated.ID))
 		evs, err = eng.GetCatalogEvents()
 		assert.NoError(t, err)
-		unregistered, err := evs[len(evs)-1].
-			GetValue[api.StepUnregisteredEvent]()
+		unregistered, err := evs[len(evs)-1].GetValue[api.StepUnregisteredEvent]()
 		assert.NoError(t, err)
 		assert.Equal(t, []api.SpaceID{"z-domain"}, unregistered.Spaces)
 
@@ -337,8 +326,7 @@ func TestSpaceSelectionEvents(t *testing.T) {
 		assert.NoError(t, eng.UpdateSpace(domain))
 		evs, err = eng.GetCatalogEvents()
 		assert.NoError(t, err)
-		spaceUpdated, err := evs[len(evs)-1].
-			GetValue[api.SpaceUpdatedEvent]()
+		spaceUpdated, err := evs[len(evs)-1].GetValue[api.SpaceUpdatedEvent]()
 		assert.NoError(t, err)
 		assert.Equal(t, []api.StepID{st.ID}, spaceUpdated.StepIDs)
 	})

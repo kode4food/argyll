@@ -21,13 +21,9 @@ func TestLoadConfig(t *testing.T) {
 			check: func(t *testing.T, c app.Config) {
 				assert.Equal(t, app.DefaultAPIHost, c.APIHost)
 				assert.Equal(t, app.DefaultAPIPort, c.APIPort)
-				assert.Equal(t,
-					app.DefaultWebhookBaseURL, c.WebhookBaseURL,
-				)
+				assert.Equal(t, app.DefaultWebhookBaseURL, c.WebhookBaseURL)
 				assert.Equal(t, app.DefaultLogLevel, c.LogLevel)
-				assert.Equal(t,
-					app.DefaultShutdownTimeout, c.ShutdownTimeout,
-				)
+				assert.Equal(t, app.DefaultShutdownTimeout, c.ShutdownTimeout)
 				assert.Equal(t, config.DefaultStepTimeout, c.Engine.StepTimeout)
 			},
 		},
@@ -55,9 +51,7 @@ func TestLoadConfig(t *testing.T) {
 				"WEBHOOK_BASE_URL": "http://webhooks.example.com",
 			},
 			check: func(t *testing.T, c app.Config) {
-				assert.Equal(t,
-					"http://webhooks.example.com", c.WebhookBaseURL,
-				)
+				assert.Equal(t, "http://webhooks.example.com", c.WebhookBaseURL)
 			},
 		},
 		{
@@ -76,11 +70,8 @@ func TestLoadConfig(t *testing.T) {
 			},
 			check: func(t *testing.T, c app.Config) {
 				assert.Equal(t, 8192, c.Engine.Timebox.CacheSize)
-				assert.Equal(t,
-					8192, c.Engine.FlowStoreConfig().CacheSize,
-				)
-				assert.Equal(t, config.EngineStoreCacheSize,
-					c.Engine.EngineStoreConfig().CacheSize)
+				assert.Equal(t, 8192, c.Engine.FlowStoreConfig().CacheSize)
+				assert.Equal(t, config.EngineStoreCacheSize, c.Engine.EngineStoreConfig().CacheSize)
 			},
 		},
 		{

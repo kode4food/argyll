@@ -44,9 +44,7 @@ func TestIsCatalogEvent(t *testing.T) {
 
 func TestIsCatalogEventID(t *testing.T) {
 	assert.True(t, events.IsCatalogEventID(events.CatalogKey))
-	assert.False(t, events.IsCatalogEventID(
-		timebox.NewAggregateID(events.CatalogPrefix, "bad"),
-	))
+	assert.False(t, events.IsCatalogEventID(timebox.NewAggregateID(events.CatalogPrefix, "bad")))
 	assert.False(t, events.IsCatalogEventID(events.FlowKey("test-flow")))
 }
 

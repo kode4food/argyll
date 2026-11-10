@@ -160,8 +160,7 @@ func TestApplyProposedStepsTool(t *testing.T) {
 					assert.NoError(t, err)
 					posts = append(posts, body)
 					return jsonResponse(
-						http.StatusCreated,
-						[]byte(`{"message":"created"}`),
+						http.StatusCreated, []byte(`{"message":"created"}`),
 					), nil
 				case r.URL.Path == "/engine/steps/update-step" &&
 					r.Method == http.MethodPut:
@@ -172,8 +171,7 @@ func TestApplyProposedStepsTool(t *testing.T) {
 					assert.NoError(t, err)
 					puts = append(puts, body)
 					return jsonResponse(
-						http.StatusOK,
-						[]byte(`{"message":"updated"}`),
+						http.StatusOK, []byte(`{"message":"updated"}`),
 					), nil
 				default:
 					return jsonResponse(
@@ -251,8 +249,7 @@ func TestApplyProposedStepsVerifiesSemanticReadback(t *testing.T) {
 					gets++
 					if gets == 1 {
 						return jsonResponse(
-							http.StatusOK,
-							[]byte(`{"steps":[],"count":0}`),
+							http.StatusOK, []byte(`{"steps":[],"count":0}`),
 						), nil
 					}
 					return jsonResponse(http.StatusOK, []byte(`{
@@ -273,8 +270,7 @@ func TestApplyProposedStepsVerifiesSemanticReadback(t *testing.T) {
 				case r.URL.Path == "/engine/steps" &&
 					r.Method == http.MethodPost:
 					return jsonResponse(
-						http.StatusCreated,
-						[]byte(`{"message":"created"}`),
+						http.StatusCreated, []byte(`{"message":"created"}`),
 					), nil
 				default:
 					return jsonResponse(

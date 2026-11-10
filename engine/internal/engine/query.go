@@ -76,9 +76,7 @@ func (e *Engine) ListFlows() ([]*api.QueryFlowsItem, error) {
 }
 
 // QueryFlows returns summary information for flows with filtering and paging
-func (e *Engine) QueryFlows(
-	req *api.QueryFlowsRequest,
-) (*api.QueryFlowsResponse, error) {
+func (e *Engine) QueryFlows(req *api.QueryFlowsRequest) (*api.QueryFlowsResponse, error) {
 	sortOrder := querySortOrder(req)
 	items, err := e.buildFlowQueryItems(req)
 	if err != nil {
@@ -97,9 +95,7 @@ func (e *Engine) QueryFlows(
 		limit: req.Limit,
 	})
 
-	return buildFlowQueryResponse(
-		page.items, len(items), page.hasMore, page.nextCursor,
-	), nil
+	return buildFlowQueryResponse(page.items, len(items), page.hasMore, page.nextCursor), nil
 }
 
 // collectRootFlowEntries returns indexed root flow entries
@@ -110,9 +106,7 @@ func (e *Engine) collectRootFlowEntries(
 	seen := util.Set[api.FlowID]{}
 
 	for _, item := range queryStatuses(statuses) {
-		group, err := e.listIndexedEntries(
-			item.indexStatus, item.flowStatus, idPrefix,
-		)
+		group, err := e.listIndexedEntries(item.indexStatus, item.flowStatus, idPrefix)
 		if err != nil {
 			return nil, err
 		}
@@ -144,9 +138,7 @@ func (e *Engine) listIndexedEntries(
 		fid, ok := events.ParseFlowID(entry.ID)
 		if !ok {
 			return nil, errors.Join(
-				ErrQueryFlows,
-				fmt.Errorf("%w: %s", ErrInvalidFlowStatusEntry,
-					entry.ID.String()),
+				ErrQueryFlows, fmt.Errorf("%w: %s", ErrInvalidFlowStatusEntry, entry.ID.String()),
 			)
 		}
 		res = append(res, flowStatusEntry{
@@ -159,9 +151,7 @@ func (e *Engine) listIndexedEntries(
 }
 
 // buildFlowQueryItems converts indexed flow entries into sortable query items
-func (e *Engine) buildFlowQueryItems(
-	req *api.QueryFlowsRequest,
-) ([]flowItem, error) {
+func (e *Engine) buildFlowQueryItems(req *api.QueryFlowsRequest) ([]flowItem, error) {
 	entries, err := e.collectRootFlowEntries(req.Statuses, req.IDPrefix)
 	if err != nil {
 		return nil, err
@@ -182,9 +172,7 @@ func (e *Engine) buildFlowQueryItems(
 	return items, nil
 }
 
-func (e *Engine) collectTagFlowIDs(
-	tags api.Tags,
-) (util.Set[api.FlowID], error) {
+func (e *Engine) collectTagFlowIDs(tags api.Tags) (util.Set[api.FlowID], error) {
 	if len(tags) == 0 {
 		return nil, nil
 	}
@@ -201,9 +189,7 @@ func (e *Engine) collectTagFlowIDs(
 			fid, ok := events.ParseFlowID(id)
 			if !ok {
 				return nil, errors.Join(
-					ErrQueryFlows,
-					fmt.Errorf("%w: %s", ErrInvalidFlowTagEntry,
-						id.String()),
+					ErrQueryFlows, fmt.Errorf("%w: %s", ErrInvalidFlowTagEntry, id.String()),
 				)
 			}
 			if isChildFlowID(fid) {
@@ -306,9 +292,7 @@ func sortFlowItems(items []flowItem, sortOrder api.FlowSort) {
 	})
 }
 
-func flowLessKey(
-	cursor flowQueryCursor, item flowItem, sortOrder api.FlowSort,
-) bool {
+func flowLessKey(cursor flowQueryCursor, item flowItem, sortOrder api.FlowSort) bool {
 	if cursor.Group != item.group {
 		return cursor.Group < item.group
 	}
@@ -334,9 +318,7 @@ func decodeFlowQueryCursor(value string) (flowQueryCursor, error) {
 	return cursor, nil
 }
 
-func flowStart(
-	items []flowItem, cursorValue string, sortOrder api.FlowSort,
-) (int, error) {
+func flowStart(items []flowItem, cursorValue string, sortOrder api.FlowSort) (int, error) {
 	if cursorValue == "" {
 		return 0, nil
 	}

@@ -206,8 +206,8 @@ func TestLuaScriptCache(t *testing.T) {
 	assert.Equal(t, proc1, proc2)
 }
 
-// more scripts than a single state keeps loaded, so its chunk table is dropped
-// and rebuilt part way through
+// more scripts than a single state keeps loaded, so its chunk table is dropped and rebuilt part way
+// through
 func TestLuaChunkTableReset(t *testing.T) {
 	env := script.NewLuaEnv()
 
@@ -679,8 +679,8 @@ func TestLuaScriptIsolation(t *testing.T) {
 		assert.False(t, matched)
 	})
 
-	// a state keeps a script's chunk loaded, so a repeat runs the same closure
-	// and would see anything the last call left behind
+	// a state keeps a script's chunk loaded, so a repeat runs the same closure and would see
+	// anything the last call left behind
 	t.Run("a repeated script starts from a clean env", func(t *testing.T) {
 		for _, src := range []string{
 			`local seen = leak ~= nil

@@ -42,8 +42,7 @@ func TestRegisterStepSuccess(t *testing.T) {
 
 	client := argyll.NewClient(server.URL, 5*time.Second)
 
-	err := client.NewStep().WithName("Test Step").
-		WithEndpoint("http://test").
+	err := client.NewStep().WithName("Test Step").WithEndpoint("http://test").
 		Register(context.Background())
 
 	assert.NoError(t, err)
@@ -59,8 +58,7 @@ func TestRegisterCreated(t *testing.T) {
 
 	client := argyll.NewClient(server.URL, 5*time.Second)
 
-	err := client.NewStep().WithName("Test").
-		WithEndpoint("http://test").
+	err := client.NewStep().WithName("Test").WithEndpoint("http://test").
 		Register(context.Background())
 
 	assert.NoError(t, err)
@@ -79,9 +77,7 @@ func TestRegisterStepError(t *testing.T) {
 
 	client := argyll.NewClient(server.URL, 5*time.Second)
 
-	err := client.NewStep().WithName("Test").
-		WithEndpoint("http://test").
-		Register(ctx)
+	err := client.NewStep().WithName("Test").WithEndpoint("http://test").Register(ctx)
 
 	assert.Error(t, err)
 }
@@ -184,9 +180,7 @@ func TestContextCancellation(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
-	err := client.NewStep().WithName("Test").
-		WithEndpoint("http://test").
-		Register(ctx)
+	err := client.NewStep().WithName("Test").WithEndpoint("http://test").Register(ctx)
 
 	assert.Error(t, err)
 }

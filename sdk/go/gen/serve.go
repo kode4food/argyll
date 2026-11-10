@@ -21,9 +21,9 @@ type StepDef struct {
 // DefaultTimeout is the engine client timeout used while registering
 const DefaultTimeout = 30 * time.Second
 
-// Serve registers the given steps with the engine and serves their handlers.
-// The engine URL, hostname and port come from the ARGYLL_ENGINE_URL,
-// STEP_HOSTNAME and STEP_PORT environment variables
+// Serve registers the given steps with the engine and serves their handlers. The engine URL,
+// hostname and port come from the ARGYLL_ENGINE_URL, STEP_HOSTNAME and STEP_PORT environment
+// variables
 func Serve(ctx context.Context, steps ...StepDef) error {
 	addr := argyll.LocalStepAddr()
 	engineURL := argyll.EnvOr(argyll.EnvLookup{
@@ -41,12 +41,9 @@ func Serve(ctx context.Context, steps ...StepDef) error {
 	return server.ListenAndServe()
 }
 
-// Register registers the given steps with the engine, pointing them at the
-// handlers served under the base URL
-func Register(
-	ctx context.Context, client *argyll.Client, base string,
-	steps ...StepDef,
-) error {
+// Register registers the given steps with the engine, pointing them at the handlers served under
+// the base URL
+func Register(ctx context.Context, client *argyll.Client, base string, steps ...StepDef) error {
 	for _, s := range steps {
 		if err := registerStep(ctx, client, base, s); err != nil {
 			return err
@@ -62,18 +59,14 @@ func Mux(steps ...StepDef) *http.ServeMux {
 	for _, s := range steps {
 		mux.HandleFunc("/"+string(s.Step.ID), s.Invoke)
 		if s.Compensate != nil {
-			mux.HandleFunc(
-				"/"+string(s.Step.ID)+"/compensate", s.Compensate,
-			)
+			mux.HandleFunc("/"+string(s.Step.ID)+"/compensate", s.Compensate)
 		}
 	}
 	return mux
 }
 
 // the generator writes endpoints as paths, this adds the serving host
-func registerStep(
-	ctx context.Context, client *argyll.Client, base string, s StepDef,
-) error {
+func registerStep(ctx context.Context, client *argyll.Client, base string, s StepDef) error {
 	st := s.Step.Copy()
 	st.HTTP = util.MutableCopy(s.Step.HTTP)
 	st.HTTP.Invoke.Endpoint = base + st.HTTP.Invoke.Endpoint

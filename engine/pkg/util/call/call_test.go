@@ -106,8 +106,7 @@ func TestDefaults(t *testing.T) {
 	})
 
 	v := makeValues(
-		func(v *values) { v.a = 42 },
-		func(v *values) { v.b = "ok" },
+		func(v *values) { v.a = 42 }, func(v *values) { v.b = "ok" },
 	)
 
 	assert.Equal(t, 42, v.a)

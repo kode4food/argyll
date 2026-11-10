@@ -61,8 +61,7 @@ func TestMemoizedPersistence(t *testing.T) {
 						return
 					}
 					assert.NoError(t, env.Engine.StartPlan(
-						"source", pl,
-						flow.WithInit(api.InitArgs{"input": {"value"}}),
+						"source", pl, flow.WithInit(api.InitArgs{"input": {"value"}}),
 					))
 					fl := env.WaitForTerminalFlow("source")
 					assert.Equal(t, api.FlowCompleted, fl.Status)
@@ -76,14 +75,12 @@ func TestMemoizedPersistence(t *testing.T) {
 					}
 					defer func() { assert.NoError(t, other.Stop()) }()
 					assert.NoError(t, other.StartPlan(
-						"reused", pl,
-						flow.WithInit(api.InitArgs{"input": {"value"}}),
+						"reused", pl, flow.WithInit(api.InitArgs{"input": {"value"}}),
 					))
 					fl, err = other.GetFlowState("reused")
 					assert.NoError(t, err)
 					assert.Equal(t, api.FlowCompleted, fl.Status)
-					assert.Equal(t,
-						"saved", fl.Executions[st.ID].Outputs["output"])
+					assert.Equal(t, "saved", fl.Executions[st.ID].Outputs["output"])
 					assert.Len(t, env.MockClient.GetInvocations(), 1)
 				})
 		})
@@ -363,8 +360,8 @@ func TestMemoizedWorkHistory(t *testing.T) {
 				))
 				if status == api.WorkSucceeded {
 					assert.NoError(t, env.Engine.CompleteWork(
-						api.FlowStep{FlowID: "history", StepID: st.ID},
-						"first", api.Args{"raw": "saved"},
+						api.FlowStep{FlowID: "history", StepID: st.ID}, "first",
+						api.Args{"raw": "saved"},
 					))
 				}
 				other, err := env.NewEngineInstance()
@@ -374,8 +371,7 @@ func TestMemoizedWorkHistory(t *testing.T) {
 				defer func() { assert.NoError(t, other.Stop()) }()
 				env.MockClient.SetResponse(st.ID, api.Args{"raw": "fresh"})
 				assert.NoError(t, other.StartPlan(
-					"later", pl,
-					flow.WithInit(api.InitArgs{"item": {"a"}}),
+					"later", pl, flow.WithInit(api.InitArgs{"item": {"a"}}),
 				))
 				fl := env.WaitForTerminalFlow("later")
 				assert.Equal(t, api.FlowCompleted, fl.Status)

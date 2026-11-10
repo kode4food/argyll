@@ -27,9 +27,7 @@ func NewMapper(engine *Engine) *Mapper {
 }
 
 // Compile compiles a mapping script for the provided step context
-func (m *Mapper) Compile(
-	st *api.Step, cfg *api.ScriptConfig,
-) (script.Compiled, error) {
+func (m *Mapper) Compile(st *api.Step, cfg *api.ScriptConfig) (script.Compiled, error) {
 	if cfg == nil || cfg.Source == "" {
 		return nil, nil
 	}
@@ -67,9 +65,7 @@ func (m *Mapper) MapValue(
 }
 
 // MapInput maps a step input value and falls back to original value
-func (m *Mapper) MapInput(
-	st *api.Step, name api.Name, attr *api.AttributeSpec, value any,
-) any {
+func (m *Mapper) MapInput(st *api.Step, name api.Name, attr *api.AttributeSpec, value any) any {
 	mapping := attr.Mapping()
 	if mapping == nil || mapping.Script == nil {
 		return value
@@ -113,9 +109,7 @@ func (m *Mapper) validateStep(st *api.Step) error {
 		}
 
 		if _, err := m.Compile(st, mapping.Script); err != nil {
-			return fmt.Errorf("%w for attribute %q: %v",
-				api.ErrInvalidMappingConfig, name, err,
-			)
+			return fmt.Errorf("%w for attribute %q: %v", api.ErrInvalidMappingConfig, name, err)
 		}
 	}
 	return nil

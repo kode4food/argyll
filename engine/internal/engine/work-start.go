@@ -195,9 +195,7 @@ func (tx *flowTx) startRetryWorkItem(
 	return started, time.Time{}, nil
 }
 
-func (tx *flowTx) raiseWorkStarted(
-	sid api.StepID, tkn api.Token, inputs api.Args,
-) error {
+func (tx *flowTx) raiseWorkStarted(sid api.StepID, tkn api.Token, inputs api.Args) error {
 	if err := tx.checkWorkTransition(sid, tkn, api.WorkActive); err != nil {
 		return err
 	}

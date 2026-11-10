@@ -169,9 +169,7 @@ func TestPendingUnusedSkip(t *testing.T) {
 		assert.Equal(t, api.FlowCompleted, fl.Status)
 		assert.Equal(t, api.StepCompleted, fl.Executions[providerA.ID].Status)
 		assert.Equal(t, api.StepSkipped, fl.Executions[providerB.ID].Status)
-		assert.Equal(t,
-			"outputs not needed", fl.Executions[providerB.ID].Error,
-		)
+		assert.Equal(t, "outputs not needed", fl.Executions[providerB.ID].Error)
 		assert.Empty(t, fl.Executions[providerB.ID].Unsatisfied)
 		assert.Equal(t, api.StepCompleted, fl.Executions[consumer.ID].Status)
 	})
@@ -292,10 +290,8 @@ func TestSkipStep(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		assert.NoError(t, env.Engine.Start())
 
-		// Create a step with a predicate that returns false, causing a  skip
-		st := helpers.NewStepWithPredicate(
-			"step-skip", api.ScriptLangLua, "return false",
-		)
+		// Create a step with a predicate that returns false, causing a skip
+		st := helpers.NewStepWithPredicate("step-skip", api.ScriptLangLua, "return false")
 
 		err := env.Engine.RegisterStep(st)
 		assert.NoError(t, err)

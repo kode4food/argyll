@@ -148,9 +148,7 @@ func TestPermanentProblem(t *testing.T) {
 func TestProblemMediaParams(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
-			w.Header().Set(
-				"Content-Type", api.ProblemJSONContentType+"; charset=utf-8",
-			)
+			w.Header().Set("Content-Type", api.ProblemJSONContentType+"; charset=utf-8")
 			w.WriteHeader(http.StatusUnprocessableEntity)
 			_ = json.NewEncoder(w).Encode(api.NewProblem(
 				http.StatusUnprocessableEntity, "validation failed",
@@ -432,8 +430,7 @@ func TestHTTPStatusRetry(t *testing.T) {
 
 			_, err := cl.Invoke(st, api.Args{}, api.Metadata{})
 			assert.ErrorIs(t, err, builtins.ErrHTTPError)
-			assert.Equal(t, tc.retry,
-				errors.Is(err, api.ErrWorkNotCompleted))
+			assert.Equal(t, tc.retry, errors.Is(err, api.ErrWorkNotCompleted))
 		})
 	}
 }

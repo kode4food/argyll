@@ -20,8 +20,8 @@ type (
 		FailCompensation(fs api.FlowStep, tkn api.Token, errMsg string) error
 	}
 
-	// CallbackRequest carries the outcome an async step posts to the URL that a
-	// CallbackURL built for it
+	// CallbackRequest carries the outcome an async step posts to the URL that a CallbackURL built
+	// for it
 	CallbackRequest struct {
 		FlowStep api.FlowStep
 		Token    api.Token
@@ -34,8 +34,8 @@ var (
 	ErrInvalidCallback = errors.New("invalid callback")
 )
 
-// Callback records the outcome an async step reports through its callback URL
-// and returns the HTTP status to answer with. Duplicates are accepted
+// Callback records the outcome an async step reports through its callback URL and returns the HTTP
+// status to answer with. Duplicates are accepted
 func Callback(eng CallbackEngine, req *CallbackRequest) (int, error) {
 	work, err := lookupWork(eng, req)
 	if err != nil {
@@ -52,9 +52,7 @@ func Callback(eng CallbackEngine, req *CallbackRequest) (int, error) {
 	}
 }
 
-func lookupWork(
-	eng CallbackEngine, req *CallbackRequest,
-) (api.WorkState, error) {
+func lookupWork(eng CallbackEngine, req *CallbackRequest) (api.WorkState, error) {
 	fl, err := eng.GetFlowState(req.FlowStep.FlowID)
 	if err != nil {
 		return api.WorkState{}, fmt.Errorf("%w: %w", ErrInvalidCallback, err)
@@ -79,9 +77,7 @@ func invokeCallback(eng CallbackEngine, req *CallbackRequest) (int, error) {
 		if err := decodeBody(req, &problem); err != nil {
 			return http.StatusBadRequest, err
 		}
-		return workStatus(
-			eng.FailWork(req.FlowStep, req.Token, problem.Error()),
-		)
+		return workStatus(eng.FailWork(req.FlowStep, req.Token, problem.Error()))
 	}
 	var outputs api.Args
 	if err := decodeBody(req, &outputs); err != nil {
@@ -97,8 +93,7 @@ func compensateCallback(
 		status != api.WorkCompensated &&
 		status != api.WorkCompFailed {
 		return http.StatusBadRequest,
-			fmt.Errorf("%w: work item is not compensating: %s",
-				ErrInvalidCallback, status)
+			fmt.Errorf("%w: work item is not compensating: %s", ErrInvalidCallback, status)
 	}
 	if !isProblem(req) {
 		return engineStatus(eng.CompleteCompensation(req.FlowStep, req.Token))
@@ -107,9 +102,7 @@ func compensateCallback(
 	if err := decodeBody(req, &problem); err != nil {
 		return http.StatusBadRequest, err
 	}
-	return engineStatus(
-		eng.FailCompensation(req.FlowStep, req.Token, problem.Error()),
-	)
+	return engineStatus(eng.FailCompensation(req.FlowStep, req.Token, problem.Error()))
 }
 
 func isProblem(req *CallbackRequest) bool {

@@ -9,8 +9,8 @@ import (
 )
 
 type (
-	// Feed folds settled values of its output Attributes from every Flow into
-	// one Catalog-wide value that Steps read as an input
+	// Feed folds settled values of its output Attributes from every Flow into one Catalog-wide
+	// value that Steps read as an input
 	Feed struct {
 		Fold        *ScriptConfig `json:"fold"`
 		ID          FeedID        `json:"id"`
@@ -38,8 +38,7 @@ type (
 	// Feeds contains a map of Feeds by their ID
 	Feeds = Map[FeedID, *Feed]
 
-	// PlanFeed is a Feed a plan reads or folds into, with the planned Steps
-	// whose outputs it folds
+	// PlanFeed is a Feed a plan reads or folds into, with the planned Steps whose outputs it folds
 	PlanFeed struct {
 		Feed    *Feed         `json:"feed"`
 		Sources Slice[StepID] `json:"sources,omitempty"`
@@ -75,8 +74,8 @@ var (
 	ErrInvalidFeed           = errors.New("invalid feed")
 )
 
-// Validate checks the definition's shape. The fold's language and syntax are
-// left to the script registry, and the Space to the Catalog
+// Validate checks the definition's shape. The fold's language and syntax are left to the script
+// registry, and the Space to the Catalog
 func (f *Feed) Validate() error {
 	if err := f.validateShape(); err != nil {
 		return fmt.Errorf("%w: %w", ErrInvalidFeed, err)
@@ -93,8 +92,8 @@ func (f *Feed) Equal(other *Feed) bool {
 		f.Fold.Equal(other.Fold)
 }
 
-// Version hashes the seed, fold, Attributes, and Space of a definition. The
-// Attributes are sorted, so their order never starts a new value
+// Version hashes the seed, fold, Attributes, and Space of a definition. The Attributes are sorted,
+// so their order never starts a new value
 func (f *Feed) Version() string {
 	// The hash holds only strings, which always marshal
 	data, _ := json.Marshal(feedHash{
@@ -115,8 +114,7 @@ func (f *Feed) Seed() (any, error) {
 	return res, nil
 }
 
-// Folds reports whether a Step's outputs feed this Feed, given the Steps its
-// Space selects
+// Folds reports whether a Step's outputs feed this Feed, given the Steps its Space selects
 func (f *Feed) Folds(st *Step, selected []StepID) bool {
 	if f.SpaceID != NoSpace && !slices.Contains(selected, st.ID) {
 		return false

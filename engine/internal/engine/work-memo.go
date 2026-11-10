@@ -11,11 +11,9 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/events"
 )
 
-// lookupMemoized returns the outputs of an earlier successful work item for a
-// memoized Step definition and inputs
-func (tx *flowTx) lookupMemoized(
-	st *api.Step, inputs api.Args,
-) (api.Args, bool, error) {
+// lookupMemoized returns the outputs of an earlier successful work item for a memoized Step
+// definition and inputs
+func (tx *flowTx) lookupMemoized(st *api.Step, inputs api.Args) (api.Args, bool, error) {
 	if st.DefaultedHandling() != api.HandlingMemoized {
 		return nil, false, nil
 	}
@@ -35,12 +33,8 @@ func (tx *flowTx) lookupMemoized(
 }
 
 // applyMemoized succeeds a work item with memoized outputs
-func (tx *flowTx) applyMemoized(
-	sid api.StepID, tkn api.Token, outputs api.Args,
-) error {
-	if err := tx.checkWorkTransition(
-		sid, tkn, api.WorkSucceeded,
-	); err != nil {
+func (tx *flowTx) applyMemoized(sid api.StepID, tkn api.Token, outputs api.Args) error {
+	if err := tx.checkWorkTransition(sid, tkn, api.WorkSucceeded); err != nil {
 		return err
 	}
 	if err := events.Raise(tx.FlowAggregator, api.EventTypeWorkSucceeded,
@@ -56,11 +50,9 @@ func (tx *flowTx) applyMemoized(
 	return tx.settleStep(sid)
 }
 
-// recordMemoized retains a memoized Step's first successful outputs for its
-// definition and inputs until the Step's memo TTL elapses
-func (tx *flowTx) recordMemoized(
-	sid api.StepID, tkn api.Token, outputs api.Args,
-) error {
+// recordMemoized retains a memoized Step's first successful outputs for its definition and inputs
+// until the Step's memo TTL elapses
+func (tx *flowTx) recordMemoized(sid api.StepID, tkn api.Token, outputs api.Args) error {
 	fl := tx.Value()
 	st := fl.Plan.Steps[sid]
 	if st.DefaultedHandling() != api.HandlingMemoized {
@@ -88,8 +80,8 @@ func (tx *flowTx) recordMemoized(
 	)
 }
 
-// pendingMemo returns the unexpired memoized result at path, read within the
-// current transaction so its commit is checked against it
+// pendingMemo returns the unexpired memoized result at path, read within the current transaction so
+// its commit is checked against it
 func (tx *flowTx) pendingMemo(path []string) (*timebox.Schedule, error) {
 	sched, err := scheduler.Load(tx.storeTx.Transaction, path)
 	if err != nil || sched == nil || !sched.At.After(tx.Now()) {

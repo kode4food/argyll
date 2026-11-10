@@ -9,9 +9,7 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/plan"
 )
 
-func feedPlan(
-	cat api.CatalogState, goals ...api.StepID,
-) (*api.ExecutionPlan, error) {
+func feedPlan(cat api.CatalogState, goals ...api.StepID) (*api.ExecutionPlan, error) {
 	return plan.Create(&plan.Request{
 		Match:   testEval,
 		Catalog: cat,
@@ -81,8 +79,7 @@ func TestPlanFeeds(t *testing.T) {
 
 		pl, err := feedPlan(cat, "charge", "refund")
 		assert.NoError(t, err)
-		assert.Equal(t,
-			api.Slice[api.StepID]{"refund"}, pl.Feeds[spaced.ID].Sources)
+		assert.Equal(t, api.Slice[api.StepID]{"refund"}, pl.Feeds[spaced.ID].Sources)
 
 		pl, err = feedPlan(cat, "charge")
 		assert.NoError(t, err)

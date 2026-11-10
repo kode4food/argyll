@@ -10,8 +10,8 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/util"
 )
 
-// Step is a builder for creating and configuring flow steps. It provides an
-// API for defining step attributes, predicates, and execution settings
+// Step is a builder for creating and configuring flow steps. It provides an API for defining step
+// attributes, predicates, and execution settings
 type Step struct {
 	client     *Client
 	step       *api.Step
@@ -79,8 +79,8 @@ func (s Step) Const(name api.Name, value string) Step {
 	})
 }
 
-// Meta declares a metadata input attribute, injecting the named metadata key
-// as a step input at execution time
+// Meta declares a metadata input attribute, injecting the named metadata key as a step input at
+// execution time
 func (s Step) Meta(name api.Name, metaKey string) Step {
 	return s.withAttribute(name, &api.AttributeSpec{
 		Role: api.RoleMeta,
@@ -152,17 +152,15 @@ func (s Step) WithTags(tags ...string) Step {
 	return s
 }
 
-// WithPredicate sets a predicate script that determines if the step should
-// execute
+// WithPredicate sets a predicate script that determines if the step should execute
 func (s Step) WithPredicate(predicate api.ScriptConfig) Step {
 	s.step = s.step.Copy()
 	s.step.Predicate = &predicate
 	return s
 }
 
-// WithMatch sets a match predicate for an input attribute. The predicate
-// receives each candidate attribute value as "value" before collect
-// semantics are applied
+// WithMatch sets a match predicate for an input attribute. The predicate receives each candidate
+// attribute value as "value" before collect semantics are applied
 func (s Step) WithMatch(name api.Name, match api.ScriptConfig) Step {
 	attr, ok := s.step.Attributes[name]
 	if !ok {
@@ -245,8 +243,8 @@ func (s Step) WithCompensateMethod(method string) Step {
 	})
 }
 
-// WithCompensateTimeout sets the compensate timeout in milliseconds,
-// overriding the step's execution timeout for compensation requests
+// WithCompensateTimeout sets the compensate timeout in milliseconds, overriding the step's
+// execution timeout for compensation requests
 func (s Step) WithCompensateTimeout(timeout int64) Step {
 	return s.withCompensate(func(comp *api.HTTPAction) {
 		comp.Timeout = timeout
@@ -272,14 +270,13 @@ func (s Step) WithType(stepType api.StepType) Step {
 	return s
 }
 
-// WithAsyncInvoke configures the step's invoke call to complete via webhook
-// rather than in the HTTP response
+// WithAsyncInvoke configures the step's invoke call to complete via webhook rather than in the HTTP
+// response
 func (s Step) WithAsyncInvoke() Step {
 	return s.WithInvokeMode(api.ActionModeAsync)
 }
 
-// WithSyncInvoke configures the step's invoke call to complete in the HTTP
-// response
+// WithSyncInvoke configures the step's invoke call to complete in the HTTP response
 func (s Step) WithSyncInvoke() Step {
 	return s.WithInvokeMode(api.ActionModeSync)
 }
@@ -349,8 +346,7 @@ func (s Step) Register(ctx context.Context) error {
 	return s.client.RegisterStep(ctx, st)
 }
 
-// Start builds and registers the step, creates an HTTP server, and starts
-// handling requests
+// Start builds and registers the step, creates an HTTP server, and starts handling requests
 func (s Step) Start(handler InvokeHandler) error {
 	if s.client == nil {
 		return ErrDetachedStep

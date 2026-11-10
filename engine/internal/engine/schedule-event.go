@@ -39,9 +39,7 @@ var (
 	ErrScheduledMessageTarget = errors.New("invalid scheduled message target")
 )
 
-func (e *Engine) processScheduled(
-	t *timebox.Transaction, msg *timebox.Message,
-) error {
+func (e *Engine) processScheduled(t *timebox.Transaction, msg *timebox.Message) error {
 	switch msg.Type {
 	case memoExpired:
 		// consuming the scheduled task is what expires the memoized result
@@ -49,8 +47,7 @@ func (e *Engine) processScheduled(
 	default:
 		fid, ok := events.ParseFlowID(msg.AggregateID)
 		if !ok {
-			return fmt.Errorf("%w: %s", ErrScheduledMessageTarget,
-				msg.AggregateID.String())
+			return fmt.Errorf("%w: %s", ErrScheduledMessageTarget, msg.AggregateID.String())
 		}
 		st := storeTx{Engine: e, Transaction: t}
 		_, err := st.flowTx(fid, func(tx *flowTx) error {

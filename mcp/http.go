@@ -48,16 +48,12 @@ func (s *Server) httpDelete(path string) (any, error) {
 	return s.httpDo(req)
 }
 
-func (s *Server) httpJSONRequest(
-	method, path string, payload any,
-) (*http.Request, error) {
+func (s *Server) httpJSONRequest(method, path string, payload any) (*http.Request, error) {
 	data, err := json.Marshal(payload)
 	if err != nil {
 		return nil, err
 	}
-	req, err := http.NewRequest(
-		method, s.baseURL+path, bytes.NewReader(data),
-	)
+	req, err := http.NewRequest(method, s.baseURL+path, bytes.NewReader(data))
 	if err != nil {
 		return nil, err
 	}

@@ -33,8 +33,7 @@ func (tx *flowTx) recoverWorkDispatch(fl *api.FlowState) error {
 
 func (tx *flowTx) scheduleWorkDispatch(sid api.StepID, at time.Time) error {
 	fs := api.FlowStep{FlowID: tx.flowID, StepID: sid}
-	return tx.scheduleEvent(workDispatchKey(fs), at,
-		workDispatchRequested, sid)
+	return tx.scheduleEvent(workDispatchKey(fs), at, workDispatchRequested, sid)
 }
 
 func (tx *flowTx) handleWorkDispatch(sid api.StepID) error {
@@ -78,8 +77,7 @@ func (tx *flowTx) raiseDispatchDeferred(sid api.StepID) error {
 	)
 }
 
-func findWorkDispatchSteps(fl *api.FlowState, now time.Time,
-) util.Set[api.StepID] {
+func findWorkDispatchSteps(fl *api.FlowState, now time.Time) util.Set[api.StepID] {
 	steps := util.Set[api.StepID]{}
 
 	for sid, ex := range fl.Executions {

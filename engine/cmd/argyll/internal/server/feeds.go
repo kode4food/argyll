@@ -122,9 +122,7 @@ func writeFeedStatus(c *gin.Context, status int, err error) {
 }
 
 func bindFeed(c *gin.Context) (*api.Feed, bool) {
-	c.Request.Body = http.MaxBytesReader(
-		c.Writer, c.Request.Body, MaxStepBodyBytes,
-	)
+	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, MaxStepBodyBytes)
 	f := &api.Feed{}
 	if err := c.ShouldBindJSON(f); err != nil {
 		c.JSON(http.StatusBadRequest, api.ErrorResponse{

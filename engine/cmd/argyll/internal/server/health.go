@@ -34,8 +34,8 @@ var (
 	ErrGetStepHealth = errors.New("failed to get step health")
 )
 
-// NewHealthChecker creates a health checker that periodically monitors HTTP
-// step service availability and updates their health status
+// NewHealthChecker creates a health checker that periodically monitors HTTP step service
+// availability and updates their health status
 func NewHealthChecker(eng *engine.Engine) *HealthChecker {
 	ctx, cancel := context.WithCancel(context.Background())
 	return &HealthChecker{
@@ -90,8 +90,8 @@ func (h *HealthChecker) checkAllSteps() {
 		}
 	}
 
-	// The engine derives script and flow step health on its own, so a pass
-	// with nothing probed still refreshes those
+	// The engine derives script and flow step health on its own, so a pass with nothing probed
+	// still refreshes those
 	probed := make(map[api.StepID]api.HealthState, len(steps))
 	h.refresh(probed)
 
@@ -117,9 +117,7 @@ func (h *HealthChecker) refresh(probed map[api.StepID]api.HealthState) {
 func (h *HealthChecker) probe(st *api.Step) api.HealthState {
 	resp, err := h.client.Get(st.HTTP.Health)
 	if err != nil {
-		slog.Error("Health check failed",
-			log.StepID(st.ID),
-			log.Error(err))
+		slog.Error("Health check failed", log.StepID(st.ID), log.Error(err))
 		return api.HealthState{
 			Status: api.HealthUnhealthy,
 			Error:  err.Error(),
@@ -128,9 +126,7 @@ func (h *HealthChecker) probe(st *api.Step) api.HealthState {
 
 	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode >= httpErrorThreshold {
-		slog.Error("Health check failed",
-			log.StepID(st.ID),
-			log.Status(resp.Status))
+		slog.Error("Health check failed", log.StepID(st.ID), log.Status(resp.Status))
 		return api.HealthState{
 			Status: api.HealthUnhealthy,
 			Error:  "HTTP " + resp.Status,

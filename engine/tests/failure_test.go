@@ -11,8 +11,8 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
-// TestPartialFlowFailure tests that when one step in a flow fails, independent
-// steps complete successfully while dependent steps fail
+// TestPartialFlowFailure tests that when one step in a flow fails, independent steps complete
+// successfully while dependent steps fail
 func TestPartialFlowFailure(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		assert.NoError(t, env.Engine.Start())
@@ -41,9 +41,7 @@ func TestPartialFlowFailure(t *testing.T) {
 		}
 
 		// Step D (Goal): Requires both "outputB" and "outputC"
-		stepD := helpers.NewTestStepWithArgs(
-			[]api.Name{"outputB", "outputC"}, nil,
-		)
+		stepD := helpers.NewTestStepWithArgs([]api.Name{"outputB", "outputC"}, nil)
 		stepD.ID = "step-d"
 		stepD.Attributes["result"] = &api.AttributeSpec{
 			Role: api.RoleOutput,
@@ -59,8 +57,8 @@ func TestPartialFlowFailure(t *testing.T) {
 			"valueB": "b-val",
 			"valueC": "c-val",
 		})
-		// C's output is only published while D still needs it, and B failing
-		// fails D, so B holds its failure until C has completed
+		// C's output is only published while D still needs it, and B failing fails D, so B holds
+		// its failure until C has completed
 		releaseB := make(chan struct{})
 		env.MockClient.SetInvoke("step-b",
 			func(*api.Step, api.Args, api.Metadata) (api.Args, error) {
@@ -140,8 +138,8 @@ func TestPartialFlowFailure(t *testing.T) {
 	})
 }
 
-// TestWorkItemFailFast verifies that when any work item permanently fails,
-// the step fails immediately and remaining pending items are never started
+// TestWorkItemFailFast verifies that when any work item permanently fails, the step fails
+// immediately and remaining pending items are never started
 func TestWorkItemFailFast(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		assert.NoError(t, env.Engine.Start())
@@ -178,9 +176,7 @@ func TestWorkItemFailFast(t *testing.T) {
 			},
 			Attributes: api.AttributeGraph{
 				"items": &api.AttributeEdges{
-					Providers: []api.StepID{
-						provider1.ID, provider2.ID, provider3.ID,
-					},
+					Providers: []api.StepID{provider1.ID, provider2.ID, provider3.ID},
 					Consumers: []api.StepID{consumer.ID},
 				},
 			},
@@ -248,10 +244,7 @@ func TestUnreachableStep(t *testing.T) {
 
 		assert.Equal(t, api.StepFailed, fl.Executions[stepA.ID].Status)
 		assert.Equal(t, api.StepFailed, fl.Executions[stepB.ID].Status)
-		assert.Equal(t,
-			"required input no longer available",
-			fl.Executions[stepB.ID].Error,
-		)
+		assert.Equal(t, "required input no longer available", fl.Executions[stepB.ID].Error)
 		assert.NotContains(t, env.MockClient.GetInvocations(), stepB.ID)
 	})
 }
@@ -264,25 +257,19 @@ func TestSkippedProviderCascade(t *testing.T) {
 			"order-creator", api.ScriptLangLua, "return false", "order",
 		)
 
-		paymentProcessor := helpers.NewTestStepWithArgs(
-			[]api.Name{"order"}, nil,
-		)
+		paymentProcessor := helpers.NewTestStepWithArgs([]api.Name{"order"}, nil)
 		paymentProcessor.ID = "payment-processor"
 		paymentProcessor.Attributes["payment"] = &api.AttributeSpec{
 			Role: api.RoleOutput,
 		}
 
-		stockReservation := helpers.NewTestStepWithArgs(
-			[]api.Name{"order"}, nil,
-		)
+		stockReservation := helpers.NewTestStepWithArgs([]api.Name{"order"}, nil)
 		stockReservation.ID = "stock-reservation"
 		stockReservation.Attributes["reservation"] = &api.AttributeSpec{
 			Role: api.RoleOutput,
 		}
 
-		notificationSender := helpers.NewTestStepWithArgs(
-			[]api.Name{"payment", "reservation"}, nil,
-		)
+		notificationSender := helpers.NewTestStepWithArgs([]api.Name{"payment", "reservation"}, nil)
 		notificationSender.ID = "notification-sender"
 		notificationSender.Attributes["notified"] = &api.AttributeSpec{
 			Role: api.RoleOutput,
@@ -304,10 +291,7 @@ func TestSkippedProviderCascade(t *testing.T) {
 			Attributes: api.AttributeGraph{
 				"order": {
 					Providers: []api.StepID{orderCreator.ID},
-					Consumers: []api.StepID{
-						paymentProcessor.ID,
-						stockReservation.ID,
-					},
+					Consumers: []api.StepID{paymentProcessor.ID, stockReservation.ID},
 				},
 				"payment": {
 					Providers: []api.StepID{paymentProcessor.ID},
@@ -330,9 +314,7 @@ func TestSkippedProviderCascade(t *testing.T) {
 		})
 
 		assert.Equal(t, api.FlowFailed, fl.Status)
-		assert.Equal(t,
-			api.StepSkipped, fl.Executions[orderCreator.ID].Status,
-		)
+		assert.Equal(t, api.StepSkipped, fl.Executions[orderCreator.ID].Status)
 
 		for _, sid := range []api.StepID{
 			paymentProcessor.ID,
@@ -340,10 +322,7 @@ func TestSkippedProviderCascade(t *testing.T) {
 			notificationSender.ID,
 		} {
 			assert.Equal(t, api.StepFailed, fl.Executions[sid].Status)
-			assert.Equal(t,
-				"required input no longer available",
-				fl.Executions[sid].Error,
-			)
+			assert.Equal(t, "required input no longer available", fl.Executions[sid].Error)
 		}
 
 		invocations := env.MockClient.GetInvocations()

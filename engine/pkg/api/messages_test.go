@@ -69,8 +69,7 @@ func TestCreateFlowRequestValidate(t *testing.T) {
 			`{"steps":["a","b"],"else":{"steps":["c"]}}}`), &req,
 		)
 		assert.NoError(t, err)
-		assert.Equal(t,
-			[][]api.StepID{{"a", "b"}, {"c"}}, req.Goals.Sets())
+		assert.Equal(t, [][]api.StepID{{"a", "b"}, {"c"}}, req.Goals.Sets())
 	})
 
 	t.Run("ID too long", func(t *testing.T) {

@@ -191,24 +191,20 @@ func (c *CatalogState) SpaceSteps(id SpaceID) Steps {
 	return res
 }
 
-// SetSpaceSelection returns a new CatalogState with the space's selected steps
-// replaced
-func (c CatalogState) SetSpaceSelection(
-	id SpaceID, steps []StepID,
-) CatalogState {
+// SetSpaceSelection returns a new CatalogState with the space's selected steps replaced
+func (c CatalogState) SetSpaceSelection(id SpaceID, steps []StepID) CatalogState {
 	c.Spaces.Selected = c.Spaces.Selected.Set(id, steps)
 	return c
 }
 
-// DeleteSpaceSelection returns a new CatalogState with the space's selected
-// steps removed
+// DeleteSpaceSelection returns a new CatalogState with the space's selected steps removed
 func (c CatalogState) DeleteSpaceSelection(id SpaceID) CatalogState {
 	c.Spaces.Selected = c.Spaces.Selected.Delete(id)
 	return c
 }
 
-// SetStepSpaces returns a new CatalogState where the step is selected by
-// exactly the supplied spaces
+// SetStepSpaces returns a new CatalogState where the step is selected by exactly the supplied
+// spaces
 func (c CatalogState) SetStepSpaces(id StepID, spaces []SpaceID) CatalogState {
 	next := util.SetOf(spaces...)
 	selection := Map[SpaceID, Slice[StepID]]{}
@@ -357,8 +353,7 @@ func (f *FlowState) AttributeValues(name Name) []*AttributeValue {
 	return f.Attributes[name]
 }
 
-// HasInit reports whether the flow's initial state declared this attribute,
-// even with zero values
+// HasInit reports whether the flow's initial state declared this attribute, even with zero values
 func (f *FlowState) HasInit(name Name) bool {
 	return slices.Contains(f.Init, name)
 }

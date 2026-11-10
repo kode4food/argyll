@@ -6,8 +6,8 @@ import (
 )
 
 type (
-	// Engine runs flows inside an embedding application. New opens the stores
-	// it runs on and Stop closes them
+	// Engine runs flows inside an embedding application. New opens the stores it runs on and Stop
+	// closes them
 	Engine interface {
 		Steps
 		Spaces
@@ -33,8 +33,8 @@ type (
 		// RegisterStep adds a step to the catalog
 		RegisterStep(*api.Step) error
 
-		// RegisterSteps adds several steps in one transaction, so a conflict
-		// among them leaves the catalog as it was
+		// RegisterSteps adds several steps in one transaction, so a conflict among them leaves the
+		// catalog as it was
 		RegisterSteps(...*api.Step) error
 
 		// UpdateStep replaces an existing step's registration
@@ -93,8 +93,8 @@ type (
 		// StartFlow validates a request, plans it, and starts the flow
 		StartFlow(api.CreateFlowRequest) error
 
-		// CreatePlan builds the execution plan StartPlan runs, over the current
-		// catalog, narrowed to a space when one is named
+		// CreatePlan builds the execution plan StartPlan runs, over the current catalog, narrowed
+		// to a space when one is named
 		CreatePlan(api.ExecutionPlanRequest) (*api.ExecutionPlan, error)
 
 		// StartPlan begins a flow execution from a plan the caller built

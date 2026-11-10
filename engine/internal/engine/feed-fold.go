@@ -15,8 +15,7 @@ var (
 	ErrFeedFoldFailed = errors.New("feed fold failed")
 )
 
-// feedTx runs fn against one Feed version's aggregate inside the current store
-// transaction
+// feedTx runs fn against one Feed version's aggregate inside the current store transaction
 func (tx storeTx) feedTx(
 	f *api.Feed, fn func(*FeedAggregator) error,
 ) (api.FeedState, error) {
@@ -28,9 +27,7 @@ func (tx storeTx) feedTx(
 }
 
 // snapshotFeeds reads the values of the Feeds a plan's Steps consume
-func (tx *flowTx) snapshotFeeds(
-	pl *api.ExecutionPlan,
-) (api.FeedValues, error) {
+func (tx *flowTx) snapshotFeeds(pl *api.ExecutionPlan) (api.FeedValues, error) {
 	res := api.FeedValues{}
 	for _, st := range pl.Steps {
 		for _, attr := range st.Attributes {
@@ -58,11 +55,9 @@ func (tx *flowTx) snapshotFeeds(
 	return res, nil
 }
 
-// foldCompletedFeeds folds a just-completed Step's outputs when nothing can
-// compensate them, since they are final from this moment
-func (tx *flowTx) foldCompletedFeeds(
-	st *api.Step, outputs api.Args,
-) error {
+// foldCompletedFeeds folds a just-completed Step's outputs when nothing can compensate them, since
+// they are final from this moment
+func (tx *flowTx) foldCompletedFeeds(st *api.Step, outputs api.Args) error {
 	if len(tx.Value().Plan.Feeds) == 0 {
 		return nil
 	}
@@ -73,8 +68,8 @@ func (tx *flowTx) foldCompletedFeeds(
 	return tx.foldFeeds(st.ID, outputs)
 }
 
-// foldSettledFeeds folds, at deactivation, the outputs of completed Steps with
-// a compensator whose work was not compensated
+// foldSettledFeeds folds, at deactivation, the outputs of completed Steps with a compensator whose
+// work was not compensated
 func (tx *flowTx) foldSettledFeeds() error {
 	fl := tx.Value()
 	if len(fl.Plan.Feeds) == 0 {
@@ -126,9 +121,7 @@ func (tx *flowTx) foldFeeds(sid api.StepID, outputs api.Args) error {
 	return nil
 }
 
-func (tx *flowTx) foldFeed(
-	f *api.Feed, sid api.StepID, outputs api.Args,
-) error {
+func (tx *flowTx) foldFeed(f *api.Feed, sid api.StepID, outputs api.Args) error {
 	version := f.Version()
 	_, err := tx.feedTx(f, func(ag *FeedAggregator) error {
 		current, err := feedValue(f, ag.Value())
@@ -183,8 +176,8 @@ func (e *Engine) evaluateFold(f *api.Feed, args api.Args) (any, error) {
 	return res, nil
 }
 
-// feedFoldStep builds the synthetic Step a fold compiles against, exposing the
-// Feed's current value and each of its Attributes
+// feedFoldStep builds the synthetic Step a fold compiles against, exposing the Feed's current value
+// and each of its Attributes
 func feedFoldStep(f *api.Feed) *api.Step {
 	attrs := api.AttributeSpecs{
 		api.FeedCurrent: {Role: api.RoleRequired},
@@ -198,8 +191,7 @@ func feedFoldStep(f *api.Feed) *api.Step {
 	}
 }
 
-// feedValue returns a Feed state's value, or the seed for a version that has
-// never folded
+// feedValue returns a Feed state's value, or the seed for a version that has never folded
 func feedValue(f *api.Feed, state api.FeedState) (any, error) {
 	if state.Version != "" {
 		return state.Value, nil

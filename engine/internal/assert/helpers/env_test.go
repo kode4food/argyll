@@ -151,9 +151,7 @@ func TestRaiseFlowEvents(t *testing.T) {
 }
 
 func TestSeedFlow(t *testing.T) {
-	for _, status := range []api.FlowStatus{
-		api.FlowActive, api.FlowCompleted, api.FlowFailed,
-	} {
+	for _, status := range []api.FlowStatus{api.FlowActive, api.FlowCompleted, api.FlowFailed} {
 		t.Run(string(status), func(t *testing.T) {
 			helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 				tags := api.Tags{"tier:test"}

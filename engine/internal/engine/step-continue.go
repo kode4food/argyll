@@ -22,9 +22,7 @@ func (tx *flowTx) scheduleTimeouts() error {
 	return nil
 }
 
-func (tx *flowTx) scheduleStepTimeouts(
-	fl api.FlowState, sid api.StepID, when time.Time,
-) error {
+func (tx *flowTx) scheduleStepTimeouts(fl api.FlowState, sid api.StepID, when time.Time) error {
 	st, ok := fl.Plan.Steps[sid]
 	if !ok || !stepHasTimeouts(st) {
 		return nil
@@ -59,9 +57,7 @@ func (tx *flowTx) scheduleStepTimeouts(
 	return nil
 }
 
-func (tx *flowTx) scheduleTimeoutTask(
-	sid api.StepID, name api.Name, at time.Time,
-) error {
+func (tx *flowTx) scheduleTimeoutTask(sid api.StepID, name api.Name, at time.Time) error {
 	fs := api.FlowStep{FlowID: tx.flowID, StepID: sid}
 	return tx.scheduleEvent(timeoutKey(fs, name), at, stepTimeoutElapsed,
 		scheduledTimeout{StepID: sid, Name: name})
@@ -100,6 +96,5 @@ func stepHasTimeouts(st *api.Step) bool {
 }
 
 func timeoutKey(fs api.FlowStep, name api.Name) []string {
-	return []string{string(fs.FlowID), "timeout", string(fs.StepID),
-		string(name)}
+	return []string{string(fs.FlowID), "timeout", string(fs.StepID), string(name)}
 }

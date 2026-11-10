@@ -173,8 +173,7 @@ func TestFeedAttributeRole(t *testing.T) {
 	assert.Equal(t, api.FeedID("order-total"), ok.FeedID())
 
 	missing := &api.AttributeSpec{Role: api.RoleFeed}
-	assert.True(t,
-		errors.Is(missing.Validate("total"), api.ErrFeedIDRequired))
+	assert.True(t, errors.Is(missing.Validate("total"), api.ErrFeedIDRequired))
 	assert.Equal(t, api.FeedID(""), missing.FeedID())
 
 	wrong := &api.AttributeSpec{
@@ -182,8 +181,7 @@ func TestFeedAttributeRole(t *testing.T) {
 		Const: &api.ConstConfig{Value: "1"},
 		Feed:  &api.FeedConfig{ID: "order-total"},
 	}
-	assert.True(t,
-		errors.Is(wrong.Validate("total"), api.ErrWrongRoleConfig))
+	assert.True(t, errors.Is(wrong.Validate("total"), api.ErrWrongRoleConfig))
 
 	other := &api.AttributeSpec{
 		Role: api.RoleFeed,

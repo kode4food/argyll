@@ -15,46 +15,37 @@ func TestRecoverableDeadline(t *testing.T) {
 	later := time.Unix(20, 0)
 
 	_, ok := policy.RecoverableDeadline(
-		&api.ExecutionState{Status: api.StepActive},
-		&api.WorkState{Status: api.WorkActive},
-		now,
+		&api.ExecutionState{Status: api.StepActive}, &api.WorkState{Status: api.WorkActive}, now,
 	)
 	assert.False(t, ok)
 
 	at, ok := policy.RecoverableDeadline(
 		&api.ExecutionState{Status: api.StepPending},
-		&api.WorkState{Status: api.WorkPending, NextRetryAt: later},
-		now,
+		&api.WorkState{Status: api.WorkPending, NextRetryAt: later}, now,
 	)
 	assert.True(t, ok)
 	assert.Equal(t, later, at)
 
 	at, ok = policy.RecoverableDeadline(
-		&api.ExecutionState{Status: api.StepActive},
-		&api.WorkState{Status: api.WorkPending},
-		now,
+		&api.ExecutionState{Status: api.StepActive}, &api.WorkState{Status: api.WorkPending}, now,
 	)
 	assert.True(t, ok)
 	assert.Equal(t, now, at)
 
 	_, ok = policy.RecoverableDeadline(
 		&api.ExecutionState{Status: api.StepPending},
-		&api.WorkState{Status: api.WorkFailed, NextRetryAt: later},
+		&api.WorkState{Status: api.WorkFailed, NextRetryAt: later}, now,
+	)
+	assert.False(t, ok)
+
+	_, ok = policy.RecoverableDeadline(
+		&api.ExecutionState{Status: api.StepActive}, &api.WorkState{Status: api.WorkNotCompleted},
 		now,
 	)
 	assert.False(t, ok)
 
 	_, ok = policy.RecoverableDeadline(
-		&api.ExecutionState{Status: api.StepActive},
-		&api.WorkState{Status: api.WorkNotCompleted},
-		now,
-	)
-	assert.False(t, ok)
-
-	_, ok = policy.RecoverableDeadline(
-		&api.ExecutionState{Status: api.StepPending},
-		&api.WorkState{Status: api.WorkPending},
-		now,
+		&api.ExecutionState{Status: api.StepPending}, &api.WorkState{Status: api.WorkPending}, now,
 	)
 	assert.False(t, ok)
 }
@@ -93,8 +84,8 @@ func TestRetryStartDecision(t *testing.T) {
 	)
 	assert.Equal(t, policy.RetryStartIgnore, action)
 
-	// Not-completed work is settled by the same command that reports it, so
-	// retry handling never finds one to restart
+	// Not-completed work is settled by the same command that reports it, so retry handling never
+	// finds one to restart
 	action, _ = policy.RetryStartDecision(
 		&api.WorkState{Status: api.WorkNotCompleted}, now,
 	)
@@ -138,15 +129,13 @@ func TestRetryDerivation(t *testing.T) {
 	t.Run("pending retry ignores the clock", func(t *testing.T) {
 		at, ok := policy.RecoverableDeadline(
 			&api.ExecutionState{Status: api.StepPending},
-			&api.WorkState{Status: api.WorkPending, NextRetryAt: later},
-			now,
+			&api.WorkState{Status: api.WorkPending, NextRetryAt: later}, now,
 		)
 		assert.True(t, ok)
 
 		again, ok := policy.RecoverableDeadline(
 			&api.ExecutionState{Status: api.StepPending},
-			&api.WorkState{Status: api.WorkPending, NextRetryAt: later},
-			skewed,
+			&api.WorkState{Status: api.WorkPending, NextRetryAt: later}, skewed,
 		)
 		assert.True(t, ok)
 		assert.Equal(t, at, again)

@@ -79,16 +79,14 @@ func (s *Server) generateStepImpl(args generateStepImplArgs) (any, error) {
 	}
 
 	return toolResult(stepImplResult{
-		StepName:   name,
-		StepType:   stepType,
-		ActionMode: actionMode,
-		Method:     method,
-		Inputs:     inputs,
-		Outputs:    outputs,
-		ImplementationNotes: stepImplNotes(
-			isExternal, method, inputs, outputs,
-		),
-		Code: code,
+		StepName:            name,
+		StepType:            stepType,
+		ActionMode:          actionMode,
+		Method:              method,
+		Inputs:              inputs,
+		Outputs:             outputs,
+		ImplementationNotes: stepImplNotes(isExternal, method, inputs, outputs),
+		Code:                code,
 	}, nil)
 }
 
@@ -116,9 +114,7 @@ func stepIO(st map[string]any) ([]string, []string) {
 	return inputs, outputs
 }
 
-func stepImplNotes(
-	isExternal bool, method string, inputs, outputs []string,
-) []string {
+func stepImplNotes(isExternal bool, method string, inputs, outputs []string) []string {
 	var res []string
 	if isExternal {
 		res = append(res,

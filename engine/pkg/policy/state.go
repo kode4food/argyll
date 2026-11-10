@@ -2,9 +2,8 @@ package policy
 
 import "github.com/kode4food/argyll/engine/pkg/api"
 
-// FlowTerminal reports whether a flow has reached an outcome state. Terminal
-// flows should not start more steps or work, though active work may still need
-// to finish before deactivation
+// FlowTerminal reports whether a flow has reached an outcome state. Terminal flows should not start
+// more steps or work, though active work may still need to finish before deactivation
 func FlowTerminal(status api.FlowStatus) bool {
 	return FlowTransitions.IsTerminal(status)
 }
@@ -14,15 +13,13 @@ func StepTerminal(status api.StepStatus) bool {
 	return StepTransitions.IsTerminal(status)
 }
 
-// StepComplete reports whether a step counts as done for flow completion
-// Skipped steps are complete because the engine intentionally determined their
-// outputs are not needed
+// StepComplete reports whether a step counts as done for flow completion Skipped steps are complete
+// because the engine intentionally determined their outputs are not needed
 func StepComplete(status api.StepStatus) bool {
 	return status == api.StepCompleted || status == api.StepSkipped
 }
 
-// StepSucceeded reports whether a step completed with outputs available for
-// downstream consumers
+// StepSucceeded reports whether a step completed with outputs available for downstream consumers
 func StepSucceeded(status api.StepStatus) bool {
 	return status == api.StepCompleted
 }
@@ -52,10 +49,9 @@ func WorkActive(status api.WorkStatus) bool {
 	return status == api.WorkActive
 }
 
-// WorkBlocksFlowDeactivation reports whether a work item still prevents a
-// terminal flow from being deactivated. Pending work can still be claimed or
-// cancelled, active work may still report back, and compensating work must
-// finish before the flow is considered fully settled
+// WorkBlocksFlowDeactivation reports whether a work item still prevents a terminal flow from being
+// deactivated. Pending work can still be claimed or cancelled, active work may still report back,
+// and compensating work must finish before the flow is considered fully settled
 func WorkBlocksFlowDeactivation(status api.WorkStatus) bool {
 	return status == api.WorkPending ||
 		status == api.WorkActive ||
@@ -73,14 +69,12 @@ func WorkPending(status api.WorkStatus) bool {
 	return status == api.WorkPending
 }
 
-// WorkNotCompleted reports whether a work item asked to be retried rather than
-// finalized
+// WorkNotCompleted reports whether a work item asked to be retried rather than finalized
 func WorkNotCompleted(status api.WorkStatus) bool {
 	return status == api.WorkNotCompleted
 }
 
-// WorkClaimableForRetry reports whether retry task handling may try to start
-// the work item
+// WorkClaimableForRetry reports whether retry task handling may try to start the work item
 func WorkClaimableForRetry(status api.WorkStatus) bool {
 	return status == api.WorkPending || status == api.WorkNotCompleted
 }
@@ -114,8 +108,8 @@ func WorkRollbackSettled(status api.WorkStatus) bool {
 		status == api.WorkCompFailed
 }
 
-// WorkEffectStands reports whether a work item's effect remains in place,
-// which includes work whose compensation failed
+// WorkEffectStands reports whether a work item's effect remains in place, which includes work whose
+// compensation failed
 func WorkEffectStands(status api.WorkStatus) bool {
 	return WorkSucceeded(status) || status == api.WorkCompFailed
 }

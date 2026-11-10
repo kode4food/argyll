@@ -58,8 +58,8 @@ type (
 		steps      []stepModel
 	}
 
-	// dialect is the family of value adapters a pass generates: codecs for
-	// served HTTP handlers, converters for in-process embedded handlers
+	// dialect is the family of value adapters a pass generates: codecs for served HTTP handlers,
+	// converters for in-process embedded handlers
 	dialect struct {
 		pkg        string
 		iface      string
@@ -81,8 +81,8 @@ type (
 		attr    string
 	}
 
-	// adapterView is the snippet's view of a struct adapter declaration,
-	// which reads the dialect and fields the generator carries unexported
+	// adapterView is the snippet's view of a struct adapter declaration, which reads the dialect
+	// and fields the generator carries unexported
 	adapterView struct {
 		Package   string
 		Interface string
@@ -100,8 +100,7 @@ type (
 		Field     string
 	}
 
-	// wrapBodyView is the snippet's view of a wrapper's call and result
-	// assembly
+	// wrapBodyView is the snippet's view of a wrapper's call and result assembly
 	wrapBodyView struct {
 		Function string
 		Inputs   []string
@@ -188,9 +187,9 @@ var (
 	}
 )
 
-// Render returns the generated source for a package, or nil when the package
-// contains no Argyll directives. Server adds a minimal main function and leaves
-// out the embedded handlers, which only a library offers
+// Render returns the generated source for a package, or nil when the package contains no Argyll
+// directives. Server adds a minimal main function and leaves out the embedded handlers, which only
+// a library offers
 func Render(pkg *packages.Package, server bool) ([]byte, error) {
 	service := newPkgGen(pkg, serviceDialect)
 	mainDeclared, err := service.collect()
@@ -216,8 +215,8 @@ func Render(pkg *packages.Package, server bool) ([]byte, error) {
 	return librarySource(service, embedded)
 }
 
-// Steps returns the step specifications a package declares, the values Render
-// writes as literals into its generated source
+// Steps returns the step specifications a package declares, the values Render writes as literals
+// into its generated source
 func Steps(pkg *packages.Package) ([]*api.Step, error) {
 	g := newPkgGen(pkg, serviceDialect)
 	if _, err := g.collect(); err != nil {
@@ -297,8 +296,8 @@ func (g *pkgGen) serviceSteps(logging bool) ([]sourceStep, error) {
 	return res, nil
 }
 
-// embeddedSteps are keyed by step type, which is the ID an embedded engine runs
-// the step's handler under
+// embeddedSteps are keyed by step type, which is the ID an embedded engine runs the step's handler
+// under
 func (g *pkgGen) embeddedSteps() []sourceStep {
 	res := make([]sourceStep, 0, len(g.steps))
 	for _, s := range g.steps {
@@ -405,8 +404,7 @@ func (g *pkgGen) compositeCodec(u types.Type) (string, error) {
 	case *types.Map:
 		if b, ok := u.Key().Underlying().(*types.Basic); !ok ||
 			b.Info()&types.IsString == 0 {
-			return "", fmt.Errorf("%w: %s keys", ErrUnsupportedType,
-				g.typeOf(u.Key()))
+			return "", fmt.Errorf("%w: %s keys", ErrUnsupportedType, g.typeOf(u.Key()))
 		}
 		return g.wrapCodec("Map", u.Elem())
 	default:
@@ -538,8 +536,7 @@ func importBlock(paths map[string]string, extra []string) string {
 	return sb.String()
 }
 
-// embeddedSpec is the step an embedded engine runs itself, typed to name its
-// in-process handler
+// embeddedSpec is the step an embedded engine runs itself, typed to name its in-process handler
 func embeddedSpec(s stepModel) *api.Step {
 	embedded := s.spec.Copy()
 	embedded.Type = api.StepType(s.embedType)
@@ -547,8 +544,8 @@ func embeddedSpec(s stepModel) *api.Step {
 	return embedded
 }
 
-// logged wraps a server's handler expression with invocation logging, leaving
-// the absent compensation handler of a step absent
+// logged wraps a server's handler expression with invocation logging, leaving the absent
+// compensation handler of a step absent
 func logged(id api.StepID, handler string) string {
 	if handler == "" {
 		return ""
@@ -602,9 +599,7 @@ func syncBody(args syncBodyArgs) string {
 	return snippet(syncBodySnippet, args)
 }
 
-func wrapBody(
-	fn string, names wrapNames, outType string, hasErr bool,
-) string {
+func wrapBody(fn string, names wrapNames, outType string, hasErr bool) string {
 	inputs := make([]string, len(names.inputs))
 	for i, n := range names.inputs {
 		inputs[i] = ExportedName(n)
@@ -626,21 +621,17 @@ func compAdapter(cfg compAdapterConfig) string {
 	return snippet(compensateHandlerSnippet, cfg)
 }
 
-// a failed fragment renders short, which the gofmt pass in render reports
-// against the whole file
+// a failed fragment renders short, which the gofmt pass in render reports against the whole file
 func snippet(name string, data any) string {
 	var sb strings.Builder
 	_ = sources.ExecuteTemplate(&sb, name, data)
 	return sb.String()
 }
 
-func newAttr(
-	t types.Type, options Options, output bool,
-) (*api.AttributeSpec, error) {
+func newAttr(t types.Type, options Options, output bool) (*api.AttributeSpec, error) {
 	role := declaredRole(t, options, output)
 	if output && role != api.RoleOutput {
-		return nil, fmt.Errorf("%w: an output takes no role %q",
-			ErrBadProp, role)
+		return nil, fmt.Errorf("%w: an output takes no role %q", ErrBadProp, role)
 	}
 	spec := &api.AttributeSpec{}
 	if err := setRole(spec, role); err != nil {
@@ -652,8 +643,7 @@ func newAttr(
 		}
 		set, ok := attrSetters[o.Key]
 		if !ok {
-			return nil, fmt.Errorf("%w: unknown property %q",
-				ErrBadProp, o.Key)
+			return nil, fmt.Errorf("%w: unknown property %q", ErrBadProp, o.Key)
 		}
 		if err := set(spec, jsonValue(t, o)); err != nil {
 			return nil, err
@@ -662,9 +652,7 @@ func newAttr(
 	return spec, nil
 }
 
-func declaredRole(
-	t types.Type, options Options, output bool,
-) api.AttributeRole {
+func declaredRole(t types.Type, options Options, output bool) api.AttributeRole {
 	for _, o := range options {
 		if o.Key == roleProp {
 			return api.AttributeRole(o.Value)
@@ -712,8 +700,8 @@ func structFields(s *types.Struct) ([]fieldSpec, error) {
 	return out, nil
 }
 
-// fieldSpecs returns the attributes one struct field contributes: the fields of
-// an embedded struct it flattens into, or the field itself
+// fieldSpecs returns the attributes one struct field contributes: the fields of an embedded struct
+// it flattens into, or the field itself
 func fieldSpecs(f *types.Var, tag string) ([]fieldSpec, error) {
 	if inner, ok := embeddedStruct(f, tag); ok {
 		return structFields(inner)
@@ -725,8 +713,8 @@ func fieldSpecs(f *types.Var, tag string) ([]fieldSpec, error) {
 	return []fieldSpec{spec}, nil
 }
 
-// embeddedStruct reports the struct an untagged embedded field flattens into,
-// leaving a field its tag names to be an attribute of its own
+// embeddedStruct reports the struct an untagged embedded field flattens into, leaving a field its
+// tag names to be an attribute of its own
 func embeddedStruct(f *types.Var, tag string) (*types.Struct, bool) {
 	if !f.Embedded() {
 		return nil, false
@@ -738,8 +726,8 @@ func embeddedStruct(f *types.Var, tag string) (*types.Struct, bool) {
 	return st, ok
 }
 
-// checkAmbiguous rejects what flattening can collide: two attributes of the
-// same name, or two Go fields the generated accessor cannot tell apart
+// checkAmbiguous rejects what flattening can collide: two attributes of the same name, or two Go
+// fields the generated accessor cannot tell apart
 func checkAmbiguous(fields []fieldSpec) error {
 	attrs := make(map[string]bool, len(fields))
 	names := make(map[string]bool, len(fields))

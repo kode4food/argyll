@@ -1,6 +1,6 @@
-// Package convert provides composable in-memory converters between Go values
-// and the JSON-shaped values (string, bool, float64, []any, map[string]any, or
-// nil) that decoding JSON into an any produces
+// Package convert provides composable in-memory converters between Go values and the JSON-shaped
+// values (string, bool, float64, []any, map[string]any, or nil) that decoding JSON into an any
+// produces
 package convert
 
 import (
@@ -93,8 +93,8 @@ func Map[T any](elem Converter[T]) Converter[map[string]T] {
 	return mapConverter[T]{elem: elem}
 }
 
-// Ref returns a converter that reads target when used rather than when built,
-// which lets a recursive type refer to its own converter
+// Ref returns a converter that reads target when used rather than when built, which lets a
+// recursive type refer to its own converter
 func Ref[T any](target *Converter[T]) Converter[T] {
 	return refConverter[T]{target: target}
 }
@@ -104,16 +104,15 @@ func Struct[S any](fields ...StructField[S]) Converter[S] {
 	return &structConverter[S]{fields: fields}
 }
 
-// Field binds a named object member to a field of struct S. The ptr function
-// returns the address of that field in a given struct value
+// Field binds a named object member to a field of struct S. The ptr function returns the address of
+// that field in a given struct value
 func Field[S, T any](
 	name string, c Converter[T], ptr func(*S) *T,
 ) StructField[S] {
 	return structField[S, T]{name: name, conv: c, ptr: ptr}
 }
 
-// From accepts any string kind, so named string types such as identifiers read
-// as text
+// From accepts any string kind, so named string types such as identifiers read as text
 func (textConverter[T]) From(v any) (T, error) {
 	r := reflect.ValueOf(v)
 	if r.Kind() != reflect.String {
@@ -138,8 +137,7 @@ func (boolConverter[T]) To(v T) (any, error) {
 	return bool(v), nil
 }
 
-// From accepts any numeric kind, and a fractional value for an integral type
-// only when it is whole
+// From accepts any numeric kind, and a fractional value for an integral type only when it is whole
 func (numberConverter[T]) From(v any) (T, error) {
 	r := reflect.ValueOf(v)
 	switch {
@@ -158,8 +156,7 @@ func (numberConverter[T]) From(v any) (T, error) {
 	}
 }
 
-// To yields float64, the form a number takes once state is persisted and
-// replayed
+// To yields float64, the form a number takes once state is persisted and replayed
 func (numberConverter[T]) To(v T) (any, error) {
 	return float64(v), nil
 }
@@ -286,9 +283,7 @@ func (c optionalConverter[T]) to(v *T, state *toState) (any, error) {
 	return valueOf(c.elem, *v, state)
 }
 
-func (c mapConverter[T]) to(
-	v map[string]T, state *toState,
-) (any, error) {
+func (c mapConverter[T]) to(v map[string]T, state *toState) (any, error) {
 	res := make(map[string]any, len(v))
 	for name, elem := range v {
 		member, err := valueOf(c.elem, elem, state)

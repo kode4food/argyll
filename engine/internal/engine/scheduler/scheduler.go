@@ -59,16 +59,14 @@ func Now() time.Time {
 	return time.Now()
 }
 
-// Load returns the pending scheduled task for path, or nil if there is none.
-// The transaction's commit is checked against what it read
+// Load returns the pending scheduled task for path, or nil if there is none. The transaction's
+// commit is checked against what it read
 func Load(tx *timebox.Transaction, path []string) (*timebox.Schedule, error) {
 	return tx.LoadSchedule(encodePath(path))
 }
 
 // Schedule creates or replaces a durable scheduled task
-func Schedule(
-	tx *timebox.Transaction, path []string, at time.Time, msg *timebox.Message,
-) error {
+func Schedule(tx *timebox.Transaction, path []string, at time.Time, msg *timebox.Message) error {
 	return tx.Schedule(encodePath(path), at, msg)
 }
 

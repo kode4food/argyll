@@ -40,8 +40,7 @@ func TestFeedAPI(t *testing.T) {
 		charge := helpers.NewStepWithOutputs("charge", "amount")
 		assert.NoError(t, env.Engine.RegisterStep(charge))
 
-		assert.Equal(t,
-			http.StatusCreated, do(http.MethodPost, "/engine/feeds", f))
+		assert.Equal(t, http.StatusCreated, do(http.MethodPost, "/engine/feeds", f))
 		clash := api.Feed{
 			ID:         f.ID,
 			Name:       f.Name,
@@ -49,11 +48,9 @@ func TestFeedAPI(t *testing.T) {
 			Fold:       f.Fold,
 			Attributes: f.Attributes,
 		}
-		assert.Equal(t,
-			http.StatusConflict, do(http.MethodPost, "/engine/feeds", clash))
+		assert.Equal(t, http.StatusConflict, do(http.MethodPost, "/engine/feeds", clash))
 		bad := api.Feed{ID: "bad"}
-		assert.Equal(t,
-			http.StatusBadRequest, do(http.MethodPost, "/engine/feeds", bad))
+		assert.Equal(t, http.StatusBadRequest, do(http.MethodPost, "/engine/feeds", bad))
 
 		w := spaceRequest(t, spaceRequestArgs{
 			handler: router,
@@ -77,24 +74,16 @@ func TestFeedAPI(t *testing.T) {
 		assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &listed))
 		assert.Equal(t, 1, listed.Count)
 
-		assert.Equal(t,
-			http.StatusNotFound,
-			do(http.MethodGet, "/engine/feeds/missing", nil))
+		assert.Equal(t, http.StatusNotFound, do(http.MethodGet, "/engine/feeds/missing", nil))
 
 		f.Name = "Renamed"
-		assert.Equal(t,
-			http.StatusOK, do(http.MethodPut, "/engine/feeds/order-total", f))
-		assert.Equal(t,
-			http.StatusBadRequest, do(http.MethodPut, "/engine/feeds/other", f))
+		assert.Equal(t, http.StatusOK, do(http.MethodPut, "/engine/feeds/order-total", f))
+		assert.Equal(t, http.StatusBadRequest, do(http.MethodPut, "/engine/feeds/other", f))
 		other := testFeed()
 		other.ID = "other"
-		assert.Equal(t,
-			http.StatusNotFound,
-			do(http.MethodPut, "/engine/feeds/other", other))
+		assert.Equal(t, http.StatusNotFound, do(http.MethodPut, "/engine/feeds/other", other))
 		f.Fold = &api.ScriptConfig{Language: api.ScriptLangLua}
-		assert.Equal(t,
-			http.StatusBadRequest,
-			do(http.MethodPut, "/engine/feeds/order-total", f))
+		assert.Equal(t, http.StatusBadRequest, do(http.MethodPut, "/engine/feeds/order-total", f))
 
 		reader := helpers.NewSimpleStep("reader")
 		reader.Attributes["total"] = &api.AttributeSpec{
@@ -107,14 +96,10 @@ func TestFeedAPI(t *testing.T) {
 			do(http.MethodDelete, "/engine/feeds/order-total", nil))
 		assert.NoError(t, env.Engine.UnregisterStep(reader.ID))
 
-		assert.Equal(t,
-			http.StatusOK,
-			do(http.MethodDelete, "/engine/feeds/order-total", nil))
+		assert.Equal(t, http.StatusOK, do(http.MethodDelete, "/engine/feeds/order-total", nil))
 		assert.Equal(t,
 			http.StatusNotFound,
 			do(http.MethodDelete, "/engine/feeds/order-total", nil))
-		assert.Equal(t,
-			http.StatusBadRequest,
-			do(http.MethodPost, "/engine/feeds", "not a feed"))
+		assert.Equal(t, http.StatusBadRequest, do(http.MethodPost, "/engine/feeds", "not a feed"))
 	})
 }

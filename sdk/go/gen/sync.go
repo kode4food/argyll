@@ -69,9 +69,7 @@ func invoke[I, O any](fn func(I) (O, error), in I) (out O, err error) {
 	return fn(in)
 }
 
-func decodeBody[T any](
-	w http.ResponseWriter, r *http.Request, c codec.Codec[T],
-) (T, bool) {
+func decodeBody[T any](w http.ResponseWriter, r *http.Request, c codec.Codec[T]) (T, bool) {
 	var zero T
 	if r.Method != http.MethodPost {
 		argyll.WriteProblem(w, http.StatusMethodNotAllowed, ErrMethod.Error())
@@ -79,18 +77,13 @@ func decodeBody[T any](
 	}
 	v, err := codec.DecodeFrom(c, r.Body)
 	if err != nil {
-		argyll.WriteProblem(
-			w, http.StatusBadRequest,
-			fmt.Sprintf("%s: %s", ErrInvalidInputs, err),
-		)
+		argyll.WriteProblem(w, http.StatusBadRequest, fmt.Sprintf("%s: %s", ErrInvalidInputs, err))
 		return zero, false
 	}
 	return v, true
 }
 
-func writeFailure(
-	w http.ResponseWriter, err error, fallback int, action string,
-) {
+func writeFailure(w http.ResponseWriter, err error, fallback int, action string) {
 	if pe, ok := errors.AsType[*PanicError](err); ok {
 		slog.Error(action+" function panicked",
 			slog.Any("panic", pe.Value),
@@ -105,9 +98,7 @@ func writeFailure(
 	argyll.WriteProblem(w, fallback, err.Error())
 }
 
-func writeValue[T any](
-	w http.ResponseWriter, status int, c codec.Codec[T], v T,
-) {
+func writeValue[T any](w http.ResponseWriter, status int, c codec.Codec[T], v T) {
 	body, err := encodeValue(c, v)
 	if err != nil {
 		argyll.WriteProblem(w, http.StatusInternalServerError, err.Error())

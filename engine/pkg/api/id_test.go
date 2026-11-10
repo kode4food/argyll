@@ -34,14 +34,8 @@ func TestSanitizeID(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			assert.Equal(t,
-				api.FlowID(tt.expected),
-				api.SanitizeID(api.FlowID(tt.input)),
-			)
-			assert.Equal(t,
-				api.StepID(tt.expected),
-				api.SanitizeID(api.StepID(tt.input)),
-			)
+			assert.Equal(t, api.FlowID(tt.expected), api.SanitizeID(api.FlowID(tt.input)))
+			assert.Equal(t, api.StepID(tt.expected), api.SanitizeID(api.StepID(tt.input)))
 		})
 	}
 }

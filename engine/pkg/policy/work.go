@@ -6,17 +6,16 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
-// WorkCompletion summarizes whether a step's work items have all reached a
-// step-level outcome. It is used to decide whether to raise StepCompleted or
-// StepFailed after individual work items finish
+// WorkCompletion summarizes whether a step's work items have all reached a step-level outcome. It
+// is used to decide whether to raise StepCompleted or StepFailed after individual work items finish
 type WorkCompletion struct {
 	FailureError string
 	Done         bool
 	Failed       bool
 }
 
-// StepParallelism returns the effective dispatch parallelism for a step. A
-// missing, zero, or negative setting means one work item at a time
+// StepParallelism returns the effective dispatch parallelism for a step. A missing, zero, or
+// negative setting means one work item at a time
 func StepParallelism(st *api.Step) int {
 	if st.WorkConfig == nil || st.WorkConfig.Parallelism <= 0 {
 		return 1
@@ -24,8 +23,7 @@ func StepParallelism(st *api.Step) int {
 	return st.WorkConfig.Parallelism
 }
 
-// CountActiveWorkItems counts currently executing work items for dispatch
-// throttling
+// CountActiveWorkItems counts currently executing work items for dispatch throttling
 func CountActiveWorkItems(items api.WorkItems) int {
 	active := 0
 	for _, work := range items {
@@ -36,9 +34,9 @@ func CountActiveWorkItems(items api.WorkItems) int {
 	return active
 }
 
-// StepWorkCompletion classifies a step's work items for step completion. One
-// failure makes the step terminal at once, abandoning pending items. Without
-// one, the step completes only when every item has succeeded
+// StepWorkCompletion classifies a step's work items for step completion. One failure makes the step
+// terminal at once, abandoning pending items. Without one, the step completes only when every item
+// has succeeded
 func StepWorkCompletion(items api.WorkItems) WorkCompletion {
 	res := WorkCompletion{Done: true}
 	for _, work := range items {
@@ -62,12 +60,10 @@ func StepWorkCompletion(items api.WorkItems) WorkCompletion {
 	return res
 }
 
-// WorkDeadline returns when an in-flight attempt stops being expected, and
-// whether it has one at all. HTTP steps use their configured timeout, which
-// for async work bounds the callback. Other steps use the step timeout
-func WorkDeadline(
-	st *api.Step, work *api.WorkState, fallback time.Duration,
-) (time.Time, bool) {
+// WorkDeadline returns when an in-flight attempt stops being expected, and whether it has one at
+// all. HTTP steps use their configured timeout, which for async work bounds the callback. Other
+// steps use the step timeout
+func WorkDeadline(st *api.Step, work *api.WorkState, fallback time.Duration) (time.Time, bool) {
 	if st == nil || st.Type == api.StepTypeFlow || work.StartedAt.IsZero() {
 		return time.Time{}, false
 	}
@@ -97,11 +93,9 @@ func WorkDeadline(
 	return work.StartedAt.Add(res), true
 }
 
-// WorkReadyToDispatch reports whether a step has a pending work item that can
-// be claimed now, respecting parallelism and any scheduled retry time
-func WorkReadyToDispatch(
-	st *api.Step, ex *api.ExecutionState, when time.Time,
-) bool {
+// WorkReadyToDispatch reports whether a step has a pending work item that can be claimed now,
+// respecting parallelism and any scheduled retry time
+func WorkReadyToDispatch(st *api.Step, ex *api.ExecutionState, when time.Time) bool {
 	if CountActiveWorkItems(ex.WorkItems) >= StepParallelism(st) {
 		return false
 	}

@@ -21,9 +21,7 @@ func TestDefaultOptions(t *testing.T) {
 	tkn := api.Token("token-1")
 
 	opts := flow.Defaults(
-		flow.WithInit(init),
-		flow.WithMetadata(meta),
-		flow.WithParent(parent, tkn),
+		flow.WithInit(init), flow.WithMetadata(meta), flow.WithParent(parent, tkn),
 		flow.WithTags(tags),
 	)
 

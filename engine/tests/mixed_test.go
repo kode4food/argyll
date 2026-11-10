@@ -9,8 +9,7 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
-// TestMixedStepTypes tests that HTTP and Script steps can work together in a
-// single flow
+// TestMixedStepTypes tests that HTTP and Script steps can work together in a single flow
 func TestMixedStepTypes(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		assert.NoError(t, env.Engine.Start())
@@ -20,9 +19,7 @@ func TestMixedStepTypes(t *testing.T) {
 
 		// Step B (Script): Require "valueA", produce "valueB" by mapping input
 		stepB := helpers.NewScriptStep(
-			"step-b", api.ScriptLangLua,
-			`return {valueB = "transformed-" .. valueA}`,
-			"valueB",
+			"step-b", api.ScriptLangLua, `return {valueB = "transformed-" .. valueA}`, "valueB",
 		)
 		stepB.Attributes["valueA"] = &api.AttributeSpec{
 			Role: api.RoleRequired,

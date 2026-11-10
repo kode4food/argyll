@@ -36,9 +36,7 @@ func (s *Server) Run() error {
 
 // MCPServer builds a configured gomcp server for advanced usage and tests
 func (s *Server) MCPServer() server.Server {
-	srv := server.NewServer("argyll-mcp",
-		server.WithProtocolVersion("2024-11-05"),
-	)
+	srv := server.NewServer("argyll-mcp", server.WithProtocolVersion("2024-11-05"))
 	s.registerTools(srv)
 	s.registerGuidance(srv)
 	return srv

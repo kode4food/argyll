@@ -16,8 +16,8 @@ type (
 		Value string
 	}
 
-	// Head is the leading value of a tag or directive, the name it declares and
-	// the `(in) -> (out)` attribute spec only a wrap accepts
+	// Head is the leading value of a tag or directive, the name it declares and the `(in) -> (out)`
+	// attribute spec only a wrap accepts
 	Head struct {
 		Name  string
 		Attrs string
@@ -34,8 +34,7 @@ var (
 	ErrBadOption = errors.New("invalid argyll option")
 )
 
-// SplitHead divides the leading value into the name and attribute spec its
-// caller allows
+// SplitHead divides the leading value into the name and attribute spec its caller allows
 func SplitHead(text string) Head {
 	cut := len(text)
 	if i := strings.Index(text, "("); i >= 0 {
@@ -50,8 +49,8 @@ func SplitHead(text string) Head {
 	}
 }
 
-// ParseOptions splits a tag or a directive into the leading value naming the
-// thing and the semicolon separated key:value options configuring it
+// ParseOptions splits a tag or a directive into the leading value naming the thing and the
+// semicolon separated key:value options configuring it
 func ParseOptions(text string) (string, Options, error) {
 	head, rest, _ := strings.Cut(text, optionSeparator)
 	// a leading segment that is itself key:value is an option, not a head

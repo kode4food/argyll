@@ -8,11 +8,7 @@ import (
 )
 
 func main() {
-	engine := flag.String(
-		"engine",
-		"http://localhost:8080",
-		"Engine base URL",
-	)
+	engine := flag.String("engine", "http://localhost:8080", "Engine base URL")
 	flag.Parse()
 
 	server := mcp.NewServer(*engine, nil)

@@ -16,10 +16,7 @@ func TestConstAttribute(t *testing.T) {
 		assert.NoError(t, env.Engine.Start())
 
 		st := helpers.NewScriptStep(
-			"step-const",
-			api.ScriptLangLua,
-			`return {result = const_value}`,
-			"result",
+			"step-const", api.ScriptLangLua, `return {result = const_value}`, "result",
 		)
 		st.Attributes["const_value"] = &api.AttributeSpec{
 			Role:  api.RoleConst,

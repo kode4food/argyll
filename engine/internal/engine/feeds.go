@@ -14,8 +14,7 @@ var (
 	ErrFeedInUse = errors.New("feed in use")
 )
 
-// RegisterFeed persists a new Feed. Registering an equal definition again is a
-// no-op
+// RegisterFeed persists a new Feed. Registering an equal definition again is a no-op
 func (e *Engine) RegisterFeed(f *api.Feed) error {
 	f, err := e.prepareFeed(f)
 	if err != nil {
@@ -100,9 +99,7 @@ func (e *Engine) GetFeed(id api.FeedID) (api.FeedResponse, error) {
 	}
 	f, ok := cat.Feeds[id]
 	if !ok {
-		return api.FeedResponse{}, fmt.Errorf(
-			"%w: %s", api.ErrFeedNotFound, id,
-		)
+		return api.FeedResponse{}, fmt.Errorf("%w: %s", api.ErrFeedNotFound, id)
 	}
 	state, err := e.feedState(f)
 	if err != nil {
@@ -111,11 +108,9 @@ func (e *Engine) GetFeed(id api.FeedID) (api.FeedResponse, error) {
 	return api.FeedResponse{Feed: f, State: state}, nil
 }
 
-// GetFeedStateSeq returns the folded state of one Feed version and the next
-// sequence of its aggregate. A version that has never folded has no Version
-func (e *Engine) GetFeedStateSeq(
-	key timebox.AggregateID,
-) (api.FeedState, int64, error) {
+// GetFeedStateSeq returns the folded state of one Feed version and the next sequence of its
+// aggregate. A version that has never folded has no Version
+func (e *Engine) GetFeedStateSeq(key timebox.AggregateID) (api.FeedState, int64, error) {
 	var nextSeq int64
 	state, err := e.feedExec.Exec(key,
 		func(_ api.FeedState, ag *FeedAggregator) error {
@@ -139,8 +134,8 @@ func (e *Engine) prepareFeed(f *api.Feed) (*api.Feed, error) {
 	return f, nil
 }
 
-// feedState reads the folded value of a Feed's current version, substituting
-// the seed for a version that has never folded
+// feedState reads the folded value of a Feed's current version, substituting the seed for a version
+// that has never folded
 func (e *Engine) feedState(f *api.Feed) (api.FeedState, error) {
 	version := f.Version()
 	state, err := e.feedExec.Get(events.FeedKey(f.ID, version))
@@ -164,25 +159,22 @@ func (e *Engine) feedState(f *api.Feed) (api.FeedState, error) {
 func validateStepFeeds(cat *api.CatalogState, st *api.Step) error {
 	for name, attr := range st.Attributes {
 		if attr != nil && attr.IsFeed() && cat.Feeds[attr.FeedID()] == nil {
-			return fmt.Errorf("%w: %s for attribute %q",
-				api.ErrFeedNotFound, attr.FeedID(), name)
+			return fmt.Errorf("%w: %s for attribute %q", api.ErrFeedNotFound, attr.FeedID(), name)
 		}
 	}
 	return nil
 }
 
-// checkFeedCatalog requires the Feed's Space to exist and each of its
-// Attributes to be the output of a registered Step
+// checkFeedCatalog requires the Feed's Space to exist and each of its Attributes to be the output
+// of a registered Step
 func checkFeedCatalog(cat *api.CatalogState, f *api.Feed) error {
 	if _, ok := cat.Spaces.Defined[f.SpaceID]; !ok && f.SpaceID != api.NoSpace {
-		return fmt.Errorf("%w: %w: %s",
-			api.ErrInvalidFeed, api.ErrSpaceNotFound, f.SpaceID)
+		return fmt.Errorf("%w: %w: %s", api.ErrInvalidFeed, api.ErrSpaceNotFound, f.SpaceID)
 	}
 	for _, name := range f.Attributes {
 		edges := cat.Attributes[name]
 		if edges == nil || len(edges.Providers) == 0 {
-			return fmt.Errorf("%w: %w: %s",
-				api.ErrInvalidFeed, api.ErrFeedAttributeUnknown, name)
+			return fmt.Errorf("%w: %w: %s", api.ErrInvalidFeed, api.ErrFeedAttributeUnknown, name)
 		}
 	}
 	return nil

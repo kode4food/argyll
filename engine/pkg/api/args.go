@@ -33,8 +33,7 @@ func (a Args) Set(name Name, value any) Args {
 	return Set(a, name, value)
 }
 
-// GetString retrieves a string value from args, returning defaultValue if not
-// found or wrong type
+// GetString retrieves a string value from args, returning defaultValue if not found or wrong type
 func (a Args) GetString(name Name, defaultValue string) string {
 	val, ok := a[name]
 	if !ok {
@@ -47,8 +46,7 @@ func (a Args) GetString(name Name, defaultValue string) string {
 	return str
 }
 
-// GetBool retrieves a boolean value from args, returning defaultValue if not
-// found or wrong type
+// GetBool retrieves a boolean value from args, returning defaultValue if not found or wrong type
 func (a Args) GetBool(name Name, defaultValue bool) bool {
 	val, ok := a[name]
 	if !ok {
@@ -61,9 +59,8 @@ func (a Args) GetBool(name Name, defaultValue bool) bool {
 	return b
 }
 
-// GetInt retrieves an integer value from args, returning defaultValue if not
-// found or wrong type. Supports both int and float64 (converting from JSON
-// numbers)
+// GetInt retrieves an integer value from args, returning defaultValue if not found or wrong type.
+// Supports both int and float64 (converting from JSON numbers)
 func (a Args) GetInt(name Name, defaultValue int) int {
 	val, ok := a[name]
 	if !ok {
@@ -83,9 +80,9 @@ func (a Args) Apply(other Args) Args {
 	return Apply(a, other)
 }
 
-// HashKey computes a deterministic SHA256 hash key of the Args. Keys are
-// sorted alphabetically to ensure consistent hashing regardless of map
-// iteration order. Returns hex string (64 chars) for use as memo key
+// HashKey computes a deterministic SHA256 hash key of the Args. Keys are sorted alphabetically to
+// ensure consistent hashing regardless of map iteration order. Returns hex string (64 chars) for
+// use as memo key
 func (a Args) HashKey() (string, error) {
 	if len(a) == 0 {
 		return sha256Hex(""), nil

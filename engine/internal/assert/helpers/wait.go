@@ -162,11 +162,9 @@ func (e *TestEngineEnv) getExecutionState(
 	return fl.Executions[sid], nil
 }
 
-// waitForStartedStepExec covers the lag between StepStarted being published and
-// the started execution becoming readable
-func (e *TestEngineEnv) waitForStartedStepExec(
-	fid api.FlowID, sid api.StepID,
-) api.ExecutionState {
+// waitForStartedStepExec covers the lag between StepStarted being published and the started
+// execution becoming readable
+func (e *TestEngineEnv) waitForStartedStepExec(fid api.FlowID, sid api.StepID) api.ExecutionState {
 	e.T.Helper()
 
 	deadline := scheduler.Now().Add(wait.DefaultTimeout)
@@ -185,9 +183,7 @@ func (e *TestEngineEnv) waitForStartedStepExec(
 	}
 }
 
-func (e *TestEngineEnv) waitForTerminalStep(
-	fid api.FlowID, sid api.StepID,
-) api.ExecutionState {
+func (e *TestEngineEnv) waitForTerminalStep(fid api.FlowID, sid api.StepID) api.ExecutionState {
 	e.T.Helper()
 
 	deadline := scheduler.Now().Add(wait.DefaultTimeout)
@@ -207,9 +203,7 @@ func (e *TestEngineEnv) waitForTerminalStep(
 }
 
 // WaitForTerminalFlowState waits for a flow to reach a terminal state
-func WaitForTerminalFlowState(
-	t *testing.T, eng *engine.Engine, fid api.FlowID,
-) api.FlowState {
+func WaitForTerminalFlowState(t *testing.T, eng *engine.Engine, fid api.FlowID) api.FlowState {
 	t.Helper()
 	return WaitForFlowState(t, eng, FlowStateQuery{
 		FlowID:  fid,
@@ -219,9 +213,7 @@ func WaitForTerminalFlowState(
 }
 
 // WaitForFlowExists waits for a flow state to become readable
-func WaitForFlowExists(
-	t *testing.T, eng *engine.Engine, fid api.FlowID,
-) api.FlowState {
+func WaitForFlowExists(t *testing.T, eng *engine.Engine, fid api.FlowID) api.FlowState {
 	t.Helper()
 	return WaitForFlowState(t, eng, FlowStateQuery{
 		FlowID:  fid,
@@ -230,9 +222,7 @@ func WaitForFlowExists(
 }
 
 // WaitForFlowState waits for a flow state accepted by query.Accept
-func WaitForFlowState(
-	t *testing.T, eng *engine.Engine, q FlowStateQuery,
-) api.FlowState {
+func WaitForFlowState(t *testing.T, eng *engine.Engine, q FlowStateQuery) api.FlowState {
 	t.Helper()
 
 	deadline := scheduler.Now().Add(q.Timeout)

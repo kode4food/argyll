@@ -81,10 +81,7 @@ func specBytes(args Args) ([]byte, error) {
 		return data, nil
 	}
 	if strings.TrimSpace(args.SpecText) == "" {
-		return nil, fmt.Errorf(
-			"%w: spec_text or spec is required",
-			ErrInvalidParams,
-		)
+		return nil, fmt.Errorf("%w: spec_text or spec is required", ErrInvalidParams)
 	}
 	return []byte(args.SpecText), nil
 }
@@ -110,10 +107,7 @@ func collectOperations(doc *openapi.T) []opSpec {
 				slices.Clone(pathParams),
 				collectParameters(pair.Op.Parameters, path)...,
 			)
-			inputs = append(
-				inputs,
-				collectRequestBodyInputs(pair.Op, entity)...,
-			)
+			inputs = append(inputs, collectRequestBodyInputs(pair.Op, entity)...)
 			outputs := collectResponseOutputs(pair.Op, entity)
 			id := operationID(pair.Op, pair.Method, path)
 			summary := pair.Op.Summary
@@ -287,8 +281,7 @@ func collectResponseOutputs(op *openapi.Operation, entity string) []argSpec {
 		if schema == nil || schema.Value == nil {
 			continue
 		}
-		return append(outputsFromSchema(schema, entity),
-			collectCallbackOutputs(op, entity)...)
+		return append(outputsFromSchema(schema, entity), collectCallbackOutputs(op, entity)...)
 	}
 	return collectCallbackOutputs(op, entity)
 }
@@ -319,9 +312,7 @@ func collectCallbackOutputs(op *openapi.Operation, entity string) []argSpec {
 	return out
 }
 
-func callbackOutputsFromSchema(
-	ref *openapi.SchemaRef, entity string,
-) []argSpec {
+func callbackOutputsFromSchema(ref *openapi.SchemaRef, entity string) []argSpec {
 	if ref == nil || ref.Value == nil {
 		return nil
 	}

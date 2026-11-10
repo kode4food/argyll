@@ -9,15 +9,14 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/events"
 )
 
-// storeTx is a transaction in progress and the Engine running it. Every
-// aggregate joined during that transaction is reached through it
+// storeTx is a transaction in progress and the Engine running it. Every aggregate joined during
+// that transaction is reached through it
 type storeTx struct {
 	*Engine
 	*timebox.Transaction
 }
 
-// Now returns the transaction's time, so decisions and the events they raise
-// share one instant
+// Now returns the transaction's time, so decisions and the events they raise share one instant
 func (tx storeTx) Now() time.Time {
 	return tx.Transaction.Now()
 }

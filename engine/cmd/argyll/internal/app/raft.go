@@ -24,8 +24,8 @@ var (
 	ErrInvalidRaftServers = errors.New("invalid RAFT_SERVERS")
 )
 
-// NewRaftStatusProvider reports the raft backend's role and leader to the
-// server's health and status endpoints
+// NewRaftStatusProvider reports the raft backend's role and leader to the server's health and
+// status endpoints
 func NewRaftStatusProvider(b *raft.Backend) server.StatusProvider {
 	return func() map[string]any {
 		addr, id := b.LeaderWithID()
@@ -40,8 +40,8 @@ func NewRaftStatusProvider(b *raft.Backend) server.StatusProvider {
 	}
 }
 
-// loadRaftConfig reads the raft backend settings for this node from the
-// environment. A node with no RAFT_SERVERS forms a cluster of one
+// loadRaftConfig reads the raft backend settings for this node from the environment. A node with no
+// RAFT_SERVERS forms a cluster of one
 func loadRaftConfig() (raft.Config, error) {
 	nid := config.DefaultNodeID
 	if nodeID := os.Getenv("RAFT_NODE_ID"); nodeID != "" {
@@ -87,9 +87,7 @@ func raftNodes(srvs []raft.Server) []api.NodeID {
 }
 
 func defaultRaftDataDir(localID string) string {
-	return filepath.Join(
-		os.TempDir(), DefaultRaftDataDirName, localID,
-	)
+	return filepath.Join(os.TempDir(), DefaultRaftDataDirName, localID)
 }
 
 func parseRaftServers(spec string) ([]raft.Server, error) {

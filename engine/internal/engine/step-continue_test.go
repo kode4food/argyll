@@ -41,14 +41,10 @@ func TestOverdueOptionalRecovery(t *testing.T) {
 		time.Sleep(100 * time.Millisecond)
 		assert.NoError(t, env.Engine.RecoverFlow(fs.FlowID))
 		assert.NoError(t, env.Engine.Start())
-		assert.True(t,
-			env.MockClient.WaitForInvocation(
-				fixture.consumer.ID, time.Second,
-			))
+		assert.True(t, env.MockClient.WaitForInvocation(fixture.consumer.ID, time.Second))
 		fl, err := env.Engine.GetFlowState(fs.FlowID)
 		assert.NoError(t, err)
-		assert.Equal(t,
-			"fallback", fl.Executions[fixture.consumer.ID].Inputs["opt"])
+		assert.Equal(t, "fallback", fl.Executions[fixture.consumer.ID].Inputs["opt"])
 	})
 }
 
@@ -124,18 +120,13 @@ func TestDefaultTimeoutBeforeProvider(t *testing.T) {
 		}
 
 		id := api.FlowID("wf-opt-timeout-default")
-		waitForWorkStarted(env, id, []api.StepID{
-			provider.ID,
-			consumer.ID,
-		}, func() {
+		waitForWorkStarted(env, id, []api.StepID{provider.ID, consumer.ID}, func() {
 			assert.NoError(t, env.Engine.StartPlan(id, pl,
 				flow.WithInit(api.InitArgs{"seed": {"x"}}),
 			))
 		})
 
-		assert.True(t,
-			env.MockClient.WaitForInvocation(provider.ID, 500*time.Millisecond),
-		)
+		assert.True(t, env.MockClient.WaitForInvocation(provider.ID, 500*time.Millisecond))
 
 		fl, err := env.Engine.GetFlowState(id)
 		assert.NoError(t, err)
@@ -238,15 +229,13 @@ func TestTimeoutZeroFallsBackImmediately(t *testing.T) {
 				))
 		})
 
-		assert.True(t,
-			env.MockClient.WaitForInvocation(consumer.ID, 120*time.Millisecond))
+		assert.True(t, env.MockClient.WaitForInvocation(consumer.ID, 120*time.Millisecond))
 
 		fl := env.WaitForTerminalFlow(id)
 		assert.Equal(t, api.FlowCompleted, fl.Status)
 		assert.Equal(t, api.StepSkipped, fl.Executions[provider.ID].Status)
 		assert.Equal(t, "fallback", fl.Executions[consumer.ID].Inputs["opt"])
-		assert.Equal(t,
-			"fallback3", fl.Executions[consumer.ID].Inputs["opt3"])
+		assert.Equal(t, "fallback3", fl.Executions[consumer.ID].Inputs["opt3"])
 		_, ok := fl.Executions[consumer.ID].Inputs["opt2"]
 		assert.False(t, ok)
 	})
@@ -343,21 +332,14 @@ func TestTimeoutDefaultIsStepLocal(t *testing.T) {
 		}
 
 		id := api.FlowID("wf-opt-timeout-local")
-		waitForWorkStarted(env, id, []api.StepID{
-			provider.ID,
-			fast.ID,
-		}, func() {
+		waitForWorkStarted(env, id, []api.StepID{provider.ID, fast.ID}, func() {
 			assert.NoError(t, env.Engine.StartPlan(id, pl,
 				flow.WithInit(api.InitArgs{"seed": {"x"}}),
 			))
 		})
 
-		assert.True(t,
-			env.MockClient.WaitForInvocation(provider.ID, 500*time.Millisecond),
-		)
-		assert.False(t,
-			env.MockClient.WaitForInvocation(strict.ID, 120*time.Millisecond),
-		)
+		assert.True(t, env.MockClient.WaitForInvocation(provider.ID, 500*time.Millisecond))
+		assert.False(t, env.MockClient.WaitForInvocation(strict.ID, 120*time.Millisecond))
 
 		fl, err := env.Engine.GetFlowState(id)
 		assert.NoError(t, err)
@@ -467,23 +449,14 @@ func TestTimeoutRequiredsGateFallback(t *testing.T) {
 		}
 
 		id := api.FlowID("wf-opt-timeout-waits-required")
-		waitForWorkStarted(env, id, []api.StepID{
-			userProvider.ID,
-			productProvider.ID,
-		}, func() {
+		waitForWorkStarted(env, id, []api.StepID{userProvider.ID, productProvider.ID}, func() {
 			assert.NoError(t, env.Engine.StartPlan(id, pl))
 		})
 
-		assert.True(t, env.MockClient.WaitForInvocation(
-			userProvider.ID, 500*time.Millisecond,
-		))
-		assert.True(t, env.MockClient.WaitForInvocation(
-			productProvider.ID, 500*time.Millisecond,
-		))
+		assert.True(t, env.MockClient.WaitForInvocation(userProvider.ID, 500*time.Millisecond))
+		assert.True(t, env.MockClient.WaitForInvocation(productProvider.ID, 500*time.Millisecond))
 
-		assert.False(t, env.MockClient.WaitForInvocation(
-			orderCreator.ID, 80*time.Millisecond,
-		))
+		assert.False(t, env.MockClient.WaitForInvocation(orderCreator.ID, 80*time.Millisecond))
 		close(releaseUser)
 
 		select {
@@ -492,19 +465,13 @@ func TestTimeoutRequiredsGateFallback(t *testing.T) {
 			assert.Fail(t, "timed out waiting for user provider completion")
 		}
 
-		assert.False(t, env.MockClient.WaitForInvocation(
-			orderCreator.ID, 100*time.Millisecond,
-		))
+		assert.False(t, env.MockClient.WaitForInvocation(orderCreator.ID, 100*time.Millisecond))
 
 		close(releaseProduct)
 		fl := env.WaitForTerminalFlow(id)
 		assert.Equal(t, api.FlowCompleted, fl.Status)
-		assert.Equal(t,
-			"real-user", fl.Executions[orderCreator.ID].Inputs["user_info"],
-		)
-		assert.Equal(t, "real-product",
-			fl.Executions[orderCreator.ID].Inputs["product_info"],
-		)
+		assert.Equal(t, "real-user", fl.Executions[orderCreator.ID].Inputs["user_info"])
+		assert.Equal(t, "real-product", fl.Executions[orderCreator.ID].Inputs["product_info"])
 	})
 }
 
@@ -609,32 +576,21 @@ func TestTimeoutWaitsForLaterOptional(t *testing.T) {
 		}
 
 		id := api.FlowID("wf-opt-timeout-staggered")
-		waitForWorkStarted(env, id, []api.StepID{
-			providerA.ID,
-			providerB.ID,
-		}, func() {
+		waitForWorkStarted(env, id, []api.StepID{providerA.ID, providerB.ID}, func() {
 			assert.NoError(t, env.Engine.StartPlan(id, pl,
 				flow.WithInit(api.InitArgs{"seed": {"x"}}),
 			))
 		})
 
-		assert.False(t, env.MockClient.WaitForInvocation(
-			consumer.ID, 80*time.Millisecond,
-		))
-		assert.True(t, env.MockClient.WaitForInvocation(
-			consumer.ID, 180*time.Millisecond,
-		))
+		assert.False(t, env.MockClient.WaitForInvocation(consumer.ID, 80*time.Millisecond))
+		assert.True(t, env.MockClient.WaitForInvocation(consumer.ID, 180*time.Millisecond))
 
 		close(releaseA)
 		close(releaseB)
 		fl := env.WaitForTerminalFlow(id)
 		assert.Equal(t, api.FlowCompleted, fl.Status)
-		assert.Equal(t,
-			"fallback-a", fl.Executions[consumer.ID].Inputs["opt_a"],
-		)
-		assert.Equal(t,
-			"fallback-b", fl.Executions[consumer.ID].Inputs["opt_b"],
-		)
+		assert.Equal(t, "fallback-a", fl.Executions[consumer.ID].Inputs["opt_a"])
+		assert.Equal(t, "fallback-b", fl.Executions[consumer.ID].Inputs["opt_b"])
 	})
 }
 
@@ -729,26 +685,17 @@ func TestTimeoutStepReadyAnchor(t *testing.T) {
 		}
 
 		id := api.FlowID("wf-opt-timeout-step-ready")
-		waitForWorkStarted(env, id, []api.StepID{
-			gate.ID,
-			orderCreator.ID,
-		}, func() {
+		waitForWorkStarted(env, id, []api.StepID{gate.ID, orderCreator.ID}, func() {
 			assert.NoError(t, env.Engine.StartPlan(id, pl,
 				flow.WithInit(api.InitArgs{"product_info": {"real-product"}}),
 			))
 		})
 
-		assert.True(t, env.MockClient.WaitForInvocation(
-			gate.ID, 500*time.Millisecond,
-		))
-		assert.False(t, env.MockClient.WaitForInvocation(
-			userProvider.ID, 120*time.Millisecond,
-		))
+		assert.True(t, env.MockClient.WaitForInvocation(gate.ID, 500*time.Millisecond))
+		assert.False(t, env.MockClient.WaitForInvocation(userProvider.ID, 120*time.Millisecond))
 		fl, err := env.Engine.GetFlowState(id)
 		assert.NoError(t, err)
-		assert.Equal(t,
-			"guest", fl.Executions[orderCreator.ID].Inputs["user_info"],
-		)
+		assert.Equal(t, "guest", fl.Executions[orderCreator.ID].Inputs["user_info"])
 
 		close(releaseGate)
 		fl = env.WaitForTerminalFlow(id)
@@ -846,24 +793,15 @@ func TestTimeoutAfterRequireds(t *testing.T) {
 		}
 
 		id := api.FlowID("wf-opt-timeout-after-requireds")
-		waitForWorkStarted(env, id, []api.StepID{
-			reqProvider.ID,
-			optProvider.ID,
-		}, func() {
+		waitForWorkStarted(env, id, []api.StepID{reqProvider.ID, optProvider.ID}, func() {
 			assert.NoError(t, env.Engine.StartPlan(id, pl))
 		})
 
-		assert.True(t, env.MockClient.WaitForInvocation(
-			reqProvider.ID, 500*time.Millisecond,
-		))
-		assert.True(t, env.MockClient.WaitForInvocation(
-			optProvider.ID, 500*time.Millisecond,
-		))
+		assert.True(t, env.MockClient.WaitForInvocation(reqProvider.ID, 500*time.Millisecond))
+		assert.True(t, env.MockClient.WaitForInvocation(optProvider.ID, 500*time.Millisecond))
 
 		close(releaseReq)
-		assert.True(t, env.MockClient.WaitForInvocation(
-			consumer.ID, 500*time.Millisecond,
-		))
+		assert.True(t, env.MockClient.WaitForInvocation(consumer.ID, 500*time.Millisecond))
 
 		fl, err := env.Engine.GetFlowState(id)
 		assert.NoError(t, err)
@@ -877,9 +815,7 @@ func TestTimeoutAfterRequireds(t *testing.T) {
 }
 
 func TestFinalityDeadline(t *testing.T) {
-	for _, collect := range []api.InputCollect{
-		api.InputCollectLast, api.InputCollectSome,
-	} {
+	for _, collect := range []api.InputCollect{api.InputCollectLast, api.InputCollectSome} {
 		t.Run(string(collect), func(t *testing.T) {
 			helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 				early := helpers.NewStepWithOutputs("early", "req")
@@ -904,8 +840,7 @@ func TestFinalityDeadline(t *testing.T) {
 				env.MockClient.SetResponse(
 					consumer.ID, api.Args{"result": "ok"},
 				)
-				assert.NoError(t,
-					env.Engine.RegisterSteps(early, late, optional, consumer))
+				assert.NoError(t, env.Engine.RegisterSteps(early, late, optional, consumer))
 				fid := api.FlowID("provider-finality")
 				assert.NoError(t,
 					env.Engine.StartFlow(api.CreateFlowRequest{
@@ -920,8 +855,7 @@ func TestFinalityDeadline(t *testing.T) {
 					for token := range items {
 						assert.NoError(t,
 							env.Engine.CompleteWork(
-								api.FlowStep{FlowID: fid, StepID: sid},
-								token, outputs,
+								api.FlowStep{FlowID: fid, StepID: sid}, token, outputs,
 							))
 					}
 				}
@@ -930,13 +864,11 @@ func TestFinalityDeadline(t *testing.T) {
 				complete(optional.ID, api.Args{"opt": "real"})
 				fl, err := env.Engine.GetFlowState(fid)
 				assert.NoError(t, err)
-				assert.Equal(t,
-					api.StepPending, fl.Executions[consumer.ID].Status)
+				assert.Equal(t, api.StepPending, fl.Executions[consumer.ID].Status)
 				complete(late.ID, api.Args{})
 				fl = env.WaitForTerminalFlow(fid)
 				assert.Equal(t, api.FlowCompleted, fl.Status)
-				assert.Equal(t,
-					"real", fl.Executions[consumer.ID].Inputs["opt"])
+				assert.Equal(t, "real", fl.Executions[consumer.ID].Inputs["opt"])
 			})
 		})
 	}
@@ -968,8 +900,7 @@ func TestImmediateAfterProviders(t *testing.T) {
 				env.MockClient.SetResponse(
 					consumer.ID, api.Args{"result": "ok"},
 				)
-				assert.NoError(t,
-					env.Engine.RegisterSteps(early, late, optional, consumer))
+				assert.NoError(t, env.Engine.RegisterSteps(early, late, optional, consumer))
 				assert.NoError(t,
 					env.Engine.StartFlow(api.CreateFlowRequest{
 						ID:    "window",
@@ -990,13 +921,11 @@ func TestImmediateAfterProviders(t *testing.T) {
 					env, optional.ID, api.Args{"opt": "real"})
 				fl, err := env.Engine.GetFlowState("window")
 				assert.NoError(t, err)
-				assert.Equal(t,
-					api.StepPending, fl.Executions[consumer.ID].Status)
+				assert.Equal(t, api.StepPending, fl.Executions[consumer.ID].Status)
 				completeOptionalWork(t, env, late.ID, lateOut)
 				fl = env.WaitForTerminalFlow("window")
 				assert.Equal(t, api.FlowCompleted, fl.Status)
-				assert.Equal(t,
-					"real", fl.Executions[consumer.ID].Inputs["opt"])
+				assert.Equal(t, "real", fl.Executions[consumer.ID].Inputs["opt"])
 			})
 		})
 	}
@@ -1017,19 +946,15 @@ func TestOptionalWindowResets(t *testing.T) {
 				completeOptionalWork(t, env, "b", api.Args{"opt": "b"})
 				fl, err := env.Engine.GetFlowState("window")
 				assert.NoError(t, err)
-				assert.Equal(t,
-					api.StepPending, fl.Executions["consumer"].Status)
+				assert.Equal(t, api.StepPending, fl.Executions["consumer"].Status)
 				completeOptionalWork(t, env, "c", api.Args{"opt": "c"})
 				fl = env.WaitForTerminalFlow("window")
 				assert.Equal(t, api.FlowCompleted, fl.Status)
 				if collect == api.InputCollectLast {
-					assert.Equal(t,
-						"c", fl.Executions["consumer"].Inputs["opt"])
+					assert.Equal(t, "c", fl.Executions["consumer"].Inputs["opt"])
 					return
 				}
-				assert.Equal(t,
-					[]any{"a", "b", "c"},
-					fl.Executions["consumer"].Inputs["opt"])
+				assert.Equal(t, []any{"a", "b", "c"}, fl.Executions["consumer"].Inputs["opt"])
 			})
 		})
 	}
@@ -1072,14 +997,11 @@ func TestClosedOptionalWindow(t *testing.T) {
 				assert.NoError(t, env.Engine.RecoverFlow("window"))
 				fl, err := env.Engine.GetFlowState("window")
 				assert.NoError(t, err)
-				assert.Equal(t,
-					api.StepPending, fl.Executions["consumer"].Status)
+				assert.Equal(t, api.StepPending, fl.Executions["consumer"].Status)
 				completeOptionalWork(t, env, "hold", api.Args{"hold": "ready"})
 				fl = env.WaitForTerminalFlow("window")
-				assert.Equal(t,
-					"fallback", fl.Executions["consumer"].Inputs["opt"])
-				assert.Equal(t,
-					"ready", fl.Executions["consumer"].Inputs["hold"])
+				assert.Equal(t, "fallback", fl.Executions["consumer"].Inputs["opt"])
+				assert.Equal(t, "ready", fl.Executions["consumer"].Inputs["hold"])
 			})
 		})
 	}
@@ -1123,8 +1045,7 @@ func TestOptionalZeroSnapshot(t *testing.T) {
 				})
 				completeOptionalWork(t, env, "hold", api.Args{"hold": "ready"})
 				fl := env.WaitForTerminalFlow("window")
-				assert.Equal(t,
-					"fallback", fl.Executions["consumer"].Inputs["opt"])
+				assert.Equal(t, "fallback", fl.Executions["consumer"].Inputs["opt"])
 				for _, sid := range []api.StepID{"a", "b", "c"} {
 					assert.Equal(t, api.StepSkipped, fl.Executions[sid].Status)
 				}
@@ -1204,15 +1125,11 @@ func TestOptionalZeroInline(t *testing.T) {
 				completeOptionalWork(t, env, "hold", api.Args{"hold": "ready"})
 				fl, err := env.Engine.GetFlowState("window")
 				assert.NoError(t, err)
-				assert.Equal(t,
-					api.StepActive, fl.Executions["consumer"].Status)
-				assert.Equal(t,
-					"fallback", fl.Executions["consumer"].Inputs["opt"])
-				assert.Equal(t,
-					"needed", fl.Executions[other.ID].Inputs["other"])
+				assert.Equal(t, api.StepActive, fl.Executions["consumer"].Status)
+				assert.Equal(t, "fallback", fl.Executions["consumer"].Inputs["opt"])
+				assert.Equal(t, "needed", fl.Executions[other.ID].Inputs["other"])
 				if collect != api.InputCollectNone {
-					assert.Equal(t,
-						"late", fl.Executions[other.ID].Inputs["opt"])
+					assert.Equal(t, "late", fl.Executions[other.ID].Inputs["opt"])
 				}
 			})
 		})
@@ -1257,21 +1174,17 @@ func TestOptionalZeroAtRequired(t *testing.T) {
 				case api.InputCollectSome, api.InputCollectAll:
 					expected = []any{"early"}
 				case api.InputCollectNone:
-					assert.NotContains(t,
-						fl.Executions[consumer.ID].Inputs, api.Name("opt"))
+					assert.NotContains(t, fl.Executions[consumer.ID].Inputs, api.Name("opt"))
 					return
 				}
-				assert.Equal(t,
-					expected, fl.Executions[consumer.ID].Inputs["opt"])
+				assert.Equal(t, expected, fl.Executions[consumer.ID].Inputs["opt"])
 			})
 		})
 	}
 }
 
 func TestImpossibleOptional(t *testing.T) {
-	for _, collect := range []api.InputCollect{
-		api.InputCollectAll, api.InputCollectNone,
-	} {
+	for _, collect := range []api.InputCollect{api.InputCollectAll, api.InputCollectNone} {
 		t.Run(string(collect), func(t *testing.T) {
 			helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 				pl := optionalWindowPlan(collect, optionalLongWindowMS)
@@ -1289,8 +1202,7 @@ func TestImpossibleOptional(t *testing.T) {
 				)
 				fl, err := env.Engine.GetFlowState("window")
 				assert.NoError(t, err)
-				assert.Equal(t,
-					"fallback", fl.Executions["consumer"].Inputs["opt"])
+				assert.Equal(t, "fallback", fl.Executions["consumer"].Inputs["opt"])
 				completeOptionalWork(t, env, "b", api.Args{})
 				completeOptionalWork(t, env, "c", api.Args{})
 				fl = env.WaitForTerminalFlow("window")
@@ -1363,9 +1275,7 @@ func TestOptionalLastTimeout(t *testing.T) {
 		assert.Equal(t, api.FlowCompleted, fl.Status)
 		assert.Equal(t, "fallback", fl.Executions[consumer.ID].Inputs["opt"])
 		assert.Equal(t, api.StepSkipped, fl.Executions[providerB.ID].Status)
-		assert.Equal(t,
-			"outputs not needed", fl.Executions[providerB.ID].Error,
-		)
+		assert.Equal(t, "outputs not needed", fl.Executions[providerB.ID].Error)
 	})
 }
 
@@ -1485,8 +1395,7 @@ func TestTimeoutAfterProviderFails(t *testing.T) {
 }
 
 func waitForWorkStarted(
-	env *helpers.TestEngineEnv, fid api.FlowID, steps []api.StepID,
-	fn func(),
+	env *helpers.TestEngineEnv, fid api.FlowID, steps []api.StepID, fn func(),
 ) {
 	filters := make([]wait.EventFilter, len(steps))
 	for idx, sid := range steps {
@@ -1587,9 +1496,7 @@ func collectTimeoutPlan(collect api.InputCollect) collectTimeoutPlanRes {
 	}
 }
 
-func optionalWindowPlan(
-	collect api.InputCollect, timeout int64,
-) *api.ExecutionPlan {
+func optionalWindowPlan(collect api.InputCollect, timeout int64) *api.ExecutionPlan {
 	consumer := helpers.NewStepWithOutputs("consumer", "result")
 	consumer.Attributes["seed"] = &api.AttributeSpec{
 		Role: api.RoleRequired,
@@ -1634,9 +1541,7 @@ func addOptionalHold(pl *api.ExecutionPlan) {
 	}
 }
 
-func startOptionalWindow(
-	t *testing.T, env *helpers.TestEngineEnv, pl *api.ExecutionPlan,
-) {
+func startOptionalWindow(t *testing.T, env *helpers.TestEngineEnv, pl *api.ExecutionPlan) {
 	t.Helper()
 	providers := registerOptionalWindow(t, env, pl)
 	waitForWorkStarted(env, "window", providers, func() {
@@ -1662,9 +1567,7 @@ func registerOptionalWindow(
 	return providers
 }
 
-func startOptionalPlan(
-	t *testing.T, env *helpers.TestEngineEnv, pl *api.ExecutionPlan,
-) {
+func startOptionalPlan(t *testing.T, env *helpers.TestEngineEnv, pl *api.ExecutionPlan) {
 	t.Helper()
 	assert.NoError(t,
 		env.Engine.StartPlan(

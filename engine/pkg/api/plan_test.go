@@ -15,8 +15,7 @@ func TestGoals(t *testing.T) {
 	}
 
 	t.Run("sets", func(t *testing.T) {
-		assert.Equal(t,
-			[][]api.StepID{{"a", "b"}, {"b", "c"}}, goals.Sets())
+		assert.Equal(t, [][]api.StepID{{"a", "b"}, {"b", "c"}}, goals.Sets())
 	})
 
 	t.Run("nil sets", func(t *testing.T) {

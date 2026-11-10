@@ -138,17 +138,13 @@ func (e *callbackEngine) GetFlowState(api.FlowID) (api.FlowState, error) {
 	return e.flow, e.flowErr
 }
 
-func (e *callbackEngine) CompleteWork(
-	_ api.FlowStep, _ api.Token, outputs api.Args,
-) error {
+func (e *callbackEngine) CompleteWork(_ api.FlowStep, _ api.Token, outputs api.Args) error {
 	e.called = "CompleteWork"
 	e.outputs = outputs
 	return e.workErr
 }
 
-func (e *callbackEngine) FailWork(
-	_ api.FlowStep, _ api.Token, errMsg string,
-) error {
+func (e *callbackEngine) FailWork(_ api.FlowStep, _ api.Token, errMsg string) error {
 	e.called = "FailWork"
 	e.errMsg = errMsg
 	return e.workErr
@@ -159,9 +155,7 @@ func (e *callbackEngine) CompleteCompensation(api.FlowStep, api.Token) error {
 	return e.workErr
 }
 
-func (e *callbackEngine) FailCompensation(
-	_ api.FlowStep, _ api.Token, errMsg string,
-) error {
+func (e *callbackEngine) FailCompensation(_ api.FlowStep, _ api.Token, errMsg string) error {
 	e.called = "FailCompensation"
 	e.errMsg = errMsg
 	return e.workErr
@@ -190,9 +184,7 @@ func compensateRequest(body string) *builtins.CallbackRequest {
 	return callbackRequest(api.ActionCompensate, body)
 }
 
-func callbackRequest(
-	action api.CallbackAction, body string,
-) *builtins.CallbackRequest {
+func callbackRequest(action api.CallbackAction, body string) *builtins.CallbackRequest {
 	r := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(body))
 	r.Header.Set("Content-Type", api.JSONContentType)
 	return &builtins.CallbackRequest{

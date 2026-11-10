@@ -9,8 +9,7 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
-// http, work and tags are repeatable option-only directives, so a long set can
-// spread across lines
+// http, work and tags are repeatable option-only directives, so a long set can spread across lines
 func optionsIn(fn *ast.FuncDecl, directive string) (Options, error) {
 	var res Options
 	for _, c := range fn.Doc.List {
@@ -85,13 +84,11 @@ func attrNames(s string) ([]string, error) {
 	}
 	body, ok := strings.CutPrefix(s, "(")
 	if !ok {
-		return nil, fmt.Errorf("%w: attributes %q are not parenthesized",
-			ErrBadDirective, s)
+		return nil, fmt.Errorf("%w: attributes %q are not parenthesized", ErrBadDirective, s)
 	}
 	body, ok = strings.CutSuffix(strings.TrimSpace(body), ")")
 	if !ok {
-		return nil, fmt.Errorf("%w: attributes %q are not parenthesized",
-			ErrBadDirective, s)
+		return nil, fmt.Errorf("%w: attributes %q are not parenthesized", ErrBadDirective, s)
 	}
 	if strings.TrimSpace(body) == "" {
 		return []string{}, nil
@@ -100,16 +97,15 @@ func attrNames(s string) ([]string, error) {
 	for i, n := range names {
 		n = strings.TrimSpace(n)
 		if n == "" || strings.ContainsAny(n, " \t") {
-			return nil, fmt.Errorf("%w: bad attribute name %q",
-				ErrBadDirective, n)
+			return nil, fmt.Errorf("%w: bad attribute name %q", ErrBadDirective, n)
 		}
 		names[i] = n
 	}
 	return names, nil
 }
 
-// a tag is an opaque string, so the directive takes plain semicolon separated
-// values rather than the key:value options the others parse
+// a tag is an opaque string, so the directive takes plain semicolon separated values rather than
+// the key:value options the others parse
 func tagsIn(fn *ast.FuncDecl) (api.Tags, error) {
 	var res api.Tags
 	for _, c := range fn.Doc.List {
@@ -142,8 +138,7 @@ func descriptionIn(fn *ast.FuncDecl) (string, error) {
 			continue
 		}
 		if res != "" {
-			return "", fmt.Errorf("%w: %s repeats",
-				ErrBadDirective, directivePrefix+descDirective)
+			return "", fmt.Errorf("%w: %s repeats", ErrBadDirective, directivePrefix+descDirective)
 		}
 		res = strings.TrimSpace(ref.args)
 		if res == "" {
@@ -163,8 +158,7 @@ func embedIn(fn *ast.FuncDecl) (string, error) {
 			continue
 		}
 		if res != "" {
-			return "", fmt.Errorf("%w: %s repeats",
-				ErrBadDirective, directivePrefix+embedDirective)
+			return "", fmt.Errorf("%w: %s repeats", ErrBadDirective, directivePrefix+embedDirective)
 		}
 		res = strings.TrimSpace(ref.args)
 		if res == "" {
@@ -246,8 +240,7 @@ func compIn(fn *ast.FuncDecl, decl *stepDecl) error {
 			continue
 		}
 		if decl.compensate != "" {
-			return fmt.Errorf("%w: %s repeats", ErrBadDirective,
-				directivePrefix+compDirective)
+			return fmt.Errorf("%w: %s repeats", ErrBadDirective, directivePrefix+compDirective)
 		}
 		name, opts, err := ParseOptions(ref.args)
 		if err != nil {

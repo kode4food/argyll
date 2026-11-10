@@ -9,8 +9,8 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
-// TestRetryExhaustion tests that steps with MaxRetries eventually fail after
-// exhausting all retry attempts
+// TestRetryExhaustion tests that steps with MaxRetries eventually fail after exhausting all retry
+// attempts
 func TestRetryExhaustion(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		assert.NoError(t, env.Engine.Start())

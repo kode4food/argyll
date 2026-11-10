@@ -14,9 +14,7 @@ var FeedAppliers = makeFeedAppliers()
 
 // FeedKey returns the aggregate ID for one Feed definition version
 func FeedKey(id api.FeedID, version string) timebox.AggregateID {
-	return timebox.NewAggregateID(
-		FeedPrefix, timebox.ID(string(id)+":"+version),
-	)
+	return timebox.NewAggregateID(FeedPrefix, timebox.ID(string(id)+":"+version))
 }
 
 // IsFeedEventID returns whether an aggregate ID names one Feed version
@@ -36,9 +34,7 @@ func makeFeedAppliers() timebox.Appliers[api.FeedState] {
 	})
 }
 
-func feedFolded(
-	state api.FeedState, ev *timebox.Event, data api.FeedFoldedEvent,
-) api.FeedState {
+func feedFolded(state api.FeedState, ev *timebox.Event, data api.FeedFoldedEvent) api.FeedState {
 	state.ID = data.FeedID
 	state.Version = data.Version
 	state.Value = data.Value

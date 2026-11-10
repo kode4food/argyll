@@ -42,8 +42,7 @@ func TestParseOptions(t *testing.T) {
 	})
 
 	t.Run("head and options, loosely spaced", func(t *testing.T) {
-		head, opts, err := generator.ParseOptions(
-			" flow ; meta : flow_id ; label : domain = risk ")
+		head, opts, err := generator.ParseOptions(" flow ; meta : flow_id ; label : domain = risk ")
 		assert.NoError(t, err)
 		assert.Equal(t, "flow", head)
 		assert.Equal(t, generator.Options{
@@ -85,8 +84,7 @@ func TestGeneratedFile(t *testing.T) {
 	src, err := render(t, "../../../example")
 	assert.NoError(t, err)
 
-	path := filepath.Join("..", "..", "..", "example",
-		generator.GeneratedFile)
+	path := filepath.Join("..", "..", "..", "example", generator.GeneratedFile)
 	built, err := os.ReadFile(path)
 	assert.NoError(t, err)
 	assert.Equal(t, string(built), string(src))
@@ -141,8 +139,7 @@ func TestGeneratedServerEmbedded(t *testing.T) {
 }
 
 func TestEmbedType(t *testing.T) {
-	src, err := renderSource(t,
-		"//argyll:step run-v2\n//argyll:embed runner\nfunc Run() {}")
+	src, err := renderSource(t, "//argyll:step run-v2\n//argyll:embed runner\nfunc Run() {}")
 	assert.NoError(t, err)
 	text := string(src)
 	assert.Contains(t, text, `"runner": {`)
@@ -155,14 +152,12 @@ func TestReservedEmbedType(t *testing.T) {
 		_, err := renderSource(t, "//argyll:step "+id+"\nfunc Run() {}")
 		assert.ErrorIs(t, err, generator.ErrBadDirective)
 
-		_, err = renderSource(t, "//argyll:step\n//argyll:embed "+id+
-			"\nfunc Run() {}")
+		_, err = renderSource(t, "//argyll:step\n//argyll:embed "+id+"\nfunc Run() {}")
 		assert.ErrorIs(t, err, generator.ErrBadDirective)
 	}
 
 	// a reserved ID is free once the embedded type is named
-	_, err := renderSource(t,
-		"//argyll:step script\n//argyll:embed scripted\nfunc Run() {}")
+	_, err := renderSource(t, "//argyll:step script\n//argyll:embed scripted\nfunc Run() {}")
 	assert.NoError(t, err)
 }
 
@@ -205,9 +200,7 @@ func TestGeneratedSurfaceLogging(t *testing.T) {
 }
 
 func TestGeneratedServerPackage(t *testing.T) {
-	_, err := renderSourceWithServer(
-		t, "//argyll:step\nfunc Run() {}", true,
-	)
+	_, err := renderSourceWithServer(t, "//argyll:step\nfunc Run() {}", true)
 	assert.ErrorIs(t, err, generator.ErrServerPackage)
 }
 
@@ -242,10 +235,8 @@ func TestWrapContract(t *testing.T) {
 
 	st := steps(t, "../../../example")["score-customer"]
 	assert.Contains(t, st.Attributes, api.Name("customer-id"))
-	assert.Contains(t, text,
-		"r0, r1, err := ScoreCustomer(in.CustomerId, in.Amount)")
-	assert.Contains(t, text,
-		"return ScoreCustomerOut{Score: r0, Approved: r1}, nil")
+	assert.Contains(t, text, "r0, r1, err := ScoreCustomer(in.CustomerId, in.Amount)")
+	assert.Contains(t, text, "return ScoreCustomerOut{Score: r0, Approved: r1}, nil")
 }
 
 func TestWrapInference(t *testing.T) {
@@ -256,15 +247,12 @@ func TestWrapInference(t *testing.T) {
 
 	// an ID beside the attribute spec, inputs inferred from the parameters
 	assert.Contains(t, byID, api.StepID("rate-customer-v2"))
-	assert.Contains(t, text,
-		"type RateCustomerIn struct {\n\t\tCustomerId")
+	assert.Contains(t, text, "type RateCustomerIn struct {\n\t\tCustomerId")
 
 	// both sides inferred, from named parameters and named results
 	assert.Contains(t, byID, api.StepID("grade-customer"))
-	assert.Contains(t, text,
-		"type GradeCustomerIn struct {\n\t\tCustomerId")
-	assert.Contains(t, text,
-		"type GradeCustomerOut struct {\n\t\tScore")
+	assert.Contains(t, text, "type GradeCustomerIn struct {\n\t\tCustomerId")
+	assert.Contains(t, text, "type GradeCustomerOut struct {\n\t\tScore")
 }
 
 func TestZeroOutputStep(t *testing.T) {
@@ -355,8 +343,7 @@ func TestAttributeProps(t *testing.T) {
 	// a default or const value reaches the engine as JSON
 	assert.Equal(t, `"USD"`, attrs["currency"].Optional.Default)
 	assert.Equal(t, `"stripe"`, attrs["gateway"].Const.Value)
-	assert.Equal(t, "value > 0",
-		attrs["amount"].Required.Match.Source)
+	assert.Equal(t, "value > 0", attrs["amount"].Required.Match.Source)
 }
 
 func TestStepConfig(t *testing.T) {
@@ -424,8 +411,7 @@ func TestRecursiveCodec(t *testing.T) {
 
 	// a self-referential codec cannot be a plain var initializer
 	assert.Contains(t, text, "var codecNodeImpl codec.Codec[Node]")
-	assert.Contains(t, text,
-		"codecNode := codec.Ref(&codecNodeImpl)")
+	assert.Contains(t, text, "codecNode := codec.Ref(&codecNodeImpl)")
 	assert.Contains(t, text, "codecNodeImpl = codec.Struct(")
 	assert.Contains(t, text, "codec.Slice(codecNode)")
 	assert.Contains(t, text, "codec.Optional(codecNode)")
@@ -459,9 +445,7 @@ func TestDiagnostics(t *testing.T) {
 		},
 		"tag syntax": {
 			pattern: "./testdata/badsteptags",
-			wants: []string{
-				"//argyll:tags has an empty tag",
-			},
+			wants:   []string{"//argyll:tags has an empty tag"},
 		},
 		"attribute type": {
 			pattern: "./testdata/badtype",
@@ -891,8 +875,7 @@ func TestEmbeddedFields(t *testing.T) {
 
 func TestMemoization(t *testing.T) {
 	src := "//argyll:step\n//argyll:memoize\nfunc Run() {}"
-	assert.Equal(t,
-		api.HandlingMemoized, sourceSteps(t, src)["run"].Handling)
+	assert.Equal(t, api.HandlingMemoized, sourceSteps(t, src)["run"].Handling)
 }
 
 func TestGenerateIsIdempotent(t *testing.T) {
@@ -907,8 +890,7 @@ func TestGenerateIsIdempotent(t *testing.T) {
 func TestGenerateStale(t *testing.T) {
 	dir := filepath.Join("testdata", "nodirectives")
 	path := filepath.Join(dir, generator.GeneratedFile)
-	assert.NoError(t, os.WriteFile(path, []byte("package nodirectives\n"),
-		generator.FileMode))
+	assert.NoError(t, os.WriteFile(path, []byte("package nodirectives\n"), generator.FileMode))
 
 	_, err := generator.Generate(".", false, "./"+dir)
 	assert.NoError(t, err)
@@ -940,8 +922,7 @@ func TestLoadError(t *testing.T) {
 func TestTags(t *testing.T) {
 	byID := steps(t, "../../../example")
 
-	assert.Equal(t, api.Tags{"domain:risk", "scoring"},
-		byID["calculate-risk"].Tags)
+	assert.Equal(t, api.Tags{"domain:risk", "scoring"}, byID["calculate-risk"].Tags)
 
 	// a step without tags directives declares none
 	assert.Empty(t, byID["greet"].Tags)
@@ -950,8 +931,7 @@ func TestTags(t *testing.T) {
 func TestDescription(t *testing.T) {
 	byID := steps(t, "../../../example")
 
-	assert.Equal(t, "score a customer for risk",
-		byID["calculate-risk"].Description)
+	assert.Equal(t, "score a customer for risk", byID["calculate-risk"].Description)
 	assert.Empty(t, byID["greet"].Description)
 }
 
@@ -992,9 +972,7 @@ func renderSource(t *testing.T, src string) ([]byte, error) {
 	return renderSourceWithServer(t, src, false)
 }
 
-func renderSourceWithServer(
-	t *testing.T, src string, server bool,
-) ([]byte, error) {
+func renderSourceWithServer(t *testing.T, src string, server bool) ([]byte, error) {
 	t.Helper()
 	path := writeSource(t, src)
 	pkgs, err := generator.Load(".", "file="+path)
@@ -1021,15 +999,14 @@ func writeSource(t *testing.T, src string) string {
 	return path
 }
 
-// sourceSteps returns the specifications the generator infers from an ad-hoc
-// source, keyed by step ID
+// sourceSteps returns the specifications the generator infers from an ad-hoc source, keyed by step
+// ID
 func sourceSteps(t *testing.T, src string) map[api.StepID]*api.Step {
 	t.Helper()
 	return steps(t, "file="+writeSource(t, src))
 }
 
-// steps returns the specifications the generator emits as literals, keyed by
-// step ID
+// steps returns the specifications the generator emits as literals, keyed by step ID
 func steps(t *testing.T, pattern string) map[api.StepID]*api.Step {
 	t.Helper()
 	pkgs, err := generator.Load(".", pattern)

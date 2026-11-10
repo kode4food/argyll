@@ -41,14 +41,11 @@ func stepHealthChanged(
 	st api.ClusterState, ev *timebox.Event, data api.StepHealthChangedEvent,
 ) api.ClusterState {
 	node := st.Nodes[data.NodeID]
-	node = node.
-		SetLastSeen(ev.Timestamp).
+	node = node.SetLastSeen(ev.Timestamp).
 		SetHealth(data.StepID, api.HealthState{
 			Status: data.Status,
 			Error:  data.Error,
 		})
 
-	return st.
-		SetNode(data.NodeID, node).
-		SetLastUpdated(ev.Timestamp)
+	return st.SetNode(data.NodeID, node).SetLastUpdated(ev.Timestamp)
 }

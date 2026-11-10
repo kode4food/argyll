@@ -377,9 +377,7 @@ type spaceRequestArgs struct {
 	body    any
 }
 
-func spaceRequest(
-	t *testing.T, args spaceRequestArgs,
-) *httptest.ResponseRecorder {
+func spaceRequest(t *testing.T, args spaceRequestArgs) *httptest.ResponseRecorder {
 	t.Helper()
 	var data []byte
 	if args.body != nil {

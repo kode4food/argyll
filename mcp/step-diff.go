@@ -116,9 +116,7 @@ func (s *Server) applyProposedSteps(args applyProposedStepsArgs) (any, error) {
 	}, nil)
 }
 
-func (s *Server) verifyAppliedSteps(
-	proposed []map[string]any,
-) (semanticVerification, error) {
+func (s *Server) verifyAppliedSteps(proposed []map[string]any) (semanticVerification, error) {
 	var semantic []map[string]any
 	for _, st := range proposed {
 		if len(semanticConfigs(st)) != 0 {

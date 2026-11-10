@@ -194,8 +194,8 @@ func TestSliceAppend(t *testing.T) {
 		assert.Empty(t, result)
 	})
 
-	// A receiver with spare capacity is where a plain append would write into
-	// the shared backing array
+	// A receiver with spare capacity is where a plain append would write into the shared backing
+	// array
 	t.Run("does not share the receiver's spare capacity", func(t *testing.T) {
 		original := make(api.Slice[string], 1, 10)
 		original[0] = "a"

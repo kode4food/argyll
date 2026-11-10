@@ -250,8 +250,7 @@ func TestForEachEmptyProduct(t *testing.T) {
 			Steps:      api.Steps{st.ID: st},
 			Attributes: attrGraph,
 		}
-		assert.NoError(t,
-			env.Engine.StartPlan("empty-product", pl, flow.WithInit(init)))
+		assert.NoError(t, env.Engine.StartPlan("empty-product", pl, flow.WithInit(init)))
 		fl, err := env.Engine.GetFlowState("empty-product")
 		assert.NoError(t, err)
 		assert.Equal(t, api.FlowCompleted, fl.Status)
@@ -343,9 +342,7 @@ func TestTooManyWorkItems(t *testing.T) {
 	})
 }
 
-func assertContainsEntry(
-	t *testing.T, entries []map[string]any, expected map[string]any,
-) {
+func assertContainsEntry(t *testing.T, entries []map[string]any, expected map[string]any) {
 	t.Helper()
 	found := false
 	for _, entry := range entries {

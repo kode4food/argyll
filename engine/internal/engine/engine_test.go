@@ -67,9 +67,7 @@ func TestNewMissingDependency(t *testing.T) {
 				deps := env.Dependencies()
 				tt.edit(&deps)
 
-				eng, err := engine.New(
-					config.NewDefaultConfig(), deps, env.OpenBackend,
-				)
+				eng, err := engine.New(config.NewDefaultConfig(), deps, env.OpenBackend)
 				assert.Nil(t, eng)
 				assert.Error(t, err)
 				assert.True(t, errors.Is(err, engine.ErrMissingDependency))
@@ -128,10 +126,7 @@ func TestNewDefaultsTimeDeps(t *testing.T) {
 func TestNewCustomStep(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		deps := env.Dependencies()
-		handlers := builtins.All(
-			env.MockClient,
-			builtins.BaseCallbackURL(helpers.CallbackBaseURL),
-		)
+		handlers := builtins.All(env.MockClient, builtins.BaseCallbackURL(helpers.CallbackBaseURL))
 		handlers["custom"] = &step.Handler{
 			Invoke: func(step.Runtime, *api.Step, api.Args, api.Token) error {
 				return nil
@@ -153,10 +148,7 @@ func TestNewMockStep(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		expected := errors.New("mock validation")
 		deps := env.Dependencies()
-		handlers := builtins.All(
-			env.MockClient,
-			builtins.BaseCallbackURL(helpers.CallbackBaseURL),
-		)
+		handlers := builtins.All(env.MockClient, builtins.BaseCallbackURL(helpers.CallbackBaseURL))
 		handlers[api.StepTypeService] = &step.Handler{
 			Validate: func(*api.Step) error { return expected },
 		}
@@ -269,17 +261,12 @@ func TestClusterTracksMultipleNodes(t *testing.T) {
 			return
 		}
 
-		assert.NoError(t,
-			peer.UpdateStepHealth("step-1", api.HealthHealthy, ""),
-		)
+		assert.NoError(t, peer.UpdateStepHealth("step-1", api.HealthHealthy, ""))
 
 		cl, err := env.Engine.GetClusterState()
 		assert.NoError(t, err)
 		assert.Contains(t, cl.Nodes, api.NodeID("node-2"))
-		assert.Equal(t,
-			api.HealthHealthy,
-			cl.Nodes["node-2"].Health["step-1"].Status,
-		)
+		assert.Equal(t, api.HealthHealthy, cl.Nodes["node-2"].Health["step-1"].Status)
 	})
 }
 
@@ -302,9 +289,7 @@ func TestExecPublishesEvents(t *testing.T) {
 		assert.NoError(t, env.Engine.RegisterStep(st))
 		w.ForEvent(wait.EngineEvent(api.EventTypeStepRegistered))
 
-		assert.NoError(t,
-			env.Engine.UpdateStepHealth(st.ID, api.HealthHealthy, ""),
-		)
+		assert.NoError(t, env.Engine.UpdateStepHealth(st.ID, api.HealthHealthy, ""))
 		w.ForEvent(wait.EngineEvent(api.EventTypeStepHealthChanged))
 
 		pl := &api.ExecutionPlan{

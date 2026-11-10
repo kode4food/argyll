@@ -241,8 +241,7 @@ func TestInitPrunesProviders(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			provider := planProvider(api.StepID("provider-"+tt.name), "data")
-			consumer := planConsumer(api.StepID("consumer-"+tt.name),
-				"data", tt.collect)
+			consumer := planConsumer(api.StepID("consumer-"+tt.name), "data", tt.collect)
 			cat := makeCatalogState(api.Steps{
 				provider.ID: provider,
 				consumer.ID: consumer,
@@ -274,8 +273,7 @@ func TestInitFreezesProvidedName(t *testing.T) {
 	})
 
 	pl, err := createPlan(
-		cat, []api.StepID{consumer.ID, other.ID},
-		api.InitArgs{"data": {"x"}},
+		cat, []api.StepID{consumer.ID, other.ID}, api.InitArgs{"data": {"x"}},
 	)
 	assert.NoError(t, err)
 
@@ -300,9 +298,7 @@ func TestCollectNoneSatisfied(t *testing.T) {
 func TestCollectNoneProvider(t *testing.T) {
 	for _, name := range []string{"absent", "declared"} {
 		t.Run(name, func(t *testing.T) {
-			provider := planConsumer(
-				"provider", "blocked", api.InputCollectNone,
-			)
+			provider := planConsumer("provider", "blocked", api.InputCollectNone)
 			provider.Attributes["x"] = provider.Attributes["result"]
 			delete(provider.Attributes, "result")
 			consumer := planConsumer("consumer", "x", api.InputCollectFirst)
@@ -314,9 +310,7 @@ func TestCollectNoneProvider(t *testing.T) {
 				steps["blocker"] = planProvider("blocker", "blocked")
 			}
 			cat := makeCatalogState(steps)
-			pl, err := createPlan(
-				cat, []api.StepID{consumer.ID}, api.InitArgs{},
-			)
+			pl, err := createPlan(cat, []api.StepID{consumer.ID}, api.InitArgs{})
 			assert.NoError(t, err)
 			assert.Contains(t, pl.Steps, provider.ID)
 			assert.Contains(t, pl.Steps, consumer.ID)
@@ -469,9 +463,7 @@ func TestMultipleGoals(t *testing.T) {
 		"step1": step1,
 		"step2": step2,
 	})
-	pl, err := createPlan(
-		cat, []api.StepID{"step1", "step2"}, api.InitArgs{},
-	)
+	pl, err := createPlan(cat, []api.StepID{"step1", "step2"}, api.InitArgs{})
 	assert.NoError(t, err)
 
 	assert.Equal(t, api.Goals{Steps: []api.StepID{"step1", "step2"}}, pl.Goals)
@@ -579,9 +571,7 @@ func TestComplexGraph(t *testing.T) {
 
 	assert.Len(t, pl.Steps, 4)
 
-	requiredSteps := []api.StepID{
-		"resolver1", "resolver2", "processor1", "processor2",
-	}
+	requiredSteps := []api.StepID{"resolver1", "resolver2", "processor1", "processor2"}
 	for _, sid := range requiredSteps {
 		assert.Contains(t, pl.Steps, sid)
 	}
@@ -789,9 +779,7 @@ func TestProvidersWithInit(t *testing.T) {
 		assert.Empty(t, withInitExcluded.Satisfied)
 	}
 
-	withoutInit, err := createPlan(
-		cat, []api.StepID{"consumer"}, api.InitArgs{},
-	)
+	withoutInit, err := createPlan(cat, []api.StepID{"consumer"}, api.InitArgs{})
 	assert.NoError(t, err)
 	assert.Len(t, withoutInit.Steps, 2)
 	assert.NotContains(t, withoutInit.Steps, api.StepID("provider-with-input"))
@@ -1107,9 +1095,7 @@ func planProvider(id api.StepID, output api.Name) *api.Step {
 	}
 }
 
-func planConsumer(
-	id api.StepID, input api.Name, collect api.InputCollect,
-) *api.Step {
+func planConsumer(id api.StepID, input api.Name, collect api.InputCollect) *api.Step {
 	return &api.Step{
 		ID:   id,
 		Name: api.Name(id),
@@ -1185,9 +1171,7 @@ func TestSubFlowSpace(t *testing.T) {
 	})
 }
 
-func createSubFlowPlan(
-	cat api.CatalogState, sid api.StepID,
-) (*api.ExecutionPlan, error) {
+func createSubFlowPlan(cat api.CatalogState, sid api.StepID) (*api.ExecutionPlan, error) {
 	return plan.Create(&plan.Request{
 		Match:    testEval,
 		Catalog:  cat,

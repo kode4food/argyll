@@ -5,8 +5,8 @@ import (
 	"slices"
 )
 
-// EqualJSON compares JSON values decoded into any, plus int. An int matches an
-// equal float64, and any other type is never equal
+// EqualJSON compares JSON values decoded into any, plus int. An int matches an equal float64, and
+// any other type is never equal
 func EqualJSON(a, b any) bool {
 	switch a := a.(type) {
 	case map[string]any:
@@ -32,8 +32,7 @@ func EqualJSON(a, b any) bool {
 	}
 }
 
-// intEqualsFloat is exact: the round trip rejects floats that only match after
-// the int rounds
+// intEqualsFloat is exact: the round trip rejects floats that only match after the int rounds
 func intEqualsFloat(i int, f float64) bool {
 	return f < 1<<63 && float64(i) == f && int(f) == i
 }

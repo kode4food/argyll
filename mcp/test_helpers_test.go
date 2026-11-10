@@ -41,9 +41,7 @@ func newClient(t *testing.T, s *mcp.Server) client.Client {
 	return c
 }
 
-func callToolText(
-	t *testing.T, c client.Client, name string, args map[string]any,
-) string {
+func callToolText(t *testing.T, c client.Client, name string, args map[string]any) string {
 	t.Helper()
 
 	res, err := c.CallTool(name, args)

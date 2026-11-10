@@ -250,9 +250,7 @@ func (s *Server) registerFlowWriteTools(srv server.Server) {
 		"Preview execution plan for ordered fallback goal sets and init state",
 		func(_ *server.Context, args previewPlanInput) (any, error) {
 			if !args.Goals.Valid() {
-				return nil, errInvalidParams(
-					"goals requires at least one non-empty goal set",
-				)
+				return nil, errInvalidParams("goals requires at least one non-empty goal set")
 			}
 			init := map[string]any{}
 			if args.Init != nil {

@@ -19,28 +19,27 @@ type (
 		Required   []Name                    `json:"required"`
 	}
 
-	// Goals is a chain of fallback goal sets. Every one of Steps must succeed,
-	// and Else is attempted only when Steps becomes impossible
+	// Goals is a chain of fallback goal sets. Every one of Steps must succeed, and Else is
+	// attempted only when Steps becomes impossible
 	Goals struct {
 		Else  *Goals   `json:"else,omitempty"`
 		Steps []StepID `json:"steps"`
 	}
 
-	// ExcludedSteps contains steps encountered during dependency traversal
-	// that were not included in the plan. Only steps reachable from the goal
-	// set appear here, so unrelated catalog steps are not represented
+	// ExcludedSteps contains steps encountered during dependency traversal that were not included
+	// in the plan. Only steps reachable from the goal set appear here, so unrelated catalog steps
+	// are not represented
 	ExcludedSteps struct {
-		// Satisfied maps step ID to output names that were already available
-		// from init state, making the step's execution unnecessary
+		// Satisfied maps step ID to output names that were already available from init state,
+		// making the step's execution unnecessary
 		Satisfied map[StepID][]Name `json:"satisfied,omitempty"`
 
-		// Blocked maps step ID to input names whose init values prevent the
-		// step from ever satisfying its collection policy
+		// Blocked maps step ID to input names whose init values prevent the step from ever
+		// satisfying its collection policy
 		Blocked map[StepID][]Name `json:"blocked,omitempty"`
 
-		// Missing maps step ID to the required input names that could not be
-		// satisfied, including alternative providers rejected in favor of a
-		// satisfiable one
+		// Missing maps step ID to the required input names that could not be satisfied, including
+		// alternative providers rejected in favor of a satisfiable one
 		Missing map[StepID][]Name `json:"missing,omitempty"`
 	}
 
@@ -100,8 +99,7 @@ func (g *Goals) Sets() [][]StepID {
 	return res
 }
 
-// AllSteps returns every goal step in the chain once, in the order the chain
-// names them
+// AllSteps returns every goal step in the chain once, in the order the chain names them
 func (g *Goals) AllSteps() []StepID {
 	var res []StepID
 	for _, set := range g.Sets() {

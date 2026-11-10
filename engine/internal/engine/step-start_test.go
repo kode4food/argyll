@@ -138,27 +138,14 @@ func TestCollectLast(t *testing.T) {
 		)
 
 		id := api.FlowID("wf-collect-last")
-		waitForWorkStarted(env, id, []api.StepID{
-			providerA.ID,
-			providerB.ID,
-		}, func() {
+		waitForWorkStarted(env, id, []api.StepID{providerA.ID, providerB.ID}, func() {
 			assert.NoError(t, env.Engine.StartPlan(id, pl))
 		})
-		assert.True(t,
-			env.MockClient.WaitForInvocation(
-				providerA.ID, 500*time.Millisecond,
-			),
-		)
-		assert.True(t,
-			env.MockClient.WaitForInvocation(
-				providerB.ID, 500*time.Millisecond,
-			),
-		)
+		assert.True(t, env.MockClient.WaitForInvocation(providerA.ID, 500*time.Millisecond))
+		assert.True(t, env.MockClient.WaitForInvocation(providerB.ID, 500*time.Millisecond))
 
 		close(releaseA)
-		assert.False(t,
-			env.MockClient.WaitForInvocation(consumer.ID, 100*time.Millisecond),
-		)
+		assert.False(t, env.MockClient.WaitForInvocation(consumer.ID, 100*time.Millisecond))
 
 		close(releaseB)
 		fl := env.WaitForTerminalFlow(id)
@@ -707,9 +694,7 @@ func TestPredicateFailure(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		assert.NoError(t, env.Engine.Start())
 
-		st := helpers.NewStepWithPredicate(
-			"pred-fail", api.ScriptLangLua, "error('boom')",
-		)
+		st := helpers.NewStepWithPredicate("pred-fail", api.ScriptLangLua, "error('boom')")
 
 		assert.NoError(t, env.Engine.RegisterStep(st))
 
@@ -895,9 +880,7 @@ func TestMatchRoutes(t *testing.T) {
 						email.ID:    email,
 						postal.ID:   postal,
 					},
-					Attributes: api.AttributeGraph{}.
-						AddStep(route).
-						AddStep(customer).
+					Attributes: api.AttributeGraph{}.AddStep(route).AddStep(customer).
 						AddStep(email).
 						AddStep(postal),
 				}
@@ -914,21 +897,13 @@ func TestMatchRoutes(t *testing.T) {
 
 				id := api.FlowID("wf-match-" + tt.name)
 				fl := env.WaitForFlowStatus(id, func() {
-					err := env.Engine.StartPlan(id, pl,
-						flow.WithInit(tt.init),
-					)
+					err := env.Engine.StartPlan(id, pl, flow.WithInit(tt.init))
 					assert.NoError(t, err)
 				})
 				assert.Equal(t, tt.wantFlowStatus, fl.Status)
-				assert.Equal(t, tt.wantEmail,
-					env.MockClient.WasInvoked(email.ID),
-				)
-				assert.Equal(t, tt.wantCustomer,
-					env.MockClient.WasInvoked(customer.ID),
-				)
-				assert.Equal(t, tt.wantPostal,
-					env.MockClient.WasInvoked(postal.ID),
-				)
+				assert.Equal(t, tt.wantEmail, env.MockClient.WasInvoked(email.ID))
+				assert.Equal(t, tt.wantCustomer, env.MockClient.WasInvoked(customer.ID))
+				assert.Equal(t, tt.wantPostal, env.MockClient.WasInvoked(postal.ID))
 			})
 		})
 	}
@@ -1072,9 +1047,7 @@ func TestMatchAllPrunes(t *testing.T) {
 		assert.False(t, env.MockClient.WasInvoked(consumer.ID))
 		assert.Equal(t, api.FlowFailed, fl.Status)
 		assert.Equal(t, api.StepSkipped, fl.Executions[consumer.ID].Status)
-		assert.Equal(t,
-			[]api.Name{"data"}, fl.Executions[consumer.ID].Unsatisfied,
-		)
+		assert.Equal(t, []api.Name{"data"}, fl.Executions[consumer.ID].Unsatisfied)
 	})
 }
 
@@ -1292,8 +1265,7 @@ func TestPredicateError(t *testing.T) {
 		defer func() { _ = env.Engine.Stop() }()
 
 		st := helpers.NewStepWithPredicate(
-			"pred-err-step", api.ScriptLangLua,
-			"error('predicate failed')", "output",
+			"pred-err-step", api.ScriptLangLua, "error('predicate failed')", "output",
 		)
 
 		err := env.Engine.RegisterStep(st)
@@ -1420,9 +1392,7 @@ type collectPlanRes struct {
 	plan      *api.ExecutionPlan
 }
 
-func collectPlan(
-	sfx string, collect api.InputCollect,
-) collectPlanRes {
+func collectPlan(sfx string, collect api.InputCollect) collectPlanRes {
 	providerA := collectProvider(api.StepID("provider-a-" + sfx))
 	providerB := collectProvider(api.StepID("provider-b-" + sfx))
 	consumer := &api.Step{

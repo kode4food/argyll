@@ -100,8 +100,7 @@ func main() {
 			"resolve product inventory details by product_id",
 		).
 		WithTags(
-			"domain:inventory", "capability:lookup", "example",
-			"demo:checkout",
+			"domain:inventory", "capability:lookup", "example", "demo:checkout",
 		).
 		Optional("product_id", `"prod-laptop"`).
 		Output("product_info").
@@ -120,15 +119,13 @@ func handle(_ *argyll.StepContext, args api.Args) (api.Args, error) {
 	if !hasProductID || productID == "" {
 		// Default to laptop if no product specified
 		productID = "prod-laptop"
-		slog.Info("No product_id provided, using default",
-			slog.String("product_id", productID))
+		slog.Info("No product_id provided, using default", slog.String("product_id", productID))
 	}
 
 	productInfo, ok := inventoryDB[productID]
 
 	if !ok {
-		slog.Warn("Product not found in inventory",
-			slog.String("product_id", productID))
+		slog.Warn("Product not found in inventory", slog.String("product_id", productID))
 		return nil, argyll.NotFound("product not found: %s", productID)
 	}
 

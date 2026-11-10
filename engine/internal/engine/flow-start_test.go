@@ -324,11 +324,9 @@ func TestStartChildFlowUsesPlan(t *testing.T) {
 			child, err := env.Engine.GetFlowState(fid)
 			assert.NoError(t, err)
 			assert.Empty(t, child.Plan.Required)
-			assert.NotContains(t, child.Plan.Steps["child"].Attributes,
-				api.Name("new-input"))
+			assert.NotContains(t, child.Plan.Steps["child"].Attributes, api.Name("new-input"))
 			assert.Equal(t, "test", child.Metadata["source"])
-			assert.Equal(t, api.FlowID("parent"),
-				child.Metadata[api.MetaParentFlowID])
+			assert.Equal(t, api.FlowID("parent"), child.Metadata[api.MetaParentFlowID])
 			assert.Equal(t, parent.ID, child.Metadata[api.MetaParentStepID])
 			assert.Equal(t, tkn, child.Metadata[api.MetaParentWorkItemToken])
 		}
@@ -482,9 +480,7 @@ func TestAtomicFlowLifecycle(t *testing.T) {
 						func(
 							_ *api.Step, _ api.Args, meta api.Metadata,
 						) (api.Args, error) {
-							token, _ := meta.GetString[api.Token](
-								api.MetaReceiptToken,
-							)
+							token, _ := meta.GetString[api.Token](api.MetaReceiptToken)
 							leafStarted <- token
 							return api.Args{}, nil
 						},
@@ -493,9 +489,7 @@ func TestAtomicFlowLifecycle(t *testing.T) {
 						func(
 							_ *api.Step, _ api.Args, meta api.Metadata,
 						) (api.Args, error) {
-							token, _ := meta.GetString[api.Token](
-								api.MetaReceiptToken,
-							)
+							token, _ := meta.GetString[api.Token](api.MetaReceiptToken)
 							siblingStarted <- token
 							return api.Args{}, nil
 						},
@@ -531,8 +525,7 @@ func TestAtomicFlowLifecycle(t *testing.T) {
 					}
 					assert.NoError(t,
 						env.Engine.CompleteWork(
-							api.FlowStep{FlowID: fid, StepID: leaf.ID},
-							token, api.Args{},
+							api.FlowStep{FlowID: fid, StepID: leaf.ID}, token, api.Args{},
 						),
 					)
 					child, err = env.Engine.GetFlowState(fid)
@@ -547,8 +540,7 @@ func TestAtomicFlowLifecycle(t *testing.T) {
 					}
 					assert.NoError(t,
 						env.Engine.CompleteWork(
-							api.FlowStep{FlowID: "atomic", StepID: sibling.ID},
-							token, api.Args{},
+							api.FlowStep{FlowID: "atomic", StepID: sibling.ID}, token, api.Args{},
 						),
 					)
 					child, err = env.Engine.GetFlowState(fid)
@@ -583,11 +575,9 @@ func TestAtomicFlowLifecycle(t *testing.T) {
 						switch phase {
 						case api.EventTypeFlowStarted:
 							assert.NotZero(t, scheduleRequests)
-							assert.Contains(t,
-								kinds["atomic"], api.EventTypeWorkStarted)
+							assert.Contains(t, kinds["atomic"], api.EventTypeWorkStarted)
 						case api.EventTypeFlowCompleted:
-							assert.Contains(t,
-								kinds["atomic"], api.EventTypeWorkSucceeded)
+							assert.Contains(t, kinds["atomic"], api.EventTypeWorkSucceeded)
 						case api.EventTypeFlowDeactivated:
 							assert.Contains(t, kinds["atomic"], phase)
 						}

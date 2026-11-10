@@ -29,9 +29,7 @@ func (s *Server) listSteps(c *gin.Context) {
 }
 
 func (s *Server) createStep(c *gin.Context) {
-	c.Request.Body = http.MaxBytesReader(
-		c.Writer, c.Request.Body, MaxStepBodyBytes,
-	)
+	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, MaxStepBodyBytes)
 	var st api.Step
 	if err := c.ShouldBindJSON(&st); err != nil {
 		c.JSON(http.StatusBadRequest, api.ErrorResponse{
@@ -98,9 +96,7 @@ func (s *Server) getStep(c *gin.Context) {
 func (s *Server) updateStep(c *gin.Context) {
 	sid := api.StepID(c.Param("step_id"))
 
-	c.Request.Body = http.MaxBytesReader(
-		c.Writer, c.Request.Body, MaxStepBodyBytes,
-	)
+	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, MaxStepBodyBytes)
 	var st api.Step
 	if err := c.ShouldBindJSON(&st); err != nil {
 		c.JSON(http.StatusBadRequest, api.ErrorResponse{

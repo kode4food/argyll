@@ -51,8 +51,8 @@ type (
 		EventHub         *event.Hub
 	}
 
-	// OpenBackend opens the backend the engine runs on, wired to the publisher
-	// its committed events must reach
+	// OpenBackend opens the backend the engine runs on, wired to the publisher its committed events
+	// must reach
 	OpenBackend func(timebox.Publisher) (timebox.Backend, error)
 
 	// CatalogExecutor manages catalog state persistence and event sourcing
@@ -89,12 +89,10 @@ var (
 	ErrOpenScheduler     = errors.New("failed to open scheduler")
 )
 
-// New creates an engine from its configuration and dependencies, then opens
-// the backend it runs on. The engine exists before the backend does, so no
-// committed event can arrive ahead of the engine that must handle it
-func New(
-	cfg *config.Config, deps Dependencies, open OpenBackend,
-) (*Engine, error) {
+// New creates an engine from its configuration and dependencies, then opens the backend it runs on.
+// The engine exists before the backend does, so no committed event can arrive ahead of the engine
+// that must handle it
+func New(cfg *config.Config, deps Dependencies, open OpenBackend) (*Engine, error) {
 	cfg = cfg.WithWorkDefaults()
 	if err := cfg.Validate(); err != nil {
 		return nil, errors.Join(ErrInvalidConfig, err)
@@ -154,15 +152,11 @@ func (e *Engine) openStores(open OpenBackend) error {
 		return err
 	}
 	clock := timebox.Config{Clock: e.clock}
-	engStore, err := timebox.NewStore(
-		backend, e.config.EngineStoreConfig(), clock,
-	)
+	engStore, err := timebox.NewStore(backend, e.config.EngineStoreConfig(), clock)
 	if err != nil {
 		return errors.Join(err, backend.Close())
 	}
-	flowStore, err := timebox.NewStore(
-		backend, e.config.FlowStoreConfig(), clock,
-	)
+	flowStore, err := timebox.NewStore(backend, e.config.FlowStoreConfig(), clock)
 	if err != nil {
 		return errors.Join(err, backend.Close())
 	}
@@ -176,18 +170,10 @@ func (e *Engine) openStores(open OpenBackend) error {
 	e.backend = backend
 	e.engStore = engStore
 	e.flowStore = flowStore
-	e.catalogExec = engStore.Executor(
-		events.NewCatalogState, events.CatalogAppliers.Reduce,
-	)
-	e.clusterExec = engStore.Executor(
-		events.NewClusterState, events.ClusterAppliers.Reduce,
-	)
-	e.flowExec = flowStore.Executor(
-		events.NewFlowState, events.FlowAppliers.Reduce,
-	)
-	e.feedExec = flowStore.Executor(
-		events.NewFeedState, events.FeedAppliers.Reduce,
-	)
+	e.catalogExec = engStore.Executor(events.NewCatalogState, events.CatalogAppliers.Reduce)
+	e.clusterExec = engStore.Executor(events.NewClusterState, events.ClusterAppliers.Reduce)
+	e.flowExec = flowStore.Executor(events.NewFlowState, events.FlowAppliers.Reduce)
+	e.feedExec = flowStore.Executor(events.NewFeedState, events.FeedAppliers.Reduce)
 	return nil
 }
 

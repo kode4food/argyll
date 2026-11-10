@@ -60,8 +60,7 @@ func TestPathTreeEmptyPath(t *testing.T) {
 
 	tree.Insert([]string{}, "root")
 	tree.Insert([]string{"x"}, "child")
-	assert.ElementsMatch(t, []string{"root", "child"},
-		collectDetach(tree, nil))
+	assert.ElementsMatch(t, []string{"root", "child"}, collectDetach(tree, nil))
 
 	tree.Insert([]string{}, "root")
 	tree.Insert([]string{"x"}, "child")

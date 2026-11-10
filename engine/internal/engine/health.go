@@ -25,11 +25,9 @@ type healthResolver struct {
 	match    api.Matcher
 }
 
-// RefreshStepHealth records externally probed step health, derives script and
-// flow step health from it, and persists whatever the engine can determine
-func (e *Engine) RefreshStepHealth(
-	probed map[api.StepID]api.HealthState,
-) error {
+// RefreshStepHealth records externally probed step health, derives script and flow step health from
+// it, and persists whatever the engine can determine
+func (e *Engine) RefreshStepHealth(probed map[api.StepID]api.HealthState) error {
 	cat, err := e.GetCatalogState()
 	if err != nil {
 		return err
@@ -81,18 +79,14 @@ func (e *Engine) GetStepHealth(sid api.StepID) (api.HealthState, error) {
 	merged := e.ResolveHealth(e.Matcher, &cat, MergeNodeHealth(&cluster))
 	h, ok := merged[sid]
 	if !ok {
-		return api.HealthState{}, fmt.Errorf(
-			"%w: %s", api.ErrStepNotFound, sid,
-		)
+		return api.HealthState{}, fmt.Errorf("%w: %s", api.ErrStepNotFound, sid)
 	}
 	return h, nil
 }
 
-// UpdateStepHealth updates the health status of a registered step, used
-// primarily for tracking HTTP service availability and script errors
-func (e *Engine) UpdateStepHealth(
-	sid api.StepID, health api.HealthStatus, errMsg string,
-) error {
+// UpdateStepHealth updates the health status of a registered step, used primarily for tracking HTTP
+// service availability and script errors
+func (e *Engine) UpdateStepHealth(sid api.StepID, health api.HealthStatus, errMsg string) error {
 	return e.engStore.Transact(func(t *timebox.Transaction) error {
 		return updateStepHealth(
 			storeTx{Engine: e, Transaction: t}, sid, health, errMsg,
@@ -100,11 +94,10 @@ func (e *Engine) UpdateStepHealth(
 	})
 }
 
-// ResolveHealth returns resolved health for all steps, deriving flow step
-// health from all steps included in the flow's execution preview
+// ResolveHealth returns resolved health for all steps, deriving flow step health from all steps
+// included in the flow's execution preview
 func (e *Engine) ResolveHealth(
-	match api.Matcher, cat *api.CatalogState,
-	base map[api.StepID]api.HealthState,
+	match api.Matcher, cat *api.CatalogState, base map[api.StepID]api.HealthState,
 ) map[api.StepID]api.HealthState {
 	resolver := &healthResolver{
 		eng:      e,
@@ -125,8 +118,8 @@ func (e *Engine) ResolveHealth(
 	return resolved
 }
 
-// MergeNodeHealth reduces per-node step health into a cluster-wide worst-case
-// view while preserving stable results
+// MergeNodeHealth reduces per-node step health into a cluster-wide worst-case view while preserving
+// stable results
 func MergeNodeHealth(cluster *api.ClusterState) map[api.StepID]api.HealthState {
 	res := map[api.StepID]api.HealthState{}
 	nodes := make([]string, 0, len(cluster.Nodes))
@@ -281,9 +274,7 @@ func (r *healthResolver) resolve(sid api.StepID) api.HealthState {
 	return healthy
 }
 
-func (r *healthResolver) resolveStepHealth(
-	st *api.Step, sid api.StepID,
-) api.HealthState {
+func (r *healthResolver) resolveStepHealth(st *api.Step, sid api.StepID) api.HealthState {
 	if h, ok := r.base[sid]; ok {
 		if h.Status != api.HealthUnknown || h.Error != "" {
 			return h
@@ -313,8 +304,7 @@ func (r *healthResolver) previewFlowPlan(
 	st := r.steps[sid]
 	if st.Flow != nil && st.Flow.SpaceID != api.NoSpace {
 		if _, ok := r.cat.Spaces.Defined[st.Flow.SpaceID]; !ok {
-			return nil, fmt.Errorf("%w: %s", api.ErrSpaceNotFound,
-				st.Flow.SpaceID)
+			return nil, fmt.Errorf("%w: %s", api.ErrSpaceNotFound, st.Flow.SpaceID)
 		}
 		steps = r.cat.SpaceSteps(st.Flow.SpaceID)
 	}
@@ -334,11 +324,9 @@ func (r *healthResolver) previewFlowPlan(
 	return pl, nil
 }
 
-// updateStepHealth records the step's health on the cluster aggregate in tx, so
-// a catalog change and the health it implies commit together
-func updateStepHealth(
-	tx storeTx, sid api.StepID, health api.HealthStatus, errMsg string,
-) error {
+// updateStepHealth records the step's health on the cluster aggregate in tx, so a catalog change
+// and the health it implies commit together
+func updateStepHealth(tx storeTx, sid api.StepID, health api.HealthStatus, errMsg string) error {
 	nid := tx.LocalNodeID()
 
 	_, err := tx.Exec(tx.clusterExec, events.ClusterKey,

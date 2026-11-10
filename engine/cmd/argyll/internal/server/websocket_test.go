@@ -90,9 +90,7 @@ func TestMalformedSubscription(t *testing.T) {
 				},
 			})
 			assert.NoError(t, err)
-			_ = env.Conn.SetReadDeadline(
-				scheduler.Now().Add(100 * time.Millisecond),
-			)
+			_ = env.Conn.SetReadDeadline(scheduler.Now().Add(100 * time.Millisecond))
 			_, _, err = env.Conn.ReadMessage()
 			assert.Error(t, err)
 		})
@@ -204,12 +202,9 @@ func TestClientAggregateEvents(t *testing.T) {
 		Type: "subscribe",
 		Data: api.ClientSubscription{
 			SubscriptionID: "sub-1",
-			AggregateIDs: [][]string{
-				{events.FlowPrefix, "wf-123"},
-				{events.FlowPrefix, "wf-456"},
-			},
-			IncludeState: false,
-			EventTypes:   []api.EventType{api.EventTypeFlowStarted},
+			AggregateIDs:   [][]string{{events.FlowPrefix, "wf-123"}, {events.FlowPrefix, "wf-456"}},
+			IncludeState:   false,
+			EventTypes:     []api.EventType{api.EventTypeFlowStarted},
 		},
 	}
 	err := env.Conn.WriteJSON(sub)
@@ -260,8 +255,7 @@ func TestClientManyAggregates(t *testing.T) {
 
 	aggregateIDs := make([][]string, 0, 200)
 	for i := range 200 {
-		aggregateIDs = append(aggregateIDs,
-			[]string{events.FlowPrefix, "wf-" + strconv.Itoa(i)})
+		aggregateIDs = append(aggregateIDs, []string{events.FlowPrefix, "wf-" + strconv.Itoa(i)})
 	}
 
 	sub := api.SubscribeRequest{
@@ -508,9 +502,7 @@ func TestSubscribeNoID(t *testing.T) {
 		Type: "subscribe",
 		Data: api.ClientSubscription{
 			SubscriptionID: "sub-1",
-			EventTypes: []api.EventType{
-				api.EventTypeFlowStarted,
-			},
+			EventTypes:     []api.EventType{api.EventTypeFlowStarted},
 		},
 	}
 	err := env.Conn.WriteJSON(sub)
@@ -729,9 +721,7 @@ func TestSocketBadCallbackTarget(t *testing.T) {
 		defer ws.Cleanup()
 
 		singleton := string(timebox.SingletonKey)
-		for _, aggregateID := range [][]string{
-			{"invalid", singleton},
-		} {
+		for _, aggregateID := range [][]string{{"invalid", singleton}} {
 			sub := api.SubscribeRequest{
 				Type: "subscribe",
 				Data: api.ClientSubscription{

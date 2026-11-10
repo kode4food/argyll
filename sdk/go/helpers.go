@@ -15,8 +15,7 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/log"
 )
 
-// StepAddr is the port a step server listens on and the base URL it
-// advertises to the engine
+// StepAddr is the port a step server listens on and the base URL it advertises to the engine
 type StepAddr struct {
 	BaseURL string
 	Port    string
@@ -39,8 +38,8 @@ var (
 	ErrHandlerPanic     = errors.New("step handler panicked")
 )
 
-// LocalStepAddr reads the step server address from the STEP_HOSTNAME and
-// STEP_PORT environment variables
+// LocalStepAddr reads the step server address from the STEP_HOSTNAME and STEP_PORT environment
+// variables
 func LocalStepAddr() StepAddr {
 	port := EnvOr(EnvLookup{
 		Name:    "STEP_PORT",
@@ -53,8 +52,7 @@ func LocalStepAddr() StepAddr {
 	}
 }
 
-// EnvOr returns the named environment variable, or the given default when it is
-// unset or empty
+// EnvOr returns the named environment variable, or the given default when it is unset or empty
 func EnvOr(lookup EnvLookup) string {
 	if v := os.Getenv(lookup.Name); v != "" {
 		return v
@@ -62,8 +60,8 @@ func EnvOr(lookup EnvLookup) string {
 	return lookup.Default
 }
 
-// HealthHandler serves the health endpoint the engine polls. An empty service
-// name is reported as a bare status
+// HealthHandler serves the health endpoint the engine polls. An empty service name is reported as a
+// bare status
 func HealthHandler(service api.Name) http.HandlerFunc {
 	body := `{"status": "healthy"}`
 	if service != "" {
@@ -87,8 +85,7 @@ func setupStepServer(client *Client, st Step, handle InvokeHandler) error {
 	addr := LocalStepAddr()
 	id := st.step.ID
 	endpoint := fmt.Sprintf("%s/%s", addr.BaseURL, id)
-	st = st.WithEndpoint(endpoint).
-		WithHealthCheck(addr.BaseURL + "/health")
+	st = st.WithEndpoint(endpoint).WithHealthCheck(addr.BaseURL + "/health")
 
 	comp := st.step.HTTP.Compensate
 	if st.compensate != nil && (comp == nil || comp.Endpoint == "") {
@@ -162,9 +159,7 @@ func makeCompensateHandler(
 	}
 }
 
-func makeInvokeHandler(
-	client *Client, id api.StepID, handler InvokeHandler,
-) http.HandlerFunc {
+func makeInvokeHandler(client *Client, id api.StepID, handler InvokeHandler) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			WriteProblem(w, http.StatusMethodNotAllowed, "Method not allowed")

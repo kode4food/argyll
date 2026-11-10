@@ -17,9 +17,7 @@ func TestSet(t *testing.T) {
 
 	assert.Equal(t, "new_value", result["new_key"])
 	assert.Equal(t, "value", result["existing"])
-	assert.NotContains(t,
-		original, "new_key", "Set should not modify original Args",
-	)
+	assert.NotContains(t, original, "new_key", "Set should not modify original Args")
 }
 
 func TestSetOverwriteExisting(t *testing.T) {
@@ -30,9 +28,7 @@ func TestSetOverwriteExisting(t *testing.T) {
 	result := original.Set("key", "new_value")
 
 	assert.Equal(t, "new_value", result["key"])
-	assert.Equal(t, "old_value", original["key"],
-		"Set should not modify original Args",
-	)
+	assert.Equal(t, "old_value", original["key"], "Set should not modify original Args")
 }
 
 func TestGetString(t *testing.T) {
@@ -179,10 +175,7 @@ func TestGetIntFloatConversion(t *testing.T) {
 func TestChaining(t *testing.T) {
 	original := api.Args{}
 
-	result := original.
-		Set("key1", "value1").
-		Set("key2", 42).
-		Set("key3", true)
+	result := original.Set("key1", "value1").Set("key2", 42).Set("key3", true)
 
 	assert.Len(t, result, 3)
 	assert.Equal(t, "value1", result["key1"])

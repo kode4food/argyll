@@ -174,8 +174,7 @@ type (
 		Error  string `json:"error"`
 	}
 
-	// WorkRetryScheduledEvent is emitted when a failed work item is to be
-	// retried
+	// WorkRetryScheduledEvent is emitted when a failed work item is to be retried
 	WorkRetryScheduledEvent struct {
 		NextRetryAt time.Time `json:"next_retry_at"`
 		FlowID      FlowID    `json:"flow_id"`
@@ -185,8 +184,8 @@ type (
 		RetryCount  int       `json:"retry_count"`
 	}
 
-	// DispatchDeferredEvent is emitted when runnable work cannot be started
-	// immediately and must be picked up later
+	// DispatchDeferredEvent is emitted when runnable work cannot be started immediately and must be
+	// picked up later
 	DispatchDeferredEvent struct {
 		FlowID FlowID `json:"flow_id"`
 		StepID StepID `json:"step_id"`

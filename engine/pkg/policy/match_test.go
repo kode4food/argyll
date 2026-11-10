@@ -64,8 +64,7 @@ func TestRequiredMatchStatus(t *testing.T) {
 			name: "last collect waits for terminal providers",
 			attr: requiredMatch(cfg, api.InputCollectLast),
 			values: matchValues(
-				map[string]any{"kind": "email"},
-				map[string]any{"kind": "postal"},
+				map[string]any{"kind": "email"}, map[string]any{"kind": "postal"},
 			),
 			match:    matched,
 			expected: policy.MatchUnknown,
@@ -74,8 +73,7 @@ func TestRequiredMatchStatus(t *testing.T) {
 			name: "last collect matches after terminal providers",
 			attr: requiredMatch(cfg, api.InputCollectLast),
 			values: matchValues(
-				map[string]any{"kind": "email"},
-				map[string]any{"kind": "postal"},
+				map[string]any{"kind": "email"}, map[string]any{"kind": "postal"},
 			),
 			provider: terminalProvider(),
 			match:    matched,
@@ -185,9 +183,7 @@ func TestStepPrunedByRequiredMatch(t *testing.T) {
 	assert.False(t, policy.StepPrunedByRequiredMatch(
 		api.StepCompleted, policy.RequiredMatchSkipReason,
 	))
-	assert.False(t, policy.StepPrunedByRequiredMatch(
-		api.StepSkipped, "other reason",
-	))
+	assert.False(t, policy.StepPrunedByRequiredMatch(api.StepSkipped, "other reason"))
 }
 
 func TestRequiredMatchStepStatus(t *testing.T) {
@@ -277,9 +273,7 @@ func terminalProvider() policy.ProviderSummary {
 	}
 }
 
-func requiredMatch(
-	cfg *api.ScriptConfig, collect api.InputCollect,
-) *api.AttributeSpec {
+func requiredMatch(cfg *api.ScriptConfig, collect api.InputCollect) *api.AttributeSpec {
 	return &api.AttributeSpec{
 		Role: api.RoleRequired,
 		Required: &api.RequiredConfig{

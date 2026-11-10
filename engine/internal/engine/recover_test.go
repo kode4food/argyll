@@ -127,9 +127,7 @@ func TestRecoverActiveWorkDoesNotRestart(t *testing.T) {
 		}), func() {
 			assert.NoError(t, env.Engine.StartPlan(id, pl))
 		})
-		assert.True(t,
-			env.MockClient.WaitForInvocation(st.ID, wait.DefaultTimeout),
-		)
+		assert.True(t, env.MockClient.WaitForInvocation(st.ID, wait.DefaultTimeout))
 
 		before, err := env.Engine.GetFlowState(id)
 		assert.NoError(t, err)
@@ -139,9 +137,7 @@ func TestRecoverActiveWorkDoesNotRestart(t *testing.T) {
 
 		for tkn, work := range after.Executions[st.ID].WorkItems {
 			assert.Equal(t, api.WorkActive, work.Status)
-			assert.Equal(t,
-				before.Executions[st.ID].WorkItems[tkn].StartedAt,
-				work.StartedAt)
+			assert.Equal(t, before.Executions[st.ID].WorkItems[tkn].StartedAt, work.StartedAt)
 		}
 		assert.Equal(t, []api.StepID{st.ID}, env.MockClient.GetInvocations())
 	})
@@ -169,9 +165,7 @@ func TestRecoverDispatchPeer(t *testing.T) {
 		}()
 
 		require.NoError(t,
-			env.Engine.UpdateStepHealth(
-				st.ID, api.HealthUnhealthy, "starter offline",
-			),
+			env.Engine.UpdateStepHealth(st.ID, api.HealthUnhealthy, "starter offline"),
 		)
 		require.NoError(t, peer.UpdateStepHealth(st.ID, api.HealthHealthy, ""))
 		require.NoError(t, env.Engine.Start())
@@ -440,9 +434,7 @@ func TestPendingRetryRecovers(t *testing.T) {
 
 		fl := env.WaitForTerminalFlow(id)
 		assert.Equal(t, api.FlowCompleted, fl.Status)
-		assert.Equal(t,
-			api.WorkSucceeded, fl.Executions[st.ID].WorkItems[tkn].Status,
-		)
+		assert.Equal(t, api.WorkSucceeded, fl.Executions[st.ID].WorkItems[tkn].Status)
 	})
 }
 
@@ -919,14 +911,8 @@ func TestRecoverFlowsSkipsDeactivated(t *testing.T) {
 		})
 		defer func() { _ = restarted.Stop() }()
 
-		assert.True(t,
-			env.MockClient.WaitForInvocation(active.ID, wait.DefaultTimeout),
-		)
-		assert.False(t,
-			env.MockClient.WaitForInvocation(
-				deactivated.ID, 300*time.Millisecond,
-			),
-		)
+		assert.True(t, env.MockClient.WaitForInvocation(active.ID, wait.DefaultTimeout))
+		assert.False(t, env.MockClient.WaitForInvocation(deactivated.ID, 300*time.Millisecond))
 
 		activeFlow, err := restarted.GetFlowState(activeFlowID)
 		assert.NoError(t, err)
@@ -973,18 +959,14 @@ func TestFailedWorkNotRestarted(t *testing.T) {
 		))
 
 		assert.NoError(t, env.Engine.RecoverFlow(id))
-		assert.False(t,
-			env.MockClient.WaitForInvocation(st.ID, 100*time.Millisecond),
-		)
+		assert.False(t, env.MockClient.WaitForInvocation(st.ID, 100*time.Millisecond))
 
 		err := env.Engine.CompleteWork(fs, tkn, api.Args{})
 		assert.True(t, errors.Is(err, api.ErrInvalidWorkTransition))
 
 		fl, err := env.Engine.GetFlowState(id)
 		assert.NoError(t, err)
-		assert.Equal(t,
-			api.WorkFailed, fl.Executions[st.ID].WorkItems[tkn].Status,
-		)
+		assert.Equal(t, api.WorkFailed, fl.Executions[st.ID].WorkItems[tkn].Status)
 	})
 }
 

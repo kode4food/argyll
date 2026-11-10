@@ -17,8 +17,8 @@ var (
 	identTail    = regexp.MustCompile(`[A-Za-z0-9_]+$`)
 )
 
-// bareNames pairs each short name source can use with the input it reads. A
-// usable name wins over a derived tail, and tails two inputs share bind none
+// bareNames pairs each short name source can use with the input it reads. A usable name wins over a
+// derived tail, and tails two inputs share bind none
 func bareNames(names []string, usable func(string) bool) []bareName {
 	taken := map[string]bool{}
 	for _, name := range names {
@@ -59,8 +59,8 @@ func aliasesOf(names []bareName) []bareName {
 	return res
 }
 
-// withAliases builds what source reads through this: every input by its full
-// name and by each derived short name
+// withAliases builds what source reads through this: every input by its full name and by each
+// derived short name
 func withAliases(inputs api.Args, aliases []bareName) api.Args {
 	if len(aliases) == 0 {
 		return inputs

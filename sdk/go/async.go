@@ -11,8 +11,8 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
-// AsyncContext provides functionality to manage asynchronous step execution
-// and embeds StepContext with the webhook URL for result delivery
+// AsyncContext provides functionality to manage asynchronous step execution and embeds StepContext
+// with the webhook URL for result delivery
 type AsyncContext struct {
 	*StepContext
 	webhookURL string
@@ -24,8 +24,8 @@ var (
 	ErrWebhookError       = errors.New("webhook returned error status")
 )
 
-// NewAsyncContext creates a new async context from a StepContext and extracts
-// webhook_url from the StepContext metadata
+// NewAsyncContext creates a new async context from a StepContext and extracts webhook_url from the
+// StepContext metadata
 func NewAsyncContext(ctx *StepContext) (*AsyncContext, error) {
 	if ctx.Metadata == nil {
 		return nil, ErrMetadataNotFound
@@ -79,9 +79,7 @@ func (c *AsyncContext) sendWebhook(contentType string, body any) error {
 		return fmt.Errorf("failed to marshal webhook body: %w", err)
 	}
 
-	resp, err := http.Post(
-		c.webhookURL, contentType, bytes.NewBuffer(jsonData),
-	)
+	resp, err := http.Post(c.webhookURL, contentType, bytes.NewBuffer(jsonData))
 	if err != nil {
 		return fmt.Errorf("failed to send webhook: %w", err)
 	}
@@ -89,8 +87,7 @@ func (c *AsyncContext) sendWebhook(contentType string, body any) error {
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
-		return fmt.Errorf("%w: status %d: %s", ErrWebhookError,
-			resp.StatusCode, string(body))
+		return fmt.Errorf("%w: status %d: %s", ErrWebhookError, resp.StatusCode, string(body))
 	}
 
 	return nil

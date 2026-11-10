@@ -37,10 +37,7 @@ func TestFallbackGoals(t *testing.T) {
 	t.Run("later sets short-circuit on success", func(t *testing.T) {
 		helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 			assert.NoError(t, env.Engine.Start())
-			registerSteps(t, env,
-				goalStep("first", nil, "r1"),
-				goalStep("second", nil, "r2"),
-			)
+			registerSteps(t, env, goalStep("first", nil, "r1"), goalStep("second", nil, "r2"))
 			env.MockClient.SetResponse("first", api.Args{"r1": "one"})
 			env.MockClient.SetResponse("second", api.Args{"r2": "two"})
 
@@ -58,10 +55,7 @@ func TestFallbackGoals(t *testing.T) {
 	t.Run("fails only when every set is impossible", func(t *testing.T) {
 		helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 			assert.NoError(t, env.Engine.Start())
-			registerSteps(t, env,
-				goalStep("bad-1", nil, "r1"),
-				goalStep("bad-2", nil, "r2"),
-			)
+			registerSteps(t, env, goalStep("bad-1", nil, "r1"), goalStep("bad-2", nil, "r2"))
 			env.MockClient.SetError("bad-1", errors.New("boom"))
 			env.MockClient.SetError("bad-2", errors.New("boom"))
 
@@ -71,8 +65,7 @@ func TestFallbackGoals(t *testing.T) {
 			}, api.InitArgs{})
 
 			assert.Equal(t, api.FlowFailed, fl.Status)
-			assert.Equal(t,
-				[]api.StepID{"bad-1", "bad-2"}, env.MockClient.GetInvocations())
+			assert.Equal(t, []api.StepID{"bad-1", "bad-2"}, env.MockClient.GetInvocations())
 		})
 	})
 
@@ -109,14 +102,11 @@ func TestFallbackGoals(t *testing.T) {
 			assert.Equal(t, "shared", fl.Attributes["s"][0].Value)
 
 			calls := env.MockClient.GetInvocations()
-			for _, sid := range []api.StepID{
-				"shared", "step1", "step2", "step3",
-			} {
+			for _, sid := range []api.StepID{"shared", "step1", "step2", "step3"} {
 				assert.Equal(t, 1, countOf(calls, sid))
 			}
 			assert.NotContains(t, calls, api.StepID("step4"))
-			assert.Greater(t,
-				slices.Index(calls, "step3"), slices.Index(calls, "step1"))
+			assert.Greater(t, slices.Index(calls, "step3"), slices.Index(calls, "step1"))
 		})
 	})
 
@@ -185,8 +175,7 @@ func TestFallbackGoals(t *testing.T) {
 				Goals: goals,
 			})
 			assert.NoError(t, err)
-			assert.ElementsMatch(t,
-				[]api.Name{"primary-input", "fallback-input"}, pl.Required)
+			assert.ElementsMatch(t, []api.Name{"primary-input", "fallback-input"}, pl.Required)
 
 			for _, init := range []api.InitArgs{
 				{"primary-input": {"x"}},
@@ -211,8 +200,7 @@ func TestFallbackGoals(t *testing.T) {
 }
 
 func startGoals(
-	t *testing.T, env *helpers.TestEngineEnv, fid api.FlowID,
-	goals api.Goals, init api.InitArgs,
+	t *testing.T, env *helpers.TestEngineEnv, fid api.FlowID, goals api.Goals, init api.InitArgs,
 ) api.FlowState {
 	t.Helper()
 	return env.WaitForFlowStatus(fid, func() {
@@ -225,18 +213,14 @@ func startGoals(
 	})
 }
 
-func registerSteps(
-	t *testing.T, env *helpers.TestEngineEnv, steps ...*api.Step,
-) {
+func registerSteps(t *testing.T, env *helpers.TestEngineEnv, steps ...*api.Step) {
 	t.Helper()
 	for _, st := range steps {
 		assert.NoError(t, env.Engine.RegisterStep(st))
 	}
 }
 
-func goalStep(
-	id api.StepID, inputs []api.Name, outputs ...api.Name,
-) *api.Step {
+func goalStep(id api.StepID, inputs []api.Name, outputs ...api.Name) *api.Step {
 	st := helpers.NewStepWithOutputs(id, outputs...)
 	for _, name := range inputs {
 		st.Attributes[name] = &api.AttributeSpec{
@@ -246,9 +230,7 @@ func goalStep(
 	return st
 }
 
-func compensatingStep(
-	id api.StepID, inputs []api.Name, outputs ...api.Name,
-) *api.Step {
+func compensatingStep(id api.StepID, inputs []api.Name, outputs ...api.Name) *api.Step {
 	st := goalStep(id, inputs, outputs...)
 	st.Handling = api.HandlingCompensated
 	st.HTTP.Compensate = &api.HTTPAction{Endpoint: "http://test:8080/undo"}

@@ -9,14 +9,14 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
-// TestLazyEvaluation tests that only steps required to reach the goal are
-// executed, even when many other steps are registered
+// TestLazyEvaluation tests that only steps required to reach the goal are executed, even when many
+// other steps are registered
 func TestLazyEvaluation(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		assert.NoError(t, env.Engine.Start())
 
-		// Create 10 steps, but only A→B→C form path to goal
-		// Step A: No inputs, produces "valueA"
+		// Create 10 steps, but only A→B→C form path to goal Step A: No inputs, produces
+		// "valueA"
 		stepA := helpers.NewStepWithOutputs("step-a", "valueA")
 
 		// Step B: Requires "valueA", produces "valueB"
@@ -66,8 +66,8 @@ func TestLazyEvaluation(t *testing.T) {
 		env.MockClient.SetResponse("step-i", api.Args{"valueI": "from-I"})
 		env.MockClient.SetResponse("step-j", api.Args{"valueJ": "from-J"})
 
-		// Create execution plan with ONLY the steps needed to reach goal. This
-		// simulates the lazy evaluation - plan only includes A→B→C
+		// Create execution plan with ONLY the steps needed to reach goal. This simulates the lazy
+		// evaluation - plan only includes A→B→C
 		pl := &api.ExecutionPlan{
 			Goals: api.Goals{Steps: []api.StepID{"step-c"}},
 			Steps: api.Steps{

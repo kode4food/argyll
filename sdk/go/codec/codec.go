@@ -109,8 +109,8 @@ func Map[T any](elem Codec[T]) Codec[map[string]T] {
 	return c
 }
 
-// Ref returns a codec that reads target when used rather than when
-// built, which lets a recursive type refer to its own codec
+// Ref returns a codec that reads target when used rather than when built, which lets a recursive
+// type refer to its own codec
 func Ref[T any](target *Codec[T]) Codec[T] {
 	return refCodec[T]{target: target}
 }
@@ -124,8 +124,8 @@ func Struct[S any](fields ...StructField[S]) Codec[S] {
 	return &structCodec[S]{fields: fields, byName: byName}
 }
 
-// Field binds a named JSON object member to a field of struct S. The ptr
-// function returns the address of that field in a given struct value
+// Field binds a named JSON object member to a field of struct S. The ptr function returns the
+// address of that field in a given struct value
 func Field[S, T any](
 	name string, c Codec[T], ptr func(*S) *T,
 ) StructField[S] {
@@ -285,9 +285,7 @@ func (c mapCodec[T]) Encode(e *jsontext.Encoder, v map[string]T) error {
 	return e.WriteToken(jsontext.EndObject)
 }
 
-func (c stateMapCodec[T]) Encode(
-	e *jsontext.Encoder, v map[string]T,
-) error {
+func (c stateMapCodec[T]) Encode(e *jsontext.Encoder, v map[string]T) error {
 	return encodeValue(c, e, v, &encodeState{})
 }
 
@@ -327,9 +325,7 @@ func (f structField[S, T]) Name() string {
 	return f.name
 }
 
-func (c stateSliceCodec[T]) encode(
-	e *jsontext.Encoder, v []T, state *encodeState,
-) error {
+func (c stateSliceCodec[T]) encode(e *jsontext.Encoder, v []T, state *encodeState) error {
 	if err := e.WriteToken(jsontext.BeginArray); err != nil {
 		return err
 	}
@@ -341,9 +337,7 @@ func (c stateSliceCodec[T]) encode(
 	return e.WriteToken(jsontext.EndArray)
 }
 
-func (c optionalCodec[T]) encode(
-	e *jsontext.Encoder, v *T, state *encodeState,
-) error {
+func (c optionalCodec[T]) encode(e *jsontext.Encoder, v *T, state *encodeState) error {
 	if v == nil {
 		return e.WriteToken(jsontext.Null)
 	}
@@ -354,9 +348,7 @@ func (c optionalCodec[T]) encode(
 	return encodeValue(c.elem, e, *v, state)
 }
 
-func (c stateMapCodec[T]) encode(
-	e *jsontext.Encoder, v map[string]T, state *encodeState,
-) error {
+func (c stateMapCodec[T]) encode(e *jsontext.Encoder, v map[string]T, state *encodeState) error {
 	if err := e.WriteToken(jsontext.BeginObject); err != nil {
 		return err
 	}
@@ -371,15 +363,11 @@ func (c stateMapCodec[T]) encode(
 	return e.WriteToken(jsontext.EndObject)
 }
 
-func (c refCodec[T]) encode(
-	e *jsontext.Encoder, v T, state *encodeState,
-) error {
+func (c refCodec[T]) encode(e *jsontext.Encoder, v T, state *encodeState) error {
 	return encodeValue(*c.target, e, v, state)
 }
 
-func (c *structCodec[S]) encode(
-	e *jsontext.Encoder, v S, state *encodeState,
-) error {
+func (c *structCodec[S]) encode(e *jsontext.Encoder, v S, state *encodeState) error {
 	if err := e.WriteToken(jsontext.BeginObject); err != nil {
 		return err
 	}
@@ -394,11 +382,8 @@ func (c *structCodec[S]) encode(
 	return e.WriteToken(jsontext.EndObject)
 }
 
-// decodeMember reads one object member into s, skipping a member the struct
-// does not declare
-func (c *structCodec[S]) decodeMember(
-	d *jsontext.Decoder, name string, s *S,
-) error {
+// decodeMember reads one object member into s, skipping a member the struct does not declare
+func (c *structCodec[S]) decodeMember(d *jsontext.Decoder, name string, s *S) error {
 	f, ok := c.byName[name]
 	if !ok {
 		return d.SkipValue()
@@ -415,9 +400,7 @@ func (f structField[S, T]) decode(d *jsontext.Decoder, s *S) error {
 	return nil
 }
 
-func (f structField[S, T]) encode(
-	e *jsontext.Encoder, s *S, state *encodeState,
-) error {
+func (f structField[S, T]) encode(e *jsontext.Encoder, s *S, state *encodeState) error {
 	return encodeValue(f.codec, e, *f.ptr(s), state)
 }
 
@@ -471,13 +454,10 @@ func readToken(d *jsontext.Decoder) (jsontext.Token, error) {
 }
 
 func unexpected(want string, got jsontext.Kind) error {
-	return fmt.Errorf("%w: expected %s, got %s",
-		ErrUnexpectedToken, want, got)
+	return fmt.Errorf("%w: expected %s, got %s", ErrUnexpectedToken, want, got)
 }
 
-func encodeValue[T any](
-	c Codec[T], e *jsontext.Encoder, v T, state *encodeState,
-) error {
+func encodeValue[T any](c Codec[T], e *jsontext.Encoder, v T, state *encodeState) error {
 	if c, ok := c.(stateCodec[T]); ok {
 		return c.encode(e, v, state)
 	}

@@ -24,8 +24,7 @@ var (
 	ErrInvariantViolated = errors.New("engine invariant violated")
 )
 
-// StartFlow validates a request, plans it against the catalog, and starts the
-// flow it describes
+// StartFlow validates a request, plans it against the catalog, and starts the flow it describes
 func (e *Engine) StartFlow(req api.CreateFlowRequest) error {
 	if err := req.Validate(); err != nil {
 		return err
@@ -45,11 +44,9 @@ func (e *Engine) StartFlow(req api.CreateFlowRequest) error {
 	return e.StartPlan(req.ID, pl, apps...)
 }
 
-// CreatePlan builds an execution plan over the current catalog, narrowed to a
-// space when one is named
-func (e *Engine) CreatePlan(
-	req api.ExecutionPlanRequest,
-) (*api.ExecutionPlan, error) {
+// CreatePlan builds an execution plan over the current catalog, narrowed to a space when one is
+// named
+func (e *Engine) CreatePlan(req api.ExecutionPlanRequest) (*api.ExecutionPlan, error) {
 	planReq, err := e.planRequest(req)
 	if err != nil {
 		return nil, err
@@ -57,12 +54,9 @@ func (e *Engine) CreatePlan(
 	return plan.Create(planReq)
 }
 
-// PreviewPlan builds a plan to show rather than run. Unlike CreatePlan, it
-// keeps providers nothing can satisfy, so a caller can show the chain back to
-// missing init inputs
-func (e *Engine) PreviewPlan(
-	req api.ExecutionPlanRequest,
-) (*api.ExecutionPlan, error) {
+// PreviewPlan builds a plan to show rather than run. Unlike CreatePlan, it keeps providers nothing
+// can satisfy, so a caller can show the chain back to missing init inputs
+func (e *Engine) PreviewPlan(req api.ExecutionPlanRequest) (*api.ExecutionPlan, error) {
 	planReq, err := e.planRequest(req)
 	if err != nil {
 		return nil, err
@@ -71,20 +65,16 @@ func (e *Engine) PreviewPlan(
 }
 
 // StartPlan begins a new flow execution with the given plan and options
-func (e *Engine) StartPlan(
-	fid api.FlowID, pl *api.ExecutionPlan, apps ...flow.Applier,
-) error {
+func (e *Engine) StartPlan(fid api.FlowID, pl *api.ExecutionPlan, apps ...flow.Applier) error {
 	opts := flow.Defaults(apps...)
 	return e.flowTx(fid, func(tx *flowTx) error {
 		return tx.startPlan(pl, opts)
 	})
 }
 
-// planRequest builds a planning request over the current catalog, narrowed to a
-// space when one is named
-func (e *Engine) planRequest(
-	req api.ExecutionPlanRequest,
-) (*plan.Request, error) {
+// planRequest builds a planning request over the current catalog, narrowed to a space when one is
+// named
+func (e *Engine) planRequest(req api.ExecutionPlanRequest) (*plan.Request, error) {
 	cat, err := e.GetCatalogState()
 	if err != nil {
 		return nil, err
@@ -93,9 +83,7 @@ func (e *Engine) planRequest(
 	steps := cat.Steps
 	if req.SpaceID != api.NoSpace {
 		if _, ok := cat.Spaces.Defined[req.SpaceID]; !ok {
-			return nil, fmt.Errorf(
-				"%w: %s", api.ErrSpaceNotFound, req.SpaceID,
-			)
+			return nil, fmt.Errorf("%w: %s", api.ErrSpaceNotFound, req.SpaceID)
 		}
 		steps = cat.SpaceSteps(req.SpaceID)
 	}
@@ -147,9 +135,7 @@ func (tx *flowTx) startPlan(pl *api.ExecutionPlan, opts *flow.Options) error {
 	return tx.advanceFlow()
 }
 
-func (tx *flowTx) startChildFlow(
-	sid api.StepID, tkn api.Token, inputs api.Args,
-) error {
+func (tx *flowTx) startChildFlow(sid api.StepID, tkn api.Token, inputs api.Args) error {
 	fl := tx.Value()
 	fs := api.FlowStep{FlowID: fl.ID, StepID: sid}
 	init := api.InitArgs{}
@@ -157,9 +143,7 @@ func (tx *flowTx) startChildFlow(
 		init[name] = []any{value}
 	}
 	opts := flow.Defaults(
-		flow.WithInit(init),
-		flow.WithMetadata(fl.Metadata),
-		flow.WithParent(fs, tkn),
+		flow.WithInit(init), flow.WithMetadata(fl.Metadata), flow.WithParent(fs, tkn),
 	)
 	_, err := tx.flowTx(childFlowID(fs, tkn), func(child *flowTx) error {
 		return child.startPlan(fl.Plan.Children[sid], opts)
@@ -216,9 +200,7 @@ func (tx storeTx) flowTx(
 }
 
 func childFlowID(parent api.FlowStep, tkn api.Token) api.FlowID {
-	return api.FlowID(
-		fmt.Sprintf("%s:%s:%s", parent.FlowID, parent.StepID, tkn),
-	)
+	return api.FlowID(fmt.Sprintf("%s:%s:%s", parent.FlowID, parent.StepID, tkn))
 }
 
 type initArgsEqualArgs struct {

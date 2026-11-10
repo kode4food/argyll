@@ -72,9 +72,7 @@ func (w *Wait) ForEvents(count int, filter EventFilter) {
 		select {
 		case ev, ok := <-w.consumer.Receive():
 			if !ok {
-				w.t.Fatalf(
-					"event consumer closed before receiving %d events", count,
-				)
+				w.t.Fatalf("event consumer closed before receiving %d events", count)
 			}
 			if !filter(ev) {
 				continue
@@ -98,10 +96,7 @@ func (w *Wait) ForAll(filters ...EventFilter) {
 		select {
 		case ev, ok := <-w.consumer.Receive():
 			if !ok {
-				w.t.Fatalf(
-					"event consumer closed before receiving %d events",
-					len(filters),
-				)
+				w.t.Fatalf("event consumer closed before receiving %d events", len(filters))
 			}
 			seen += matchFilters(ev, filters, matched)
 		case <-deadline.C:
@@ -163,18 +158,12 @@ func FlowActivated(ids ...api.FlowID) EventFilter {
 
 // FlowDeactivated matches flow deactivated events for the provided flow IDs
 func FlowDeactivated(ids ...api.FlowID) EventFilter {
-	return And(
-		Type(api.EventTypeFlowDeactivated),
-		FlowIDs(ids...),
-	)
+	return And(Type(api.EventTypeFlowDeactivated), FlowIDs(ids...))
 }
 
 // FlowTerminal matches flow terminal events for the provided flow IDs
 func FlowTerminal(ids ...api.FlowID) EventFilter {
-	return And(
-		Types(api.EventTypeFlowCompleted, api.EventTypeFlowFailed),
-		FlowIDs(ids...),
-	)
+	return And(Types(api.EventTypeFlowCompleted, api.EventTypeFlowFailed), FlowIDs(ids...))
 }
 
 // FlowCompleted matches flow completed events for the provided flow IDs
@@ -195,11 +184,7 @@ func StepStarted(steps ...api.FlowStep) EventFilter {
 // StepTerminal matches step terminal events for the provided flow steps
 func StepTerminal(steps ...api.FlowStep) EventFilter {
 	return And(
-		Types(
-			api.EventTypeStepCompleted,
-			api.EventTypeStepFailed,
-			api.EventTypeStepSkipped,
-		),
+		Types(api.EventTypeStepCompleted, api.EventTypeStepFailed, api.EventTypeStepSkipped),
 		FlowSteps(steps...),
 	)
 }
@@ -226,26 +211,17 @@ func WorkFailed(steps ...api.FlowStep) EventFilter {
 
 // WorkNotCompleted matches not completed events for the provided flow steps
 func WorkNotCompleted(steps ...api.FlowStep) EventFilter {
-	return And(
-		Type(api.EventTypeWorkNotCompleted),
-		FlowSteps(steps...),
-	)
+	return And(Type(api.EventTypeWorkNotCompleted), FlowSteps(steps...))
 }
 
 // WorkRetryScheduled matches retry scheduled events for flow steps
 func WorkRetryScheduled(steps ...api.FlowStep) EventFilter {
-	return And(
-		Type(api.EventTypeWorkRetryScheduled),
-		FlowSteps(steps...),
-	)
+	return And(Type(api.EventTypeWorkRetryScheduled), FlowSteps(steps...))
 }
 
 // WorkRetryScheduledAny matches retry scheduled events for flow steps
 func WorkRetryScheduledAny(steps ...api.FlowStep) EventFilter {
-	return And(
-		Type(api.EventTypeWorkRetryScheduled),
-		FlowStepAny(steps...),
-	)
+	return And(Type(api.EventTypeWorkRetryScheduled), FlowStepAny(steps...))
 }
 
 // CompStarted matches comp started events for the provided flow steps
@@ -275,10 +251,7 @@ func DispatchDeferred(steps ...api.FlowStep) EventFilter {
 
 // WorkRetryScheduledDistinct matches one retry scheduled event per work token
 func WorkRetryScheduledDistinct(fs api.FlowStep) EventFilter {
-	return And(
-		Type(api.EventTypeWorkRetryScheduled),
-		FlowStepDistinctTokens(fs),
-	)
+	return And(Type(api.EventTypeWorkRetryScheduled), FlowStepDistinctTokens(fs))
 }
 
 // FlowID matches events for the provided flow ID
@@ -368,9 +341,7 @@ func PredicateFilter[T any](pred Predicate[T]) EventFilter {
 	}
 }
 
-func matchFilters(
-	ev *timebox.Event, filters []EventFilter, matched []bool,
-) int {
+func matchFilters(ev *timebox.Event, filters []EventFilter, matched []bool) int {
 	count := 0
 	for idx, filter := range filters {
 		if matched[idx] || !filter(ev) {

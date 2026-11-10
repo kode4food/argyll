@@ -22,10 +22,7 @@ func TestForEachWorkItems(t *testing.T) {
 		stepA3 := helpers.NewStepWithOutputs("step-a3", "items")
 
 		// Step B: collects all "items" values and runs once per value
-		stepB := helpers.NewTestStepWithArgs(
-			[]api.Name{"items"},
-			nil,
-		)
+		stepB := helpers.NewTestStepWithArgs([]api.Name{"items"}, nil)
 		stepB.ID = "step-b"
 		stepB.Attributes["items"].Required = &api.RequiredConfig{
 			ForEach: true,

@@ -56,8 +56,7 @@ func NewHub() *Hub {
 	return NewHubWithTopic(caravan.NewTopic[*timebox.Event]())
 }
 
-// NewHubWithTopic creates a new Hub that filters events based on active
-// subscriptions
+// NewHubWithTopic creates a new Hub that filters events based on active subscriptions
 func NewHubWithTopic(inner topic.Topic[*timebox.Event]) *Hub {
 	return &Hub{
 		inner:    inner,
@@ -105,16 +104,16 @@ func (h *Hub) NewTypeConsumer(eventTypes ...timebox.EventType) *Consumer {
 	return h.NewAggregatesConsumer(nil, eventTypes...)
 }
 
-// NewAggregateConsumer creates a consumer interested in events from one
-// aggregate. If no event types are specified, it receives all of its events
+// NewAggregateConsumer creates a consumer interested in events from one aggregate. If no event
+// types are specified, it receives all of its events
 func (h *Hub) NewAggregateConsumer(
 	id timebox.AggregateID, eventTypes ...timebox.EventType,
 ) *Consumer {
 	return h.NewAggregatesConsumer([]timebox.AggregateID{id}, eventTypes...)
 }
 
-// NewAggregatesConsumer creates a consumer for the specified aggregates and
-// event types. An empty filter places no restriction on that dimension
+// NewAggregatesConsumer creates a consumer for the specified aggregates and event types. An empty
+// filter places no restriction on that dimension
 func (h *Hub) NewAggregatesConsumer(
 	ids []timebox.AggregateID, eventTypes ...timebox.EventType,
 ) *Consumer {
@@ -241,9 +240,7 @@ func (r *registry) unregister(i *interests) {
 	}
 }
 
-func (r *registry) hasSubscribers(
-	typ timebox.EventType, id timebox.AggregateID,
-) bool {
+func (r *registry) hasSubscribers(typ timebox.EventType, id timebox.AggregateID) bool {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 

@@ -38,9 +38,7 @@ func feedTotal(t *testing.T, env *helpers.TestEngineEnv) any {
 	return res.State.Value
 }
 
-func runChargeFlow(
-	env *helpers.TestEngineEnv, id api.FlowID, sid api.StepID,
-) api.FlowState {
+func runChargeFlow(env *helpers.TestEngineEnv, id api.FlowID, sid api.StepID) api.FlowState {
 	return env.WaitForFlowStatus(id, func() {
 		err := env.Engine.StartFlow(api.CreateFlowRequest{
 			ID:    id,
@@ -160,8 +158,8 @@ func TestFeedFoldIgnoresUnconsumedOutput(t *testing.T) {
 		})
 		env.MockClient.SetResponse(reader.ID, api.Args{"ran": "yes"})
 
-		// Nothing in this Flow reads amount, so the Flow drops it. The Feed
-		// must still fold what the Step produced
+		// Nothing in this Flow reads amount, so the Flow drops it. The Feed must still fold what
+		// the Step produced
 		fl := runChargeFlow(env, "flow-unconsumed", reader.ID)
 		assert.Equal(t, api.FlowCompleted, fl.Status)
 		assert.NotContains(t, fl.GetAttributes(), api.Name("amount"))
@@ -316,9 +314,7 @@ func TestFeedSnapshotGatesPredicate(t *testing.T) {
 		charge := newChargeStep("charge")
 		assert.NoError(t, env.Engine.RegisterStep(charge))
 		assert.NoError(t, env.Engine.RegisterFeed(newTestFeed()))
-		gate := helpers.NewStepWithPredicate(
-			"gate", api.ScriptLangLua, "return total < 5", "ran",
-		)
+		gate := helpers.NewStepWithPredicate("gate", api.ScriptLangLua, "return total < 5", "ran")
 		gate.Attributes["total"] = &api.AttributeSpec{
 			Role: api.RoleFeed,
 			Feed: &api.FeedConfig{ID: "order-total"},
@@ -377,8 +373,8 @@ func TestFeedChildFlowSnapshot(t *testing.T) {
 		env.MockClient.SetResponse(charge.ID, api.Args{"amount": testCharge})
 		env.MockClient.SetResponse(peek.ID, api.Args{"ran": "yes"})
 
-		// The child starts after charge folds, so its snapshot is newer than
-		// the one its parent took when it started
+		// The child starts after charge folds, so its snapshot is newer than the one its parent
+		// took when it started
 		fl := env.WaitForFlowStatus("parent-feed", func() {
 			err := env.Engine.StartFlow(api.CreateFlowRequest{
 				ID:    "parent-feed",

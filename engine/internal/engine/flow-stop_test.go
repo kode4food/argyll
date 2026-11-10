@@ -141,16 +141,12 @@ func TestFlowStepChildSuccess(t *testing.T) {
 				break
 			}
 
-			childID := api.FlowID(fmt.Sprintf(
-				"%s:%s:%s", "parent-flow", parent.ID, tkn,
-			))
+			childID := api.FlowID(fmt.Sprintf("%s:%s:%s", "parent-flow", parent.ID, tkn))
 			childState, err := env.Engine.GetFlowState(childID)
 			testify.NoError(t, err)
 			testify.Equal(t, api.FlowCompleted, childState.Status)
 
-			testify.Equal(t,
-				api.FlowID("parent-flow"), metaFlowID(childState.Metadata),
-			)
+			testify.Equal(t, api.FlowID("parent-flow"), metaFlowID(childState.Metadata))
 			testify.Equal(t, parent.ID, metaStepID(childState.Metadata))
 			testify.Equal(t, tkn, metaToken(childState.Metadata))
 		}
@@ -535,8 +531,7 @@ func TestParentNotificationRetries(t *testing.T) {
 					},
 				))
 			fail.Store(true)
-			testify.ErrorIs(t,
-				env.Engine.RecoverFlow(childID), ErrParentWrite)
+			testify.ErrorIs(t, env.Engine.RecoverFlow(childID), ErrParentWrite)
 			child, err := env.Engine.GetFlowState(childID)
 			testify.NoError(t, err)
 			testify.True(t, child.DeactivatedAt.IsZero())
@@ -595,9 +590,9 @@ func metaToken(meta api.Metadata) api.Token {
 	}
 }
 
-// TestParentSettledAtomically proves the child's outcome and the parent's work
-// item now commit together. A failing parent write must leave the child
-// unchanged, rather than committing the child and losing the notification
+// TestParentSettledAtomically proves the child's outcome and the parent's work item now commit
+// together. A failing parent write must leave the child unchanged, rather than committing the child
+// and losing the notification
 func TestParentSettledAtomically(t *testing.T) {
 	var fail atomic.Bool
 	parentID := api.FlowID("atomic-parent")
@@ -667,10 +662,7 @@ func TestParentSettledAtomically(t *testing.T) {
 
 			// the parent write fails, so neither half may land
 			fail.Store(true)
-			testify.ErrorIs(t,
-				env.Engine.CompleteWork(childStep, "w", api.Args{}),
-				ErrParentWrite,
-			)
+			testify.ErrorIs(t, env.Engine.CompleteWork(childStep, "w", api.Args{}), ErrParentWrite)
 
 			after, err := env.Engine.GetFlowState(childID)
 			testify.NoError(t, err)
@@ -686,9 +678,7 @@ func TestParentSettledAtomically(t *testing.T) {
 
 			// with the write allowed, both halves land in one commit
 			fail.Store(false)
-			testify.NoError(t,
-				env.Engine.CompleteWork(childStep, "w", api.Args{}),
-			)
+			testify.NoError(t, env.Engine.CompleteWork(childStep, "w", api.Args{}))
 
 			child, err := env.Engine.GetFlowState(childID)
 			testify.NoError(t, err)
@@ -696,8 +686,6 @@ func TestParentSettledAtomically(t *testing.T) {
 
 			parent, err = env.Engine.GetFlowState(parentID)
 			testify.NoError(t, err)
-			testify.Equal(t, api.WorkSucceeded,
-				parent.Executions[sub.ID].WorkItems["token"].Status,
-			)
+			testify.Equal(t, api.WorkSucceeded, parent.Executions[sub.ID].WorkItems["token"].Status)
 		})
 }

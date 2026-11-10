@@ -156,18 +156,10 @@ func TestWithDefaults(t *testing.T) {
 		cfg := &config.Config{StepTimeout: 1000}
 		out := cfg.WithWorkDefaults()
 
-		testify.Equal(t,
-			config.DefaultRetryMaxRetries, out.Work.MaxRetries,
-		)
-		testify.Equal(t,
-			int64(config.DefaultRetryInitBackoff), out.Work.InitBackoff,
-		)
-		testify.Equal(t,
-			int64(config.DefaultMaxRetryBackoff), out.Work.MaxBackoff,
-		)
-		testify.Equal(t,
-			config.DefaultRetryBackoffType, out.Work.BackoffType,
-		)
+		testify.Equal(t, config.DefaultRetryMaxRetries, out.Work.MaxRetries)
+		testify.Equal(t, int64(config.DefaultRetryInitBackoff), out.Work.InitBackoff)
+		testify.Equal(t, int64(config.DefaultMaxRetryBackoff), out.Work.MaxBackoff)
+		testify.Equal(t, config.DefaultRetryBackoffType, out.Work.BackoffType)
 		testify.Equal(t, int64(config.DefaultMemoTTL), out.Work.MemoTTL)
 	})
 

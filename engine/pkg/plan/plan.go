@@ -51,24 +51,18 @@ type (
 	selectProviders func(*builder, []api.StepID) []api.StepID
 )
 
-// Create builds an execution plan for the request's goals, resolving
-// dependencies and required inputs. Children discovered through
-// Request.Children are planned recursively into ExecutionPlan.Children
+// Create builds an execution plan for the request's goals, resolving dependencies and required
+// inputs. Children discovered through Request.Children are planned recursively into
+// ExecutionPlan.Children
 func Create(req *Request) (*api.ExecutionPlan, error) {
-	return create(
-		newPlanArgs(req, strictProviders), req.Children,
-		util.Set[api.StepID]{},
-	)
+	return create(newPlanArgs(req, strictProviders), req.Children, util.Set[api.StepID]{})
 }
 
-// Preview builds an execution plan for preview purposes. Unlike Create, it
-// falls back to unsatisfied provider chains when no satisfiable provider exists
-// so the UI can show the full dependency path back to missing init inputs
+// Preview builds an execution plan for preview purposes. Unlike Create, it falls back to
+// unsatisfied provider chains when no satisfiable provider exists so the UI can show the full
+// dependency path back to missing init inputs
 func Preview(req *Request) (*api.ExecutionPlan, error) {
-	return create(
-		newPlanArgs(req, previewProviders), req.Children,
-		util.Set[api.StepID]{},
-	)
+	return create(newPlanArgs(req, previewProviders), req.Children, util.Set[api.StepID]{})
 }
 
 // childPlanInit derives init args for a child plan from a parent step
@@ -112,17 +106,13 @@ func create(
 			continue
 		}
 		if ancestors.Contains(sid) {
-			return nil, fmt.Errorf("%w: step %s",
-				api.ErrCircularDependency, sid,
-			)
+			return nil, fmt.Errorf("%w: step %s", api.ErrCircularDependency, sid)
 		}
 		candidates := args.candidates
 		dependencies := args.dependencies
 		if st.Flow != nil && st.Flow.SpaceID != api.NoSpace {
 			if _, ok := args.catalog.Spaces.Defined[st.Flow.SpaceID]; !ok {
-				return nil, fmt.Errorf(
-					"%w: %s", api.ErrSpaceNotFound, st.Flow.SpaceID,
-				)
+				return nil, fmt.Errorf("%w: %s", api.ErrSpaceNotFound, st.Flow.SpaceID)
 			}
 			candidates = args.catalog.SpaceSteps(st.Flow.SpaceID)
 			dependencies = dependencyGraph(candidates)
@@ -198,8 +188,7 @@ func newPlanBuilder(args planArgs) *builder {
 	return pb
 }
 
-// Pass 1: determine which steps are satisfiable from init + other satisfiable
-// outputs
+// Pass 1: determine which steps are satisfiable from init + other satisfiable outputs
 func (b *builder) computeSatisfiable() {
 	for name := range b.satisfied {
 		b.available.Add(name)
@@ -230,8 +219,8 @@ func (b *builder) computeSatisfiable() {
 	}
 }
 
-// Pass 2: collect steps and build plan from goal traversal. Each goal set is
-// traversed independently, so the plan and its required inputs are the union
+// Pass 2: collect steps and build plan from goal traversal. Each goal set is traversed
+// independently, so the plan and its required inputs are the union
 func (b *builder) collectSteps(goals api.Goals) error {
 	seen := util.Set[api.StepID]{}
 	for _, set := range goals.Sets() {
@@ -339,9 +328,7 @@ func (b *builder) hasInit(name api.Name) bool {
 	return ok
 }
 
-func (b *builder) includeProviders(
-	name api.Name, attr *api.AttributeSpec,
-) (bool, error) {
+func (b *builder) includeProviders(name api.Name, attr *api.AttributeSpec) (bool, error) {
 	providers := b.findProviders(name)
 	if len(providers) == 0 {
 		return false, nil

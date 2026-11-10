@@ -47,8 +47,7 @@ func TestStepWorkCompletion(t *testing.T) {
 	assert.True(t, failed.Failed)
 	assert.Equal(t, "bad", failed.FailureError)
 
-	// Fail-fast: a single failure marks Done immediately,
-	// even with active or pending siblings
+	// Fail-fast: a single failure marks Done immediately, even with active or pending siblings
 	failFast := policy.StepWorkCompletion(api.WorkItems{
 		"a": {Status: api.WorkActive},
 		"b": {Status: api.WorkFailed, Error: "boom"},
@@ -113,8 +112,7 @@ func TestWorkDeadline(t *testing.T) {
 	assert.True(t, ok)
 	assert.Equal(t, started.Add(deadlineFallback), at)
 
-	// A script has no timeout of its own, so the fallback bounds a lost
-	// invocation
+	// A script has no timeout of its own, so the fallback bounds a lost invocation
 	script := &api.Step{ID: "script-step", Type: api.StepTypeScript}
 	at, ok = policy.WorkDeadline(script, &api.WorkState{
 		Status:    api.WorkActive,

@@ -59,8 +59,7 @@ var predicateStep = &api.Step{
 	},
 }
 
-// matchCases evaluate one document, as Space selectors and attribute
-// matches do
+// matchCases evaluate one document, as Space selectors and attribute matches do
 var matchCases = []benchCase{
 	{
 		name:  "SingleTag",
@@ -139,8 +138,8 @@ var predicateCases = []benchCase{
 	},
 }
 
-// TestBenchCasesAgree keeps the two dialects of each benchmark case
-// semantically equivalent, so the timings compare like for like
+// TestBenchCasesAgree keeps the two dialects of each benchmark case semantically equivalent, so the
+// timings compare like for like
 func TestBenchCasesAgree(t *testing.T) {
 	lua := script.NewLuaEnv()
 	jp := script.NewArgExEnv()
@@ -161,11 +160,9 @@ func TestBenchCasesAgree(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			luaC := compileFor(t, lua, predicateStep, c.lua)
 			jpC := compileFor(t, jp, predicateStep, c.argEx)
-			luaRes, err := evalPredicate(lua, luaC,
-				predicateStep, predicateArgs)
+			luaRes, err := evalPredicate(lua, luaC, predicateStep, predicateArgs)
 			assert.NoError(t, err)
-			jpRes, err := evalPredicate(jp, jpC,
-				predicateStep, predicateArgs)
+			jpRes, err := evalPredicate(jp, jpC, predicateStep, predicateArgs)
 			assert.NoError(t, err)
 			assert.Equal(t, luaRes, jpRes)
 		})
@@ -210,8 +207,7 @@ func BenchmarkPredicate(b *testing.B) {
 		b.Run(c.name+"/lua", func(b *testing.B) {
 			b.ReportAllocs()
 			for b.Loop() {
-				_, err := evalPredicate(lua, luaC, predicateStep,
-					predicateArgs)
+				_, err := evalPredicate(lua, luaC, predicateStep, predicateArgs)
 				if err != nil {
 					b.Fatal(err)
 				}
@@ -220,8 +216,7 @@ func BenchmarkPredicate(b *testing.B) {
 		b.Run(c.name+"/argex", func(b *testing.B) {
 			b.ReportAllocs()
 			for b.Loop() {
-				_, err := evalPredicate(jp, jpC, predicateStep,
-					predicateArgs)
+				_, err := evalPredicate(jp, jpC, predicateStep, predicateArgs)
 				if err != nil {
 					b.Fatal(err)
 				}
@@ -230,8 +225,8 @@ func BenchmarkPredicate(b *testing.B) {
 	}
 }
 
-// BenchmarkMatchParallel exercises the environments under concurrency, where
-// the Lua state pool becomes contended
+// BenchmarkMatchParallel exercises the environments under concurrency, where the Lua state pool
+// becomes contended
 func BenchmarkMatchParallel(b *testing.B) {
 	lua := script.NewLuaEnv()
 	jp := script.NewArgExEnv()
@@ -263,9 +258,9 @@ func BenchmarkMatchParallel(b *testing.B) {
 	})
 }
 
-// BenchmarkCompile measures per-script compilation, hoisting environment
-// construction out of the loop and defeating the script cache with a
-// distinct but semantically identical source per iteration
+// BenchmarkCompile measures per-script compilation, hoisting environment construction out of the
+// loop and defeating the script cache with a distinct but semantically identical source per
+// iteration
 func BenchmarkCompile(b *testing.B) {
 	lua := script.NewLuaEnv()
 	jp := script.NewArgExEnv()
@@ -276,8 +271,7 @@ func BenchmarkCompile(b *testing.B) {
 			i := 0
 			for b.Loop() {
 				i++
-				compileForBench(b, lua, script.MatchStep,
-					fmt.Sprintf("%s\n-- %d", c.lua, i))
+				compileForBench(b, lua, script.MatchStep, fmt.Sprintf("%s\n-- %d", c.lua, i))
 			}
 		})
 		b.Run(c.name+"/argex", func(b *testing.B) {
@@ -307,9 +301,7 @@ func BenchmarkNewEnv(b *testing.B) {
 	})
 }
 
-func compileFor(
-	t *testing.T, env script.Environment, st *api.Step, src string,
-) script.Compiled {
+func compileFor(t *testing.T, env script.Environment, st *api.Step, src string) script.Compiled {
 	t.Helper()
 	c, err := env.Compile(st, &api.ScriptConfig{Source: src})
 	assert.NoError(t, err)

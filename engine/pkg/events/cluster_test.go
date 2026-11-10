@@ -107,10 +107,6 @@ func TestClusterMultipleNodes(t *testing.T) {
 	st = apply(st, makeEv("node-2", "step-a", api.HealthUnhealthy))
 
 	assert.Len(t, st.Nodes, 2)
-	assert.Equal(t,
-		api.HealthHealthy, st.Nodes["node-1"].Health["step-a"].Status,
-	)
-	assert.Equal(t,
-		api.HealthUnhealthy, st.Nodes["node-2"].Health["step-a"].Status,
-	)
+	assert.Equal(t, api.HealthHealthy, st.Nodes["node-1"].Health["step-a"].Status)
+	assert.Equal(t, api.HealthUnhealthy, st.Nodes["node-2"].Health["step-a"].Status)
 }

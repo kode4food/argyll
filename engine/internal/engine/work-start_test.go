@@ -139,9 +139,7 @@ func TestDeferredAfterMemoHit(t *testing.T) {
 		})
 		assert.Equal(t, api.FlowCompleted, fl.Status)
 
-		assert.NoError(t, env.Engine.UpdateStepHealth(
-			st.ID, api.HealthUnhealthy, "offline",
-		))
+		assert.NoError(t, env.Engine.UpdateStepHealth(st.ID, api.HealthUnhealthy, "offline"))
 		assert.NoError(t, env.Engine.StartPlan("deferred", pl,
 			flow.WithInit(api.InitArgs{"items": {"a", "c"}}),
 		))
@@ -213,9 +211,7 @@ func TestHTTPMetadata(t *testing.T) {
 		}
 
 		fl := env.WaitForFlowStatus("wf-meta", func() {
-			err := env.Engine.StartPlan("wf-meta", pl,
-				flow.WithMetadata(flowMetadata),
-			)
+			err := env.Engine.StartPlan("wf-meta", pl, flow.WithMetadata(flowMetadata))
 			assert.NoError(t, err)
 		})
 		assert.Equal(t, api.FlowCompleted, fl.Status)
@@ -255,13 +251,9 @@ func TestDispatchOnHealthyPeer(t *testing.T) {
 		env.MockClient.SetResponse(st.ID, api.Args{})
 
 		assert.NoError(t,
-			env.Engine.UpdateStepHealth(
-				st.ID, api.HealthUnhealthy, "connection refused",
-			),
+			env.Engine.UpdateStepHealth(st.ID, api.HealthUnhealthy, "connection refused"),
 		)
-		assert.NoError(t,
-			peer.UpdateStepHealth(st.ID, api.HealthHealthy, ""),
-		)
+		assert.NoError(t, peer.UpdateStepHealth(st.ID, api.HealthHealthy, ""))
 
 		pl := &api.ExecutionPlan{
 			Goals: api.Goals{Steps: []api.StepID{st.ID}},
@@ -287,9 +279,7 @@ func TestDispatchRecovery(t *testing.T) {
 		assert.NoError(t, env.Engine.RegisterStep(st))
 		env.MockClient.SetResponse(st.ID, api.Args{})
 
-		assert.NoError(t, env.Engine.UpdateStepHealth(
-			st.ID, api.HealthUnhealthy, "service down",
-		))
+		assert.NoError(t, env.Engine.UpdateStepHealth(st.ID, api.HealthUnhealthy, "service down"))
 
 		id := api.FlowID("wf-health-recovers")
 		fs := api.FlowStep{FlowID: id, StepID: st.ID}
@@ -301,19 +291,13 @@ func TestDispatchRecovery(t *testing.T) {
 		env.WaitFor(wait.StepStarted(fs), func() {
 			assert.NoError(t, env.Engine.StartPlan(id, pl))
 		})
-		assert.False(t,
-			env.MockClient.WaitForInvocation(st.ID, 120*time.Millisecond),
-		)
+		assert.False(t, env.MockClient.WaitForInvocation(st.ID, 120*time.Millisecond))
 
 		fl := env.WaitForFlowStatus(id, func() {
-			assert.NoError(t, env.Engine.UpdateStepHealth(
-				st.ID, api.HealthHealthy, "",
-			))
+			assert.NoError(t, env.Engine.UpdateStepHealth(st.ID, api.HealthHealthy, ""))
 		})
 		assert.Equal(t, api.FlowCompleted, fl.Status)
-		assert.True(t,
-			env.MockClient.WaitForInvocation(st.ID, wait.DefaultTimeout),
-		)
+		assert.True(t, env.MockClient.WaitForInvocation(st.ID, wait.DefaultTimeout))
 	})
 }
 
@@ -340,15 +324,11 @@ func TestAsyncMetadata(t *testing.T) {
 			FlowID: "wf-async-meta",
 			StepID: st.ID,
 		}), func() {
-			err := env.Engine.StartPlan("wf-async-meta", pl,
-				flow.WithMetadata(flowMetadata),
-			)
+			err := env.Engine.StartPlan("wf-async-meta", pl, flow.WithMetadata(flowMetadata))
 			assert.NoError(t, err)
 		})
 
-		assert.True(t, env.MockClient.WaitForInvocation(
-			st.ID, wait.DefaultTimeout,
-		))
+		assert.True(t, env.MockClient.WaitForInvocation(st.ID, wait.DefaultTimeout))
 
 		md := env.MockClient.LastMetadata(st.ID)
 		assert.NotNil(t, md)
@@ -712,8 +692,7 @@ func TestScriptExecution(t *testing.T) {
 func TestLuaScriptExecution(t *testing.T) {
 	helpers.WithStartedEngine(t, func(eng *engine.Engine) {
 		st := helpers.NewScriptStep(
-			"lua-script-step", api.ScriptLangLua, "return {result = 42}",
-			"result",
+			"lua-script-step", api.ScriptLangLua, "return {result = 42}", "result",
 		)
 
 		err := eng.RegisterStep(st)
@@ -732,8 +711,7 @@ func TestLuaScriptExecution(t *testing.T) {
 func TestLuaScriptWithInputs(t *testing.T) {
 	helpers.WithStartedEngine(t, func(eng *engine.Engine) {
 		st := helpers.NewScriptStep(
-			"lua-input-step", api.ScriptLangLua, "return {doubled = x * 2}",
-			"doubled",
+			"lua-input-step", api.ScriptLangLua, "return {doubled = x * 2}", "doubled",
 		)
 		st.Attributes["x"] = &api.AttributeSpec{Role: api.RoleRequired}
 
@@ -776,9 +754,7 @@ func TestCompetingNodesStartOnce(t *testing.T) {
 		env.MockClient.SetResponse(st.ID, api.Args{})
 
 		// Both nodes can run the step, so both race to claim the work item
-		assert.NoError(t,
-			env.Engine.UpdateStepHealth(st.ID, api.HealthHealthy, ""),
-		)
+		assert.NoError(t, env.Engine.UpdateStepHealth(st.ID, api.HealthHealthy, ""))
 		assert.NoError(t, peer.UpdateStepHealth(st.ID, api.HealthHealthy, ""))
 
 		id := api.FlowID("wf-compete")

@@ -43,9 +43,7 @@ var (
 func TestRegistryRegistersBuiltIns(t *testing.T) {
 	reg := newRegistry(&testClient{})
 
-	for _, typ := range []api.StepType{
-		api.StepTypeFlow, api.StepTypeService, api.StepTypeScript,
-	} {
+	for _, typ := range []api.StepType{api.StepTypeFlow, api.StepTypeService, api.StepTypeScript} {
 		_, err := reg.Lookup(typ)
 		assert.NoError(t, err)
 	}
@@ -118,9 +116,7 @@ func TestRegistryCompensatorType(t *testing.T) {
 	assert.ErrorIs(t, err, api.ErrInvalidStepType)
 }
 
-func (c *testClient) Invoke(
-	_ *api.Step, inputs api.Args, meta api.Metadata,
-) (api.Args, error) {
+func (c *testClient) Invoke(_ *api.Step, inputs api.Args, meta api.Metadata) (api.Args, error) {
 	c.inputs = inputs
 	c.meta = meta
 	c.invoked++
@@ -130,9 +126,7 @@ func (c *testClient) Invoke(
 	return c.outputs, nil
 }
 
-func (c *testClient) Compensate(
-	_ *api.Step, args api.Args, meta api.Metadata,
-) error {
+func (c *testClient) Compensate(_ *api.Step, args api.Args, meta api.Metadata) error {
 	c.compens++
 	c.inputs = args
 	c.meta = meta
@@ -151,18 +145,14 @@ func (r *testRuntime) Metadata() api.Metadata {
 	return r.meta
 }
 
-func (r *testRuntime) CompleteWork(
-	tkn api.Token, outputs api.Args,
-) error {
+func (r *testRuntime) CompleteWork(tkn api.Token, outputs api.Args) error {
 	r.completeToken = tkn
 	r.completeOut = outputs
 	r.completeCalls++
 	return nil
 }
 
-func (r *testRuntime) UpdateHealth(
-	status api.HealthStatus, errMsg string,
-) error {
+func (r *testRuntime) UpdateHealth(status api.HealthStatus, errMsg string) error {
 	r.healthStatus = status
 	r.healthError = errMsg
 	r.healthCalls++
@@ -170,14 +160,10 @@ func (r *testRuntime) UpdateHealth(
 }
 
 func newRegistry(c builtins.Client) *step.Registry {
-	return step.NewRegistry(builtins.All(
-		c, builtins.BaseCallbackURL(testCallbackBase),
-	))
+	return step.NewRegistry(builtins.All(c, builtins.BaseCallbackURL(testCallbackBase)))
 }
 
-func newRuntime(
-	fid api.FlowID, sid api.StepID, meta api.Metadata,
-) (*testRuntime, *testRuntime) {
+func newRuntime(fid api.FlowID, sid api.StepID, meta api.Metadata) (*testRuntime, *testRuntime) {
 	rt := &testRuntime{
 		flowID: fid,
 		stepID: sid,

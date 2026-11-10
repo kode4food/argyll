@@ -9,8 +9,8 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
-// TestDependencyChain tests that a linear dependency chain A→B→C executes
-// correctly with proper attribute propagation
+// TestDependencyChain tests that a linear dependency chain A→B→C executes correctly with proper
+// attribute propagation
 func TestDependencyChain(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		assert.NoError(t, env.Engine.Start())
@@ -87,8 +87,8 @@ func TestDependencyChain(t *testing.T) {
 	})
 }
 
-// TestDiamondDependencies tests that a diamond dependency pattern A→B,C→D
-// executes correctly with parallel execution of B and C
+// TestDiamondDependencies tests that a diamond dependency pattern A→B,C→D executes correctly
+// with parallel execution of B and C
 func TestDiamondDependencies(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		assert.NoError(t, env.Engine.Start())
@@ -111,9 +111,7 @@ func TestDiamondDependencies(t *testing.T) {
 		}
 
 		// Step D (Goal): Requires both "outputB" and "outputC"
-		stepD := helpers.NewTestStepWithArgs(
-			[]api.Name{"outputB", "outputC"}, nil,
-		)
+		stepD := helpers.NewTestStepWithArgs([]api.Name{"outputB", "outputC"}, nil)
 		stepD.ID = "step-d"
 		stepD.Attributes["final"] = &api.AttributeSpec{
 			Role: api.RoleOutput,

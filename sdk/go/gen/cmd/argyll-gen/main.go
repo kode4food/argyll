@@ -1,5 +1,5 @@
-// Command argyll-gen generates Argyll step adapters for Go functions marked
-// with //argyll:step or //argyll:wrap directives
+// Command argyll-gen generates Argyll step adapters for Go functions marked with //argyll:step or
+// //argyll:wrap directives
 package main
 
 import (

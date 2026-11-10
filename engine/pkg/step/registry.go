@@ -18,9 +18,9 @@ type (
 	// Handlers maps each step type to the implementation that runs it
 	Handlers api.Map[api.StepType, *Handler]
 
-	// Handler describes the capabilities supplied by a step implementation. An
-	// Inline handler's Invoke runs in the transaction starting its work and
-	// reruns on retry, so it must be pure, bounded, and free of I/O
+	// Handler describes the capabilities supplied by a step implementation. An Inline handler's
+	// Invoke runs in the transaction starting its work and reruns on retry, so it must be pure,
+	// bounded, and free of I/O
 	Handler struct {
 		Validate   ValidateFunc
 		Invoke     WorkFunc
@@ -33,8 +33,8 @@ type (
 	// ValidateFunc validates step-type-specific configuration
 	ValidateFunc func(*api.Step) error
 
-	// WorkFunc runs a step's work item, or reverses a completed one when it
-	// compensates, in which case it receives only the compensated attributes
+	// WorkFunc runs a step's work item, or reverses a completed one when it compensates, in which
+	// case it receives only the compensated attributes
 	WorkFunc func(Runtime, *api.Step, api.Args, api.Token) error
 
 	// Runtime exposes engine services available during work execution
@@ -116,8 +116,8 @@ func (r *Registry) Compensator(st *api.Step) (WorkFunc, error) {
 	return handler.Compensate, nil
 }
 
-// With returns a copy of the handlers extended by others, where a later set
-// replaces a step type an earlier one registers
+// With returns a copy of the handlers extended by others, where a later set replaces a step type an
+// earlier one registers
 func (h Handlers) With(others ...Handlers) Handlers {
 	return api.Apply(h, others...)
 }

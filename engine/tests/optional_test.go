@@ -9,8 +9,8 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
-// TestOptionalInputsWithDefaults verifies that steps with optional inputs use
-// default values when those inputs aren't provided by upstream steps
+// TestOptionalInputsWithDefaults verifies that steps with optional inputs use default values when
+// those inputs aren't provided by upstream steps
 func TestOptionalInputsWithDefaults(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		assert.NoError(t, env.Engine.Start())
@@ -18,12 +18,8 @@ func TestOptionalInputsWithDefaults(t *testing.T) {
 		// Step A: No inputs, produces "valueA"
 		stepA := helpers.NewStepWithOutputs("step-a", "valueA")
 
-		// Step B: Requires "valueA", has optional "config" input with default,
-		// produces "result"
-		stepB := helpers.NewTestStepWithArgs(
-			[]api.Name{"valueA"},
-			[]api.Name{"config"},
-		)
+		// Step B: Requires "valueA", has optional "config" input with default, produces "result"
+		stepB := helpers.NewTestStepWithArgs([]api.Name{"valueA"}, []api.Name{"config"})
 		stepB.ID = "step-b"
 		stepB.Attributes["config"].Optional = &api.OptionalConfig{
 			Default: `{"key": "default"}`,
@@ -35,8 +31,8 @@ func TestOptionalInputsWithDefaults(t *testing.T) {
 		assert.NoError(t, env.Engine.RegisterStep(stepA))
 		assert.NoError(t, env.Engine.RegisterStep(stepB))
 
-		// Set mock responses - Step A produces valueA
-		// Step B will receive valueA and default config value
+		// Set mock responses - Step A produces valueA Step B will receive valueA and default config
+		// value
 		env.MockClient.SetResponse("step-a", api.Args{"valueA": "from-A"})
 		env.MockClient.SetResponse("step-b", api.Args{"result": "done"})
 

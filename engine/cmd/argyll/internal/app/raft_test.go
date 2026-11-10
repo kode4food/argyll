@@ -29,9 +29,7 @@ func TestLoadRaftConfig(t *testing.T) {
 				assert.Equal(t, raft.DefaultLogTailSize, c.Raft.LogTailSize)
 				assert.Len(t, c.Raft.Servers, 1)
 				assert.Equal(t, config.DefaultNodeID, c.Raft.Servers[0].ID)
-				assert.Equal(t,
-					[]api.NodeID{config.DefaultNodeID}, c.Engine.Nodes,
-				)
+				assert.Equal(t, []api.NodeID{config.DefaultNodeID}, c.Engine.Nodes)
 			},
 		},
 		{
@@ -53,9 +51,7 @@ func TestLoadRaftConfig(t *testing.T) {
 				assert.Equal(t, "node-1", c.Raft.Servers[0].ID)
 				assert.Equal(t, "10.0.0.2:9702", c.Raft.Servers[1].Address)
 				assert.Equal(t, api.NodeID("node-2"), c.Engine.NodeID)
-				assert.Equal(t,
-					[]api.NodeID{"node-1", "node-2"}, c.Engine.Nodes,
-				)
+				assert.Equal(t, []api.NodeID{"node-1", "node-2"}, c.Engine.Nodes)
 			},
 		},
 		{

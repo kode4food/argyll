@@ -19,8 +19,7 @@ func TestCompensationCallbackIsPhaseSpecific(t *testing.T) {
 	withTestServerEnv(t, func(env *testServerEnv) {
 		fs, tkn := seedCompensatingWebhook(t, env, "comp-fail")
 		router := env.Server.SetupRoutes()
-		base := fmt.Sprintf("/callbacks/%s/%s/%s",
-			fs.FlowID, fs.StepID, tkn)
+		base := fmt.Sprintf("/callbacks/%s/%s/%s", fs.FlowID, fs.StepID, tkn)
 
 		// A delayed invocation callback must not complete compensation
 		req := httptest.NewRequest("POST", base+"/invoke",
@@ -31,15 +30,13 @@ func TestCompensationCallbackIsPhaseSpecific(t *testing.T) {
 		assert.Equal(t, http.StatusOK, w.Code)
 		fl, err := env.Engine.GetFlowState(fs.FlowID)
 		assert.NoError(t, err)
-		assert.Equal(t, api.WorkCompensating,
-			fl.Executions[fs.StepID].WorkItems[tkn].Status)
+		assert.Equal(t, api.WorkCompensating, fl.Executions[fs.StepID].WorkItems[tkn].Status)
 
 		problem, err := json.Marshal(api.NewProblem(
 			http.StatusUnprocessableEntity, "rollback failed",
 		))
 		assert.NoError(t, err)
-		req = httptest.NewRequest("POST", base+"/compensate",
-			bytes.NewReader(problem))
+		req = httptest.NewRequest("POST", base+"/compensate", bytes.NewReader(problem))
 		req.Header.Set("Content-Type", api.ProblemJSONContentType)
 		w = httptest.NewRecorder()
 		router.ServeHTTP(w, req)
@@ -47,16 +44,14 @@ func TestCompensationCallbackIsPhaseSpecific(t *testing.T) {
 		assert.Equal(t, http.StatusOK, w.Code)
 		fl, err = env.Engine.GetFlowState(fs.FlowID)
 		assert.NoError(t, err)
-		assert.Equal(t, api.WorkCompFailed,
-			fl.Executions[fs.StepID].WorkItems[tkn].Status)
+		assert.Equal(t, api.WorkCompFailed, fl.Executions[fs.StepID].WorkItems[tkn].Status)
 	})
 }
 
 func TestCompensationCallbackSucceedsWithoutBody(t *testing.T) {
 	withTestServerEnv(t, func(env *testServerEnv) {
 		fs, tkn := seedCompensatingWebhook(t, env, "comp-ok")
-		path := fmt.Sprintf("/callbacks/%s/%s/%s/compensate",
-			fs.FlowID, fs.StepID, tkn)
+		path := fmt.Sprintf("/callbacks/%s/%s/%s/compensate", fs.FlowID, fs.StepID, tkn)
 		req := httptest.NewRequest("POST", path, nil)
 		w := httptest.NewRecorder()
 
@@ -65,8 +60,7 @@ func TestCompensationCallbackSucceedsWithoutBody(t *testing.T) {
 		assert.Equal(t, http.StatusOK, w.Code)
 		fl, err := env.Engine.GetFlowState(fs.FlowID)
 		assert.NoError(t, err)
-		assert.Equal(t, api.WorkCompensated,
-			fl.Executions[fs.StepID].WorkItems[tkn].Status)
+		assert.Equal(t, api.WorkCompensated, fl.Executions[fs.StepID].WorkItems[tkn].Status)
 	})
 }
 
@@ -329,9 +323,7 @@ func TestHookFailTwice(t *testing.T) {
 		}
 
 		// First FailWork should succeed
-		body, _ := json.Marshal(api.NewProblem(
-			http.StatusUnprocessableEntity, "error1",
-		))
+		body, _ := json.Marshal(api.NewProblem(http.StatusUnprocessableEntity, "error1"))
 		req := httptest.NewRequest("POST",
 			"/callbacks/double-fail-flow/"+string(st.ID)+"/"+
 				string(tkn)+"/invoke",
@@ -345,9 +337,7 @@ func TestHookFailTwice(t *testing.T) {
 		assert.Equal(t, 200, w.Code)
 
 		// Second FailWork with same token should be rejected (400)
-		body, _ = json.Marshal(api.NewProblem(
-			http.StatusUnprocessableEntity, "error2",
-		))
+		body, _ = json.Marshal(api.NewProblem(http.StatusUnprocessableEntity, "error2"))
 		req = httptest.NewRequest("POST",
 			"/callbacks/double-fail-flow/"+string(st.ID)+"/"+
 				string(tkn)+"/invoke",
@@ -430,13 +420,10 @@ func TestHookSuccess(t *testing.T) {
 
 		after, err := env.Engine.GetFlowState("webhook-success-flow")
 		assert.NoError(t, err)
-		assert.Equal(t, before,
-			after.Executions[st.ID].WorkItems[tkn].Status)
+		assert.Equal(t, before, after.Executions[st.ID].WorkItems[tkn].Status)
 
 		body, _ := json.Marshal(api.Args{"result": "success"})
-		req := httptest.NewRequest("POST",
-			path+"/invoke",
-			bytes.NewReader(body))
+		req := httptest.NewRequest("POST", path+"/invoke", bytes.NewReader(body))
 		req.Header.Set("Content-Type", api.JSONContentType)
 		w = httptest.NewRecorder()
 
@@ -490,9 +477,7 @@ func TestHookWorkFailure(t *testing.T) {
 			break
 		}
 
-		body, _ := json.Marshal(api.NewProblem(
-			http.StatusUnprocessableEntity, "step failed",
-		))
+		body, _ := json.Marshal(api.NewProblem(http.StatusUnprocessableEntity, "step failed"))
 		req := httptest.NewRequest("POST",
 			"/callbacks/webhook-fail-flow/"+string(st.ID)+"/"+
 				string(tkn)+"/invoke",

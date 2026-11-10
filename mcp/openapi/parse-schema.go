@@ -89,9 +89,7 @@ func mediaSchema(content openapi.Content) *openapi.SchemaRef {
 	return nil
 }
 
-func schemaProps(
-	schema *openapi.Schema,
-) (map[string]*openapi.SchemaRef, map[string]bool) {
+func schemaProps(schema *openapi.Schema) (map[string]*openapi.SchemaRef, map[string]bool) {
 	props := map[string]*openapi.SchemaRef{}
 	required := map[string]bool{}
 	if schema == nil {

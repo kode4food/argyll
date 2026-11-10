@@ -19,8 +19,8 @@ func (m Metadata) Apply(other Metadata) Metadata {
 	return Apply(m, other)
 }
 
-// GetString retrieves a string value from the metadata as the requested string
-// type, returning false if it is missing, empty, or not a string
+// GetString retrieves a string value from the metadata as the requested string type, returning
+// false if it is missing, empty, or not a string
 func (m Metadata) GetString[T ~string](key string) (T, bool) {
 	var zero T
 	val, ok := m[key]

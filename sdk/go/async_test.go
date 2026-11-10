@@ -34,10 +34,7 @@ func TestNewAsyncContext(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "test-flow", ac.FlowID())
 	assert.Equal(t, "test-step", ac.StepID())
-	assert.Equal(t,
-		"http://localhost:8080/callbacks/test-flow/test-step/t123",
-		ac.WebhookURL(),
-	)
+	assert.Equal(t, "http://localhost:8080/callbacks/test-flow/test-step/t123", ac.WebhookURL())
 }
 
 func TestAsyncContextMissingMeta(t *testing.T) {
@@ -111,9 +108,7 @@ func TestAsyncContextComplete(t *testing.T) {
 func TestAsyncContextFail(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
-			assert.Equal(t,
-				api.ProblemJSONContentType, r.Header.Get("Content-Type"),
-			)
+			assert.Equal(t, api.ProblemJSONContentType, r.Header.Get("Content-Type"))
 			var problem api.ProblemDetails
 			err := json.NewDecoder(r.Body).Decode(&problem)
 			assert.NoError(t, err)

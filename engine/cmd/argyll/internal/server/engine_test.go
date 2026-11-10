@@ -153,9 +153,7 @@ func TestGetClusterEvents(t *testing.T) {
 	withTestServerEnv(t, func(testEnv *testServerEnv) {
 		st := helpers.NewSimpleStep("cluster-events-step")
 		assert.NoError(t, testEnv.Engine.RegisterStep(st))
-		assert.NoError(t, testEnv.Engine.UpdateStepHealth(
-			st.ID, api.HealthHealthy, "",
-		))
+		assert.NoError(t, testEnv.Engine.UpdateStepHealth(st.ID, api.HealthHealthy, ""))
 
 		req := httptest.NewRequest("GET", "/engine/cluster/events", nil)
 		w := httptest.NewRecorder()
@@ -214,9 +212,7 @@ func TestGetFlowEvents(t *testing.T) {
 		}
 		assert.NoError(t, testEnv.Engine.StartPlan("flow-events-id", pl))
 
-		req := httptest.NewRequest(
-			"GET", "/engine/flows/flow-events-id/events", nil,
-		)
+		req := httptest.NewRequest("GET", "/engine/flows/flow-events-id/events", nil)
 		w := httptest.NewRecorder()
 
 		router := testEnv.Server.SetupRoutes()
@@ -233,9 +229,7 @@ func TestGetFlowEvents(t *testing.T) {
 
 func TestGetFlowEventsNotFound(t *testing.T) {
 	withTestServerEnv(t, func(testEnv *testServerEnv) {
-		req := httptest.NewRequest(
-			"GET", "/engine/flows/nonexistent-flow/events", nil,
-		)
+		req := httptest.NewRequest("GET", "/engine/flows/nonexistent-flow/events", nil)
 		w := httptest.NewRecorder()
 
 		router := testEnv.Server.SetupRoutes()

@@ -123,8 +123,7 @@ func TestRegistration(t *testing.T) {
 
 	risk := byID["calculate-risk"]
 	assert.Equal(t, api.StepTypeService, risk.Type)
-	assert.Equal(t, "http://step-host:9000/calculate-risk",
-		risk.HTTP.Invoke.Endpoint)
+	assert.Equal(t, "http://step-host:9000/calculate-risk", risk.HTTP.Invoke.Endpoint)
 	assert.True(t, risk.Attributes["customer_id"].IsRequired())
 	assert.True(t, risk.Attributes["note"].IsOptional())
 	assert.True(t, risk.Attributes["score"].IsOutput())
@@ -140,8 +139,7 @@ func TestSemanticErrorStatus(t *testing.T) {
 func TestRegisteredTags(t *testing.T) {
 	byID := registerSteps(t, example.ArgyllServiceSteps()...)
 
-	assert.Equal(t, api.Tags{"domain:risk", "scoring"},
-		byID["calculate-risk"].Tags)
+	assert.Equal(t, api.Tags{"domain:risk", "scoring"}, byID["calculate-risk"].Tags)
 }
 
 func TestRegisteredAttributeOptions(t *testing.T) {
@@ -188,8 +186,8 @@ func TestEmbeddedGreet(t *testing.T) {
 func TestEmbeddedSharedType(t *testing.T) {
 	eng := embeddedEngine(t)
 
-	// a second Step of the generated type, mapping its own Attributes onto the
-	// function's invocation names
+	// a second Step of the generated type, mapping its own Attributes onto the function's
+	// invocation names
 	assert.NoError(t, eng.RegisterStep(&api.Step{
 		ID:   "welcome",
 		Name: "Welcome",
@@ -225,12 +223,9 @@ func stepServer(t *testing.T) *httptest.Server {
 	return srv
 }
 
-func invoke(
-	t *testing.T, srv *httptest.Server, id api.StepID, body string,
-) *http.Response {
+func invoke(t *testing.T, srv *httptest.Server, id api.StepID, body string) *http.Response {
 	t.Helper()
-	req, err := http.NewRequest(http.MethodPost, srv.URL+"/"+string(id),
-		strings.NewReader(body))
+	req, err := http.NewRequest(http.MethodPost, srv.URL+"/"+string(id), strings.NewReader(body))
 	assert.NoError(t, err)
 	req.Header.Set("Content-Type", api.JSONContentType)
 	res, err := http.DefaultClient.Do(req)
@@ -239,9 +234,7 @@ func invoke(
 	return res
 }
 
-func registerSteps(
-	t *testing.T, steps ...gen.StepDef,
-) map[api.StepID]*api.Step {
+func registerSteps(t *testing.T, steps ...gen.StepDef) map[api.StepID]*api.Step {
 	t.Helper()
 	registered := make(chan *api.Step, len(steps))
 	engine := httptest.NewServer(http.HandlerFunc(
@@ -254,8 +247,7 @@ func registerSteps(
 	defer engine.Close()
 
 	client := argyll.NewClient(engine.URL, time.Second)
-	err := gen.Register(context.Background(), client,
-		"http://step-host:9000", steps...)
+	err := gen.Register(context.Background(), client, "http://step-host:9000", steps...)
 	assert.NoError(t, err)
 	close(registered)
 
@@ -288,9 +280,7 @@ func embeddedEngine(t *testing.T) embedded.Engine {
 	return eng
 }
 
-func runFlow(
-	t *testing.T, eng embedded.Engine, req api.CreateFlowRequest,
-) api.FlowState {
+func runFlow(t *testing.T, eng embedded.Engine, req api.CreateFlowRequest) api.FlowState {
 	t.Helper()
 	assert.NoError(t, eng.StartFlow(req))
 	assert.Eventually(t, func() bool {

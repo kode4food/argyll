@@ -38,11 +38,9 @@ func TestCollectWindow(t *testing.T) {
 		{
 			name:    "each arrival extends",
 			timeout: 1000,
-			arrival: []time.Duration{
-				500 * time.Millisecond, 1200 * time.Millisecond,
-			},
-			count: 2,
-			end:   2200 * time.Millisecond,
+			arrival: []time.Duration{500 * time.Millisecond, 1200 * time.Millisecond},
+			count:   2,
+			end:     2200 * time.Millisecond,
 		},
 		{
 			name:    "a gap closes permanently",
@@ -88,10 +86,8 @@ func TestInitBlocksRuntime(t *testing.T) {
 			Required: &api.RequiredConfig{Collect: collect},
 		}
 	}
-	assert.False(t,
-		policy.InitBlocksRuntime(required(api.InputCollectFirst), true))
-	assert.False(t,
-		policy.InitBlocksRuntime(required(api.InputCollectNone), false))
+	assert.False(t, policy.InitBlocksRuntime(required(api.InputCollectFirst), true))
+	assert.False(t, policy.InitBlocksRuntime(required(api.InputCollectNone), false))
 
 	assert.False(t,
 		policy.InitBlocksRuntime(
@@ -130,12 +126,9 @@ func TestRequiredInputMissing(t *testing.T) {
 			Required: &api.RequiredConfig{Collect: collect},
 		}
 	}
-	assert.False(t,
-		policy.RequiredInputMissing(attr(api.InputCollectFirst), true))
-	assert.False(t,
-		policy.RequiredInputMissing(attr(api.InputCollectNone), false))
-	assert.True(t,
-		policy.RequiredInputMissing(attr(api.InputCollectFirst), false))
+	assert.False(t, policy.RequiredInputMissing(attr(api.InputCollectFirst), true))
+	assert.False(t, policy.RequiredInputMissing(attr(api.InputCollectNone), false))
+	assert.True(t, policy.RequiredInputMissing(attr(api.InputCollectFirst), false))
 }
 
 func TestProviderOutputNeeded(t *testing.T) {
@@ -278,9 +271,7 @@ func TestInputFulfilled(t *testing.T) {
 func TestInputSatisfiable(t *testing.T) {
 	yes := func() bool { return true }
 	no := func() bool { return false }
-	modes := []api.InputCollect{
-		api.InputCollectFirst, api.InputCollectLast, api.InputCollectSome,
-	}
+	modes := []api.InputCollect{api.InputCollectFirst, api.InputCollectLast, api.InputCollectSome}
 
 	for _, collect := range modes {
 		assert.True(t, policy.InputSatisfiable(collect, policy.InputOutlook{
@@ -339,9 +330,7 @@ func TestFulfilledAt(t *testing.T) {
 		{Value: "c", SetAt: base.Add(2 * time.Minute)},
 	}
 
-	assert.Equal(t,
-		base.Add(time.Minute),
-		policy.FulfilledAt(api.InputCollectFirst, values, done))
+	assert.Equal(t, base.Add(time.Minute), policy.FulfilledAt(api.InputCollectFirst, values, done))
 	for _, collect := range []api.InputCollect{
 		api.InputCollectLast, api.InputCollectSome, api.InputCollectAll,
 	} {
@@ -352,8 +341,7 @@ func TestFulfilledAt(t *testing.T) {
 				at = values[len(values)-1].SetAt
 			}
 			assert.Equal(t, at, policy.FulfilledAt(collect, values, base))
-			assert.Equal(t,
-				at, policy.FulfilledAt(collect, values, time.Time{}))
+			assert.Equal(t, at, policy.FulfilledAt(collect, values, time.Time{}))
 		})
 	}
 	assert.Equal(t, done, policy.FulfilledAt(api.InputCollectNone, nil, done))

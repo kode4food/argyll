@@ -50,8 +50,7 @@ func TestMapperMappingValue(t *testing.T) {
 	t.Run("returns no value for a missing result", func(t *testing.T) {
 		withMapper(t, func(m *engine.Mapper) {
 			value, ok := m.MapValue(
-				nil, "input", argExCfg("input?.missing"),
-				api.Args{"foo": "bar"},
+				nil, "input", argExCfg("input?.missing"), api.Args{"foo": "bar"},
 			)
 			assert.False(t, ok)
 			assert.Nil(t, value)
@@ -79,9 +78,7 @@ func TestMapperMappingValue(t *testing.T) {
 				},
 			}
 			value, ok := m.MapValue(
-				nil, "output", argExCfg(
-					"output.payload.sections | map item: item.book",
-				), input,
+				nil, "output", argExCfg("output.payload.sections | map item: item.book"), input,
 			)
 			assert.True(t, ok)
 			assert.Equal(t, []any{"A", "B"}, value)
@@ -91,8 +88,7 @@ func TestMapperMappingValue(t *testing.T) {
 	t.Run("returns single-key object as-is", func(t *testing.T) {
 		withMapper(t, func(m *engine.Mapper) {
 			value, ok := m.MapValue(
-				nil, "input", argExCfg("{value: input.foo}"),
-				api.Args{"foo": "bar"},
+				nil, "input", argExCfg("{value: input.foo}"), api.Args{"foo": "bar"},
 			)
 			assert.True(t, ok)
 			assert.Equal(t, map[string]any{"value": "bar"}, value)
@@ -102,9 +98,7 @@ func TestMapperMappingValue(t *testing.T) {
 	t.Run("executes lua mapping", func(t *testing.T) {
 		withMapper(t, func(m *engine.Mapper) {
 			st := mappingStep("amount")
-			value, ok := m.MapValue(
-				st, "amount", luaCfg("return amount * 2"), float64(5),
-			)
+			value, ok := m.MapValue(st, "amount", luaCfg("return amount * 2"), float64(5))
 			assert.True(t, ok)
 			assert.Equal(t, 10, value)
 		})
@@ -172,45 +166,31 @@ func TestMapperArgExMarshaling(t *testing.T) {
 			"scalar": 42,
 		}
 
-		v, ok := m.MapValue(
-			nil, "input", argExCfg("input.args.inner"), input,
-		)
+		v, ok := m.MapValue(nil, "input", argExCfg("input.args.inner"), input)
 		assert.True(t, ok)
 		assert.Equal(t, "value", v)
 
-		v, ok = m.MapValue(
-			nil, "input", argExCfg("input.named.namedKey"), input,
-		)
+		v, ok = m.MapValue(nil, "input", argExCfg("input.named.namedKey"), input)
 		assert.True(t, ok)
 		assert.Equal(t, "namedValue", v)
 
-		v, ok = m.MapValue(
-			nil, "input", argExCfg("input.plain.plainKey"), input,
-		)
+		v, ok = m.MapValue(nil, "input", argExCfg("input.plain.plainKey"), input)
 		assert.True(t, ok)
 		assert.Equal(t, "plainValue", v)
 
-		v, ok = m.MapValue(
-			nil, "input", argExCfg("input.list[0].listNamed"), input,
-		)
+		v, ok = m.MapValue(nil, "input", argExCfg("input.list[0].listNamed"), input)
 		assert.True(t, ok)
 		assert.Equal(t, "x", v)
 
-		v, ok = m.MapValue(
-			nil, "input", argExCfg("input.list[1].listArgs"), input,
-		)
+		v, ok = m.MapValue(nil, "input", argExCfg("input.list[1].listArgs"), input)
 		assert.True(t, ok)
 		assert.Equal(t, "y", v)
 
-		v, ok = m.MapValue(
-			nil, "input", argExCfg("input.list[2]"), input,
-		)
+		v, ok = m.MapValue(nil, "input", argExCfg("input.list[2]"), input)
 		assert.True(t, ok)
 		assert.Equal(t, 123, v)
 
-		v, ok = m.MapValue(
-			nil, "input", argExCfg("input.scalar"), input,
-		)
+		v, ok = m.MapValue(nil, "input", argExCfg("input.scalar"), input)
 		assert.True(t, ok)
 		assert.Equal(t, 42, v)
 	})

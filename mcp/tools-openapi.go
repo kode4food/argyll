@@ -17,9 +17,7 @@ func (s *Server) analyzeOpenAPIContract(args openapi.Args) (any, error) {
 	return toolResult(payload, nil)
 }
 
-func (s *Server) collectExistingSteps(
-	args openapi.Args,
-) ([]openapi.Step, []string) {
+func (s *Server) collectExistingSteps(args openapi.Args) ([]openapi.Step, []string) {
 	var existing any
 	if args.ExistingSteps != nil {
 		existing = *args.ExistingSteps
@@ -71,9 +69,7 @@ func normalizeExisting(raw any) ([]openapi.Step, []string) {
 
 	root, ok := asMap(raw)
 	if !ok {
-		return nil, []string{
-			"existing_steps payload was not an object and was ignored",
-		}
+		return nil, []string{"existing_steps payload was not an object and was ignored"}
 	}
 
 	stepsRaw := root

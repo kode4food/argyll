@@ -15,20 +15,17 @@ var (
 	ErrOutputsNotNeeded = errors.New("outputs not needed")
 )
 
-// advanceFlow settles pending steps, unwinds branches no kept goal can use,
-// starts ready ones, and arms the rest's deadlines
+// advanceFlow settles pending steps, unwinds branches no kept goal can use, starts ready ones, and
+// arms the rest's deadlines
 func (tx *flowTx) advanceFlow() error {
 	return call.Perform(
-		tx.settlePending,
-		tx.checkTerminal,
-		tx.compensateFlow,
-		tx.startReadyPendingSteps,
+		tx.settlePending, tx.checkTerminal, tx.compensateFlow, tx.startReadyPendingSteps,
 		tx.scheduleTimeouts,
 	)
 }
 
-// settlePending fails every unreachable pending step before each skip, so the
-// outcome never depends on iteration order, repeating until nothing changes
+// settlePending fails every unreachable pending step before each skip, so the outcome never depends
+// on iteration order, repeating until nothing changes
 func (tx *flowTx) settlePending() error {
 	for {
 		failed, err := tx.checkUnreachable()
@@ -69,8 +66,8 @@ func (tx *flowTx) skipPendingUnused() (bool, error) {
 	return false, nil
 }
 
-// checkUnreachable fails the first pending step that can no longer complete
-// because its required inputs cannot be satisfied
+// checkUnreachable fails the first pending step that can no longer complete because its required
+// inputs cannot be satisfied
 func (tx *flowTx) checkUnreachable() (bool, error) {
 	fl := tx.Value()
 	for sid, ex := range fl.Executions {

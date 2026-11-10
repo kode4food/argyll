@@ -43,8 +43,8 @@ type (
 		writeMu       sync.Mutex
 	}
 
-	// StateFunc retrieves the current projected state and next sequence for an
-	// aggregate. The next sequence is used by clients to detect sequence skew
+	// StateFunc retrieves the current projected state and next sequence for an aggregate. The next
+	// sequence is used by clients to detect sequence skew
 	StateFunc func(timebox.AggregateID) (any, int64, error)
 
 	// RegisterFunc registers a client with the caller
@@ -89,8 +89,8 @@ var (
 	}
 )
 
-// HandleWebSocket upgrades an HTTP connection to WebSocket and starts
-// streaming events based on client subscriptions
+// HandleWebSocket upgrades an HTTP connection to WebSocket and starts streaming events based on
+// client subscriptions
 func HandleWebSocket(req *WebSocketRequest) {
 	conn, err := upgrader.Upgrade(req.Writer, req.Request, nil)
 	if err != nil {
@@ -126,9 +126,7 @@ func (s *Server) handleWebSocket(c *gin.Context) {
 	})
 }
 
-func (s *Server) lookupSubscriptionState(
-	id timebox.AggregateID,
-) (any, int64, error) {
+func (s *Server) lookupSubscriptionState(id timebox.AggregateID) (any, int64, error) {
 	switch {
 	case events.IsCatalogEventID(id):
 		return s.engine.GetCatalogStateSeq()
@@ -296,9 +294,7 @@ func (c *Client) sendSubscribeState(sub *clientSubscription) bool {
 
 	if sub.includeState && c.getState != nil {
 		items = make([]api.SubscribedItem, 0, len(sub.aggregateIDs))
-		sub.minSeqs = make(
-			map[timebox.AggregateID]int64, len(sub.aggregateIDs),
-		)
+		sub.minSeqs = make(map[timebox.AggregateID]int64, len(sub.aggregateIDs))
 		for _, id := range sub.aggregateIDs {
 			state, nextSeq, err := c.getState(id)
 			if err != nil {
@@ -313,9 +309,7 @@ func (c *Client) sendSubscribeState(sub *clientSubscription) bool {
 
 			data, err := json.Marshal(state)
 			if err != nil {
-				slog.Error("Failed to marshal state",
-					slog.Any("aggregate_id", id),
-					log.Error(err))
+				slog.Error("Failed to marshal state", slog.Any("aggregate_id", id), log.Error(err))
 				return false
 			}
 
@@ -339,17 +333,13 @@ func (c *Client) sendSubscribeState(sub *clientSubscription) bool {
 	_ = c.conn.SetWriteDeadline(scheduler.Now().Add(writeWait))
 	err := c.conn.WriteJSON(msg)
 	if err != nil {
-		slog.Error("WebSocket write failed",
-			slog.String("context", "subscribed"),
-			log.Error(err))
+		slog.Error("WebSocket write failed", slog.String("context", "subscribed"), log.Error(err))
 		return false
 	}
 	return true
 }
 
-func (c *Client) writeSubscriptionEvent(
-	sub *clientSubscription, event *timebox.Event,
-) bool {
+func (c *Client) writeSubscriptionEvent(sub *clientSubscription, event *timebox.Event) bool {
 	if !sub.active.Load() {
 		return true
 	}
@@ -383,9 +373,7 @@ func (c *Client) sendUnsubscribeAck(subscriptionID string) bool {
 	_ = c.conn.SetWriteDeadline(scheduler.Now().Add(writeWait))
 	err := c.conn.WriteJSON(msg)
 	if err != nil {
-		slog.Error("WebSocket write failed",
-			slog.String("context", "unsubscribed"),
-			log.Error(err))
+		slog.Error("WebSocket write failed", slog.String("context", "unsubscribed"), log.Error(err))
 		return false
 	}
 	return true
@@ -420,9 +408,7 @@ func newClientSubscription(
 		includeState: sub.IncludeState,
 		eventTypes:   subscriptionEventTypes(sub),
 	}
-	res.consumer = hub.NewAggregatesConsumer(
-		res.aggregateIDs, res.eventTypes...,
-	)
+	res.consumer = hub.NewAggregatesConsumer(res.aggregateIDs, res.eventTypes...)
 	res.active.Store(true)
 	return res, nil
 }
@@ -439,8 +425,8 @@ func stringsToIDs(parts [][]string) ([]timebox.AggregateID, error) {
 	return res, nil
 }
 
-// stringsToID reads the wire form, where one part names a type's only aggregate
-// and two name one of many
+// stringsToID reads the wire form, where one part names a type's only aggregate and two name one of
+// many
 func stringsToID(parts []string) (timebox.AggregateID, bool) {
 	switch len(parts) {
 	case 1:

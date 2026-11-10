@@ -25,8 +25,7 @@ var backoffCalculators = map[string]backoffCalculator{
 	},
 }
 
-// ShouldRetry determines if a failed work item should be retried based on
-// configured retry limits
+// ShouldRetry determines if a failed work item should be retried based on configured retry limits
 func (e *Engine) ShouldRetry(st *api.Step, work *api.WorkState) bool {
 	workConfig := e.resolveRetryConfig(st.WorkConfig)
 
@@ -40,11 +39,8 @@ func (e *Engine) ShouldRetry(st *api.Step, work *api.WorkState) bool {
 	return work.RetryCount < workConfig.MaxRetries
 }
 
-// CalculateNextRetry calculates the next retry time using the configured
-// backoff strategy
-func (e *Engine) CalculateNextRetry(
-	config *api.WorkConfig, retryCount int,
-) time.Time {
+// CalculateNextRetry calculates the next retry time using the configured backoff strategy
+func (e *Engine) CalculateNextRetry(config *api.WorkConfig, retryCount int) time.Time {
 	return e.calculateNextRetryAt(e.Now(), config, retryCount)
 }
 
@@ -58,9 +54,7 @@ func (e *Engine) calculateNextRetryAt(
 		calculator = backoffCalculators[api.BackoffTypeFixed]
 	}
 
-	delay := min(
-		calculator(config.InitBackoff, retryCount), config.MaxBackoff,
-	)
+	delay := min(calculator(config.InitBackoff, retryCount), config.MaxBackoff)
 
 	return when.Add(time.Duration(delay) * time.Millisecond)
 }
@@ -78,9 +72,7 @@ func (tx *flowTx) scheduleRetry(sid api.StepID, tkn api.Token) error {
 
 	st := tx.Value().Plan.Steps[sid]
 	if tx.ShouldRetry(st, &work) {
-		nextRetryAt := tx.calculateNextRetryAt(
-			tx.Now(), st.WorkConfig, work.RetryCount,
-		)
+		nextRetryAt := tx.calculateNextRetryAt(tx.Now(), st.WorkConfig, work.RetryCount)
 		err := tx.raiseRetryScheduled(sid, tkn, work, nextRetryAt)
 		if err != nil {
 			return err
@@ -106,9 +98,7 @@ func (tx *flowTx) continueStepWork(sid api.StepID) error {
 	return nil
 }
 
-func (tx *flowTx) startContinuedWork(
-	sid api.StepID, st *api.Step, started api.WorkItems,
-) error {
+func (tx *flowTx) startContinuedWork(sid api.StepID, st *api.Step, started api.WorkItems) error {
 	if st.Type == api.StepTypeFlow {
 		return nil
 	}
@@ -119,9 +109,7 @@ func (tx *flowTx) startContinuedWork(
 	return nil
 }
 
-func (tx *flowTx) scheduleRetryTask(
-	sid api.StepID, tkn api.Token, retryAt time.Time,
-) error {
+func (tx *flowTx) scheduleRetryTask(sid api.StepID, tkn api.Token, retryAt time.Time) error {
 	fs := api.FlowStep{FlowID: tx.flowID, StepID: sid}
 	return tx.scheduleEvent(retryKey(fs, tkn), retryAt, workRetryReady,
 		scheduledWork{StepID: sid, Token: tkn})
@@ -193,7 +181,5 @@ func (e *Engine) resolveRetryConfig(config *api.WorkConfig) *api.WorkConfig {
 }
 
 func retryKey(fs api.FlowStep, tkn api.Token) []string {
-	return []string{
-		string(fs.FlowID), "retry", string(fs.StepID), string(tkn),
-	}
+	return []string{string(fs.FlowID), "retry", string(fs.StepID), string(tkn)}
 }

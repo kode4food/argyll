@@ -25,8 +25,8 @@ func newTestFeed() *api.Feed {
 	}
 }
 
-// withProvider registers a Step that outputs amount, which a Feed must have
-// before it can be registered
+// withProvider registers a Step that outputs amount, which a Feed must have before it can be
+// registered
 func withProvider(t *testing.T, env *helpers.TestEngineEnv) {
 	t.Helper()
 	charge := helpers.NewStepWithOutputs("charge", "amount")

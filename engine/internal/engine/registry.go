@@ -27,16 +27,16 @@ func (e *Engine) UnregisterStep(sid api.StepID) error {
 	})
 }
 
-// RegisterStep registers a new step with the engine after validating its
-// configuration and checking for conflicts
+// RegisterStep registers a new step with the engine after validating its configuration and checking
+// for conflicts
 func (e *Engine) RegisterStep(st *api.Step) error {
 	return e.catalogTx(func(tx *catalogTx) error {
 		return tx.register(st)
 	})
 }
 
-// RegisterSteps registers several steps in one transaction, so a conflict
-// among them leaves the catalog as it was
+// RegisterSteps registers several steps in one transaction, so a conflict among them leaves the
+// catalog as it was
 func (e *Engine) RegisterSteps(steps ...*api.Step) error {
 	return e.catalogTx(func(tx *catalogTx) error {
 		for _, st := range steps {
@@ -48,8 +48,7 @@ func (e *Engine) RegisterSteps(steps ...*api.Step) error {
 	})
 }
 
-// UpdateStep updates an existing step registration with new configuration
-// after validation
+// UpdateStep updates an existing step registration with new configuration after validation
 func (e *Engine) UpdateStep(st *api.Step) error {
 	return e.catalogTx(func(tx *catalogTx) error {
 		return tx.update(st)
@@ -136,10 +135,8 @@ func (tx *catalogTx) remove(sid api.StepID) error {
 
 func (e *Engine) validateStep(st *api.Step) error {
 	if err := call.Perform(
-		st.Validate,
-		call.WithArg(e.mapper.validateStep, st),
-		call.WithArg(e.scripts.ValidateStep, st),
-		call.WithArg(e.steps.Validate, st),
+		st.Validate, call.WithArg(e.mapper.validateStep, st),
+		call.WithArg(e.scripts.ValidateStep, st), call.WithArg(e.steps.Validate, st),
 	); err != nil {
 		return fmt.Errorf("%w: %w", api.ErrInvalidStep, err)
 	}
@@ -168,8 +165,8 @@ func (tx *catalogTx) raiseStepUpdatedEvent(st *api.Step) error {
 	})
 }
 
-// raiseStepEvent raises the event and records the step's health in one
-// transaction, so a registered step always has the health it implies
+// raiseStepEvent raises the event and records the step's health in one transaction, so a registered
+// step always has the health it implies
 func (tx *catalogTx) raiseStepEvent(
 	st *api.Step, raise func([]api.SpaceID) error,
 ) error {
@@ -194,8 +191,7 @@ func (tx *catalogTx) prepareStep(st *api.Step) (*api.Step, error) {
 }
 
 func (e *Engine) validateStepUpsert(
-	cat *api.CatalogState, newStep *api.Step,
-	children func(*api.Step) (*api.Goals, error),
+	cat *api.CatalogState, newStep *api.Step, children func(*api.Step) (*api.Goals, error),
 ) error {
 	if err := call.Perform(
 		call.WithArgs(e.validateSpaceSubFlows, cat, newStep),

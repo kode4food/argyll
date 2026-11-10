@@ -87,14 +87,12 @@ func handle(_ *argyll.StepContext, args api.Args) (api.Args, error) {
 	if !hasUserID || userID == "" {
 		// Default to first user if no ID provided
 		userID = "user-123"
-		slog.Info("No user_id provided, using default",
-			slog.String("user_id", userID))
+		slog.Info("No user_id provided, using default", slog.String("user_id", userID))
 	}
 
 	userInfo, ok := userDatabase[userID]
 	if !ok {
-		slog.Warn("User not found",
-			slog.String("user_id", userID))
+		slog.Warn("User not found", slog.String("user_id", userID))
 		return nil, argyll.NotFound("user not found: %s", userID)
 	}
 

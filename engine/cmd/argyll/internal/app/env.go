@@ -13,8 +13,8 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/config"
 )
 
-// Config holds everything the App runs with: the engine, the raft backend
-// beneath it, and the HTTP server that fronts it
+// Config holds everything the App runs with: the engine, the raft backend beneath it, and the HTTP
+// server that fronts it
 type Config struct {
 	Engine          *config.Config
 	Raft            raft.Config
@@ -86,8 +86,8 @@ func LoadConfig() (Config, error) {
 	return cfg, nil
 }
 
-// loadEngineConfig reads the engine settings from the environment, taking the
-// node identity and cluster membership from the raft configuration
+// loadEngineConfig reads the engine settings from the environment, taking the node identity and
+// cluster membership from the raft configuration
 func loadEngineConfig(rc raft.Config) (*config.Config, error) {
 	cfg := config.NewDefaultConfig()
 	cfg.NodeID = api.NodeID(rc.LocalID)
@@ -157,8 +157,8 @@ type loadEnvIntArgs[T ~int | ~int64] struct {
 	max T
 }
 
-// loadEnvInt reads key from the environment, parses it as an integer, and
-// sets *dst if the value is in the range (min, max]
+// loadEnvInt reads key from the environment, parses it as an integer, and sets *dst if the value is
+// in the range (min, max]
 func loadEnvInt[T ~int | ~int64](args loadEnvIntArgs[T]) error {
 	s := os.Getenv(args.key)
 	if s == "" {

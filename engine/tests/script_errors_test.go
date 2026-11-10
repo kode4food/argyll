@@ -9,8 +9,8 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
-// TestScriptStepError verifies that script steps that throw errors fail
-// gracefully and cause the flow to fail
+// TestScriptStepError verifies that script steps that throw errors fail gracefully and cause the
+// flow to fail
 func TestScriptStepError(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		assert.NoError(t, env.Engine.Start())
@@ -20,20 +20,14 @@ func TestScriptStepError(t *testing.T) {
 
 		// Step B consumes "valueA" and causes a runtime error
 		stepB := helpers.NewScriptStep(
-			"step-b",
-			api.ScriptLangLua,
-			`error("Lua error message")`,
-			"valueB",
+			"step-b", api.ScriptLangLua, `error("Lua error message")`, "valueB",
 		)
 		stepB.Attributes["valueA"] = &api.AttributeSpec{
 			Role: api.RoleRequired,
 		}
 
 		// Step C: Depends on step B's output (won't execute)
-		stepC := helpers.NewTestStepWithArgs(
-			[]api.Name{"valueB"},
-			nil,
-		)
+		stepC := helpers.NewTestStepWithArgs([]api.Name{"valueB"}, nil)
 		stepC.ID = "step-c"
 		stepC.Attributes["result"] = &api.AttributeSpec{
 			Role: api.RoleOutput,
@@ -95,8 +89,8 @@ func TestScriptStepError(t *testing.T) {
 	})
 }
 
-// TestScriptStepErrorLua verifies that Lua script steps that throw errors fail
-// gracefully and cause the flow to fail
+// TestScriptStepErrorLua verifies that Lua script steps that throw errors fail gracefully and cause
+// the flow to fail
 func TestScriptStepErrorLua(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		assert.NoError(t, env.Engine.Start())
@@ -106,20 +100,14 @@ func TestScriptStepErrorLua(t *testing.T) {
 
 		// Step B (Script - Lua): Consumes "valueA", throws error
 		stepB := helpers.NewScriptStep(
-			"step-b",
-			api.ScriptLangLua,
-			`error("Lua error message")`,
-			"valueB",
+			"step-b", api.ScriptLangLua, `error("Lua error message")`, "valueB",
 		)
 		stepB.Attributes["valueA"] = &api.AttributeSpec{
 			Role: api.RoleRequired,
 		}
 
 		// Step C: Depends on step B's output (won't execute)
-		stepC := helpers.NewTestStepWithArgs(
-			[]api.Name{"valueB"},
-			nil,
-		)
+		stepC := helpers.NewTestStepWithArgs([]api.Name{"valueB"}, nil)
 		stepC.ID = "step-c"
 		stepC.Attributes["result"] = &api.AttributeSpec{
 			Role: api.RoleOutput,

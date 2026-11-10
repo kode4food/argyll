@@ -141,17 +141,14 @@ func TestPendingRetryCanComplete(t *testing.T) {
 		))
 
 		err := env.Engine.CompleteWork(
-			api.FlowStep{FlowID: id, StepID: st.ID},
-			tkn,
-			api.Args{"output": "ok"},
+			api.FlowStep{FlowID: id, StepID: st.ID}, tkn, api.Args{"output": "ok"},
 		)
 		assert.NoError(t, err)
 
 		fl, err := env.Engine.GetFlowState(id)
 		assert.NoError(t, err)
 		assert.Equal(t, api.FlowCompleted, fl.Status)
-		assert.Equal(t, api.WorkSucceeded,
-			fl.Executions[st.ID].WorkItems[tkn].Status)
+		assert.Equal(t, api.WorkSucceeded, fl.Executions[st.ID].WorkItems[tkn].Status)
 	})
 }
 
@@ -200,17 +197,14 @@ func TestPendingRetryCanFail(t *testing.T) {
 		))
 
 		err := env.Engine.FailWork(
-			api.FlowStep{FlowID: id, StepID: st.ID},
-			tkn,
-			"permanent",
+			api.FlowStep{FlowID: id, StepID: st.ID}, tkn, "permanent",
 		)
 		assert.NoError(t, err)
 
 		fl, err := env.Engine.GetFlowState(id)
 		assert.NoError(t, err)
 		assert.Equal(t, api.FlowFailed, fl.Status)
-		assert.Equal(t, api.WorkFailed,
-			fl.Executions[st.ID].WorkItems[tkn].Status)
+		assert.Equal(t, api.WorkFailed, fl.Executions[st.ID].WorkItems[tkn].Status)
 	})
 }
 
@@ -289,8 +283,8 @@ func TestLateResultsAfterFlowFails(t *testing.T) {
 		}
 		assert.Len(t, tokens, 2)
 
-		// One item fails permanently, which fails the step and the flow while
-		// the other is still awaiting its callback
+		// One item fails permanently, which fails the step and the flow while the other is still
+		// awaiting its callback
 		assert.NoError(t, env.Engine.FailWork(fs, tokens[0], "permanent"))
 		fl, err = env.Engine.GetFlowState(id)
 		assert.NoError(t, err)
@@ -314,8 +308,8 @@ func TestLateResultsAfterFlowFails(t *testing.T) {
 }
 
 // TestSideEffectRunsOnceUnderConflict proves a command body that re-runs on an
-// optimistic-concurrency conflict still performs its side effect once. The
-// side effect here is the next item of a serial step, started in that command
+// optimistic-concurrency conflict still performs its side effect once. The side effect here is the
+// next item of a serial step, started in that command
 func TestSideEffectRunsOnceUnderConflict(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		assert.NoError(t, env.Engine.Start())

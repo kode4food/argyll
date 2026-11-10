@@ -72,8 +72,7 @@ func (a *App) SetupLogging() {
 	slog.SetDefault(logger)
 	slog.SetLogLoggerLevel(level)
 
-	slog.Info("Argyll Engine starting",
-		slog.String("log_level", a.cfg.LogLevel))
+	slog.Info("Argyll Engine starting", slog.String("log_level", a.cfg.LogLevel))
 
 	slog.Info("Configuration loaded",
 		slog.String("raft_node_id", a.cfg.Raft.LocalID),
@@ -100,9 +99,7 @@ func (a *App) Start() error {
 func (a *App) Shutdown() {
 	slog.Info("Shutting down")
 
-	ctx, cancel := context.WithTimeout(
-		context.Background(), a.cfg.ShutdownTimeout,
-	)
+	ctx, cancel := context.WithTimeout(context.Background(), a.cfg.ShutdownTimeout)
 	defer cancel()
 
 	if err := a.httpServer.Shutdown(ctx); err != nil {
@@ -120,9 +117,7 @@ func (a *App) Shutdown() {
 }
 
 func (a *App) startEngine() error {
-	stepClient := builtins.NewHTTPClient(
-		time.Duration(a.cfg.Engine.StepTimeout) * time.Millisecond,
-	)
+	stepClient := builtins.NewHTTPClient(time.Duration(a.cfg.Engine.StepTimeout) * time.Millisecond)
 	steps := step.NewRegistry(builtins.All(
 		stepClient, builtins.BaseCallbackURL(a.cfg.WebhookBaseURL),
 	))
@@ -142,8 +137,8 @@ func (a *App) startEngine() error {
 	return nil
 }
 
-// openRaft keeps the raft backend it opens, which the server reports status
-// from, while the engine owns its lifecycle
+// openRaft keeps the raft backend it opens, which the server reports status from, while the engine
+// owns its lifecycle
 func (a *App) openRaft(pub timebox.Publisher) (timebox.Backend, error) {
 	b, err := raft.Open(a.cfg.Raft.With(raft.Config{Publisher: pub}))
 	if err != nil {
@@ -163,8 +158,7 @@ func (a *App) startServer() error {
 	a.health.Start()
 
 	a.apiServer = server.NewServer(
-		a.engine, a.engine.GetEventHub(),
-		NewRaftStatusProvider(a.backend),
+		a.engine, a.engine.GetEventHub(), NewRaftStatusProvider(a.backend),
 	)
 	mux := a.apiServer.SetupRoutes()
 
@@ -175,8 +169,7 @@ func (a *App) startServer() error {
 
 	a.serveErr = make(chan error, 1)
 	go func() {
-		slog.Info("HTTP server starting",
-			slog.String("addr", a.httpServer.Addr))
+		slog.Info("HTTP server starting", slog.String("addr", a.httpServer.Addr))
 		err := a.httpServer.Serve(ln)
 		if errors.Is(err, http.ErrServerClosed) {
 			err = nil

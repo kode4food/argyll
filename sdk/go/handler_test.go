@@ -75,9 +75,7 @@ func TestStepRequests(t *testing.T) {
 	defer func() { _ = resp.Body.Close() }()
 	assert.Equal(t, http.StatusMethodNotAllowed, resp.StatusCode)
 
-	resp, err = http.Post(
-		stepURL, api.JSONContentType, bytes.NewBufferString("{"),
-	)
+	resp, err = http.Post(stepURL, api.JSONContentType, bytes.NewBufferString("{"))
 	assert.NoError(t, err)
 	defer func() { _ = resp.Body.Close() }()
 	assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
@@ -193,12 +191,9 @@ func TestHTTPErrorMessage(t *testing.T) {
 	conflict := argyll.Conflict("order %d already exists", 42)
 	assert.Equal(t, http.StatusConflict, conflict.StatusCode)
 	assert.Equal(t, "order 42 already exists", conflict.Message)
-	assert.Equal(t, http.StatusBadRequest,
-		argyll.BadRequest("invalid").StatusCode)
-	assert.Equal(t, http.StatusBadGateway,
-		argyll.BadGateway("upstream failed").StatusCode)
-	assert.Equal(t, http.StatusInternalServerError,
-		argyll.InternalServerError("failed").StatusCode)
+	assert.Equal(t, http.StatusBadRequest, argyll.BadRequest("invalid").StatusCode)
+	assert.Equal(t, http.StatusBadGateway, argyll.BadGateway("upstream failed").StatusCode)
+	assert.Equal(t, http.StatusInternalServerError, argyll.InternalServerError("failed").StatusCode)
 	assert.Equal(t, http.StatusServiceUnavailable,
 		argyll.ServiceUnavailable("try again").StatusCode)
 }
@@ -242,9 +237,7 @@ func TestCompensateSuccess(t *testing.T) {
 	})
 	assert.NoError(t, err)
 
-	resp, err := http.Post(
-		stepURL+"/compensate", api.JSONContentType, bytes.NewBuffer(body),
-	)
+	resp, err := http.Post(stepURL+"/compensate", api.JSONContentType, bytes.NewBuffer(body))
 	assert.NoError(t, err)
 	defer func() { _ = resp.Body.Close() }()
 
@@ -284,10 +277,7 @@ func TestCompensateRequests(t *testing.T) {
 	defer func() { _ = resp.Body.Close() }()
 	assert.Equal(t, http.StatusMethodNotAllowed, resp.StatusCode)
 
-	resp, err = http.Post(
-		stepURL+"/compensate", api.JSONContentType,
-		bytes.NewBufferString("{"),
-	)
+	resp, err = http.Post(stepURL+"/compensate", api.JSONContentType, bytes.NewBufferString("{"))
 	assert.NoError(t, err)
 	defer func() { _ = resp.Body.Close() }()
 	assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
@@ -347,8 +337,7 @@ func TestCompensateErrors(t *testing.T) {
 			assert.NoError(t, err)
 
 			resp, err := http.Post(
-				stepURL+"/compensate", api.JSONContentType,
-				bytes.NewBuffer(body),
+				stepURL+"/compensate", api.JSONContentType, bytes.NewBuffer(body),
 			)
 			assert.NoError(t, err)
 			defer func() { _ = resp.Body.Close() }()
@@ -386,9 +375,7 @@ func TestCompensatePanic(t *testing.T) {
 	body, err := json.Marshal(api.Args{})
 	assert.NoError(t, err)
 
-	resp, err := http.Post(
-		stepURL+"/compensate", api.JSONContentType, bytes.NewBuffer(body),
-	)
+	resp, err := http.Post(stepURL+"/compensate", api.JSONContentType, bytes.NewBuffer(body))
 	assert.NoError(t, err)
 	defer func() { _ = resp.Body.Close() }()
 
@@ -435,9 +422,7 @@ func startStepServer(t *testing.T, args startStepServerArgs) string {
 
 	client := argyll.NewClient(args.engineURL, time.Second)
 	go func() {
-		_ = client.NewStep().WithName(args.stepName).
-			WithID(string(args.stepID)).
-			WithSyncInvoke().
+		_ = client.NewStep().WithName(args.stepName).WithID(string(args.stepID)).WithSyncInvoke().
 			Start(args.invoke)
 	}()
 
@@ -462,9 +447,7 @@ type startCompensatingServerArgs struct {
 	compensate argyll.CompensateHandler
 }
 
-func startCompensatingServer(
-	t *testing.T, args startCompensatingServerArgs,
-) string {
+func startCompensatingServer(t *testing.T, args startCompensatingServerArgs) string {
 	t.Helper()
 
 	http.DefaultServeMux = http.NewServeMux()
@@ -481,9 +464,7 @@ func startCompensatingServer(
 
 	client := argyll.NewClient(args.engineURL, time.Second)
 	go func() {
-		_ = client.NewStep().WithName(args.stepName).
-			WithID(string(args.stepID)).
-			WithSyncInvoke().
+		_ = client.NewStep().WithName(args.stepName).WithID(string(args.stepID)).WithSyncInvoke().
 			Required("order").
 			Output("reservation").
 			WithCompensated("order").

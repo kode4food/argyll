@@ -8,8 +8,8 @@ import (
 	"github.com/kode4food/argyll/sdk/go/convert"
 )
 
-// EmbeddedSync adapts a native function to a step handler an embedded engine
-// runs in process, converting its values in memory
+// EmbeddedSync adapts a native function to a step handler an embedded engine runs in process,
+// converting its values in memory
 func EmbeddedSync[I, O any](
 	in convert.Converter[I], out convert.Converter[O], fn func(I) (O, error),
 ) step.WorkFunc {
@@ -32,8 +32,8 @@ func EmbeddedSync[I, O any](
 	}
 }
 
-// EmbeddedCompensate adapts a typed compensation function to a step handler's
-// in-process compensation
+// EmbeddedCompensate adapts a typed compensation function to a step handler's in-process
+// compensation
 func EmbeddedCompensate[I any](
 	in convert.Converter[I], fn func(I) error,
 ) step.WorkFunc {
@@ -57,11 +57,9 @@ func EmbeddedCompensate[I any](
 	}
 }
 
-// embeddedArgs adds the meta attributes an engine would otherwise put in the
-// request body, drawn from the runtime and the work item's token
-func embeddedArgs(
-	rt step.Runtime, st *api.Step, inputs api.Args, tkn api.Token,
-) map[string]any {
+// embeddedArgs adds the meta attributes an engine would otherwise put in the request body, drawn
+// from the runtime and the work item's token
+func embeddedArgs(rt step.Runtime, st *api.Step, inputs api.Args, tkn api.Token) map[string]any {
 	meta := rt.Metadata().Apply(api.Metadata{
 		api.MetaFlowID:       rt.FlowID(),
 		api.MetaStepID:       rt.StepID(),

@@ -12,8 +12,7 @@ import (
 
 const retryBackoffMs = 200
 
-// TestMemoStepReusesToken verifies that memoized steps reuse the same token
-// across retries
+// TestMemoStepReusesToken verifies that memoized steps reuse the same token across retries
 func TestMemoStepReusesToken(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		assert.NoError(t, env.Engine.Start())
@@ -59,8 +58,7 @@ func TestMemoStepReusesToken(t *testing.T) {
 	})
 }
 
-// TestNonMemoStepReusesToken verifies that standard steps reuse the same token
-// across retries
+// TestNonMemoStepReusesToken verifies that standard steps reuse the same token across retries
 func TestNonMemoStepReusesToken(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		assert.NoError(t, env.Engine.Start())

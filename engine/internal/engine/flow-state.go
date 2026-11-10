@@ -48,9 +48,7 @@ func (e *Engine) GetFlowEvents(fid api.FlowID) ([]*timebox.Event, error) {
 }
 
 // GetFlowStateSeq retrieves the current state and next sequence for a flow
-func (e *Engine) GetFlowStateSeq(
-	fid api.FlowID,
-) (api.FlowState, int64, error) {
+func (e *Engine) GetFlowStateSeq(fid api.FlowID) (api.FlowState, int64, error) {
 	var nextSeq int64
 	st, err := e.flowExec.Exec(events.FlowKey(fid),
 		func(fl api.FlowState, ag *FlowAggregator) error {
@@ -69,11 +67,9 @@ func (e *Engine) GetFlowStateSeq(
 	return st, nextSeq, nil
 }
 
-// GetAttribute retrieves a specific attribute value from the flow state,
-// returning the value, whether it exists, and any error
-func (e *Engine) GetAttribute(
-	fid api.FlowID, attr api.Name,
-) (any, bool, error) {
+// GetAttribute retrieves a specific attribute value from the flow state, returning the value,
+// whether it exists, and any error
+func (e *Engine) GetAttribute(fid api.FlowID, attr api.Name) (any, bool, error) {
 	fl, err := e.GetFlowState(fid)
 	if err != nil {
 		return nil, false, err
@@ -87,8 +83,8 @@ func (e *Engine) GetAttribute(
 	return nil, false, nil
 }
 
-// IsFlowFailed determines if a flow has failed by checking whether every one of
-// its goal sets has become impossible
+// IsFlowFailed determines if a flow has failed by checking whether every one of its goal sets has
+// become impossible
 func (e *Engine) IsFlowFailed(fl *api.FlowState) bool {
 	for _, goals := range fl.Plan.Goals.Sets() {
 		if !e.goalSetImpossible(goals, fl) {
@@ -98,9 +94,8 @@ func (e *Engine) IsFlowFailed(fl *api.FlowState) bool {
 	return true
 }
 
-// HasInputProvider checks if a required attribute has at least one step that
-// can provide it in the flow execution plan. Providers for a name declared by
-// init come only from the plan
+// HasInputProvider checks if a required attribute has at least one step that can provide it in the
+// flow execution plan. Providers for a name declared by init come only from the plan
 func (e *Engine) HasInputProvider(name api.Name, fl *api.FlowState) bool {
 	deps, ok := fl.Plan.Attributes[name]
 	if !ok {
@@ -187,9 +182,7 @@ func (e *Engine) canStepComplete(sid api.StepID, fl *api.FlowState) bool {
 	return true
 }
 
-func (e *Engine) matchGateWillSkip(
-	st *api.Step, fl *api.FlowState,
-) (bool, error) {
+func (e *Engine) matchGateWillSkip(st *api.Step, fl *api.FlowState) (bool, error) {
 	unsatisfied, err := e.matchGateUnsatisfiedInputs(st, fl)
 	if err != nil {
 		return false, err
@@ -197,9 +190,7 @@ func (e *Engine) matchGateWillSkip(
 	return len(unsatisfied) > 0, nil
 }
 
-func (e *Engine) matchGateUnsatisfiedInputs(
-	st *api.Step, fl *api.FlowState,
-) ([]api.Name, error) {
+func (e *Engine) matchGateUnsatisfiedInputs(st *api.Step, fl *api.FlowState) ([]api.Name, error) {
 	var unsatisfied []api.Name
 	for name, attr := range st.Attributes {
 		if !policy.RequiredInputHasMatch(attr) {
@@ -237,11 +228,9 @@ func (e *Engine) needsOutputs(
 	return false
 }
 
-// needsOutput reports whether a pending consumer within scope still needs
-// the named output
+// needsOutput reports whether a pending consumer within scope still needs the named output
 func (e *Engine) needsOutput(
-	name api.Name, fl *api.FlowState, scope util.Set[api.StepID],
-	when time.Time,
+	name api.Name, fl *api.FlowState, scope util.Set[api.StepID], when time.Time,
 ) bool {
 	deps, ok := fl.Plan.Attributes[name]
 	if !ok || len(deps.Consumers) == 0 {
@@ -276,9 +265,7 @@ func (e *Engine) needsOutput(
 	return false
 }
 
-func (e *Engine) inputHasValue(
-	name api.Name, attr *api.AttributeSpec, fl *api.FlowState,
-) bool {
+func (e *Engine) inputHasValue(name api.Name, attr *api.AttributeSpec, fl *api.FlowState) bool {
 	values := fl.AttributeValues(name)
 	if !policy.InputHasMatch(attr) {
 		return len(values) > 0
@@ -287,8 +274,8 @@ func (e *Engine) inputHasValue(
 	return len(matched) > 0
 }
 
-// isFlowComplete reports whether the active goal set has succeeded and no step
-// is still pending or running
+// isFlowComplete reports whether the active goal set has succeeded and no step is still pending or
+// running
 func isFlowComplete(fl *api.FlowState) bool {
 	active := activeGoals(fl)
 	if active == nil || !goalsComplete(active.Steps, fl) {
@@ -302,8 +289,8 @@ func isFlowComplete(fl *api.FlowState) bool {
 	return true
 }
 
-// activeGoals returns the first link in the goal chain that has not failed,
-// since checkUnreachable fails impossible pending goals before any start
+// activeGoals returns the first link in the goal chain that has not failed, since checkUnreachable
+// fails impossible pending goals before any start
 func activeGoals(fl *api.FlowState) *api.Goals {
 	for g := &fl.Plan.Goals; g != nil; g = g.Else {
 		if !goalSetFailed(g.Steps, fl) {
@@ -321,8 +308,8 @@ func startGoals(fl *api.FlowState) []api.StepID {
 	return nil
 }
 
-// keptGoals returns the goals whose outputs must be kept: the active set once
-// it succeeds, otherwise the active set and every later fallback set
+// keptGoals returns the goals whose outputs must be kept: the active set once it succeeds,
+// otherwise the active set and every later fallback set
 func keptGoals(fl *api.FlowState) []api.StepID {
 	active := activeGoals(fl)
 	if active == nil {
@@ -347,8 +334,8 @@ func hasPendingMatchGate(st *api.Step, fl *api.FlowState) bool {
 	return false
 }
 
-// goalSetFailed reports whether a goal in the set failed, or every goal in it
-// was pruned by a required match
+// goalSetFailed reports whether a goal in the set failed, or every goal in it was pruned by a
+// required match
 func goalSetFailed(goals []api.StepID, fl *api.FlowState) bool {
 	viableGoal := false
 	for _, sid := range goals {

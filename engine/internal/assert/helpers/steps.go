@@ -6,8 +6,7 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
-// NewTestStep creates a basic HTTP step for testing with required, optional,
-// and output attributes
+// NewTestStep creates a basic HTTP step for testing with required, optional, and output attributes
 func NewTestStep() *api.Step {
 	return &api.Step{
 		ID:   api.StepID("test-step-" + uuid.New().String()[:8]),
@@ -33,8 +32,7 @@ func NewTestStep() *api.Step {
 	}
 }
 
-// NewTestStepWithArgs creates an HTTP step with the specified required and
-// optional input arguments
+// NewTestStepWithArgs creates an HTTP step with the specified required and optional input arguments
 func NewTestStepWithArgs(required []api.Name, optional []api.Name) *api.Step {
 	st := NewTestStep()
 
@@ -67,8 +65,7 @@ func NewSimpleStep(id api.StepID) *api.Step {
 	}
 }
 
-// NewStepWithOutputs creates an HTTP step that produces the specified output
-// attributes
+// NewStepWithOutputs creates an HTTP step that produces the specified output attributes
 func NewStepWithOutputs(id api.StepID, outputs ...api.Name) *api.Step {
 	st := NewSimpleStep(id)
 	if st.Attributes == nil {
@@ -82,11 +79,9 @@ func NewStepWithOutputs(id api.StepID, outputs ...api.Name) *api.Step {
 	return st
 }
 
-// NewScriptStep creates a script-based step with the specified language, code,
-// and output attributes
-func NewScriptStep(
-	id api.StepID, language, src string, outputs ...api.Name,
-) *api.Step {
+// NewScriptStep creates a script-based step with the specified language, code, and output
+// attributes
+func NewScriptStep(id api.StepID, language, src string, outputs ...api.Name) *api.Step {
 	st := &api.Step{
 		ID:   id,
 		Name: "Script Step",
@@ -105,11 +100,9 @@ func NewScriptStep(
 	return st
 }
 
-// NewStepWithPredicate creates an HTTP step with a predicate script that
-// determines whether the step should execute
-func NewStepWithPredicate(
-	id api.StepID, lang, src string, outputs ...api.Name,
-) *api.Step {
+// NewStepWithPredicate creates an HTTP step with a predicate script that determines whether the
+// step should execute
+func NewStepWithPredicate(id api.StepID, lang, src string, outputs ...api.Name) *api.Step {
 	st := NewSimpleStep(id)
 	st.Predicate = &api.ScriptConfig{
 		Language: lang,

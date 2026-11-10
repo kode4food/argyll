@@ -32,8 +32,7 @@ func TestCanTransition(t *testing.T) {
 		)
 	}
 
-	// The table lists StateRunning as its own successor, but staying put is
-	// not a transition
+	// The table lists StateRunning as its own successor, but staying put is not a transition
 	assert.False(t, can(StateRunning, StateRunning))
 
 	assert.True(t, can(StateInit, StateRunning))

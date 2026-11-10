@@ -68,8 +68,7 @@ type (
 	// AttributeSpecs is a map of attribute names to their specifications
 	AttributeSpecs Map[Name, *AttributeSpec]
 
-	// AttributeRole defines whether an attribute is required, optional, const,
-	// or an output
+	// AttributeRole defines whether an attribute is required, optional, const, or an output
 	AttributeRole string
 
 	// InputCollect defines how an input collects upstream provider outputs
@@ -94,22 +93,12 @@ const (
 )
 
 var (
-	ErrInvalidAttributeRole = errors.New("invalid attribute role")
-	ErrWrongRoleConfig      = errors.New(
-		"config type does not match attribute role",
-	)
-	ErrConstValueRequired = errors.New(
-		"const value required for const attribute",
-	)
-	ErrMetaKeyRequired = errors.New(
-		"meta key required for meta attribute",
-	)
-	ErrFeedIDRequired = errors.New(
-		"feed ID required for feed attribute",
-	)
-	ErrForEachRequiresCollect = errors.New(
-		"for_each processing requires collect all or some",
-	)
+	ErrInvalidAttributeRole     = errors.New("invalid attribute role")
+	ErrWrongRoleConfig          = errors.New("config type does not match attribute role")
+	ErrConstValueRequired       = errors.New("const value required for const attribute")
+	ErrMetaKeyRequired          = errors.New("meta key required for meta attribute")
+	ErrFeedIDRequired           = errors.New("feed ID required for feed attribute")
+	ErrForEachRequiresCollect   = errors.New("for_each processing requires collect all or some")
 	ErrInvalidDefaultValue      = errors.New("invalid default value")
 	ErrInvalidMappingConfig     = errors.New("invalid attribute mapping")
 	ErrDuplicateInnerName       = errors.New("duplicate mapped parameter name")
@@ -128,28 +117,18 @@ const (
 
 var (
 	validAttributeRoles = util.SetOf(
-		RoleRequired,
-		RoleOptional,
-		RoleConst,
-		RoleMeta,
-		RoleFeed,
-		RoleOutput,
+		RoleRequired, RoleOptional, RoleConst, RoleMeta, RoleFeed, RoleOutput,
 	)
 
 	validInputCollect = util.SetOf(
-		InputCollectFirst,
-		InputCollectLast,
-		InputCollectAll,
-		InputCollectSome,
-		InputCollectNone,
+		InputCollectFirst, InputCollectLast, InputCollectAll, InputCollectSome, InputCollectNone,
 	)
 )
 
 // Validate checks if the attribute specification is valid
 func (s *AttributeSpec) Validate(name Name) error {
 	if !validAttributeRoles.Contains(s.Role) {
-		return fmt.Errorf("%w: %s for attribute %q",
-			ErrInvalidAttributeRole, s.Role, name)
+		return fmt.Errorf("%w: %s for attribute %q", ErrInvalidAttributeRole, s.Role, name)
 	}
 
 	if err := s.validateRoleConfig(name); err != nil {
@@ -196,12 +175,9 @@ func (s *AttributeSpec) validateRequired(name Name) error {
 		return nil
 	}
 	if cfg.Collect != "" && !validInputCollect.Contains(cfg.Collect) {
-		return fmt.Errorf("%w: %s for attribute %q",
-			ErrInvalidInputCollect, cfg.Collect, name)
+		return fmt.Errorf("%w: %s for attribute %q", ErrInvalidInputCollect, cfg.Collect, name)
 	}
-	if err := validateForEachCollect(
-		cfg.ForEach, cfg.Collect, name,
-	); err != nil {
+	if err := validateForEachCollect(cfg.ForEach, cfg.Collect, name); err != nil {
 		return err
 	}
 	return validateMapping(cfg.Mapping, name)
@@ -214,8 +190,7 @@ func (s *AttributeSpec) validateOptional(name Name) error {
 	}
 	if cfg.Default != "" {
 		if err := validateJSON(cfg.Default); err != nil {
-			return fmt.Errorf("%w for attribute %q: %w",
-				ErrInvalidDefaultValue, name, err)
+			return fmt.Errorf("%w for attribute %q: %w", ErrInvalidDefaultValue, name, err)
 		}
 	}
 	if cfg.Deadline < MinAttributeDeadline ||
@@ -224,12 +199,9 @@ func (s *AttributeSpec) validateOptional(name Name) error {
 			ErrInvalidAttributeDeadline, cfg.Deadline, name)
 	}
 	if cfg.Collect != "" && !validInputCollect.Contains(cfg.Collect) {
-		return fmt.Errorf("%w: %s for attribute %q",
-			ErrInvalidInputCollect, cfg.Collect, name)
+		return fmt.Errorf("%w: %s for attribute %q", ErrInvalidInputCollect, cfg.Collect, name)
 	}
-	if err := validateForEachCollect(
-		cfg.ForEach, cfg.Collect, name,
-	); err != nil {
+	if err := validateForEachCollect(cfg.ForEach, cfg.Collect, name); err != nil {
 		return err
 	}
 	return validateMapping(cfg.Mapping, name)
@@ -237,24 +209,21 @@ func (s *AttributeSpec) validateOptional(name Name) error {
 
 func (s *AttributeSpec) validateConst(name Name) error {
 	if s.Const == nil || s.Const.Value == "" {
-		return fmt.Errorf("%w: %s for attribute %q",
-			ErrConstValueRequired, s.Role, name)
+		return fmt.Errorf("%w: %s for attribute %q", ErrConstValueRequired, s.Role, name)
 	}
 	return nil
 }
 
 func (s *AttributeSpec) validateMeta(name Name) error {
 	if s.Meta == nil || s.Meta.Key == "" {
-		return fmt.Errorf("%w: %s for attribute %q",
-			ErrMetaKeyRequired, s.Role, name)
+		return fmt.Errorf("%w: %s for attribute %q", ErrMetaKeyRequired, s.Role, name)
 	}
 	return nil
 }
 
 func (s *AttributeSpec) validateFeed(name Name) error {
 	if s.Feed == nil || s.Feed.ID == "" {
-		return fmt.Errorf("%w: %s for attribute %q",
-			ErrFeedIDRequired, s.Role, name)
+		return fmt.Errorf("%w: %s for attribute %q", ErrFeedIDRequired, s.Role, name)
 	}
 	return nil
 }
@@ -514,15 +483,12 @@ func (c *ScriptConfig) equal(other *ScriptConfig) bool {
 	return c.Language == other.Language && c.Source == other.Source
 }
 
-func validateForEachCollect(
-	forEach bool, collect InputCollect, name Name,
-) error {
+func validateForEachCollect(forEach bool, collect InputCollect, name Name) error {
 	if !forEach {
 		return nil
 	}
 	if collect != InputCollectAll && collect != InputCollectSome {
-		return fmt.Errorf("%w: %s for attribute %q",
-			ErrForEachRequiresCollect, collect, name)
+		return fmt.Errorf("%w: %s for attribute %q", ErrForEachRequiresCollect, collect, name)
 	}
 	return nil
 }

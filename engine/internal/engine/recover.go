@@ -31,9 +31,7 @@ func (e *Engine) RecoverFlows() error {
 		return nil
 	}
 
-	slog.Info("Recovering flows",
-		slog.Int("candidate_count", len(ids)),
-	)
+	slog.Info("Recovering flows", slog.Int("candidate_count", len(ids)))
 
 	return e.recoverFlows(ids)
 }
@@ -68,8 +66,7 @@ func (e *Engine) listIndexedFlows(status string) ([]api.FlowID, error) {
 		if !ok {
 			return nil, errors.Join(
 				ErrListActiveFlows,
-				fmt.Errorf("%w: %s", ErrInvalidFlowStatusEntry,
-					entry.ID.String()),
+				fmt.Errorf("%w: %s", ErrInvalidFlowStatusEntry, entry.ID.String()),
 			)
 		}
 		if seen.Contains(fid) {
@@ -81,8 +78,8 @@ func (e *Engine) listIndexedFlows(status string) ([]api.FlowID, error) {
 	return res, nil
 }
 
-// recoverFlows reconciles the indexed flows through the same tasks the
-// committed-event wake-ups use, so a transient failure is retried
+// recoverFlows reconciles the indexed flows through the same tasks the committed-event wake-ups
+// use, so a transient failure is retried
 func (e *Engine) recoverFlows(ids []api.FlowID) error {
 	now := e.Now()
 	for _, id := range ids {

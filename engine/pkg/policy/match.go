@@ -3,8 +3,7 @@ package policy
 import "github.com/kode4food/argyll/engine/pkg/api"
 
 type (
-	// RequiredMatchStep carries layer facts needed to evaluate required match
-	// gates for a step
+	// RequiredMatchStep carries layer facts needed to evaluate required match gates for a step
 	RequiredMatchStep struct {
 		Step      *api.Step
 		Values    func(api.Name) []*api.AttributeValue
@@ -12,8 +11,8 @@ type (
 		Match     api.Matcher
 	}
 
-	// RequiredMatchSpec carries layer facts needed to evaluate required match
-	// gates for an attribute specification
+	// RequiredMatchSpec carries layer facts needed to evaluate required match gates for an
+	// attribute specification
 	RequiredMatchSpec struct {
 		Attr     *api.AttributeSpec
 		Match    api.Matcher
@@ -21,8 +20,8 @@ type (
 		Provider ProviderSummary
 	}
 
-	// MatchStatus classifies whether a step's required match gates are open,
-	// closed, still waiting for more candidate values, or absent
+	// MatchStatus classifies whether a step's required match gates are open, closed, still waiting
+	// for more candidate values, or absent
 	MatchStatus int
 )
 
@@ -37,16 +36,16 @@ const (
 	RequiredMatchSkipReason = "required match did not match"
 )
 
-// InputHasMatch reports whether an input (required or optional) has a non-empty
-// match predicate that should filter its candidate values
+// InputHasMatch reports whether an input (required or optional) has a non-empty match predicate
+// that should filter its candidate values
 func InputHasMatch(attr *api.AttributeSpec) bool {
 	cfg := attr.Match()
 	return attr.IsInput() && cfg != nil && cfg.Source != ""
 }
 
-// RequiredMatchStepStatus combines all required match gates on a step. Any
-// unmatched gate closes the step, any unknown gate delays normal demand, and a
-// matched result opens demand for the remaining required inputs
+// RequiredMatchStepStatus combines all required match gates on a step. Any unmatched gate closes
+// the step, any unknown gate delays normal demand, and a matched result opens demand for the
+// remaining required inputs
 func RequiredMatchStepStatus(facts RequiredMatchStep) (MatchStatus, error) {
 	status := MatchNotGated
 	for name, attr := range facts.Step.Attributes {
@@ -75,23 +74,21 @@ func RequiredMatchStepStatus(facts RequiredMatchStep) (MatchStatus, error) {
 	return status, nil
 }
 
-// RequiredInputHasMatch reports whether a required input has a match predicate
-// that gates step-level readiness and skip decisions. An optional input's match
-// predicate filters its candidates but never gates the step
+// RequiredInputHasMatch reports whether a required input has a match predicate that gates
+// step-level readiness and skip decisions. An optional input's match predicate filters its
+// candidates but never gates the step
 func RequiredInputHasMatch(attr *api.AttributeSpec) bool {
 	return attr.IsRequired() && InputHasMatch(attr)
 }
 
-// RequiredMatchStatus evaluates one required input's match predicate against
-// each candidate value and applies the input's collect policy to those results
+// RequiredMatchStatus evaluates one required input's match predicate against each candidate value
+// and applies the input's collect policy to those results
 func RequiredMatchStatus(facts RequiredMatchSpec) (MatchStatus, error) {
 	if !InputHasMatch(facts.Attr) {
 		return MatchNotGated, nil
 	}
 
-	matched, unmatched, err := MatchCandidateValues(
-		facts.Attr, facts.Values, facts.Match,
-	)
+	matched, unmatched, err := MatchCandidateValues(facts.Attr, facts.Values, facts.Match)
 	if err != nil {
 		return MatchUnknown, err
 	}
@@ -136,26 +133,25 @@ func RequiredMatchStatus(facts RequiredMatchSpec) (MatchStatus, error) {
 	}
 }
 
-// MatchAllowsNormalDemand reports whether a gate status allows non-gate
-// required inputs to demand their producers
+// MatchAllowsNormalDemand reports whether a gate status allows non-gate required inputs to demand
+// their producers
 func MatchAllowsNormalDemand(status MatchStatus) bool {
 	return status == MatchNotGated || status == MatchMatched
 }
 
-// MatchAllowsStepSkip reports whether a gate status should prune the step
-// instead of starting work
+// MatchAllowsStepSkip reports whether a gate status should prune the step instead of starting work
 func MatchAllowsStepSkip(status MatchStatus) bool {
 	return status == MatchUnmatched
 }
 
-// StepPrunedByRequiredMatch reports whether a skipped step was pruned by a
-// required match gate rather than by a step predicate
+// StepPrunedByRequiredMatch reports whether a skipped step was pruned by a required match gate
+// rather than by a step predicate
 func StepPrunedByRequiredMatch(status api.StepStatus, reason string) bool {
 	return status == api.StepSkipped && reason == RequiredMatchSkipReason
 }
 
-// MatchCandidateValues returns only candidate values that satisfy a required
-// match predicate, plus the count of candidates that were evaluated and failed
+// MatchCandidateValues returns only candidate values that satisfy a required match predicate, plus
+// the count of candidates that were evaluated and failed
 func MatchCandidateValues(
 	attr *api.AttributeSpec, values []*api.AttributeValue, match api.Matcher,
 ) ([]*api.AttributeValue, int, error) {

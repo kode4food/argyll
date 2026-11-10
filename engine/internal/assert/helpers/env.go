@@ -45,22 +45,22 @@ type (
 		Type api.EventType
 	}
 
-	// backend is the backend every engine in a test shares. Each engine opens
-	// it with its own publisher, and all of them hear every commit
+	// backend is the backend every engine in a test shares. Each engine opens it with its own
+	// publisher, and all of them hear every commit
 	backend struct {
 		timebox.Backend
 		publish  timebox.Publisher
 		conflict *conflictOnce
 	}
 
-	// sharedBackend is one engine's view of the shared backend. The test owns
-	// the real backend, so an engine stopping cannot close it for the others
+	// sharedBackend is one engine's view of the shared backend. The test owns the real backend, so
+	// an engine stopping cannot close it for the others
 	sharedBackend struct {
 		*backend
 	}
 
-	// conflictOnce makes one append to a chosen aggregate report a stale
-	// sequence, which is what the executor sees when another writer wins
+	// conflictOnce makes one append to a chosen aggregate report a stale sequence, which is what
+	// the executor sees when another writer wins
 	conflictOnce struct {
 		target timebox.AggregateID
 		armed  bool
@@ -74,20 +74,21 @@ type (
 	}
 )
 
-// CallbackBaseURL is the base of the webhook URLs test engines hand to async
-// HTTP steps
+// CallbackBaseURL is the base of the webhook URLs test engines hand to async HTTP steps
 const CallbackBaseURL = "http://localhost:8080"
 
-var ErrInvalidSeedFlowStatus = errors.New("invalid seeded flow status")
+var (
+	ErrInvalidSeedFlowStatus = errors.New("invalid seeded flow status")
+)
 
-// WithTestEnv creates a test engine environment, executes the provided
-// function with it, and ensures cleanup happens automatically
+// WithTestEnv creates a test engine environment, executes the provided function with it, and
+// ensures cleanup happens automatically
 func WithTestEnv(t *testing.T, fn func(*TestEngineEnv)) {
 	WithTestEnvDeps(t, engine.Dependencies{}, fn)
 }
 
-// WithTestEnvDeps creates a test engine environment with dependency
-// overrides and ensures cleanup happens automatically
+// WithTestEnvDeps creates a test engine environment with dependency overrides and ensures cleanup
+// happens automatically
 func WithTestEnvDeps(
 	t *testing.T, overrides engine.Dependencies, fn func(*TestEngineEnv),
 ) {
@@ -97,8 +98,8 @@ func WithTestEnvDeps(
 	fn(testEnv)
 }
 
-// WithTestBackend creates a test engine environment whose engines share the
-// provided backend, so a test can inject faults into its writes
+// WithTestBackend creates a test engine environment whose engines share the provided backend, so a
+// test can inject faults into its writes
 func WithTestBackend(
 	t *testing.T, b timebox.Backend, fn func(*TestEngineEnv),
 ) {
@@ -108,14 +109,14 @@ func WithTestBackend(
 	fn(testEnv)
 }
 
-// WithEngine creates a test engine, executes the provided function with it,
-// and ensures cleanup happens automatically
+// WithEngine creates a test engine, executes the provided function with it, and ensures cleanup
+// happens automatically
 func WithEngine(t *testing.T, fn func(*engine.Engine)) {
 	WithEngineDeps(t, engine.Dependencies{}, fn)
 }
 
-// WithEngineDeps creates a test engine with dependency overrides and
-// ensures cleanup happens automatically
+// WithEngineDeps creates a test engine with dependency overrides and ensures cleanup happens
+// automatically
 func WithEngineDeps(
 	t *testing.T, overrides engine.Dependencies, fn func(*engine.Engine),
 ) {
@@ -125,8 +126,8 @@ func WithEngineDeps(
 	})
 }
 
-// WithStartedEngine creates a test engine, starts it, executes the provided
-// function with the engine, and ensures cleanup happens automatically
+// WithStartedEngine creates a test engine, starts it, executes the provided function with the
+// engine, and ensures cleanup happens automatically
 func WithStartedEngine(t *testing.T, fn func(*engine.Engine)) {
 	t.Helper()
 	WithEngine(t, func(eng *engine.Engine) {
@@ -135,25 +136,21 @@ func WithStartedEngine(t *testing.T, fn func(*engine.Engine)) {
 	})
 }
 
-// NewTestEngine creates a fully configured test engine environment with an
-// in-memory Timebox backend and mock HTTP client
+// NewTestEngine creates a fully configured test engine environment with an in-memory Timebox
+// backend and mock HTTP client
 func NewTestEngine(t *testing.T) *TestEngineEnv {
 	return NewTestEngineWithDeps(t, engine.Dependencies{})
 }
 
 // NewTestEngineWithDeps creates a test engine with dependency overrides
-func NewTestEngineWithDeps(
-	t *testing.T, overrides engine.Dependencies,
-) *TestEngineEnv {
+func NewTestEngineWithDeps(t *testing.T, overrides engine.Dependencies) *TestEngineEnv {
 	t.Helper()
 	return newTestEngine(t, overrides, memory.Open())
 }
 
-// OpenBackend hands an engine the backend every engine in this test shares,
-// subscribing it to the commits all of them make
-func (e *TestEngineEnv) OpenBackend(
-	pub timebox.Publisher,
-) (timebox.Backend, error) {
+// OpenBackend hands an engine the backend every engine in this test shares, subscribing it to the
+// commits all of them make
+func (e *TestEngineEnv) OpenBackend(pub timebox.Publisher) (timebox.Backend, error) {
 	e.trackUnsubscribe(e.SubscribeCommitted(pub))
 	return sharedBackend{backend: e.backend}, nil
 }
@@ -163,14 +160,14 @@ func (sharedBackend) Close() error {
 	return nil
 }
 
-// SubscribeCommitted registers a publisher against the shared committed-event
-// stream used by test engines. Call the returned function to unregister it
+// SubscribeCommitted registers a publisher against the shared committed-event stream used by test
+// engines. Call the returned function to unregister it
 func (e *TestEngineEnv) SubscribeCommitted(fn timebox.Publisher) func() {
 	return e.subscribe(fn)
 }
 
-// NewEngineWithConfig creates a new engine instance with the given
-// configuration and subscribes it to the shared committed-event stream
+// NewEngineWithConfig creates a new engine instance with the given configuration and subscribes it
+// to the shared committed-event stream
 func (e *TestEngineEnv) NewEngineWithConfig(
 	cfg *config.Config, deps engine.Dependencies,
 ) (*engine.Engine, func(), error) {
@@ -188,16 +185,14 @@ func (e *TestEngineEnv) NewEngineWithConfig(
 	return eng, unsubscribe, nil
 }
 
-// NewEngineInstance creates a new engine instance sharing the same backend
-// and mock client. Used to simulate process restart after crash
+// NewEngineInstance creates a new engine instance sharing the same backend and mock client. Used to
+// simulate process restart after crash
 func (e *TestEngineEnv) NewEngineInstance() (*engine.Engine, error) {
 	eng, err := engine.New(e.Config, e.Dependencies(), e.OpenBackend)
 	if err != nil {
 		return nil, err
 	}
-	e.flowExec = e.flowStore.Executor(
-		events.NewFlowState, events.FlowAppliers.Reduce,
-	)
+	e.flowExec = e.flowStore.Executor(events.NewFlowState, events.FlowAppliers.Reduce)
 	return eng, nil
 }
 
@@ -207,9 +202,7 @@ func (e *TestEngineEnv) Dependencies() engine.Dependencies {
 }
 
 // RaiseFlowEvents appends flow events via the executor
-func (e *TestEngineEnv) RaiseFlowEvents(
-	fid api.FlowID, evs ...FlowEvent,
-) error {
+func (e *TestEngineEnv) RaiseFlowEvents(fid api.FlowID, evs ...FlowEvent) error {
 	_, err := e.flowExec.Exec(
 		events.FlowKey(fid),
 		func(_ api.FlowState, ag *timebox.Aggregator[api.FlowState]) error {
@@ -225,9 +218,7 @@ func (e *TestEngineEnv) RaiseFlowEvents(
 }
 
 // SeedFlow stores a minimal valid flow history for state/query fixtures
-func (e *TestEngineEnv) SeedFlow(
-	fid api.FlowID, status api.FlowStatus, tags api.Tags,
-) error {
+func (e *TestEngineEnv) SeedFlow(fid api.FlowID, status api.FlowStatus, tags api.Tags) error {
 	evs := []FlowEvent{{
 		Type: api.EventTypeFlowStarted,
 		Data: api.FlowStartedEvent{
@@ -259,8 +250,8 @@ func (e *TestEngineEnv) SeedFlow(
 	return e.RaiseFlowEvents(fid, evs...)
 }
 
-// SeedStartedWork stores a flow whose single work item has been claimed, the
-// state a node leaves behind when it dies mid-attempt
+// SeedStartedWork stores a flow whose single work item has been claimed, the state a node leaves
+// behind when it dies mid-attempt
 func (e *TestEngineEnv) SeedStartedWork(
 	fs api.FlowStep, pl *api.ExecutionPlan, tkn api.Token,
 ) error {
@@ -294,9 +285,9 @@ func (e *TestEngineEnv) SeedStartedWork(
 	)
 }
 
-// ConflictOnNextAppend makes the next append for a flow lose an optimistic-
-// concurrency race, so the executor discards that attempt and runs the command
-// again. Pair it with ConflictFired to confirm it took effect
+// ConflictOnNextAppend makes the next append for a flow lose an optimistic- concurrency race, so
+// the executor discards that attempt and runs the command again. Pair it with ConflictFired to
+// confirm it took effect
 func (e *TestEngineEnv) ConflictOnNextAppend(fid api.FlowID) {
 	e.conflict.arm(events.FlowKey(fid))
 }
@@ -327,9 +318,7 @@ func (e *TestEngineEnv) ScheduleKeys() (util.Set[timebox.ScheduleKey], error) {
 }
 
 // ListFlowsByTag returns the flow aggregate IDs currently indexed for the tag
-func (e *TestEngineEnv) ListFlowsByTag(
-	tag string,
-) ([]timebox.AggregateID, error) {
+func (e *TestEngineEnv) ListFlowsByTag(tag string) ([]timebox.AggregateID, error) {
 	return e.flowStore.ListAggregatesByTag(tag)
 }
 
@@ -352,13 +341,10 @@ func (e *TestEngineEnv) unsubscribeAll() {
 
 func (e *TestEngineEnv) engineDeps(clock scheduler.Clock) engine.Dependencies {
 	scripts := script.NewRegistry()
-	steps := step.NewRegistry(builtins.All(
-		e.MockClient,
-		builtins.BaseCallbackURL(CallbackBaseURL),
-	))
+	steps := step.NewRegistry(builtins.All(e.MockClient, builtins.BaseCallbackURL(CallbackBaseURL)))
 
-	// Every engine publishes what it hears to its own hub, so a second engine
-	// on the test's hub would deliver each event twice
+	// Every engine publishes what it hears to its own hub, so a second engine on the test's hub
+	// would deliver each event twice
 	return engine.Dependencies{
 		Scripts:  scripts,
 		Steps:    steps,
@@ -414,9 +400,7 @@ func (c *conflictOnce) hasFired() bool {
 	return c.fired
 }
 
-func newTestEngine(
-	t *testing.T, overrides engine.Dependencies, b timebox.Backend,
-) *TestEngineEnv {
+func newTestEngine(t *testing.T, overrides engine.Dependencies, b timebox.Backend) *TestEngineEnv {
 	t.Helper()
 
 	cfg := config.NewDefaultConfig()
@@ -485,18 +469,14 @@ func newTestEngine(
 		EventHub:   hub,
 		flowStore:  flowStore,
 		conflict:   conflict,
-		flowExec: flowStore.Executor(
-			events.NewFlowState, events.FlowAppliers.Reduce,
-		),
-		backend:   shared,
-		subscribe: subscribe,
-		unsubs:    &unsubscribeTracker{},
-		ownsHub:   ownsHub,
+		flowExec:   flowStore.Executor(events.NewFlowState, events.FlowAppliers.Reduce),
+		backend:    shared,
+		subscribe:  subscribe,
+		unsubs:     &unsubscribeTracker{},
+		ownsHub:    ownsHub,
 	}
 
-	deps := mergeDependencies(
-		testEnv.engineDeps(scheduler.Now), overrides,
-	)
+	deps := mergeDependencies(testEnv.engineDeps(scheduler.Now), overrides)
 	deps.EventHub = hub
 	testEnv.Engine, err = engine.New(cfg, deps, testEnv.OpenBackend)
 	assert.NoError(t, err)
@@ -513,9 +493,7 @@ func newTestEngine(
 	return testEnv
 }
 
-func raiseFlowEvent(
-	ag *timebox.Aggregator[api.FlowState], ev FlowEvent,
-) error {
+func raiseFlowEvent(ag *timebox.Aggregator[api.FlowState], ev FlowEvent) error {
 	return events.Raise(ag, ev.Type, ev.Data)
 }
 

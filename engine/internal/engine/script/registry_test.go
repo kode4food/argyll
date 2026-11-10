@@ -17,15 +17,11 @@ func (r registryTestEnv) Validate(*api.Step, string) error {
 	return nil
 }
 
-func (r registryTestEnv) Compile(
-	*api.Step, *api.ScriptConfig,
-) (script.Compiled, error) {
+func (r registryTestEnv) Compile(*api.Step, *api.ScriptConfig) (script.Compiled, error) {
 	return "compiled", nil
 }
 
-func (r registryTestEnv) Evaluate(
-	script.Compiled, *api.Step, api.Args,
-) (any, error) {
+func (r registryTestEnv) Evaluate(script.Compiled, *api.Step, api.Args) (any, error) {
 	return true, nil
 }
 
@@ -229,9 +225,7 @@ func TestArgExPredicateMatches(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
 		registry := script.NewRegistry()
 
-		st := helpers.NewStepWithPredicate(
-			"argex-pred-step", api.ScriptLangArgyll, "flag == null",
-		)
+		st := helpers.NewStepWithPredicate("argex-pred-step", api.ScriptLangArgyll, "flag == null")
 		st.Attributes["flag"] = &api.AttributeSpec{
 			Role: api.RoleOptional,
 		}
@@ -254,9 +248,7 @@ func TestArgExPredicateNoMatch(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
 		registry := script.NewRegistry()
 
-		st := helpers.NewStepWithPredicate(
-			"argex-pred-step", api.ScriptLangArgyll, "flag ?? false",
-		)
+		st := helpers.NewStepWithPredicate("argex-pred-step", api.ScriptLangArgyll, "flag ?? false")
 
 		env, err := registry.Get(api.ScriptLangArgyll)
 		assert.NoError(t, err)
@@ -274,9 +266,7 @@ func TestArgExInvalidSyntax(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
 		registry := script.NewRegistry()
 
-		st := helpers.NewStepWithPredicate(
-			"argex-invalid", api.ScriptLangArgyll, "value[",
-		)
+		st := helpers.NewStepWithPredicate("argex-invalid", api.ScriptLangArgyll, "value[")
 
 		env, err := registry.Get(api.ScriptLangArgyll)
 		assert.NoError(t, err)
@@ -294,9 +284,7 @@ func TestArgExEvaluateScript(t *testing.T) {
 		env, err := registry.Get(api.ScriptLangArgyll)
 		assert.NoError(t, err)
 
-		st := helpers.NewStepWithPredicate(
-			"argex-exec", api.ScriptLangArgyll, "input.foo",
-		)
+		st := helpers.NewStepWithPredicate("argex-exec", api.ScriptLangArgyll, "input.foo")
 
 		comp, err := env.Compile(st, st.Predicate)
 		assert.NoError(t, err)
@@ -330,9 +318,7 @@ func TestCompileViaRegistry(t *testing.T) {
 			"lua-step", api.ScriptLangLua, "return {result = 99}", "result",
 		)
 
-		httpStepPred := helpers.NewStepWithPredicate(
-			"http-step", api.ScriptLangLua, "return true",
-		)
+		httpStepPred := helpers.NewStepWithPredicate("http-step", api.ScriptLangLua, "return true")
 
 		firstComp, err := registry.Compile(firstStep, firstStep.Script)
 		assert.NoError(t, err)
@@ -458,9 +444,7 @@ func TestRegistryInvalidSyntax(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
 		registry := script.NewRegistry()
 
-		st := helpers.NewScriptStep(
-			"invalid-registry", api.ScriptLangLua, "return {result = ",
-		)
+		st := helpers.NewScriptStep("invalid-registry", api.ScriptLangLua, "return {result = ")
 
 		env, err := registry.Get(api.ScriptLangLua)
 		assert.NoError(t, err)
@@ -474,9 +458,7 @@ func TestLuaInvalidSyntax(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
 		registry := script.NewRegistry()
 
-		st := helpers.NewScriptStep(
-			"invalid-lua", api.ScriptLangLua, "return {result = ",
-		)
+		st := helpers.NewScriptStep("invalid-lua", api.ScriptLangLua, "return {result = ")
 
 		env, err := registry.Get(api.ScriptLangLua)
 		assert.NoError(t, err)
@@ -515,8 +497,7 @@ type evalInputsArgs struct {
 	optional []api.Name
 }
 
-// evalInputs runs a script against a Step requiring each input and returns its
-// out result
+// evalInputs runs a script against a Step requiring each input and returns its out result
 func evalInputs(t *testing.T, args evalInputsArgs) any {
 	t.Helper()
 	attrs := api.AttributeSpecs{"out": {Role: api.RoleOutput}}
@@ -554,9 +535,7 @@ func evalPredicate(
 	return script.Bool(res)
 }
 
-func evalMatch(
-	env script.Environment, c script.Compiled, value any,
-) (bool, error) {
+func evalMatch(env script.Environment, c script.Compiled, value any) (bool, error) {
 	return evalPredicate(
 		env, c, script.MatchStep, api.Args{script.MatchValue: value},
 	)

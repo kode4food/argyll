@@ -19,8 +19,8 @@ type (
 	// SpaceID uniquely identifies a planning space
 	SpaceID string
 
-	// SpaceQuery matches steps against alternative tag sets, selecting a step
-	// that carries every tag of any one of them
+	// SpaceQuery matches steps against alternative tag sets, selecting a step that carries every
+	// tag of any one of them
 	SpaceQuery Slice[SpaceQueryTerm]
 
 	// SpaceQueryTerm matches steps carrying every one of its tags
@@ -52,8 +52,8 @@ func (s Space) Validate() error {
 	return s.ValidateSelector()
 }
 
-// ValidateSelector checks if the space selector and its QBE source are valid.
-// Its language is left to the script registry to accept or reject
+// ValidateSelector checks if the space selector and its QBE source are valid. Its language is left
+// to the script registry to accept or reject
 func (s Space) ValidateSelector() error {
 	if s.Selector == nil {
 		return ErrSpaceSelectorEmpty
@@ -81,8 +81,8 @@ func (s Space) Equal(other Space) bool {
 		slices.EqualFunc(s.QBE, other.QBE, slices.Equal)
 }
 
-// Validate checks that every term carries at least one non-empty tag and that
-// the query stays within the tag limit
+// Validate checks that every term carries at least one non-empty tag and that the query stays
+// within the tag limit
 func (q SpaceQuery) Validate() error {
 	tags := 0
 	for _, term := range q {
@@ -97,8 +97,8 @@ func (q SpaceQuery) Validate() error {
 	return nil
 }
 
-// Normalize returns the query with each term's tags sorted and deduped, and the
-// terms themselves sorted and deduped
+// Normalize returns the query with each term's tags sorted and deduped, and the terms themselves
+// sorted and deduped
 func (q SpaceQuery) Normalize() SpaceQuery {
 	res := make(SpaceQuery, 0, len(q))
 	for _, term := range q {

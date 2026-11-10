@@ -40,9 +40,7 @@ func TestUpdateUnhealthy(t *testing.T) {
 		err := eng.RegisterStep(st)
 		assert.NoError(t, err)
 
-		err = eng.UpdateStepHealth(
-			"unhealthy-step", api.HealthUnhealthy, "connection refused",
-		)
+		err = eng.UpdateStepHealth("unhealthy-step", api.HealthUnhealthy, "connection refused")
 		assert.NoError(t, err)
 
 		cluster, err := eng.GetClusterState()
@@ -79,21 +77,15 @@ func TestFlowHealth(t *testing.T) {
 		assert.NoError(t, eng.RegisterStep(goalB))
 		assert.NoError(t, eng.RegisterStep(st))
 
-		assert.NoError(t,
-			eng.UpdateStepHealth(goalA.ID, api.HealthHealthy, ""),
-		)
-		assert.NoError(t,
-			eng.UpdateStepHealth(goalB.ID, api.HealthUnknown, ""),
-		)
+		assert.NoError(t, eng.UpdateStepHealth(goalA.ID, api.HealthHealthy, ""))
+		assert.NoError(t, eng.UpdateStepHealth(goalB.ID, api.HealthUnknown, ""))
 
 		healthByStepID := resolveHealth(t, eng)
 		h, ok := healthByStepID[st.ID]
 		assert.True(t, ok)
 		assert.Equal(t, api.HealthHealthy, h.Status)
 
-		assert.NoError(t,
-			eng.UpdateStepHealth(goalB.ID, api.HealthUnhealthy, "boom"),
-		)
+		assert.NoError(t, eng.UpdateStepHealth(goalB.ID, api.HealthUnhealthy, "boom"))
 
 		healthByStepID = resolveHealth(t, eng)
 		h, ok = healthByStepID[st.ID]
@@ -120,11 +112,7 @@ func TestFlowHealthUnknownGoalError(t *testing.T) {
 
 		assert.NoError(t, eng.RegisterStep(goal))
 		assert.NoError(t, eng.RegisterStep(st))
-		assert.NoError(t,
-			eng.UpdateStepHealth(
-				goal.ID, api.HealthUnknown, "goal check failed",
-			),
-		)
+		assert.NoError(t, eng.UpdateStepHealth(goal.ID, api.HealthUnknown, "goal check failed"))
 
 		h := resolveHealth(t, eng)
 		assert.Equal(t, api.HealthUnknown, h[st.ID].Status)
@@ -151,12 +139,8 @@ func TestGetHealthFlowWorstGoal(t *testing.T) {
 		assert.NoError(t, eng.RegisterStep(goalA))
 		assert.NoError(t, eng.RegisterStep(goalB))
 		assert.NoError(t, eng.RegisterStep(st))
-		assert.NoError(t,
-			eng.UpdateStepHealth(goalA.ID, api.HealthHealthy, ""),
-		)
-		assert.NoError(t,
-			eng.UpdateStepHealth(goalB.ID, api.HealthUnhealthy, "goal down"),
-		)
+		assert.NoError(t, eng.UpdateStepHealth(goalA.ID, api.HealthHealthy, ""))
+		assert.NoError(t, eng.UpdateStepHealth(goalB.ID, api.HealthUnhealthy, "goal down"))
 
 		h := resolveHealth(t, eng)
 		assert.Equal(t, api.HealthUnhealthy, h[st.ID].Status)
@@ -192,11 +176,7 @@ func TestFlowHealthIncludesPreviewSteps(t *testing.T) {
 		assert.NoError(t, eng.RegisterStep(st))
 
 		assert.NoError(t, eng.UpdateStepHealth(goal.ID, api.HealthHealthy, ""))
-		assert.NoError(t,
-			eng.UpdateStepHealth(
-				provider.ID, api.HealthUnhealthy, "provider down",
-			),
-		)
+		assert.NoError(t, eng.UpdateStepHealth(provider.ID, api.HealthUnhealthy, "provider down"))
 
 		h := resolveHealth(t, eng)
 		assert.Equal(t, api.HealthUnhealthy, h[st.ID].Status)
@@ -216,9 +196,7 @@ func TestGetStepHealth(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
 		st := helpers.NewSimpleStep("resolved-step")
 		assert.NoError(t, eng.RegisterStep(st))
-		assert.NoError(t, eng.UpdateStepHealth(
-			st.ID, api.HealthUnhealthy, "service down",
-		))
+		assert.NoError(t, eng.UpdateStepHealth(st.ID, api.HealthUnhealthy, "service down"))
 
 		h, err := eng.GetStepHealth(st.ID)
 		assert.NoError(t, err)
@@ -248,10 +226,7 @@ func TestMergeNodeHealth(t *testing.T) {
 
 	if assert.Contains(t, h, api.StepID("step-a")) {
 		assert.Equal(t, api.HealthUnhealthy, h["step-a"].Status)
-		assert.Equal(t,
-			"node node-a: connection refused",
-			h["step-a"].Error,
-		)
+		assert.Equal(t, "node node-a: connection refused", h["step-a"].Error)
 	}
 }
 
@@ -275,9 +250,7 @@ func TestScriptHealthDefaults(t *testing.T) {
 		cat, err := eng.GetCatalogState()
 		assert.NoError(t, err)
 
-		h := eng.ResolveHealth(
-			helpers.Matcher(), &cat, map[api.StepID]api.HealthState{},
-		)
+		h := eng.ResolveHealth(helpers.Matcher(), &cat, map[api.StepID]api.HealthState{})
 		if assert.Contains(t, h, st.ID) {
 			assert.Equal(t, api.HealthHealthy, h[st.ID].Status)
 		}
@@ -321,8 +294,7 @@ func TestScriptHealthOnRegister(t *testing.T) {
 func TestResolveHealthNilCat(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
 		h := eng.ResolveHealth(
-			helpers.Matcher(), &api.CatalogState{},
-			map[api.StepID]api.HealthState{},
+			helpers.Matcher(), &api.CatalogState{}, map[api.StepID]api.HealthState{},
 		)
 		assert.Empty(t, h)
 	})
@@ -347,9 +319,7 @@ func TestResolveHealthPreviewFail(t *testing.T) {
 			Attributes: api.AttributeGraph{},
 		}
 
-		h := eng.ResolveHealth(
-			helpers.Matcher(), &cat, map[api.StepID]api.HealthState{},
-		)
+		h := eng.ResolveHealth(helpers.Matcher(), &cat, map[api.StepID]api.HealthState{})
 		if assert.Contains(t, h, api.StepID("flow-step")) {
 			assert.Equal(t, api.HealthUnknown, h["flow-step"].Status)
 			assert.Contains(t, h["flow-step"].Error, "preview failed")
@@ -366,9 +336,7 @@ func TestResolveHealthSimpleUnknown(t *testing.T) {
 			Attributes: api.AttributeGraph{},
 		}
 
-		h := eng.ResolveHealth(
-			helpers.Matcher(), &cat, map[api.StepID]api.HealthState{},
-		)
+		h := eng.ResolveHealth(helpers.Matcher(), &cat, map[api.StepID]api.HealthState{})
 		if assert.Contains(t, h, api.StepID("step-a")) {
 			assert.Equal(t, api.HealthUnknown, h["step-a"].Status)
 			assert.Empty(t, h["step-a"].Error)
@@ -493,8 +461,7 @@ func TestResolveHealthFlowUnhealthyChild(t *testing.T) {
 		h := eng.ResolveHealth(helpers.Matcher(), &cat, base)
 		if assert.Contains(t, h, st.ID) {
 			assert.Equal(t, api.HealthUnhealthy, h[st.ID].Status)
-			assert.Equal(t,
-				"step unhealthy-goal: endpoint down", h[st.ID].Error)
+			assert.Equal(t, "step unhealthy-goal: endpoint down", h[st.ID].Error)
 		}
 	})
 }
@@ -556,9 +523,7 @@ func TestGetClusterEvents(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
 		st := helpers.NewSimpleStep("cluster-event-step")
 		assert.NoError(t, eng.RegisterStep(st))
-		assert.NoError(t, eng.UpdateStepHealth(
-			st.ID, api.HealthUnhealthy, "down",
-		))
+		assert.NoError(t, eng.UpdateStepHealth(st.ID, api.HealthUnhealthy, "down"))
 
 		evs, err := eng.GetClusterEvents()
 		assert.NoError(t, err)
@@ -586,9 +551,7 @@ func TestStepHealthFromHandler(t *testing.T) {
 	})
 }
 
-func resolveHealth(
-	t *testing.T, eng *engine.Engine,
-) map[api.StepID]api.HealthState {
+func resolveHealth(t *testing.T, eng *engine.Engine) map[api.StepID]api.HealthState {
 	t.Helper()
 
 	cat, err := eng.GetCatalogState()

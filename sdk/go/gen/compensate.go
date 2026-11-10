@@ -20,9 +20,7 @@ func Compensate[I any](in codec.Codec[I], fn func(I) error) http.HandlerFunc {
 			args,
 		)
 		if err != nil {
-			writeFailure(
-				w, err, http.StatusInternalServerError, "Compensation",
-			)
+			writeFailure(w, err, http.StatusInternalServerError, "Compensation")
 			return
 		}
 		w.WriteHeader(http.StatusNoContent)

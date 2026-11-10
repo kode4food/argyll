@@ -8,17 +8,17 @@ import (
 
 type (
 	ProviderSummary struct {
-		// Terminal is true when every planned provider has reached a terminal
-		// step state, whether successful, failed, or skipped
+		// Terminal is true when every planned provider has reached a terminal step state, whether
+		// successful, failed, or skipped
 		Terminal bool
 
-		// AllSucceeded is true when every planned provider completed
-		// successfully and produced a value for the collected attribute
+		// AllSucceeded is true when every planned provider completed successfully and produced a
+		// value for the collected attribute
 		AllSucceeded bool
 	}
 
-	// InputOutlook describes what a pending step's required input has and
-	// what its providers can still deliver
+	// InputOutlook describes what a pending step's required input has and what its providers can
+	// still deliver
 	InputOutlook struct {
 		HasInit        bool
 		HasValue       bool
@@ -35,22 +35,21 @@ func InitBlocksRuntime(attr *api.AttributeSpec, hasValues bool) bool {
 		attr.Collect() == api.InputCollectNone
 }
 
-// RequiredInputMissing reports whether a required input that init leaves
-// undeclared needs an external value. Providers satisfy it speculatively, and
+// RequiredInputMissing reports whether a required input that init leaves undeclared needs an
+// external value. Providers satisfy it speculatively, and
 // collect:none needs no value
 func RequiredInputMissing(attr *api.AttributeSpec, hasProvider bool) bool {
 	return !hasProvider && attr.Collect() != api.InputCollectNone
 }
 
-// RequiresAllProviders reports whether planning must keep every available
-// provider for the attribute. collect:all cannot be satisfied by a subset of
-// providers, unlike first, last, or some
+// RequiresAllProviders reports whether planning must keep every available provider for the
+// attribute. collect:all cannot be satisfied by a subset of providers, unlike first, last, or some
 func RequiresAllProviders(collect api.InputCollect) bool {
 	return collect == api.InputCollectAll
 }
 
-// RequiredInputsAvailable reports whether required values are speculatively
-// available. collect:none waits for absence instead
+// RequiredInputsAvailable reports whether required values are speculatively available. collect:none
+// waits for absence instead
 func RequiredInputsAvailable(
 	st *api.Step, available func(api.Name) bool,
 ) bool {
@@ -63,8 +62,8 @@ func RequiredInputsAvailable(
 	return true
 }
 
-// StepOutputsSatisfied reports whether a step's declared outputs are already
-// satisfied. A step with no declared outputs is not satisfied by output state
+// StepOutputsSatisfied reports whether a step's declared outputs are already satisfied. A step with
+// no declared outputs is not satisfied by output state
 func StepOutputsSatisfied(st *api.Step, satisfied func(api.Name) bool) bool {
 	hasOutputs := false
 	for name, attr := range st.Attributes {
@@ -79,9 +78,9 @@ func StepOutputsSatisfied(st *api.Step, satisfied func(api.Name) bool) bool {
 	return hasOutputs
 }
 
-// StepInputGuaranteed reports whether an input is guaranteed to have a value
-// when planning a child flow. Required inputs, const inputs, meta inputs, feed
-// inputs, and optional inputs with defaults are guaranteed
+// StepInputGuaranteed reports whether an input is guaranteed to have a value when planning a child
+// flow. Required inputs, const inputs, meta inputs, feed inputs, and optional inputs with defaults
+// are guaranteed
 func StepInputGuaranteed(attr *api.AttributeSpec) bool {
 	if attr.IsRequired() || attr.IsConst() || attr.IsMeta() || attr.IsFeed() {
 		return true
@@ -89,9 +88,9 @@ func StepInputGuaranteed(attr *api.AttributeSpec) bool {
 	return attr.IsOptional() && attr.OptionalDefault() != ""
 }
 
-// ProviderOutputNeeded reports whether a provider should still run for a
-// pending consumer of this attribute. An init declaration always answers for
-// it. Without one, collect:first stops at the first value and others continue
+// ProviderOutputNeeded reports whether a provider should still run for a pending consumer of this
+// attribute. An init declaration always answers for it. Without one, collect:first stops at the
+// first value and others continue
 func ProviderOutputNeeded(collect api.InputCollect, o InputOutlook) bool {
 	if o.HasInit {
 		return false
@@ -102,12 +101,10 @@ func ProviderOutputNeeded(collect api.InputCollect, o InputOutlook) bool {
 	return !o.HasValue || collect != api.InputCollectFirst
 }
 
-// InputFulfilled applies collect-mode semantics over value count and provider
-// state. An init declaration lets collect:some and collect:all resolve with
-// zero values
+// InputFulfilled applies collect-mode semantics over value count and provider state. An init
+// declaration lets collect:some and collect:all resolve with zero values
 func InputFulfilled(
-	collect api.InputCollect, valueCount int, providers ProviderSummary,
-	hasInit bool,
+	collect api.InputCollect, valueCount int, providers ProviderSummary, hasInit bool,
 ) bool {
 	collected := valueCount > 0 || hasInit
 	switch collect {
@@ -140,11 +137,10 @@ func InputSatisfiable(collect api.InputCollect, o InputOutlook) bool {
 	}
 }
 
-// FulfilledAt returns when a fulfilled input became ready, which anchors its
-// optional deadlines. collect:none is ready when its providers finished
+// FulfilledAt returns when a fulfilled input became ready, which anchors its optional deadlines.
+// collect:none is ready when its providers finished
 func FulfilledAt(
-	collect api.InputCollect, values []*api.AttributeValue,
-	completedAt time.Time,
+	collect api.InputCollect, values []*api.AttributeValue, completedAt time.Time,
 ) time.Time {
 	var at time.Time
 	switch collect {
@@ -163,8 +159,8 @@ func FulfilledAt(
 	return at
 }
 
-// CollectWindow returns values accepted before expiry and the resulting
-// inactivity deadline. An expired window cannot be extended by later values
+// CollectWindow returns values accepted before expiry and the resulting inactivity deadline. An
+// expired window cannot be extended by later values
 func CollectWindow(
 	anchor time.Time, timeoutMS int64, values []*api.AttributeValue,
 ) ([]*api.AttributeValue, time.Time) {
@@ -187,12 +183,10 @@ func CollectWindow(
 	return values, at
 }
 
-// ResolveInputValue selects a collect mode's argument from already-filtered
-// values, where collect:some and collect:all resolve zero values to an empty
-// list. Callers apply any deadline cutoff or match filtering first
-func ResolveInputValue(
-	collect api.InputCollect, values []*api.AttributeValue,
-) (any, bool) {
+// ResolveInputValue selects a collect mode's argument from already-filtered values, where
+// collect:some and collect:all resolve zero values to an empty list. Callers apply any deadline
+// cutoff or match filtering first
+func ResolveInputValue(collect api.InputCollect, values []*api.AttributeValue) (any, bool) {
 	switch collect {
 	case api.InputCollectAll, api.InputCollectSome:
 		res := make([]any, 0, len(values))

@@ -25,8 +25,8 @@ const (
 	// ActionCompensate reports the outcome of a step compensation
 	ActionCompensate CallbackAction = "compensate"
 
-	// CallbackRoute is the router pattern serving step callbacks. Its
-	// parameters and CallbackPath describe the same URL
+	// CallbackRoute is the router pattern serving step callbacks. Its parameters and CallbackPath
+	// describe the same URL
 	CallbackRoute = "/callbacks/:flow_id/:step_id/:token/:action"
 	ParamFlowID   = "flow_id"
 	ParamStepID   = "step_id"
@@ -53,9 +53,7 @@ const (
 )
 
 // CallbackPath builds the path an async handler posts its outcome to
-func CallbackPath(
-	flowID FlowID, stepID StepID, tkn Token, action CallbackAction,
-) string {
+func CallbackPath(flowID FlowID, stepID StepID, tkn Token, action CallbackAction) string {
 	return fmt.Sprintf("/callbacks/%s/%s/%s/%s", flowID, stepID, tkn, action)
 }
 

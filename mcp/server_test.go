@@ -15,8 +15,7 @@ func TestNewServerTrimsTrailingSlash(t *testing.T) {
 			func(r *http.Request) (*http.Response, error) {
 				assert.Equal(t, "/engine/steps", r.URL.Path)
 				return jsonResponse(
-					http.StatusOK,
-					[]byte(`{"steps":[]}`),
+					http.StatusOK, []byte(`{"steps":[]}`),
 				), nil
 			},
 		),

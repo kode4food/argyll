@@ -87,9 +87,7 @@ func semanticConfigs(st map[string]any) []semanticConfig {
 	return res
 }
 
-func appendRoleConfigs(
-	res []semanticConfig, base string, raw any,
-) []semanticConfig {
+func appendRoleConfigs(res []semanticConfig, base string, raw any) []semanticConfig {
 	cfg, ok := asMap(raw)
 	if !ok {
 		return res

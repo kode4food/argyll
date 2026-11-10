@@ -24,8 +24,8 @@ type (
 		*ExecContext
 	}
 
-	// txRuntime settles an Inline handler's work in the transaction that
-	// started it, keeping the first settlement error to abort that transaction
+	// txRuntime settles an Inline handler's work in the transaction that started it, keeping the
+	// first settlement error to abort that transaction
 	txRuntime struct {
 		tx  *flowTx
 		sid api.StepID
@@ -52,9 +52,7 @@ func (r *txRuntime) Metadata() api.Metadata {
 func (r *txRuntime) UpdateHealth(s api.HealthStatus, msg string) error {
 	r.tx.OnSuccess(func(api.FlowState, []*timebox.Event) {
 		if err := r.tx.UpdateStepHealth(r.sid, s, msg); err != nil {
-			slog.Error("Failed to update step health",
-				log.StepID(r.sid),
-				log.Error(err))
+			slog.Error("Failed to update step health", log.StepID(r.sid), log.Error(err))
 		}
 	})
 	return nil
@@ -90,8 +88,8 @@ func (r *txRuntime) settle(err error) error {
 	return err
 }
 
-// settleFailure records a handler error as a retry when the handler reports the
-// work not completed, and as a permanent failure otherwise
+// settleFailure records a handler error as a retry when the handler reports the work not completed,
+// and as a permanent failure otherwise
 func settleFailure(s workSettler, tkn api.Token, err error) {
 	if errors.Is(err, api.ErrInvalidWorkTransition) {
 		return

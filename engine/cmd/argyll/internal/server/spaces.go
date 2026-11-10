@@ -201,9 +201,7 @@ func (s *Server) deleteSpace(c *gin.Context) {
 }
 
 func bindSpace(c *gin.Context) (api.Space, bool) {
-	c.Request.Body = http.MaxBytesReader(
-		c.Writer, c.Request.Body, MaxStepBodyBytes,
-	)
+	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, MaxStepBodyBytes)
 	var sp api.Space
 	if err := c.ShouldBindJSON(&sp); err != nil {
 		c.JSON(http.StatusBadRequest, api.ErrorResponse{

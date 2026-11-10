@@ -64,11 +64,7 @@ func TestCompensationSucceeds(t *testing.T) {
 				token: tkn,
 			})
 			assert.NoError(t, env.Engine.RecoverFlow(id))
-			w.ForAll(
-				wait.CompStarted(fs),
-				wait.CompSucceeded(fs),
-				wait.FlowDeactivated(id),
-			)
+			w.ForAll(wait.CompStarted(fs), wait.CompSucceeded(fs), wait.FlowDeactivated(id))
 		})
 
 		fl, err := env.Engine.GetFlowState(id)
@@ -198,8 +194,7 @@ func TestCompensationAsyncAwaitsCallback(t *testing.T) {
 
 		fl, err := env.Engine.GetFlowState(id)
 		assert.NoError(t, err)
-		assert.Equal(t,
-			api.WorkCompensating, fl.Executions[st.ID].WorkItems[tkn].Status)
+		assert.Equal(t, api.WorkCompensating, fl.Executions[st.ID].WorkItems[tkn].Status)
 
 		env.WithConsumer(func(consumer *event.Consumer) {
 			w := wait.On(t, consumer)
@@ -209,8 +204,7 @@ func TestCompensationAsyncAwaitsCallback(t *testing.T) {
 
 		fl, err = env.Engine.GetFlowState(id)
 		assert.NoError(t, err)
-		assert.Equal(t,
-			api.WorkCompensated, fl.Executions[st.ID].WorkItems[tkn].Status)
+		assert.Equal(t, api.WorkCompensated, fl.Executions[st.ID].WorkItems[tkn].Status)
 	})
 }
 
@@ -280,11 +274,7 @@ func TestCompRetryOnTransient(t *testing.T) {
 				token: tkn,
 			})
 			assert.NoError(t, env.Engine.RecoverFlow(id))
-			w.ForAll(
-				wait.CompRetryScheduled(fs),
-				wait.CompSucceeded(fs),
-				wait.FlowDeactivated(id),
-			)
+			w.ForAll(wait.CompRetryScheduled(fs), wait.CompSucceeded(fs), wait.FlowDeactivated(id))
 		})
 
 		fl, err := env.Engine.GetFlowState(id)
@@ -324,10 +314,7 @@ func TestCompRetriesExhausted(t *testing.T) {
 				token: tkn,
 			})
 			assert.NoError(t, env.Engine.RecoverFlow(id))
-			w.ForAll(
-				wait.CompFailed(fs),
-				wait.FlowDeactivated(id),
-			)
+			w.ForAll(wait.CompFailed(fs), wait.FlowDeactivated(id))
 		})
 
 		fl, err := env.Engine.GetFlowState(id)
@@ -455,9 +442,7 @@ func TestCompRetryRunsOnHealthyPeer(t *testing.T) {
 		)
 
 		// Primary node is unhealthy for this step; peer is healthy
-		assert.NoError(t, env.Engine.UpdateStepHealth(
-			st.ID, api.HealthUnhealthy, "offline",
-		))
+		assert.NoError(t, env.Engine.UpdateStepHealth(st.ID, api.HealthUnhealthy, "offline"))
 		assert.NoError(t, peer.UpdateStepHealth(st.ID, api.HealthHealthy, ""))
 
 		assert.NoError(t, env.Engine.Start())
@@ -478,10 +463,7 @@ func TestCompRetryRunsOnHealthyPeer(t *testing.T) {
 				pending: true,
 			})
 			assert.NoError(t, env.Engine.RecoverFlow(id))
-			w.ForAll(
-				wait.CompSucceeded(fs),
-				wait.FlowDeactivated(id),
-			)
+			w.ForAll(wait.CompSucceeded(fs), wait.FlowDeactivated(id))
 		})
 
 		fl, err := env.Engine.GetFlowState(id)
@@ -512,10 +494,7 @@ func TestCompPermanentFailure(t *testing.T) {
 				token: tkn,
 			})
 			assert.NoError(t, env.Engine.RecoverFlow(id))
-			w.ForAll(
-				wait.CompFailed(fs),
-				wait.FlowDeactivated(id),
-			)
+			w.ForAll(wait.CompFailed(fs), wait.FlowDeactivated(id))
 		})
 
 		fl, err := env.Engine.GetFlowState(id)
@@ -545,18 +524,14 @@ func TestCompCompleteIdempotent(t *testing.T) {
 
 		fl, err := env.Engine.GetFlowState(id)
 		assert.NoError(t, err)
-		assert.Equal(t,
-			api.WorkCompensated, fl.Executions[st.ID].WorkItems[tkn].Status,
-		)
+		assert.Equal(t, api.WorkCompensated, fl.Executions[st.ID].WorkItems[tkn].Status)
 
 		// Second call is a no-op because work is no longer comp-active
 		assert.NoError(t, env.Engine.CompleteCompensation(fs, tkn))
 
 		fl, err = env.Engine.GetFlowState(id)
 		assert.NoError(t, err)
-		assert.Equal(t,
-			api.WorkCompensated, fl.Executions[st.ID].WorkItems[tkn].Status,
-		)
+		assert.Equal(t, api.WorkCompensated, fl.Executions[st.ID].WorkItems[tkn].Status)
 	})
 }
 
@@ -579,18 +554,14 @@ func TestCompFailIdempotent(t *testing.T) {
 
 		fl, err := env.Engine.GetFlowState(id)
 		assert.NoError(t, err)
-		assert.Equal(t,
-			api.WorkCompFailed, fl.Executions[st.ID].WorkItems[tkn].Status,
-		)
+		assert.Equal(t, api.WorkCompFailed, fl.Executions[st.ID].WorkItems[tkn].Status)
 
 		// Second call is a no-op because work is no longer comp-active
 		assert.NoError(t, env.Engine.FailCompensation(fs, tkn, "boom again"))
 
 		fl, err = env.Engine.GetFlowState(id)
 		assert.NoError(t, err)
-		assert.Equal(t,
-			api.WorkCompFailed, fl.Executions[st.ID].WorkItems[tkn].Status,
-		)
+		assert.Equal(t, api.WorkCompFailed, fl.Executions[st.ID].WorkItems[tkn].Status)
 	})
 }
 
@@ -610,12 +581,8 @@ func TestCompRetryNoop(t *testing.T) {
 		})
 		assert.NoError(t, env.Engine.CompleteCompensation(fs, tkn))
 
-		assert.NoError(t, env.Engine.NotCompleteCompensation(
-			fs, "missing", "missing",
-		))
-		assert.NoError(t, env.Engine.NotCompleteCompensation(
-			fs, tkn, "already terminal",
-		))
+		assert.NoError(t, env.Engine.NotCompleteCompensation(fs, "missing", "missing"))
+		assert.NoError(t, env.Engine.NotCompleteCompensation(fs, tkn, "already terminal"))
 
 		fl, err := env.Engine.GetFlowState(id)
 		assert.NoError(t, err)
@@ -650,12 +617,8 @@ func TestCompRetryDeferredUntilPeerRecovers(t *testing.T) {
 		)
 
 		// Both replicas retain the committed retry while they are unhealthy
-		assert.NoError(t, env.Engine.UpdateStepHealth(
-			st.ID, api.HealthUnhealthy, "offline",
-		))
-		assert.NoError(t, peer.UpdateStepHealth(
-			st.ID, api.HealthUnhealthy, "offline",
-		))
+		assert.NoError(t, env.Engine.UpdateStepHealth(st.ID, api.HealthUnhealthy, "offline"))
+		assert.NoError(t, peer.UpdateStepHealth(st.ID, api.HealthUnhealthy, "offline"))
 		assert.NoError(t, env.Engine.Start())
 		assert.NoError(t, peer.Start())
 
@@ -687,9 +650,7 @@ func TestCompRetryDeferredUntilPeerRecovers(t *testing.T) {
 					api.WorkCompensated
 			},
 		})
-		assert.Equal(t,
-			api.WorkCompensated, fl.Executions[st.ID].WorkItems[tkn].Status,
-		)
+		assert.Equal(t, api.WorkCompensated, fl.Executions[st.ID].WorkItems[tkn].Status)
 	})
 }
 
@@ -724,9 +685,7 @@ func TestLateCompCallbackSettlesPending(t *testing.T) {
 
 		fl, err := env.Engine.GetFlowState(id)
 		assert.NoError(t, err)
-		assert.Equal(t,
-			api.WorkCompensated, fl.Executions[st.ID].WorkItems[tkn].Status,
-		)
+		assert.Equal(t, api.WorkCompensated, fl.Executions[st.ID].WorkItems[tkn].Status)
 
 		// The scheduled retry now has nothing left to claim
 		assert.NoError(t, env.Engine.Start())
@@ -739,9 +698,7 @@ func TestLateCompCallbackSettlesPending(t *testing.T) {
 
 		fl, err = env.Engine.GetFlowState(id)
 		assert.NoError(t, err)
-		assert.Equal(t,
-			api.WorkCompensated, fl.Executions[st.ID].WorkItems[tkn].Status,
-		)
+		assert.Equal(t, api.WorkCompensated, fl.Executions[st.ID].WorkItems[tkn].Status)
 	})
 }
 
@@ -791,9 +748,7 @@ func TestLateCompFailureSettlesPending(t *testing.T) {
 
 		fl, err = env.Engine.GetFlowState(id)
 		assert.NoError(t, err)
-		assert.Equal(t,
-			api.WorkCompFailed, fl.Executions[st.ID].WorkItems[tkn].Status,
-		)
+		assert.Equal(t, api.WorkCompFailed, fl.Executions[st.ID].WorkItems[tkn].Status)
 	})
 }
 
@@ -834,10 +789,7 @@ func TestCompDispatchRecovery(t *testing.T) {
 			w := wait.On(t, consumer)
 			assert.NoError(t, env.Engine.Start())
 			assert.NoError(t, env.Engine.RecoverFlow(id))
-			w.ForAll(
-				wait.CompSucceeded(fs),
-				wait.FlowDeactivated(id),
-			)
+			w.ForAll(wait.CompSucceeded(fs), wait.FlowDeactivated(id))
 		})
 
 		fl, err := env.Engine.GetFlowState(id)
@@ -1045,8 +997,8 @@ func TestFlowCompensation(t *testing.T) {
 		helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 			assert.NoError(t, env.Engine.Start())
 
-			// reserve feeds only the failed set, shared also feeds the running
-			// fallback, and kept also feeds the last fallback
+			// reserve feeds only the failed set, shared also feeds the running fallback, and kept
+			// also feeds the last fallback
 			reserve := newCompensatingStep("else-reserve")
 			reserve.Attributes = api.AttributeSpecs{
 				"hold": {Role: api.RoleOutput},
@@ -1074,9 +1026,7 @@ func TestFlowCompensation(t *testing.T) {
 				"keep": {Role: api.RoleRequired},
 			}
 
-			for _, st := range []*api.Step{
-				reserve, shared, kept, pay, alt, last,
-			} {
+			for _, st := range []*api.Step{reserve, shared, kept, pay, alt, last} {
 				assert.NoError(t, env.Engine.RegisterStep(st))
 			}
 			env.MockClient.SetResponse(reserve.ID, api.Args{"hold": "h"})
@@ -1141,8 +1091,7 @@ func TestFlowCompensation(t *testing.T) {
 			fs := api.FlowStep{FlowID: id, StepID: reserve.ID}
 			env.WithConsumer(func(consumer *event.Consumer) {
 				w := wait.On(t, consumer)
-				assert.NoError(t,
-					env.Engine.StartPlan(id, pl))
+				assert.NoError(t, env.Engine.StartPlan(id, pl))
 				w.ForEvent(wait.CompSucceeded(fs))
 
 				fl, err := env.Engine.GetFlowState(id)
@@ -1239,8 +1188,7 @@ func TestFlowCompensation(t *testing.T) {
 			}
 
 			env.WaitFor(wait.FlowDeactivated(id), func() {
-				assert.NoError(t,
-					env.Engine.StartPlan(id, pl))
+				assert.NoError(t, env.Engine.StartPlan(id, pl))
 			})
 
 			fl, err := env.Engine.GetFlowState(id)
@@ -1284,19 +1232,12 @@ func TestFlowCompensation(t *testing.T) {
 			env.WithConsumer(func(consumer *event.Consumer) {
 				w := wait.On(t, consumer)
 				assert.NoError(t, env.Engine.RecoverFlow(id))
-				w.ForAll(
-					wait.CompStarted(fs),
-					wait.CompSucceeded(fs),
-					wait.FlowDeactivated(id),
-				)
+				w.ForAll(wait.CompStarted(fs), wait.CompSucceeded(fs), wait.FlowDeactivated(id))
 			})
 
 			fl, err := env.Engine.GetFlowState(id)
 			assert.NoError(t, err)
-			assert.Equal(t,
-				api.WorkCompensated,
-				fl.Executions[first.ID].WorkItems[tkn].Status,
-			)
+			assert.Equal(t, api.WorkCompensated, fl.Executions[first.ID].WorkItems[tkn].Status)
 		})
 	})
 
@@ -1462,9 +1403,7 @@ func completedStepEvent(id api.FlowID, sid api.StepID) helpers.FlowEvent {
 }
 
 // succeededWorkEvents leaves the step active for the caller to finish
-func succeededWorkEvents(
-	id api.FlowID, sid api.StepID, tkn api.Token,
-) []helpers.FlowEvent {
+func succeededWorkEvents(id api.FlowID, sid api.StepID, tkn api.Token) []helpers.FlowEvent {
 	return []helpers.FlowEvent{
 		{
 			Type: api.EventTypeStepStarted,
@@ -1510,8 +1449,8 @@ func newCompensatingStep(id api.StepID) *api.Step {
 	}
 }
 
-// setupCompensatingFlow injects events for a flow whose step has one succeeded
-// work item followed by step and flow failure, with comp started
+// setupCompensatingFlow injects events for a flow whose step has one succeeded work item followed
+// by step and flow failure, with comp started
 type setupCompensatingFlowArgs struct {
 	env     *helpers.TestEngineEnv
 	id      api.FlowID
@@ -1580,7 +1519,5 @@ func setupCompensatingFlow(args setupCompensatingFlowArgs) {
 		})
 	}
 
-	assert.NoError(
-		args.env.T, args.env.RaiseFlowEvents(args.id, evs...),
-	)
+	assert.NoError(args.env.T, args.env.RaiseFlowEvents(args.id, evs...))
 }

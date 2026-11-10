@@ -13,10 +13,12 @@ import (
 // FileMode is the permission mode of generated files
 const FileMode = 0o644
 
-var ErrLoadFailed = errors.New("failed to load packages")
+var (
+	ErrLoadFailed = errors.New("failed to load packages")
+)
 
-// Generate writes a generated file for every loaded package containing Argyll
-// directives. Server adds a minimal main function
+// Generate writes a generated file for every loaded package containing Argyll directives. Server
+// adds a minimal main function
 func Generate(dir string, server bool, patterns ...string) ([]string, error) {
 	pkgs, err := Load(dir, patterns...)
 	if err != nil {

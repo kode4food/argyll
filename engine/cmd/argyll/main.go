@@ -21,9 +21,7 @@ func main() {
 	a := app.New(cfg)
 	a.SetupLogging()
 
-	ctx, stop := signal.NotifyContext(
-		context.Background(), syscall.SIGINT, syscall.SIGTERM,
-	)
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
 	if err := a.Run(ctx); err != nil {

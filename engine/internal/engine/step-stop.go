@@ -9,8 +9,8 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/policy"
 )
 
-// checkStepCompletion checks if a specific step can complete (all work items
-// done) and raises appropriate completion or failure events
+// checkStepCompletion checks if a specific step can complete (all work items done) and raises
+// appropriate completion or failure events
 func (tx *flowTx) checkStepCompletion(sid api.StepID) (bool, error) {
 	fl := tx.Value()
 	ex, ok := fl.Executions[sid]
@@ -69,9 +69,7 @@ func (tx *flowTx) checkStepCompletion(sid api.StepID) (bool, error) {
 	return true, tx.foldCompletedFeeds(st, produced)
 }
 
-func (tx *flowTx) consumedOutputs(
-	st *api.Step, outputs api.Args, fl *api.FlowState,
-) api.Args {
+func (tx *flowTx) consumedOutputs(st *api.Step, outputs api.Args, fl *api.FlowState) api.Args {
 	res := api.Args{}
 	goals := keptGoals(fl)
 	if slices.Contains(goals, st.ID) {
@@ -94,9 +92,7 @@ func (tx *flowTx) consumedOutputs(
 	return res
 }
 
-func (tx *flowTx) handlePredicateFailure(
-	sid api.StepID, inputs api.Args, err error,
-) error {
+func (tx *flowTx) handlePredicateFailure(sid api.StepID, inputs api.Args, err error) error {
 	if raiseErr := events.Raise(tx.FlowAggregator, api.EventTypeStepFailed,
 		api.StepFailedEvent{
 			FlowID: tx.flowID,
@@ -111,8 +107,8 @@ func (tx *flowTx) handlePredicateFailure(
 	return tx.advanceFlow()
 }
 
-// settleStep records step outcomes and starts failed-step compensation before
-// continuing work, advancing the flow, or checking deactivation
+// settleStep records step outcomes and starts failed-step compensation before continuing work,
+// advancing the flow, or checking deactivation
 func (tx *flowTx) settleStep(sid api.StepID) error {
 	var completed bool
 	if policy.StepActive(tx.Value().Executions[sid].Status) {

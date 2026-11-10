@@ -14,9 +14,7 @@ func TestNewStep(t *testing.T) {
 	name := api.Name("Test Step")
 	client := testClient()
 
-	st, err := client.NewStep().WithName(name).
-		WithEndpoint("http://example.com").
-		Build()
+	st, err := client.NewStep().WithName(name).WithEndpoint("http://example.com").Build()
 
 	assert.NoError(t, err)
 	assert.Equal(t, api.StepID("test-step"), st.ID)
@@ -72,8 +70,7 @@ func TestNewStepIDGeneration(t *testing.T) {
 
 func TestWithID(t *testing.T) {
 	customID := "custom-id"
-	st, err := testClient().NewStep().WithName("Test Step").
-		WithID(customID).
+	st, err := testClient().NewStep().WithName("Test Step").WithID(customID).
 		WithEndpoint("http://example.com").
 		Build()
 
@@ -89,9 +86,7 @@ func TestStepWithEmptyTags(t *testing.T) {
 }
 
 func TestNameKeepsID(t *testing.T) {
-	st, err := testClient().NewStep().
-		WithID("custom-id").
-		WithName("Test Step").
+	st, err := testClient().NewStep().WithID("custom-id").WithName("Test Step").
 		WithEndpoint("http://example.com").
 		Build()
 
@@ -101,8 +96,7 @@ func TestNameKeepsID(t *testing.T) {
 }
 
 func TestRequiredArg(t *testing.T) {
-	st, err := testClient().NewStep().WithName("Test").
-		WithEndpoint("http://example.com").
+	st, err := testClient().NewStep().WithName("Test").WithEndpoint("http://example.com").
 		Required("input1").
 		Required("input2").
 		Build()
@@ -114,8 +108,7 @@ func TestRequiredArg(t *testing.T) {
 }
 
 func TestOptionalArg(t *testing.T) {
-	st, err := testClient().NewStep().WithName("Test").
-		WithEndpoint("http://example.com").
+	st, err := testClient().NewStep().WithName("Test").WithEndpoint("http://example.com").
 		Optional("optional1", "").
 		Optional("optional2", "42").
 		Build()
@@ -128,8 +121,7 @@ func TestOptionalArg(t *testing.T) {
 }
 
 func TestConstArg(t *testing.T) {
-	st, err := testClient().NewStep().WithName("Test").
-		WithEndpoint("http://example.com").
+	st, err := testClient().NewStep().WithName("Test").WithEndpoint("http://example.com").
 		Const("const1", `"fixed"`).
 		Build()
 
@@ -141,8 +133,7 @@ func TestConstArg(t *testing.T) {
 }
 
 func TestMetaArg(t *testing.T) {
-	st, err := testClient().NewStep().WithName("Test").
-		WithEndpoint("http://example.com").
+	st, err := testClient().NewStep().WithName("Test").WithEndpoint("http://example.com").
 		Meta("flow_id", api.MetaFlowID).
 		Build()
 
@@ -153,8 +144,7 @@ func TestMetaArg(t *testing.T) {
 }
 
 func TestOutputArg(t *testing.T) {
-	st, err := testClient().NewStep().WithName("Test").
-		WithEndpoint("http://example.com").
+	st, err := testClient().NewStep().WithName("Test").WithEndpoint("http://example.com").
 		Output("output1").
 		Output("output2").
 		Build()
@@ -167,9 +157,7 @@ func TestOutputArg(t *testing.T) {
 
 func TestWithEndpoint(t *testing.T) {
 	endpoint := "http://example.com/step"
-	st, err := testClient().NewStep().WithName("Test").
-		WithEndpoint(endpoint).
-		Build()
+	st, err := testClient().NewStep().WithName("Test").WithEndpoint(endpoint).Build()
 
 	assert.NoError(t, err)
 	assert.NotNil(t, st.HTTP)
@@ -178,8 +166,7 @@ func TestWithEndpoint(t *testing.T) {
 }
 
 func TestWithMethod(t *testing.T) {
-	st, err := testClient().NewStep().WithName("Test").
-		WithEndpoint("http://example.com/step").
+	st, err := testClient().NewStep().WithName("Test").WithEndpoint("http://example.com/step").
 		WithMethod("get").
 		Build()
 
@@ -190,8 +177,7 @@ func TestWithMethod(t *testing.T) {
 }
 
 func TestWithMethodInvalid(t *testing.T) {
-	st, err := testClient().NewStep().WithName("Test").
-		WithEndpoint("http://example.com/step").
+	st, err := testClient().NewStep().WithName("Test").WithEndpoint("http://example.com/step").
 		WithMethod("patch").
 		Build()
 
@@ -204,9 +190,7 @@ func TestWithScript(t *testing.T) {
 		Language: api.ScriptLangLua,
 		Source:   "return {result = 1 + 2}",
 	}
-	st, err := testClient().NewStep().WithName("Test").
-		WithScript(script).
-		Build()
+	st, err := testClient().NewStep().WithName("Test").WithScript(script).Build()
 
 	assert.NoError(t, err)
 	assert.NotNil(t, st.Script)
@@ -229,8 +213,7 @@ func TestWithScriptInvalid(t *testing.T) {
 
 func TestWithHealthCheck(t *testing.T) {
 	healthCheck := "http://example.com/health"
-	st, err := testClient().NewStep().WithName("Test").
-		WithEndpoint("http://example.com/step").
+	st, err := testClient().NewStep().WithName("Test").WithEndpoint("http://example.com/step").
 		WithHealthCheck(healthCheck).
 		Build()
 
@@ -241,8 +224,7 @@ func TestWithHealthCheck(t *testing.T) {
 
 func TestWithTimeout(t *testing.T) {
 	timeout := api.Minute
-	st, err := testClient().NewStep().WithName("Test").
-		WithEndpoint("http://example.com").
+	st, err := testClient().NewStep().WithName("Test").WithEndpoint("http://example.com").
 		WithTimeout(timeout).
 		Build()
 
@@ -251,8 +233,7 @@ func TestWithTimeout(t *testing.T) {
 }
 
 func TestWithType(t *testing.T) {
-	st, err := testClient().NewStep().WithName("Test").
-		WithEndpoint("http://example.com").
+	st, err := testClient().NewStep().WithName("Test").WithEndpoint("http://example.com").
 		WithType(api.StepTypeService).
 		Build()
 
@@ -261,8 +242,7 @@ func TestWithType(t *testing.T) {
 }
 
 func TestWithAsyncInvoke(t *testing.T) {
-	st, err := testClient().NewStep().WithName("Test").
-		WithEndpoint("http://example.com").
+	st, err := testClient().NewStep().WithName("Test").WithEndpoint("http://example.com").
 		WithAsyncInvoke().
 		Build()
 
@@ -272,8 +252,7 @@ func TestWithAsyncInvoke(t *testing.T) {
 }
 
 func TestWithSyncInvoke(t *testing.T) {
-	st, err := testClient().NewStep().WithName("Test").
-		WithEndpoint("http://example.com").
+	st, err := testClient().NewStep().WithName("Test").WithEndpoint("http://example.com").
 		WithSyncInvoke().
 		Build()
 
@@ -283,8 +262,7 @@ func TestWithSyncInvoke(t *testing.T) {
 }
 
 func TestWithFlowGoals(t *testing.T) {
-	st, err := testClient().NewStep().WithName("Flow Step").
-		WithFlowSpace("payments").
+	st, err := testClient().NewStep().WithName("Flow Step").WithFlowSpace("payments").
 		WithFlowGoals(api.Goals{Steps: []api.StepID{"goal-a", "goal-b"}}).
 		Build()
 
@@ -297,8 +275,7 @@ func TestWithFlowGoals(t *testing.T) {
 
 func TestWithPredicate(t *testing.T) {
 	predicate := "return x > 10"
-	st, err := testClient().NewStep().WithName("Test").
-		WithEndpoint("http://example.com").
+	st, err := testClient().NewStep().WithName("Test").WithEndpoint("http://example.com").
 		WithPredicate(api.ScriptConfig{
 			Language: api.ScriptLangLua,
 			Source:   predicate,
@@ -315,8 +292,7 @@ func TestWithMatch(t *testing.T) {
 	src := `return value == "email"`
 
 	t.Run("required attribute", func(t *testing.T) {
-		st, err := testClient().NewStep().WithName("Test").
-			WithEndpoint("http://example.com").
+		st, err := testClient().NewStep().WithName("Test").WithEndpoint("http://example.com").
 			Required("kind").
 			WithMatch("kind", api.ScriptConfig{
 				Language: api.ScriptLangLua,
@@ -326,15 +302,12 @@ func TestWithMatch(t *testing.T) {
 
 		assert.NoError(t, err)
 		assert.NotNil(t, st.Attributes["kind"].Required.Match)
-		assert.Equal(t,
-			api.ScriptLangLua, st.Attributes["kind"].Required.Match.Language,
-		)
+		assert.Equal(t, api.ScriptLangLua, st.Attributes["kind"].Required.Match.Language)
 		assert.Equal(t, src, st.Attributes["kind"].Required.Match.Source)
 	})
 
 	t.Run("optional attribute", func(t *testing.T) {
-		st, err := testClient().NewStep().WithName("Test").
-			WithEndpoint("http://example.com").
+		st, err := testClient().NewStep().WithName("Test").WithEndpoint("http://example.com").
 			Optional("kind", `""`).
 			WithMatch("kind", api.ScriptConfig{
 				Language: api.ScriptLangLua,
@@ -344,9 +317,7 @@ func TestWithMatch(t *testing.T) {
 
 		assert.NoError(t, err)
 		assert.NotNil(t, st.Attributes["kind"].Optional.Match)
-		assert.Equal(t,
-			api.ScriptLangLua, st.Attributes["kind"].Optional.Match.Language,
-		)
+		assert.Equal(t, api.ScriptLangLua, st.Attributes["kind"].Optional.Match.Language)
 		assert.Equal(t, src, st.Attributes["kind"].Optional.Match.Source)
 	})
 }
@@ -412,10 +383,7 @@ func TestChaining(t *testing.T) {
 func TestImmutability(t *testing.T) {
 	original := testClient().NewStep().WithName("Test Step")
 
-	modified := original.
-		WithID("custom-id").
-		Required("input").
-		Output("output").
+	modified := original.WithID("custom-id").Required("input").Output("output").
 		WithEndpoint("http://example.com").
 		WithTimeout(api.Minute)
 
@@ -432,8 +400,7 @@ func TestImmutability(t *testing.T) {
 }
 
 func TestImmutabilityMaps(t *testing.T) {
-	base := testClient().NewStep().WithName("Test").
-		WithEndpoint("http://example.com")
+	base := testClient().NewStep().WithName("Test").WithEndpoint("http://example.com")
 
 	builder1 := base.Required("arg1")
 	builder2 := base.Required("arg2")
@@ -454,8 +421,7 @@ func TestImmutabilityMaps(t *testing.T) {
 }
 
 func TestImmutabilityHTTPConfig(t *testing.T) {
-	base := testClient().NewStep().WithName("Test").
-		WithEndpoint("http://example.com").
+	base := testClient().NewStep().WithName("Test").WithEndpoint("http://example.com").
 		WithHealthCheck("http://example.com/health")
 
 	modified := base.WithEndpoint("http://different.com")
@@ -473,21 +439,17 @@ func TestImmutabilityHTTPConfig(t *testing.T) {
 
 func TestBuildValidationErrors(t *testing.T) {
 	t.Run("missing_endpoint_for_http_step", func(t *testing.T) {
-		_, err := testClient().NewStep().WithName("Test").
-			Build()
+		_, err := testClient().NewStep().WithName("Test").Build()
 		assert.ErrorIs(t, err, api.ErrHTTPRequired)
 	})
 
 	t.Run("missing_script_for_script_step", func(t *testing.T) {
-		_, err := testClient().NewStep().WithName("Test").
-			WithType(api.StepTypeScript).
-			Build()
+		_, err := testClient().NewStep().WithName("Test").WithType(api.StepTypeScript).Build()
 		assert.ErrorIs(t, err, api.ErrScriptRequired)
 	})
 
 	t.Run("invalid_attribute_spec", func(t *testing.T) {
-		_, err := testClient().NewStep().WithName("Test").
-			WithEndpoint("http://example.com").
+		_, err := testClient().NewStep().WithName("Test").WithEndpoint("http://example.com").
 			Required("").
 			Build()
 		assert.Error(t, err)
@@ -506,8 +468,7 @@ func TestBuildValidationErrors(t *testing.T) {
 	})
 
 	t.Run("lua_predicate", func(t *testing.T) {
-		st, err := testClient().NewStep().WithName("Test").
-			WithEndpoint("http://example.com").
+		st, err := testClient().NewStep().WithName("Test").WithEndpoint("http://example.com").
 			WithPredicate(api.ScriptConfig{
 				Language: api.ScriptLangLua,
 				Source:   "return count > 10",
@@ -521,8 +482,7 @@ func TestBuildValidationErrors(t *testing.T) {
 
 func TestStepBuilderChaining(t *testing.T) {
 	t.Run("complex_step_building", func(t *testing.T) {
-		st, err := testClient().NewStep().WithName("Complex Step").
-			WithID("complex").
+		st, err := testClient().NewStep().WithName("Complex Step").WithID("complex").
 			WithEndpoint("http://example.com/process").
 			WithHealthCheck("http://example.com/health").
 			WithTimeout(60000).
@@ -548,23 +508,15 @@ func TestStepBuilderChaining(t *testing.T) {
 	t.Run("step_type_transitions", func(t *testing.T) {
 		build := testClient().NewStep().WithName("Test")
 
-		syncStep, err := build.
-			WithEndpoint("http://example.com").
-			WithSyncInvoke().
-			Build()
+		syncStep, err := build.WithEndpoint("http://example.com").WithSyncInvoke().Build()
 		assert.NoError(t, err)
 		assert.Equal(t, api.StepTypeService, syncStep.Type)
-		assert.Equal(t,
-			api.ActionModeSync, syncStep.HTTP.Invoke.DefaultedMode())
+		assert.Equal(t, api.ActionModeSync, syncStep.HTTP.Invoke.DefaultedMode())
 
-		asyncStep, err := build.
-			WithEndpoint("http://example.com").
-			WithAsyncInvoke().
-			Build()
+		asyncStep, err := build.WithEndpoint("http://example.com").WithAsyncInvoke().Build()
 		assert.NoError(t, err)
 		assert.Equal(t, api.StepTypeService, asyncStep.Type)
-		assert.Equal(t,
-			api.ActionModeAsync, asyncStep.HTTP.Invoke.DefaultedMode())
+		assert.Equal(t, api.ActionModeAsync, asyncStep.HTTP.Invoke.DefaultedMode())
 
 		scriptStep, err := build.
 			WithScript(api.ScriptConfig{
@@ -629,9 +581,7 @@ func TestStepBuilderWithTags(t *testing.T) {
 			Build()
 
 		assert.NoError(t, err)
-		assert.Equal(t, api.Tags{
-			"domain:payments", "domain:risk", "example",
-		}, st.Tags)
+		assert.Equal(t, api.Tags{"domain:payments", "domain:risk", "example"}, st.Tags)
 	})
 
 	t.Run("does not alias the caller's slice", func(t *testing.T) {
@@ -670,8 +620,7 @@ func TestStepHandling(t *testing.T) {
 
 func TestWithCompensate(t *testing.T) {
 	compensate := "http://example.com/compensate"
-	st, err := testClient().NewStep().WithName("Test").
-		WithEndpoint("http://example.com/work").
+	st, err := testClient().NewStep().WithName("Test").WithEndpoint("http://example.com/work").
 		Required("request").
 		Output("result").
 		WithCompensate(compensate).
@@ -688,8 +637,7 @@ func TestWithCompensate(t *testing.T) {
 }
 
 func TestCompensateConfig(t *testing.T) {
-	st, err := testClient().NewStep().WithName("Test").
-		WithEndpoint("http://example.com/work").
+	st, err := testClient().NewStep().WithName("Test").WithEndpoint("http://example.com/work").
 		WithTimeout(30 * api.Second).
 		WithCompensate("http://example.com/undo").
 		WithCompensateMethod("delete").
@@ -704,8 +652,7 @@ func TestCompensateConfig(t *testing.T) {
 }
 
 func TestCompensateTimeout(t *testing.T) {
-	st, err := testClient().NewStep().WithName("Test").
-		WithEndpoint("http://example.com/work").
+	st, err := testClient().NewStep().WithName("Test").WithEndpoint("http://example.com/work").
 		WithTimeout(30 * api.Second).
 		WithCompensate("http://example.com/undo").
 		Build()

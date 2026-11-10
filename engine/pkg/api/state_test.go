@@ -47,9 +47,7 @@ func TestUpdateStep(t *testing.T) {
 	result := original.SetStep(newStep.ID, newStep)
 
 	assert.NotContains(t, result.Attributes, api.Name("old"))
-	assert.Equal(t,
-		api.Slice[api.StepID]{"step"}, result.Attributes["new"].Providers,
-	)
+	assert.Equal(t, api.Slice[api.StepID]{"step"}, result.Attributes["new"].Providers)
 	assert.Contains(t, original.Attributes, api.Name("old"))
 	assert.NotContains(t, original.Attributes, api.Name("new"))
 }
@@ -185,9 +183,7 @@ func TestSetAttribute(t *testing.T) {
 	})
 
 	assert.Equal(t, "new_value", result.Attributes["new_attr"][0].Value)
-	assert.Equal(t,
-		api.StepID("test-step"), result.Attributes["new_attr"][0].Step,
-	)
+	assert.Equal(t, api.StepID("test-step"), result.Attributes["new_attr"][0].Step)
 	assert.Equal(t, "value", result.Attributes["existing"][0].Value)
 	_, ok := original.Attributes["new_attr"]
 	assert.False(t, ok)
@@ -473,8 +469,7 @@ func TestFlowChain(t *testing.T) {
 		Executions: api.Executions{},
 	}
 
-	result := original.
-		SetStatus(api.FlowCompleted).
+	result := original.SetStatus(api.FlowCompleted).
 		SetAttribute(
 			"attr1", &api.AttributeValue{Value: "value1", Step: "step1"},
 		).
@@ -494,9 +489,7 @@ func TestExecChain(t *testing.T) {
 	startTime := scheduler.Now()
 	completedTime := startTime.Add(time.Second)
 
-	result := original.
-		SetStatus(api.StepActive).
-		SetStartedAt(startTime).
+	result := original.SetStatus(api.StepActive).SetStartedAt(startTime).
 		SetInputs(api.Args{"input": "value"}).
 		SetStatus(api.StepCompleted).
 		SetOutputs(api.Args{"output": "result"}).
@@ -612,9 +605,7 @@ func TestWorkChain(t *testing.T) {
 	completedTime := startTime.Add(time.Second)
 	outputs := api.Args{"result": "success"}
 
-	result := original.
-		SetStatus(api.WorkActive).
-		SetStartedAt(startTime).
+	result := original.SetStatus(api.WorkActive).SetStartedAt(startTime).
 		SetStatus(api.WorkSucceeded).
 		SetCompletedAt(completedTime).
 		SetOutputs(outputs)

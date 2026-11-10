@@ -9,9 +9,8 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
-// TestPredicateSkipping tests that steps with false predicates are skipped
-// and that flows fail when goal steps cannot complete due to skipped
-// dependencies
+// TestPredicateSkipping tests that steps with false predicates are skipped and that flows fail when
+// goal steps cannot complete due to skipped dependencies
 func TestPredicateSkipping(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		assert.NoError(t, env.Engine.Start())
@@ -20,9 +19,7 @@ func TestPredicateSkipping(t *testing.T) {
 		stepA := helpers.NewStepWithOutputs("step-a", "valueA")
 
 		// Step B: Has predicate that returns false, produces "valueB"
-		stepB := helpers.NewStepWithPredicate(
-			"step-b", api.ScriptLangLua, "return false", "valueB",
-		)
+		stepB := helpers.NewStepWithPredicate("step-b", api.ScriptLangLua, "return false", "valueB")
 		stepB.Attributes["valueA"] = &api.AttributeSpec{
 			Role: api.RoleRequired,
 		}

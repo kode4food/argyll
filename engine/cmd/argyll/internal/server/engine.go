@@ -60,9 +60,7 @@ func (s *Server) getClusterEvents(c *gin.Context) {
 	writeEvents(c, ErrGetClusterEvents, evs, err)
 }
 
-func completeClusterHealth(
-	cat api.CatalogState, cluster api.ClusterState,
-) api.ClusterState {
+func completeClusterHealth(cat api.CatalogState, cluster api.ClusterState) api.ClusterState {
 	res := cluster
 	for nid, node := range cluster.Nodes {
 		nextNode := node

@@ -49,9 +49,7 @@ func TestSetAttribute(t *testing.T) {
 func TestMissingOutputFailsFlow(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		testify.NoError(t, env.Engine.Start())
-		producer := helpers.NewStepWithOutputs(
-			"inventory-resolver", "inventory",
-		)
+		producer := helpers.NewStepWithOutputs("inventory-resolver", "inventory")
 		consumer := helpers.NewSimpleStep("order-creator")
 		consumer.Attributes["inventory"] = &api.AttributeSpec{
 			Role: api.RoleRequired,
@@ -189,8 +187,7 @@ func TestMissingOutputOtherProvider(t *testing.T) {
 		})
 		testify.Equal(t, api.FlowCompleted, fl.Status)
 		testify.True(t, env.MockClient.WasInvoked(consumer.ID))
-		testify.Equal(t,
-			"available", fl.Executions[consumer.ID].Inputs["inventory"])
+		testify.Equal(t, "available", fl.Executions[consumer.ID].Inputs["inventory"])
 	})
 }
 

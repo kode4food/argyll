@@ -31,8 +31,8 @@ type (
 	MockCompensate func(*api.Step, api.Args, api.Metadata) error
 )
 
-// NewMockClient creates a mock HTTP client that allows setting responses and
-// errors for specific step IDs
+// NewMockClient creates a mock HTTP client that allows setting responses and errors for specific
+// step IDs
 func NewMockClient() *MockClient {
 	return &MockClient{
 		steps:   map[api.StepID]*mockStep{},
@@ -41,9 +41,7 @@ func NewMockClient() *MockClient {
 }
 
 // Invoke records the invocation and returns the configured response or error
-func (c *MockClient) Invoke(
-	st *api.Step, args api.Args, md api.Metadata,
-) (api.Args, error) {
+func (c *MockClient) Invoke(st *api.Step, args api.Args, md api.Metadata) (api.Args, error) {
 	c.mu.Lock()
 	c.invoked = append(c.invoked, st.ID)
 	s := c.stepLocked(st.ID)
@@ -72,9 +70,7 @@ func (c *MockClient) Invoke(
 }
 
 // Compensate records the compensate invocation and returns any configured error
-func (c *MockClient) Compensate(
-	st *api.Step, args api.Args, md api.Metadata,
-) error {
+func (c *MockClient) Compensate(st *api.Step, args api.Args, md api.Metadata) error {
 	c.mu.Lock()
 	s := c.stepLocked(st.ID)
 	compensate := s.compensate
@@ -137,9 +133,7 @@ func (c *MockClient) WasInvoked(sid api.StepID) bool {
 }
 
 // WaitForInvocation blocks until a step is invoked or the timeout expires
-func (c *MockClient) WaitForInvocation(
-	sid api.StepID, timeout time.Duration,
-) bool {
+func (c *MockClient) WaitForInvocation(sid api.StepID, timeout time.Duration) bool {
 	c.mu.Lock()
 	if c.wasInvokedLocked(sid) {
 		c.mu.Unlock()

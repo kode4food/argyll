@@ -7,8 +7,8 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
-// planFeeds selects the Feeds a plan reads or folds into, and resolves each
-// Feed's Space into the planned Steps whose outputs it folds
+// planFeeds selects the Feeds a plan reads or folds into, and resolves each Feed's Space into the
+// planned Steps whose outputs it folds
 func planFeeds(cat *api.CatalogState, steps api.Steps) api.PlanFeeds {
 	var res api.PlanFeeds
 	add := func(pf api.PlanFeed) {

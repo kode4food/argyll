@@ -9,8 +9,8 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
-// TestMultipleGoals verifies that flows with multiple goal steps execute all
-// necessary dependencies (union of paths) and only those steps
+// TestMultipleGoals verifies that flows with multiple goal steps execute all necessary dependencies
+// (union of paths) and only those steps
 func TestMultipleGoals(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		assert.NoError(t, env.Engine.Start())

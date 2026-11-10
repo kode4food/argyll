@@ -89,8 +89,7 @@ func (w *flowCycleWalker) check(sid api.StepID) error {
 }
 
 func detectStepCycles(
-	cat *api.CatalogState, newStep *api.Step,
-	children func(*api.Step) (*api.Goals, error),
+	cat *api.CatalogState, newStep *api.Step, children func(*api.Step) (*api.Goals, error),
 ) error {
 	if err := detectAttributeCycles(cat, newStep); err != nil {
 		return err
@@ -113,8 +112,7 @@ func detectAttributeCycles(cat *api.CatalogState, newStep *api.Step) error {
 }
 
 func detectFlowCycles(
-	cat *api.CatalogState, newStep *api.Step,
-	children func(*api.Step) (*api.Goals, error),
+	cat *api.CatalogState, newStep *api.Step, children func(*api.Step) (*api.Goals, error),
 ) error {
 	steps := stepsIncluding(cat, newStep)
 	w := &flowCycleWalker{

@@ -102,12 +102,8 @@ func TestRetryDeferredOnUnhealthyNode(t *testing.T) {
 		st := helpers.NewSimpleStep("retry-unhealthy")
 		env.MockClient.SetResponse(st.ID, api.Args{})
 
-		assert.NoError(t, env.Engine.UpdateStepHealth(
-			st.ID, api.HealthUnhealthy, "offline",
-		))
-		assert.NoError(t, peer.UpdateStepHealth(
-			st.ID, api.HealthUnhealthy, "offline",
-		))
+		assert.NoError(t, env.Engine.UpdateStepHealth(st.ID, api.HealthUnhealthy, "offline"))
+		assert.NoError(t, peer.UpdateStepHealth(st.ID, api.HealthUnhealthy, "offline"))
 
 		assert.NoError(t, env.Engine.Start())
 		assert.NoError(t, peer.Start())
@@ -144,9 +140,7 @@ func TestRetryDeferredOnUnhealthyNode(t *testing.T) {
 			},
 		))
 		assert.NoError(t, env.Engine.RecoverFlow(id))
-		assert.False(t,
-			env.MockClient.WaitForInvocation(st.ID, 100*time.Millisecond),
-		)
+		assert.False(t, env.MockClient.WaitForInvocation(st.ID, 100*time.Millisecond))
 
 		assert.NoError(t, peer.UpdateStepHealth(st.ID, api.HealthHealthy, ""))
 
@@ -179,13 +173,9 @@ func TestRetryOnHealthyPeer(t *testing.T) {
 		env.MockClient.SetResponse(st.ID, api.Args{"output": "ok"})
 
 		assert.NoError(t,
-			env.Engine.UpdateStepHealth(
-				st.ID, api.HealthUnhealthy, "connection refused",
-			),
+			env.Engine.UpdateStepHealth(st.ID, api.HealthUnhealthy, "connection refused"),
 		)
-		assert.NoError(t,
-			peer.UpdateStepHealth(st.ID, api.HealthHealthy, ""),
-		)
+		assert.NoError(t, peer.UpdateStepHealth(st.ID, api.HealthHealthy, ""))
 
 		id := api.FlowID("wf-retry-shared")
 		tkn := api.Token("retry-token")
@@ -415,9 +405,7 @@ func TestCalculateNextRetry(t *testing.T) {
 				}
 
 				nextRetry := eng.CalculateNextRetry(config, sc.retryCount)
-				expected := base.Add(
-					time.Duration(sc.expected) * time.Millisecond,
-				)
+				expected := base.Add(time.Duration(sc.expected) * time.Millisecond)
 				assert.Equal(t, expected, nextRetry)
 			})
 		}
@@ -436,10 +424,7 @@ func TestRetryDefaults(t *testing.T) {
 		}
 
 		nextRetry := eng.CalculateNextRetry(config, 5)
-		assert.Equal(t,
-			base.Add(750*time.Millisecond),
-			nextRetry,
-		)
+		assert.Equal(t, base.Add(750*time.Millisecond), nextRetry)
 	})
 }
 
@@ -513,9 +498,7 @@ func TestHTTPRetryRecovers(t *testing.T) {
 	scripts := script.NewRegistry()
 	deps := engine.Dependencies{
 		Scripts: scripts,
-		Steps: step.NewRegistry(builtins.All(
-			builtins.NewHTTPClient(5*time.Second), nil,
-		)),
+		Steps:   step.NewRegistry(builtins.All(builtins.NewHTTPClient(5*time.Second), nil)),
 	}
 	helpers.WithTestEnvDeps(t, deps, func(env *helpers.TestEngineEnv) {
 		cfg := util.MutableCopy(env.Config)
@@ -528,9 +511,7 @@ func TestHTTPRetryRecovers(t *testing.T) {
 		deps := env.Dependencies()
 		scripts := script.NewRegistry()
 		deps.Scripts = scripts
-		deps.Steps = step.NewRegistry(builtins.All(
-			builtins.NewHTTPClient(5*time.Second), nil,
-		))
+		deps.Steps = step.NewRegistry(builtins.All(builtins.NewHTTPClient(5*time.Second), nil))
 		eng, unsubscribe, err := env.NewEngineWithConfig(cfg, deps)
 		assert.NoError(t, err)
 		if !assert.NotNil(t, eng) {

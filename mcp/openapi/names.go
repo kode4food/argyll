@@ -12,8 +12,7 @@ import (
 
 var (
 	actionWords = util.SetOf(
-		"by", "create", "delete", "find", "list", "lookup", "new", "search",
-		"update", "upsert",
+		"by", "create", "delete", "find", "list", "lookup", "new", "search", "update", "upsert",
 	)
 
 	versionSegment = regexp.MustCompile(`^v[0-9]+$`)

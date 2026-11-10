@@ -74,9 +74,7 @@ func TestHubAggregateIDs(t *testing.T) {
 
 func TestHubTypeFilterWithAggregate(t *testing.T) {
 	h := event.NewHub()
-	consumer := h.NewAggregateConsumer(
-		timebox.NewAggregateID("flow", "a"), "incremented",
-	)
+	consumer := h.NewAggregateConsumer(timebox.NewAggregateID("flow", "a"), "incremented")
 	defer consumer.Close()
 
 	ch := consumer.Receive()
@@ -221,9 +219,7 @@ func TestHubPublishNonBlocking(t *testing.T) {
 
 	done := make(chan struct{})
 	go func() {
-		h.Publish(
-			newEvent("incremented", timebox.NewAggregateID("flow", "a"), 0),
-		)
+		h.Publish(newEvent("incremented", timebox.NewAggregateID("flow", "a"), 0))
 		close(done)
 	}()
 
@@ -329,9 +325,7 @@ func TestHubOtherAggregate(t *testing.T) {
 	}
 }
 
-func newEvent(
-	typ timebox.EventType, agg timebox.AggregateID, seq int64,
-) *timebox.Event {
+func newEvent(typ timebox.EventType, agg timebox.AggregateID, seq int64) *timebox.Event {
 	return &timebox.Event{
 		Type:        typ,
 		AggregateID: agg,

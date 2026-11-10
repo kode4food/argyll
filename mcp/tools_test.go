@@ -53,8 +53,7 @@ func TestQueryFlowsTool(t *testing.T) {
 				if r.URL.Path != "/engine/flows/query" ||
 					r.Method != http.MethodPost {
 					return jsonResponse(
-						http.StatusNotFound,
-						[]byte(`{"error":"not found"}`),
+						http.StatusNotFound, []byte(`{"error":"not found"}`),
 					), nil
 				}
 
@@ -69,10 +68,7 @@ func TestQueryFlowsTool(t *testing.T) {
 				assert.Equal(t, "recent_desc", req["sort"])
 				assert.Equal(t, []any{"active", "failed"}, req["statuses"])
 
-				return jsonResponse(
-					http.StatusOK,
-					[]byte(want),
-				), nil
+				return jsonResponse(http.StatusOK, []byte(want)), nil
 			},
 		),
 	}
@@ -97,8 +93,7 @@ func TestGetFlowStatusTool(t *testing.T) {
 					), nil
 				}
 				return jsonResponse(
-					http.StatusOK,
-					[]byte(`{"id":"wf-123","status":"completed"}`),
+					http.StatusOK, []byte(`{"id":"wf-123","status":"completed"}`),
 				), nil
 			},
 		),

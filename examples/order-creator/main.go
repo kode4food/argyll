@@ -100,29 +100,24 @@ func handle(ctx *argyll.StepContext, args api.Args) (api.Args, error) {
 		slog.Warn("Product out of stock",
 			slog.String("product_id", productID),
 			slog.String("product_name", productName))
-		return nil, argyll.Conflict(
-			"product %s is out of stock", productName,
-		)
+		return nil, argyll.Conflict("product %s is out of stock", productName)
 	}
 
 	if quantity < int(minOrderQty) {
 		return nil, argyll.BadRequest(
-			"quantity %d below minimum order quantity %d",
-			quantity, int(minOrderQty),
+			"quantity %d below minimum order quantity %d", quantity, int(minOrderQty),
 		)
 	}
 
 	if quantity > int(maxOrderQty) {
 		return nil, argyll.BadRequest(
-			"quantity %d exceeds maximum order quantity %d",
-			quantity, int(maxOrderQty),
+			"quantity %d exceeds maximum order quantity %d", quantity, int(maxOrderQty),
 		)
 	}
 
 	if float64(quantity) > availableStock {
 		return nil, argyll.Conflict(
-			"insufficient stock: requested %d, available %d",
-			quantity, int(availableStock),
+			"insufficient stock: requested %d, available %d", quantity, int(availableStock),
 		)
 	}
 
@@ -139,8 +134,7 @@ func handle(ctx *argyll.StepContext, args api.Args) (api.Args, error) {
 			slog.Float64("grand_total", grandTotal),
 			slog.Float64("credit_limit", creditLimit))
 		return nil, argyll.Conflict(
-			"order total $%.2f exceeds credit limit $%.2f",
-			grandTotal, creditLimit,
+			"order total $%.2f exceeds credit limit $%.2f", grandTotal, creditLimit,
 		)
 	}
 

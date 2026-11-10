@@ -61,7 +61,9 @@ type (
 
 //go:generate go tool argyll-gen .
 
-var ErrAmountNegative = errors.New("amount must not be negative")
+var (
+	ErrAmountNegative = errors.New("amount must not be negative")
+)
 
 //argyll:step
 //argyll:memoize
@@ -137,9 +139,7 @@ func RateCustomer(customerID string, amount int64) (int, bool, error) {
 }
 
 //argyll:wrap
-func GradeCustomer(
-	customerID string, amount int64,
-) (score int, approved bool, err error) {
+func GradeCustomer(customerID string, amount int64) (score int, approved bool, err error) {
 	if customerID == "" {
 		return 0, false, errors.New("customer id required")
 	}

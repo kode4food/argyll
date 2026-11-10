@@ -22,9 +22,7 @@ func testFeedDef() *api.Feed {
 	}
 }
 
-func feedEvent(
-	t *testing.T, id timebox.AggregateID, typ api.EventType, data any,
-) *timebox.Event {
+func feedEvent(t *testing.T, id timebox.AggregateID, typ api.EventType, data any) *timebox.Event {
 	t.Helper()
 	b, err := json.Marshal(data)
 	assert.NoError(t, err)

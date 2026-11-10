@@ -67,19 +67,10 @@ func opRationale(op opSpec) []string {
 		res = append(res, "canonicalized operation around entity "+op.Entity)
 	}
 	if len(op.Inputs) != 0 {
-		res = append(
-			res,
-			fmt.Sprintf("declares %d extracted inputs", len(op.Inputs)),
-		)
+		res = append(res, fmt.Sprintf("declares %d extracted inputs", len(op.Inputs)))
 	}
 	if len(op.Outputs) != 0 {
-		res = append(
-			res,
-			fmt.Sprintf(
-				"exposes %d extracted outputs for planning",
-				len(op.Outputs),
-			),
-		)
+		res = append(res, fmt.Sprintf("exposes %d extracted outputs for planning", len(op.Outputs)))
 	}
 	return res
 }
@@ -87,19 +78,11 @@ func opRationale(op opSpec) []string {
 func opAmbiguities(op opSpec) []string {
 	var res []string
 	if op.Entity == "" {
-		res = append(
-			res,
-			"could not confidently identify a canonical entity from path "+
-				op.Path,
-		)
+		res = append(res, "could not confidently identify a canonical entity from path "+op.Path)
 	}
 	for _, in := range op.Inputs {
 		if in.Confidence == "low" {
-			res = append(
-				res,
-				"low-confidence canonical input name for service field "+
-					in.Service,
-			)
+			res = append(res, "low-confidence canonical input name for service field "+in.Service)
 		}
 	}
 	return uniqueStrings(res)

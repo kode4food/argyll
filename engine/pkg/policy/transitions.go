@@ -5,72 +5,42 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/util"
 )
 
-// StateTransitions maps states to their valid next states. The engine uses
-// these tables to validate event-driven status changes and to define terminal
-// states consistently
+// StateTransitions maps states to their valid next states. The engine uses these tables to validate
+// event-driven status changes and to define terminal states consistently
 type StateTransitions[T comparable] map[T]util.Set[T]
 
 var (
-	// FlowTransitions defines the valid flow lifecycle. Active flows may
-	// become completed or failed. Completed and failed flows are terminal
+	// FlowTransitions defines the valid flow lifecycle. Active flows may become completed or
+	// failed. Completed and failed flows are terminal
 	FlowTransitions = StateTransitions[api.FlowStatus]{
-		api.FlowActive: util.SetOf(
-			api.FlowCompleted,
-			api.FlowFailed,
-		),
+		api.FlowActive:    util.SetOf(api.FlowCompleted, api.FlowFailed),
 		api.FlowCompleted: {},
 		api.FlowFailed:    {},
 	}
 
-	// StepTransitions defines the valid step lifecycle. Pending steps may
-	// start, skip, or fail. Active steps may complete or fail
+	// StepTransitions defines the valid step lifecycle. Pending steps may start, skip, or fail.
+	// Active steps may complete or fail
 	StepTransitions = StateTransitions[api.StepStatus]{
-		api.StepPending: util.SetOf(
-			api.StepActive,
-			api.StepSkipped,
-			api.StepFailed,
-		),
-		api.StepActive: util.SetOf(
-			api.StepCompleted,
-			api.StepFailed,
-		),
+		api.StepPending:   util.SetOf(api.StepActive, api.StepSkipped, api.StepFailed),
+		api.StepActive:    util.SetOf(api.StepCompleted, api.StepFailed),
 		api.StepCompleted: {},
 		api.StepFailed:    {},
 		api.StepSkipped:   {},
 	}
 
-	// WorkTransitions defines the valid work item lifecycle. Not-completed work
-	// may be retried or resolved, and succeeded work may begin compensation if
-	// the step ultimately fails
+	// WorkTransitions defines the valid work item lifecycle. Not-completed work may be retried or
+	// resolved, and succeeded work may begin compensation if the step ultimately fails
 	WorkTransitions = StateTransitions[api.WorkStatus]{
-		api.WorkPending: util.SetOf(
-			api.WorkActive,
-			api.WorkSucceeded,
-			api.WorkFailed,
-		),
-		api.WorkActive: util.SetOf(
-			api.WorkSucceeded,
-			api.WorkFailed,
-			api.WorkNotCompleted,
-		),
-		api.WorkSucceeded: util.SetOf(
-			api.WorkCompensating,
-		),
-		api.WorkFailed: {},
-		api.WorkNotCompleted: util.SetOf(
-			api.WorkPending,
-			api.WorkSucceeded,
-			api.WorkFailed,
-		),
+		api.WorkPending:      util.SetOf(api.WorkActive, api.WorkSucceeded, api.WorkFailed),
+		api.WorkActive:       util.SetOf(api.WorkSucceeded, api.WorkFailed, api.WorkNotCompleted),
+		api.WorkSucceeded:    util.SetOf(api.WorkCompensating),
+		api.WorkFailed:       {},
+		api.WorkNotCompleted: util.SetOf(api.WorkPending, api.WorkSucceeded, api.WorkFailed),
 		api.WorkCompensating: util.SetOf(
-			api.WorkCompPending,
-			api.WorkCompensated,
-			api.WorkCompFailed,
+			api.WorkCompPending, api.WorkCompensated, api.WorkCompFailed,
 		),
 		api.WorkCompPending: util.SetOf(
-			api.WorkCompensating,
-			api.WorkCompensated,
-			api.WorkCompFailed,
+			api.WorkCompensating, api.WorkCompensated, api.WorkCompFailed,
 		),
 		api.WorkCompensated: {},
 		api.WorkCompFailed:  {},
@@ -83,8 +53,8 @@ type TransitionArgs[T comparable] struct {
 	To   T
 }
 
-// CanTransition reports whether a status change is valid according to the
-// transition table. Remaining in the same state is not a transition
+// CanTransition reports whether a status change is valid according to the transition table.
+// Remaining in the same state is not a transition
 func (t StateTransitions[T]) CanTransition(args TransitionArgs[T]) bool {
 	if args.From == args.To {
 		return false

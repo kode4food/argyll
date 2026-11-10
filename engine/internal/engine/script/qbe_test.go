@@ -10,9 +10,7 @@ import (
 )
 
 func TestQBESelector(t *testing.T) {
-	cfg := script.QBESelector(api.SpaceQuery{
-		{"domain:payments", "tier:gold"},
-	})
+	cfg := script.QBESelector(api.SpaceQuery{{"domain:payments", "tier:gold"}})
 	assert.Equal(t, &api.ScriptConfig{
 		Language: api.ScriptLangArgyll,
 		Source: "\"domain:payments\" in value.tags &&\n    " +
@@ -30,15 +28,11 @@ func TestQBESelectorSingleTag(t *testing.T) {
 
 func TestQBESelectorSortsTags(t *testing.T) {
 	cfg := script.QBESelector(api.SpaceQuery{{"b", "a"}})
-	assert.Equal(t,
-		"\"a\" in value.tags &&\n    \"b\" in value.tags", cfg.Source)
+	assert.Equal(t, "\"a\" in value.tags &&\n    \"b\" in value.tags", cfg.Source)
 }
 
 func TestQBESelectorGroupsAlternatives(t *testing.T) {
-	cfg := script.QBESelector(api.SpaceQuery{
-		{"domain:risk", "language:lua"},
-		{"domain:payments"},
-	})
+	cfg := script.QBESelector(api.SpaceQuery{{"domain:risk", "language:lua"}, {"domain:payments"}})
 	assert.Equal(t, &api.ScriptConfig{
 		Language: api.ScriptLangArgyll,
 		Source: "(\"domain:risk\" in value.tags &&\n    " +
@@ -72,33 +66,20 @@ func TestQBESelectorMatches(t *testing.T) {
 
 	t.Run("extra tags on the step do not matter", func(t *testing.T) {
 		qbe := api.SpaceQuery{{"domain:risk"}}
-		assert.True(t, matches(qbe, api.Tags{
-			"domain:risk", "domain:payments", "example",
-		}))
+		assert.True(t, matches(qbe, api.Tags{"domain:risk", "domain:payments", "example"}))
 	})
 
 	t.Run("every tag in a term is required", func(t *testing.T) {
 		qbe := api.SpaceQuery{{"domain:risk", "tier:gold"}}
-		assert.True(t, matches(qbe, api.Tags{
-			"domain:risk", "tier:gold",
-		}))
+		assert.True(t, matches(qbe, api.Tags{"domain:risk", "tier:gold"}))
 		assert.False(t, matches(qbe, api.Tags{"domain:risk"}))
 	})
 
 	t.Run("any one term is enough", func(t *testing.T) {
-		qbe := api.SpaceQuery{
-			{"domain:risk", "language:lua"},
-			{"domain:payments", "language:lua"},
-		}
-		assert.True(t, matches(qbe, api.Tags{
-			"domain:risk", "language:lua",
-		}))
-		assert.True(t, matches(qbe, api.Tags{
-			"domain:payments", "language:lua",
-		}))
-		assert.False(t, matches(qbe, api.Tags{
-			"domain:risk", "domain:payments",
-		}))
+		qbe := api.SpaceQuery{{"domain:risk", "language:lua"}, {"domain:payments", "language:lua"}}
+		assert.True(t, matches(qbe, api.Tags{"domain:risk", "language:lua"}))
+		assert.True(t, matches(qbe, api.Tags{"domain:payments", "language:lua"}))
+		assert.False(t, matches(qbe, api.Tags{"domain:risk", "domain:payments"}))
 		assert.False(t, matches(qbe, api.Tags{"language:lua"}))
 	})
 

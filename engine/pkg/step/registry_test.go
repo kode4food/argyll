@@ -15,8 +15,7 @@ func TestHandlersWith(t *testing.T) {
 	h := step.Handlers{"base": base, "shared": base}
 
 	res := h.With(
-		step.Handlers{"shared": first, "first": first},
-		step.Handlers{"shared": second},
+		step.Handlers{"shared": first, "first": first}, step.Handlers{"shared": second},
 	)
 
 	assert.Equal(t, step.Handlers{

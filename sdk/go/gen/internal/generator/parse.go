@@ -59,8 +59,8 @@ type (
 		args string
 	}
 
-	// wrapNames are the attribute names a wrap directive declares, nil on a
-	// side it leaves to the signature
+	// wrapNames are the attribute names a wrap directive declares, nil on a side it leaves to the
+	// signature
 	wrapNames struct {
 		inputs  []string
 		outputs []string
@@ -159,9 +159,7 @@ func (g *pkgGen) addFunc(fn *ast.FuncDecl) error {
 	return nil
 }
 
-func (g *pkgGen) declOf(
-	fn *ast.FuncDecl, args string, wrap bool,
-) (stepDecl, error) {
+func (g *pkgGen) declOf(fn *ast.FuncDecl, args string, wrap bool) (stepDecl, error) {
 	head, options, err := ParseOptions(args)
 	if err != nil {
 		return stepDecl{}, g.errorAt(fn, "%w", err)
@@ -191,9 +189,7 @@ func (g *pkgGen) declOf(
 	return res, nil
 }
 
-func (g *pkgGen) stepIDOf(
-	fn *ast.FuncDecl, decl Head, wrap bool,
-) (string, error) {
+func (g *pkgGen) stepIDOf(fn *ast.FuncDecl, decl Head, wrap bool) (string, error) {
 	if decl.Attrs != "" && !wrap {
 		return "", g.errorAt(fn,
 			"%w: %s takes no attribute spec, so name them in the struct",
@@ -209,8 +205,8 @@ func (g *pkgGen) stepIDOf(
 	return id, nil
 }
 
-// claimEmbedType is the step type an embedded engine runs a step as, the embed
-// directive's or the step's ID, and names one function's handler
+// claimEmbedType is the step type an embedded engine runs a step as, the embed directive's or the
+// step's ID, and names one function's handler
 func (g *pkgGen) claimEmbedType(fn *ast.FuncDecl, id string) (string, error) {
 	typ, err := embedIn(fn)
 	if err != nil {
@@ -223,12 +219,10 @@ func (g *pkgGen) claimEmbedType(fn *ast.FuncDecl, id string) (string, error) {
 		return "", g.errorAt(fn, "%w: bad step type %q", ErrBadDirective, typ)
 	}
 	if reservedStepTypes[api.StepType(typ)] {
-		return "", g.errorAt(fn, "%w: step type %q is built in",
-			ErrBadDirective, typ)
+		return "", g.errorAt(fn, "%w: step type %q is built in", ErrBadDirective, typ)
 	}
 	if other, ok := g.embedTypes[typ]; ok {
-		return "", g.errorAt(fn, "%w: step type %q is already %s's",
-			ErrBadDirective, typ, other)
+		return "", g.errorAt(fn, "%w: step type %q is already %s's", ErrBadDirective, typ, other)
 	}
 	g.embedTypes[typ] = fn.Name.Name
 	return typ, nil
@@ -325,9 +319,7 @@ func (g *pkgGen) model(config *stepModelConfig) (stepModel, error) {
 	}, nil
 }
 
-func (g *pkgGen) stepFor(
-	fn *ast.FuncDecl, sig *types.Signature, decl stepDecl,
-) (stepModel, error) {
+func (g *pkgGen) stepFor(fn *ast.FuncDecl, sig *types.Signature, decl stepDecl) (stepModel, error) {
 	n := sig.Params().Len()
 	if n > 1 {
 		return stepModel{}, g.errorAt(fn,
@@ -394,25 +386,19 @@ func (g *pkgGen) stepFor(
 	})
 }
 
-func (g *pkgGen) wrapFor(
-	fn *ast.FuncDecl, sig *types.Signature, decl stepDecl,
-) (stepModel, error) {
+func (g *pkgGen) wrapFor(fn *ast.FuncDecl, sig *types.Signature, decl stepDecl) (stepModel, error) {
 	names, err := parseWrap(decl.attrs)
 	if err != nil {
 		return stepModel{}, g.errorAt(fn, "%w: %s", err, fn.Name.Name)
 	}
 	if names.inputs == nil {
-		names.inputs, err = g.inferNames(
-			fn, sig.Params(), sig.Params().Len(), "parameter",
-		)
+		names.inputs, err = g.inferNames(fn, sig.Params(), sig.Params().Len(), "parameter")
 	}
 	if err != nil {
 		return stepModel{}, err
 	}
 	if names.outputs == nil {
-		names.outputs, err = g.inferNames(
-			fn, sig.Results(), valueCount(sig.Results()), "result",
-		)
+		names.outputs, err = g.inferNames(fn, sig.Results(), valueCount(sig.Results()), "result")
 	}
 	if err != nil {
 		return stepModel{}, err
@@ -429,9 +415,7 @@ func (g *pkgGen) wrapFor(
 
 	inType := fn.Name.Name + "In"
 	outType := fn.Name.Name + "Out"
-	inCodec, inAttrs, err := g.wrapStruct(
-		inType, names.inputs, paramTypes(sig), false,
-	)
+	inCodec, inAttrs, err := g.wrapStruct(inType, names.inputs, paramTypes(sig), false)
 	if err != nil {
 		return stepModel{}, g.errorAt(fn, "%w", err)
 	}
@@ -493,18 +477,14 @@ func (g *pkgGen) compHandler(cfg *compHandlerConfig) (string, error) {
 	return g.stepCompHandler(cfg, sig)
 }
 
-func (g *pkgGen) compSignature(
-	fn *ast.FuncDecl, name string,
-) (*types.Signature, error) {
+func (g *pkgGen) compSignature(fn *ast.FuncDecl, name string) (*types.Signature, error) {
 	obj := g.pkg.Types.Scope().Lookup(name)
 	if obj == nil {
-		return nil, g.errorAt(fn, "%w: compensator %s not found",
-			ErrBadSignature, name)
+		return nil, g.errorAt(fn, "%w: compensator %s not found", ErrBadSignature, name)
 	}
 	declared, ok := obj.(*types.Func)
 	if !ok {
-		return nil, g.errorAt(fn,
-			"%w: compensator %s must be a function", ErrBadSignature, name)
+		return nil, g.errorAt(fn, "%w: compensator %s must be a function", ErrBadSignature, name)
 	}
 	sig := declared.Type().(*types.Signature)
 	if sig.Recv() != nil || sig.TypeParams() != nil || sig.Variadic() {
@@ -521,9 +501,7 @@ func (g *pkgGen) compSignature(
 	return sig, nil
 }
 
-func (g *pkgGen) stepCompHandler(
-	cfg *compHandlerConfig, sig *types.Signature,
-) (string, error) {
+func (g *pkgGen) stepCompHandler(cfg *compHandlerConfig, sig *types.Signature) (string, error) {
 	name := cfg.decl.compensate
 	params := sig.Params()
 	if params.Len() > 1 {
@@ -582,9 +560,7 @@ func (g *pkgGen) stepCompHandler(
 	}), nil
 }
 
-func (g *pkgGen) wrapCompHandler(
-	cfg *compHandlerConfig, sig *types.Signature,
-) (string, error) {
+func (g *pkgGen) wrapCompHandler(cfg *compHandlerConfig, sig *types.Signature) (string, error) {
 	name := cfg.decl.compensate
 	params := sig.Params()
 	names := make([]string, params.Len())
@@ -658,8 +634,7 @@ func (g *pkgGen) contract(
 	}
 	st, ok := t.Underlying().(*types.Struct)
 	if !ok {
-		return "", nil, g.errorAt(fn, "%w: %s is not a struct",
-			ErrBadSignature, g.typeOf(t))
+		return "", nil, g.errorAt(fn, "%w: %s is not a struct", ErrBadSignature, g.typeOf(t))
 	}
 	expr, err := g.codecExpr(t)
 	if err != nil {
@@ -680,9 +655,7 @@ func (g *pkgGen) contract(
 	return expr, attrs, nil
 }
 
-func (g *pkgGen) results(
-	fn *ast.FuncDecl, sig *types.Signature,
-) (types.Type, bool, error) {
+func (g *pkgGen) results(fn *ast.FuncDecl, sig *types.Signature) (types.Type, bool, error) {
 	res := sig.Results()
 	switch {
 	case res.Len() == 0:
@@ -738,8 +711,7 @@ func (g *pkgGen) wrapResults(
 func (g *pkgGen) signatureOf(fn *ast.FuncDecl) (*types.Signature, error) {
 	obj := g.pkg.TypesInfo.Defs[fn.Name]
 	if obj == nil {
-		return nil, g.errorAt(fn, "%w: %s could not be type checked",
-			ErrBadSignature, fn.Name.Name)
+		return nil, g.errorAt(fn, "%w: %s could not be type checked", ErrBadSignature, fn.Name.Name)
 	}
 	sig, ok := obj.Type().(*types.Signature)
 	if !ok || sig.Recv() != nil || sig.TypeParams() != nil {
@@ -785,16 +757,13 @@ func valueCount(res *types.Tuple) int {
 	return n
 }
 
-func taggedCompFields(
-	t types.Type, attrs api.AttributeSpecs,
-) ([]compField, error) {
+func taggedCompFields(t types.Type, attrs api.AttributeSpecs) ([]compField, error) {
 	if t == nil {
 		return nil, nil
 	}
 	st, ok := t.Underlying().(*types.Struct)
 	if !ok {
-		return nil, fmt.Errorf("%w: compensation input is not a struct",
-			ErrBadSignature)
+		return nil, fmt.Errorf("%w: compensation input is not a struct", ErrBadSignature)
 	}
 	fields, err := structFields(st)
 	if err != nil {
@@ -815,9 +784,7 @@ func taggedCompFields(
 	return res, nil
 }
 
-func namedCompFields(
-	names []string, types []types.Type, attrs api.AttributeSpecs,
-) []compField {
+func namedCompFields(names []string, types []types.Type, attrs api.AttributeSpecs) []compField {
 	res := make([]compField, len(names))
 	for i, name := range names {
 		res[i] = compField{

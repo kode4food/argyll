@@ -14,9 +14,7 @@ var (
 	ErrTooManyWorkItems = errors.New("too many work items")
 )
 
-func (e *Engine) collectStepOutputs(
-	items api.WorkItems, st *api.Step,
-) api.Args {
+func (e *Engine) collectStepOutputs(items api.WorkItems, st *api.Step) api.Args {
 	completed := make([]api.WorkState, 0, len(items))
 	for _, work := range items {
 		if policy.WorkSucceeded(work.Status) {
@@ -71,8 +69,7 @@ func productSize(multiArgs MultiArgs) (int, error) {
 	n := 1
 	for _, arr := range multiArgs {
 		if n > MaxWorkItemsPerStep/len(arr) {
-			return 0, fmt.Errorf("%w: max %d",
-				ErrTooManyWorkItems, MaxWorkItemsPerStep)
+			return 0, fmt.Errorf("%w: max %d", ErrTooManyWorkItems, MaxWorkItemsPerStep)
 		}
 		n *= len(arr)
 	}

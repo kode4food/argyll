@@ -381,10 +381,7 @@ func manyTags(n int) api.Tags {
 func TestStepHelperMethods(t *testing.T) {
 	as := assert.New(t)
 
-	st := helpers.NewTestStepWithArgs(
-		[]api.Name{"req1", "req2"},
-		[]api.Name{"opt1", "opt2"},
-	)
+	st := helpers.NewTestStepWithArgs([]api.Name{"req1", "req2"}, []api.Name{"opt1", "opt2"})
 
 	t.Run("get_all_input_args", func(t *testing.T) {
 		args := st.GetAllInputArgs()
@@ -1094,9 +1091,7 @@ func TestTagsNormalize(t *testing.T) {
 
 	as.Equal(
 		api.Tags{"domain:payments", "domain:risk"},
-		api.Tags{
-			"domain:risk", "domain:payments", "domain:risk",
-		}.Normalize(),
+		api.Tags{"domain:risk", "domain:payments", "domain:risk"}.Normalize(),
 	)
 	as.Nil(api.Tags(nil).Normalize())
 	as.Empty(api.Tags{}.Normalize())
@@ -1349,9 +1344,7 @@ func TestStepCopy(t *testing.T) {
 		as.Equal(9, st.WorkConfig.MaxRetries)
 		as.Equal(api.Tags{"team:platform"}, st.Tags)
 		as.Equal("changed", st.Attributes["input"].Required.Mapping.Name)
-		as.Equal(
-			"changed", st.Attributes["input"].Required.Mapping.Script.Source,
-		)
+		as.Equal("changed", st.Attributes["input"].Required.Mapping.Script.Source)
 	})
 }
 

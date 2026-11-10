@@ -13,8 +13,7 @@ import (
 )
 
 type (
-	// Step defines a flow step with its configuration, attributes, and
-	// execution details
+	// Step defines a flow step with its configuration, attributes, and execution details
 	Step struct {
 		Script      *ScriptConfig  `json:"script,omitempty"`
 		Tags        Tags           `json:"tags,omitempty"`
@@ -64,8 +63,7 @@ type (
 		SpaceID SpaceID `json:"space_id,omitempty"`
 	}
 
-	// WorkConfig configures retry and parallelism behavior for steps with
-	// multiple work items
+	// WorkConfig configures retry and parallelism behavior for steps with multiple work items
 	WorkConfig struct {
 		BackoffType string `json:"backoff_type,omitempty"`
 		MaxRetries  int    `json:"max_retries,omitempty"`
@@ -87,8 +85,8 @@ type (
 	// Steps contains a map of Steps by their ID
 	Steps = Map[StepID, *Step]
 
-	// Tags contains optional step metadata used for discovery and grouping,
-	// held as a set of opaque strings
+	// Tags contains optional step metadata used for discovery and grouping, held as a set of opaque
+	// strings
 	Tags Slice[string]
 
 	stepHash struct {
@@ -175,49 +173,22 @@ var (
 	ErrWorkNotCompleted      = errors.New("work not completed")
 	ErrMarshalStep           = errors.New("failed to marshal step definition")
 	ErrInvalidHandling       = errors.New("invalid step handling")
-	ErrCompensateRequired    = errors.New(
-		"compensated handling requires a compensation endpoint",
-	)
-	ErrCompensateHandling = errors.New(
-		"compensation endpoint requires compensated handling",
-	)
-	ErrAttributeCompensated = errors.New(
-		"compensated attribute requires compensated handling",
-	)
-	ErrCompensateArgConflict = errors.New(
-		"conflicting compensation argument",
-	)
+	ErrCompensateRequired    = errors.New("compensated handling requires a compensation endpoint")
+	ErrCompensateHandling    = errors.New("compensation endpoint requires compensated handling")
+	ErrAttributeCompensated  = errors.New("compensated attribute requires compensated handling")
+	ErrCompensateArgConflict = errors.New("conflicting compensation argument")
 )
 
 var (
-	validBackoffTypes = util.SetOf(
-		BackoffTypeFixed,
-		BackoffTypeLinear,
-		BackoffTypeExponential,
-	)
+	validBackoffTypes = util.SetOf(BackoffTypeFixed, BackoffTypeLinear, BackoffTypeExponential)
 
-	validScriptLanguages = util.SetOf(
-		ScriptLangArgyll,
-		ScriptLangLua,
-	)
+	validScriptLanguages = util.SetOf(ScriptLangArgyll, ScriptLangLua)
 
-	validHTTPMethods = util.SetOf(
-		"GET",
-		"POST",
-		"PUT",
-		"DELETE",
-	)
+	validHTTPMethods = util.SetOf("GET", "POST", "PUT", "DELETE")
 
-	validHandling = util.SetOf(
-		HandlingStandard,
-		HandlingMemoized,
-		HandlingCompensated,
-	)
+	validHandling = util.SetOf(HandlingStandard, HandlingMemoized, HandlingCompensated)
 
-	validActionModes = util.SetOf(
-		ActionModeSync,
-		ActionModeAsync,
-	)
+	validActionModes = util.SetOf(ActionModeSync, ActionModeAsync)
 
 	endpointParamPattern = regexp.MustCompile(`\{([^{}]+)\}`)
 )
@@ -225,12 +196,8 @@ var (
 // Validate checks if the step configuration is valid
 func (s *Step) Validate() error {
 	return call.Perform(
-		s.validateIdentity,
-		s.validateHandling,
-		s.validateTypeConfig,
-		s.validateAttributes,
-		s.validateMappingNames,
-		s.validateWorkConfig,
+		s.validateIdentity, s.validateHandling, s.validateTypeConfig, s.validateAttributes,
+		s.validateMappingNames, s.validateWorkConfig,
 	)
 }
 
@@ -252,8 +219,7 @@ func (s *Step) Copy() *Step {
 	}
 }
 
-// WithWorkDefaults returns a copy of the step with zero-valued work fields
-// filled in from defaults
+// WithWorkDefaults returns a copy of the step with zero-valued work fields filled in from defaults
 func (s *Step) WithWorkDefaults(defaults *WorkConfig) *Step {
 	res := s.Copy()
 	work := util.MutableCopy(res.WorkConfig)
@@ -310,8 +276,7 @@ func (s *Step) SortedArgNames() []string {
 	return all
 }
 
-// MultiArgNames returns names of attributes that support multiple work items
-// (for_each)
+// MultiArgNames returns names of attributes that support multiple work items (for_each)
 func (s *Step) MultiArgNames() []Name {
 	var names []Name
 	for name, attr := range s.Attributes {
@@ -367,8 +332,8 @@ func (s *Step) Equal(other *Step) bool {
 	return sameIdentity && sameAction && sameWork && sameContent
 }
 
-// HashKey computes a deterministic SHA256 hash key of the functional parts of
-// the step definition. Excludes ID, Name, and Tags (non-functional metadata)
+// HashKey computes a deterministic SHA256 hash key of the functional parts of the step definition.
+// Excludes ID, Name, and Tags (non-functional metadata)
 func (s *Step) HashKey() (string, error) {
 	s.hashOnce.Do(func() {
 		s.hashVal, s.hashErr = s.computeHashKey()
@@ -386,8 +351,8 @@ func (h *HTTPConfig) Equal(other *HTTPConfig) bool {
 		h.Health == other.Health
 }
 
-// CompensateTimeout returns the compensate timeout, falling back to the invoke
-// timeout when the action does not set its own
+// CompensateTimeout returns the compensate timeout, falling back to the invoke timeout when the
+// action does not set its own
 func (h *HTTPConfig) CompensateTimeout() int64 {
 	if h.Compensate != nil && h.Compensate.Timeout > 0 {
 		return h.Compensate.Timeout
@@ -469,8 +434,8 @@ func (t Tags) Equal(other Tags) bool {
 	return slices.Equal(t, other)
 }
 
-// Normalize returns the tags sorted and deduped, so that equality and digests
-// do not depend on declaration order
+// Normalize returns the tags sorted and deduped, so that equality and digests do not depend on
+// declaration order
 func (t Tags) Normalize() Tags {
 	if len(t) == 0 {
 		return t
@@ -548,8 +513,7 @@ func (s *Step) validateHTTPConfig() error {
 		return s.validateEndpointParams()
 	}
 	return call.Perform(
-		call.WithArg(validateAction, s.HTTP.Compensate),
-		s.validateEndpointParams,
+		call.WithArg(validateAction, s.HTTP.Compensate), s.validateEndpointParams,
 		s.validateCompensateParams,
 	)
 }
@@ -603,9 +567,7 @@ func (s *Step) resolveCompensationNames() (util.Set[string], error) {
 		mapped, _ := s.MappedName(name)
 		inner := string(mapped)
 		if known.Contains(inner) {
-			return nil, fmt.Errorf(
-				"%w: %s", ErrCompensateArgConflict, inner,
-			)
+			return nil, fmt.Errorf("%w: %s", ErrCompensateArgConflict, inner)
 		}
 		known.Add(inner)
 	}

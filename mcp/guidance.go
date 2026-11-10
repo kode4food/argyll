@@ -70,14 +70,12 @@ func (s *Server) registerGuidance(srv server.Server) {
 	)
 
 	srv.Prompt(
-		"implement_step",
-		"Guide an agent through implementing an Argyll step with the SDKs",
+		"implement_step", "Guide an agent through implementing an Argyll step with the SDKs",
 		server.User(guide.MustRead("implement-step-prompt.md")),
 	)
 
 	srv.Prompt(
-		"ingest_openapi_services",
-		"Guide an agent through ingesting bespoke OpenAPI services",
+		"ingest_openapi_services", "Guide an agent through ingesting bespoke OpenAPI services",
 		server.User(guide.MustRead("openapi-ingestion.md")),
 	)
 
@@ -102,9 +100,7 @@ func sdkStepTemplate(args sdkStepTemplateInput) (string, error) {
 	return renderStepTemplate(args, isExternal)
 }
 
-func renderStepTemplate(
-	args sdkStepTemplateInput, isExternal bool,
-) (string, error) {
+func renderStepTemplate(args sdkStepTemplateInput, isExternal bool) (string, error) {
 	lang := strings.ToLower(strings.TrimSpace(args.Language))
 	if lang != "go" && lang != "python" {
 		return "", errInvalidParams("language must be go or python")
@@ -119,9 +115,7 @@ func renderStepTemplate(
 	switch stepType {
 	case "service", "script":
 	case "flow":
-		return "", errInvalidParams(
-			"flow steps do not have SDK handler implementations",
-		)
+		return "", errInvalidParams("flow steps do not have SDK handler implementations")
 	default:
 		return "", errInvalidParams(
 			"step_type must identify an SDK-implemented service or script step",
@@ -148,21 +142,15 @@ func renderStepTemplate(
 	}
 	if stepType == "script" {
 		if isExternal {
-			return "", errInvalidParams(
-				"external is only valid for service steps",
-			)
+			return "", errInvalidParams("external is only valid for service steps")
 		}
 		if args.ActionMode != nil {
-			return "", errInvalidParams(
-				"action_mode is only valid for service steps",
-			)
+			return "", errInvalidParams("action_mode is only valid for service steps")
 		}
 		method = ""
 	}
 	if !isExternal && stepType != "script" && method != "POST" {
-		return "", errInvalidParams(
-			"SDK-hosted service templates require method POST",
-		)
+		return "", errInvalidParams("SDK-hosted service templates require method POST")
 	}
 	data := stepTemplateData{
 		StepName:         args.StepName,

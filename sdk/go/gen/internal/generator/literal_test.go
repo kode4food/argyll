@@ -10,8 +10,8 @@ import (
 )
 
 func TestGoLiteral(t *testing.T) {
-	// a named scalar renders as the bare constant its target type converts,
-	// and an unnamed composite spells itself out of the types it composes
+	// a named scalar renders as the bare constant its target type converts, and an unnamed
+	// composite spells itself out of the types it composes
 	tests := map[string]struct {
 		value any
 		want  string
@@ -125,8 +125,8 @@ func TestGoLiteralRejects(t *testing.T) {
 	}
 }
 
-// a map renders its entries in a stable order, so regenerating a package that
-// has not changed rewrites the same bytes
+// a map renders its entries in a stable order, so regenerating a package that has not changed
+// rewrites the same bytes
 func TestGoLiteralMapOrder(t *testing.T) {
 	attrs := api.AttributeSpecs{
 		"zeta":  {Role: api.RoleOutput},

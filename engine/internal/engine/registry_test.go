@@ -21,7 +21,9 @@ type clusterWriteBackend struct {
 	beforeAppend func(timebox.AppendRequest) error
 }
 
-var ErrClusterWrite = errors.New("cluster write unavailable")
+var (
+	ErrClusterWrite = errors.New("cluster write unavailable")
+)
 
 func TestRegisterEmptyScripts(t *testing.T) {
 	tests := []struct {
@@ -59,8 +61,7 @@ func TestRegisterEmptyScripts(t *testing.T) {
 				cat, err = env.Engine.GetCatalogState()
 				assert.NoError(t, err)
 				assert.Nil(t, cat.Steps[st.ID].Predicate)
-				assert.NotContains(t,
-					cat.Steps[st.ID].Attributes, api.Name("input"))
+				assert.NotContains(t, cat.Steps[st.ID].Attributes, api.Name("input"))
 			})
 		})
 	}
@@ -306,9 +307,7 @@ func TestRegisterStepValidatesMappings(t *testing.T) {
 
 func TestRegisterStepArgExInvalid(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
-		st := helpers.NewStepWithPredicate(
-			"bad-argex-predicate", api.ScriptLangArgyll, "value[",
-		)
+		st := helpers.NewStepWithPredicate("bad-argex-predicate", api.ScriptLangArgyll, "value[")
 
 		err := eng.RegisterStep(st)
 		assert.ErrorIs(t, err, api.ErrInvalidStep)
@@ -451,8 +450,8 @@ func TestUpdateStepNotFound(t *testing.T) {
 	})
 }
 
-// TestStepHealthSettledAtomically proves registration and the health it implies
-// commit together, so a failing health write aborts the registration
+// TestStepHealthSettledAtomically proves registration and the health it implies commit together, so
+// a failing health write aborts the registration
 func TestStepHealthSettledAtomically(t *testing.T) {
 	var fail atomic.Bool
 	backend := &clusterWriteBackend{
@@ -495,8 +494,6 @@ func (b *clusterWriteBackend) Append(reqs ...timebox.AppendRequest) error {
 	return b.Backend.Append(reqs...)
 }
 
-func (b *clusterWriteBackend) NewStore(
-	cfg timebox.Config,
-) (*timebox.Store, error) {
+func (b *clusterWriteBackend) NewStore(cfg timebox.Config) (*timebox.Store, error) {
 	return timebox.NewStore(b, cfg)
 }

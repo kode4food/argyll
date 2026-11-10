@@ -50,9 +50,7 @@ func TestDelivery(t *testing.T) {
 	assert.NoError(t, err)
 	message := newMessage()
 	assert.NoError(t, store.Transact(func(tx *timebox.Transaction) error {
-		return scheduler.Schedule(
-			tx, []string{"due"}, scheduler.Now().Add(-time.Second), message,
-		)
+		return scheduler.Schedule(tx, []string{"due"}, scheduler.Now().Add(-time.Second), message)
 	}))
 
 	ctx, cancel := context.WithCancel(t.Context())

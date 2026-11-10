@@ -77,8 +77,7 @@ func reserveStock(order Order) (reservation StockReservation, err error) {
 
 	currentStock, ok := inv.stockLevels[productID]
 	if !ok {
-		slog.Warn("Product not found in stock system",
-			slog.String("product_id", productID))
+		slog.Warn("Product not found in stock system", slog.String("product_id", productID))
 		return StockReservation{}, argyll.NotFound(
 			"product %s not found in stock system", productID,
 		)
@@ -90,8 +89,7 @@ func reserveStock(order Order) (reservation StockReservation, err error) {
 			slog.Int("requested", quantity),
 			slog.Int("available", currentStock))
 		return StockReservation{}, argyll.Conflict(
-			"insufficient stock: requested %d, available %d",
-			quantity, currentStock,
+			"insufficient stock: requested %d, available %d", quantity, currentStock,
 		)
 	}
 
@@ -105,14 +103,11 @@ func reserveStock(order Order) (reservation StockReservation, err error) {
 		Quantity:      quantity,
 		Status:        "reserved",
 		ReservedAt:    time.Now().Format(time.RFC3339),
-		ExpiresAt: time.Now().Add(30 * time.Minute).
-			Format(time.RFC3339),
+		ExpiresAt:     time.Now().Add(30 * time.Minute).Format(time.RFC3339),
 	}
 
 	// Track reservation
-	inv.reservations[productID] = append(
-		inv.reservations[productID], reservation,
-	)
+	inv.reservations[productID] = append(inv.reservations[productID], reservation)
 
 	slog.Info("Stock reserved",
 		slog.String("reservation_id", reservation.ReservationID),
@@ -137,8 +132,8 @@ func releaseStock(reservation StockReservation) error {
 	inv.mu.Lock()
 	defer inv.mu.Unlock()
 
-	// Releasing an unknown reservation is a no-op, so a repeated compensation
-	// cannot return the same stock twice
+	// Releasing an unknown reservation is a no-op, so a repeated compensation cannot return the
+	// same stock twice
 	held := inv.reservations[productID]
 	idx := slices.IndexFunc(held, func(r StockReservation) bool {
 		return r.ReservationID == reservationID

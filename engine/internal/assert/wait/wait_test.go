@@ -31,9 +31,7 @@ func newHub() (*event.Hub, topic.Topic[*timebox.Event]) {
 	return event.NewHubWithTopic(top), top
 }
 
-func newEvent(
-	typ api.EventType, agg timebox.AggregateID, data any,
-) *timebox.Event {
+func newEvent(typ api.EventType, agg timebox.AggregateID, data any) *timebox.Event {
 	payload, _ := json.Marshal(data)
 	return &timebox.Event{
 		Type:        timebox.EventType(typ),
@@ -233,15 +231,9 @@ func TestWrapperFilters(t *testing.T) {
 	assert.True(t, wait.WorkStartedAny(fs)(stepEv(api.EventTypeWorkStarted)))
 	assert.True(t, wait.WorkSucceeded(fs)(stepEv(api.EventTypeWorkSucceeded)))
 	assert.True(t, wait.WorkFailed(fs)(stepEv(api.EventTypeWorkFailed)))
-	assert.True(t, wait.WorkRetryScheduled(fs)(
-		stepEv(api.EventTypeWorkRetryScheduled),
-	))
-	assert.True(t, wait.WorkRetryScheduledAny(fs)(stepEv(
-		api.EventTypeWorkRetryScheduled,
-	)))
-	assert.True(t, wait.WorkRetryScheduledAny(fs)(stepEv(
-		api.EventTypeWorkRetryScheduled,
-	)))
+	assert.True(t, wait.WorkRetryScheduled(fs)(stepEv(api.EventTypeWorkRetryScheduled)))
+	assert.True(t, wait.WorkRetryScheduledAny(fs)(stepEv(api.EventTypeWorkRetryScheduled)))
+	assert.True(t, wait.WorkRetryScheduledAny(fs)(stepEv(api.EventTypeWorkRetryScheduled)))
 	distinct := wait.WorkRetryScheduledDistinct(fs)
 	assert.True(t, distinct(workEv(api.EventTypeWorkRetryScheduled, "one")))
 	assert.False(t, distinct(workEv(api.EventTypeWorkRetryScheduled, "one")))

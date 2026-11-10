@@ -12,24 +12,22 @@ import (
 )
 
 type (
-	// Options configures an embedded Engine. A nil Config uses the defaults,
-	// and a nil Handlers map installs the standard handlers, which reject async
-	// HTTP steps
+	// Options configures an embedded Engine. A nil Config uses the defaults, and a nil Handlers map
+	// installs the standard handlers, which reject async HTTP steps
 	Options struct {
 		Backend  OpenBackend
 		Config   *config.Config
 		Handlers step.Handlers
 	}
 
-	// OpenBackend opens the timebox backend an Engine runs on, wired to the
-	// publisher its committed events must reach
+	// OpenBackend opens the timebox backend an Engine runs on, wired to the publisher its committed
+	// events must reach
 	OpenBackend = engine.OpenBackend
 )
 
 var _ Engine = (*engine.Engine)(nil)
 
-// New creates an Engine over the backend Options opens. Nothing is processed
-// until Start is called
+// New creates an Engine over the backend Options opens. Nothing is processed until Start is called
 func New(opts Options) (Engine, error) {
 	cfg := opts.Config
 	if cfg == nil {
@@ -47,16 +45,13 @@ func New(opts Options) (Engine, error) {
 	return eng, nil
 }
 
-// handlers returns the exact caller-supplied set. A nil set preserves the
-// default configuration for callers that do not customize handlers
+// handlers returns the exact caller-supplied set. A nil set preserves the default configuration for
+// callers that do not customize handlers
 func (o Options) handlers(cfg *config.Config) step.Handlers {
 	if o.Handlers != nil {
 		return o.Handlers
 	}
 	return builtins.All(
-		builtins.NewHTTPClient(
-			time.Duration(cfg.StepTimeout)*time.Millisecond,
-		),
-		nil,
+		builtins.NewHTTPClient(time.Duration(cfg.StepTimeout)*time.Millisecond), nil,
 	)
 }

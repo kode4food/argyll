@@ -54,8 +54,7 @@ func TestScalars(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "hi", s)
 
-	i, err := codec.DecodeFrom(codec.Int64,
-		strings.NewReader("9007199254740993"))
+	i, err := codec.DecodeFrom(codec.Int64, strings.NewReader("9007199254740993"))
 	assert.NoError(t, err)
 	assert.Equal(t, int64(9007199254740993), i)
 
@@ -147,13 +146,11 @@ func TestNamedScalarTypes(t *testing.T) {
 }
 
 func TestNullComposites(t *testing.T) {
-	out, err := codec.DecodeFrom(codec.Slice(codec.String),
-		strings.NewReader("null"))
+	out, err := codec.DecodeFrom(codec.Slice(codec.String), strings.NewReader("null"))
 	assert.NoError(t, err)
 	assert.Nil(t, out)
 
-	m, err := codec.DecodeFrom(codec.Map(codec.String),
-		strings.NewReader("null"))
+	m, err := codec.DecodeFrom(codec.Map(codec.String), strings.NewReader("null"))
 	assert.NoError(t, err)
 	assert.Nil(t, m)
 }
@@ -182,14 +179,12 @@ func TestOptionalEncoding(t *testing.T) {
 
 	s := []string{"value"}
 	sb.Reset()
-	assert.NoError(t,
-		codec.EncodeTo(codec.Optional(codec.Slice(codec.String)), &sb, &s))
+	assert.NoError(t, codec.EncodeTo(codec.Optional(codec.Slice(codec.String)), &sb, &s))
 	assert.JSONEq(t, `["value"]`, sb.String())
 
 	m := map[string]string{"key": "value"}
 	sb.Reset()
-	assert.NoError(t,
-		codec.EncodeTo(codec.Optional(codec.Map(codec.String)), &sb, &m))
+	assert.NoError(t, codec.EncodeTo(codec.Optional(codec.Map(codec.String)), &sb, &m))
 	assert.JSONEq(t, `{"key":"value"}`, sb.String())
 }
 

@@ -20,8 +20,8 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/util"
 )
 
-var errTransient = fmt.Errorf(
-	"%w: transient failure", api.ErrWorkNotCompleted,
+var (
+	errTransient = fmt.Errorf("%w: transient failure", api.ErrWorkNotCompleted)
 )
 
 func TestRecoverEmptyStep(t *testing.T) {
@@ -222,8 +222,7 @@ func TestRecoverAbandonedWork(t *testing.T) {
 		assert.NoError(t, env.Engine.RecoverFlow(fid))
 		fl, err := env.Engine.GetFlowState(fid)
 		assert.NoError(t, err)
-		assert.Equal(t, api.WorkFailed,
-			fl.Executions[st.ID].WorkItems["pending"].Status)
+		assert.Equal(t, api.WorkFailed, fl.Executions[st.ID].WorkItems["pending"].Status)
 		assert.False(t, fl.DeactivatedAt.IsZero())
 		status, err := env.Engine.GetFlowStatus(fid)
 		assert.NoError(t, err)
@@ -271,8 +270,8 @@ func TestCommittedEventFilter(t *testing.T) {
 	})
 }
 
-// TestDuplicateRecoveryStartsWorkOnce proves the deterministic task keys
-// collapse a recovery that runs more than once
+// TestDuplicateRecoveryStartsWorkOnce proves the deterministic task keys collapse a recovery that
+// runs more than once
 func TestDuplicateRecoveryStartsWorkOnce(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		assert.NoError(t, env.Engine.Start())
@@ -307,9 +306,9 @@ func TestDuplicateRecoveryStartsWorkOnce(t *testing.T) {
 	})
 }
 
-// TestBatchUsesFinalState proves recovery reads the projection at the end of
-// the committed batch. The intermediate state carries a lapsed retry, so a
-// per-event reading would dispatch work the final state has already settled
+// TestBatchUsesFinalState proves recovery reads the projection at the end of the committed batch.
+// The intermediate state carries a lapsed retry, so a per-event reading would dispatch work the
+// final state has already settled
 func TestBatchUsesFinalState(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		assert.NoError(t, env.Engine.Start())
@@ -348,14 +347,12 @@ func TestBatchUsesFinalState(t *testing.T) {
 
 		fl, err := env.Engine.GetFlowState(id)
 		assert.NoError(t, err)
-		assert.Equal(t,
-			api.WorkSucceeded, fl.Executions[st.ID].WorkItems[tkn].Status,
-		)
+		assert.Equal(t, api.WorkSucceeded, fl.Executions[st.ID].WorkItems[tkn].Status)
 	})
 }
 
-// TestConcurrentReplicasStartWorkOnce proves optimistic concurrency lets only
-// one replica commit the claim when both reconcile the same condition
+// TestConcurrentReplicasStartWorkOnce proves optimistic concurrency lets only one replica commit
+// the claim when both reconcile the same condition
 func TestConcurrentReplicasStartWorkOnce(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		cfg := util.MutableCopy(env.Config)
@@ -398,15 +395,13 @@ func TestConcurrentReplicasStartWorkOnce(t *testing.T) {
 					api.WorkSucceeded
 			},
 		})
-		assert.Equal(t,
-			api.WorkSucceeded, fl.Executions[st.ID].WorkItems[tkn].Status,
-		)
+		assert.Equal(t, api.WorkSucceeded, fl.Executions[st.ID].WorkItems[tkn].Status)
 		assert.Len(t, env.MockClient.GetInvocations(), 1)
 	})
 }
 
-// TestTransientFailureRearms proves a failing attempt keeps being retried
-// while its projected retry condition stands
+// TestTransientFailureRearms proves a failing attempt keeps being retried while its projected retry
+// condition stands
 func TestTransientFailureRearms(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		assert.NoError(t, env.Engine.Start())
@@ -443,8 +438,8 @@ func TestTransientFailureRearms(t *testing.T) {
 	})
 }
 
-// TestScriptCannotStayActive proves a script whose executor died between the
-// WorkStarted commit and the invocation is settled by its recovery deadline
+// TestScriptCannotStayActive proves a script whose executor died between the WorkStarted commit and
+// the invocation is settled by its recovery deadline
 func TestScriptCannotStayActive(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		st := &api.Step{
@@ -490,22 +485,18 @@ func TestScriptCannotStayActive(t *testing.T) {
 				return fl.Status == api.FlowCompleted
 			},
 		})
-		assert.Equal(t,
-			api.WorkSucceeded, fl.Executions[st.ID].WorkItems[tkn].Status,
-		)
+		assert.Equal(t, api.WorkSucceeded, fl.Executions[st.ID].WorkItems[tkn].Status)
 	})
 }
 
-// TestDeferredDispatchResumesWhenHealthy proves work committed while no replica
-// could act is picked up on recovery, with no call to RecoverFlow
+// TestDeferredDispatchResumesWhenHealthy proves work committed while no replica could act is picked
+// up on recovery, with no call to RecoverFlow
 func TestDeferredDispatchResumesWhenHealthy(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		st := helpers.NewSimpleStep("reconcile-deferred-step")
 		assert.NoError(t, env.Engine.RegisterStep(st))
 		env.MockClient.SetResponse(st.ID, api.Args{})
-		assert.NoError(t, env.Engine.UpdateStepHealth(
-			st.ID, api.HealthUnhealthy, "offline",
-		))
+		assert.NoError(t, env.Engine.UpdateStepHealth(st.ID, api.HealthUnhealthy, "offline"))
 		assert.NoError(t, env.Engine.Start())
 
 		id := api.FlowID("wf-reconcile-deferred")
@@ -515,22 +506,15 @@ func TestDeferredDispatchResumesWhenHealthy(t *testing.T) {
 		}
 		assert.NoError(t, env.Engine.StartPlan(id, pl))
 
-		assert.False(t,
-			env.MockClient.WaitForInvocation(st.ID, 300*time.Millisecond),
-		)
+		assert.False(t, env.MockClient.WaitForInvocation(st.ID, 300*time.Millisecond))
 
-		assert.NoError(t, env.Engine.UpdateStepHealth(
-			st.ID, api.HealthHealthy, "",
-		))
-		assert.True(t,
-			env.MockClient.WaitForInvocation(st.ID, wait.DefaultTimeout),
-		)
+		assert.NoError(t, env.Engine.UpdateStepHealth(st.ID, api.HealthHealthy, ""))
+		assert.True(t, env.MockClient.WaitForInvocation(st.ID, wait.DefaultTimeout))
 	})
 }
 
 func seedRetryScheduledFlow(
-	env *helpers.TestEngineEnv, fs api.FlowStep, tkn api.Token,
-	extra ...helpers.FlowEvent,
+	env *helpers.TestEngineEnv, fs api.FlowStep, tkn api.Token, extra ...helpers.FlowEvent,
 ) {
 	pl := &api.ExecutionPlan{
 		Goals: api.Goals{Steps: []api.StepID{fs.StepID}},
@@ -566,8 +550,7 @@ func seedRetryScheduledFlow(
 			},
 		},
 	}
-	assert.NoError(env.T,
-		env.RaiseFlowEvents(fs.FlowID, append(evs, extra...)...))
+	assert.NoError(env.T, env.RaiseFlowEvents(fs.FlowID, append(evs, extra...)...))
 }
 
 func mustStep(env *helpers.TestEngineEnv, sid api.StepID) *api.Step {
@@ -576,9 +559,7 @@ func mustStep(env *helpers.TestEngineEnv, sid api.StepID) *api.Step {
 	return cat.Steps[sid]
 }
 
-func scheduleKeys(
-	t *testing.T, env *helpers.TestEngineEnv,
-) util.Set[timebox.ScheduleKey] {
+func scheduleKeys(t *testing.T, env *helpers.TestEngineEnv) util.Set[timebox.ScheduleKey] {
 	t.Helper()
 	keys, err := env.ScheduleKeys()
 	assert.NoError(t, err)

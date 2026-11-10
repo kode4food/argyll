@@ -17,9 +17,7 @@ type mockGetter struct {
 	err   error
 }
 
-func (g *mockGetter) GetAttribute(
-	fid api.FlowID, attr api.Name,
-) (any, bool, error) {
+func (g *mockGetter) GetAttribute(fid api.FlowID, attr api.Name) (any, bool, error) {
 	if g.err != nil {
 		return nil, false, g.err
 	}
@@ -488,9 +486,7 @@ func TestEventuallyWithError(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			w := assert.New(t)
-			w.EventuallyWithError(
-				tt.condition, tt.timeout, "condition should succeed",
-			)
+			w.EventuallyWithError(tt.condition, tt.timeout, "condition should succeed")
 			testify.False(t, t.Failed())
 		})
 	}
@@ -504,8 +500,6 @@ func TestEventuallyWithErrorTimeout(t *testing.T) {
 		return errors.New("persistent error")
 	}
 
-	w.EventuallyWithError(
-		condition, 200*time.Millisecond, "should timeout with error",
-	)
+	w.EventuallyWithError(condition, 200*time.Millisecond, "should timeout with error")
 	testify.True(t, mockT.Failed())
 }

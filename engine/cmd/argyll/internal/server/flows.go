@@ -107,9 +107,7 @@ func (s *Server) listFlows(c *gin.Context) {
 }
 
 func (s *Server) startFlow(c *gin.Context) {
-	c.Request.Body = http.MaxBytesReader(
-		c.Writer, c.Request.Body, MaxFlowBodyBytes,
-	)
+	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, MaxFlowBodyBytes)
 	var req api.CreateFlowRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, api.ErrorResponse{

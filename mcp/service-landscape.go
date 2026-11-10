@@ -80,9 +80,7 @@ func (s *Server) analyzeServiceSpec(args analyzeServiceSpecArgs) (any, error) {
 	}, nil)
 }
 
-func (s *Server) analyzeServiceLandscape(
-	args analyzeServiceLandscapeArgs,
-) (any, error) {
+func (s *Server) analyzeServiceLandscape(args analyzeServiceLandscapeArgs) (any, error) {
 	if len(args.Services) == 0 {
 		return nil, errInvalidParams("services is required")
 	}

@@ -11,19 +11,15 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/flow"
 )
 
-// TestInitialFlowInputs verifies that flows can start with pre-populated
-// attributes that aren't produced by any step. These initial inputs are
-// provided when the flow starts and are available to all steps
+// TestInitialFlowInputs verifies that flows can start with pre-populated attributes that aren't
+// produced by any step. These initial inputs are provided when the flow starts and are available to
+// all steps
 func TestInitialFlowInputs(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		assert.NoError(t, env.Engine.Start())
 
-		// No step produces initialValue or configValue, so both must arrive as
-		// initial flow inputs
-		stepA := helpers.NewTestStepWithArgs(
-			[]api.Name{"initialValue", "configValue"},
-			nil,
-		)
+		// No step produces initialValue or configValue, so both must arrive as initial flow inputs
+		stepA := helpers.NewTestStepWithArgs([]api.Name{"initialValue", "configValue"}, nil)
 		stepA.ID = "step-a"
 		stepA.Attributes["result"] = &api.AttributeSpec{
 			Role: api.RoleOutput,
@@ -65,9 +61,7 @@ func TestInitialFlowInputs(t *testing.T) {
 
 		id := api.FlowID("test-initial-inputs")
 		fl := env.WaitForFlowStatus(id, func() {
-			err := env.Engine.StartPlan(id, pl,
-				flow.WithInit(initialInputs),
-			)
+			err := env.Engine.StartPlan(id, pl, flow.WithInit(initialInputs))
 			assert.NoError(t, err)
 		})
 
@@ -87,9 +81,7 @@ func TestInitialFlowInputs(t *testing.T) {
 		// Verify final attributes contain initial values plus step A's output
 		assert.Equal(t, "user-provided", fl.Attributes["initialValue"][0].Value)
 		assert.EqualValues(t, 42, fl.Attributes["configValue"][0].Value)
-		assert.Equal(t,
-			"computed from initial inputs", fl.Attributes["result"][0].Value,
-		)
+		assert.Equal(t, "computed from initial inputs", fl.Attributes["result"][0].Value)
 
 		// Verify initial attributes have no producing step (provenance = empty)
 		assert.Equal(t, api.StepID(""), fl.Attributes["initialValue"][0].Step)

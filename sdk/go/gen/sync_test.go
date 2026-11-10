@@ -74,8 +74,7 @@ func TestSyncError(t *testing.T) {
 
 	w := invoke(h, `{"left":1,"right":1}`)
 	assert.Equal(t, gen.FailureStatus, w.Code)
-	assert.Equal(t, api.ProblemJSONContentType,
-		w.Header().Get("Content-Type"))
+	assert.Equal(t, api.ProblemJSONContentType, w.Header().Get("Content-Type"))
 	assert.Contains(t, w.Body.String(), errRefused.Error())
 }
 
@@ -85,8 +84,7 @@ func TestSyncSemanticErrors(t *testing.T) {
 		want    int
 		message string
 	}{
-		{argyll.NotFound("product %s", "missing"),
-			http.StatusNotFound, "product missing"},
+		{argyll.NotFound("product %s", "missing"), http.StatusNotFound, "product missing"},
 		{argyll.Conflict("order %d already exists", 42),
 			http.StatusConflict, "order 42 already exists"},
 	} {
@@ -168,8 +166,7 @@ func TestCompensate(t *testing.T) {
 
 func TestCompensateError(t *testing.T) {
 	h := gen.Compensate(
-		codec.Struct[struct{}](),
-		func(struct{}) error { return errRefused },
+		codec.Struct[struct{}](), func(struct{}) error { return errRefused },
 	)
 
 	w := invoke(h, `{}`)
@@ -187,9 +184,7 @@ func TestRegisterFailure(t *testing.T) {
 	client := argyll.NewClient(engine.URL, time.Second)
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
-	err := gen.Register(
-		ctx, client, "http://host:1", sumStep(),
-	)
+	err := gen.Register(ctx, client, "http://host:1", sumStep())
 	assert.Error(t, err)
 }
 
@@ -210,9 +205,7 @@ func TestRegisterConflict(t *testing.T) {
 	defer engine.Close()
 
 	client := argyll.NewClient(engine.URL, time.Second)
-	err := gen.Register(
-		context.Background(), client, "http://host:1", sumStep(),
-	)
+	err := gen.Register(context.Background(), client, "http://host:1", sumStep())
 	assert.NoError(t, err)
 	assert.Equal(t, 1, posts)
 	assert.Equal(t, 1, puts)
@@ -335,8 +328,7 @@ func compArgsCodec() codec.Codec[compArgs] {
 }
 
 func invoke(h http.HandlerFunc, body string) *httptest.ResponseRecorder {
-	r := httptest.NewRequest(http.MethodPost, "/sum",
-		strings.NewReader(body))
+	r := httptest.NewRequest(http.MethodPost, "/sum", strings.NewReader(body))
 	w := httptest.NewRecorder()
 	h(w, r)
 	return w

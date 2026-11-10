@@ -24,8 +24,8 @@ type deadlineConflictBackend struct {
 	beforeAppend func(timebox.AppendRequest) error
 }
 
-// newDeadlineStep builds an async step whose callback deadline is short enough
-// to expire during a test
+// newDeadlineStep builds an async step whose callback deadline is short enough to expire during a
+// test
 func newDeadlineStep(id api.StepID) *api.Step {
 	st := helpers.NewSimpleStep(id)
 	st.HTTP.Invoke.Mode = api.ActionModeAsync
@@ -58,10 +58,7 @@ func TestAsyncCallbackDeadlineExpires(t *testing.T) {
 		env.WithConsumer(func(consumer *event.Consumer) {
 			w := wait.On(t, consumer)
 			assert.NoError(t, env.Engine.StartPlan(id, pl))
-			w.ForAll(
-				wait.WorkNotCompleted(fs),
-				wait.WorkRetryScheduled(fs),
-			)
+			w.ForAll(wait.WorkNotCompleted(fs), wait.WorkRetryScheduled(fs))
 		})
 
 		fl := env.WaitForTerminalFlow(id)
@@ -118,8 +115,8 @@ func TestOrphanedWorkExpiresOnAnotherNode(t *testing.T) {
 		id := api.FlowID("wf-orphan-deadline")
 		tkn := api.Token("work-orphaned")
 
-		// Work claimed by a node that never came back, so no local task for
-		// it exists and only this engine's recovery can expire it
+		// Work claimed by a node that never came back, so no local task for it exists and only this
+		// engine's recovery can expire it
 		assert.NoError(t, env.SeedStartedWork(
 			api.FlowStep{FlowID: id, StepID: st.ID},
 			&api.ExecutionPlan{
@@ -132,9 +129,7 @@ func TestOrphanedWorkExpiresOnAnotherNode(t *testing.T) {
 
 		fl := env.WaitForTerminalFlow(id)
 		assert.Equal(t, api.FlowFailed, fl.Status)
-		assert.Equal(t,
-			api.WorkFailed, fl.Executions[st.ID].WorkItems[tkn].Status,
-		)
+		assert.Equal(t, api.WorkFailed, fl.Executions[st.ID].WorkItems[tkn].Status)
 	})
 }
 
@@ -229,9 +224,7 @@ func TestLiveChildFlowSurvivesDeadline(t *testing.T) {
 		assert.NoError(t, env.SeedStartedWork(fs, pl, tkn))
 
 		// The child controls completion, not the parent's work timeout
-		childID := api.FlowID(
-			string(id) + ":" + string(parent.ID) + ":" + string(tkn),
-		)
+		childID := api.FlowID(string(id) + ":" + string(parent.ID) + ":" + string(tkn))
 		assert.NoError(t, env.RaiseFlowEvents(childID, helpers.FlowEvent{
 			Type: api.EventTypeFlowStarted,
 			Data: api.FlowStartedEvent{
@@ -261,9 +254,7 @@ func TestLiveChildFlowSurvivesDeadline(t *testing.T) {
 		time.Sleep(400 * time.Millisecond)
 		fl, err := peer.GetFlowState(id)
 		assert.NoError(t, err)
-		assert.Equal(t,
-			api.WorkActive, fl.Executions[parent.ID].WorkItems[tkn].Status,
-		)
+		assert.Equal(t, api.WorkActive, fl.Executions[parent.ID].WorkItems[tkn].Status)
 	})
 }
 
@@ -355,9 +346,7 @@ func TestDeadlineConflict(t *testing.T) {
 	}
 }
 
-func (b *deadlineConflictBackend) Append(
-	reqs ...timebox.AppendRequest,
-) error {
+func (b *deadlineConflictBackend) Append(reqs ...timebox.AppendRequest) error {
 	for _, req := range reqs {
 		if err := b.beforeAppend(req); err != nil {
 			return err

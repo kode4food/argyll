@@ -178,7 +178,7 @@ Structs with an `Args` suffix are parameter bundles for a single function. Struc
 - **Value passing**: at their single call site, Args/Res structs are passed and returned by value (no `*`), whatever their size. They are short-lived and stack-allocated by design.
 - **Pointer threshold (plain-named structs)**: a struct that crosses call sites is passed by value or by pointer according to its size, not by habit. Up to **32 bytes** (4 machine words) always by value. **33–64 bytes**: by value, unless it is read by three or more functions in a chain. Over **64 bytes** (one cache line): by pointer. Regardless of size, use a pointer when the callee mutates the struct or its identity matters. A `&x` that never escapes stays on the stack: the cost of a pointer there is the indirection, not an allocation.
 - **Field names must stand alone**: a name that worked as a positional parameter (short, disambiguated by position and the surrounding call) does not automatically work as a named struct field read on its own at a call site. Spell out abbreviations that aren't immediately decodable without reading the function body: `st` → `step`, `pl` → `plan`, `h` → `health`, `e` → `engine`. Two fields of the same type still need names that disambiguate them beyond position: `parent api.FlowID` next to `id api.FlowID` is the same-type-adjacency hazard above, so use `parentFlowID` / `childFlowID`.
-- **Literal formatting**: if a struct literal fits on one line, leave it on one line. If it wraps, use exactly one field per line, and never pack two or more fields onto a wrapped line.
+- **Literal formatting**: a struct literal always wraps, even when it fits on one line. Use exactly one field per line, and never pack two or more fields onto a wrapped line.
 
 ```go
 // Good: declared immediately before its function, used at one call site
@@ -194,10 +194,10 @@ func startCompensatingServer(
     t *testing.T, args startCompensatingServerArgs,
 ) string { ... }
 
-// Good: fits on one line, stays on one line
+// Bad: fits on one line, but struct literals always wrap
 startFlow(startFlowArgs{fid: fid, plan: pl, state: st})
 
-// Good: wraps, so one field per line
+// Good: one field per line
 startFlow(startFlowArgs{
     fid:      fid,
     plan:     pl,
@@ -363,7 +363,7 @@ type FlowId string
 
 ### Line Width
 
-Maximum 80 characters per line (tabs count as 4 spaces). This applies to code _and_ comments. Keep short argument lists on a single line when they fit; only break lines when the 80-character limit would be exceeded. When wrapping function signatures or call arguments, pack as many arguments per line as will fit under the limit before wrapping again. When you must wrap, break after the opening paren:
+Maximum 100 characters per line (tabs count as 4 spaces). This applies to code _and_ comments. Keep short argument lists on a single line when they fit; only break lines when the 100-character limit would be exceeded. When wrapping function signatures or call arguments, pack as many arguments per line as will fit under the limit before wrapping again. When you must wrap, break after the opening paren:
 
 ```go
 func NewScheduler(

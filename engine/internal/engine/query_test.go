@@ -57,15 +57,9 @@ func TestListFlowsIgnoresBadStatusEntry(t *testing.T) {
 
 func TestQueryFlowsFiltersAndPaging(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		assert.NoError(t, env.SeedFlow(
-			"flow-active", api.FlowActive, api.Tags{"tier:active"},
-		))
-		assert.NoError(t, env.SeedFlow(
-			"flow-complete", api.FlowCompleted, api.Tags{"tier:done"},
-		))
-		assert.NoError(t, env.SeedFlow(
-			"flow-failed", api.FlowFailed, api.Tags{"tier:fail"},
-		))
+		assert.NoError(t, env.SeedFlow("flow-active", api.FlowActive, api.Tags{"tier:active"}))
+		assert.NoError(t, env.SeedFlow("flow-complete", api.FlowCompleted, api.Tags{"tier:done"}))
+		assert.NoError(t, env.SeedFlow("flow-failed", api.FlowFailed, api.Tags{"tier:fail"}))
 
 		resp, err := env.Engine.QueryFlows(&api.QueryFlowsRequest{
 			Statuses: []api.FlowStatus{api.FlowActive},
@@ -119,9 +113,7 @@ func TestQueryFlowsFiltersAndPaging(t *testing.T) {
 func TestTagIndex(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		tags := api.Tags{"tier:gold", "env:prod"}
-		assert.NoError(t, env.SeedFlow(
-			"flow-tagged", api.FlowCompleted, tags,
-		))
+		assert.NoError(t, env.SeedFlow("flow-tagged", api.FlowCompleted, tags))
 
 		ids, err := env.ListFlowsByTag("tier:gold")
 		assert.NoError(t, err)
@@ -209,9 +201,7 @@ func TestQueryFlowsPaginationAsc(t *testing.T) {
 		})
 		assert.NoError(t, err)
 		assert.Equal(t, 1, second.Count)
-		assert.NotEqual(t,
-			first.Flows[0].ID, second.Flows[0].ID,
-		)
+		assert.NotEqual(t, first.Flows[0].ID, second.Flows[0].ID)
 	})
 }
 
@@ -275,9 +265,7 @@ func TestQueryFlowsStaleLabels(t *testing.T) {
 
 func TestQueryFlowsNoLabels(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		assert.NoError(t, env.SeedFlow(
-			"flow-no-labels", api.FlowCompleted, nil,
-		))
+		assert.NoError(t, env.SeedFlow("flow-no-labels", api.FlowCompleted, nil))
 
 		resp, err := env.Engine.QueryFlows(&api.QueryFlowsRequest{
 			Tags: api.Tags{"tier:done"},
@@ -290,12 +278,10 @@ func TestQueryFlowsNoLabels(t *testing.T) {
 func TestLabelIntersection(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		assert.NoError(t, env.SeedFlow(
-			"flow-intersection-a", api.FlowCompleted,
-			api.Tags{"tier:gold", "env:prod"},
+			"flow-intersection-a", api.FlowCompleted, api.Tags{"tier:gold", "env:prod"},
 		))
 		assert.NoError(t, env.SeedFlow(
-			"flow-intersection-b", api.FlowCompleted,
-			api.Tags{"tier:silver", "env:stage"},
+			"flow-intersection-b", api.FlowCompleted, api.Tags{"tier:silver", "env:stage"},
 		))
 
 		resp, err := env.Engine.QueryFlows(&api.QueryFlowsRequest{
@@ -383,9 +369,7 @@ func TestSkipChildFlows(t *testing.T) {
 			break
 		}
 
-		childID = api.FlowID(fmt.Sprintf(
-			"%s:%s:%s", "parent-list", parent.ID, tkn,
-		))
+		childID = api.FlowID(fmt.Sprintf("%s:%s:%s", "parent-list", parent.ID, tkn))
 
 		childFlow := helpers.WaitForFlowExists(t, env.Engine, childID)
 		assert.Equal(t, api.FlowCompleted, childFlow.Status)
@@ -405,14 +389,10 @@ func TestSkipChildFlows(t *testing.T) {
 
 func TestQueryFlowsBadStatuses(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		assert.NoError(t, env.SeedFlow(
-			"flow-status", api.FlowCompleted, nil,
-		))
+		assert.NoError(t, env.SeedFlow("flow-status", api.FlowCompleted, nil))
 
 		resp, err := env.Engine.QueryFlows(&api.QueryFlowsRequest{
-			Statuses: []api.FlowStatus{
-				api.FlowCompleted, api.FlowCompleted, "bogus",
-			},
+			Statuses: []api.FlowStatus{api.FlowCompleted, api.FlowCompleted, "bogus"},
 		})
 		assert.NoError(t, err)
 		assert.Len(t, resp.Flows, 1)
@@ -462,9 +442,7 @@ func TestQueryFlowsPageDesc(t *testing.T) {
 		})
 		assert.NoError(t, err)
 		assert.Equal(t, 1, second.Count)
-		assert.NotEqual(t,
-			first.Flows[0].ID, second.Flows[0].ID,
-		)
+		assert.NotEqual(t, first.Flows[0].ID, second.Flows[0].ID)
 	})
 }
 
@@ -495,9 +473,7 @@ func TestSortTieBreak(t *testing.T) {
 		if assert.Len(t, resp.Flows, 2) {
 			assert.Equal(t, api.FlowID("flow-a"), resp.Flows[0].ID)
 			assert.Equal(t, api.FlowID("flow-b"), resp.Flows[1].ID)
-			assert.True(t,
-				resp.Flows[0].Timestamp.Equal(resp.Flows[1].Timestamp),
-			)
+			assert.True(t, resp.Flows[0].Timestamp.Equal(resp.Flows[1].Timestamp))
 		}
 	})
 }
@@ -553,9 +529,7 @@ type addStatusEntryArgs struct {
 func addStatusEntry(t *testing.T, args addStatusEntryArgs) {
 	t.Helper()
 
-	aggID := timebox.NewAggregateID(
-		timebox.ID(args.prefix), timebox.ID(args.id),
-	)
+	aggID := timebox.NewAggregateID(timebox.ID(args.prefix), timebox.ID(args.id))
 	raw, err := marshalIndexedFlowEvent(args.status, nil)
 	assert.NoError(t, err)
 	err = args.env.AppendEvents(aggID, 0, &timebox.Event{
@@ -577,12 +551,8 @@ type addTagEntryArgs struct {
 func addTagEntry(t *testing.T, args addTagEntryArgs) {
 	t.Helper()
 
-	aggID := timebox.NewAggregateID(
-		timebox.ID(args.prefix), timebox.ID(args.id),
-	)
-	raw, err := marshalIndexedFlowEvent(
-		events.FlowStatusActive, api.Tags{args.tag},
-	)
+	aggID := timebox.NewAggregateID(timebox.ID(args.prefix), timebox.ID(args.id))
+	raw, err := marshalIndexedFlowEvent(events.FlowStatusActive, api.Tags{args.tag})
 	assert.NoError(t, err)
 	err = args.env.AppendEvents(aggID, 0, &timebox.Event{
 		AggregateID: aggID,
@@ -593,9 +563,7 @@ func addTagEntry(t *testing.T, args addTagEntryArgs) {
 	assert.NoError(t, err)
 }
 
-func marshalIndexedFlowEvent(
-	status string, tags api.Tags,
-) ([]byte, error) {
+func marshalIndexedFlowEvent(status string, tags api.Tags) ([]byte, error) {
 	if status == events.FlowStatusActive {
 		return json.Marshal(api.FlowStartedEvent{
 			FlowID: "fixture",

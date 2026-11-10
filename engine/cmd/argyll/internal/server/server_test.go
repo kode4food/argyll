@@ -227,9 +227,7 @@ func TestStartFlow(t *testing.T) {
 		}
 
 		body, _ := json.Marshal(reqBody)
-		req := httptest.NewRequest(
-			"POST", "/engine/flows", bytes.NewReader(body),
-		)
+		req := httptest.NewRequest("POST", "/engine/flows", bytes.NewReader(body))
 		req.Header.Set("Content-Type", api.JSONContentType)
 		w := httptest.NewRecorder()
 
@@ -245,9 +243,7 @@ func TestQueryFlows(t *testing.T) {
 		assert.NoError(t, testEnv.Engine.Start())
 		defer func() { _ = testEnv.Engine.Stop() }()
 
-		req := httptest.NewRequest(
-			"POST", "/engine/flows/query", bytes.NewReader([]byte("{}")),
-		)
+		req := httptest.NewRequest("POST", "/engine/flows/query", bytes.NewReader([]byte("{}")))
 		req.Header.Set("Content-Type", api.JSONContentType)
 		w := httptest.NewRecorder()
 
@@ -576,9 +572,7 @@ func TestHookFailurePath(t *testing.T) {
 			break
 		}
 
-		body, _ := json.Marshal(api.NewProblem(
-			http.StatusUnprocessableEntity, "boom",
-		))
+		body, _ := json.Marshal(api.NewProblem(http.StatusUnprocessableEntity, "boom"))
 		req := httptest.NewRequest("POST",
 			"/callbacks/wf-fail-path/async-step/"+string(tkn)+"/invoke",
 			bytes.NewReader(body))
@@ -655,9 +649,7 @@ func TestGetFlowStatus(t *testing.T) {
 			assert.NoError(t, err)
 		})
 
-		req := httptest.NewRequest(
-			"GET", "/engine/flows/status-wf-id/status", nil,
-		)
+		req := httptest.NewRequest("GET", "/engine/flows/status-wf-id/status", nil)
 		w := httptest.NewRecorder()
 
 		router := testEnv.Server.SetupRoutes()
@@ -687,9 +679,7 @@ func TestGetFlowNotFound(t *testing.T) {
 
 func TestGetFlowStatusNotFound(t *testing.T) {
 	withTestServerEnv(t, func(testEnv *testServerEnv) {
-		req := httptest.NewRequest(
-			"GET", "/engine/flows/nonexistent/status", nil,
-		)
+		req := httptest.NewRequest("GET", "/engine/flows/nonexistent/status", nil)
 		w := httptest.NewRecorder()
 
 		router := testEnv.Server.SetupRoutes()
@@ -725,9 +715,7 @@ func TestEngine(t *testing.T) {
 
 func TestStartFlowInvalidJSON(t *testing.T) {
 	withTestServerEnv(t, func(testEnv *testServerEnv) {
-		req := httptest.NewRequest(
-			"POST", "/engine/flows", bytes.NewReader([]byte("invalid json")),
-		)
+		req := httptest.NewRequest("POST", "/engine/flows", bytes.NewReader([]byte("invalid json")))
 		req.Header.Set("Content-Type", api.JSONContentType)
 		w := httptest.NewRecorder()
 
@@ -745,9 +733,7 @@ func TestEngineHealthByID(t *testing.T) {
 		err := testEnv.Engine.RegisterStep(st)
 		assert.NoError(t, err)
 
-		req := httptest.NewRequest(
-			"GET", "/engine/health/health-step", nil,
-		)
+		req := httptest.NewRequest("GET", "/engine/health/health-step", nil)
 		w := httptest.NewRecorder()
 
 		router := testEnv.Server.SetupRoutes()
@@ -766,22 +752,17 @@ func TestEngineHealthIncludesClusterNodes(t *testing.T) {
 	withServerEnvConfig(t, clusterConfigWithPeer, func(testEnv *testServerEnv) {
 		st := helpers.NewSimpleStep("health-step")
 		assert.NoError(t, testEnv.Engine.RegisterStep(st))
-		assert.NoError(t,
-			testEnv.Engine.UpdateStepHealth(st.ID, api.HealthHealthy, ""),
-		)
+		assert.NoError(t, testEnv.Engine.UpdateStepHealth(st.ID, api.HealthHealthy, ""))
 
 		peer, err := engine.New(
-			peerOnlyConfig(testEnv.Config), testEnv.Dependencies(),
-			testEnv.OpenBackend,
+			peerOnlyConfig(testEnv.Config), testEnv.Dependencies(), testEnv.OpenBackend,
 		)
 		assert.NoError(t, err)
 		if peer != nil {
 			defer func() { _ = peer.Stop() }()
 		}
 
-		assert.NoError(t,
-			peer.UpdateStepHealth(st.ID, api.HealthUnhealthy, "peer down"),
-		)
+		assert.NoError(t, peer.UpdateStepHealth(st.ID, api.HealthUnhealthy, "peer down"))
 
 		req := httptest.NewRequest("GET", "/engine/health", nil)
 		w := httptest.NewRecorder()
@@ -797,16 +778,10 @@ func TestEngineHealthIncludesClusterNodes(t *testing.T) {
 		assert.Len(t, response.Nodes, 2)
 		localID := testEnv.Engine.LocalNodeID()
 		if assert.Contains(t, response.Nodes, localID) {
-			assert.Equal(t,
-				api.HealthHealthy,
-				response.Nodes[localID].Health[st.ID].Status,
-			)
+			assert.Equal(t, api.HealthHealthy, response.Nodes[localID].Health[st.ID].Status)
 		}
 		if assert.Contains(t, response.Nodes, api.NodeID("node-2")) {
-			assert.Equal(t,
-				api.HealthUnhealthy,
-				response.Nodes["node-2"].Health[st.ID].Status,
-			)
+			assert.Equal(t, api.HealthUnhealthy, response.Nodes["node-2"].Health[st.ID].Status)
 		}
 	})
 }
@@ -857,8 +832,7 @@ func TestEngineHealthUnknownSteps(t *testing.T) {
 		assert.NoError(t, testEnv.Engine.RegisterStep(stepB))
 
 		peer, err := engine.New(
-			peerOnlyConfig(testEnv.Config), testEnv.Dependencies(),
-			testEnv.OpenBackend,
+			peerOnlyConfig(testEnv.Config), testEnv.Dependencies(), testEnv.OpenBackend,
 		)
 		assert.NoError(t, err)
 		if peer != nil {
@@ -868,8 +842,7 @@ func TestEngineHealthUnknownSteps(t *testing.T) {
 		defer checker.Stop()
 
 		testEnv.WaitFor(
-			wait.StepHealthChanged(stepA.ID, api.HealthHealthy),
-			func() { checker.Start() },
+			wait.StepHealthChanged(stepA.ID, api.HealthHealthy), func() { checker.Start() },
 		)
 
 		req := httptest.NewRequest("GET", "/engine/health", nil)
@@ -884,14 +857,8 @@ func TestEngineHealthUnknownSteps(t *testing.T) {
 		err = json.Unmarshal(w.Body.Bytes(), &response)
 		assert.NoError(t, err)
 		if assert.Contains(t, response.Nodes, api.NodeID("node-2")) {
-			assert.Equal(t,
-				api.HealthHealthy,
-				response.Nodes["node-2"].Health[stepA.ID].Status,
-			)
-			assert.Equal(t,
-				api.HealthUnknown,
-				response.Nodes["node-2"].Health[stepB.ID].Status,
-			)
+			assert.Equal(t, api.HealthHealthy, response.Nodes["node-2"].Health[stepA.ID].Status)
+			assert.Equal(t, api.HealthUnknown, response.Nodes["node-2"].Health[stepB.ID].Status)
 		}
 	})
 }
@@ -913,8 +880,7 @@ func TestEngineHealthScriptNodes(t *testing.T) {
 		assert.NoError(t, testEnv.Engine.RegisterStep(st))
 
 		peer, err := engine.New(
-			peerOnlyConfig(testEnv.Config), testEnv.Dependencies(),
-			testEnv.OpenBackend,
+			peerOnlyConfig(testEnv.Config), testEnv.Dependencies(), testEnv.OpenBackend,
 		)
 		assert.NoError(t, err)
 		if peer != nil {
@@ -936,16 +902,10 @@ func TestEngineHealthScriptNodes(t *testing.T) {
 		assert.NoError(t, err)
 		localID := testEnv.Engine.LocalNodeID()
 		if assert.Contains(t, response.Nodes, localID) {
-			assert.Equal(t,
-				api.HealthHealthy,
-				response.Nodes[localID].Health[st.ID].Status,
-			)
+			assert.Equal(t, api.HealthHealthy, response.Nodes[localID].Health[st.ID].Status)
 		}
 		if assert.Contains(t, response.Nodes, api.NodeID("node-2")) {
-			assert.Equal(t,
-				api.HealthUnknown,
-				response.Nodes["node-2"].Health[st.ID].Status,
-			)
+			assert.Equal(t, api.HealthUnknown, response.Nodes["node-2"].Health[st.ID].Status)
 		}
 	})
 }
@@ -972,10 +932,7 @@ func TestEngineUnknownSteps(t *testing.T) {
 		nid := testEnv.Config.NodeID
 		if assert.Contains(t, response.Health, nid) {
 			if assert.Contains(t, response.Health[nid].Health, st.ID) {
-				assert.Equal(t,
-					api.HealthUnknown,
-					response.Health[nid].Health[st.ID].Status,
-				)
+				assert.Equal(t, api.HealthUnknown, response.Health[nid].Health[st.ID].Status)
 			}
 		}
 	})
@@ -1000,16 +957,10 @@ func TestEngineHealthByIDFlow(t *testing.T) {
 		assert.NoError(t, testEnv.Engine.RegisterStep(goalA))
 		assert.NoError(t, testEnv.Engine.RegisterStep(goalB))
 		assert.NoError(t, testEnv.Engine.RegisterStep(st))
-		assert.NoError(t,
-			testEnv.Engine.UpdateStepHealth(goalA.ID, api.HealthHealthy, ""),
-		)
-		assert.NoError(t, testEnv.Engine.UpdateStepHealth(
-			goalB.ID, api.HealthUnhealthy, "down",
-		))
+		assert.NoError(t, testEnv.Engine.UpdateStepHealth(goalA.ID, api.HealthHealthy, ""))
+		assert.NoError(t, testEnv.Engine.UpdateStepHealth(goalB.ID, api.HealthUnhealthy, "down"))
 
-		req := httptest.NewRequest(
-			"GET", "/engine/health/flow-step", nil,
-		)
+		req := httptest.NewRequest("GET", "/engine/health/flow-step", nil)
 		w := httptest.NewRecorder()
 
 		router := testEnv.Server.SetupRoutes()
@@ -1026,9 +977,7 @@ func TestEngineHealthByIDFlow(t *testing.T) {
 
 func TestEngineHealthNotFound(t *testing.T) {
 	withTestServerEnv(t, func(testEnv *testServerEnv) {
-		req := httptest.NewRequest(
-			"GET", "/engine/health/nonexistent-step", nil,
-		)
+		req := httptest.NewRequest("GET", "/engine/health/nonexistent-step", nil)
 		w := httptest.NewRecorder()
 
 		router := testEnv.Server.SetupRoutes()
@@ -1052,9 +1001,7 @@ func TestStartFlowEmptyID(t *testing.T) {
 		}
 
 		body, _ := json.Marshal(reqData)
-		req := httptest.NewRequest(
-			"POST", "/engine/flows", bytes.NewReader(body),
-		)
+		req := httptest.NewRequest("POST", "/engine/flows", bytes.NewReader(body))
 		req.Header.Set("Content-Type", api.JSONContentType)
 		w := httptest.NewRecorder()
 
@@ -1073,9 +1020,7 @@ func TestStartFlowNoGoals(t *testing.T) {
 		}
 
 		body, _ := json.Marshal(reqData)
-		req := httptest.NewRequest(
-			"POST", "/engine/flows", bytes.NewReader(body),
-		)
+		req := httptest.NewRequest("POST", "/engine/flows", bytes.NewReader(body))
 		req.Header.Set("Content-Type", api.JSONContentType)
 		w := httptest.NewRecorder()
 
@@ -1093,9 +1038,7 @@ func TestStartFlowFlatGoals(t *testing.T) {
 		assert.NoError(t, testEnv.Engine.RegisterStep(st))
 
 		body := `{"id":"flat-goals","goals":["test-step"]}`
-		req := httptest.NewRequest(
-			"POST", "/engine/flows", strings.NewReader(body),
-		)
+		req := httptest.NewRequest("POST", "/engine/flows", strings.NewReader(body))
 		req.Header.Set("Content-Type", api.JSONContentType)
 		w := httptest.NewRecorder()
 
@@ -1132,9 +1075,7 @@ func TestStartFlowMissingRequiredInputs(t *testing.T) {
 		}
 
 		body, _ := json.Marshal(reqBody)
-		req := httptest.NewRequest(
-			"POST", "/engine/flows", bytes.NewReader(body),
-		)
+		req := httptest.NewRequest("POST", "/engine/flows", bytes.NewReader(body))
 		req.Header.Set("Content-Type", api.JSONContentType)
 		w := httptest.NewRecorder()
 
@@ -1148,9 +1089,7 @@ func TestStartFlowMissingRequiredInputs(t *testing.T) {
 
 func TestQueryFlowsEmpty(t *testing.T) {
 	withTestServerEnv(t, func(testEnv *testServerEnv) {
-		req := httptest.NewRequest(
-			"POST", "/engine/flows/query", bytes.NewReader([]byte("{}")),
-		)
+		req := httptest.NewRequest("POST", "/engine/flows/query", bytes.NewReader([]byte("{}")))
 		req.Header.Set("Content-Type", api.JSONContentType)
 		w := httptest.NewRecorder()
 
@@ -1206,9 +1145,7 @@ func TestQueryFlowsInvalidStatuses(t *testing.T) {
 			"statuses": []string{"nope"},
 		}
 		body, _ := json.Marshal(reqBody)
-		req := httptest.NewRequest(
-			"POST", "/engine/flows/query", bytes.NewReader(body),
-		)
+		req := httptest.NewRequest("POST", "/engine/flows/query", bytes.NewReader(body))
 		req.Header.Set("Content-Type", api.JSONContentType)
 		w := httptest.NewRecorder()
 
@@ -1285,9 +1222,7 @@ func TestPlanPreview(t *testing.T) {
 		}
 
 		body, _ := json.Marshal(reqData)
-		req := httptest.NewRequest(
-			"POST", "/engine/plan", bytes.NewReader(body),
-		)
+		req := httptest.NewRequest("POST", "/engine/plan", bytes.NewReader(body))
 		req.Header.Set("Content-Type", api.JSONContentType)
 		w := httptest.NewRecorder()
 
@@ -1311,9 +1246,7 @@ func TestPlanPreview(t *testing.T) {
 
 func TestPlanPreviewInvalidJSON(t *testing.T) {
 	withTestServerEnv(t, func(testEnv *testServerEnv) {
-		req := httptest.NewRequest(
-			"POST", "/engine/plan", bytes.NewReader([]byte("invalid")),
-		)
+		req := httptest.NewRequest("POST", "/engine/plan", bytes.NewReader([]byte("invalid")))
 		req.Header.Set("Content-Type", api.JSONContentType)
 		w := httptest.NewRecorder()
 
@@ -1329,9 +1262,7 @@ func TestPlanPreviewNoGoals(t *testing.T) {
 		reqData := map[string]any{}
 
 		body, _ := json.Marshal(reqData)
-		req := httptest.NewRequest(
-			"POST", "/engine/plan", bytes.NewReader(body),
-		)
+		req := httptest.NewRequest("POST", "/engine/plan", bytes.NewReader(body))
 		req.Header.Set("Content-Type", api.JSONContentType)
 		w := httptest.NewRecorder()
 
@@ -1351,9 +1282,7 @@ func TestPlanPreviewStepNotFound(t *testing.T) {
 		}
 
 		body, _ := json.Marshal(reqData)
-		req := httptest.NewRequest(
-			"POST", "/engine/plan", bytes.NewReader(body),
-		)
+		req := httptest.NewRequest("POST", "/engine/plan", bytes.NewReader(body))
 		req.Header.Set("Content-Type", api.JSONContentType)
 		w := httptest.NewRecorder()
 
@@ -1389,9 +1318,7 @@ func TestStartFlowDuplicate(t *testing.T) {
 			}
 
 			body, _ := json.Marshal(reqBody)
-			req := httptest.NewRequest(
-				"POST", "/engine/flows", bytes.NewReader(body),
-			)
+			req := httptest.NewRequest("POST", "/engine/flows", bytes.NewReader(body))
 			req.Header.Set("Content-Type", api.JSONContentType)
 			w := httptest.NewRecorder()
 
@@ -1427,9 +1354,7 @@ func TestStartFlowDuplicate(t *testing.T) {
 			}
 
 			body, _ := json.Marshal(reqBody)
-			req := httptest.NewRequest(
-				"POST", "/engine/flows", bytes.NewReader(body),
-			)
+			req := httptest.NewRequest("POST", "/engine/flows", bytes.NewReader(body))
 			req.Header.Set("Content-Type", api.JSONContentType)
 			w := httptest.NewRecorder()
 
@@ -1450,9 +1375,7 @@ func TestStartFlowStepNotFound(t *testing.T) {
 		}
 
 		body, _ := json.Marshal(reqBody)
-		req := httptest.NewRequest(
-			"POST", "/engine/flows", bytes.NewReader(body),
-		)
+		req := httptest.NewRequest("POST", "/engine/flows", bytes.NewReader(body))
 		req.Header.Set("Content-Type", api.JSONContentType)
 		w := httptest.NewRecorder()
 
@@ -1474,12 +1397,8 @@ func TestCORSOptions(t *testing.T) {
 
 		assert.Equal(t, http.StatusOK, w.Code)
 		assert.Equal(t, "*", w.Header().Get("Access-Control-Allow-Origin"))
-		assert.Contains(t,
-			w.Header().Get("Access-Control-Allow-Methods"), "GET",
-		)
-		assert.Contains(t,
-			w.Header().Get("Access-Control-Allow-Headers"), "Content-Type",
-		)
+		assert.Contains(t, w.Header().Get("Access-Control-Allow-Methods"), "GET")
+		assert.Contains(t, w.Header().Get("Access-Control-Allow-Headers"), "Content-Type")
 	})
 }
 
@@ -1529,9 +1448,7 @@ func TestSanitizeFlowID(t *testing.T) {
 				}
 
 				body, _ := json.Marshal(reqBody)
-				req := httptest.NewRequest(
-					"POST", "/engine/flows", bytes.NewReader(body),
-				)
+				req := httptest.NewRequest("POST", "/engine/flows", bytes.NewReader(body))
 				req.Header.Set("Content-Type", api.JSONContentType)
 				w := httptest.NewRecorder()
 
@@ -1551,9 +1468,7 @@ func TestQueryFlowsMultiple(t *testing.T) {
 
 		var err error
 		st := helpers.NewSimpleStep("test-step")
-		testEnv.WaitFor(wait.EngineEvent(
-			api.EventTypeStepRegistered,
-		), func() {
+		testEnv.WaitFor(wait.EngineEvent(api.EventTypeStepRegistered), func() {
 			err = testEnv.Engine.RegisterStep(st)
 			assert.NoError(t, err)
 		})
@@ -1572,9 +1487,7 @@ func TestQueryFlowsMultiple(t *testing.T) {
 				assert.NoError(t, err)
 			})
 
-		req := httptest.NewRequest(
-			"POST", "/engine/flows/query", bytes.NewReader([]byte("{}")),
-		)
+		req := httptest.NewRequest("POST", "/engine/flows/query", bytes.NewReader([]byte("{}")))
 		req.Header.Set("Content-Type", api.JSONContentType)
 		w := httptest.NewRecorder()
 
@@ -1739,9 +1652,7 @@ func TestQueryFlowsLimitTooHigh(t *testing.T) {
 	withTestServerEnv(t, func(testEnv *testServerEnv) {
 		reqBody := map[string]any{"limit": server.MaxQueryLimit + 1}
 		body, _ := json.Marshal(reqBody)
-		req := httptest.NewRequest(
-			"POST", "/engine/flows/query", bytes.NewReader(body),
-		)
+		req := httptest.NewRequest("POST", "/engine/flows/query", bytes.NewReader(body))
 		req.Header.Set("Content-Type", api.JSONContentType)
 		w := httptest.NewRecorder()
 
@@ -1757,9 +1668,7 @@ func TestQueryFlowsNegativeLimit(t *testing.T) {
 	withTestServerEnv(t, func(testEnv *testServerEnv) {
 		reqBody := map[string]any{"limit": -1}
 		body, _ := json.Marshal(reqBody)
-		req := httptest.NewRequest(
-			"POST", "/engine/flows/query", bytes.NewReader(body),
-		)
+		req := httptest.NewRequest("POST", "/engine/flows/query", bytes.NewReader(body))
 		req.Header.Set("Content-Type", api.JSONContentType)
 		w := httptest.NewRecorder()
 
@@ -1775,9 +1684,7 @@ func TestQueryFlowsInvalidSort(t *testing.T) {
 	withTestServerEnv(t, func(testEnv *testServerEnv) {
 		reqBody := map[string]any{"sort": "invalid-sort-value"}
 		body, _ := json.Marshal(reqBody)
-		req := httptest.NewRequest(
-			"POST", "/engine/flows/query", bytes.NewReader(body),
-		)
+		req := httptest.NewRequest("POST", "/engine/flows/query", bytes.NewReader(body))
 		req.Header.Set("Content-Type", api.JSONContentType)
 		w := httptest.NewRecorder()
 
@@ -1793,9 +1700,7 @@ func TestQueryFlowsInvalidIDPrefix(t *testing.T) {
 	withTestServerEnv(t, func(testEnv *testServerEnv) {
 		reqBody := map[string]any{"id_prefix": "bad!prefix"}
 		body, _ := json.Marshal(reqBody)
-		req := httptest.NewRequest(
-			"POST", "/engine/flows/query", bytes.NewReader(body),
-		)
+		req := httptest.NewRequest("POST", "/engine/flows/query", bytes.NewReader(body))
 		req.Header.Set("Content-Type", api.JSONContentType)
 		w := httptest.NewRecorder()
 
@@ -1811,9 +1716,7 @@ func TestQueryFlowsInvalidEmptyTag(t *testing.T) {
 	withTestServerEnv(t, func(testEnv *testServerEnv) {
 		reqBody := map[string]any{"tags": []string{""}}
 		body, _ := json.Marshal(reqBody)
-		req := httptest.NewRequest(
-			"POST", "/engine/flows/query", bytes.NewReader(body),
-		)
+		req := httptest.NewRequest("POST", "/engine/flows/query", bytes.NewReader(body))
 		req.Header.Set("Content-Type", api.JSONContentType)
 		w := httptest.NewRecorder()
 
@@ -1837,9 +1740,7 @@ func TestStartFlowIDTooLong(t *testing.T) {
 			Goals: api.Goals{Steps: []api.StepID{"test-step-long-id"}},
 		}
 		body, _ := json.Marshal(reqBody)
-		req := httptest.NewRequest(
-			"POST", "/engine/flows", bytes.NewReader(body),
-		)
+		req := httptest.NewRequest("POST", "/engine/flows", bytes.NewReader(body))
 		req.Header.Set("Content-Type", api.JSONContentType)
 		w := httptest.NewRecorder()
 
@@ -1862,9 +1763,7 @@ func TestStartFlowTooManyGoals(t *testing.T) {
 			Goals: api.Goals{Steps: goals},
 		}
 		body, _ := json.Marshal(reqBody)
-		req := httptest.NewRequest(
-			"POST", "/engine/flows", bytes.NewReader(body),
-		)
+		req := httptest.NewRequest("POST", "/engine/flows", bytes.NewReader(body))
 		req.Header.Set("Content-Type", api.JSONContentType)
 		w := httptest.NewRecorder()
 
@@ -1892,9 +1791,7 @@ func TestStartFlowTooManyInitKeys(t *testing.T) {
 			Init:  init,
 		}
 		body, _ := json.Marshal(reqBody)
-		req := httptest.NewRequest(
-			"POST", "/engine/flows", bytes.NewReader(body),
-		)
+		req := httptest.NewRequest("POST", "/engine/flows", bytes.NewReader(body))
 		req.Header.Set("Content-Type", api.JSONContentType)
 		w := httptest.NewRecorder()
 
@@ -1922,9 +1819,7 @@ func TestStartFlowTooManyTags(t *testing.T) {
 			Tags:  tags,
 		}
 		body, _ := json.Marshal(reqBody)
-		req := httptest.NewRequest(
-			"POST", "/engine/flows", bytes.NewReader(body),
-		)
+		req := httptest.NewRequest("POST", "/engine/flows", bytes.NewReader(body))
 		req.Header.Set("Content-Type", api.JSONContentType)
 		w := httptest.NewRecorder()
 
@@ -1947,8 +1842,7 @@ func withTestServerEnv(t *testing.T, fn func(*testServerEnv)) {
 }
 
 func withServerEnvConfig(
-	t *testing.T, makeConfig func(*config.Config) *config.Config,
-	fn func(*testServerEnv),
+	t *testing.T, makeConfig func(*config.Config) *config.Config, fn func(*testServerEnv),
 ) {
 	t.Helper()
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {

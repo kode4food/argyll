@@ -107,8 +107,8 @@ func TestFollowerWriteStartup(t *testing.T) {
 		closeRaftNodes(nodes)
 	})
 
-	// A node can be up but unable to propose during staggered startup, so try
-	// the current followers in turn
+	// A node can be up but unable to propose during staggered startup, so try the current followers
+	// in turn
 	var resp api.StepRegisteredResponse
 	attempt := 0
 	assert.Eventually(t, func() bool {
@@ -202,10 +202,7 @@ func bootRaftNode(init *raftInit) (*raftNode, error) {
 
 	scripts := script.NewRegistry()
 	steps := step.NewRegistry(
-		builtins.All(
-			helpers.NewMockClient(),
-			builtins.BaseCallbackURL("http://127.0.0.1"),
-		),
+		builtins.All(helpers.NewMockClient(), builtins.BaseCallbackURL("http://127.0.0.1")),
 	)
 	eng, err := engine.New(init.cfg, engine.Dependencies{
 		Scripts:  scripts,
@@ -226,11 +223,7 @@ func bootRaftNode(init *raftInit) (*raftNode, error) {
 		backend: b,
 		engine:  eng,
 		hub:     init.hub,
-		server: server.NewServer(
-			eng,
-			init.hub,
-			app.NewRaftStatusProvider(b),
-		),
+		server:  server.NewServer(eng, init.hub, app.NewRaftStatusProvider(b)),
 	}, nil
 }
 
@@ -325,9 +318,7 @@ func postJSON(t *testing.T, args postJSONArgs) *httptest.ResponseRecorder {
 	return w
 }
 
-func tryPostJSON(
-	h http.Handler, path string, body any,
-) *httptest.ResponseRecorder {
+func tryPostJSON(h http.Handler, path string, body any) *httptest.ResponseRecorder {
 	data, err := json.Marshal(body)
 	if err != nil {
 		return &httptest.ResponseRecorder{Code: http.StatusInternalServerError}

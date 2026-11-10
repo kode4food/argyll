@@ -7,9 +7,7 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
-func (e *Engine) validateSpaceSubFlows(
-	cat *api.CatalogState, newStep *api.Step,
-) error {
+func (e *Engine) validateSpaceSubFlows(cat *api.CatalogState, newStep *api.Step) error {
 	steps := stepsIncluding(cat, newStep)
 	for _, st := range steps {
 		if st.Flow == nil || st.Flow.SpaceID == api.NoSpace {
@@ -38,9 +36,7 @@ func (e *Engine) validateSpaceGoals(cat *api.CatalogState, sp api.Space) error {
 	return nil
 }
 
-func (e *Engine) validateSubFlowGoals(
-	steps api.Steps, st *api.Step, sp api.Space,
-) error {
+func (e *Engine) validateSubFlowGoals(steps api.Steps, st *api.Step, sp api.Space) error {
 	for _, goalID := range st.Flow.Goals.AllSteps() {
 		goal, ok := steps[goalID]
 		if !ok {
@@ -57,9 +53,7 @@ func (e *Engine) validateSubFlowGoals(
 	return nil
 }
 
-func spaceSubFlow(
-	cat *api.CatalogState, spaceID api.SpaceID,
-) (api.StepID, bool) {
+func spaceSubFlow(cat *api.CatalogState, spaceID api.SpaceID) (api.StepID, bool) {
 	for id, st := range cat.Steps {
 		if st.Flow != nil && st.Flow.SpaceID == spaceID {
 			return id, true
@@ -68,9 +62,7 @@ func spaceSubFlow(
 	return "", false
 }
 
-func spaceFeed(
-	cat *api.CatalogState, spaceID api.SpaceID,
-) (api.FeedID, bool) {
+func spaceFeed(cat *api.CatalogState, spaceID api.SpaceID) (api.FeedID, bool) {
 	for id, f := range cat.Feeds {
 		if f.SpaceID == spaceID {
 			return id, true
@@ -79,9 +71,7 @@ func spaceFeed(
 	return "", false
 }
 
-func spaceSubFlowGoal(
-	cat *api.CatalogState, goalID api.StepID,
-) (api.StepID, bool) {
+func spaceSubFlowGoal(cat *api.CatalogState, goalID api.StepID) (api.StepID, bool) {
 	for id, st := range cat.Steps {
 		if st.Flow != nil && st.Flow.SpaceID != api.NoSpace &&
 			slices.Contains(st.Flow.Goals.AllSteps(), goalID) {

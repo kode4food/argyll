@@ -56,23 +56,19 @@ func (tx *flowTx) checkTerminal() error {
 	return nil
 }
 
-// maybeDeactivate reports the outcome to the parent, then deactivates once
-// the parent can no longer order a rollback
+// maybeDeactivate reports the outcome to the parent, then deactivates once the parent can no longer
+// order a rollback
 func (tx *flowTx) maybeDeactivate() error {
 	if !policy.FlowTerminal(tx.Value().Status) ||
 		!tx.Value().DeactivatedAt.IsZero() {
 		return nil
 	}
-	// Compensation may start new work, so sweep before testing for active
-	// work rather than after
-	if err := call.Perform(
-		tx.failAbandonedWork,
-		tx.compensateFlow,
-	); err != nil {
+	// Compensation may start new work, so sweep before testing for active work rather than after
+	if err := call.Perform(tx.failAbandonedWork, tx.compensateFlow); err != nil {
 		return err
 	}
-	// Told before deactivating, since the parent decides the rollback. Both
-	// halves join one transaction, so the parent cannot miss the outcome
+	// Told before deactivating, since the parent decides the rollback. Both halves join one
+	// transaction, so the parent cannot miss the outcome
 	parent, err := tx.completeParentWork()
 	if err != nil {
 		return err
@@ -94,9 +90,7 @@ func (tx *flowTx) failAbandonedWork() error {
 			if !policy.WorkPending(work.Status) {
 				continue
 			}
-			if err := tx.raiseWorkFailed(
-				sid, tkn, "execution no longer active",
-			); err != nil {
+			if err := tx.raiseWorkFailed(sid, tkn, "execution no longer active"); err != nil {
 				return err
 			}
 		}
@@ -135,8 +129,8 @@ type parentReleasedArgs struct {
 	parent *api.FlowState
 }
 
-// parentReleased reports whether the parent can still order a rollback, from
-// the state it settled earlier in this same transaction
+// parentReleased reports whether the parent can still order a rollback, from the state it settled
+// earlier in this same transaction
 func (tx *flowTx) parentReleased(args parentReleasedArgs) (bool, error) {
 	target := &parentWork{}
 	ok, err := parentMeta(args.flow, target)
@@ -173,8 +167,8 @@ func (tx *flowTx) releaseChildFlows() error {
 	return nil
 }
 
-// completeParentWork settles this flow's outcome with its parent in tx and
-// returns the parent's resulting state, so both halves land in one commit
+// completeParentWork settles this flow's outcome with its parent in tx and returns the parent's
+// resulting state, so both halves land in one commit
 func (tx *flowTx) completeParentWork() (api.FlowState, error) {
 	fl := tx.Value()
 	target := &parentWork{}
@@ -202,17 +196,11 @@ func (tx *flowTx) completeParentFlowWork(
 
 		if child.Status == api.FlowCompleted {
 			outputs := child.GetAttributes()
-			err := validateFlowOutputs(
-				parent.Plan.Steps[target.fs.StepID], outputs,
-			)
+			err := validateFlowOutputs(parent.Plan.Steps[target.fs.StepID], outputs)
 			if err != nil {
-				return parentTx.failWork(
-					target.fs.StepID, target.token, err.Error(),
-				)
+				return parentTx.failWork(target.fs.StepID, target.token, err.Error())
 			}
-			return parentTx.completeWork(
-				target.fs.StepID, target.token, outputs,
-			)
+			return parentTx.completeWork(target.fs.StepID, target.token, outputs)
 		}
 
 		errMsg := child.Error

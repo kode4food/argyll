@@ -136,9 +136,7 @@ func TestHealthCheckScript(t *testing.T) {
 			},
 		}
 		assert.NoError(t, env.Engine.RegisterStep(st))
-		assert.NoError(t,
-			env.Engine.UpdateStepHealth(st.ID, api.HealthUnknown, ""),
-		)
+		assert.NoError(t, env.Engine.UpdateStepHealth(st.ID, api.HealthUnknown, ""))
 
 		checker := server.NewHealthChecker(env.Engine)
 		defer checker.Stop()
