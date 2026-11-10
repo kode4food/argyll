@@ -189,7 +189,10 @@ func TestCompositeMismatch(t *testing.T) {
 
 func TestRefRecursion(t *testing.T) {
 	nodes := nodeConverter()
-	in := node{Name: "a", Children: []node{{Name: "b"}}}
+	in := node{
+		Name:     "a",
+		Children: []node{{Name: "b"}},
+	}
 
 	v, err := nodes.To(in)
 	assert.NoError(t, err)
@@ -217,7 +220,10 @@ func TestCycle(t *testing.T) {
 	assert.ErrorIs(t, err, convert.ErrCyclicValue)
 
 	leaf := &graph{}
-	_, err = graphs.To(graph{Left: leaf, Right: leaf})
+	_, err = graphs.To(graph{
+		Left:  leaf,
+		Right: leaf,
+	})
 	assert.NoError(t, err)
 }
 

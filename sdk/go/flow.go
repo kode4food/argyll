@@ -67,5 +67,8 @@ func withLastGoal(g api.Goals, goal api.StepID) api.Goals {
 		return api.Goals{Steps: append(slices.Clone(g.Steps), goal)}
 	}
 	rest := withLastGoal(*g.Else, goal)
-	return api.Goals{Steps: g.Steps, Else: &rest}
+	return api.Goals{
+		Steps: g.Steps,
+		Else:  &rest,
+	}
 }

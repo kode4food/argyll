@@ -48,7 +48,10 @@ func TestAsyncCallbackDeadlineExpires(t *testing.T) {
 		env.MockClient.SetResponse(st.ID, api.Args{})
 
 		id := api.FlowID("wf-async-deadline")
-		fs := api.FlowStep{FlowID: id, StepID: st.ID}
+		fs := api.FlowStep{
+			FlowID: id,
+			StepID: st.ID,
+		}
 		pl := &api.ExecutionPlan{
 			Goals: api.Goals{Steps: []api.StepID{st.ID}},
 			Steps: api.Steps{st.ID: st},
@@ -81,7 +84,10 @@ func TestCallbackBeforeDeadlineSurvives(t *testing.T) {
 		env.MockClient.SetResponse(st.ID, api.Args{})
 
 		id := api.FlowID("wf-in-time")
-		fs := api.FlowStep{FlowID: id, StepID: st.ID}
+		fs := api.FlowStep{
+			FlowID: id,
+			StepID: st.ID,
+		}
 		pl := &api.ExecutionPlan{
 			Goals: api.Goals{Steps: []api.StepID{st.ID}},
 			Steps: api.Steps{st.ID: st},
@@ -118,7 +124,10 @@ func TestOrphanedWorkExpiresOnAnotherNode(t *testing.T) {
 		// Work claimed by a node that never came back, so no local task for it exists and only this
 		// engine's recovery can expire it
 		assert.NoError(t, env.SeedStartedWork(
-			api.FlowStep{FlowID: id, StepID: st.ID},
+			api.FlowStep{
+				FlowID: id,
+				StepID: st.ID,
+			},
 			&api.ExecutionPlan{
 				Goals: api.Goals{Steps: []api.StepID{st.ID}},
 				Steps: api.Steps{st.ID: st},
@@ -152,7 +161,10 @@ func TestCompensationDeadlineRetries(t *testing.T) {
 		)
 
 		id := api.FlowID("wf-comp-deadline")
-		fs := api.FlowStep{FlowID: id, StepID: st.ID}
+		fs := api.FlowStep{
+			FlowID: id,
+			StepID: st.ID,
+		}
 		tkn := api.Token("work-comp-deadline")
 
 		// Compensation is dispatched but never calls back
@@ -219,7 +231,10 @@ func TestLiveChildFlowSurvivesDeadline(t *testing.T) {
 		assert.NoError(t, err)
 
 		id := api.FlowID("wf-live-child")
-		fs := api.FlowStep{FlowID: id, StepID: parent.ID}
+		fs := api.FlowStep{
+			FlowID: id,
+			StepID: parent.ID,
+		}
 		tkn := api.Token("work-live-child")
 		assert.NoError(t, env.SeedStartedWork(fs, pl, tkn))
 
@@ -266,7 +281,10 @@ func TestDeadlineConflict(t *testing.T) {
 			var envRef *helpers.TestEngineEnv
 			var fired atomic.Bool
 			checked := make(chan struct{})
-			fs := api.FlowStep{FlowID: "deadline-conflict", StepID: "step"}
+			fs := api.FlowStep{
+				FlowID: "deadline-conflict",
+				StepID: "step",
+			}
 			tkn := api.Token("token")
 			retryType := api.EventTypeWorkNotCompleted
 			expected := api.WorkActive

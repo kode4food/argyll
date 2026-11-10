@@ -332,7 +332,10 @@ func (g *pkgGen) wrapStruct(
 		}
 		field := ExportedName(n)
 		typ := g.typeOf(types[i])
-		typeFields[i] = adapterFieldView{Field: field, Type: typ}
+		typeFields[i] = adapterFieldView{
+			Field: field,
+			Type:  typ,
+		}
 		fields[i] = codecField{
 			attr:  n,
 			field: field,
@@ -550,7 +553,10 @@ func logged(id api.StepID, handler string) string {
 	if handler == "" {
 		return ""
 	}
-	return snippet(loggedSnippet, loggedView{ID: id, Handler: handler})
+	return snippet(loggedSnippet, loggedView{
+		ID:      id,
+		Handler: handler,
+	})
 }
 
 func renderStructDeclaration(decl structDeclaration) string {
@@ -769,12 +775,22 @@ func attrOf(f *types.Var, tag string) (fieldSpec, bool, error) {
 		name = SnakeCase(f.Name())
 	}
 	if script, ok := tags.Lookup(matchTag); ok {
-		options = append(options, Option{Key: matchTag, Value: script})
+		options = append(options, Option{
+			Key:   matchTag,
+			Value: script,
+		})
 	}
 	if script, ok := tags.Lookup(mappingTag); ok {
-		options = append(options, Option{Key: mappingTag, Value: script})
+		options = append(options, Option{
+			Key:   mappingTag,
+			Value: script,
+		})
 	}
-	return fieldSpec{Var: f, attr: name, options: options}, true, nil
+	return fieldSpec{
+		Var:     f,
+		attr:    name,
+		options: options,
+	}, true, nil
 }
 
 func resolveInnerName(f fieldSpec) string {

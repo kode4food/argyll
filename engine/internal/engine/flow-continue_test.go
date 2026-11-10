@@ -158,7 +158,10 @@ func TestPendingUnusedSkip(t *testing.T) {
 			},
 		}
 
-		fsB := api.FlowStep{FlowID: "wf-skip-unneeded", StepID: providerB.ID}
+		fsB := api.FlowStep{
+			FlowID: "wf-skip-unneeded",
+			StepID: providerB.ID,
+		}
 		fl := env.WaitForFlowStatus("wf-skip-unneeded", func() {
 			env.WaitFor(wait.StepTerminal(fsB), func() {
 				err := env.Engine.StartPlan("wf-skip-unneeded", pl)

@@ -915,23 +915,35 @@ func TestEqualFields(t *testing.T) {
 		change func(*api.Step)
 		name   string
 	}{
-		{name: "handling", change: func(st *api.Step) {
-			st.Handling = api.HandlingMemoized
-		}},
-		{name: "flow", change: func(st *api.Step) {
-			st.Flow = &api.FlowConfig{
-				Goals: api.Goals{Steps: []api.StepID{"goal"}},
-			}
-		}},
-		{name: "script", change: func(st *api.Step) {
-			st.Script = &api.ScriptConfig{
-				Language: api.ScriptLangLua,
-				Source:   "x",
-			}
-		}},
-		{name: "labels", change: func(st *api.Step) {
-			st.Tags = api.Tags{"team:core"}
-		}},
+		{
+			name: "handling",
+			change: func(st *api.Step) {
+				st.Handling = api.HandlingMemoized
+			},
+		},
+		{
+			name: "flow",
+			change: func(st *api.Step) {
+				st.Flow = &api.FlowConfig{
+					Goals: api.Goals{Steps: []api.StepID{"goal"}},
+				}
+			},
+		},
+		{
+			name: "script",
+			change: func(st *api.Step) {
+				st.Script = &api.ScriptConfig{
+					Language: api.ScriptLangLua,
+					Source:   "x",
+				}
+			},
+		},
+		{
+			name: "labels",
+			change: func(st *api.Step) {
+				st.Tags = api.Tags{"team:core"}
+			},
+		},
 	}
 
 	for _, tt := range tests {
@@ -1218,7 +1230,11 @@ func TestStepWithDefaults(t *testing.T) {
 	}
 
 	t.Run("nil_work_config", func(t *testing.T) {
-		st := &api.Step{ID: "step", Name: "Step", Type: api.StepTypeService}
+		st := &api.Step{
+			ID:   "step",
+			Name: "Step",
+			Type: api.StepTypeService,
+		}
 		res := st.WithWorkDefaults(defaults)
 
 		as.NotNil(res.WorkConfig)

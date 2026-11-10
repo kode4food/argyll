@@ -126,7 +126,10 @@ func TestCompensatorEndpoint(t *testing.T) {
 
 func TestCompensationCallback(t *testing.T) {
 	cl := &testClient{}
-	fs := api.FlowStep{FlowID: "flow", StepID: "step"}
+	fs := api.FlowStep{
+		FlowID: "flow",
+		StepID: "step",
+	}
 	token := api.Token("token")
 	callback := func(
 		got api.FlowStep, tkn api.Token, action api.CallbackAction,

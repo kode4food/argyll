@@ -38,11 +38,17 @@ func bareNames(names []string, usable func(string) bool) []bareName {
 	var res []bareName
 	for _, name := range names {
 		if taken[name] {
-			res = append(res, bareName{name: name, input: name})
+			res = append(res, bareName{
+				name:  name,
+				input: name,
+			})
 			continue
 		}
 		if tail, ok := derivedName(name, usable); ok && tails[tail] == 1 {
-			res = append(res, bareName{name: tail, input: name})
+			res = append(res, bareName{
+				name:  tail,
+				input: name,
+			})
 		}
 	}
 	return res

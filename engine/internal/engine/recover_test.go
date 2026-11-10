@@ -395,7 +395,10 @@ func TestPendingRetryRecovers(t *testing.T) {
 		env.MockClient.SetResponse(st.ID, api.Args{})
 
 		id := api.FlowID("wf-pending-retry")
-		fs := api.FlowStep{FlowID: id, StepID: st.ID}
+		fs := api.FlowStep{
+			FlowID: id,
+			StepID: st.ID,
+		}
 		tkn := api.Token("work-pending-retry")
 		pl := &api.ExecutionPlan{
 			Goals: api.Goals{Steps: []api.StepID{st.ID}},
@@ -938,7 +941,10 @@ func TestFailedWorkNotRestarted(t *testing.T) {
 		env.MockClient.SetResponse(st.ID, api.Args{})
 
 		id := api.FlowID("wf-terminal-fail")
-		fs := api.FlowStep{FlowID: id, StepID: st.ID}
+		fs := api.FlowStep{
+			FlowID: id,
+			StepID: st.ID,
+		}
 		tkn := api.Token("work-failed")
 		pl := &api.ExecutionPlan{
 			Goals: api.Goals{Steps: []api.StepID{st.ID}},

@@ -16,17 +16,50 @@ func TestGoLiteral(t *testing.T) {
 		value any
 		want  string
 	}{
-		"string":        {value: "a", want: `"a"`},
-		"quoted string": {value: "a\"b\n", want: `"a\"b\n"`},
-		"bool":          {value: true, want: "true"},
-		"int":           {value: -3, want: "-3"},
-		"int64":         {value: int64(1 << 40), want: "1099511627776"},
-		"uint":          {value: uint(7), want: "7"},
-		"uint8":         {value: uint8(255), want: "255"},
-		"float64":       {value: 1.5, want: "1.5"},
-		"float32":       {value: float32(0.25), want: "0.25"},
-		"named string":  {value: api.StepID("greet"), want: `"greet"`},
-		"named const":   {value: api.RoleRequired, want: `"required"`},
+		"string": {
+			value: "a",
+			want:  `"a"`,
+		},
+		"quoted string": {
+			value: "a\"b\n",
+			want:  `"a\"b\n"`,
+		},
+		"bool": {
+			value: true,
+			want:  "true",
+		},
+		"int": {
+			value: -3,
+			want:  "-3",
+		},
+		"int64": {
+			value: int64(1 << 40),
+			want:  "1099511627776",
+		},
+		"uint": {
+			value: uint(7),
+			want:  "7",
+		},
+		"uint8": {
+			value: uint8(255),
+			want:  "255",
+		},
+		"float64": {
+			value: 1.5,
+			want:  "1.5",
+		},
+		"float32": {
+			value: float32(0.25),
+			want:  "0.25",
+		},
+		"named string": {
+			value: api.StepID("greet"),
+			want:  `"greet"`,
+		},
+		"named const": {
+			value: api.RoleRequired,
+			want:  `"required"`,
+		},
 		"struct skips zero fields": {
 			value: api.HTTPAction{Endpoint: "/greet"},
 			want:  "api.HTTPAction{\nEndpoint: \"/greet\",\n}",
@@ -96,9 +129,18 @@ func TestGoLiteralRejects(t *testing.T) {
 		value any
 		want  error
 	}{
-		"channel":  {value: make(chan int), want: generator.ErrUnsupportedGo},
-		"function": {value: func() {}, want: generator.ErrUnsupportedGo},
-		"nil":      {value: nil, want: generator.ErrUnsupportedGo},
+		"channel": {
+			value: make(chan int),
+			want:  generator.ErrUnsupportedGo,
+		},
+		"function": {
+			value: func() {},
+			want:  generator.ErrUnsupportedGo,
+		},
+		"nil": {
+			value: nil,
+			want:  generator.ErrUnsupportedGo,
+		},
 		"unnamed struct": {
 			value: struct{ Name string }{Name: "a"},
 			want:  generator.ErrUnnamedType,

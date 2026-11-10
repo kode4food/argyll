@@ -136,9 +136,18 @@ func TestMultipleFlowRecovery(t *testing.T) {
 		flowID3 := api.FlowID("flow-3")
 
 		env.WaitForCount(3, wait.StepStarted(
-			api.FlowStep{FlowID: flowID1, StepID: step1.ID},
-			api.FlowStep{FlowID: flowID2, StepID: step2.ID},
-			api.FlowStep{FlowID: flowID3, StepID: step3.ID},
+			api.FlowStep{
+				FlowID: flowID1,
+				StepID: step1.ID,
+			},
+			api.FlowStep{
+				FlowID: flowID2,
+				StepID: step2.ID,
+			},
+			api.FlowStep{
+				FlowID: flowID3,
+				StepID: step3.ID,
+			},
 		), func() {
 			assert.NoError(t, env.Engine.StartPlan(flowID1, plan1))
 			assert.NoError(t, env.Engine.StartPlan(flowID2, plan2))

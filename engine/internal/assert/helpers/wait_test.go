@@ -319,7 +319,10 @@ func TestWaitFlowStatusTerminal(t *testing.T) {
 		}
 
 		id := api.FlowID("test-flow-polling")
-		fs := api.FlowStep{FlowID: id, StepID: st.ID}
+		fs := api.FlowStep{
+			FlowID: id,
+			StepID: st.ID,
+		}
 		env.WaitFor(wait.WorkRetryScheduledAny(fs), func() {
 			err = env.Engine.StartPlan(id, pl)
 			assert.NoError(t, err)

@@ -98,8 +98,11 @@ func TestCreateFlowRequestValidate(t *testing.T) {
 			goals[i] = api.StepID(fmt.Sprintf("step-%d", i))
 		}
 		req := &api.CreateFlowRequest{
-			ID:    "my-flow",
-			Goals: api.Goals{Steps: goals, Else: &api.Goals{Steps: goals}},
+			ID: "my-flow",
+			Goals: api.Goals{
+				Steps: goals,
+				Else:  &api.Goals{Steps: goals},
+			},
 		}
 		assert.NoError(t, req.Validate())
 	})

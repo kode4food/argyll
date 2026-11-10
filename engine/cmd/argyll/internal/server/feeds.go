@@ -49,7 +49,10 @@ func (s *Server) createFeed(c *gin.Context) {
 		writeFeedStatus(c, http.StatusBadRequest, err)
 		return
 	}
-	writeError(c, writeErrorArgs{sentinel: ErrRegisterFeed, err: err})
+	writeError(c, writeErrorArgs{
+		sentinel: ErrRegisterFeed,
+		err:      err,
+	})
 }
 
 func (s *Server) getFeed(c *gin.Context) {
@@ -62,7 +65,10 @@ func (s *Server) getFeed(c *gin.Context) {
 		writeFeedStatus(c, http.StatusNotFound, err)
 		return
 	}
-	writeError(c, writeErrorArgs{sentinel: ErrGetFeed, err: err})
+	writeError(c, writeErrorArgs{
+		sentinel: ErrGetFeed,
+		err:      err,
+	})
 }
 
 func (s *Server) updateFeed(c *gin.Context) {
@@ -95,7 +101,10 @@ func (s *Server) updateFeed(c *gin.Context) {
 		writeFeedStatus(c, http.StatusBadRequest, err)
 		return
 	}
-	writeError(c, writeErrorArgs{sentinel: ErrUpdateFeed, err: err})
+	writeError(c, writeErrorArgs{
+		sentinel: ErrUpdateFeed,
+		err:      err,
+	})
 }
 
 func (s *Server) deleteFeed(c *gin.Context) {
@@ -114,11 +123,17 @@ func (s *Server) deleteFeed(c *gin.Context) {
 		writeFeedStatus(c, http.StatusConflict, err)
 		return
 	}
-	writeError(c, writeErrorArgs{sentinel: ErrUnregisterFeed, err: err})
+	writeError(c, writeErrorArgs{
+		sentinel: ErrUnregisterFeed,
+		err:      err,
+	})
 }
 
 func writeFeedStatus(c *gin.Context, status int, err error) {
-	c.JSON(status, api.ErrorResponse{Error: err.Error(), Status: status})
+	c.JSON(status, api.ErrorResponse{
+		Error:  err.Error(),
+		Status: status,
+	})
 }
 
 func bindFeed(c *gin.Context) (*api.Feed, bool) {

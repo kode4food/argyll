@@ -639,7 +639,8 @@ func TestEqualNilConfigs(t *testing.T) {
 		{
 			name: "mapping",
 			left: &api.AttributeSpec{
-				Role: api.RoleOutput, Output: &api.OutputConfig{},
+				Role:   api.RoleOutput,
+				Output: &api.OutputConfig{},
 			},
 			right: &api.AttributeSpec{
 				Role: api.RoleOutput,
@@ -651,7 +652,8 @@ func TestEqualNilConfigs(t *testing.T) {
 		{
 			name: "match script",
 			left: &api.AttributeSpec{
-				Role: api.RoleRequired, Required: &api.RequiredConfig{},
+				Role:     api.RoleRequired,
+				Required: &api.RequiredConfig{},
 			},
 			right: &api.AttributeSpec{
 				Role: api.RoleRequired,

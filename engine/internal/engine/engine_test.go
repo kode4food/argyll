@@ -138,7 +138,9 @@ func TestNewCustomStep(t *testing.T) {
 		assert.NotNil(t, eng)
 
 		err = eng.RegisterStep(&api.Step{
-			ID: "custom-step", Name: "Custom Step", Type: "custom",
+			ID:   "custom-step",
+			Name: "Custom Step",
+			Type: "custom",
 		})
 		assert.NoError(t, err)
 	})

@@ -99,7 +99,10 @@ func (tx *flowTx) nextCompensationWave(fl *api.FlowState) ([]api.StepID, error) 
 
 	var wave []api.StepID
 	for sid := range pending {
-		walk := &compensationWaveWalk{blocking: blocking, seen: util.SetOf(sid)}
+		walk := &compensationWaveWalk{
+			blocking: blocking,
+			seen:     util.SetOf(sid),
+		}
 		if walk.dependentPending(fl.Plan, sid) {
 			continue
 		}
@@ -233,10 +236,16 @@ func (tx *flowTx) compensationContext(st *api.Step) *ExecContext {
 }
 
 func (tx *flowTx) scheduleCompensationTask(sid api.StepID, tkn api.Token, retryAt time.Time) error {
-	fs := api.FlowStep{FlowID: tx.flowID, StepID: sid}
+	fs := api.FlowStep{
+		FlowID: tx.flowID,
+		StepID: sid,
+	}
 	return tx.scheduleEvent(compensateKey(fs, tkn), retryAt,
 		compensationRetryReady,
-		scheduledWork{StepID: sid, Token: tkn})
+		scheduledWork{
+			StepID: sid,
+			Token:  tkn,
+		})
 }
 
 func (tx *flowTx) handleCompensationRetry(sid api.StepID, tkn api.Token) error {

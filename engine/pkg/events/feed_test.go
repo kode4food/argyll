@@ -14,10 +14,13 @@ import (
 
 func testFeedDef() *api.Feed {
 	return &api.Feed{
-		ID:         "order-total",
-		Name:       "Order Total",
-		Value:      "0",
-		Fold:       &api.ScriptConfig{Language: "lua", Source: "return feed"},
+		ID:    "order-total",
+		Name:  "Order Total",
+		Value: "0",
+		Fold: &api.ScriptConfig{
+			Language: "lua",
+			Source:   "return feed",
+		},
 		Attributes: api.Slice[api.Name]{"amount"},
 	}
 }
@@ -66,14 +69,21 @@ func TestFeedAggregate(t *testing.T) {
 	state := events.NewFeedState()
 	assert.Empty(t, state.Version)
 
-	failure := api.FeedFoldFailedEvent{FeedID: "order-total", Version: "v1"}
+	failure := api.FeedFoldFailedEvent{
+		FeedID:  "order-total",
+		Version: "v1",
+	}
 	failed := feedEvent(t, key, api.EventTypeFeedFoldFailed, failure)
 	state = events.FeedAppliers.Reduce(state, []*timebox.Event{failed})
 	assert.Empty(t, state.Version)
 	assert.Nil(t, state.Value)
 	assert.Equal(t, api.FeedID("order-total"), state.ID)
 
-	fold := api.FeedFoldedEvent{FeedID: "order-total", Version: "v1", Value: 7}
+	fold := api.FeedFoldedEvent{
+		FeedID:  "order-total",
+		Version: "v1",
+		Value:   7,
+	}
 	folded := feedEvent(t, key, api.EventTypeFeedFolded, fold)
 	state = events.FeedAppliers.Reduce(state, []*timebox.Event{folded})
 	assert.Equal(t, "v1", state.Version)

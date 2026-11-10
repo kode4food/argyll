@@ -60,12 +60,8 @@ func TestDiffProposedStepsTool(t *testing.T) {
 				"name": "Same Step",
 				"type": "service",
 				"attributes": map[string]any{
-					"customer_id": map[string]any{
-						"role": "required",
-					},
-					"order_id": map[string]any{
-						"role": "output",
-					},
+					"customer_id": map[string]any{"role": "required"},
+					"order_id":    map[string]any{"role": "output"},
 				},
 			},
 			{
@@ -73,12 +69,8 @@ func TestDiffProposedStepsTool(t *testing.T) {
 				"name": "Update Step",
 				"type": "service",
 				"attributes": map[string]any{
-					"customer_id": map[string]any{
-						"role": "required",
-					},
-					"order_id": map[string]any{
-						"role": "output",
-					},
+					"customer_id": map[string]any{"role": "required"},
+					"order_id":    map[string]any{"role": "output"},
 				},
 			},
 			{
@@ -86,12 +78,8 @@ func TestDiffProposedStepsTool(t *testing.T) {
 				"name": "New Step",
 				"type": "service",
 				"attributes": map[string]any{
-					"customer_id": map[string]any{
-						"role": "required",
-					},
-					"order_id": map[string]any{
-						"role": "output",
-					},
+					"customer_id": map[string]any{"role": "required"},
+					"order_id":    map[string]any{"role": "output"},
 				},
 			},
 		},
@@ -190,12 +178,8 @@ func TestApplyProposedStepsTool(t *testing.T) {
 				"name": "Same Step",
 				"type": "service",
 				"attributes": map[string]any{
-					"customer_id": map[string]any{
-						"role": "required",
-					},
-					"order_id": map[string]any{
-						"role": "output",
-					},
+					"customer_id": map[string]any{"role": "required"},
+					"order_id":    map[string]any{"role": "output"},
 				},
 			},
 			{
@@ -203,12 +187,8 @@ func TestApplyProposedStepsTool(t *testing.T) {
 				"name": "Update Step",
 				"type": "service",
 				"attributes": map[string]any{
-					"customer_id": map[string]any{
-						"role": "required",
-					},
-					"order_id": map[string]any{
-						"role": "output",
-					},
+					"customer_id": map[string]any{"role": "required"},
+					"order_id":    map[string]any{"role": "output"},
 				},
 			},
 			{
@@ -216,12 +196,8 @@ func TestApplyProposedStepsTool(t *testing.T) {
 				"name": "New Step",
 				"type": "service",
 				"attributes": map[string]any{
-					"customer_id": map[string]any{
-						"role": "required",
-					},
-					"order_id": map[string]any{
-						"role": "output",
-					},
+					"customer_id": map[string]any{"role": "required"},
+					"order_id":    map[string]any{"role": "output"},
 				},
 			},
 		},
@@ -292,9 +268,7 @@ func TestApplyProposedStepsVerifiesSemanticReadback(t *testing.T) {
 					"body": map[string]any{
 						"role": "required",
 						"required": map[string]any{
-							"mapping": map[string]any{
-								"name": "message_text",
-							},
+							"mapping": map[string]any{"name": "message_text"},
 						},
 					},
 				},

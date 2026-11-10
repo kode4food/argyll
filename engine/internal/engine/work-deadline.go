@@ -13,9 +13,15 @@ var (
 )
 
 func (tx *flowTx) scheduleWorkDeadlineAt(sid api.StepID, tkn api.Token, at time.Time) error {
-	fs := api.FlowStep{FlowID: tx.flowID, StepID: sid}
+	fs := api.FlowStep{
+		FlowID: tx.flowID,
+		StepID: sid,
+	}
 	return tx.scheduleEvent(deadlineKey(fs, tkn), at, workDeadlineElapsed,
-		scheduledWork{StepID: sid, Token: tkn})
+		scheduledWork{
+			StepID: sid,
+			Token:  tkn,
+		})
 }
 
 func (tx *flowTx) handleWorkDeadline(sid api.StepID, tkn api.Token) error {

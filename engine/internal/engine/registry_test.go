@@ -87,7 +87,8 @@ func TestRegisterNonBooleanPredicates(t *testing.T) {
 			helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 				st := helpers.NewStepWithOutputs("non-boolean", "result")
 				cfg := &api.ScriptConfig{
-					Language: api.ScriptLangArgyll, Source: "1 + 2",
+					Language: api.ScriptLangArgyll,
+					Source:   "1 + 2",
 				}
 				if tt.kind == "predicate" {
 					st.Predicate = cfg
@@ -136,7 +137,9 @@ func TestRegisterStep(t *testing.T) {
 func TestRegisterStepRejectsUnconfiguredType(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
 		err := eng.RegisterStep(&api.Step{
-			ID: "custom-step", Name: "Custom Step", Type: "custom",
+			ID:   "custom-step",
+			Name: "Custom Step",
+			Type: "custom",
 		})
 		assert.ErrorIs(t, err, api.ErrInvalidStep)
 		assert.ErrorIs(t, err, api.ErrInvalidStepType)

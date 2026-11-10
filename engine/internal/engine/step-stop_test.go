@@ -62,7 +62,10 @@ func TestMissingOutputFailsFlow(t *testing.T) {
 		env.MockClient.SetResponse(producer.ID, api.Args{})
 		pl := &api.ExecutionPlan{
 			Goals: api.Goals{Steps: []api.StepID{consumer.ID}},
-			Steps: api.Steps{producer.ID: producer, consumer.ID: consumer},
+			Steps: api.Steps{
+				producer.ID: producer,
+				consumer.ID: consumer,
+			},
 			Attributes: api.AttributeGraph{
 				"inventory": {
 					Providers: []api.StepID{producer.ID},
@@ -72,7 +75,10 @@ func TestMissingOutputFailsFlow(t *testing.T) {
 		}
 		fid := api.FlowID("missing-inventory")
 		env.WaitFor(
-			wait.StepTerminal(api.FlowStep{FlowID: fid, StepID: producer.ID}),
+			wait.StepTerminal(api.FlowStep{
+				FlowID: fid,
+				StepID: producer.ID,
+			}),
 			func() {
 				testify.NoError(t, env.Engine.StartPlan(fid, pl))
 			},
@@ -166,7 +172,10 @@ func TestMissingOutputOtherProvider(t *testing.T) {
 		}
 		fid := api.FlowID("other-inventory")
 		env.WaitFor(
-			wait.StepTerminal(api.FlowStep{FlowID: fid, StepID: first.ID}),
+			wait.StepTerminal(api.FlowStep{
+				FlowID: fid,
+				StepID: first.ID,
+			}),
 			func() {
 				testify.NoError(t, env.Engine.StartPlan(fid, pl))
 			},
@@ -179,7 +188,10 @@ func TestMissingOutputOtherProvider(t *testing.T) {
 		fl = env.WaitForFlowStatus(fid, func() {
 			for tkn := range fl.Executions[other.ID].WorkItems {
 				err := env.Engine.CompleteWork(
-					api.FlowStep{FlowID: fid, StepID: other.ID}, tkn,
+					api.FlowStep{
+						FlowID: fid,
+						StepID: other.ID,
+					}, tkn,
 					api.Args{"inventory": "available"},
 				)
 				testify.NoError(t, err)

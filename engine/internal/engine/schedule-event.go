@@ -49,7 +49,10 @@ func (e *Engine) processScheduled(t *timebox.Transaction, msg *timebox.Message) 
 		if !ok {
 			return fmt.Errorf("%w: %s", ErrScheduledMessageTarget, msg.AggregateID.String())
 		}
-		st := storeTx{Engine: e, Transaction: t}
+		st := storeTx{
+			Engine:      e,
+			Transaction: t,
+		}
 		_, err := st.flowTx(fid, func(tx *flowTx) error {
 			return tx.handleScheduled(msg)
 		})

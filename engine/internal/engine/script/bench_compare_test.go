@@ -29,12 +29,8 @@ var matchDoc = map[string]any{
 	"type":     "service",
 	"handling": "standard",
 	"attributes": map[string]any{
-		"score": map[string]any{
-			"role": "output", "compensated": false,
-		},
-		"amount": map[string]any{
-			"role": "required", "compensated": false,
-		},
+		"score":  map[string]any{"role": "output", "compensated": false},
+		"amount": map[string]any{"role": "required", "compensated": false},
 	},
 }
 

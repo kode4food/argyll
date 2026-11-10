@@ -295,7 +295,10 @@ func TestFeedFoldsMatchingOutputsTogether(t *testing.T) {
 		require.NoError(t, env.Engine.RegisterFeed(f))
 		key := events.FeedKey(f.ID, f.Version())
 		run := func(id api.FlowID, a string, wantSeq int64) api.FeedState {
-			env.MockClient.SetResponse(st.ID, api.Args{"a": a, "b": "right"})
+			env.MockClient.SetResponse(st.ID, api.Args{
+				"a": a,
+				"b": "right",
+			})
 			runChargeFlow(env, id, st.ID)
 			state, seq, err := env.Engine.GetFeedStateSeq(key)
 			require.NoError(t, err)

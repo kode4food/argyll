@@ -96,7 +96,10 @@ func (a Args) HashKey() (string, error) {
 
 	pairs := make([]argPair, len(keys))
 	for i, k := range keys {
-		pairs[i] = argPair{K: string(k), V: a[k]}
+		pairs[i] = argPair{
+			K: string(k),
+			V: a[k],
+		}
 	}
 
 	data, err := json.Marshal(pairs)

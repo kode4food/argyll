@@ -33,14 +33,23 @@ func TestEmbeddedSyncOutputs(t *testing.T) {
 	exec := gen.EmbeddedSync(sumArgsConverter(), sumResultConverter(),
 		func(in sumArgs) (sumResult, error) {
 			total := in.Left + in.Right
-			return sumResult{Total: total, Doubled: total * 2}, nil
+			return sumResult{
+				Total:   total,
+				Doubled: total * 2,
+			}, nil
 		})
 
 	rt := &testRuntime{}
-	err := exec(rt, &api.Step{}, api.Args{"left": 2.0, "right": 3.0}, "tkn")
+	err := exec(rt, &api.Step{}, api.Args{
+		"left":  2.0,
+		"right": 3.0,
+	}, "tkn")
 	assert.NoError(t, err)
 	assert.Equal(t, api.Token("tkn"), rt.token)
-	assert.Equal(t, api.Args{"total": 5.0, "doubled": 10.0}, rt.outputs)
+	assert.Equal(t, api.Args{
+		"total":   5.0,
+		"doubled": 10.0,
+	}, rt.outputs)
 }
 
 func TestEmbeddedSyncMeta(t *testing.T) {
@@ -61,12 +70,19 @@ func TestEmbeddedSyncMeta(t *testing.T) {
 
 	rt := &testRuntime{meta: api.Metadata{"tier": "gold"}}
 	assert.NoError(t, exec(rt, st, api.Args{}, "tkn"))
-	assert.Equal(t, metaArgs{Token: "tkn", Flow: "flow-1", Tier: "gold"}, got)
+	assert.Equal(t, metaArgs{
+		Token: "tkn",
+		Flow:  "flow-1",
+		Tier:  "gold",
+	}, got)
 
 	// a meta key the Flow never set leaves its field at the zero value
 	rt = &testRuntime{}
 	assert.NoError(t, exec(rt, st, api.Args{}, "tkn"))
-	assert.Equal(t, metaArgs{Token: "tkn", Flow: "flow-1"}, got)
+	assert.Equal(t, metaArgs{
+		Token: "tkn",
+		Flow:  "flow-1",
+	}, got)
 }
 
 func TestEmbeddedSyncErrors(t *testing.T) {
@@ -106,10 +122,16 @@ func TestEmbeddedCompensate(t *testing.T) {
 			return nil
 		})
 	rt := &testRuntime{}
-	args := api.Args{"left": 2.0, "total": 5.0}
+	args := api.Args{
+		"left":  2.0,
+		"total": 5.0,
+	}
 	assert.NoError(t, comp(rt, &api.Step{}, args, "tkn"))
 	assert.Equal(t, api.Token("tkn"), rt.token)
-	assert.Equal(t, compArgs{Left: 2, Total: 5}, got)
+	assert.Equal(t, compArgs{
+		Left:  2,
+		Total: 5,
+	}, got)
 }
 
 func TestEmbeddedCompensateErrors(t *testing.T) {

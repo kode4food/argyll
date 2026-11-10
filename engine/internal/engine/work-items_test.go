@@ -162,10 +162,7 @@ func TestOutputMappingDescendants(t *testing.T) {
 		assert.NoError(t, env.Engine.RegisterStep(st))
 		env.MockClient.SetResponse(st.ID, api.Args{
 			"payload": map[string]any{
-				"sections": []any{
-					map[string]any{"book": "A"},
-					map[string]any{"book": "B"},
-				},
+				"sections": []any{map[string]any{"book": "A"}, map[string]any{"book": "B"}},
 			},
 		})
 
@@ -336,7 +333,10 @@ func TestTooManyWorkItems(t *testing.T) {
 			},
 		}
 		err := env.Engine.StartPlan("wf-too-many", pl,
-			flow.WithInit(api.InitArgs{"x": xArr, "y": yArr}),
+			flow.WithInit(api.InitArgs{
+				"x": xArr,
+				"y": yArr,
+			}),
 		)
 		assert.True(t, errors.Is(err, engine.ErrTooManyWorkItems))
 	})

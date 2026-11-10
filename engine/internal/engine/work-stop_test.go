@@ -141,7 +141,10 @@ func TestPendingRetryCanComplete(t *testing.T) {
 		))
 
 		err := env.Engine.CompleteWork(
-			api.FlowStep{FlowID: id, StepID: st.ID}, tkn, api.Args{"output": "ok"},
+			api.FlowStep{
+				FlowID: id,
+				StepID: st.ID,
+			}, tkn, api.Args{"output": "ok"},
 		)
 		assert.NoError(t, err)
 
@@ -197,7 +200,10 @@ func TestPendingRetryCanFail(t *testing.T) {
 		))
 
 		err := env.Engine.FailWork(
-			api.FlowStep{FlowID: id, StepID: st.ID}, tkn, "permanent",
+			api.FlowStep{
+				FlowID: id,
+				StepID: st.ID,
+			}, tkn, "permanent",
 		)
 		assert.NoError(t, err)
 
@@ -248,7 +254,10 @@ func TestLateResultsAfterFlowFails(t *testing.T) {
 		st.ID = "late-result-step"
 		st.HTTP.Invoke.Mode = api.ActionModeAsync
 		st.HTTP.Invoke.Timeout = 60000
-		st.WorkConfig = &api.WorkConfig{Parallelism: 2, MaxRetries: -1}
+		st.WorkConfig = &api.WorkConfig{
+			Parallelism: 2,
+			MaxRetries:  -1,
+		}
 		st.Attributes["items"].Required = &api.RequiredConfig{
 			ForEach: true,
 			Collect: api.InputCollectAll,
@@ -260,7 +269,10 @@ func TestLateResultsAfterFlowFails(t *testing.T) {
 		env.MockClient.SetResponse(st.ID, api.Args{})
 
 		id := api.FlowID("wf-late-results")
-		fs := api.FlowStep{FlowID: id, StepID: st.ID}
+		fs := api.FlowStep{
+			FlowID: id,
+			StepID: st.ID,
+		}
 		pl := &api.ExecutionPlan{
 			Goals: api.Goals{Steps: []api.StepID{st.ID}},
 			Steps: api.Steps{st.ID: st},
@@ -318,7 +330,10 @@ func TestSideEffectRunsOnceUnderConflict(t *testing.T) {
 		st.ID = "conflict-serial-step"
 		st.HTTP.Invoke.Mode = api.ActionModeAsync
 		st.HTTP.Invoke.Timeout = 60000
-		st.WorkConfig = &api.WorkConfig{Parallelism: 1, MaxRetries: -1}
+		st.WorkConfig = &api.WorkConfig{
+			Parallelism: 1,
+			MaxRetries:  -1,
+		}
 		st.Attributes["items"].Required = &api.RequiredConfig{
 			ForEach: true,
 			Collect: api.InputCollectAll,
@@ -334,7 +349,10 @@ func TestSideEffectRunsOnceUnderConflict(t *testing.T) {
 		)
 
 		id := api.FlowID("wf-conflict-once")
-		fs := api.FlowStep{FlowID: id, StepID: st.ID}
+		fs := api.FlowStep{
+			FlowID: id,
+			StepID: st.ID,
+		}
 		pl := &api.ExecutionPlan{
 			Goals: api.Goals{Steps: []api.StepID{st.ID}},
 			Steps: api.Steps{st.ID: st},

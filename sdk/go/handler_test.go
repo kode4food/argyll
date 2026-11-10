@@ -243,7 +243,10 @@ func TestCompensateSuccess(t *testing.T) {
 
 	assert.Equal(t, http.StatusNoContent, resp.StatusCode)
 	assert.Equal(t,
-		api.Args{"order": order, "reservation": reservation}, gotArgs)
+		api.Args{
+			"order":       order,
+			"reservation": reservation,
+		}, gotArgs)
 }
 
 func TestCompensateRequests(t *testing.T) {
@@ -293,16 +296,8 @@ func TestCompensateErrors(t *testing.T) {
 		err    error
 		status int
 	}{
-		{
-			name:   "http-error",
-			err:    argyll.Conflict("conflict"),
-			status: http.StatusConflict,
-		},
-		{
-			name:   "plain-error",
-			err:    assert.AnError,
-			status: http.StatusInternalServerError,
-		},
+		{name: "http-error", err: argyll.Conflict("conflict"), status: http.StatusConflict},
+		{name: "plain-error", err: assert.AnError, status: http.StatusInternalServerError},
 	}
 
 	for _, tc := range cases {

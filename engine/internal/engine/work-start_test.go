@@ -282,7 +282,10 @@ func TestDispatchRecovery(t *testing.T) {
 		assert.NoError(t, env.Engine.UpdateStepHealth(st.ID, api.HealthUnhealthy, "service down"))
 
 		id := api.FlowID("wf-health-recovers")
-		fs := api.FlowStep{FlowID: id, StepID: st.ID}
+		fs := api.FlowStep{
+			FlowID: id,
+			StepID: st.ID,
+		}
 		pl := &api.ExecutionPlan{
 			Goals: api.Goals{Steps: []api.StepID{st.ID}},
 			Steps: api.Steps{st.ID: st},

@@ -57,7 +57,10 @@ func (e *Engine) UpdateStep(st *api.Step) error {
 
 func (e *Engine) catalogTx(fn func(*catalogTx) error) error {
 	return e.engStore.Transact(func(t *timebox.Transaction) error {
-		tx := storeTx{Engine: e, Transaction: t}
+		tx := storeTx{
+			Engine:      e,
+			Transaction: t,
+		}
 		_, err := tx.catalogTx(fn)
 		return err
 	})
@@ -129,7 +132,10 @@ func (tx *catalogTx) remove(sid api.StepID) error {
 		}
 	}
 	return events.Raise(tx.ag, api.EventTypeStepUnregistered,
-		api.StepUnregisteredEvent{StepID: sid, Spaces: spaces},
+		api.StepUnregisteredEvent{
+			StepID: sid,
+			Spaces: spaces,
+		},
 	)
 }
 

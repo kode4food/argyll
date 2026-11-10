@@ -153,7 +153,10 @@ func (tx *flowTx) releaseChildFlows() error {
 		if !ok || st.Type != api.StepTypeFlow {
 			continue
 		}
-		fs := api.FlowStep{FlowID: fl.ID, StepID: sid}
+		fs := api.FlowStep{
+			FlowID: fl.ID,
+			StepID: sid,
+		}
 		for tkn := range ex.WorkItems {
 			if _, err := tx.flowTx(childFlowID(fs, tkn),
 				func(child *flowTx) error {
@@ -250,7 +253,10 @@ func parentMeta(fl *api.FlowState, target *parentWork) (bool, error) {
 		return false, nil
 	}
 
-	target.fs = api.FlowStep{FlowID: fid, StepID: sid}
+	target.fs = api.FlowStep{
+		FlowID: fid,
+		StepID: sid,
+	}
 	target.token = tkn
 	return true, nil
 }

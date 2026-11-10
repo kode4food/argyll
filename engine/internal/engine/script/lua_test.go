@@ -90,8 +90,11 @@ func TestLuaEvaluatePredicate(t *testing.T) {
 		{
 			name:      "complex_condition",
 			predicate: "return x > 10 and y < 20",
-			args:      api.Args{"x": 15, "y": 15},
-			expected:  true,
+			args: api.Args{
+				"x": 15,
+				"y": 15,
+			},
+			expected: true,
 		},
 	}
 
@@ -155,21 +158,16 @@ func TestLuaValidate(t *testing.T) {
 		script      string
 		expectError bool
 	}{
-		{
-			name:        "valid_script",
-			script:      "return {result = 42}",
-			expectError: false,
-		},
-		{
-			name:        "invalid_syntax",
-			script:      "return {result =",
-			expectError: true,
-		},
+		{name: "valid_script", script: "return {result = 42}", expectError: false},
+		{name: "invalid_syntax", script: "return {result =", expectError: true},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			st := &api.Step{ID: "test", Type: api.StepTypeScript}
+			st := &api.Step{
+				ID:   "test",
+				Type: api.StepTypeScript,
+			}
 			err := env.Validate(st, tt.script)
 			if tt.expectError {
 				assert.Error(t, err)
@@ -633,7 +631,8 @@ func TestLuaPrelude(t *testing.T) {
 	env := script.NewLuaEnv()
 	match := func(src string, tags []any) bool {
 		comp, err := env.Compile(script.MatchStep, &api.ScriptConfig{
-			Source: src, Language: api.ScriptLangLua,
+			Source:   src,
+			Language: api.ScriptLangLua,
 		})
 		assert.NoError(t, err)
 		matched, err := evalMatch(env, comp, map[string]any{
@@ -658,7 +657,8 @@ func TestLuaScriptIsolation(t *testing.T) {
 	env := script.NewLuaEnv()
 	run := func(src string) (bool, error) {
 		comp, err := env.Compile(script.MatchStep, &api.ScriptConfig{
-			Source: src, Language: api.ScriptLangLua,
+			Source:   src,
+			Language: api.ScriptLangLua,
 		})
 		assert.NoError(t, err)
 		return evalMatch(env, comp, map[string]any{})
@@ -768,8 +768,11 @@ func TestLuaInputNames(t *testing.T) {
 			expected: 5,
 		},
 		{
-			name:     "inputs_stay_off_env",
-			inputs:   api.Args{"urn:acme:order": 1, "user_id": 2},
+			name: "inputs_stay_off_env",
+			inputs: api.Args{
+				"urn:acme:order": 1,
+				"user_id":        2,
+			},
 			script:   `return {out = _ENV["urn:acme:order"] == nil}`,
 			expected: true,
 		},
@@ -780,8 +783,12 @@ func TestLuaInputNames(t *testing.T) {
 			expected: 2,
 		},
 		{
-			name:     "locals_keep_positions_around_receiver",
-			inputs:   api.Args{"a": 1, "b-c": 10, "d": 100},
+			name: "locals_keep_positions_around_receiver",
+			inputs: api.Args{
+				"a":   1,
+				"b-c": 10,
+				"d":   100,
+			},
 			script:   `return {out = a + this["b-c"] + d}`,
 			expected: 111,
 		},

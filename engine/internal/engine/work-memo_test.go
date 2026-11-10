@@ -102,9 +102,18 @@ func TestMemoizedConcurrentResults(t *testing.T) {
 			return
 		}
 		defer func() { assert.NoError(t, other.Stop()) }()
-		first := api.FlowStep{FlowID: "first", StepID: st.ID}
-		second := api.FlowStep{FlowID: "second", StepID: st.ID}
-		late := api.FlowStep{FlowID: "late", StepID: st.ID}
+		first := api.FlowStep{
+			FlowID: "first",
+			StepID: st.ID,
+		}
+		second := api.FlowStep{
+			FlowID: "second",
+			StepID: st.ID,
+		}
+		late := api.FlowStep{
+			FlowID: "late",
+			StepID: st.ID,
+		}
 		assert.NoError(t, env.SeedStartedWork(first, pl, "first"))
 		assert.NoError(t, env.SeedStartedWork(second, pl, "second"))
 		assert.NoError(t, env.SeedStartedWork(late, pl, "late"))
@@ -260,7 +269,10 @@ func TestMemoizedRollback(t *testing.T) {
 			Steps: api.Steps{st.ID: st},
 		}
 		assert.NoError(t, env.Engine.RegisterStep(st))
-		fs := api.FlowStep{FlowID: "rollback", StepID: st.ID}
+		fs := api.FlowStep{
+			FlowID: "rollback",
+			StepID: st.ID,
+		}
 		assert.NoError(t, env.SeedStartedWork(fs, pl, "token"))
 		backend.reject.Store(true)
 		err := env.Engine.CompleteWork(fs, "token", api.Args{"raw": "lost"})
@@ -300,7 +312,10 @@ func TestMemoizedWorkHistory(t *testing.T) {
 					"history",
 					helpers.FlowEvent{
 						Type: api.EventTypeFlowStarted,
-						Data: api.FlowStartedEvent{FlowID: "history", Plan: pl},
+						Data: api.FlowStartedEvent{
+							FlowID: "history",
+							Plan:   pl,
+						},
 					},
 					helpers.FlowEvent{
 						Type: api.EventTypeStepStarted,
@@ -360,7 +375,10 @@ func TestMemoizedWorkHistory(t *testing.T) {
 				))
 				if status == api.WorkSucceeded {
 					assert.NoError(t, env.Engine.CompleteWork(
-						api.FlowStep{FlowID: "history", StepID: st.ID}, "first",
+						api.FlowStep{
+							FlowID: "history",
+							StepID: st.ID,
+						}, "first",
 						api.Args{"raw": "saved"},
 					))
 				}

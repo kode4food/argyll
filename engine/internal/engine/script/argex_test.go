@@ -154,7 +154,10 @@ func TestArgExScriptObject(t *testing.T) {
 		"input": api.Args{"foo": "bar"},
 	})
 	assert.NoError(t, err)
-	assert.Equal(t, api.Args{"foo": "bar", "n": 1.0}, outputs)
+	assert.Equal(t, api.Args{
+		"foo": "bar",
+		"n":   1.0,
+	}, outputs)
 }
 
 func TestArgExFunctionValues(t *testing.T) {
@@ -170,7 +173,10 @@ func TestArgExFunctionValues(t *testing.T) {
 		"input": api.Args{"items": []any{1.0, 3.0}},
 	})
 	assert.NoError(t, err)
-	assert.Equal(t, api.Args{"count": 2.0, "peak": 3.0}, outputs)
+	assert.Equal(t, api.Args{
+		"count": 2.0,
+		"peak":  3.0,
+	}, outputs)
 }
 
 func TestArgExScriptArray(t *testing.T) {

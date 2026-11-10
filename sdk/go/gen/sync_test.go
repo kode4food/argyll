@@ -43,7 +43,10 @@ func TestSyncOutputs(t *testing.T) {
 	h := gen.Sync(sumArgsCodec(), sumResultCodec(),
 		func(in sumArgs) (sumResult, error) {
 			total := in.Left + in.Right
-			return sumResult{Total: total, Doubled: total * 2}, nil
+			return sumResult{
+				Total:   total,
+				Doubled: total * 2,
+			}, nil
 		})
 
 	w := invoke(h, `{"left":2,"right":3}`)
@@ -84,7 +87,11 @@ func TestSyncSemanticErrors(t *testing.T) {
 		want    int
 		message string
 	}{
-		{argyll.NotFound("product %s", "missing"), http.StatusNotFound, "product missing"},
+		{
+			argyll.NotFound("product %s", "missing"),
+			http.StatusNotFound,
+			"product missing",
+		},
 		{argyll.Conflict("order %d already exists", 42),
 			http.StatusConflict, "order 42 already exists"},
 	} {
@@ -161,7 +168,10 @@ func TestCompensate(t *testing.T) {
 		"left":2,"right":3,"total":5,"doubled":10
 	}`)
 	assert.Equal(t, http.StatusNoContent, w.Code)
-	assert.Equal(t, compArgs{Left: 2, Total: 5}, got)
+	assert.Equal(t, compArgs{
+		Left:  2,
+		Total: 5,
+	}, got)
 }
 
 func TestCompensateError(t *testing.T) {

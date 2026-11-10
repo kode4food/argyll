@@ -31,17 +31,28 @@ func TestPlanFeeds(t *testing.T) {
 		ID:         "order-total",
 		Attributes: api.Slice[api.Name]{"amount"},
 	}
-	idle := &api.Feed{ID: "idle", Attributes: api.Slice[api.Name]{"missing"}}
+	idle := &api.Feed{
+		ID:         "idle",
+		Attributes: api.Slice[api.Name]{"missing"},
+	}
 
 	t.Run("includes consumed and sourced Feeds", func(t *testing.T) {
 		cat := makeCatalogState(api.Steps{
-			"charge": charge, "reader": reader, "unrelated": unrelated,
+			"charge":    charge,
+			"reader":    reader,
+			"unrelated": unrelated,
 		})
-		cat.Feeds = api.Feeds{total.ID: total, idle.ID: idle}
+		cat.Feeds = api.Feeds{
+			total.ID: total,
+			idle.ID:  idle,
+		}
 
 		pl, err := feedPlan(cat, "charge", "reader")
 		assert.NoError(t, err)
-		sourced := api.PlanFeed{Feed: total, Sources: []api.StepID{"charge"}}
+		sourced := api.PlanFeed{
+			Feed:    total,
+			Sources: []api.StepID{"charge"},
+		}
 		assert.Equal(t, api.PlanFeeds{total.ID: sourced}, pl.Feeds)
 	})
 
@@ -56,7 +67,10 @@ func TestPlanFeeds(t *testing.T) {
 	})
 
 	t.Run("sources every provider of the Attribute", func(t *testing.T) {
-		cat := makeCatalogState(api.Steps{"charge": charge, "refund": refund})
+		cat := makeCatalogState(api.Steps{
+			"charge": charge,
+			"refund": refund,
+		})
 		cat.Feeds = api.Feeds{total.ID: total}
 
 		pl, err := feedPlan(cat, "charge", "refund")
@@ -66,7 +80,10 @@ func TestPlanFeeds(t *testing.T) {
 	})
 
 	t.Run("restricts sources to the Feed's Space", func(t *testing.T) {
-		cat := makeCatalogState(api.Steps{"charge": charge, "refund": refund})
+		cat := makeCatalogState(api.Steps{
+			"charge": charge,
+			"refund": refund,
+		})
 		spaced := &api.Feed{
 			ID:         "order-total",
 			Attributes: api.Slice[api.Name]{"amount"},

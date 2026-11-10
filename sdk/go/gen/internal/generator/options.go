@@ -70,7 +70,10 @@ func ParseOptions(text string) (string, Options, error) {
 			return "", nil, fmt.Errorf("%w: %q is not key%svalue",
 				ErrBadOption, strings.TrimSpace(o), optionAssign)
 		}
-		opts = append(opts, Option{Key: key, Value: value})
+		opts = append(opts, Option{
+			Key:   key,
+			Value: value,
+		})
 	}
 	return strings.TrimSpace(head), opts, nil
 }

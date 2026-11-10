@@ -246,10 +246,7 @@ func TestFlowHasState(t *testing.T) {
 			name: "has all required keys",
 			getter: &mockGetter{
 				attrs: map[api.FlowID]map[api.Name]any{
-					"flow-1": {
-						"key1": "value1",
-						"key2": "value2",
-					},
+					"flow-1": {"key1": "value1", "key2": "value2"},
 				},
 			},
 			flowID: "flow-1",
@@ -259,9 +256,7 @@ func TestFlowHasState(t *testing.T) {
 			name: "has single key",
 			getter: &mockGetter{
 				attrs: map[api.FlowID]map[api.Name]any{
-					"flow-1": {
-						"key1": "value1",
-					},
+					"flow-1": {"key1": "value1"},
 				},
 			},
 			flowID: "flow-1",
@@ -302,9 +297,7 @@ func TestFlowStateEquals(t *testing.T) {
 			name: "string value matches",
 			getter: &mockGetter{
 				attrs: map[api.FlowID]map[api.Name]any{
-					"flow-1": {
-						"name": "test",
-					},
+					"flow-1": {"name": "test"},
 				},
 			},
 			flowID:   "flow-1",
@@ -315,9 +308,7 @@ func TestFlowStateEquals(t *testing.T) {
 			name: "integer value matches",
 			getter: &mockGetter{
 				attrs: map[api.FlowID]map[api.Name]any{
-					"flow-1": {
-						"count": 42,
-					},
+					"flow-1": {"count": 42},
 				},
 			},
 			flowID:   "flow-1",
@@ -328,9 +319,7 @@ func TestFlowStateEquals(t *testing.T) {
 			name: "boolean value matches",
 			getter: &mockGetter{
 				attrs: map[api.FlowID]map[api.Name]any{
-					"flow-1": {
-						"active": true,
-					},
+					"flow-1": {"active": true},
 				},
 			},
 			flowID:   "flow-1",
@@ -358,14 +347,8 @@ func TestConfigValid(t *testing.T) {
 		name string
 		cfg  *config.Config
 	}{
-		{
-			name: "default config is valid",
-			cfg:  config.NewDefaultConfig(),
-		},
-		{
-			name: "custom valid config",
-			cfg:  customValid,
-		},
+		{name: "default config is valid", cfg: config.NewDefaultConfig()},
+		{name: "custom valid config", cfg: customValid},
 	}
 
 	for _, tt := range tests {

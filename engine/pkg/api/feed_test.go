@@ -28,10 +28,26 @@ func TestFeedValidate(t *testing.T) {
 		mutate func(*api.Feed)
 		want   error
 	}{
-		{"valid", func(*api.Feed) {}, nil},
-		{"empty ID", func(f *api.Feed) { f.ID = "" }, api.ErrFeedIDEmpty},
-		{"bad ID", func(f *api.Feed) { f.ID = "Bad ID" }, api.ErrFeedIDInvalid},
-		{"empty name", func(f *api.Feed) { f.Name = "" }, api.ErrFeedNameEmpty},
+		{
+			"valid",
+			func(*api.Feed) {},
+			nil,
+		},
+		{
+			"empty ID",
+			func(f *api.Feed) { f.ID = "" },
+			api.ErrFeedIDEmpty,
+		},
+		{
+			"bad ID",
+			func(f *api.Feed) { f.ID = "Bad ID" },
+			api.ErrFeedIDInvalid,
+		},
+		{
+			"empty name",
+			func(f *api.Feed) { f.Name = "" },
+			api.ErrFeedNameEmpty,
+		},
 		{
 			"empty value",
 			func(f *api.Feed) { f.Value = "" },
@@ -42,7 +58,11 @@ func TestFeedValidate(t *testing.T) {
 			func(f *api.Feed) { f.Value = "{" },
 			api.ErrFeedValueRequired,
 		},
-		{"nil fold", func(f *api.Feed) { f.Fold = nil }, api.ErrFeedFoldEmpty},
+		{
+			"nil fold",
+			func(f *api.Feed) { f.Fold = nil },
+			api.ErrFeedFoldEmpty,
+		},
 		{
 			"empty fold",
 			func(f *api.Feed) { f.Fold.Source = "" },
@@ -113,7 +133,10 @@ func TestFeedVersion(t *testing.T) {
 		seed := newFeed()
 		seed.Value = "1"
 		fold := newFeed()
-		fold.Fold = &api.ScriptConfig{Language: "lua", Source: "return 1"}
+		fold.Fold = &api.ScriptConfig{
+			Language: "lua",
+			Source:   "return 1",
+		}
 		attr := newFeed()
 		attr.Attributes = api.Slice[api.Name]{"amount", "other"}
 		space := newFeed()
@@ -205,7 +228,10 @@ func TestCatalogFeeds(t *testing.T) {
 					},
 				},
 			},
-			"plain": {ID: "plain", Attributes: api.AttributeSpecs{}},
+			"plain": {
+				ID:         "plain",
+				Attributes: api.AttributeSpecs{},
+			},
 		},
 		Feeds: api.Feeds{},
 	}

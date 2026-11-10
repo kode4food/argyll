@@ -46,7 +46,10 @@ func TestCompensationSucceeds(t *testing.T) {
 		assert.NoError(t, env.Engine.RegisterStep(st))
 
 		id := api.FlowID("wf-comp-ok")
-		fs := api.FlowStep{FlowID: id, StepID: st.ID}
+		fs := api.FlowStep{
+			FlowID: id,
+			StepID: st.ID,
+		}
 		tkn := api.Token("work-a")
 		invoked := make(chan api.Metadata, 1)
 		env.MockClient.SetCompensate(st.ID,
@@ -124,7 +127,10 @@ func TestLateSuccessCompensates(t *testing.T) {
 				late = tkn
 			}
 		}
-		fs := api.FlowStep{FlowID: fl.ID, StepID: st.ID}
+		fs := api.FlowStep{
+			FlowID: fl.ID,
+			StepID: st.ID,
+		}
 		assert.NoError(t, env.Engine.FailWork(fs, failed, "failed"))
 		assert.NoError(t, env.Engine.CompleteWork(fs, late, api.Args{}))
 		fl, err = env.Engine.GetFlowState(fl.ID)
@@ -154,7 +160,10 @@ func TestCompensationAsyncAwaitsCallback(t *testing.T) {
 		assert.NoError(t, env.Engine.RegisterStep(st))
 
 		id := api.FlowID("wf-comp-async")
-		fs := api.FlowStep{FlowID: id, StepID: st.ID}
+		fs := api.FlowStep{
+			FlowID: id,
+			StepID: st.ID,
+		}
 		tkn := api.Token("work-a")
 
 		invoked := make(chan api.Metadata, 1)
@@ -262,7 +271,10 @@ func TestCompRetryOnTransient(t *testing.T) {
 		)
 
 		id := api.FlowID("wf-comp-retry")
-		fs := api.FlowStep{FlowID: id, StepID: st.ID}
+		fs := api.FlowStep{
+			FlowID: id,
+			StepID: st.ID,
+		}
 		tkn := api.Token("work-b")
 
 		env.WithConsumer(func(consumer *event.Consumer) {
@@ -302,7 +314,10 @@ func TestCompRetriesExhausted(t *testing.T) {
 		env.MockClient.SetCompError(st.ID, api.ErrWorkNotCompleted)
 
 		id := api.FlowID("wf-comp-exhaust")
-		fs := api.FlowStep{FlowID: id, StepID: st.ID}
+		fs := api.FlowStep{
+			FlowID: id,
+			StepID: st.ID,
+		}
 		tkn := api.Token("work-c")
 
 		env.WithConsumer(func(consumer *event.Consumer) {
@@ -371,7 +386,10 @@ func TestCompCompleteDirectly(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		st := newCompensatingStep("comp-direct-step")
 		id := api.FlowID("wf-comp-direct")
-		fs := api.FlowStep{FlowID: id, StepID: st.ID}
+		fs := api.FlowStep{
+			FlowID: id,
+			StepID: st.ID,
+		}
 		tkn := api.Token("work-e")
 
 		setupCompensatingFlow(setupCompensatingFlowArgs{
@@ -397,7 +415,10 @@ func TestCompFailDirectly(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		st := newCompensatingStep("comp-direct-fail-step")
 		id := api.FlowID("wf-comp-direct-fail")
-		fs := api.FlowStep{FlowID: id, StepID: st.ID}
+		fs := api.FlowStep{
+			FlowID: id,
+			StepID: st.ID,
+		}
 		tkn := api.Token("work-f")
 
 		setupCompensatingFlow(setupCompensatingFlowArgs{
@@ -449,7 +470,10 @@ func TestCompRetryRunsOnHealthyPeer(t *testing.T) {
 		assert.NoError(t, peer.Start())
 
 		id := api.FlowID("wf-comp-deferred")
-		fs := api.FlowStep{FlowID: id, StepID: st.ID}
+		fs := api.FlowStep{
+			FlowID: id,
+			StepID: st.ID,
+		}
 		tkn := api.Token("work-deferred")
 
 		env.WithConsumer(func(consumer *event.Consumer) {
@@ -482,7 +506,10 @@ func TestCompPermanentFailure(t *testing.T) {
 		env.MockClient.SetCompError(st.ID, errors.New("hard failure"))
 
 		id := api.FlowID("wf-comp-hard-fail")
-		fs := api.FlowStep{FlowID: id, StepID: st.ID}
+		fs := api.FlowStep{
+			FlowID: id,
+			StepID: st.ID,
+		}
 		tkn := api.Token("work-hard")
 
 		env.WithConsumer(func(consumer *event.Consumer) {
@@ -509,7 +536,10 @@ func TestCompCompleteIdempotent(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		st := newCompensatingStep("comp-idem-ok-step")
 		id := api.FlowID("wf-comp-idem-ok")
-		fs := api.FlowStep{FlowID: id, StepID: st.ID}
+		fs := api.FlowStep{
+			FlowID: id,
+			StepID: st.ID,
+		}
 		tkn := api.Token("work-idem-ok")
 
 		setupCompensatingFlow(setupCompensatingFlowArgs{
@@ -539,7 +569,10 @@ func TestCompFailIdempotent(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		st := newCompensatingStep("comp-idem-fail-step")
 		id := api.FlowID("wf-comp-idem-fail")
-		fs := api.FlowStep{FlowID: id, StepID: st.ID}
+		fs := api.FlowStep{
+			FlowID: id,
+			StepID: st.ID,
+		}
 		tkn := api.Token("work-idem-fail")
 
 		setupCompensatingFlow(setupCompensatingFlowArgs{
@@ -569,7 +602,10 @@ func TestCompRetryNoop(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		st := newCompensatingStep("comp-retry-noop-step")
 		id := api.FlowID("wf-comp-retry-noop")
-		fs := api.FlowStep{FlowID: id, StepID: st.ID}
+		fs := api.FlowStep{
+			FlowID: id,
+			StepID: st.ID,
+		}
 		tkn := api.Token("work-retry-noop")
 
 		setupCompensatingFlow(setupCompensatingFlowArgs{
@@ -667,7 +703,10 @@ func TestLateCompCallbackSettlesPending(t *testing.T) {
 		)
 
 		id := api.FlowID("wf-comp-late-callback")
-		fs := api.FlowStep{FlowID: id, StepID: st.ID}
+		fs := api.FlowStep{
+			FlowID: id,
+			StepID: st.ID,
+		}
 		tkn := api.Token("work-late")
 
 		// State: compensation waiting for its next attempt
@@ -715,7 +754,10 @@ func TestLateCompFailureSettlesPending(t *testing.T) {
 		)
 
 		id := api.FlowID("wf-comp-late-fail")
-		fs := api.FlowStep{FlowID: id, StepID: st.ID}
+		fs := api.FlowStep{
+			FlowID: id,
+			StepID: st.ID,
+		}
 		tkn := api.Token("work-late-fail")
 
 		// State: compensation waiting for its next attempt
@@ -772,7 +814,10 @@ func TestCompDispatchRecovery(t *testing.T) {
 		)
 
 		id := api.FlowID("wf-dispatch-recovery")
-		fs := api.FlowStep{FlowID: id, StepID: st.ID}
+		fs := api.FlowStep{
+			FlowID: id,
+			StepID: st.ID,
+		}
 		tkn := api.Token("work-recovery")
 
 		// State: failed flow with compensation waiting for its next attempt
@@ -810,7 +855,10 @@ func TestFlowCompensation(t *testing.T) {
 		consumer.Attributes = api.AttributeSpecs{
 			"value": {Role: api.RoleRequired},
 		}
-		return flowCompSteps{producer: producer, consumer: consumer}
+		return flowCompSteps{
+			producer: producer,
+			consumer: consumer,
+		}
 	}
 
 	newFlowCompPlan := func(steps flowCompSteps) *api.ExecutionPlan {
@@ -1088,7 +1136,10 @@ func TestFlowCompensation(t *testing.T) {
 			succeeded := []api.WorkStatus{api.WorkSucceeded}
 			compensated := []api.WorkStatus{api.WorkCompensated}
 
-			fs := api.FlowStep{FlowID: id, StepID: reserve.ID}
+			fs := api.FlowStep{
+				FlowID: id,
+				StepID: reserve.ID,
+			}
 			env.WithConsumer(func(consumer *event.Consumer) {
 				w := wait.On(t, consumer)
 				assert.NoError(t, env.Engine.StartPlan(id, pl))
@@ -1217,7 +1268,10 @@ func TestFlowCompensation(t *testing.T) {
 			assert.NoError(t, env.Engine.RegisterStep(second))
 
 			id := api.FlowID("wf-saga-resume")
-			fs := api.FlowStep{FlowID: id, StepID: first.ID}
+			fs := api.FlowStep{
+				FlowID: id,
+				StepID: first.ID,
+			}
 			tkn := api.Token("work-first")
 
 			// State as left by a crash mid-unwind
@@ -1296,7 +1350,9 @@ func TestFlowCompensation(t *testing.T) {
 			env.MockClient.SetError(steps.consumer.ID, errors.New("permanent"))
 
 			parent := &api.Step{
-				ID: "sub", Name: "Sub Flow", Type: api.StepTypeFlow,
+				ID:   "sub",
+				Name: "Sub Flow",
+				Type: api.StepTypeFlow,
 				Flow: &api.FlowConfig{
 					Goals: api.Goals{Steps: []api.StepID{steps.consumer.ID}},
 				},
@@ -1306,7 +1362,8 @@ func TestFlowCompensation(t *testing.T) {
 
 			env.WaitFor(wait.FlowDeactivated(id), func() {
 				assert.NoError(t, env.Engine.StartFlow(api.CreateFlowRequest{
-					ID: id, Goals: api.Goals{Steps: []api.StepID{parent.ID}},
+					ID:    id,
+					Goals: api.Goals{Steps: []api.StepID{parent.ID}},
 				}))
 			})
 
@@ -1348,7 +1405,10 @@ func setupPartlyUnwoundFlow(args setupPartlyUnwoundFlowArgs) {
 
 	pl := &api.ExecutionPlan{
 		Goals: api.Goals{Steps: []api.StepID{second.ID}},
-		Steps: api.Steps{first.ID: first, second.ID: second},
+		Steps: api.Steps{
+			first.ID:  first,
+			second.ID: second,
+		},
 		Attributes: api.AttributeGraph{
 			"one": {
 				Providers: []api.StepID{first.ID},
@@ -1374,18 +1434,25 @@ func setupPartlyUnwoundFlow(args setupPartlyUnwoundFlowArgs) {
 	evs = append(evs,
 		helpers.FlowEvent{
 			Type: api.EventTypeFlowFailed,
-			Data: api.FlowFailedEvent{FlowID: id, Error: "forced failure"},
+			Data: api.FlowFailedEvent{
+				FlowID: id,
+				Error:  "forced failure",
+			},
 		},
 		helpers.FlowEvent{
 			Type: api.EventTypeCompStarted,
 			Data: api.CompStartedEvent{
-				FlowID: id, StepID: second.ID, Token: downstream,
+				FlowID: id,
+				StepID: second.ID,
+				Token:  downstream,
 			},
 		},
 		helpers.FlowEvent{
 			Type: api.EventTypeCompSucceeded,
 			Data: api.CompSucceededEvent{
-				FlowID: id, StepID: second.ID, Token: downstream,
+				FlowID: id,
+				StepID: second.ID,
+				Token:  downstream,
 			},
 		},
 	)
@@ -1397,7 +1464,9 @@ func completedStepEvent(id api.FlowID, sid api.StepID) helpers.FlowEvent {
 	return helpers.FlowEvent{
 		Type: api.EventTypeStepCompleted,
 		Data: api.StepCompletedEvent{
-			FlowID: id, StepID: sid, Outputs: api.Args{},
+			FlowID:  id,
+			StepID:  sid,
+			Outputs: api.Args{},
 		},
 	}
 }
@@ -1417,7 +1486,10 @@ func succeededWorkEvents(id api.FlowID, sid api.StepID, tkn api.Token) []helpers
 		{
 			Type: api.EventTypeWorkStarted,
 			Data: api.WorkStartedEvent{
-				FlowID: id, StepID: sid, Token: tkn, Inputs: api.Args{},
+				FlowID: id,
+				StepID: sid,
+				Token:  tkn,
+				Inputs: api.Args{},
 			},
 		},
 		{

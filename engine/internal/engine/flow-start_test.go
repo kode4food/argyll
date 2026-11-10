@@ -82,7 +82,10 @@ func TestStartMixedSatisfiedGoals(t *testing.T) {
 		})
 		assert.Equal(t, api.FlowCompleted, fl.Status)
 		assert.Equal(t,
-			api.Args{"ready": "initial", "result": "done"}, fl.GetAttributes())
+			api.Args{
+				"ready":  "initial",
+				"result": "done",
+			}, fl.GetAttributes())
 		assert.False(t, env.Engine.IsFlowFailed(&fl))
 		assert.Equal(t, []api.StepID{b.ID}, env.MockClient.GetInvocations())
 	})
@@ -100,7 +103,10 @@ func TestStartMemoizedSteps(t *testing.T) {
 		}
 		pl := &api.ExecutionPlan{
 			Goals: api.Goals{Steps: []api.StepID{a.ID, b.ID}},
-			Steps: api.Steps{a.ID: a, b.ID: b},
+			Steps: api.Steps{
+				a.ID: a,
+				b.ID: b,
+			},
 		}
 		fl := env.WaitForFlowStatus("warm-steps", func() {
 			assert.NoError(t, env.Engine.StartPlan("warm-steps", pl))
@@ -311,7 +317,8 @@ func TestStartChildFlowUsesPlan(t *testing.T) {
 		assert.NoError(t, env.Engine.UpdateStep(updated))
 		assert.NoError(t, env.Engine.Start())
 		fl := helpers.WaitForFlowState(t, env.Engine, helpers.FlowStateQuery{
-			FlowID: "parent", Timeout: wait.DefaultTimeout,
+			FlowID:  "parent",
+			Timeout: wait.DefaultTimeout,
 			Accept: func(fl api.FlowState) bool {
 				for _, work := range fl.Executions[parent.ID].WorkItems {
 					return work.Status == api.WorkActive
@@ -460,7 +467,10 @@ func TestAtomicFlowLifecycle(t *testing.T) {
 					leaf.HTTP.Invoke.Mode = api.ActionModeAsync
 					sibling := helpers.NewSimpleStep("sibling")
 					sibling.HTTP.Invoke.Mode = api.ActionModeAsync
-					sub := &api.Step{ID: "sub", Type: api.StepTypeFlow}
+					sub := &api.Step{
+						ID:   "sub",
+						Type: api.StepTypeFlow,
+					}
 					childPlan := &api.ExecutionPlan{
 						Goals: api.Goals{Steps: []api.StepID{leaf.ID}},
 						Steps: api.Steps{leaf.ID: leaf},
@@ -469,7 +479,10 @@ func TestAtomicFlowLifecycle(t *testing.T) {
 						Goals: api.Goals{
 							Steps: []api.StepID{sub.ID, sibling.ID},
 						},
-						Steps: api.Steps{sub.ID: sub, sibling.ID: sibling},
+						Steps: api.Steps{
+							sub.ID:     sub,
+							sibling.ID: sibling,
+						},
 						Children: map[api.StepID]*api.ExecutionPlan{
 							sub.ID: childPlan,
 						},
@@ -525,7 +538,10 @@ func TestAtomicFlowLifecycle(t *testing.T) {
 					}
 					assert.NoError(t,
 						env.Engine.CompleteWork(
-							api.FlowStep{FlowID: fid, StepID: leaf.ID}, token, api.Args{},
+							api.FlowStep{
+								FlowID: fid,
+								StepID: leaf.ID,
+							}, token, api.Args{},
 						),
 					)
 					child, err = env.Engine.GetFlowState(fid)
@@ -540,7 +556,10 @@ func TestAtomicFlowLifecycle(t *testing.T) {
 					}
 					assert.NoError(t,
 						env.Engine.CompleteWork(
-							api.FlowStep{FlowID: "atomic", StepID: sibling.ID}, token, api.Args{},
+							api.FlowStep{
+								FlowID: "atomic",
+								StepID: sibling.ID,
+							}, token, api.Args{},
 						),
 					)
 					child, err = env.Engine.GetFlowState(fid)
@@ -591,7 +610,10 @@ func TestAtomicFlowLifecycle(t *testing.T) {
 func TestNestedFlowSettlement(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		leaf := helpers.NewSimpleStep("leaf")
-		sub := &api.Step{ID: "sub", Type: api.StepTypeFlow}
+		sub := &api.Step{
+			ID:   "sub",
+			Type: api.StepTypeFlow,
+		}
 		pl := &api.ExecutionPlan{
 			Goals: api.Goals{Steps: []api.StepID{leaf.ID}},
 			Steps: api.Steps{leaf.ID: leaf},

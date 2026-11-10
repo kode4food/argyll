@@ -19,11 +19,17 @@ var (
 
 func (s *Server) handleEngine(c *gin.Context) {
 	cat, err := s.engine.GetCatalogState()
-	if writeError(c, writeErrorArgs{sentinel: ErrGetCatalogState, err: err}) {
+	if writeError(c, writeErrorArgs{
+		sentinel: ErrGetCatalogState,
+		err:      err,
+	}) {
 		return
 	}
 	cluster, err := s.engine.GetClusterState()
-	if writeError(c, writeErrorArgs{sentinel: ErrGetClusterState, err: err}) {
+	if writeError(c, writeErrorArgs{
+		sentinel: ErrGetClusterState,
+		err:      err,
+	}) {
 		return
 	}
 
@@ -82,14 +88,23 @@ func completeClusterHealth(cat api.CatalogState, cluster api.ClusterState) api.C
 }
 
 func writeValue[T any](c *gin.Context, sentinel error, val T, err error) {
-	if !writeError(c, writeErrorArgs{sentinel: sentinel, err: err}) {
+	if !writeError(c, writeErrorArgs{
+		sentinel: sentinel,
+		err:      err,
+	}) {
 		c.JSON(http.StatusOK, val)
 	}
 }
 
 func writeEvents[E any](c *gin.Context, sentinel error, evs []E, err error) {
-	if !writeError(c, writeErrorArgs{sentinel: sentinel, err: err}) {
-		c.JSON(http.StatusOK, gin.H{"events": evs, "count": len(evs)})
+	if !writeError(c, writeErrorArgs{
+		sentinel: sentinel,
+		err:      err,
+	}) {
+		c.JSON(http.StatusOK, gin.H{
+			"events": evs,
+			"count":  len(evs),
+		})
 	}
 }
 

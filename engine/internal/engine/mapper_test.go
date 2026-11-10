@@ -71,10 +71,7 @@ func TestMapperMappingValue(t *testing.T) {
 		withMapper(t, func(m *engine.Mapper) {
 			input := api.Args{
 				"payload": map[string]any{
-					"sections": []any{
-						map[string]any{"book": "A"},
-						map[string]any{"book": "B"},
-					},
+					"sections": []any{map[string]any{"book": "A"}, map[string]any{"book": "B"}},
 				},
 			}
 			value, ok := m.MapValue(

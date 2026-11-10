@@ -42,7 +42,10 @@ func TestRecoverEmptyStep(t *testing.T) {
 			},
 			helpers.FlowEvent{
 				Type: api.EventTypeStepStarted,
-				Data: api.StepStartedEvent{FlowID: fid, StepID: st.ID},
+				Data: api.StepStartedEvent{
+					FlowID: fid,
+					StepID: st.ID,
+				},
 			},
 		)
 		assert.NoError(t, err)
@@ -130,7 +133,11 @@ func TestRecoverMissingAll(t *testing.T) {
 		fid := api.FlowID("recover-all")
 		pl := &api.ExecutionPlan{
 			Goals: api.Goals{Steps: []api.StepID{st.ID}},
-			Steps: api.Steps{first.ID: first, second.ID: second, st.ID: st},
+			Steps: api.Steps{
+				first.ID:  first,
+				second.ID: second,
+				st.ID:     st,
+			},
 			Attributes: api.AttributeGraph{
 				"data": {
 					Providers: []api.StepID{first.ID, second.ID},
@@ -141,11 +148,17 @@ func TestRecoverMissingAll(t *testing.T) {
 		assert.NoError(t, env.RaiseFlowEvents(fid,
 			helpers.FlowEvent{
 				Type: api.EventTypeFlowStarted,
-				Data: api.FlowStartedEvent{FlowID: fid, Plan: pl},
+				Data: api.FlowStartedEvent{
+					FlowID: fid,
+					Plan:   pl,
+				},
 			},
 			helpers.FlowEvent{
 				Type: api.EventTypeStepStarted,
-				Data: api.StepStartedEvent{FlowID: fid, StepID: first.ID},
+				Data: api.StepStartedEvent{
+					FlowID: fid,
+					StepID: first.ID,
+				},
 			},
 			helpers.FlowEvent{
 				Type: api.EventTypeAttributeSet,
@@ -166,11 +179,17 @@ func TestRecoverMissingAll(t *testing.T) {
 			},
 			helpers.FlowEvent{
 				Type: api.EventTypeStepStarted,
-				Data: api.StepStartedEvent{FlowID: fid, StepID: second.ID},
+				Data: api.StepStartedEvent{
+					FlowID: fid,
+					StepID: second.ID,
+				},
 			},
 			helpers.FlowEvent{
 				Type: api.EventTypeStepCompleted,
-				Data: api.StepCompletedEvent{FlowID: fid, StepID: second.ID},
+				Data: api.StepCompletedEvent{
+					FlowID: fid,
+					StepID: second.ID,
+				},
 			},
 		))
 		assert.NoError(t, env.Engine.RecoverFlow(fid))
@@ -216,7 +235,10 @@ func TestRecoverAbandonedWork(t *testing.T) {
 			},
 			helpers.FlowEvent{
 				Type: api.EventTypeFlowFailed,
-				Data: api.FlowFailedEvent{FlowID: fid, Error: "failed"},
+				Data: api.FlowFailedEvent{
+					FlowID: fid,
+					Error:  "failed",
+				},
 			},
 		))
 		assert.NoError(t, env.Engine.RecoverFlow(fid))
@@ -251,7 +273,10 @@ func TestCommittedEventFilter(t *testing.T) {
 		for typ, schedules := range types {
 			t.Run(string(typ), func(t *testing.T) {
 				fid := api.FlowID("wf-filter-" + typ)
-				fs := api.FlowStep{FlowID: fid, StepID: st.ID}
+				fs := api.FlowStep{
+					FlowID: fid,
+					StepID: st.ID,
+				}
 				seedRetryScheduledFlow(env, fs, "work-a")
 				before := scheduleKeys(t, env)
 
@@ -288,7 +313,10 @@ func TestDuplicateRecoveryStartsWorkOnce(t *testing.T) {
 		)
 
 		id := api.FlowID("wf-reconcile-dup")
-		fs := api.FlowStep{FlowID: id, StepID: st.ID}
+		fs := api.FlowStep{
+			FlowID: id,
+			StepID: st.ID,
+		}
 		tkn := api.Token("work-a")
 
 		env.WaitFor(wait.WorkStarted(fs), func() {
@@ -325,7 +353,10 @@ func TestBatchUsesFinalState(t *testing.T) {
 		)
 
 		id := api.FlowID("wf-reconcile-batch")
-		fs := api.FlowStep{FlowID: id, StepID: st.ID}
+		fs := api.FlowStep{
+			FlowID: id,
+			StepID: st.ID,
+		}
 		tkn := api.Token("work-a")
 
 		seedRetryScheduledFlow(env, fs, tkn, helpers.FlowEvent{
@@ -373,7 +404,10 @@ func TestConcurrentReplicasStartWorkOnce(t *testing.T) {
 		assert.NoError(t, peer.Start())
 
 		id := api.FlowID("wf-reconcile-concurrent")
-		fs := api.FlowStep{FlowID: id, StepID: st.ID}
+		fs := api.FlowStep{
+			FlowID: id,
+			StepID: st.ID,
+		}
 		tkn := api.Token("work-a")
 
 		seedRetryScheduledFlow(env, fs, tkn)
@@ -467,7 +501,10 @@ func TestScriptCannotStayActive(t *testing.T) {
 		}()
 
 		id := api.FlowID("wf-reconcile-script")
-		fs := api.FlowStep{FlowID: id, StepID: st.ID}
+		fs := api.FlowStep{
+			FlowID: id,
+			StepID: st.ID,
+		}
 		tkn := api.Token("work-a")
 		pl := &api.ExecutionPlan{
 			Goals: api.Goals{Steps: []api.StepID{st.ID}},

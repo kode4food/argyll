@@ -97,14 +97,8 @@ func TestAnalyzeServiceLandscape(t *testing.T) {
 	c := newClient(t, mcp.NewServer("http://example", nil))
 	text := callToolText(t, c, "analyze_service_landscape", map[string]any{
 		"services": []map[string]any{
-			{
-				"name":      "customer-service",
-				"spec_text": customerServiceOpenAPI,
-			},
-			{
-				"name":      "order-service",
-				"spec_text": orderServiceOpenAPI,
-			},
+			{"name": "customer-service", "spec_text": customerServiceOpenAPI},
+			{"name": "order-service", "spec_text": orderServiceOpenAPI},
 		},
 		"include_registered": false,
 	})
@@ -134,12 +128,8 @@ func TestGenerateStepImplScript(t *testing.T) {
 				"source":   "return {customer_age = customer_age}",
 			},
 			"attributes": map[string]any{
-				"customer_age": map[string]any{
-					"role": "required",
-				},
-				"target_customer_age": map[string]any{
-					"role": "output",
-				},
+				"customer_age":        map[string]any{"role": "required"},
+				"target_customer_age": map[string]any{"role": "output"},
 			},
 		},
 	})
@@ -214,12 +204,7 @@ func TestAnalyzeServiceLandscapeWithRegisteredSteps(t *testing.T) {
 	}
 	c := newClient(t, mcp.NewServer("http://example", hc))
 	text := callToolText(t, c, "analyze_service_landscape", map[string]any{
-		"services": []map[string]any{
-			{
-				"name":      "order-service",
-				"spec_text": orderServiceOpenAPI,
-			},
-		},
+		"services": []map[string]any{{"name": "order-service", "spec_text": orderServiceOpenAPI}},
 	})
 
 	var payload map[string]any

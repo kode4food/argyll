@@ -231,7 +231,10 @@ func TestCycle(t *testing.T) {
 	assert.ErrorIs(t, err, codec.ErrCyclicValue)
 
 	leaf := &graph{}
-	root = graph{Left: leaf, Right: leaf}
+	root = graph{
+		Left:  leaf,
+		Right: leaf,
+	}
 	out.Reset()
 	assert.NoError(t, codec.EncodeTo(graphs, &out, root))
 }

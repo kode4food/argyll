@@ -21,7 +21,10 @@ func TestRecoverableDeadline(t *testing.T) {
 
 	at, ok := policy.RecoverableDeadline(
 		&api.ExecutionState{Status: api.StepPending},
-		&api.WorkState{Status: api.WorkPending, NextRetryAt: later}, now,
+		&api.WorkState{
+			Status:      api.WorkPending,
+			NextRetryAt: later,
+		}, now,
 	)
 	assert.True(t, ok)
 	assert.Equal(t, later, at)
@@ -34,7 +37,10 @@ func TestRecoverableDeadline(t *testing.T) {
 
 	_, ok = policy.RecoverableDeadline(
 		&api.ExecutionState{Status: api.StepPending},
-		&api.WorkState{Status: api.WorkFailed, NextRetryAt: later}, now,
+		&api.WorkState{
+			Status:      api.WorkFailed,
+			NextRetryAt: later,
+		}, now,
 	)
 	assert.False(t, ok)
 
@@ -55,7 +61,10 @@ func TestRetryStartDecision(t *testing.T) {
 	later := time.Unix(20, 0)
 
 	action, at := policy.RetryStartDecision(
-		&api.WorkState{Status: api.WorkPending, NextRetryAt: later}, now,
+		&api.WorkState{
+			Status:      api.WorkPending,
+			NextRetryAt: later,
+		}, now,
 	)
 	assert.Equal(t, policy.RetryStartWait, action)
 	assert.Equal(t, later, at)
@@ -97,7 +106,10 @@ func TestCompRetryAt(t *testing.T) {
 	later := time.Unix(20, 0)
 
 	at, ok := policy.CompRetryAt(
-		&api.WorkState{Status: api.WorkCompPending, NextRetryAt: later}, now,
+		&api.WorkState{
+			Status:      api.WorkCompPending,
+			NextRetryAt: later,
+		}, now,
 	)
 	assert.True(t, ok)
 	assert.Equal(t, later, at)
@@ -129,13 +141,19 @@ func TestRetryDerivation(t *testing.T) {
 	t.Run("pending retry ignores the clock", func(t *testing.T) {
 		at, ok := policy.RecoverableDeadline(
 			&api.ExecutionState{Status: api.StepPending},
-			&api.WorkState{Status: api.WorkPending, NextRetryAt: later}, now,
+			&api.WorkState{
+				Status:      api.WorkPending,
+				NextRetryAt: later,
+			}, now,
 		)
 		assert.True(t, ok)
 
 		again, ok := policy.RecoverableDeadline(
 			&api.ExecutionState{Status: api.StepPending},
-			&api.WorkState{Status: api.WorkPending, NextRetryAt: later}, skewed,
+			&api.WorkState{
+				Status:      api.WorkPending,
+				NextRetryAt: later,
+			}, skewed,
 		)
 		assert.True(t, ok)
 		assert.Equal(t, at, again)

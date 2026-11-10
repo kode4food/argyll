@@ -188,9 +188,12 @@ func callbackRequest(action api.CallbackAction, body string) *builtins.CallbackR
 	r := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(body))
 	r.Header.Set("Content-Type", api.JSONContentType)
 	return &builtins.CallbackRequest{
-		FlowStep: api.FlowStep{FlowID: callbackFlow, StepID: callbackStep},
-		Token:    callbackToken,
-		Action:   action,
-		Request:  r,
+		FlowStep: api.FlowStep{
+			FlowID: callbackFlow,
+			StepID: callbackStep,
+		},
+		Token:   callbackToken,
+		Action:  action,
+		Request: r,
 	}
 }

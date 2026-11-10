@@ -35,8 +35,9 @@ func TestSpaceJSON(t *testing.T) {
 
 func TestSpaceValidate(t *testing.T) {
 	sp := api.Space{
-		ID: "payments", Name: "Payments",
-		QBE: api.SpaceQuery{{"domain:payments"}},
+		ID:   "payments",
+		Name: "Payments",
+		QBE:  api.SpaceQuery{{"domain:payments"}},
 		Selector: &api.ScriptConfig{
 			Language: api.ScriptLangArgyll,
 			Source:   `"domain:payments" in value.tags`,
@@ -62,8 +63,9 @@ func TestSpaceValidate(t *testing.T) {
 
 func TestSpaceEqual(t *testing.T) {
 	sp := api.Space{
-		ID: "payments", Name: "Payments",
-		QBE: api.SpaceQuery{{"domain:payments", "domain:risk"}},
+		ID:   "payments",
+		Name: "Payments",
+		QBE:  api.SpaceQuery{{"domain:payments", "domain:risk"}},
 	}.Normalize()
 	other := sp
 	other.QBE = api.SpaceQuery{{"domain:risk", "domain:payments"}}
@@ -71,15 +73,17 @@ func TestSpaceEqual(t *testing.T) {
 	assert.True(t, sp.Equal(other.Normalize()))
 
 	other = api.Space{
-		ID: "payments", Name: "Payments",
-		QBE: api.SpaceQuery{{"domain:inventory"}},
+		ID:   "payments",
+		Name: "Payments",
+		QBE:  api.SpaceQuery{{"domain:inventory"}},
 	}.Normalize()
 	assert.False(t, sp.Equal(other))
 }
 
 func TestSpaceNormalize(t *testing.T) {
 	sp := api.Space{
-		ID: "payments", Name: "Payments",
+		ID:   "payments",
+		Name: "Payments",
 		Selector: &api.ScriptConfig{
 			Language: api.ScriptLangArgyll,
 			Source:   `"domain:payments" in value.tags`,
@@ -108,17 +112,23 @@ func TestSpaceValidateIdentity(t *testing.T) {
 	}
 
 	invalidID := api.Space{
-		ID: "not a valid id", Name: "Payments", Selector: selector,
+		ID:       "not a valid id",
+		Name:     "Payments",
+		Selector: selector,
 	}
 	assert.ErrorIs(t, invalidID.Validate(), api.ErrSpaceIDInvalid)
 
-	noName := api.Space{ID: "payments", Selector: selector}
+	noName := api.Space{
+		ID:       "payments",
+		Selector: selector,
+	}
 	assert.ErrorIs(t, noName.Validate(), api.ErrSpaceNameEmpty)
 }
 
 func TestSpaceValidateSelectorScript(t *testing.T) {
 	noScript := api.Space{
-		ID: "payments", Name: "Payments",
+		ID:       "payments",
+		Name:     "Payments",
 		Selector: &api.ScriptConfig{Language: api.ScriptLangArgyll},
 	}
 	assert.ErrorIs(t, noScript.ValidateSelector(), api.ErrScriptEmpty)
@@ -129,7 +139,9 @@ func TestSpaceValidateSelectorScript(t *testing.T) {
 		qbe[i%2] = append(qbe[i%2], fmt.Sprintf("tag:%d", i))
 	}
 	tooManyTags := api.Space{
-		ID: "payments", Name: "Payments", QBE: qbe,
+		ID:   "payments",
+		Name: "Payments",
+		QBE:  qbe,
 		Selector: &api.ScriptConfig{
 			Language: api.ScriptLangArgyll,
 			Source:   `"domain:payments" in value.tags`,

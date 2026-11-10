@@ -105,7 +105,10 @@ func (e *Engine) GetFeed(id api.FeedID) (api.FeedResponse, error) {
 	if err != nil {
 		return api.FeedResponse{}, err
 	}
-	return api.FeedResponse{Feed: f, State: state}, nil
+	return api.FeedResponse{
+		Feed:  f,
+		State: state,
+	}, nil
 }
 
 // GetFeedStateSeq returns the folded state of one Feed version and the next sequence of its

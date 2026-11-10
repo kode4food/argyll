@@ -37,7 +37,10 @@ func Serve(ctx context.Context, steps ...StepDef) error {
 	}
 
 	slog.Info("Step server starting", slog.String("endpoint", addr.BaseURL))
-	server := &http.Server{Addr: ":" + addr.Port, Handler: Mux(steps...)}
+	server := &http.Server{
+		Addr:    ":" + addr.Port,
+		Handler: Mux(steps...),
+	}
 	return server.ListenAndServe()
 }
 

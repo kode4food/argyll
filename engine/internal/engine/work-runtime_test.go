@@ -45,7 +45,10 @@ func TestInlineScriptChain(t *testing.T) {
 
 		pl := &api.ExecutionPlan{
 			Goals: api.Goals{Steps: []api.StepID{bad.ID}},
-			Steps: api.Steps{double.ID: double, bad.ID: bad},
+			Steps: api.Steps{
+				double.ID: double,
+				bad.ID:    bad,
+			},
 			Attributes: api.AttributeGraph{
 				"x": {Consumers: []api.StepID{double.ID}},
 				"y": {

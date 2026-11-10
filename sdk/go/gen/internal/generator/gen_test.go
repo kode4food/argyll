@@ -37,7 +37,10 @@ func TestParseOptions(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Empty(t, head)
 		assert.Equal(t, generator.Options{
-			{Key: "optional", Value: "true"},
+			{
+				Key:   "optional",
+				Value: "true",
+			},
 		}, opts)
 	})
 
@@ -46,8 +49,14 @@ func TestParseOptions(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, "flow", head)
 		assert.Equal(t, generator.Options{
-			{Key: "meta", Value: "flow_id"},
-			{Key: "label", Value: "domain = risk"},
+			{
+				Key:   "meta",
+				Value: "flow_id",
+			},
+			{
+				Key:   "label",
+				Value: "domain = risk",
+			},
 		}, opts)
 	})
 
@@ -313,10 +322,16 @@ func TestAttributeScripts(t *testing.T) {
 		"//argyll:step\nfunc Run(in In) Out { return Out{} }\n"
 	attrs := sourceSteps(t, src)["run"].Attributes
 	assert.Equal(t,
-		&api.ScriptConfig{Language: "argyll", Source: "value.ready"},
+		&api.ScriptConfig{
+			Language: "argyll",
+			Source:   "value.ready",
+		},
 		attrs["default"].Required.Match)
 	assert.Equal(t,
-		&api.ScriptConfig{Language: "argyll", Source: "value"},
+		&api.ScriptConfig{
+			Language: "argyll",
+			Source:   "value",
+		},
 		attrs["default"].Required.Mapping.Script)
 	assert.Equal(t,
 		&api.ScriptConfig{
@@ -325,7 +340,10 @@ func TestAttributeScripts(t *testing.T) {
 		},
 		attrs["lua"].Required.Match)
 	assert.Equal(t,
-		&api.ScriptConfig{Language: "argyll", Source: "value"},
+		&api.ScriptConfig{
+			Language: "argyll",
+			Source:   "value",
+		},
 		attrs["value"].Output.Mapping.Script)
 }
 
@@ -375,7 +393,10 @@ func TestPredicate(t *testing.T) {
 		"func Three() {}\n"
 	byID := sourceSteps(t, src)
 	assert.Equal(t,
-		&api.ScriptConfig{Language: "argyll", Source: "active"},
+		&api.ScriptConfig{
+			Language: "argyll",
+			Source:   "active",
+		},
 		byID["one"].Predicate)
 	assert.Equal(t,
 		&api.ScriptConfig{
@@ -384,7 +405,10 @@ func TestPredicate(t *testing.T) {
 		},
 		byID["two"].Predicate)
 	assert.Equal(t,
-		&api.ScriptConfig{Language: "lua", Source: "custom:ready()"},
+		&api.ScriptConfig{
+			Language: "lua",
+			Source:   "custom:ready()",
+		},
 		byID["three"].Predicate)
 }
 

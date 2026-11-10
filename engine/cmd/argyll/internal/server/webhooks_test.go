@@ -76,31 +76,70 @@ func seedCompensatingWebhook(
 		Steps: api.Steps{st.ID: st},
 	}
 	events := []helpers.FlowEvent{
-		{Type: api.EventTypeFlowStarted, Data: api.FlowStartedEvent{
-			FlowID: id, Plan: pl, Init: api.InitArgs{},
-		}},
-		{Type: api.EventTypeStepStarted, Data: api.StepStartedEvent{
-			FlowID: id, StepID: st.ID, Inputs: api.Args{},
-			WorkItems: map[api.Token]api.Args{tkn: {}},
-		}},
-		{Type: api.EventTypeWorkStarted, Data: api.WorkStartedEvent{
-			FlowID: id, StepID: st.ID, Token: tkn, Inputs: api.Args{},
-		}},
-		{Type: api.EventTypeWorkSucceeded, Data: api.WorkSucceededEvent{
-			FlowID: id, StepID: st.ID, Token: tkn, Outputs: api.Args{},
-		}},
-		{Type: api.EventTypeStepFailed, Data: api.StepFailedEvent{
-			FlowID: id, StepID: st.ID, Error: "forced failure",
-		}},
-		{Type: api.EventTypeFlowFailed, Data: api.FlowFailedEvent{
-			FlowID: id, Error: "forced failure",
-		}},
-		{Type: api.EventTypeCompStarted, Data: api.CompStartedEvent{
-			FlowID: id, StepID: st.ID, Token: tkn,
-		}},
+		{
+			Type: api.EventTypeFlowStarted,
+			Data: api.FlowStartedEvent{
+				FlowID: id,
+				Plan:   pl,
+				Init:   api.InitArgs{},
+			},
+		},
+		{
+			Type: api.EventTypeStepStarted,
+			Data: api.StepStartedEvent{
+				FlowID:    id,
+				StepID:    st.ID,
+				Inputs:    api.Args{},
+				WorkItems: map[api.Token]api.Args{tkn: {}},
+			},
+		},
+		{
+			Type: api.EventTypeWorkStarted,
+			Data: api.WorkStartedEvent{
+				FlowID: id,
+				StepID: st.ID,
+				Token:  tkn,
+				Inputs: api.Args{},
+			},
+		},
+		{
+			Type: api.EventTypeWorkSucceeded,
+			Data: api.WorkSucceededEvent{
+				FlowID:  id,
+				StepID:  st.ID,
+				Token:   tkn,
+				Outputs: api.Args{},
+			},
+		},
+		{
+			Type: api.EventTypeStepFailed,
+			Data: api.StepFailedEvent{
+				FlowID: id,
+				StepID: st.ID,
+				Error:  "forced failure",
+			},
+		},
+		{
+			Type: api.EventTypeFlowFailed,
+			Data: api.FlowFailedEvent{
+				FlowID: id,
+				Error:  "forced failure",
+			},
+		},
+		{
+			Type: api.EventTypeCompStarted,
+			Data: api.CompStartedEvent{
+				FlowID: id,
+				StepID: st.ID,
+				Token:  tkn,
+			},
+		},
 	}
 	assert.NoError(t, env.RaiseFlowEvents(id, events...))
-	return api.FlowStep{FlowID: id, StepID: st.ID}, tkn
+	return api.FlowStep{
+		FlowID: id,
+		StepID: st.ID,
+	}, tkn
 }
 
 func TestHookInvalidWorkItem(t *testing.T) {
@@ -229,7 +268,10 @@ func TestHookCompleteTwice(t *testing.T) {
 		}
 
 		env.WaitForStepStarted(
-			api.FlowStep{FlowID: "double-complete-flow", StepID: st.ID},
+			api.FlowStep{
+				FlowID: "double-complete-flow",
+				StepID: st.ID,
+			},
 			func() {
 				err = env.Engine.StartPlan("double-complete-flow", pl)
 				assert.NoError(t, err)
@@ -306,7 +348,10 @@ func TestHookFailTwice(t *testing.T) {
 		}
 
 		env.WaitForStepStarted(
-			api.FlowStep{FlowID: "double-fail-flow", StepID: st.ID},
+			api.FlowStep{
+				FlowID: "double-fail-flow",
+				StepID: st.ID,
+			},
 			func() {
 				err = env.Engine.StartPlan("double-fail-flow", pl)
 				assert.NoError(t, err)
@@ -383,7 +428,10 @@ func TestHookSuccess(t *testing.T) {
 		}
 
 		env.WaitForStepStarted(
-			api.FlowStep{FlowID: "webhook-success-flow", StepID: st.ID},
+			api.FlowStep{
+				FlowID: "webhook-success-flow",
+				StepID: st.ID,
+			},
 			func() {
 				err = env.Engine.StartPlan("webhook-success-flow", pl)
 				assert.NoError(t, err)
@@ -461,7 +509,10 @@ func TestHookWorkFailure(t *testing.T) {
 		}
 
 		env.WaitForStepStarted(
-			api.FlowStep{FlowID: "webhook-fail-flow", StepID: st.ID},
+			api.FlowStep{
+				FlowID: "webhook-fail-flow",
+				StepID: st.ID,
+			},
 			func() {
 				err = env.Engine.StartPlan("webhook-fail-flow", pl)
 				assert.NoError(t, err)
@@ -520,7 +571,10 @@ func TestHookInvalidJSON(t *testing.T) {
 		}
 
 		env.WaitForStepStarted(
-			api.FlowStep{FlowID: "webhook-badjson-flow", StepID: st.ID},
+			api.FlowStep{
+				FlowID: "webhook-badjson-flow",
+				StepID: st.ID,
+			},
 			func() {
 				err = env.Engine.StartPlan("webhook-badjson-flow", pl)
 				assert.NoError(t, err)

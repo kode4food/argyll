@@ -708,7 +708,10 @@ func (s *Step) computeHashKey() (string, error) {
 
 	attrs := make([]attrPair, len(names))
 	for i, n := range names {
-		attrs[i] = attrPair{K: n, V: s.Attributes[n]}
+		attrs[i] = attrPair{
+			K: n,
+			V: s.Attributes[n],
+		}
 	}
 
 	var httpCfg *HTTPConfig

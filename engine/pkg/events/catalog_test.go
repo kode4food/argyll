@@ -156,7 +156,10 @@ func TestStepUpdated(t *testing.T) {
 
 func TestSpaceEvents(t *testing.T) {
 	cat := events.NewCatalogState()
-	sp := api.Space{ID: "payments", Name: "Payments"}
+	sp := api.Space{
+		ID:   "payments",
+		Name: "Payments",
+	}
 
 	cat = applyCatalogEvent(t, cat, api.EventTypeSpaceRegistered,
 		api.SpaceRegisteredEvent{Space: sp})
@@ -183,15 +186,24 @@ func TestSpaceSelectionProjection(t *testing.T) {
 		Name: "Payments",
 		QBE:  api.SpaceQuery{{"domain:payments"}},
 	}
-	inside := &api.Step{ID: "inside", Tags: api.Tags{"domain:payments"}}
-	outside := &api.Step{ID: "outside", Tags: api.Tags{"domain:orders"}}
+	inside := &api.Step{
+		ID:   "inside",
+		Tags: api.Tags{"domain:payments"},
+	}
+	outside := &api.Step{
+		ID:   "outside",
+		Tags: api.Tags{"domain:orders"},
+	}
 
 	cat = applyCatalogEvent(t, cat, api.EventTypeSpaceRegistered,
 		api.SpaceRegisteredEvent{Space: sp})
 	assert.Empty(t, cat.SpaceSteps(sp.ID))
 
 	cat = applyCatalogEvent(t, cat, api.EventTypeStepRegistered,
-		api.StepRegisteredEvent{Step: inside, Spaces: []api.SpaceID{sp.ID}})
+		api.StepRegisteredEvent{
+			Step:   inside,
+			Spaces: []api.SpaceID{sp.ID},
+		})
 	cat = applyCatalogEvent(t, cat, api.EventTypeStepRegistered,
 		api.StepRegisteredEvent{Step: outside})
 	assert.Equal(t, api.Steps{inside.ID: inside}, cat.SpaceSteps(sp.ID))

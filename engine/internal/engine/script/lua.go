@@ -316,7 +316,10 @@ func newLuaNames(L *lua.State, names []string) luaNames {
 	locals := bareNames(names, func(name string) bool {
 		return isLuaName(L, name)
 	})
-	return luaNames{aliases: aliasesOf(locals), locals: locals}
+	return luaNames{
+		aliases: aliasesOf(locals),
+		locals:  locals,
+	}
 }
 
 // identPattern keeps a name from carrying any other source, so the parser alone decides which names

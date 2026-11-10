@@ -367,7 +367,10 @@ func spaceSteps() spaceStepsRes {
 		"data":   {Role: api.RoleRequired},
 		"result": {Role: api.RoleOutput},
 	}
-	return spaceStepsRes{provider: provider, goal: goal}
+	return spaceStepsRes{
+		provider: provider,
+		goal:     goal,
+	}
 }
 
 type spaceRequestArgs struct {

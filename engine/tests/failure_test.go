@@ -99,7 +99,10 @@ func TestPartialFlowFailure(t *testing.T) {
 		}
 
 		id := api.FlowID("test-partial-failure")
-		fsC := api.FlowStep{FlowID: id, StepID: "step-c"}
+		fsC := api.FlowStep{
+			FlowID: id,
+			StepID: "step-c",
+		}
 		env.WaitFor(wait.StepTerminal(fsC), func() {
 			err := env.Engine.StartPlan(id, pl)
 			assert.NoError(t, err)

@@ -27,7 +27,11 @@ func TestCollectWindow(t *testing.T) {
 		count   int
 		end     time.Duration
 	}{
-		{name: "empty", timeout: 1000, end: time.Second},
+		{
+			name:    "empty",
+			timeout: 1000,
+			end:     time.Second,
+		},
 		{
 			name:    "already available",
 			timeout: 1000,
@@ -234,9 +238,18 @@ func TestStepInputGuaranteed(t *testing.T) {
 }
 
 func TestInputFulfilled(t *testing.T) {
-	terminal := policy.ProviderSummary{Terminal: true, AllSucceeded: true}
-	incomplete := policy.ProviderSummary{Terminal: false, AllSucceeded: true}
-	partial := policy.ProviderSummary{Terminal: true, AllSucceeded: false}
+	terminal := policy.ProviderSummary{
+		Terminal:     true,
+		AllSucceeded: true,
+	}
+	incomplete := policy.ProviderSummary{
+		Terminal:     false,
+		AllSucceeded: true,
+	}
+	partial := policy.ProviderSummary{
+		Terminal:     true,
+		AllSucceeded: false,
+	}
 
 	none := api.InputCollectNone
 	assert.True(t, policy.InputFulfilled(none, 0, terminal, false))
@@ -275,7 +288,8 @@ func TestInputSatisfiable(t *testing.T) {
 
 	for _, collect := range modes {
 		assert.True(t, policy.InputSatisfiable(collect, policy.InputOutlook{
-			HasValue: true, Providable: no,
+			HasValue:   true,
+			Providable: no,
 		}))
 		assert.True(t, policy.InputSatisfiable(collect, policy.InputOutlook{
 			Providable: yes,
@@ -287,29 +301,45 @@ func TestInputSatisfiable(t *testing.T) {
 
 	all := api.InputCollectAll
 	assert.True(t, policy.InputSatisfiable(all, policy.InputOutlook{
-		HasValue: true, AllCollectable: true, Providable: no,
+		HasValue:       true,
+		AllCollectable: true,
+		Providable:     no,
 	}))
 	assert.True(t, policy.InputSatisfiable(all, policy.InputOutlook{
-		AllCollectable: true, Providable: yes,
+		AllCollectable: true,
+		Providable:     yes,
 	}))
 	assert.False(t, policy.InputSatisfiable(all, policy.InputOutlook{
-		HasValue: true, Providable: yes,
+		HasValue:   true,
+		Providable: yes,
 	}))
 	assert.False(t, policy.InputSatisfiable(all, policy.InputOutlook{
-		AllCollectable: true, Providable: no,
+		AllCollectable: true,
+		Providable:     no,
 	}))
 	assert.True(t, policy.InputSatisfiable(all, policy.InputOutlook{
-		HasInit: true, AllCollectable: true, Providable: no,
+		HasInit:        true,
+		AllCollectable: true,
+		Providable:     no,
 	}))
 
 	assert.True(t, policy.InputSatisfiable(api.InputCollectSome,
-		policy.InputOutlook{HasInit: true, Providable: no},
+		policy.InputOutlook{
+			HasInit:    true,
+			Providable: no,
+		},
 	))
 	assert.False(t, policy.InputSatisfiable(api.InputCollectFirst,
-		policy.InputOutlook{HasInit: true, Providable: no},
+		policy.InputOutlook{
+			HasInit:    true,
+			Providable: no,
+		},
 	))
 	assert.False(t, policy.InputSatisfiable(api.InputCollectLast,
-		policy.InputOutlook{HasInit: true, Providable: no},
+		policy.InputOutlook{
+			HasInit:    true,
+			Providable: no,
+		},
 	))
 
 	none := api.InputCollectNone
@@ -317,7 +347,8 @@ func TestInputSatisfiable(t *testing.T) {
 		Providable: no,
 	}))
 	assert.False(t, policy.InputSatisfiable(none, policy.InputOutlook{
-		HasValue: true, Providable: yes,
+		HasValue:   true,
+		Providable: yes,
 	}))
 }
 

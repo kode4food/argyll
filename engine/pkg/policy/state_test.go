@@ -70,7 +70,10 @@ func TestTransitionPolicy(t *testing.T) {
 
 	can := func(from, to api.WorkStatus) bool {
 		return policy.WorkCanTransition(
-			policy.TransitionArgs[api.WorkStatus]{From: from, To: to},
+			policy.TransitionArgs[api.WorkStatus]{
+				From: from,
+				To:   to,
+			},
 		)
 	}
 	assert.True(t, can(api.WorkPending, api.WorkActive))
@@ -84,17 +87,26 @@ func TestTransitionPolicy(t *testing.T) {
 func TestTransitionsRejectSameState(t *testing.T) {
 	for status := range policy.FlowTransitions {
 		assert.False(t, policy.FlowTransitions.CanTransition(
-			policy.TransitionArgs[api.FlowStatus]{From: status, To: status},
+			policy.TransitionArgs[api.FlowStatus]{
+				From: status,
+				To:   status,
+			},
 		))
 	}
 	for status := range policy.StepTransitions {
 		assert.False(t, policy.StepTransitions.CanTransition(
-			policy.TransitionArgs[api.StepStatus]{From: status, To: status},
+			policy.TransitionArgs[api.StepStatus]{
+				From: status,
+				To:   status,
+			},
 		))
 	}
 	for status := range policy.WorkTransitions {
 		assert.False(t, policy.WorkTransitions.CanTransition(
-			policy.TransitionArgs[api.WorkStatus]{From: status, To: status},
+			policy.TransitionArgs[api.WorkStatus]{
+				From: status,
+				To:   status,
+			},
 		))
 	}
 }

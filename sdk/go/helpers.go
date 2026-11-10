@@ -45,7 +45,10 @@ func LocalStepAddr() StepAddr {
 		Name:    "STEP_PORT",
 		Default: strconv.Itoa(DefaultStepPort),
 	})
-	host := EnvOr(EnvLookup{Name: "STEP_HOSTNAME", Default: "localhost"})
+	host := EnvOr(EnvLookup{
+		Name:    "STEP_HOSTNAME",
+		Default: "localhost",
+	})
 	return StepAddr{
 		BaseURL: fmt.Sprintf("http://%s:%s", host, port),
 		Port:    port,

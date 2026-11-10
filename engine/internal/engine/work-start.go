@@ -85,7 +85,10 @@ func (e *ExecContext) performWorkItem(tkn api.Token, work api.WorkState) {
 }
 
 func (e *ExecContext) flowStep() api.FlowStep {
-	return api.FlowStep{FlowID: e.flowID, StepID: e.stepID}
+	return api.FlowStep{
+		FlowID: e.flowID,
+		StepID: e.stepID,
+	}
 }
 
 func (e *ExecContext) performWork(inputs api.Args, tkn api.Token) error {
@@ -228,7 +231,10 @@ func (tx *flowTx) raiseWorkStarted(sid api.StepID, tkn api.Token, inputs api.Arg
 func (tx *flowTx) invokeInline(
 	h *step.Handler, st *api.Step, tkn api.Token, inputs api.Args,
 ) error {
-	rt := &txRuntime{tx: tx, sid: st.ID}
+	rt := &txRuntime{
+		tx:  tx,
+		sid: st.ID,
+	}
 	if err := h.Invoke(rt, st, inputs, tkn); err != nil && rt.err == nil {
 		settleFailure(rt, tkn, err)
 	}

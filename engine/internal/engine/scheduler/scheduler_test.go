@@ -86,8 +86,11 @@ func newStore(t *testing.T) *timebox.Store {
 
 func newMessage() *timebox.Message {
 	return &timebox.Message{
-		AggregateID: timebox.AggregateID{Type: "flow", Key: "test"},
-		Type:        "test",
+		AggregateID: timebox.AggregateID{
+			Type: "flow",
+			Key:  "test",
+		},
+		Type: "test",
 	}
 }
 

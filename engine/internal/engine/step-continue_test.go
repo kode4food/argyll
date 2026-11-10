@@ -855,7 +855,10 @@ func TestFinalityDeadline(t *testing.T) {
 					for token := range items {
 						assert.NoError(t,
 							env.Engine.CompleteWork(
-								api.FlowStep{FlowID: fid, StepID: sid}, token, outputs,
+								api.FlowStep{
+									FlowID: fid,
+									StepID: sid,
+								}, token, outputs,
 							))
 					}
 				}
@@ -1382,7 +1385,10 @@ func TestTimeoutAfterProviderFails(t *testing.T) {
 		}
 
 		id := api.FlowID("wf-timeout-provider-fails")
-		fs := api.FlowStep{FlowID: id, StepID: consumer.ID}
+		fs := api.FlowStep{
+			FlowID: id,
+			StepID: consumer.ID,
+		}
 		env.WaitFor(wait.StepTerminal(fs), func() {
 			assert.NoError(t, env.Engine.StartPlan(id, pl))
 		})
@@ -1586,7 +1592,10 @@ func completeOptionalWork(
 	for token := range items {
 		assert.NoError(t,
 			env.Engine.CompleteWork(
-				api.FlowStep{FlowID: fl.ID, StepID: sid}, token, outputs,
+				api.FlowStep{
+					FlowID: fl.ID,
+					StepID: sid,
+				}, token, outputs,
 			))
 	}
 }

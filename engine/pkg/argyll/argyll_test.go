@@ -209,7 +209,10 @@ func TestLocalCompensation(t *testing.T) {
 				Type:     localStepType,
 				Handling: api.HandlingCompensated,
 				Attributes: api.AttributeSpecs{
-					"value": {Role: api.RoleOutput, Compensated: true},
+					"value": {
+						Role:        api.RoleOutput,
+						Compensated: true,
+					},
 					"extra": {Role: api.RoleOutput},
 				},
 			}))

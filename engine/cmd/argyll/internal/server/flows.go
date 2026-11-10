@@ -190,7 +190,10 @@ func (s *Server) getFlow(c *gin.Context) {
 func (s *Server) getFlowEvents(c *gin.Context) {
 	id := api.FlowID(c.Param("flow_id"))
 	evs, err := s.engine.GetFlowEvents(id)
-	if writeError(c, writeErrorArgs{sentinel: ErrGetFlowEvents, err: err}) {
+	if writeError(c, writeErrorArgs{
+		sentinel: ErrGetFlowEvents,
+		err:      err,
+	}) {
 		return
 	}
 	if len(evs) == 0 {
@@ -200,7 +203,10 @@ func (s *Server) getFlowEvents(c *gin.Context) {
 		})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"events": evs, "count": len(evs)})
+	c.JSON(http.StatusOK, gin.H{
+		"events": evs,
+		"count":  len(evs),
+	})
 }
 
 func (s *Server) getFlowStatus(c *gin.Context) {

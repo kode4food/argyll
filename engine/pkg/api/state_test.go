@@ -13,11 +13,17 @@ import (
 func TestSetStep(t *testing.T) {
 	original := &api.CatalogState{
 		Steps: api.Steps{
-			"existing": {ID: "existing", Name: "Existing Step"},
+			"existing": {
+				ID:   "existing",
+				Name: "Existing Step",
+			},
 		},
 	}
 
-	newStep := &api.Step{ID: "new", Name: "New Step"}
+	newStep := &api.Step{
+		ID:   "new",
+		Name: "New Step",
+	}
 	result := original.SetStep("new", newStep)
 
 	assert.Len(t, result.Steps, 2)
@@ -246,9 +252,18 @@ func TestSetFlowDeactivated(t *testing.T) {
 func TestGetAttributes(t *testing.T) {
 	fl := &api.FlowState{
 		Attributes: api.AttributeValues{
-			"attr1": {{Value: "value1", Step: "step-1"}},
-			"attr2": {{Value: 42, Step: "step-2"}},
-			"attr3": {{Value: true, Step: "step-3"}},
+			"attr1": {{
+				Value: "value1",
+				Step:  "step-1",
+			}},
+			"attr2": {{
+				Value: 42,
+				Step:  "step-2",
+			}},
+			"attr3": {{
+				Value: true,
+				Step:  "step-3",
+			}},
 		},
 	}
 
@@ -283,7 +298,10 @@ func TestSetExecCompleted(t *testing.T) {
 	original := &api.ExecutionState{}
 	completedTime := scheduler.Now()
 
-	completion := api.Completion{At: completedTime, Seq: 7}
+	completion := api.Completion{
+		At:  completedTime,
+		Seq: 7,
+	}
 
 	result := original.SetCompletion(completion)
 
@@ -299,8 +317,14 @@ func TestCompletionWithin(t *testing.T) {
 }
 
 func TestCompletionLatest(t *testing.T) {
-	early := api.Completion{At: time.Unix(1, 0), Seq: 1}
-	late := api.Completion{At: time.Unix(1, 0), Seq: 2}
+	early := api.Completion{
+		At:  time.Unix(1, 0),
+		Seq: 1,
+	}
+	late := api.Completion{
+		At:  time.Unix(1, 0),
+		Seq: 2,
+	}
 	assert.Equal(t, late, early.Latest(late))
 	assert.Equal(t, late, late.Latest(early))
 	assert.Equal(t, early, early.Latest(early))
@@ -311,7 +335,10 @@ func TestSetInputs(t *testing.T) {
 		Inputs: api.Args{"existing": "value"},
 	}
 
-	newInputs := api.Args{"input1": "value1", "input2": 42}
+	newInputs := api.Args{
+		"input1": "value1",
+		"input2": 42,
+	}
 	result := original.SetInputs(newInputs)
 
 	assert.Len(t, result.Inputs, 2)
@@ -324,7 +351,10 @@ func TestSetOutputs(t *testing.T) {
 		Outputs: api.Args{"existing": "value"},
 	}
 
-	newOutputs := api.Args{"output1": "result1", "output2": 100}
+	newOutputs := api.Args{
+		"output1": "result1",
+		"output2": 100,
+	}
 	result := original.SetOutputs(newOutputs)
 
 	assert.Len(t, result.Outputs, 2)
@@ -452,7 +482,10 @@ func TestSetWorkOutputs(t *testing.T) {
 		Outputs: api.Args{},
 	}
 
-	outputs := api.Args{"result": "success", "count": 42}
+	outputs := api.Args{
+		"result": "success",
+		"count":  42,
+	}
 	result := original.SetOutputs(outputs)
 
 	assert.Len(t, result.Outputs, 2)
@@ -471,9 +504,15 @@ func TestFlowChain(t *testing.T) {
 
 	result := original.SetStatus(api.FlowCompleted).
 		SetAttribute(
-			"attr1", &api.AttributeValue{Value: "value1", Step: "step1"},
+			"attr1", &api.AttributeValue{
+				Value: "value1",
+				Step:  "step1",
+			},
 		).
-		SetAttribute("attr2", &api.AttributeValue{Value: 42, Step: "step2"})
+		SetAttribute("attr2", &api.AttributeValue{
+			Value: 42,
+			Step:  "step2",
+		})
 
 	assert.Equal(t, api.FlowCompleted, result.Status)
 	assert.Equal(t, "value1", result.Attributes["attr1"][0].Value)
@@ -516,8 +555,14 @@ func TestFirstAttribute(t *testing.T) {
 	fl := &api.FlowState{
 		Attributes: api.AttributeValues{
 			"attr1": {
-				{Value: "first", Step: "step-1"},
-				{Value: "second", Step: "step-2"},
+				{
+					Value: "first",
+					Step:  "step-1",
+				},
+				{
+					Value: "second",
+					Step:  "step-2",
+				},
 			},
 		},
 	}
@@ -538,8 +583,14 @@ func TestLastAttribute(t *testing.T) {
 	fl := &api.FlowState{
 		Attributes: api.AttributeValues{
 			"attr1": {
-				{Value: "first", Step: "step-1"},
-				{Value: "last", Step: "step-2"},
+				{
+					Value: "first",
+					Step:  "step-1",
+				},
+				{
+					Value: "last",
+					Step:  "step-2",
+				},
 			},
 		},
 	}

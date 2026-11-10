@@ -195,16 +195,28 @@ func isHealthPath(path string) bool {
 func operationsForPath(item *openapi.PathItem) []opPair {
 	var res []opPair
 	if item.Get != nil {
-		res = append(res, opPair{Method: http.MethodGet, Op: item.Get})
+		res = append(res, opPair{
+			Method: http.MethodGet,
+			Op:     item.Get,
+		})
 	}
 	if item.Post != nil {
-		res = append(res, opPair{Method: http.MethodPost, Op: item.Post})
+		res = append(res, opPair{
+			Method: http.MethodPost,
+			Op:     item.Post,
+		})
 	}
 	if item.Put != nil {
-		res = append(res, opPair{Method: http.MethodPut, Op: item.Put})
+		res = append(res, opPair{
+			Method: http.MethodPut,
+			Op:     item.Put,
+		})
 	}
 	if item.Delete != nil {
-		res = append(res, opPair{Method: http.MethodDelete, Op: item.Delete})
+		res = append(res, opPair{
+			Method: http.MethodDelete,
+			Op:     item.Delete,
+		})
 	}
 	return res
 }

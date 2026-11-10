@@ -286,7 +286,10 @@ func FlowSteps(steps ...api.FlowStep) EventFilter {
 		expected.Add(st)
 	}
 	return PredicateFilter(func(data stepEvent) bool {
-		key := api.FlowStep{FlowID: data.FlowID, StepID: data.StepID}
+		key := api.FlowStep{
+			FlowID: data.FlowID,
+			StepID: data.StepID,
+		}
 		if expected.Contains(key) {
 			expected.Remove(key)
 			return true
@@ -302,7 +305,10 @@ func FlowStepAny(steps ...api.FlowStep) EventFilter {
 		expected.Add(st)
 	}
 	return PredicateFilter(func(data stepEvent) bool {
-		key := api.FlowStep{FlowID: data.FlowID, StepID: data.StepID}
+		key := api.FlowStep{
+			FlowID: data.FlowID,
+			StepID: data.StepID,
+		}
 		return expected.Contains(key)
 	})
 }
@@ -311,7 +317,10 @@ func FlowStepAny(steps ...api.FlowStep) EventFilter {
 func FlowStepDistinctTokens(fs api.FlowStep) EventFilter {
 	seen := util.Set[api.Token]{}
 	return PredicateFilter(func(data workEvent) bool {
-		key := api.FlowStep{FlowID: data.FlowID, StepID: data.StepID}
+		key := api.FlowStep{
+			FlowID: data.FlowID,
+			StepID: data.StepID,
+		}
 		if key != fs || seen.Contains(data.Token) {
 			return false
 		}

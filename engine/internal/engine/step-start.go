@@ -334,17 +334,29 @@ func (s *stepEval) optionalDecisionAt(
 	if policy.InputFulfilled(attr.Collect(), len(values), providers, s.flow.HasInit(name)) {
 		readyAt := policy.FulfilledAt(attr.Collect(), values, last.At)
 		if readyAt.Before(at) {
-			return optionalDecision{ready: true, values: values}
+			return optionalDecision{
+				ready:  true,
+				values: values,
+			}
 		}
 	}
 	if providers.Terminal || !at.After(s.when) {
-		return optionalDecision{ready: true, fallback: true}
+		return optionalDecision{
+			ready:    true,
+			fallback: true,
+		}
 	}
 	if attr.Collect() == api.InputCollectNone && len(values) > 0 {
-		return optionalDecision{ready: true, fallback: true}
+		return optionalDecision{
+			ready:    true,
+			fallback: true,
+		}
 	}
 	if attr.Collect() == api.InputCollectAll && !canCollectAll(name, s.flow) {
-		return optionalDecision{ready: true, fallback: true}
+		return optionalDecision{
+			ready:    true,
+			fallback: true,
+		}
 	}
 	return optionalDecision{nextAt: at}
 }
@@ -361,9 +373,15 @@ func (s *stepEval) resolveImmediateOptional(
 	}
 	providers, _ := providerSummaryAt(s.flow, name, anchor.Seq)
 	if policy.InputFulfilled(attr.Collect(), len(accepted), providers, s.flow.HasInit(name)) {
-		return optionalDecision{ready: true, values: accepted}
+		return optionalDecision{
+			ready:  true,
+			values: accepted,
+		}
 	}
-	return optionalDecision{ready: true, fallback: true}
+	return optionalDecision{
+		ready:    true,
+		fallback: true,
+	}
 }
 
 // requiredReadyAt returns when the required inputs became satisfied, or zero while any is

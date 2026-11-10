@@ -121,7 +121,10 @@ func Struct[S any](fields ...StructField[S]) Codec[S] {
 	for _, f := range fields {
 		byName[f.Name()] = f
 	}
-	return &structCodec[S]{fields: fields, byName: byName}
+	return &structCodec[S]{
+		fields: fields,
+		byName: byName,
+	}
 }
 
 // Field binds a named JSON object member to a field of struct S. The ptr function returns the
@@ -129,7 +132,11 @@ func Struct[S any](fields ...StructField[S]) Codec[S] {
 func Field[S, T any](
 	name string, c Codec[T], ptr func(*S) *T,
 ) StructField[S] {
-	return structField[S, T]{name: name, codec: c, ptr: ptr}
+	return structField[S, T]{
+		name:  name,
+		codec: c,
+		ptr:   ptr,
+	}
 }
 
 // DecodeFrom reads a single JSON value from r using the given codec

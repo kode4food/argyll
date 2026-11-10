@@ -27,7 +27,10 @@ func TestProblemDetailsError(t *testing.T) {
 	}
 	as.Equal("something went wrong", p.Error())
 
-	p = &api.ProblemDetails{Title: "Bad Gateway", Status: 502}
+	p = &api.ProblemDetails{
+		Title:  "Bad Gateway",
+		Status: 502,
+	}
 	as.Equal("Bad Gateway", p.Error())
 
 	p = &api.ProblemDetails{Status: 503}

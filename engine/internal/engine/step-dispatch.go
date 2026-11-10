@@ -32,7 +32,10 @@ func (tx *flowTx) recoverWorkDispatch(fl *api.FlowState) error {
 }
 
 func (tx *flowTx) scheduleWorkDispatch(sid api.StepID, at time.Time) error {
-	fs := api.FlowStep{FlowID: tx.flowID, StepID: sid}
+	fs := api.FlowStep{
+		FlowID: tx.flowID,
+		StepID: sid,
+	}
 	return tx.scheduleEvent(workDispatchKey(fs), at, workDispatchRequested, sid)
 }
 

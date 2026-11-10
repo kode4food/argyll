@@ -14,12 +14,7 @@ func toolResult(payload any, err error) (any, error) {
 		return nil, err
 	}
 	return map[string]any{
-		"content": []map[string]any{
-			{
-				"type": "text",
-				"text": string(raw),
-			},
-		},
+		"content": []map[string]any{{"type": "text", "text": string(raw)}},
 	}, nil
 }
 

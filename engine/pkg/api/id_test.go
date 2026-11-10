@@ -18,16 +18,8 @@ func TestSanitizeID(t *testing.T) {
 		{name: "uppercase lowercased", input: "My-Flow", expected: "my-flow"},
 		{name: "spaces become hyphens", input: "my flow", expected: "my-flow"},
 		{name: "colons stripped", input: "my:flow", expected: "myflow"},
-		{
-			name:     "leading hyphen trimmed",
-			input:    "-my-flow",
-			expected: "my-flow",
-		},
-		{
-			name:     "trailing hyphen trimmed",
-			input:    "my-flow-",
-			expected: "my-flow",
-		},
+		{name: "leading hyphen trimmed", input: "-my-flow", expected: "my-flow"},
+		{name: "trailing hyphen trimmed", input: "my-flow-", expected: "my-flow"},
 		{name: "invalid chars stripped", input: "my@flow!", expected: "myflow"},
 		{name: "empty", input: "", expected: ""},
 	}

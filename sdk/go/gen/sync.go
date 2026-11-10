@@ -63,7 +63,10 @@ func invoke[I, O any](fn func(I) (O, error), in I) (out O, err error) {
 		if r := recover(); r != nil {
 			var zero O
 			out = zero
-			err = &PanicError{Value: r, Stack: debug.Stack()}
+			err = &PanicError{
+				Value: r,
+				Stack: debug.Stack(),
+			}
 		}
 	}()
 	return fn(in)

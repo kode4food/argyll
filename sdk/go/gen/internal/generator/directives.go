@@ -73,7 +73,10 @@ func parseWrap(attrs string) (wrapNames, error) {
 	if err != nil {
 		return wrapNames{}, err
 	}
-	return wrapNames{inputs: inputs, outputs: outputs}, nil
+	return wrapNames{
+		inputs:  inputs,
+		outputs: outputs,
+	}, nil
 }
 
 // an omitted list is inferred from the signature, an empty one is empty

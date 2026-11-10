@@ -34,9 +34,7 @@ func TestHealthIncludesCustomStatus(t *testing.T) {
 			env.EventHub,
 			func() map[string]any {
 				return map[string]any{
-					"backend": map[string]any{
-						"kind": "test",
-					},
+					"backend": map[string]any{"kind": "test"},
 				}
 			},
 		)
@@ -104,10 +102,7 @@ func TestHealthLeader(t *testing.T) {
 			env.EventHub,
 			func() map[string]any {
 				return map[string]any{
-					"backend": map[string]any{
-						"type":  "raft",
-						"state": raft.StateLeader,
-					},
+					"backend": map[string]any{"type": "raft", "state": raft.StateLeader},
 				}
 			},
 		)
@@ -129,10 +124,7 @@ func TestHealthFollower(t *testing.T) {
 			env.EventHub,
 			func() map[string]any {
 				return map[string]any{
-					"backend": map[string]any{
-						"type":  "raft",
-						"state": raft.StateFollower,
-					},
+					"backend": map[string]any{"type": "raft", "state": raft.StateFollower},
 				}
 			},
 		)

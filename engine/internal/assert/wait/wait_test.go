@@ -129,24 +129,42 @@ func TestFlowIDFilterSingle(t *testing.T) {
 }
 
 func TestFlowStepAnyMatchesRepeated(t *testing.T) {
-	fs := api.FlowStep{FlowID: "flow-a", StepID: "step-a"}
+	fs := api.FlowStep{
+		FlowID: "flow-a",
+		StepID: "step-a",
+	}
 	filter := wait.FlowStepAny(fs)
 	ev := newEvent(api.EventTypeStepStarted, events.FlowKey(fs.FlowID),
-		stepEvent{FlowID: fs.FlowID, StepID: fs.StepID},
+		stepEvent{
+			FlowID: fs.FlowID,
+			StepID: fs.StepID,
+		},
 	)
 	assert.True(t, filter(ev))
 	assert.True(t, filter(ev))
 }
 
 func TestFlowStepsAndFlowStepFilter(t *testing.T) {
-	a := api.FlowStep{FlowID: "flow-a", StepID: "step-a"}
-	b := api.FlowStep{FlowID: "flow-b", StepID: "step-b"}
+	a := api.FlowStep{
+		FlowID: "flow-a",
+		StepID: "step-a",
+	}
+	b := api.FlowStep{
+		FlowID: "flow-b",
+		StepID: "step-b",
+	}
 	filter := wait.FlowSteps(a, b)
 	evA := newEvent(api.EventTypeStepStarted, events.FlowKey(a.FlowID),
-		stepEvent{FlowID: a.FlowID, StepID: a.StepID},
+		stepEvent{
+			FlowID: a.FlowID,
+			StepID: a.StepID,
+		},
 	)
 	evB := newEvent(api.EventTypeStepStarted, events.FlowKey(b.FlowID),
-		stepEvent{FlowID: b.FlowID, StepID: b.StepID},
+		stepEvent{
+			FlowID: b.FlowID,
+			StepID: b.StepID,
+		},
 	)
 	assert.True(t, filter(evA))
 	assert.False(t, filter(evA))
@@ -159,11 +177,17 @@ func TestFlowStepsAndFlowStepFilter(t *testing.T) {
 
 func TestWrapperFilters(t *testing.T) {
 	id := api.FlowID("flow-1")
-	fs := api.FlowStep{FlowID: id, StepID: "step-1"}
+	fs := api.FlowStep{
+		FlowID: id,
+		StepID: "step-1",
+	}
 
 	stepEv := func(typ api.EventType) *timebox.Event {
 		return newEvent(typ, events.FlowKey(id),
-			stepEvent{FlowID: fs.FlowID, StepID: fs.StepID},
+			stepEvent{
+				FlowID: fs.FlowID,
+				StepID: fs.StepID,
+			},
 		)
 	}
 	workEv := func(typ api.EventType, tkn api.Token) *timebox.Event {

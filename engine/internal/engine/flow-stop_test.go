@@ -235,7 +235,9 @@ func TestChildFlowReleaseRecovery(t *testing.T) {
 			helpers.FlowEvent{
 				Type: api.EventTypeFlowStarted,
 				Data: api.FlowStartedEvent{
-					FlowID: parentID, Plan: pl, Init: api.InitArgs{},
+					FlowID: parentID,
+					Plan:   pl,
+					Init:   api.InitArgs{},
 				},
 			},
 			helpers.FlowEvent{
@@ -245,7 +247,8 @@ func TestChildFlowReleaseRecovery(t *testing.T) {
 			helpers.FlowEvent{
 				Type: api.EventTypeFlowDeactivated,
 				Data: api.FlowDeactivatedEvent{
-					FlowID: parentID, Status: api.FlowCompleted,
+					FlowID: parentID,
+					Status: api.FlowCompleted,
 				},
 			},
 		))
@@ -502,10 +505,16 @@ func TestParentNotificationRetries(t *testing.T) {
 	}
 	helpers.WithTestBackend(t, backend,
 		func(env *helpers.TestEngineEnv) {
-			sub := &api.Step{ID: "sub", Type: api.StepTypeFlow}
+			sub := &api.Step{
+				ID:   "sub",
+				Type: api.StepTypeFlow,
+			}
 			testify.NoError(t,
 				env.SeedStartedWork(
-					api.FlowStep{FlowID: parentID, StepID: sub.ID},
+					api.FlowStep{
+						FlowID: parentID,
+						StepID: sub.ID,
+					},
 					&api.ExecutionPlan{
 						Goals: api.Goals{Steps: []api.StepID{sub.ID}},
 						Steps: api.Steps{sub.ID: sub},
@@ -609,16 +618,25 @@ func TestParentSettledAtomically(t *testing.T) {
 	}
 	helpers.WithTestBackend(t, backend,
 		func(env *helpers.TestEngineEnv) {
-			sub := &api.Step{ID: "sub", Type: api.StepTypeFlow}
+			sub := &api.Step{
+				ID:   "sub",
+				Type: api.StepTypeFlow,
+			}
 			testify.NoError(t, env.SeedStartedWork(
-				api.FlowStep{FlowID: parentID, StepID: sub.ID},
+				api.FlowStep{
+					FlowID: parentID,
+					StepID: sub.ID,
+				},
 				&api.ExecutionPlan{
 					Goals: api.Goals{Steps: []api.StepID{sub.ID}},
 					Steps: api.Steps{sub.ID: sub},
 				}, "token",
 			))
 
-			leaf := &api.Step{ID: "leaf", Type: api.StepTypeScript}
+			leaf := &api.Step{
+				ID:   "leaf",
+				Type: api.StepTypeScript,
+			}
 			testify.NoError(t, env.RaiseFlowEvents(childID,
 				helpers.FlowEvent{
 					Type: api.EventTypeFlowStarted,
@@ -656,7 +674,10 @@ func TestParentSettledAtomically(t *testing.T) {
 				},
 			))
 
-			childStep := api.FlowStep{FlowID: childID, StepID: leaf.ID}
+			childStep := api.FlowStep{
+				FlowID: childID,
+				StepID: leaf.ID,
+			}
 			before, err := env.Engine.GetFlowState(childID)
 			testify.NoError(t, err)
 

@@ -215,10 +215,7 @@ func TestMergeNodeHealth(t *testing.T) {
 				"step-a": {Status: api.HealthHealthy},
 			}},
 			"node-a": {Health: map[api.StepID]api.HealthState{
-				"step-a": {
-					Status: api.HealthUnhealthy,
-					Error:  "connection refused",
-				},
+				"step-a": {Status: api.HealthUnhealthy, Error: "connection refused"},
 			}},
 		},
 	}
@@ -364,10 +361,7 @@ func TestResolveHealthScriptError(t *testing.T) {
 			Attributes: api.AttributeGraph{},
 		}
 		base := map[api.StepID]api.HealthState{
-			"script-step": {
-				Status: api.HealthUnknown,
-				Error:  "compile failed",
-			},
+			"script-step": {Status: api.HealthUnknown, Error: "compile failed"},
 		}
 
 		h := eng.ResolveHealth(helpers.Matcher(), &cat, base)
@@ -418,10 +412,7 @@ func TestMergeNodeHealthUnknown(t *testing.T) {
 				"step-a": {Status: api.HealthUnknown},
 			}},
 			"node-b": {Health: map[api.StepID]api.HealthState{
-				"step-a": {
-					Status: api.HealthUnknown,
-					Error:  "late report",
-				},
+				"step-a": {Status: api.HealthUnknown, Error: "late report"},
 			}},
 		},
 	}

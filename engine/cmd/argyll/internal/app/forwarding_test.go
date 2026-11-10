@@ -84,7 +84,10 @@ func TestFollowerWriteStartup(t *testing.T) {
 	start := func(init *raftInit) {
 		go func() {
 			n, err := bootRaftNode(init)
-			started <- raftBoot{node: n, err: err}
+			started <- raftBoot{
+				node: n,
+				err:  err,
+			}
 		}()
 	}
 
@@ -144,7 +147,10 @@ func newRaftCluster(t *testing.T, n int) []*raftNode {
 	for _, init := range inits {
 		go func(init *raftInit) {
 			n, err := bootRaftNode(init)
-			started <- raftBoot{node: n, err: err}
+			started <- raftBoot{
+				node: n,
+				err:  err,
+			}
 		}(init)
 	}
 

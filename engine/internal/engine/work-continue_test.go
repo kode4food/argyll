@@ -109,7 +109,10 @@ func TestRetryDeferredOnUnhealthyNode(t *testing.T) {
 		assert.NoError(t, peer.Start())
 
 		id := api.FlowID("wf-retry-unhealthy")
-		fs := api.FlowStep{FlowID: id, StepID: st.ID}
+		fs := api.FlowStep{
+			FlowID: id,
+			StepID: st.ID,
+		}
 		tkn := api.Token("work-retry-unhealthy")
 		pl := &api.ExecutionPlan{
 			Goals: api.Goals{Steps: []api.StepID{st.ID}},
@@ -185,7 +188,10 @@ func TestRetryOnHealthyPeer(t *testing.T) {
 		}
 
 		env.WaitFor(
-			wait.WorkSucceeded(api.FlowStep{FlowID: id, StepID: st.ID}),
+			wait.WorkSucceeded(api.FlowStep{
+				FlowID: id,
+				StepID: st.ID,
+			}),
 			func() {
 				assert.NoError(t, env.RaiseFlowEvents(
 					id,

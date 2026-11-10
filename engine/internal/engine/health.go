@@ -89,7 +89,10 @@ func (e *Engine) GetStepHealth(sid api.StepID) (api.HealthState, error) {
 func (e *Engine) UpdateStepHealth(sid api.StepID, health api.HealthStatus, errMsg string) error {
 	return e.engStore.Transact(func(t *timebox.Transaction) error {
 		return updateStepHealth(
-			storeTx{Engine: e, Transaction: t}, sid, health, errMsg,
+			storeTx{
+				Engine:      e,
+				Transaction: t,
+			}, sid, health, errMsg,
 		)
 	})
 }

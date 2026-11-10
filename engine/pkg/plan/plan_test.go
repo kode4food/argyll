@@ -1164,7 +1164,10 @@ func TestSubFlowSpace(t *testing.T) {
 			SpaceID: "gone",
 		}
 
-		cat := makeCatalogState(api.Steps{goal.ID: goal, st.ID: st})
+		cat := makeCatalogState(api.Steps{
+			goal.ID: goal,
+			st.ID:   st,
+		})
 
 		_, err := createSubFlowPlan(cat, st.ID)
 		assert.ErrorIs(t, err, api.ErrSpaceNotFound)

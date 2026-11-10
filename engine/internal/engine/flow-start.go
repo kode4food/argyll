@@ -137,7 +137,10 @@ func (tx *flowTx) startPlan(pl *api.ExecutionPlan, opts *flow.Options) error {
 
 func (tx *flowTx) startChildFlow(sid api.StepID, tkn api.Token, inputs api.Args) error {
 	fl := tx.Value()
-	fs := api.FlowStep{FlowID: fl.ID, StepID: sid}
+	fs := api.FlowStep{
+		FlowID: fl.ID,
+		StepID: sid,
+	}
 	init := api.InitArgs{}
 	for name, value := range inputs {
 		init[name] = []any{value}
@@ -178,7 +181,10 @@ func (e *Engine) matchesStartedFlow(
 func (e *Engine) flowTx(fid api.FlowID, fn func(*flowTx) error) error {
 	return e.flowStore.Transact(
 		func(t *timebox.Transaction) error {
-			tx := storeTx{Engine: e, Transaction: t}
+			tx := storeTx{
+				Engine:      e,
+				Transaction: t,
+			}
 			_, err := tx.flowTx(fid, fn)
 			return err
 		},

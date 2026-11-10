@@ -245,7 +245,10 @@ func (e *TestEngineEnv) SeedFlow(fid api.FlowID, status api.FlowStatus, tags api
 	}
 	evs = append(evs, FlowEvent{
 		Type: api.EventTypeFlowDeactivated,
-		Data: api.FlowDeactivatedEvent{FlowID: fid, Status: status},
+		Data: api.FlowDeactivatedEvent{
+			FlowID: fid,
+			Status: status,
+		},
 	})
 	return e.RaiseFlowEvents(fid, evs...)
 }

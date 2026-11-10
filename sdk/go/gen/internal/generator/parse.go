@@ -369,7 +369,10 @@ func (g *pkgGen) stepFor(fn *ast.FuncDecl, sig *types.Signature, decl stepDecl) 
 	if err != nil {
 		return stepModel{}, err
 	}
-	attrs := mergeAttributes(attributeSets{inputs: inAttrs, outputs: outAttrs})
+	attrs := mergeAttributes(attributeSets{
+		inputs:  inAttrs,
+		outputs: outAttrs,
+	})
 	return g.model(&stepModelConfig{
 		function:    fn,
 		declaration: decl,
@@ -436,7 +439,10 @@ func (g *pkgGen) wrapFor(fn *ast.FuncDecl, sig *types.Signature, decl stepDecl) 
 		return stepModel{}, err
 	}
 
-	attrs := mergeAttributes(attributeSets{inputs: inAttrs, outputs: outAttrs})
+	attrs := mergeAttributes(attributeSets{
+		inputs:  inAttrs,
+		outputs: outAttrs,
+	})
 	return g.model(&stepModelConfig{
 		function:    fn,
 		declaration: decl,

@@ -12,7 +12,8 @@ import (
 
 func TestRequiredMatchStatus(t *testing.T) {
 	cfg := &api.ScriptConfig{
-		Language: api.ScriptLangArgyll, Source: "value.kind",
+		Language: api.ScriptLangArgyll,
+		Source:   "value.kind",
 	}
 	matched := func(*api.ScriptConfig, any) (bool, error) {
 		return true, nil
@@ -147,7 +148,10 @@ func TestMatchAllowsNormalDemand(t *testing.T) {
 }
 
 func TestMatchCandidateForEachValues(t *testing.T) {
-	cfg := &api.ScriptConfig{Language: api.ScriptLangLua, Source: "match"}
+	cfg := &api.ScriptConfig{
+		Language: api.ScriptLangLua,
+		Source:   "match",
+	}
 	attr := requiredMatch(cfg, api.InputCollectAll)
 	attr.Required.ForEach = true
 	calls := 0
@@ -188,7 +192,8 @@ func TestStepPrunedByRequiredMatch(t *testing.T) {
 
 func TestRequiredMatchStepStatus(t *testing.T) {
 	cfg := &api.ScriptConfig{
-		Language: api.ScriptLangArgyll, Source: "value.kind",
+		Language: api.ScriptLangArgyll,
+		Source:   "value.kind",
 	}
 	st := &api.Step{
 		Attributes: api.AttributeSpecs{

@@ -28,7 +28,10 @@ func TestCanTransition(t *testing.T) {
 
 	can := func(from, to TestState) bool {
 		return transitions.CanTransition(
-			policy.TransitionArgs[TestState]{From: from, To: to},
+			policy.TransitionArgs[TestState]{
+				From: from,
+				To:   to,
+			},
 		)
 	}
 

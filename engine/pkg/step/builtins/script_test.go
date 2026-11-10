@@ -125,7 +125,10 @@ func TestScriptOutputArgEx(t *testing.T) {
 	err = handler.Invoke(rt, st, api.Args{"x": 21.0}, "token-1")
 	assert.NoError(t, err)
 	assert.Equal(t, 1, calls.completeCalls)
-	assert.Equal(t, api.Args{"total": 42.0, "label": "n"}, calls.completeOut)
+	assert.Equal(t, api.Args{
+		"total": 42.0,
+		"label": "n",
+	}, calls.completeOut)
 	assert.Equal(t, api.HealthHealthy, calls.healthStatus)
 }
 

@@ -41,7 +41,10 @@ func TestStepWorkCompletion(t *testing.T) {
 
 	failed := policy.StepWorkCompletion(api.WorkItems{
 		"a": {Status: api.WorkSucceeded},
-		"b": {Status: api.WorkFailed, Error: "bad"},
+		"b": {
+			Status: api.WorkFailed,
+			Error:  "bad",
+		},
 	})
 	assert.True(t, failed.Done)
 	assert.True(t, failed.Failed)
@@ -50,7 +53,10 @@ func TestStepWorkCompletion(t *testing.T) {
 	// Fail-fast: a single failure marks Done immediately, even with active or pending siblings
 	failFast := policy.StepWorkCompletion(api.WorkItems{
 		"a": {Status: api.WorkActive},
-		"b": {Status: api.WorkFailed, Error: "boom"},
+		"b": {
+			Status: api.WorkFailed,
+			Error:  "boom",
+		},
 		"c": {Status: api.WorkPending},
 	})
 	assert.True(t, failFast.Done)
@@ -113,7 +119,10 @@ func TestWorkDeadline(t *testing.T) {
 	assert.Equal(t, started.Add(deadlineFallback), at)
 
 	// A script has no timeout of its own, so the fallback bounds a lost invocation
-	script := &api.Step{ID: "script-step", Type: api.StepTypeScript}
+	script := &api.Step{
+		ID:   "script-step",
+		Type: api.StepTypeScript,
+	}
 	at, ok = policy.WorkDeadline(script, &api.WorkState{
 		Status:    api.WorkActive,
 		StartedAt: started,
@@ -159,7 +168,10 @@ func TestCompensationDeadline(t *testing.T) {
 
 func TestNoWorkDeadline(t *testing.T) {
 	started := time.Unix(1000, 0)
-	active := &api.WorkState{Status: api.WorkActive, StartedAt: started}
+	active := &api.WorkState{
+		Status:    api.WorkActive,
+		StartedAt: started,
+	}
 	_, childDeadline := policy.WorkDeadline(
 		&api.Step{Type: api.StepTypeFlow}, active, deadlineFallback,
 	)
@@ -171,7 +183,10 @@ func TestNoWorkDeadline(t *testing.T) {
 	}
 
 	// Without a fallback there is nothing to derive a deadline from
-	script := &api.Step{ID: "script-step", Type: api.StepTypeScript}
+	script := &api.Step{
+		ID:   "script-step",
+		Type: api.StepTypeScript,
+	}
 	_, ok := policy.WorkDeadline(script, active, 0)
 	assert.False(t, ok)
 
@@ -216,12 +231,18 @@ func TestWorkReadyToDispatch(t *testing.T) {
 	// Pending, but not until its retry time arrives
 	assert.False(t, policy.WorkReadyToDispatch(st, &api.ExecutionState{
 		WorkItems: api.WorkItems{
-			"a": {Status: api.WorkPending, NextRetryAt: now.Add(time.Minute)},
+			"a": {
+				Status:      api.WorkPending,
+				NextRetryAt: now.Add(time.Minute),
+			},
 		},
 	}, now))
 	assert.True(t, policy.WorkReadyToDispatch(st, &api.ExecutionState{
 		WorkItems: api.WorkItems{
-			"a": {Status: api.WorkPending, NextRetryAt: now.Add(-time.Minute)},
+			"a": {
+				Status:      api.WorkPending,
+				NextRetryAt: now.Add(-time.Minute),
+			},
 		},
 	}, now))
 

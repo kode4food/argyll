@@ -52,8 +52,14 @@ func TestFlowStarted(t *testing.T) {
 
 	pl := &api.ExecutionPlan{
 		Steps: api.Steps{
-			"step1": {ID: "step1", Name: "Step 1"},
-			"step2": {ID: "step2", Name: "Step 2"},
+			"step1": {
+				ID:   "step1",
+				Name: "Step 1",
+			},
+			"step2": {
+				ID:   "step2",
+				Name: "Step 2",
+			},
 		},
 	}
 
@@ -144,28 +150,10 @@ func TestParseFlowID(t *testing.T) {
 		want api.FlowID
 		ok   bool
 	}{
-		{
-			name: "valid",
-			id:   events.FlowKey("test-flow"),
-			want: "test-flow",
-			ok:   true,
-		},
-		{
-			name: "wrong prefix",
-			id:   timebox.NewAggregateID("step", "test-flow"),
-			ok:   false,
-		},
-		{
-			name: "empty flow id",
-			id:   events.FlowKey(""),
-			ok:   false,
-		},
-		{
-			name: "underscore",
-			id:   events.FlowKey("_"),
-			want: "_",
-			ok:   true,
-		},
+		{name: "valid", id: events.FlowKey("test-flow"), want: "test-flow", ok: true},
+		{name: "wrong prefix", id: timebox.NewAggregateID("step", "test-flow"), ok: false},
+		{name: "empty flow id", id: events.FlowKey(""), ok: false},
+		{name: "underscore", id: events.FlowKey("_"), want: "_", ok: true},
 	}
 
 	for _, tt := range tests {

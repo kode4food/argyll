@@ -513,12 +513,21 @@ func TestCompensateMethod(t *testing.T) {
 			},
 		},
 		Attributes: api.AttributeSpecs{
-			"amount":    {Role: api.RoleRequired, Compensated: true},
-			"charge_id": {Role: api.RoleOutput, Compensated: true},
+			"amount": {
+				Role:        api.RoleRequired,
+				Compensated: true,
+			},
+			"charge_id": {
+				Role:        api.RoleOutput,
+				Compensated: true,
+			},
 		},
 	}
 
-	args := api.Args{"amount": 10, "charge_id": "ch_1"}
+	args := api.Args{
+		"amount":    10,
+		"charge_id": "ch_1",
+	}
 	err := cl.Compensate(st, args, api.Metadata{})
 	assert.NoError(t, err)
 	assert.Equal(t, "PUT", gotMethod)
@@ -612,7 +621,10 @@ func TestCompensateTimeout(t *testing.T) {
 	st := &api.Step{
 		ID: "step",
 		HTTP: &api.HTTPConfig{
-			Invoke:     api.HTTPAction{Endpoint: server.URL, Timeout: 10},
+			Invoke: api.HTTPAction{
+				Endpoint: server.URL,
+				Timeout:  10,
+			},
 			Compensate: &api.HTTPAction{Endpoint: server.URL + "/undo"},
 		},
 	}

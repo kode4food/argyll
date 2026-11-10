@@ -348,5 +348,8 @@ func compFailed(fl api.FlowState, ev *timebox.Event, data api.CompFailedEvent) a
 }
 
 func asCompletion(ev *timebox.Event) api.Completion {
-	return api.Completion{At: ev.Timestamp, Seq: ev.Sequence}
+	return api.Completion{
+		At:  ev.Timestamp,
+		Seq: ev.Sequence,
+	}
 }

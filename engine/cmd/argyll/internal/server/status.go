@@ -7,9 +7,7 @@ type StatusProvider func() map[string]any
 func NewWebSocketStatusProvider(s *Server) StatusProvider {
 	return func() map[string]any {
 		return map[string]any{
-			"websocket": map[string]any{
-				"clients": s.webSocketCount(),
-			},
+			"websocket": map[string]any{"clients": s.webSocketCount()},
 		}
 	}
 }

@@ -50,10 +50,7 @@ var (
 var (
 	allQueryStatuses = []queryStatus{
 		{indexStatus: events.FlowStatusActive, flowStatus: api.FlowActive},
-		{
-			indexStatus: events.FlowStatusCompleted,
-			flowStatus:  api.FlowCompleted,
-		},
+		{indexStatus: events.FlowStatusCompleted, flowStatus: api.FlowCompleted},
 		{indexStatus: events.FlowStatusFailed, flowStatus: api.FlowFailed},
 	}
 
@@ -370,7 +367,10 @@ func paginateFlowItems(args paginateFlowItemsArgs) paginateFlowItemsRes {
 
 	hasMore := end < len(items)
 	if !hasMore || len(page) == 0 {
-		return paginateFlowItemsRes{items: page, hasMore: hasMore}
+		return paginateFlowItemsRes{
+			items:   page,
+			hasMore: hasMore,
+		}
 	}
 
 	last := page[len(page)-1]

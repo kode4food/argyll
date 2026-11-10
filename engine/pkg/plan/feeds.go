@@ -39,7 +39,10 @@ func planFeeds(cat *api.CatalogState, steps api.Steps) api.PlanFeeds {
 		if len(sources) == 0 {
 			continue
 		}
-		add(api.PlanFeed{Feed: f, Sources: sources})
+		add(api.PlanFeed{
+			Feed:    f,
+			Sources: sources,
+		})
 	}
 	return res
 }

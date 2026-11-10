@@ -28,7 +28,10 @@ func TestGoals(t *testing.T) {
 		const maxAllocations = 64
 		var chain *api.Goals
 		for range chainLength {
-			chain = &api.Goals{Steps: []api.StepID{"a"}, Else: chain}
+			chain = &api.Goals{
+				Steps: []api.StepID{"a"},
+				Else:  chain,
+			}
 		}
 		assert.Len(t, chain.Sets(), chainLength)
 		allocations := testing.AllocsPerRun(1, func() {

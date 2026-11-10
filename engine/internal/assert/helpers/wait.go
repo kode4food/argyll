@@ -146,7 +146,10 @@ func (e *TestEngineEnv) WaitForStepStatus(
 		w := wait.On(e.T, consumer)
 		fn()
 		w.ForEvent(wait.StepTerminal(
-			api.FlowStep{FlowID: fid, StepID: sid},
+			api.FlowStep{
+				FlowID: fid,
+				StepID: sid,
+			},
 		))
 	})
 	return e.waitForTerminalStep(fid, sid)

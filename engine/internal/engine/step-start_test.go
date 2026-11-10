@@ -717,8 +717,13 @@ func TestPredicateRuntimeFailure(t *testing.T) {
 		name   string
 		source string
 	}{
-		{name: "empty"},
-		{name: "runtime error", source: `error("predicate failed")`},
+		{
+			name: "empty",
+		},
+		{
+			name:   "runtime error",
+			source: `error("predicate failed")`,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

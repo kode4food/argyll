@@ -110,9 +110,15 @@ func (tx *flowTx) startContinuedWork(sid api.StepID, st *api.Step, started api.W
 }
 
 func (tx *flowTx) scheduleRetryTask(sid api.StepID, tkn api.Token, retryAt time.Time) error {
-	fs := api.FlowStep{FlowID: tx.flowID, StepID: sid}
+	fs := api.FlowStep{
+		FlowID: tx.flowID,
+		StepID: sid,
+	}
 	return tx.scheduleEvent(retryKey(fs, tkn), retryAt, workRetryReady,
-		scheduledWork{StepID: sid, Token: tkn})
+		scheduledWork{
+			StepID: sid,
+			Token:  tkn,
+		})
 }
 
 func (tx *flowTx) handleRetry(sid api.StepID, tkn api.Token) error {

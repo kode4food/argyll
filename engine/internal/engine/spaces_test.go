@@ -72,7 +72,8 @@ func TestSpaceScriptSelectors(t *testing.T) {
 		assert.NoError(t, eng.RegisterStep(trading))
 
 		luaSpace := api.Space{
-			ID: "lua", Name: "Lua",
+			ID:   "lua",
+			Name: "Lua",
 			Selector: &api.ScriptConfig{
 				Language: api.ScriptLangLua,
 				Source: `local score = value.attributes.score
@@ -82,7 +83,8 @@ return has(value.tags, "domain:risk") and score and
 			},
 		}
 		argExSpace := api.Space{
-			ID: "argex", Name: "ArgEx",
+			ID:   "argex",
+			Name: "ArgEx",
 			Selector: &api.ScriptConfig{
 				Language: api.ScriptLangArgyll,
 				Source:   `"domain:trading" in value.tags`,
@@ -231,7 +233,8 @@ func TestSpacesRejectInvalid(t *testing.T) {
 		assert.ErrorIs(t, err, api.ErrSpaceNotFound)
 
 		err = eng.RegisterSpace(api.Space{
-			ID: "invalid-script", Name: "Invalid Script",
+			ID:   "invalid-script",
+			Name: "Invalid Script",
 			Selector: &api.ScriptConfig{
 				Language: api.ScriptLangLua,
 				Source:   "return value[",
@@ -240,7 +243,8 @@ func TestSpacesRejectInvalid(t *testing.T) {
 		assert.ErrorIs(t, err, api.ErrInvalidSpace)
 
 		err = eng.RegisterSpace(api.Space{
-			ID: "unknown-language", Name: "Unknown Language",
+			ID:   "unknown-language",
+			Name: "Unknown Language",
 			Selector: &api.ScriptConfig{
 				Language: "prolog",
 				Source:   "labels(risk).",
@@ -250,7 +254,8 @@ func TestSpacesRejectInvalid(t *testing.T) {
 		assert.ErrorIs(t, err, api.ErrInvalidScriptLanguage)
 
 		err = eng.RegisterSpace(api.Space{
-			ID: "non-boolean", Name: "Non-Boolean",
+			ID:   "non-boolean",
+			Name: "Non-Boolean",
 			Selector: &api.ScriptConfig{
 				Language: api.ScriptLangArgyll,
 				Source:   "value.tags + 1",

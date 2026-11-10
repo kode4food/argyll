@@ -57,7 +57,10 @@ func (e *Engine) PreviewSpace(sp api.Space) (api.SpacePreviewResponse, error) {
 	if err != nil {
 		return api.SpacePreviewResponse{}, err
 	}
-	return api.SpacePreviewResponse{Space: sp, StepIDs: ids}, nil
+	return api.SpacePreviewResponse{
+		Space:   sp,
+		StepIDs: ids,
+	}, nil
 }
 
 // ListSpaces returns all planning spaces

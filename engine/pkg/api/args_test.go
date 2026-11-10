@@ -262,8 +262,14 @@ func TestHashKey(t *testing.T) {
 
 func TestArgsApply(t *testing.T) {
 	t.Run("merges_other_into_base", func(t *testing.T) {
-		base := api.Args{"a": "1", "b": "2"}
-		other := api.Args{"b": "overwritten", "c": "3"}
+		base := api.Args{
+			"a": "1",
+			"b": "2",
+		}
+		other := api.Args{
+			"b": "overwritten",
+			"c": "3",
+		}
 		result := base.Apply(other)
 		assert.Equal(t, "1", result["a"])
 		assert.Equal(t, "overwritten", result["b"])

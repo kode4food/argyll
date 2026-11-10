@@ -109,7 +109,11 @@ func Struct[S any](fields ...StructField[S]) Converter[S] {
 func Field[S, T any](
 	name string, c Converter[T], ptr func(*S) *T,
 ) StructField[S] {
-	return structField[S, T]{name: name, conv: c, ptr: ptr}
+	return structField[S, T]{
+		name: name,
+		conv: c,
+		ptr:  ptr,
+	}
 }
 
 // From accepts any string kind, so named string types such as identifiers read as text

@@ -21,7 +21,10 @@ func TestGenericImmutableFunctionsPreserveNamedTypes(t *testing.T) {
 	applied := api.Apply(deleted, testMap{"c": 3})
 
 	assert.Equal(t, testMap{"a": 1}, m)
-	assert.Equal(t, testMap{"b": 2, "c": 3}, applied)
+	assert.Equal(t, testMap{
+		"b": 2,
+		"c": 3,
+	}, applied)
 
 	s := testSlice{"a"}
 	appended := api.Append(s, "b")
@@ -57,7 +60,10 @@ func TestMapSet(t *testing.T) {
 		result := original.Set("b", 2)
 
 		assert.Equal(t, api.Map[string, int]{"a": 1}, original)
-		assert.Equal(t, api.Map[string, int]{"a": 1, "b": 2}, result)
+		assert.Equal(t, api.Map[string, int]{
+			"a": 1,
+			"b": 2,
+		}, result)
 	})
 
 	t.Run("overwrites an existing key", func(t *testing.T) {
@@ -108,11 +114,17 @@ func TestMapDelete(t *testing.T) {
 	})
 
 	t.Run("leaves the receiver untouched", func(t *testing.T) {
-		original := api.Map[string, int]{"a": 1, "b": 2}
+		original := api.Map[string, int]{
+			"a": 1,
+			"b": 2,
+		}
 
 		result := original.Delete("a")
 
-		assert.Equal(t, api.Map[string, int]{"a": 1, "b": 2}, original)
+		assert.Equal(t, api.Map[string, int]{
+			"a": 1,
+			"b": 2,
+		}, original)
 		assert.Equal(t, api.Map[string, int]{"b": 2}, result)
 	})
 
@@ -146,7 +158,10 @@ func TestMapJSON(t *testing.T) {
 
 		err := json.Unmarshal([]byte(`{"a":1,"b":2}`), &result)
 		assert.NoError(t, err)
-		assert.Equal(t, api.Map[string, int]{"a": 1, "b": 2}, result)
+		assert.Equal(t, api.Map[string, int]{
+			"a": 1,
+			"b": 2,
+		}, result)
 	})
 }
 
