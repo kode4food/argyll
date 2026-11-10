@@ -39,7 +39,7 @@ func TestRegistryCompilation(t *testing.T) {
 			Type: api.StepTypeScript,
 			Script: &api.ScriptConfig{
 				Language: api.ScriptLangLua,
-				Script:   "return {result = x * 2}",
+				Source:   "return {result = x * 2}",
 			},
 			Attributes: api.AttributeSpecs{
 				"x":      {Role: api.RoleRequired},
@@ -71,7 +71,7 @@ func TestLuaCompilation(t *testing.T) {
 			Type: api.StepTypeScript,
 			Script: &api.ScriptConfig{
 				Language: api.ScriptLangLua,
-				Script:   "return {result = x * 2}",
+				Source:   "return {result = x * 2}",
 			},
 			Attributes: api.AttributeSpecs{
 				"x":      {Role: api.RoleRequired},
@@ -106,7 +106,7 @@ func TestRegistryPredicateTrue(t *testing.T) {
 			},
 			Predicate: &api.ScriptConfig{
 				Language: api.ScriptLangLua,
-				Script:   "return x > 10",
+				Source:   "return x > 10",
 			},
 			Attributes: api.AttributeSpecs{
 				"x": {Role: api.RoleRequired},
@@ -139,7 +139,7 @@ func TestRegistryPredicateFalse(t *testing.T) {
 			},
 			Predicate: &api.ScriptConfig{
 				Language: api.ScriptLangLua,
-				Script:   "return x > 10",
+				Source:   "return x > 10",
 			},
 			Attributes: api.AttributeSpecs{
 				"x": {Role: api.RoleRequired},
@@ -172,7 +172,7 @@ func TestLuaPredicateTrue(t *testing.T) {
 			},
 			Predicate: &api.ScriptConfig{
 				Language: api.ScriptLangLua,
-				Script:   "return x > 10",
+				Source:   "return x > 10",
 			},
 			Attributes: api.AttributeSpecs{
 				"x": {Role: api.RoleRequired},
@@ -205,7 +205,7 @@ func TestLuaPredicateFalse(t *testing.T) {
 			},
 			Predicate: &api.ScriptConfig{
 				Language: api.ScriptLangLua,
-				Script:   "return x > 10",
+				Source:   "return x > 10",
 			},
 			Attributes: api.AttributeSpecs{
 				"x": {Role: api.RoleRequired},
@@ -370,7 +370,7 @@ func TestRegistryComplexScript(t *testing.T) {
 			Type: api.StepTypeScript,
 			Script: &api.ScriptConfig{
 				Language: api.ScriptLangLua,
-				Script: `return {
+				Source: `return {
 				sum = a + b,
 				product = a * b,
 				greeting = "Hello " .. name
@@ -416,7 +416,7 @@ func TestLuaComplexScript(t *testing.T) {
 			Type: api.StepTypeScript,
 			Script: &api.ScriptConfig{
 				Language: api.ScriptLangLua,
-				Script: `
+				Source: `
 				return {
 					sum = a + b,
 					product = a * b,
@@ -505,6 +505,43 @@ func evalScript(
 		return nil, err
 	}
 	return script.Outputs(res), nil
+}
+
+type evalInputsArgs struct {
+	env      script.Environment
+	language string
+	script   string
+	inputs   api.Args
+	optional []api.Name
+}
+
+// evalInputs runs a script against a Step requiring each input and returns its
+// out result
+func evalInputs(t *testing.T, args evalInputsArgs) any {
+	t.Helper()
+	attrs := api.AttributeSpecs{"out": {Role: api.RoleOutput}}
+	for name := range args.inputs {
+		attrs[name] = &api.AttributeSpec{Role: api.RoleRequired}
+	}
+	for _, name := range args.optional {
+		attrs[name] = &api.AttributeSpec{Role: api.RoleOptional}
+	}
+	st := &api.Step{
+		ID:   "test",
+		Type: api.StepTypeScript,
+		Script: &api.ScriptConfig{
+			Source:   args.script,
+			Language: args.language,
+		},
+		Attributes: attrs,
+	}
+
+	comp, err := args.env.Compile(st, st.Script)
+	assert.NoError(t, err)
+
+	result, err := evalScript(args.env, comp, st, args.inputs)
+	assert.NoError(t, err)
+	return result["out"]
 }
 
 func evalPredicate(

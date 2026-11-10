@@ -935,7 +935,7 @@ func TestRequiredMatchUnknownOnlyRequiresGate(t *testing.T) {
 				Required: &api.RequiredConfig{
 					Match: &api.ScriptConfig{
 						Language: api.ScriptLangLua,
-						Script:   `return value == "postal"`,
+						Source:   `return value == "postal"`,
 					},
 				},
 			},
@@ -988,7 +988,7 @@ func TestRequiredMatchInitMismatchPrunesNormalInputs(t *testing.T) {
 				Required: &api.RequiredConfig{
 					Match: &api.ScriptConfig{
 						Language: api.ScriptLangLua,
-						Script:   `return value == "postal"`,
+						Source:   `return value == "postal"`,
 					},
 				},
 			},
@@ -1029,7 +1029,7 @@ func TestRequiredMatchInitMismatchPrunesProviders(t *testing.T) {
 				Required: &api.RequiredConfig{
 					Match: &api.ScriptConfig{
 						Language: api.ScriptLangLua,
-						Script:   `return value == "postal"`,
+						Source:   `return value == "postal"`,
 					},
 				},
 			},

@@ -107,7 +107,7 @@ func TestFeedFoldsEachAttribute(t *testing.T) {
 		assert.NoError(t, env.Engine.RegisterSteps(charge, refund))
 		f := newTestFeed()
 		f.Attributes = api.Slice[api.Name]{"amount", "refunded"}
-		f.Fold.Script = "return feed + (amount or 0) - (refunded or 0)"
+		f.Fold.Source = "return feed + (amount or 0) - (refunded or 0)"
 		assert.NoError(t, env.Engine.RegisterFeed(f))
 		env.MockClient.SetResponse(charge.ID, api.Args{"amount": testCharge})
 		env.MockClient.SetResponse(refund.ID, api.Args{"refunded": 2.0})
@@ -247,7 +247,7 @@ func TestFeedFoldFailureKeepsValue(t *testing.T) {
 		assert.NoError(t, env.Engine.RegisterStep(charge))
 		f := newTestFeed()
 		f.Value = `{"charges":["initial"]}`
-		f.Fold.Script = `
+		f.Fold.Source = `
 			feed.charges[1] = amount < 0 and "negative" or "positive"
 			if amount < 0 then error("negative charge") end
 			return feed
@@ -271,7 +271,7 @@ func TestFeedNonFiniteResult(t *testing.T) {
 		st := newChargeStep("charge")
 		require.NoError(t, env.Engine.RegisterStep(st))
 		f := newTestFeed()
-		f.Fold.Script = "return 0/0"
+		f.Fold.Source = "return 0/0"
 		require.NoError(t, env.Engine.RegisterFeed(f))
 		env.MockClient.SetResponse(st.ID, api.Args{"amount": testCharge})
 
@@ -293,7 +293,7 @@ func TestFeedFoldsMatchingOutputsTogether(t *testing.T) {
 		f := newTestFeed()
 		f.Attributes = api.Slice[api.Name]{"b", "a"}
 		f.Value = `{"pair":"left:right","count":1}`
-		f.Fold.Script = `return {pair = a .. ":" .. b, count = 1}`
+		f.Fold.Source = `return {pair = a .. ":" .. b, count = 1}`
 		require.NoError(t, env.Engine.RegisterFeed(f))
 		key := events.FeedKey(f.ID, f.Version())
 		run := func(id api.FlowID, a string, wantSeq int64) api.FeedState {

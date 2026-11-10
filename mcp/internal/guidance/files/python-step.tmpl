@@ -31,7 +31,7 @@ step = (
     .with_endpoint("http://localhost:8081/step"){{ end }}{{ if .IsScript }}
     .with_script(ScriptConfig(
         language=ScriptLanguage.LUA,
-        script={{ quote .ScriptBody }},
+        source={{ quote .ScriptBody }},
     )){{ end }}
 )
 {{ if or .IsExternal .IsScript }}step.register(){{ else }}step.start(invoke_step){{ end }}

@@ -16,7 +16,7 @@ export const stepDisplayInfo = (step: Step): DisplayInfo => {
   if (step.type === "script" && step.script) {
     return {
       icon,
-      text: formatScriptPreview(step.script.script, step.script.language),
+      text: formatScriptPreview(step.script.source, step.script.language),
       className: "endpoint-script",
     };
   }

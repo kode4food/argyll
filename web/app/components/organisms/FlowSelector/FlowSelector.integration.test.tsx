@@ -31,7 +31,7 @@ jest.mock("@/app/store/flowStore", () => {
         name: "Goal",
         type: "script",
         attributes: {},
-        script: { language: "lua", script: "" },
+        script: { language: "lua", source: "" },
       },
     ]),
     useFlows: jest.fn(() => [

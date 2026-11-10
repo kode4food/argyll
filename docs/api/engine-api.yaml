@@ -262,7 +262,7 @@ paths:
                       role: "output"
                   script:
                     language: "lua"
-                    script: 'return {greeting = "Hello, " .. name}'
+                    source: 'return {greeting = "Hello, " .. name}'
       responses:
         "201":
           description: Step registered successfully
@@ -1640,7 +1640,7 @@ components:
                 mapping:
                   script:
                     language: "argyll"
-                    script: "user_data.user"
+                    source: "user_data.user"
         tags:
           type: array
           description: |
@@ -1926,7 +1926,7 @@ components:
         name: "amount"
         script:
           language: "argyll"
-          script: "amount * 100"
+          source: "amount * 100"
 
     HttpAction:
       type: object
@@ -2018,7 +2018,7 @@ components:
         `result`. A mapping returns its result unchanged.
       required:
         - language
-        - script
+        - source
       properties:
         language:
           type: string
@@ -2028,14 +2028,14 @@ components:
             - `lua`: Lua scripts
             - `argyll`: Argyll Expressions over named values
           example: "lua"
-        script:
+        source:
           type: string
           description: |
-            The script code to execute.
+            The source code to execute.
 
             For Argyll Expressions: An expression such as `user.email`,
             `value?.kind == "email"`, or `items | map item: item.price`
-            For Lua: The complete script code
+            For Lua: The complete source code
           example: 'return {greeting = "Hello, " .. name}'
 
     StepScriptConfig:
@@ -2043,16 +2043,16 @@ components:
       description: "Configuration for script step execution (`type: script`)"
       required:
         - language
-        - script
+        - source
       properties:
         language:
           type: string
           enum: ["lua", "argyll"]
           description: Script language for step execution
           example: "lua"
-        script:
+        source:
           type: string
-          description: The script code to execute
+          description: The source code to execute
           example: 'return {greeting = "Hello, " .. name}'
 
     Goals:

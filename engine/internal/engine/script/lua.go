@@ -15,16 +15,23 @@ import (
 type (
 	// LuaEnv provides a Lua script execution environment with state pooling
 	LuaEnv struct {
-		*compiler[*CompiledLua]
+		*compiler[*compiledLua]
 		statePool  chan *luaState
 		prelude    []byte
 		preludeErr error
 	}
 
-	// CompiledLua represents a compiled Lua script
-	CompiledLua struct {
+	// compiledLua represents compiled Lua source
+	compiledLua struct {
 		bytecode []byte
-		argNames []string
+		names    luaNames
+	}
+
+	// luaNames holds the derived aliases added to this, and the locals bound to
+	// clean names or derived tails
+	luaNames struct {
+		aliases []bareName
+		locals  []bareName
 	}
 
 	// luaState is a pooled state and the number of chunks it has loaded
@@ -43,13 +50,14 @@ const (
 	luaMapTableIndex    = -3
 	luaChunkTableIndex  = -4
 	luaArgLocalTemplate = "local %s = select(%d, ...)"
+	luaReceiver         = "this"
 	luaGlobalTableName  = "_G"
 	luaChunkTableName   = "argyll_chunks"
 	luaSeparator        = "\n"
 	luaEnvUpValue       = 1
 )
 
-// helper functions setupSandbox installs as globals for every script
+// helper functions setupSandbox installs as globals for every evaluation
 //
 //go:embed prelude.lua
 var luaPreludeSource string
@@ -67,7 +75,7 @@ var luaExclude = [...]string{
 }
 
 // NewLuaEnv creates a new Lua script execution environment with a state pool
-// for efficient script reuse
+// for efficient reuse
 func NewLuaEnv() *LuaEnv {
 	prelude, err := compileLuaPrelude()
 	luaEnv := &LuaEnv{
@@ -76,16 +84,14 @@ func NewLuaEnv() *LuaEnv {
 		preludeErr: err,
 	}
 	luaEnv.compiler = newCompiler(luaCacheSize,
-		func(st *api.Step, cfg *api.ScriptConfig) (*CompiledLua, error) {
-			argNames := st.SortedArgNames()
-			src := luaEnv.wrapSource(cfg.Script, argNames)
-			return luaEnv.compile(src, argNames)
+		func(st *api.Step, cfg *api.ScriptConfig) (*compiledLua, error) {
+			return luaEnv.compile(cfg.Source, st.SortedArgNames())
 		},
 	)
 	return luaEnv
 }
 
-// Evaluate runs a compiled Lua script with the provided inputs and returns its
+// Evaluate runs compiled Lua source with the provided inputs and returns its
 // result
 func (e *LuaEnv) Evaluate(
 	c Compiled, _ *api.Step, inputs api.Args,
@@ -100,34 +106,36 @@ func (e *LuaEnv) Evaluate(
 	return result, err
 }
 
-func (*LuaEnv) wrapSource(script string, argNames []string) string {
-	argLocals := make([]string, len(argNames))
+func (*LuaEnv) wrapSource(src string, argNames []bareName) string {
+	argLocals := make([]string, len(argNames)+1)
+	argLocals[0] = fmt.Sprintf(luaArgLocalTemplate, luaReceiver, 1)
 	for i, name := range argNames {
-		argLocals[i] = fmt.Sprintf(luaArgLocalTemplate, name, i+1)
+		argLocals[i+1] = fmt.Sprintf(luaArgLocalTemplate, name.name, i+2)
 	}
 	return strings.Join([]string{
-		strings.Join(argLocals, luaSeparator), script,
+		strings.Join(argLocals, luaSeparator), src,
 	}, luaSeparator)
 }
 
-func (e *LuaEnv) compile(src string, argNames []string) (*CompiledLua, error) {
+func (e *LuaEnv) compile(src string, argNames []string) (*compiledLua, error) {
 	L := lua.NewState()
 
 	e.setupSandbox(L)
 
-	code, err := dumpChunk(L, src)
+	names := newLuaNames(L, argNames)
+	code, err := dumpChunk(L, e.wrapSource(src, names.locals))
 	if err != nil {
 		return nil, err
 	}
 
-	return &CompiledLua{
+	return &compiledLua{
 		bytecode: code,
-		argNames: argNames,
+		names:    names,
 	}, nil
 }
 
-// runs once per state, since the prelude's stand-ins keep scripts from
-// reaching anything it installs
+// runs once per state, since the prelude's stand-ins keep evaluated source
+// from reaching anything it installs
 func (*LuaEnv) setupSandbox(L *lua.State) {
 	lua.OpenLibraries(L)
 	L.Global(luaGlobalTableName)
@@ -138,8 +146,8 @@ func (*LuaEnv) setupSandbox(L *lua.State) {
 	L.Pop(1)
 }
 
-// a script's private env cannot write to the globals, so the helpers are
-// installed once per state rather than repaired on every call
+// evaluated source's private env cannot write to the globals, so the helpers
+// are installed once per state rather than repaired on every call
 func (e *LuaEnv) installPrelude(L *lua.State) error {
 	if e.preludeErr != nil {
 		return e.preludeErr
@@ -156,7 +164,7 @@ func (e *LuaEnv) installPrelude(L *lua.State) error {
 func (e *LuaEnv) withCompiledResult(
 	c Compiled, inputs api.Args, onResult func(*lua.State),
 ) error {
-	proc := c.(*CompiledLua)
+	proc := c.(*compiledLua)
 	st, err := e.getState()
 	if err != nil {
 		return err
@@ -171,11 +179,15 @@ func (e *LuaEnv) withCompiledResult(
 		return err
 	}
 
-	for _, name := range proc.argNames {
-		pushLuaArg(L, inputs, name)
+	// locals read the values already converted onto the receiver
+	pushLuaReceiver(L, withAliases(inputs, proc.names.aliases))
+	recv := L.Top()
+	for _, b := range proc.names.locals {
+		L.PushString(b.input)
+		L.RawGet(recv)
 	}
 
-	if err := L.ProtectedCall(len(proc.argNames), 1, 0); err != nil {
+	if err := L.ProtectedCall(len(proc.names.locals)+1, 1, 0); err != nil {
 		return errors.Join(ErrLuaExecution, err)
 	}
 
@@ -210,7 +222,7 @@ func (e *LuaEnv) returnState(st *luaState) {
 
 // a chunk stays loaded on the state that ran it, so later calls reuse the
 // closure instead of reading the bytecode again
-func (st *luaState) pushChunk(proc *CompiledLua) error {
+func (st *luaState) pushChunk(proc *compiledLua) error {
 	L := st.state
 	L.Field(lua.RegistryIndex, luaChunkTableName)
 	L.RawGetValue(-1, proc)
@@ -237,7 +249,7 @@ func (st *luaState) pushChunk(proc *CompiledLua) error {
 	return nil
 }
 
-// a cached chunk pins its script, so a state holding enough of them drops the
+// a cached chunk pins its source, so a state holding enough of them drops the
 // whole table rather than tracking each one's last use
 func (st *luaState) resetChunks() {
 	st.state.NewTable()
@@ -245,8 +257,8 @@ func (st *luaState) resetChunks() {
 	st.chunks = 0
 }
 
-// compiled once, so scripts load bytecode rather than parsing the source on
-// every call
+// compiled once, so each state loads bytecode rather than parsing the prelude
+// on every call
 func compileLuaPrelude() ([]byte, error) {
 	L := lua.NewState()
 	lua.OpenLibraries(L)
@@ -299,12 +311,32 @@ func setChunkEnv(L *lua.State) error {
 	return nil
 }
 
-func pushLuaArg(L *lua.State, inputs api.Args, argName string) {
-	if value, ok := inputs[api.Name(argName)]; ok {
+func pushLuaReceiver(L *lua.State, args api.Args) {
+	L.CreateTable(0, len(args))
+	for name, value := range args {
 		goToLua(L, value)
-		return
+		L.SetField(-2, string(name))
 	}
-	L.PushNil()
+}
+
+func newLuaNames(L *lua.State, names []string) luaNames {
+	locals := bareNames(names, func(name string) bool {
+		return isLuaName(L, name)
+	})
+	return luaNames{aliases: aliasesOf(locals), locals: locals}
+}
+
+// identPattern keeps a name from carrying any other source, so the parser
+// alone decides which names are reserved words
+func isLuaName(L *lua.State, name string) bool {
+	if name == luaReceiver || !identPattern.MatchString(name) {
+		return false
+	}
+	if err := lua.LoadString(L, "local "+name); err != nil {
+		return false
+	}
+	L.Pop(1)
+	return true
 }
 
 func goToLua(L *lua.State, value any) {

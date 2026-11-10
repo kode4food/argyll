@@ -40,7 +40,7 @@ func (s *Server) generateStepImpl(args generateStepImplArgs) (any, error) {
 			lang = "lua"
 		}
 		scriptLang = &lang
-		scriptBody = new(stringValue(scriptCfg["script"]))
+		scriptBody = new(stringValue(scriptCfg["source"]))
 	}
 	if httpCfg, ok := asMap(args.Step["http"]); ok {
 		isExternal = true

@@ -21,7 +21,7 @@ describe("StepPredicate", () => {
       predicateScript && predicateLanguage
         ? {
             language: predicateLanguage,
-            script: predicateScript,
+            source: predicateScript,
           }
         : undefined,
   });

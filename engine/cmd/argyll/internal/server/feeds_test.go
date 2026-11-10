@@ -18,7 +18,7 @@ func testFeed() api.Feed {
 		Value: "0",
 		Fold: &api.ScriptConfig{
 			Language: api.ScriptLangLua,
-			Script:   "return feed + amount",
+			Source:   "return feed + amount",
 		},
 		Attributes: api.Slice[api.Name]{"amount"},
 	}

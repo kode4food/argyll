@@ -93,7 +93,7 @@ func TestRecoverBrokenMatch(t *testing.T) {
 			Role: api.RoleRequired,
 			Required: &api.RequiredConfig{Match: &api.ScriptConfig{
 				Language: api.ScriptLangLua,
-				Script:   "return value.nonexistent.field == 1",
+				Source:   "return value.nonexistent.field == 1",
 			}},
 		}
 		fid := api.FlowID("recover-match")
@@ -453,7 +453,7 @@ func TestScriptCannotStayActive(t *testing.T) {
 			Type: api.StepTypeScript,
 			Script: &api.ScriptConfig{
 				Language: api.ScriptLangLua,
-				Script:   "return {}",
+				Source:   "return {}",
 			},
 			Attributes: api.AttributeSpecs{},
 		}

@@ -48,7 +48,7 @@ describe("Footer", () => {
       ? {
           script: config || {
             language: "lua",
-            script: "return {result = 1 + 2}",
+            source: "return {result = 1 + 2}",
           },
         }
       : type === "flow"
@@ -119,7 +119,7 @@ describe("Footer", () => {
   test("renders script preview for script step", () => {
     const step = createStep("script", {
       language: "lua",
-      script: 'return {greeting = "Hello" .. name}',
+      source: 'return {greeting = "Hello" .. name}',
     });
 
     const { container } = render(<Footer step={step} />);
@@ -149,7 +149,7 @@ describe("Footer", () => {
   test("replaces newlines in script preview", () => {
     const step = createStep("script", {
       language: "lua",
-      script: "return {\n  result = 1 + 2\n}",
+      source: "return {\n  result = 1 + 2\n}",
     });
 
     const { container } = render(<Footer step={step} />);

@@ -9,10 +9,19 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
-// ArgExEnv evaluates Argyll Expressions
-type ArgExEnv struct {
-	*compiler[*argex.Program]
-}
+type (
+	// ArgExEnv evaluates Argyll Expressions
+	ArgExEnv struct {
+		*compiler[*compiledArgEx]
+	}
+
+	// compiledArgEx represents a compiled Argyll Expression and the derived
+	// short names it can read bare
+	compiledArgEx struct {
+		*argex.Program
+		aliases []bareName
+	}
+)
 
 const argExCacheSize = 10240
 
@@ -26,8 +35,15 @@ func NewArgExEnv() *ArgExEnv {
 	return &ArgExEnv{
 		compiler: newCompiler(
 			argExCacheSize,
-			func(_ *api.Step, cfg *api.ScriptConfig) (*argex.Program, error) {
-				return compileArgEx(cfg.Script)
+			func(st *api.Step, cfg *api.ScriptConfig) (*compiledArgEx, error) {
+				program, err := compileArgEx(cfg.Source)
+				if err != nil {
+					return nil, err
+				}
+				return &compiledArgEx{
+					Program: program,
+					aliases: argExAliases(st),
+				}, nil
 			},
 		),
 	}
@@ -37,7 +53,9 @@ func NewArgExEnv() *ArgExEnv {
 func (*ArgExEnv) Evaluate(
 	c Compiled, _ *api.Step, inputs api.Args,
 ) (any, error) {
-	value, err := c.(*argex.Program).Eval(marshalArgExValue(inputs))
+	proc := c.(*compiledArgEx)
+	args := withAliases(inputs, proc.aliases)
+	value, err := proc.Eval(marshalArgExValue(args))
 	if err != nil {
 		return nil, err
 	}
@@ -49,15 +67,15 @@ func (*ArgExEnv) Evaluate(
 
 // CheckPredicate rejects an expression whose result can never be a Boolean
 func (*ArgExEnv) CheckPredicate(c Compiled) error {
-	result := c.(*argex.Program).StaticType()
+	result := c.(*compiledArgEx).StaticType()
 	if result.Known() && !result.Has(argex.TypeBool) {
 		return fmt.Errorf("%w, not %s", ErrNotBoolean, result)
 	}
 	return nil
 }
 
-func compileArgEx(source string) (*argex.Program, error) {
-	expr, err := argex.Parse(source)
+func compileArgEx(src string) (*argex.Program, error) {
+	expr, err := argex.Parse(src)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %w", ErrArgExCompile, err)
 	}
@@ -66,6 +84,14 @@ func compileArgEx(source string) (*argex.Program, error) {
 		return nil, fmt.Errorf("%w: %w", ErrArgExCompile, err)
 	}
 	return program, nil
+}
+
+func argExAliases(st *api.Step) []bareName {
+	if st == nil {
+		return nil
+	}
+	names := bareNames(st.SortedArgNames(), identPattern.MatchString)
+	return aliasesOf(names)
 }
 
 func marshalArgExValue(value any) any {

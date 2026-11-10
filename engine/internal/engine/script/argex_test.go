@@ -14,13 +14,13 @@ func TestArgExCompile(t *testing.T) {
 	env := script.NewArgExEnv()
 	compiled, err := env.Compile(nil, &api.ScriptConfig{
 		Language: api.ScriptLangArgyll,
-		Script:   "input.foo",
+		Source:   "input.foo",
 	})
 	assert.NoError(t, err)
 	assert.NotNil(t, compiled)
 	assert.NoError(t, env.Validate(nil, "input.foo"))
-	for _, source := range []string{"value[", "unknown()", "length(1)"} {
-		_, err := env.Compile(nil, &api.ScriptConfig{Script: source})
+	for _, src := range []string{"value[", "unknown()", "length(1)"} {
+		_, err := env.Compile(nil, &api.ScriptConfig{Source: src})
 		assert.ErrorIs(t, err, script.ErrArgExCompile)
 	}
 }
@@ -28,7 +28,7 @@ func TestArgExCompile(t *testing.T) {
 func TestArgExPredicate(t *testing.T) {
 	env := script.NewArgExEnv()
 	compiled, err := env.Compile(nil, &api.ScriptConfig{
-		Script: "flag ?? false",
+		Source: "flag ?? false",
 	})
 	assert.NoError(t, err)
 	for _, value := range []bool{true, false} {
@@ -49,7 +49,7 @@ func TestArgExPredicate(t *testing.T) {
 func TestArgExPredicateInputs(t *testing.T) {
 	env := script.NewArgExEnv()
 	compiled, err := env.Compile(nil, &api.ScriptConfig{
-		Script: `product_info.name == "Professional Laptop"`,
+		Source: `product_info.name == "Professional Laptop"`,
 	})
 	assert.NoError(t, err)
 	for _, name := range []string{"Professional Laptop", "Basic Laptop"} {
@@ -63,17 +63,17 @@ func TestArgExPredicateInputs(t *testing.T) {
 
 func TestArgExPredicateType(t *testing.T) {
 	env := script.NewArgExEnv()
-	for _, source := range []string{"null", "1", `"x"`, "[]", "{}"} {
-		compiled, err := env.Compile(nil, &api.ScriptConfig{Script: source})
+	for _, src := range []string{"null", "1", `"x"`, "[]", "{}"} {
+		compiled, err := env.Compile(nil, &api.ScriptConfig{Source: src})
 		assert.NoError(t, err)
 		_, err = evalPredicate(env, compiled, nil, nil)
 		assert.ErrorIs(t, err, script.ErrNotBoolean)
 	}
-	compiled, err := env.Compile(nil, &api.ScriptConfig{Script: "missing"})
+	compiled, err := env.Compile(nil, &api.ScriptConfig{Source: "missing"})
 	assert.NoError(t, err)
 	_, err = evalPredicate(env, compiled, nil, nil)
 	assert.ErrorIs(t, err, script.ErrArgExNoValue)
-	compiled, err = env.Compile(nil, &api.ScriptConfig{Script: "1/0"})
+	compiled, err = env.Compile(nil, &api.ScriptConfig{Source: "1/0"})
 	assert.NoError(t, err)
 	_, err = evalPredicate(env, compiled, nil, nil)
 	assert.ErrorIs(t, err, argex.ErrArithmetic)
@@ -81,22 +81,22 @@ func TestArgExPredicateType(t *testing.T) {
 
 func TestArgExCheckPredicate(t *testing.T) {
 	env := script.NewArgExEnv()
-	for _, source := range []string{
+	for _, src := range []string{
 		"1 + 2", `"x"`, "[]", "{}", "null", "length", "length([])",
 	} {
-		compiled, err := env.Compile(nil, &api.ScriptConfig{Script: source})
+		compiled, err := env.Compile(nil, &api.ScriptConfig{Source: src})
 		if !assert.NoError(t, err) {
 			return
 		}
 		err = env.CheckPredicate(compiled)
 		assert.ErrorIs(t, err, script.ErrNotBoolean)
 	}
-	for _, source := range []string{
+	for _, src := range []string{
 		"flag ?? false", "value.ok", `case { a: true, 1 }`, "1 < 2",
 		"let size = length: size([1]) == 1", "max(...[1, 2]) == 2",
 	} {
 		compiled, err := env.Compile(nil, &api.ScriptConfig{
-			Script: source,
+			Source: src,
 		})
 		if !assert.NoError(t, err) {
 			return
@@ -108,7 +108,7 @@ func TestArgExCheckPredicate(t *testing.T) {
 func TestArgExMatch(t *testing.T) {
 	env := script.NewArgExEnv()
 	compiled, err := env.Compile(script.MatchStep, &api.ScriptConfig{
-		Script: `value?.kind == "email"`,
+		Source: `value?.kind == "email"`,
 	})
 	assert.NoError(t, err)
 	for _, kind := range []string{"email", "postal"} {
@@ -123,7 +123,7 @@ func TestArgExMatch(t *testing.T) {
 	assert.ErrorIs(t, err, argex.ErrMissing)
 	assert.False(t, matched)
 	compiled, err = env.Compile(script.MatchStep, &api.ScriptConfig{
-		Script: "value == null",
+		Source: "value == null",
 	})
 	assert.NoError(t, err)
 	matched, err = evalMatch(env, compiled, nil)
@@ -134,7 +134,7 @@ func TestArgExMatch(t *testing.T) {
 func TestArgExScript(t *testing.T) {
 	env := script.NewArgExEnv()
 	compiled, err := env.Compile(nil, &api.ScriptConfig{
-		Script: "input.foo",
+		Source: "input.foo",
 	})
 	assert.NoError(t, err)
 	outputs, err := evalScript(env, compiled, nil, api.Args{
@@ -147,7 +147,7 @@ func TestArgExScript(t *testing.T) {
 func TestArgExScriptObject(t *testing.T) {
 	env := script.NewArgExEnv()
 	compiled, err := env.Compile(nil, &api.ScriptConfig{
-		Script: "{foo: input.foo, n: 1}",
+		Source: "{foo: input.foo, n: 1}",
 	})
 	assert.NoError(t, err)
 	outputs, err := evalScript(env, compiled, nil, api.Args{
@@ -160,7 +160,7 @@ func TestArgExScriptObject(t *testing.T) {
 func TestArgExFunctionValues(t *testing.T) {
 	env := script.NewArgExEnv()
 	compiled, err := env.Compile(nil, &api.ScriptConfig{
-		Script: `let size = length, count = size(input.items):
+		Source: `let size = length, count = size(input.items):
 			{count, peak: max(...input.items)}`,
 	})
 	if !assert.NoError(t, err) {
@@ -176,7 +176,7 @@ func TestArgExFunctionValues(t *testing.T) {
 func TestArgExScriptArray(t *testing.T) {
 	env := script.NewArgExEnv()
 	compiled, err := env.Compile(nil, &api.ScriptConfig{
-		Script: "output.books | map item: item.book",
+		Source: "output.books | map item: item.book",
 	})
 	assert.NoError(t, err)
 	for _, books := range [][]any{
@@ -198,7 +198,7 @@ func TestArgExScriptArray(t *testing.T) {
 func TestArgExScriptMissing(t *testing.T) {
 	env := script.NewArgExEnv()
 	compiled, err := env.Compile(nil, &api.ScriptConfig{
-		Script: "input?.missing",
+		Source: "input?.missing",
 	})
 	assert.NoError(t, err)
 	outputs, err := evalScript(env, compiled, nil, api.Args{
@@ -206,7 +206,7 @@ func TestArgExScriptMissing(t *testing.T) {
 	})
 	assert.ErrorIs(t, err, script.ErrArgExNoValue)
 	assert.Nil(t, outputs)
-	compiled, err = env.Compile(nil, &api.ScriptConfig{Script: "1/0"})
+	compiled, err = env.Compile(nil, &api.ScriptConfig{Source: "1/0"})
 	assert.NoError(t, err)
 	_, err = evalScript(env, compiled, nil, nil)
 	assert.ErrorIs(t, err, argex.ErrArithmetic)
@@ -215,7 +215,7 @@ func TestArgExScriptMissing(t *testing.T) {
 func TestArgExScriptNull(t *testing.T) {
 	env := script.NewArgExEnv()
 	compiled, err := env.Compile(nil, &api.ScriptConfig{
-		Script: "input?.missing ?? null",
+		Source: "input?.missing ?? null",
 	})
 	assert.NoError(t, err)
 	outputs, err := evalScript(env, compiled, nil, api.Args{})

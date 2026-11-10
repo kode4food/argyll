@@ -19,7 +19,7 @@ func TestLuaCompile(t *testing.T) {
 		ID:   "test",
 		Type: api.StepTypeScript,
 		Script: &api.ScriptConfig{
-			Script:   "return {result = a + b}",
+			Source:   "return {result = a + b}",
 			Language: api.ScriptLangLua,
 		},
 		Attributes: api.AttributeSpecs{
@@ -41,7 +41,7 @@ func TestLuaEvaluateScript(t *testing.T) {
 		ID:   "test",
 		Type: api.StepTypeScript,
 		Script: &api.ScriptConfig{
-			Script:   "return {result = a + b}",
+			Source:   "return {result = a + b}",
 			Language: api.ScriptLangLua,
 		},
 		Attributes: api.AttributeSpecs{
@@ -101,7 +101,7 @@ func TestLuaEvaluatePredicate(t *testing.T) {
 				ID:   "test",
 				Type: api.StepTypeService,
 				Predicate: &api.ScriptConfig{
-					Script:   tt.predicate,
+					Source:   tt.predicate,
 					Language: api.ScriptLangLua,
 				},
 				Attributes: api.AttributeSpecs{
@@ -111,7 +111,7 @@ func TestLuaEvaluatePredicate(t *testing.T) {
 			}
 
 			comp, err := env.Compile(st, &api.ScriptConfig{
-				Script:   tt.predicate,
+				Source:   tt.predicate,
 				Language: api.ScriptLangLua,
 			})
 			assert.NoError(t, err)
@@ -126,7 +126,7 @@ func TestLuaEvaluatePredicate(t *testing.T) {
 func TestLuaEvaluateMatch(t *testing.T) {
 	env := script.NewLuaEnv()
 	cfg := &api.ScriptConfig{
-		Script:   `return value.kind == "email" and value.region == "us"`,
+		Source:   `return value.kind == "email" and value.region == "us"`,
 		Language: api.ScriptLangLua,
 	}
 	comp, err := env.Compile(script.MatchStep, cfg)
@@ -187,7 +187,7 @@ func TestLuaScriptCache(t *testing.T) {
 		ID:   "test",
 		Type: api.StepTypeScript,
 		Script: &api.ScriptConfig{
-			Script:   "return {result = a + b}",
+			Source:   "return {result = a + b}",
 			Language: api.ScriptLangLua,
 		},
 		Attributes: api.AttributeSpecs{
@@ -213,7 +213,7 @@ func TestLuaChunkTableReset(t *testing.T) {
 
 	for i := range 300 {
 		comp, err := env.Compile(script.MatchStep, &api.ScriptConfig{
-			Script:   fmt.Sprintf("return value == %d", i),
+			Source:   fmt.Sprintf("return value == %d", i),
 			Language: api.ScriptLangLua,
 		})
 		assert.NoError(t, err)
@@ -237,7 +237,7 @@ func TestLuaCompileViaRegistry(t *testing.T) {
 			Type: api.StepTypeScript,
 			Script: &api.ScriptConfig{
 				Language: api.ScriptLangLua,
-				Script:   "return {x = 42}",
+				Source:   "return {x = 42}",
 			},
 			Attributes: api.AttributeSpecs{
 				"x": {Role: api.RoleRequired},
@@ -249,7 +249,7 @@ func TestLuaCompileViaRegistry(t *testing.T) {
 			Type: api.StepTypeService,
 			Predicate: &api.ScriptConfig{
 				Language: api.ScriptLangLua,
-				Script:   "return x > 10",
+				Source:   "return x > 10",
 			},
 			Attributes: api.AttributeSpecs{
 				"x": {Role: api.RoleRequired},
@@ -274,7 +274,7 @@ func TestLuaComplexConversion(t *testing.T) {
 		Type: api.StepTypeScript,
 		Script: &api.ScriptConfig{
 			Language: api.ScriptLangLua,
-			Script: `
+			Source: `
 				return {
 					bool_val = is_active,
 					string_val = name,
@@ -322,7 +322,7 @@ func TestLuaArrayTableConversion(t *testing.T) {
 		Type: api.StepTypeScript,
 		Script: &api.ScriptConfig{
 			Language: api.ScriptLangLua,
-			Script:   `return {numbers = {1, 2, 3, 4, 5}, count = 5}`,
+			Source:   `return {numbers = {1, 2, 3, 4, 5}, count = 5}`,
 		},
 		Attributes: api.AttributeSpecs{
 			"numbers": {Role: api.RoleRequired},
@@ -403,7 +403,7 @@ func TestLuaInputTypes(t *testing.T) {
 				Type: api.StepTypeScript,
 				Script: &api.ScriptConfig{
 					Language: api.ScriptLangLua,
-					Script:   tt.script,
+					Source:   tt.script,
 				},
 				Attributes: api.AttributeSpecs{
 					"val":    {Role: api.RoleRequired},
@@ -434,7 +434,7 @@ func TestLuaEmptyArray(t *testing.T) {
 		Type: api.StepTypeScript,
 		Script: &api.ScriptConfig{
 			Language: api.ScriptLangLua,
-			Script:   `return {items = {}}`,
+			Source:   `return {items = {}}`,
 		},
 		Attributes: api.AttributeSpecs{
 			"items": {Role: api.RoleRequired},
@@ -460,7 +460,7 @@ func TestLuaNestedArrays(t *testing.T) {
 		Type: api.StepTypeScript,
 		Script: &api.ScriptConfig{
 			Language: api.ScriptLangLua,
-			Script: `
+			Source: `
 				return {
 					matrix = {{1, 2}, {3, 4}, {5, 6}}
 				}
@@ -495,7 +495,7 @@ func TestLuaNilReturn(t *testing.T) {
 		Type: api.StepTypeScript,
 		Script: &api.ScriptConfig{
 			Language: api.ScriptLangLua,
-			Script:   "return {result = nil}",
+			Source:   "return {result = nil}",
 		},
 		Attributes: api.AttributeSpecs{
 			"result": {Role: api.RoleRequired},
@@ -514,7 +514,7 @@ func TestLuaExplicitNil(t *testing.T) {
 	env := script.NewLuaEnv()
 	compiled, err := env.Compile(&api.Step{}, &api.ScriptConfig{
 		Language: api.ScriptLangLua,
-		Script:   "return nil",
+		Source:   "return nil",
 	})
 	assert.NoError(t, err)
 	outputs, err := evalScript(env, compiled, nil, nil)
@@ -534,7 +534,7 @@ func TestLuaEmptyTable(t *testing.T) {
 		Type: api.StepTypeScript,
 		Script: &api.ScriptConfig{
 			Language: api.ScriptLangLua,
-			Script:   "return {result = {}}",
+			Source:   "return {result = {}}",
 		},
 		Attributes: api.AttributeSpecs{
 			"result": {Role: api.RoleRequired},
@@ -560,7 +560,7 @@ func TestLuaNestedMap(t *testing.T) {
 		Type: api.StepTypeScript,
 		Script: &api.ScriptConfig{
 			Language: api.ScriptLangLua,
-			Script: `
+			Source: `
 				return {
 					result = {
 						overall = "medium",
@@ -603,7 +603,7 @@ func TestLuaLargeArray(t *testing.T) {
 		Type: api.StepTypeScript,
 		Script: &api.ScriptConfig{
 			Language: api.ScriptLangLua,
-			Script: `
+			Source: `
 				local arr = {}
 				for i = 1, 10 do
 					arr[i] = i * 10
@@ -633,7 +633,7 @@ func TestLuaPrelude(t *testing.T) {
 	env := script.NewLuaEnv()
 	match := func(src string, tags []any) bool {
 		comp, err := env.Compile(script.MatchStep, &api.ScriptConfig{
-			Script: src, Language: api.ScriptLangLua,
+			Source: src, Language: api.ScriptLangLua,
 		})
 		assert.NoError(t, err)
 		matched, err := evalMatch(env, comp, map[string]any{
@@ -658,7 +658,7 @@ func TestLuaScriptIsolation(t *testing.T) {
 	env := script.NewLuaEnv()
 	run := func(src string) (bool, error) {
 		comp, err := env.Compile(script.MatchStep, &api.ScriptConfig{
-			Script: src, Language: api.ScriptLangLua,
+			Source: src, Language: api.ScriptLangLua,
 		})
 		assert.NoError(t, err)
 		return evalMatch(env, comp, map[string]any{})
@@ -737,5 +737,73 @@ return clean`)
 			assert.NoError(t, err)
 			assert.True(t, matched)
 		}
+	})
+}
+
+func TestLuaInputNames(t *testing.T) {
+	env := script.NewLuaEnv()
+
+	tests := []struct {
+		name     string
+		inputs   api.Args
+		script   string
+		expected any
+	}{
+		{
+			name:     "qualified_name_through_this",
+			inputs:   api.Args{"urn:acme:order": map[string]any{"id": 7}},
+			script:   `return {out = this["urn:acme:order"].id}`,
+			expected: 7,
+		},
+		{
+			name:     "keyword_name_through_this",
+			inputs:   api.Args{"end": 3},
+			script:   `return {out = this["end"]}`,
+			expected: 3,
+		},
+		{
+			name:     "input_named_this",
+			inputs:   api.Args{"this": 5},
+			script:   `return {out = this["this"]}`,
+			expected: 5,
+		},
+		{
+			name:     "inputs_stay_off_env",
+			inputs:   api.Args{"urn:acme:order": 1, "user_id": 2},
+			script:   `return {out = _ENV["urn:acme:order"] == nil}`,
+			expected: true,
+		},
+		{
+			name:     "name_is_never_source",
+			inputs:   api.Args{"x = 1 local y": 2},
+			script:   `return {out = x == nil and this["x = 1 local y"]}`,
+			expected: 2,
+		},
+		{
+			name:     "locals_keep_positions_around_receiver",
+			inputs:   api.Args{"a": 1, "b-c": 10, "d": 100},
+			script:   `return {out = a + this["b-c"] + d}`,
+			expected: 111,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.expected, evalInputs(t, evalInputsArgs{
+				env:      env,
+				language: api.ScriptLangLua,
+				script:   tt.script,
+				inputs:   tt.inputs,
+			}))
+		})
+	}
+
+	t.Run("absent_input_shadows_library", func(t *testing.T) {
+		assert.Equal(t, true, evalInputs(t, evalInputsArgs{
+			env:      env,
+			language: api.ScriptLangLua,
+			script:   `return {out = math == nil}`,
+			optional: []api.Name{"math"},
+		}))
 	})
 }

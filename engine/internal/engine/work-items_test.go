@@ -85,7 +85,7 @@ func TestMappedFanOut(t *testing.T) {
 			Type: api.StepTypeScript,
 			Script: &api.ScriptConfig{
 				Language: api.ScriptLangLua,
-				Script:   "return { result = item }",
+				Source:   "return { result = item }",
 			},
 			Attributes: api.AttributeSpecs{
 				"items": {
@@ -150,7 +150,7 @@ func TestOutputMappingDescendants(t *testing.T) {
 						Mapping: &api.MappingConfig{
 							Script: &api.ScriptConfig{
 								Language: api.ScriptLangArgyll,
-								Script: "books.payload.sections | map " +
+								Source: "books.payload.sections | map " +
 									"item: item.book",
 							},
 						},

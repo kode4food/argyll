@@ -117,6 +117,7 @@ These short forms apply to **variables only**: local variables, function paramet
 | `s`                    | String (when scope is tiny)                 |
 | `idx`                  | Index (when `i` is ambiguous)               |
 | `pfx`, `sfx`           | Prefix, suffix                              |
+| `src`                  | Source text to compile or evaluate          |
 | `cfg`                  | Config struct                               |
 | `opts`                 | Options struct                              |
 | `pl`                   | Execution plan                              |
@@ -124,6 +125,8 @@ These short forms apply to **variables only**: local variables, function paramet
 | `cat`                  | Catalog state in local scope                |
 | `flow`, `step`, `work` | Current flow/step/work value in local scope |
 | `h`                    | `api.HealthState` or other health value in tight scope |
+
+Name source text `src`, never `script` or `source`. The code compiling or evaluating it cannot know whether it holds a Script Step body, a Predicate, a mapping, or a match, and in package `script` the name `script` also shadows the package.
 
 Prefer the established short forms already used in this codebase when the type is obvious from context, especially in tests:
 

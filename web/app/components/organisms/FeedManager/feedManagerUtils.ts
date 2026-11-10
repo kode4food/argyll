@@ -27,7 +27,7 @@ export const emptyDraft = (): FeedDraft => ({
   name: "",
   description: "",
   value: DEFAULT_SEED,
-  fold: { language: SCRIPT_LANGUAGE_ARGYLL, script: "" },
+  fold: { language: SCRIPT_LANGUAGE_ARGYLL, source: "" },
   attributes: [],
   spaceId: "",
 });
@@ -49,7 +49,7 @@ export const toFeed = (draft: FeedDraft): Feed => {
     name: draft.name.trim(),
     ...(description && { description }),
     value: draft.value.trim(),
-    fold: { language: draft.fold.language, script: draft.fold.script.trim() },
+    fold: { language: draft.fold.language, source: draft.fold.source.trim() },
     attributes: draft.attributes,
     ...(draft.spaceId && { space_id: draft.spaceId }),
   };
@@ -61,7 +61,7 @@ export const isDraftValid = (draft: FeedDraft): boolean => {
     !!draft.value.trim() && validateDefaultValue(draft.value).valid;
   const hasAttributes =
     draft.attributes.length > 0 && !draft.attributes.includes(FEED_CURRENT);
-  return hasDetails && hasSeed && hasAttributes && !!draft.fold.script.trim();
+  return hasDetails && hasSeed && hasAttributes && !!draft.fold.source.trim();
 };
 
 // Every Attribute some registered Step outputs, which is what a Feed can fold

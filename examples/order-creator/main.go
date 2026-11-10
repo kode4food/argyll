@@ -52,7 +52,7 @@ func main() {
 		Optional("quantity", "1").
 		WithPredicate(api.ScriptConfig{
 			Language: api.ScriptLangArgyll,
-			Script:   `product_info.name == "Professional Laptop"`,
+			Source:   `product_info.name == "Professional Laptop"`,
 		}).
 		Output("order").
 		Start(handle)

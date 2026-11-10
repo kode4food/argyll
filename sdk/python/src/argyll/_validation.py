@@ -59,7 +59,7 @@ def _check_type_config(step: Step) -> None:
             )
 
     elif step.type == StepType.SCRIPT:
-        if not step.script or not step.script.script:
+        if not step.script or not step.script.source:
             raise StepValidationError("Script config required for script step")
         if step.http is not None:
             raise StepValidationError(

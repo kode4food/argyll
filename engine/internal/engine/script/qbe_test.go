@@ -15,7 +15,7 @@ func TestQBESelector(t *testing.T) {
 	})
 	assert.Equal(t, &api.ScriptConfig{
 		Language: api.ScriptLangArgyll,
-		Script: "\"domain:payments\" in value.tags &&\n    " +
+		Source: "\"domain:payments\" in value.tags &&\n    " +
 			"\"tier:gold\" in value.tags",
 	}, cfg)
 }
@@ -24,14 +24,14 @@ func TestQBESelectorSingleTag(t *testing.T) {
 	cfg := script.QBESelector(api.SpaceQuery{{"example"}})
 	assert.Equal(t, &api.ScriptConfig{
 		Language: api.ScriptLangArgyll,
-		Script:   `"example" in value.tags`,
+		Source:   `"example" in value.tags`,
 	}, cfg)
 }
 
 func TestQBESelectorSortsTags(t *testing.T) {
 	cfg := script.QBESelector(api.SpaceQuery{{"b", "a"}})
 	assert.Equal(t,
-		"\"a\" in value.tags &&\n    \"b\" in value.tags", cfg.Script)
+		"\"a\" in value.tags &&\n    \"b\" in value.tags", cfg.Source)
 }
 
 func TestQBESelectorGroupsAlternatives(t *testing.T) {
@@ -41,7 +41,7 @@ func TestQBESelectorGroupsAlternatives(t *testing.T) {
 	})
 	assert.Equal(t, &api.ScriptConfig{
 		Language: api.ScriptLangArgyll,
-		Script: "(\"domain:risk\" in value.tags &&\n    " +
+		Source: "(\"domain:risk\" in value.tags &&\n    " +
 			"\"language:lua\" in value.tags) ||\n" +
 			"(\"domain:payments\" in value.tags)",
 	}, cfg)
@@ -113,7 +113,7 @@ func TestQBESelectorEscapes(t *testing.T) {
 	tag := "new\nline" + zeroWidth + `quo"te\slash`
 	cfg := script.QBESelector(api.SpaceQuery{{tag}})
 	assert.Equal(t,
-		`"new\nline`+zeroWidth+`quo\"te\\slash" in value.tags`, cfg.Script)
+		`"new\nline`+zeroWidth+`quo\"te\\slash" in value.tags`, cfg.Source)
 
 	env := script.NewArgExEnv()
 	comp, err := env.Compile(script.MatchStep, cfg)
@@ -145,7 +145,7 @@ func TestQBESelectorEscapesControlChars(t *testing.T) {
 	cfg := script.QBESelector(api.SpaceQuery{{tag}})
 	assert.Equal(t,
 		`"bell\u0007tab\t" in value.tags`,
-		cfg.Script)
+		cfg.Source)
 
 	env := script.NewArgExEnv()
 	comp, err := env.Compile(script.MatchStep, cfg)

@@ -19,14 +19,14 @@ const StepPredicate: React.FC<StepPredicateProps> = ({ step }) => {
   }
 
   const inline = formatScriptPreview(
-    step.predicate.script,
+    step.predicate.source,
     step.predicate.language
   );
-  const scriptPreview = step.predicate.script
+  const scriptPreview = step.predicate.source
     .split("\n")
     .slice(0, 5)
     .join("\n");
-  const lineCount = step.predicate.script.split("\n").length;
+  const lineCount = step.predicate.source.split("\n").length;
 
   return (
     <div className={`${styles.argsSection} step-args-section`}>

@@ -93,7 +93,7 @@ def test_attribute_spec_with_match():
         role=AttributeRole.REQUIRED,
         required=RequiredConfig(
             match=ScriptConfig(
-                language=ScriptLanguage.ARGYLL, script="value.product_type"
+                language=ScriptLanguage.ARGYLL, source="value.product_type"
             )
         ),
     )
@@ -103,7 +103,7 @@ def test_attribute_spec_with_match():
         "required": {
             "match": {
                 "language": "argyll",
-                "script": "value.product_type",
+                "source": "value.product_type",
             }
         },
     }
@@ -164,9 +164,9 @@ def test_http_config_with_health_check():
 
 
 def test_script_config_to_dict():
-    config = ScriptConfig(language=ScriptLanguage.LUA, script="return 1 + 2")
+    config = ScriptConfig(language=ScriptLanguage.LUA, source="return 1 + 2")
     result = config.to_dict()
-    assert result == {"language": "lua", "script": "return 1 + 2"}
+    assert result == {"language": "lua", "source": "return 1 + 2"}
 
 
 def test_step_to_dict():
@@ -277,9 +277,9 @@ def test_step_with_all_fields():
             ),
             health="http://localhost:8081/health",
         ),
-        script=ScriptConfig(language=ScriptLanguage.LUA, script="return 1 + 2"),
+        script=ScriptConfig(language=ScriptLanguage.LUA, source="return 1 + 2"),
         predicate=ScriptConfig(
-            language=ScriptLanguage.LUA, script="return true"
+            language=ScriptLanguage.LUA, source="return true"
         ),
         work_config=WorkConfig(
             max_retries=3,
@@ -297,8 +297,8 @@ def test_step_with_all_fields():
     assert result["http"]["invoke"]["method"] == "POST"
     assert result["http"]["invoke"]["timeout"] == 5000
     assert result["http"]["invoke"]["mode"] == "async"
-    assert result["script"]["script"] == "return 1 + 2"
-    assert result["predicate"]["script"] == "return true"
+    assert result["script"]["source"] == "return 1 + 2"
+    assert result["predicate"]["source"] == "return true"
     assert result["work_config"]["max_retries"] == 3
     assert result["flow"]["goals"] == {"steps": ["step-1"]}
     assert result["handling"] == "memoized"
@@ -315,7 +315,7 @@ def test_attribute_spec_no_optional_fields():
 
 
 def test_nested_optional_fields():
-    script = ScriptConfig(language=ScriptLanguage.LUA, script="return value")
+    script = ScriptConfig(language=ScriptLanguage.LUA, source="return value")
     optional = AttributeSpec(
         role=AttributeRole.OPTIONAL,
         optional=OptionalConfig(

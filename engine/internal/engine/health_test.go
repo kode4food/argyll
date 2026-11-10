@@ -266,7 +266,7 @@ func TestScriptHealthDefaults(t *testing.T) {
 			},
 			Script: &api.ScriptConfig{
 				Language: api.ScriptLangLua,
-				Script:   "return {result = 42}",
+				Source:   "return {result = 42}",
 			},
 		}
 
@@ -295,7 +295,7 @@ func TestScriptHealthOnRegister(t *testing.T) {
 			},
 			Script: &api.ScriptConfig{
 				Language: api.ScriptLangLua,
-				Script:   "return {result = 42}",
+				Source:   "return {result = 42}",
 			},
 		}
 
@@ -389,7 +389,7 @@ func TestResolveHealthScriptError(t *testing.T) {
 					},
 					Script: &api.ScriptConfig{
 						Language: api.ScriptLangLua,
-						Script:   "return {result = 42}",
+						Source:   "return {result = 42}",
 					},
 				},
 			},
@@ -574,7 +574,7 @@ func TestStepHealthFromHandler(t *testing.T) {
 			Type: api.StepTypeScript,
 			Script: &api.ScriptConfig{
 				Language: api.ScriptLangLua,
-				Script:   "return {}",
+				Source:   "return {}",
 			},
 			Attributes: api.AttributeSpecs{},
 		}

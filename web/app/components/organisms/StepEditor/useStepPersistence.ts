@@ -74,7 +74,7 @@ export function useStepPersistence({
         stepId: stepData.id || "",
         attributes: mappedAttributes,
         stepType: stepData.type,
-        script: stepData.script?.script || "",
+        script: stepData.script?.source || "",
         endpoint: stepData.http?.invoke?.endpoint || "",
         httpMethod: normalizeHttpMethod(stepData.http?.invoke?.method),
         httpTimeout: stepData.http?.invoke?.timeout || 0,

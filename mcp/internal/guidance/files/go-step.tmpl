@@ -38,7 +38,7 @@ func main() {
 {{ if .IsScript }}.
 		WithScript(api.ScriptConfig{
 			Language: {{ quote .ScriptLanguage }},
-			Script:   {{ quote .ScriptBody }},
+			Source:   {{ quote .ScriptBody }},
 		}){{ end }}
 {{- if or .IsExternal .IsScript }}	if err := step.Register(
 		context.Background(),

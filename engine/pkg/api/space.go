@@ -58,7 +58,7 @@ func (s Space) ValidateSelector() error {
 	if s.Selector == nil {
 		return ErrSpaceSelectorEmpty
 	}
-	if s.Selector.Script == "" {
+	if s.Selector.Source == "" {
 		return ErrScriptEmpty
 	}
 	return s.QBE.Validate()

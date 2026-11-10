@@ -279,16 +279,16 @@ func initMapping(
 }
 
 func parseScript(cfg *api.ScriptConfig, value string) bool {
-	cfg.Script = strings.TrimSpace(value)
-	language, script, prefixed := strings.Cut(cfg.Script, optionAssign)
+	cfg.Source = strings.TrimSpace(value)
+	language, script, prefixed := strings.Cut(cfg.Source, optionAssign)
 	language = strings.TrimSpace(language)
 	known := language == api.ScriptLangLua || language == api.ScriptLangArgyll
 	if !prefixed || !known {
-		return cfg.Script != ""
+		return cfg.Source != ""
 	}
 	cfg.Language = language
-	cfg.Script = strings.TrimSpace(script)
-	return cfg.Script != ""
+	cfg.Source = strings.TrimSpace(script)
+	return cfg.Source != ""
 }
 
 func applyOptions[T any](

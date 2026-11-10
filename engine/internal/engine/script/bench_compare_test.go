@@ -311,7 +311,7 @@ func compileFor(
 	t *testing.T, env script.Environment, st *api.Step, src string,
 ) script.Compiled {
 	t.Helper()
-	c, err := env.Compile(st, &api.ScriptConfig{Script: src})
+	c, err := env.Compile(st, &api.ScriptConfig{Source: src})
 	assert.NoError(t, err)
 	return c
 }
@@ -320,7 +320,7 @@ func compileForBench(
 	b *testing.B, env script.Environment, st *api.Step, src string,
 ) script.Compiled {
 	b.Helper()
-	c, err := env.Compile(st, &api.ScriptConfig{Script: src})
+	c, err := env.Compile(st, &api.ScriptConfig{Source: src})
 	if err != nil {
 		b.Fatal(err)
 	}

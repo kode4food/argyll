@@ -44,7 +44,7 @@ describe("Footer", () => {
       ? {
           script: config || {
             language: "lua",
-            script: "return {result = 1 + 2}",
+            source: "return {result = 1 + 2}",
           },
         }
       : type === "flow"

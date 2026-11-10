@@ -60,7 +60,7 @@ func (w *Wrapper) StepValid(st *api.Step) {
 		w.NotNil(st.Script, "Script steps should have ScriptConfig")
 		if st.Script != nil {
 			w.NotEmpty(st.Script.Language)
-			w.NotEmpty(st.Script.Script)
+			w.NotEmpty(st.Script.Source)
 		}
 	}
 }

@@ -46,7 +46,7 @@ jest.mock("@/app/store/flowStore", () => {
         name: "Step 1",
         type: "script",
         attributes: {},
-        script: { language: "lua", script: "" },
+        script: { language: "lua", source: "" },
       },
     ]),
     useFlows: jest.fn(() => []),
@@ -67,7 +67,7 @@ jest.mock("@/app/components/organisms/StepEditor", () => {
         name: "Updated",
         type: "script",
         attributes: {},
-        script: { language: "lua", script: "" },
+        script: { language: "lua", source: "" },
       });
     }, [onUpdate]);
     return <div data-testid="step-editor">Editor</div>;

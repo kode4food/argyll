@@ -74,7 +74,7 @@ describe("Widget", () => {
       ? {
           script: {
             language: "lua",
-            script: "return {result = 42}",
+            source: "return {result = 42}",
           },
         }
       : type === "flow"

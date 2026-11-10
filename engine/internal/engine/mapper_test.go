@@ -138,7 +138,7 @@ func TestScriptUsesMappedName(t *testing.T) {
 							Name: "value",
 							Script: &api.ScriptConfig{
 								Language: api.ScriptLangLua,
-								Script:   "return value * 2",
+								Source:   "return value * 2",
 							},
 						},
 					},
@@ -296,17 +296,17 @@ func mappingStep(name api.Name) *api.Step {
 	}
 }
 
-func argExCfg(script string) *api.ScriptConfig {
+func argExCfg(src string) *api.ScriptConfig {
 	return &api.ScriptConfig{
 		Language: api.ScriptLangArgyll,
-		Script:   script,
+		Source:   src,
 	}
 }
 
-func luaCfg(script string) *api.ScriptConfig {
+func luaCfg(src string) *api.ScriptConfig {
 	return &api.ScriptConfig{
 		Language: api.ScriptLangLua,
-		Script:   script,
+		Source:   src,
 	}
 }
 

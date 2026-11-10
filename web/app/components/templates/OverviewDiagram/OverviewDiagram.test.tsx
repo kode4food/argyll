@@ -85,7 +85,7 @@ const baseStep: Step = {
   name: "A",
   type: "script",
   attributes: {},
-  script: { language: "python", script: "" },
+  script: { language: "python", source: "" },
 };
 
 function setSession({ steps = [] }: { steps?: Step[] }) {

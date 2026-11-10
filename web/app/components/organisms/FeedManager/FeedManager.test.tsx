@@ -41,7 +41,7 @@ const TOTAL: Feed = {
   id: "total",
   name: "Order Total",
   value: "0",
-  fold: { language: "argyll", script: "feed + amount" },
+  fold: { language: "argyll", source: "feed + amount" },
   attributes: ["amount"],
 };
 
@@ -164,7 +164,7 @@ describe("FeedManager", () => {
         id: "count",
         name: "Count",
         value: "0",
-        fold: { language: "argyll", script: "feed + 1" },
+        fold: { language: "argyll", source: "feed + 1" },
         attributes: ["amount"],
         space_id: "billing",
       })

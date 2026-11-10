@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/kode4food/argex"
 	"github.com/kode4food/lru"
 
 	"github.com/kode4food/argyll/engine/pkg/api"
@@ -20,18 +19,18 @@ type (
 
 	// Environment defines the interface for script environments
 	Environment interface {
-		// Validate checks if a script is syntactically valid
-		Validate(st *api.Step, script string) error
+		// Validate checks if source is syntactically valid
+		Validate(st *api.Step, src string) error
 
-		// Compile compiles a script and returns the compiled form
+		// Compile compiles source and returns the compiled form
 		Compile(*api.Step, *api.ScriptConfig) (Compiled, error)
 
-		// Evaluate executes a compiled script with the given inputs and
+		// Evaluate executes compiled source with the given inputs and
 		// returns its JSON-shaped result
 		Evaluate(Compiled, *api.Step, api.Args) (any, error)
 	}
 
-	// Compiled represents a compiled script for any supported language
+	// Compiled represents compiled source for any supported language
 	Compiled any
 
 	compiler[T compiledValue] struct {
@@ -44,7 +43,7 @@ type (
 	) (T, error)
 
 	compiledValue interface {
-		*CompiledLua | *argex.Program
+		*compiledLua | *compiledArgEx
 	}
 
 	predicateChecker interface {
@@ -175,8 +174,8 @@ func (r *Registry) ValidatePredicate(
 	return nil
 }
 
-func (c *compiler[T]) Validate(st *api.Step, script string) error {
-	_, err := c.Compile(st, &api.ScriptConfig{Script: script})
+func (c *compiler[T]) Validate(st *api.Step, src string) error {
+	_, err := c.Compile(st, &api.ScriptConfig{Source: src})
 	return err
 }
 
@@ -186,11 +185,11 @@ func (c *compiler[T]) Compile(
 	if cfg == nil {
 		return nil, nil
 	}
-	if cfg.Script == "" {
+	if cfg.Source == "" {
 		return nil, api.ErrScriptEmpty
 	}
 
-	return c.cache.Get(hashScript(st, cfg.Script), func() (T, error) {
+	return c.cache.Get(hashScript(st, cfg.Source), func() (T, error) {
 		compiled, err := c.build(st, cfg)
 		if err != nil {
 			return compiled, err
@@ -209,9 +208,9 @@ func newCompiler[T compiledValue](size int, build compileFunc[T]) *compiler[T] {
 	}
 }
 
-func hashScript(st *api.Step, script string) string {
+func hashScript(st *api.Step, src string) string {
 	h := sha256.New()
-	_, _ = h.Write([]byte(script))
+	_, _ = h.Write([]byte(src))
 
 	if st != nil {
 		for _, arg := range st.SortedArgNames() {

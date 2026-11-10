@@ -17,7 +17,7 @@ func testFeedDef() *api.Feed {
 		ID:         "order-total",
 		Name:       "Order Total",
 		Value:      "0",
-		Fold:       &api.ScriptConfig{Language: "lua", Script: "return feed"},
+		Fold:       &api.ScriptConfig{Language: "lua", Source: "return feed"},
 		Attributes: api.Slice[api.Name]{"amount"},
 	}
 }

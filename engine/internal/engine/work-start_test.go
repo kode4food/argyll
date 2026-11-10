@@ -371,7 +371,7 @@ func TestScriptWorkExecutes(t *testing.T) {
 			Type: api.StepTypeScript,
 			Script: &api.ScriptConfig{
 				Language: api.ScriptLangLua,
-				Script:   "return { result = (x or 0) * 3 }",
+				Source:   "return { result = (x or 0) * 3 }",
 			},
 			Attributes: api.AttributeSpecs{
 				"x":      {Role: api.RoleRequired},
@@ -410,7 +410,7 @@ func TestScriptMapping(t *testing.T) {
 			Type: api.StepTypeScript,
 			Script: &api.ScriptConfig{
 				Language: api.ScriptLangLua,
-				Script:   "return { result = (inner_amount or 0) * 3 }",
+				Source:   "return { result = (inner_amount or 0) * 3 }",
 			},
 			Attributes: api.AttributeSpecs{
 				"amount": {
@@ -525,7 +525,7 @@ func TestWorkPredicate(t *testing.T) {
 		st.ID = "predicate-items"
 		st.Predicate = &api.ScriptConfig{
 			Language: api.ScriptLangLua,
-			Script: "if type(items) ~= 'table' then error('boom') end; " +
+			Source: "if type(items) ~= 'table' then error('boom') end; " +
 				"return true",
 		}
 		st.Attributes["items"].Required = &api.RequiredConfig{
@@ -612,11 +612,11 @@ func TestWorkPredicateFilters(t *testing.T) {
 				st.HTTP = nil
 				st.Script = &api.ScriptConfig{
 					Language: api.ScriptLangLua,
-					Script:   `return {result = items}`,
+					Source:   `return {result = items}`,
 				}
 				st.Predicate = &api.ScriptConfig{
 					Language: api.ScriptLangLua,
-					Script:   `return items > 0`,
+					Source:   `return items > 0`,
 				}
 				switch {
 				case tt.optional:

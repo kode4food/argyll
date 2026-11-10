@@ -44,7 +44,7 @@ export function useStepEditorForm({
   const [stepType, setStepTypeState] = useState<StepType>(
     seed?.type || "service"
   );
-  const [predicate, setPredicate] = useState(step?.predicate?.script || "");
+  const [predicate, setPredicate] = useState(step?.predicate?.source || "");
   const [predicateLanguage, setPredicateLanguage] = useState(
     step?.predicate?.language || SCRIPT_LANGUAGE_ARGYLL
   );
@@ -73,7 +73,7 @@ export function useStepEditorForm({
       ? step.http.invoke.timeout
       : 5000
   );
-  const [script, setScript] = useState(step?.script?.script || "");
+  const [script, setScript] = useState(step?.script?.source || "");
   const [scriptLanguage, setScriptLanguage] = useState(
     step?.script?.language || SCRIPT_LANGUAGE_LUA
   );
@@ -173,11 +173,11 @@ export function useStepEditorForm({
       setName(stepData.name || "");
       setDescription(stepData.description || "");
       setStepTypeState(stepData.type || "service");
-      setPredicate(stepData.predicate?.script || "");
+      setPredicate(stepData.predicate?.source || "");
       setPredicateLanguage(
         stepData.predicate?.language || SCRIPT_LANGUAGE_ARGYLL
       );
-      setScript(stepData.script?.script || "");
+      setScript(stepData.script?.source || "");
       setScriptLanguage(stepData.script?.language || SCRIPT_LANGUAGE_LUA);
       setFlowGoals(toGoalSets(stepData.flow?.goals));
       setFlowSpaceId(stepData.flow?.space_id || "");

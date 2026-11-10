@@ -30,13 +30,13 @@ func NewMapper(engine *Engine) *Mapper {
 func (m *Mapper) Compile(
 	st *api.Step, cfg *api.ScriptConfig,
 ) (script.Compiled, error) {
-	if cfg == nil || cfg.Script == "" {
+	if cfg == nil || cfg.Source == "" {
 		return nil, nil
 	}
 
 	compiled, err := m.engine.scripts.Compile(st, cfg)
 	if err != nil {
-		return nil, fmt.Errorf("%w: %s", ErrInvalidMapping, cfg.Script)
+		return nil, fmt.Errorf("%w: %s", ErrInvalidMapping, cfg.Source)
 	}
 	return compiled, nil
 }
@@ -45,7 +45,7 @@ func (m *Mapper) Compile(
 func (m *Mapper) MapValue(
 	st *api.Step, name api.Name, cfg *api.ScriptConfig, value any,
 ) (any, bool) {
-	if cfg == nil || cfg.Script == "" {
+	if cfg == nil || cfg.Source == "" {
 		return value, true
 	}
 

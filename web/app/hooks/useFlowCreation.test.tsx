@@ -16,7 +16,7 @@ const mockSteps: Step[] = [
     name: "Goal Step",
     type: "script",
     attributes: {},
-    script: { language: "lua", script: "" },
+    script: { language: "lua", source: "" },
   },
 ];
 

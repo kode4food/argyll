@@ -46,7 +46,7 @@ Registration structure:
 Mapping and match configuration nest **inside a sub-object keyed by the role name** on the Attribute. Both `mapping` and `match` are objects:
 
 - `mapping` → `{ "name": "service_field_name" }` (or add `"script"` for a transform)
-- `match` → `{ "language": "argyll", "script": "value == \"email\"" }` - a `ScriptConfig` object
+- `match` → `{ "language": "argyll", "source": "value == \"email\"" }` - a `ScriptConfig` object
 - `argyll` is the language identifier for Argyll Expressions in mappings, predicates, matches, and Space selectors. Script Steps use Lua. Predicates receive named Step inputs. Matches and selectors receive `value`. Predicates using Argyll Expressions must return a boolean
 
 The spec's own example (from `StepRegistration.attributes`):
@@ -65,12 +65,12 @@ user_data:
     mapping:
       script:
         language: argyll
-        script: "user_data.user"
+        source: "user_data.user"
 ```
 
 For service outputs `{"user": {"id": "u-123", "name": "Ada"}}`, this output mapping stores `{"id": "u-123", "name": "Ada"}` as `user_data`. Output mappings receive the complete outputs object under the output Attribute's name.
 
-For an input conversion, an Attribute `price_dollars` with value `12.5` can use `mapping: {name: amount, script: {language: argyll, script: "amount * 100"}}` to send `amount: 1250` to the service. Input mappings receive the individual value under the mapped parameter name.
+For an input conversion, an Attribute `price_dollars` with value `12.5` can use `mapping: {name: amount, script: {language: argyll, source: "amount * 100"}}` to send `amount: 1250` to the service. Input mappings receive the individual value under the mapped parameter name.
 
 In JSON, an attribute with both a match discriminator and a field rename looks like:
 
@@ -78,7 +78,7 @@ In JSON, an attribute with both a match discriminator and a field rename looks l
 "channel": {
   "role": "required",
   "required": {
-    "match":   { "language": "argyll", "script": "value == \"email\"" },
+    "match":   { "language": "argyll", "source": "value == \"email\"" },
     "mapping": { "name": "service_channel_field" }
   }
 }

@@ -346,13 +346,13 @@ def test_parse_step_with_all_fields():
                                 "for_each": True,
                                 "match": {
                                     "language": "lua",
-                                    "script": "return true",
+                                    "source": "return true",
                                 },
                                 "mapping": {
                                     "name": "source",
                                     "script": {
                                         "language": "lua",
-                                        "script": "return value",
+                                        "source": "return value",
                                     },
                                 },
                             },
@@ -393,8 +393,8 @@ def test_parse_step_with_all_fields():
                         },
                         "health": "http://localhost:8081/health",
                     },
-                    "script": {"language": "lua", "script": "return 1 + 2"},
-                    "predicate": {"language": "lua", "script": "return true"},
+                    "script": {"language": "lua", "source": "return 1 + 2"},
+                    "predicate": {"language": "lua", "source": "return true"},
                     "work_config": {
                         "max_retries": 3,
                         "backoff_type": "exponential",

@@ -113,7 +113,7 @@ export interface HTTPConfig {
 
 export interface ScriptConfig {
   language: string;
-  script: string;
+  source: string;
 }
 
 // A chain of fallback goal sets: every one of `steps` must succeed, and `else`

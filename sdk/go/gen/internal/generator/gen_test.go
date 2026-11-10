@@ -325,19 +325,19 @@ func TestAttributeScripts(t *testing.T) {
 		"//argyll:step\nfunc Run(in In) Out { return Out{} }\n"
 	attrs := sourceSteps(t, src)["run"].Attributes
 	assert.Equal(t,
-		&api.ScriptConfig{Language: "argyll", Script: "value.ready"},
+		&api.ScriptConfig{Language: "argyll", Source: "value.ready"},
 		attrs["default"].Required.Match)
 	assert.Equal(t,
-		&api.ScriptConfig{Language: "argyll", Script: "value"},
+		&api.ScriptConfig{Language: "argyll", Source: "value"},
 		attrs["default"].Required.Mapping.Script)
 	assert.Equal(t,
 		&api.ScriptConfig{
 			Language: "lua",
-			Script:   "value = true; return value",
+			Source:   "value = true; return value",
 		},
 		attrs["lua"].Required.Match)
 	assert.Equal(t,
-		&api.ScriptConfig{Language: "argyll", Script: "value"},
+		&api.ScriptConfig{Language: "argyll", Source: "value"},
 		attrs["value"].Output.Mapping.Script)
 }
 
@@ -356,7 +356,7 @@ func TestAttributeProps(t *testing.T) {
 	assert.Equal(t, `"USD"`, attrs["currency"].Optional.Default)
 	assert.Equal(t, `"stripe"`, attrs["gateway"].Const.Value)
 	assert.Equal(t, "value > 0",
-		attrs["amount"].Required.Match.Script)
+		attrs["amount"].Required.Match.Source)
 }
 
 func TestStepConfig(t *testing.T) {
@@ -366,7 +366,7 @@ func TestStepConfig(t *testing.T) {
 	assert.Equal(t, api.Name("Charge Card (v2)"), st.Name)
 	assert.Equal(t, int64(2500), st.HTTP.Invoke.Timeout)
 	assert.Equal(t, api.ScriptLangArgyll, st.Predicate.Language)
-	assert.Equal(t, "amount > 0", st.Predicate.Script)
+	assert.Equal(t, "amount > 0", st.Predicate.Source)
 
 	// the endpoints are paths until the step server knows its own host
 	assert.Equal(t, "/charge-card-v2", st.HTTP.Invoke.Endpoint)
@@ -388,16 +388,16 @@ func TestPredicate(t *testing.T) {
 		"func Three() {}\n"
 	byID := sourceSteps(t, src)
 	assert.Equal(t,
-		&api.ScriptConfig{Language: "argyll", Script: "active"},
+		&api.ScriptConfig{Language: "argyll", Source: "active"},
 		byID["one"].Predicate)
 	assert.Equal(t,
 		&api.ScriptConfig{
 			Language: "lua",
-			Script:   "ready = true; return ready",
+			Source:   "ready = true; return ready",
 		},
 		byID["two"].Predicate)
 	assert.Equal(t,
-		&api.ScriptConfig{Language: "lua", Script: "custom:ready()"},
+		&api.ScriptConfig{Language: "lua", Source: "custom:ready()"},
 		byID["three"].Predicate)
 }
 

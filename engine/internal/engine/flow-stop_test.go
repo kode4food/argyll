@@ -98,7 +98,7 @@ func TestFlowStepChildSuccess(t *testing.T) {
 			Type: api.StepTypeScript,
 			Script: &api.ScriptConfig{
 				Language: api.ScriptLangLua,
-				Script:   "return {}",
+				Source:   "return {}",
 			},
 			Attributes: api.AttributeSpecs{},
 		}
@@ -167,7 +167,7 @@ func TestChildFlowLease(t *testing.T) {
 			Type: api.StepTypeScript,
 			Script: &api.ScriptConfig{
 				Language: api.ScriptLangLua,
-				Script:   "return {}",
+				Source:   "return {}",
 			},
 			Attributes: api.AttributeSpecs{},
 		}
@@ -296,7 +296,7 @@ func TestFlowStepChildFailureParentFails(t *testing.T) {
 			Type: api.StepTypeScript,
 			Script: &api.ScriptConfig{
 				Language: api.ScriptLangLua,
-				Script:   "error('boom')",
+				Source:   "error('boom')",
 			},
 			Attributes: api.AttributeSpecs{},
 		}
@@ -372,7 +372,7 @@ func TestFlowStepMapping(t *testing.T) {
 			Type: api.StepTypeScript,
 			Script: &api.ScriptConfig{
 				Language: api.ScriptLangLua,
-				Script:   "return {child_out = child_in}",
+				Source:   "return {child_out = child_in}",
 			},
 			Attributes: api.AttributeSpecs{
 				"child_in":  {Role: api.RoleRequired},
@@ -442,7 +442,7 @@ func TestFlowStepMissingOutput(t *testing.T) {
 			Type: api.StepTypeScript,
 			Script: &api.ScriptConfig{
 				Language: api.ScriptLangLua,
-				Script:   "return {}",
+				Source:   "return {}",
 			},
 			Attributes: api.AttributeSpecs{
 				"child_out": {Role: api.RoleOutput},

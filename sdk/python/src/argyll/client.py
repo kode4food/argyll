@@ -172,7 +172,7 @@ class Client:
                 s = m["script"]
                 script = ScriptConfig(
                     language=ScriptLanguage(s["language"]),
-                    script=s["script"],
+                    source=s["source"],
                 )
             return MappingConfig(name=m.get("name", ""), script=script)
 
@@ -181,7 +181,7 @@ class Client:
                 return None
             return ScriptConfig(
                 language=ScriptLanguage(s["language"]),
-                script=s["script"],
+                source=s["source"],
             )
 
         # Parse attributes
@@ -269,7 +269,7 @@ class Client:
             pred_data = data["predicate"]
             predicate = ScriptConfig(
                 language=ScriptLanguage(pred_data["language"]),
-                script=pred_data["script"],
+                source=pred_data["source"],
             )
 
         # Parse work config

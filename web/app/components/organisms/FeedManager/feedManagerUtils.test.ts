@@ -13,7 +13,7 @@ const FEED: Feed = {
   name: "Total",
   description: "Running total",
   value: "0",
-  fold: { language: "lua", script: "return feed + amount" },
+  fold: { language: "lua", source: "return feed + amount" },
   attributes: ["amount"],
   space_id: "billing",
 };
@@ -42,7 +42,7 @@ describe("feedManagerUtils", () => {
     ["missing name", { name: "" }, false],
     ["invalid seed", { value: "{" }, false],
     ["empty seed", { value: " " }, false],
-    ["empty fold", { fold: { language: "lua", script: " " } }, false],
+    ["empty fold", { fold: { language: "lua", source: " " } }, false],
     ["no attributes", { attributes: [] }, false],
     ["reserved attribute", { attributes: ["feed"] }, false],
   ])("validates a %s draft", (_, patch, expected) => {

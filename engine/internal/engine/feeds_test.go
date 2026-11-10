@@ -19,7 +19,7 @@ func newTestFeed() *api.Feed {
 		Value: "0",
 		Fold: &api.ScriptConfig{
 			Language: api.ScriptLangLua,
-			Script:   "return feed + amount",
+			Source:   "return feed + amount",
 		},
 		Attributes: api.Slice[api.Name]{"amount"},
 	}
@@ -118,7 +118,7 @@ func TestFeedRegisterInvalid(t *testing.T) {
 		assert.True(t, errors.Is(err, api.ErrInvalidFeed))
 
 		badSyntax := newTestFeed()
-		badSyntax.Fold.Script = "return +"
+		badSyntax.Fold.Source = "return +"
 		err = env.Engine.RegisterFeed(badSyntax)
 		assert.True(t, errors.Is(err, api.ErrInvalidFeed))
 	})

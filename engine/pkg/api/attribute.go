@@ -511,7 +511,7 @@ func (c *ScriptConfig) equal(other *ScriptConfig) bool {
 	if c == nil || other == nil {
 		return false
 	}
-	return c.Language == other.Language && c.Script == other.Script
+	return c.Language == other.Language && c.Source == other.Source
 }
 
 func validateForEachCollect(

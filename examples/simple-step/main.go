@@ -40,7 +40,7 @@ func main() {
 		Output("formatted_text").
 		WithScript(api.ScriptConfig{
 			Language: api.ScriptLangLua,
-			Script:   textFormatterScript,
+			Source:   textFormatterScript,
 		}).
 		Register(context.Background())
 
@@ -74,7 +74,7 @@ return {
 		Output("total").
 		WithScript(api.ScriptConfig{
 			Language: api.ScriptLangLua,
-			Script:   priceCalculatorScript,
+			Source:   priceCalculatorScript,
 		}).
 		Register(context.Background())
 
@@ -114,7 +114,7 @@ return {
 		Output("risk_level").
 		WithScript(api.ScriptConfig{
 			Language: api.ScriptLangArgyll,
-			Script:   eligibilityCheckerScript,
+			Source:   eligibilityCheckerScript,
 		}).
 		Register(context.Background())
 

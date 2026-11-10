@@ -259,7 +259,7 @@ describe("StepEditorFlowConfiguration", () => {
       {
         id: "alpha-space",
         name: "Alpha Space",
-        selector: { language: "lua", script: "return true" },
+        selector: { language: "lua", source: "return true" },
       },
     ];
     mockSpaceSelection = {

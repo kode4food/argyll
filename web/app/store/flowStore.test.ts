@@ -176,7 +176,7 @@ describe("flowStore", () => {
       id,
       name,
       value: "0",
-      fold: { language: "lua", script: "return feed" },
+      fold: { language: "lua", source: "return feed" },
       attributes: ["amount"],
     });
 

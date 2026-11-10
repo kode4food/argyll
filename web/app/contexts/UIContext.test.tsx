@@ -25,7 +25,7 @@ describe("UIContext", () => {
       {
         id: "risk",
         name: "Risk",
-        selector: { language: "lua", script: "return true" },
+        selector: { language: "lua", source: "return true" },
       },
     ];
   });
@@ -315,7 +315,7 @@ describe("UIContext", () => {
       {
         id: "trading",
         name: "Trading",
-        selector: { language: "lua", script: "return true" },
+        selector: { language: "lua", source: "return true" },
       },
     ];
     rerender();

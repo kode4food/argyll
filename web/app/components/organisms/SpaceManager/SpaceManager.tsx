@@ -68,7 +68,9 @@ const SpaceManager: React.FC<SpaceManagerProps> = ({ isOpen, onClose }) => {
             <SpaceManagerReviewStep
               selector={editor.reviewSelector}
               isScriptMode={draft.scriptMode}
-              onScriptChange={(script) => editor.patchSelector({ script })}
+              onScriptChange={(script) =>
+                editor.patchSelector({ source: script })
+              }
               onLanguageChange={(language) =>
                 editor.patchSelector({ language })
               }

@@ -245,14 +245,14 @@ class HTTPConfig:
 
 @dataclass(frozen=True)
 class ScriptConfig:
-    """Script and the language it is written in."""
+    """Source and the language it is written in."""
 
     language: ScriptLanguage
-    script: str
+    source: str
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert to API dictionary format."""
-        return {"language": self.language.value, "script": self.script}
+        return {"language": self.language.value, "source": self.source}
 
 
 @dataclass(frozen=True)

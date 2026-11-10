@@ -139,7 +139,7 @@ func TestValidateDefault(t *testing.T) {
 					Mapping: &api.MappingConfig{
 						Script: &api.ScriptConfig{
 							Language: api.ScriptLangArgyll,
-							Script:   "value.foo",
+							Source:   "value.foo",
 						},
 					},
 				},
@@ -155,7 +155,7 @@ func TestValidateDefault(t *testing.T) {
 					Mapping: &api.MappingConfig{
 						Script: &api.ScriptConfig{
 							Language: api.ScriptLangArgyll,
-							Script:   "value.books | map item: item.book",
+							Source:   "value.books | map item: item.book",
 						},
 					},
 				},
@@ -172,7 +172,7 @@ func TestValidateDefault(t *testing.T) {
 					Mapping: &api.MappingConfig{
 						Script: &api.ScriptConfig{
 							Language: api.ScriptLangArgyll,
-							Script:   "value.foo",
+							Source:   "value.foo",
 						},
 					},
 				},
@@ -188,7 +188,7 @@ func TestValidateDefault(t *testing.T) {
 					Mapping: &api.MappingConfig{
 						Script: &api.ScriptConfig{
 							Language: api.ScriptLangArgyll,
-							Script:   "value[",
+							Source:   "value[",
 						},
 					},
 				},
@@ -319,20 +319,20 @@ func TestAccessors(t *testing.T) {
 		spec := &api.AttributeSpec{
 			Role: api.RoleRequired,
 			Required: &api.RequiredConfig{
-				Match: &api.ScriptConfig{Script: "value.foo"},
+				Match: &api.ScriptConfig{Source: "value.foo"},
 			},
 		}
-		assert.Equal(t, "value.foo", spec.Match().Script)
+		assert.Equal(t, "value.foo", spec.Match().Source)
 	})
 
 	t.Run("Match_optional_with_match", func(t *testing.T) {
 		spec := &api.AttributeSpec{
 			Role: api.RoleOptional,
 			Optional: &api.OptionalConfig{
-				Match: &api.ScriptConfig{Script: "value.foo"},
+				Match: &api.ScriptConfig{Source: "value.foo"},
 			},
 		}
-		assert.Equal(t, "value.foo", spec.Match().Script)
+		assert.Equal(t, "value.foo", spec.Match().Source)
 	})
 
 	t.Run("Match_no_match", func(t *testing.T) {
@@ -554,7 +554,7 @@ func TestEqualEdgeCases(t *testing.T) {
 				Mapping: &api.MappingConfig{
 					Script: &api.ScriptConfig{
 						Language: api.ScriptLangArgyll,
-						Script:   "value.foo",
+						Source:   "value.foo",
 					},
 				},
 			},
@@ -565,7 +565,7 @@ func TestEqualEdgeCases(t *testing.T) {
 				Mapping: &api.MappingConfig{
 					Script: &api.ScriptConfig{
 						Language: api.ScriptLangArgyll,
-						Script:   "value.bar",
+						Source:   "value.bar",
 					},
 				},
 			},
@@ -658,7 +658,7 @@ func TestEqualNilConfigs(t *testing.T) {
 				Required: &api.RequiredConfig{
 					Match: &api.ScriptConfig{
 						Language: api.ScriptLangLua,
-						Script:   "x",
+						Source:   "x",
 					},
 				},
 			},
@@ -850,7 +850,7 @@ func TestValidateEdgeCases(t *testing.T) {
 				Mapping: &api.MappingConfig{
 					Script: &api.ScriptConfig{
 						Language: api.ScriptLangArgyll,
-						Script:   "value.foo",
+						Source:   "value.foo",
 					},
 				},
 			},
@@ -866,7 +866,7 @@ func TestValidateEdgeCases(t *testing.T) {
 				Mapping: &api.MappingConfig{
 					Script: &api.ScriptConfig{
 						Language: api.ScriptLangArgyll,
-						Script:   "value[",
+						Source:   "value[",
 					},
 				},
 			},
@@ -894,7 +894,7 @@ func TestMappingConfigValidation(t *testing.T) {
 				Mapping: &api.MappingConfig{
 					Script: &api.ScriptConfig{
 						Language: api.ScriptLangArgyll,
-						Script:   "value",
+						Source:   "value",
 					},
 				},
 			},
@@ -910,7 +910,7 @@ func TestMappingConfigValidation(t *testing.T) {
 					Name: "api_field",
 					Script: &api.ScriptConfig{
 						Language: api.ScriptLangArgyll,
-						Script:   "data.value",
+						Source:   "data.value",
 					},
 				},
 			},

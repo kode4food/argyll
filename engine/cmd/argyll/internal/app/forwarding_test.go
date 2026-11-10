@@ -354,7 +354,7 @@ func newScriptStep() *api.Step {
 		},
 		Script: &api.ScriptConfig{
 			Language: "lua",
-			Script:   `return {result = "hello"}`,
+			Source:   `return {result = "hello"}`,
 		},
 	}
 }

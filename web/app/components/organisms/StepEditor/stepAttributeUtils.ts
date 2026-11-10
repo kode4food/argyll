@@ -69,12 +69,12 @@ function buildSingleAttribute(
     collect: inputConfig?.collect || "first",
     forEach: inputConfig?.for_each || false,
     matchLanguage: inputConfig?.match?.language,
-    matchScript: inputConfig?.match?.script,
+    matchScript: inputConfig?.match?.source,
     metaKey: spec.role === AttributeRole.Meta ? spec.meta?.key : undefined,
     feedId: spec.role === AttributeRole.Feed ? spec.feed?.id : undefined,
     mappingName: mappingConfig?.name,
     mappingLanguage: mappingConfig?.script?.language,
-    mappingScript: mappingConfig?.script?.script,
+    mappingScript: mappingConfig?.script?.source,
     compensated: spec.compensated,
   };
 }
@@ -117,7 +117,7 @@ function buildOptionalAttrSpec(
 function buildMatchConfig(a: Attribute): ScriptConfig {
   return {
     language: a.matchLanguage?.trim() || SCRIPT_LANGUAGE_ARGYLL,
-    script: a.matchScript?.trim() || "",
+    source: a.matchScript?.trim() || "",
   };
 }
 
@@ -130,7 +130,7 @@ function buildMappingConfig(a: Attribute): MappingConfig | undefined {
   if (mappingScript) {
     config.script = {
       language: a.mappingLanguage?.trim() || SCRIPT_LANGUAGE_ARGYLL,
-      script: mappingScript,
+      source: mappingScript,
     };
   }
   return config;

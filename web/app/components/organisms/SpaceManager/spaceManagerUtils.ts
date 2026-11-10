@@ -29,7 +29,7 @@ export function toDraft(space: Space): SpaceDraft {
     qbe: (space.qbe ?? []).map((term) => [...term]),
     selector: space.selector
       ? { ...space.selector }
-      : { language: SCRIPT_LANGUAGE_ARGYLL, script: "" },
+      : { language: SCRIPT_LANGUAGE_ARGYLL, source: "" },
     scriptMode: !space.qbe || space.qbe.length === 0,
   };
 }
@@ -40,7 +40,7 @@ export function emptyDraft(): SpaceDraft {
     name: "",
     description: "",
     qbe: [[]],
-    selector: { language: SCRIPT_LANGUAGE_ARGYLL, script: "" },
+    selector: { language: SCRIPT_LANGUAGE_ARGYLL, source: "" },
     scriptMode: false,
   };
 }
@@ -53,7 +53,7 @@ export function toSpace(draft: SpaceDraft): Space {
     ...(draft.description.trim() && { description: draft.description.trim() }),
     ...(draft.scriptMode
       ? {
-          selector: { ...draft.selector, script: draft.selector.script.trim() },
+          selector: { ...draft.selector, source: draft.selector.source.trim() },
         }
       : { qbe }),
   };
@@ -101,7 +101,7 @@ export function hasQBE(draft: SpaceDraft): boolean {
 
 export function isSelectorValid(draft: SpaceDraft): boolean {
   return draft.scriptMode
-    ? draft.selector.script.trim().length > 0
+    ? draft.selector.source.trim().length > 0
     : isQBEValid(draft);
 }
 
@@ -143,7 +143,7 @@ export function isCurrentPreview(
   }
   return (
     preview.space.selector.language === draft.selector.language &&
-    preview.space.selector.script === draft.selector.script.trim()
+    preview.space.selector.source === draft.selector.source.trim()
   );
 }
 

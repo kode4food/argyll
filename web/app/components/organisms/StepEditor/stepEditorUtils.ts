@@ -88,7 +88,7 @@ export function buildStepPayload({
     predicate: predicate.trim()
       ? {
           language: predicateLanguage,
-          script: predicate.trim(),
+          source: predicate.trim(),
         }
       : undefined,
     handling: handling === "standard" ? undefined : handling,
@@ -104,7 +104,7 @@ export function buildStepPayload({
   } else if (stepType === "script") {
     stepData.script = {
       language: scriptLanguage,
-      script: script.trim(),
+      source: script.trim(),
     };
     stepData.http = undefined;
     stepData.flow = undefined;

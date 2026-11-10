@@ -39,7 +39,7 @@ func TestEmbeddedFlow(t *testing.T) {
 		Type: api.StepTypeScript,
 		Script: &api.ScriptConfig{
 			Language: api.ScriptLangLua,
-			Script:   `return { greeting = "hello" }`,
+			Source:   `return { greeting = "hello" }`,
 		},
 		Attributes: api.AttributeSpecs{
 			"greeting": {Role: api.RoleOutput},
@@ -106,7 +106,7 @@ func TestEmbeddedStepType(t *testing.T) {
 		Type: api.StepTypeScript,
 		Script: &api.ScriptConfig{
 			Language: api.ScriptLangLua,
-			Script:   "return {}",
+			Source:   "return {}",
 		},
 	}))
 	assert.ErrorIs(t, eng.RegisterStep(&api.Step{
@@ -143,7 +143,7 @@ func TestConfiguredHandlersAreExact(t *testing.T) {
 		Type: api.StepTypeScript,
 		Script: &api.ScriptConfig{
 			Language: api.ScriptLangLua,
-			Script:   "return {}",
+			Source:   "return {}",
 		},
 	})
 	assert.ErrorIs(t, err, api.ErrInvalidStepType)

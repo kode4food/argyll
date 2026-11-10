@@ -83,7 +83,7 @@ func TestScriptStep(t *testing.T) {
 	assert.Equal(t, api.StepTypeScript, st.Type)
 	assert.NotNil(t, st.Script)
 	assert.Equal(t, api.ScriptLangLua, st.Script.Language)
-	assert.Equal(t, "return {result = 42}", st.Script.Script)
+	assert.Equal(t, "return {result = 42}", st.Script.Source)
 	assert.Len(t, st.GetOutputArgs(), 1)
 	assert.Contains(t, st.GetOutputArgs(), api.Name("result"))
 
@@ -112,7 +112,7 @@ func TestStepPredicate(t *testing.T) {
 	assert.NotNil(t, st.HTTP)
 	assert.NotNil(t, st.Predicate)
 	assert.Equal(t, api.ScriptLangLua, st.Predicate.Language)
-	assert.Equal(t, "return true", st.Predicate.Script)
+	assert.Equal(t, "return true", st.Predicate.Source)
 	assert.Len(t, st.GetOutputArgs(), 1)
 	assert.Contains(t, st.GetOutputArgs(), api.Name("output"))
 

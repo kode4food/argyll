@@ -336,7 +336,7 @@ func TestSkipChildFlows(t *testing.T) {
 			Type: api.StepTypeScript,
 			Script: &api.ScriptConfig{
 				Language: api.ScriptLangLua,
-				Script:   "return {}",
+				Source:   "return {}",
 			},
 			Attributes: api.AttributeSpecs{},
 		}

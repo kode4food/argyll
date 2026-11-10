@@ -499,7 +499,7 @@ describe("Attributes", () => {
         gate: {
           role: AttributeRole.Required,
           required: {
-            match: { language: "lua", script: "return value == 'match'" },
+            match: { language: "lua", source: "return value == 'match'" },
           },
         },
         opt1: {

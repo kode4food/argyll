@@ -102,7 +102,7 @@ func TestFailedFanOutSettlesPending(t *testing.T) {
 			Type: api.StepTypeScript,
 			Script: &api.ScriptConfig{
 				Language: api.ScriptLangLua,
-				Script:   "error('failed')",
+				Source:   "error('failed')",
 			},
 			Attributes: api.AttributeSpecs{
 				"item": {
@@ -369,7 +369,7 @@ func TestOutputMapping(t *testing.T) {
 					Mapping: &api.MappingConfig{
 						Script: &api.ScriptConfig{
 							Language: api.ScriptLangArgyll,
-							Script:   "result.payload.value",
+							Source:   "result.payload.value",
 						},
 					},
 				},

@@ -1148,13 +1148,13 @@ func TestOptionalZeroInline(t *testing.T) {
 				provider := pl.Steps["a"]
 				provider.Type = api.StepTypeScript
 				provider.HTTP = nil
-				source := `return {opt = "late", other = "needed"}`
+				src := `return {opt = "late", other = "needed"}`
 				if collect == api.InputCollectNone {
-					source = `return {other = "needed"}`
+					src = `return {other = "needed"}`
 				}
 				provider.Script = &api.ScriptConfig{
 					Language: api.ScriptLangLua,
-					Script:   source,
+					Source:   src,
 				}
 				provider.Attributes["other"] = &api.AttributeSpec{
 					Role: api.RoleOutput,
@@ -1181,7 +1181,7 @@ func TestOptionalZeroInline(t *testing.T) {
 					&api.RequiredConfig{
 						Match: &api.ScriptConfig{
 							Language: api.ScriptLangLua,
-							Script:   `return value == "ready"`,
+							Source:   `return value == "ready"`,
 						},
 					}
 				assert.NoError(t, env.Engine.Start())
@@ -1237,13 +1237,13 @@ func TestOptionalZeroAtRequired(t *testing.T) {
 				provider.Attributes["seed"] = &api.AttributeSpec{
 					Role: api.RoleOutput,
 				}
-				source := `return {seed = "ready", opt = "early"}`
+				src := `return {seed = "ready", opt = "early"}`
 				if collect == api.InputCollectNone {
-					source = `return {seed = "ready"}`
+					src = `return {seed = "ready"}`
 				}
 				provider.Script = &api.ScriptConfig{
 					Language: api.ScriptLangLua,
-					Script:   source,
+					Source:   src,
 				}
 				consumer := pl.Steps["consumer"]
 				consumer.HTTP.Invoke.Mode = api.ActionModeAsync

@@ -7,7 +7,7 @@ const mockStep: Step = {
   name: "Step 1",
   type: "script",
   attributes: {},
-  script: { language: "lua", script: "" },
+  script: { language: "lua", source: "" },
 };
 
 const renderSpy = jest.fn();

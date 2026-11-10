@@ -16,7 +16,7 @@ func newFeed() *api.Feed {
 		Value: "0",
 		Fold: &api.ScriptConfig{
 			Language: api.ScriptLangLua,
-			Script:   "return feed + amount",
+			Source:   "return feed + amount",
 		},
 		Attributes: api.Slice[api.Name]{"amount"},
 	}
@@ -45,7 +45,7 @@ func TestFeedValidate(t *testing.T) {
 		{"nil fold", func(f *api.Feed) { f.Fold = nil }, api.ErrFeedFoldEmpty},
 		{
 			"empty fold",
-			func(f *api.Feed) { f.Fold.Script = "" },
+			func(f *api.Feed) { f.Fold.Source = "" },
 			api.ErrFeedFoldEmpty,
 		},
 		{
@@ -113,7 +113,7 @@ func TestFeedVersion(t *testing.T) {
 		seed := newFeed()
 		seed.Value = "1"
 		fold := newFeed()
-		fold.Fold = &api.ScriptConfig{Language: "lua", Script: "return 1"}
+		fold.Fold = &api.ScriptConfig{Language: "lua", Source: "return 1"}
 		attr := newFeed()
 		attr.Attributes = api.Slice[api.Name]{"amount", "other"}
 		space := newFeed()

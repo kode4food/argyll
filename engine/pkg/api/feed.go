@@ -143,7 +143,7 @@ func (f *Feed) validateShape() error {
 	if err := validateJSON(f.Value); err != nil {
 		return fmt.Errorf("%w: %w", ErrFeedValueRequired, err)
 	}
-	if f.Fold == nil || f.Fold.Script == "" {
+	if f.Fold == nil || f.Fold.Source == "" {
 		return ErrFeedFoldEmpty
 	}
 	return f.validateAttributes()

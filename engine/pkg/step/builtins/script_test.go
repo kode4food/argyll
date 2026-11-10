@@ -21,7 +21,7 @@ func TestScriptValidationArgEx(t *testing.T) {
 		Type: api.StepTypeScript,
 		Script: &api.ScriptConfig{
 			Language: api.ScriptLangArgyll,
-			Script:   "{result: 42}",
+			Source:   "{result: 42}",
 		},
 		Attributes: api.AttributeSpecs{
 			"result": {Role: api.RoleOutput},
@@ -36,7 +36,7 @@ func TestScriptValidationLua(t *testing.T) {
 		Type: api.StepTypeScript,
 		Script: &api.ScriptConfig{
 			Language: api.ScriptLangLua,
-			Script:   "return {result = 42}",
+			Source:   "return {result = 42}",
 		},
 		Attributes: api.AttributeSpecs{
 			"result": {Role: api.RoleOutput},
@@ -51,7 +51,7 @@ func TestScriptHealthHealthy(t *testing.T) {
 		Type: api.StepTypeScript,
 		Script: &api.ScriptConfig{
 			Language: api.ScriptLangLua,
-			Script:   "return {result = 42}",
+			Source:   "return {result = 42}",
 		},
 		Attributes: api.AttributeSpecs{
 			"result": {Role: api.RoleOutput},
@@ -68,7 +68,7 @@ func TestScriptHealthInvalid(t *testing.T) {
 		Type: api.StepTypeScript,
 		Script: &api.ScriptConfig{
 			Language: api.ScriptLangLua,
-			Script:   "!!!bad",
+			Source:   "!!!bad",
 		},
 	}
 	h, err := reg.Health(st)
@@ -88,7 +88,7 @@ func TestScriptOutput(t *testing.T) {
 		Type: api.StepTypeScript,
 		Script: &api.ScriptConfig{
 			Language: api.ScriptLangLua,
-			Script:   "return {result = 42}",
+			Source:   "return {result = 42}",
 		},
 		Attributes: api.AttributeSpecs{
 			"result": {Role: api.RoleOutput},
@@ -113,7 +113,7 @@ func TestScriptOutputArgEx(t *testing.T) {
 		Type: api.StepTypeScript,
 		Script: &api.ScriptConfig{
 			Language: api.ScriptLangArgyll,
-			Script:   `{total: x * 2, label: "n"}`,
+			Source:   `{total: x * 2, label: "n"}`,
 		},
 		Attributes: api.AttributeSpecs{
 			"x":     {Role: api.RoleRequired},
@@ -140,7 +140,7 @@ func TestScriptFailure(t *testing.T) {
 		Type: api.StepTypeScript,
 		Script: &api.ScriptConfig{
 			Language: api.ScriptLangLua,
-			Script:   "!!!bad",
+			Source:   "!!!bad",
 		},
 	}
 

@@ -62,7 +62,7 @@ const Footer: React.FC<FooterProps> = ({
 
     if (step.type === "script" && step.script) {
       const { preview, lineCount } = formatScriptForTooltip(
-        step.script.script,
+        step.script.source,
         5
       );
 

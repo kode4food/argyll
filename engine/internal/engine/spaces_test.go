@@ -27,7 +27,7 @@ func TestSpaces(t *testing.T) {
 		assert.Equal(t, sp.QBE, stored.QBE)
 		assert.Equal(t, &api.ScriptConfig{
 			Language: api.ScriptLangArgyll,
-			Script:   `"domain:payments" in value.tags`,
+			Source:   `"domain:payments" in value.tags`,
 		}, stored.Selector)
 
 		spaces, err := eng.ListSpaces()
@@ -78,7 +78,7 @@ func TestSpaceScriptSelectors(t *testing.T) {
 			ID: "lua", Name: "Lua",
 			Selector: &api.ScriptConfig{
 				Language: api.ScriptLangLua,
-				Script: `local score = value.attributes.score
+				Source: `local score = value.attributes.score
 return has(value.tags, "domain:risk") and score and
     value.type == "service" and value.handling == "standard" and
     score.role == "output" and score.compensated == false`,
@@ -88,7 +88,7 @@ return has(value.tags, "domain:risk") and score and
 			ID: "argex", Name: "ArgEx",
 			Selector: &api.ScriptConfig{
 				Language: api.ScriptLangArgyll,
-				Script:   `"domain:trading" in value.tags`,
+				Source:   `"domain:trading" in value.tags`,
 			},
 		}
 		assert.NoError(t, eng.RegisterSpace(luaSpace))
@@ -139,7 +139,7 @@ func TestSpaceMetadataSelectors(t *testing.T) {
 				preview, err := eng.PreviewSpace(api.Space{
 					Selector: &api.ScriptConfig{
 						Language: api.ScriptLangArgyll,
-						Script:   tt.script,
+						Source:   tt.script,
 					},
 				})
 				assert.NoError(t, err)
@@ -168,7 +168,7 @@ func TestSpaceMarketSelector(t *testing.T) {
 		preview, err := eng.PreviewSpace(api.Space{
 			Selector: &api.ScriptConfig{
 				Language: api.ScriptLangArgyll,
-				Script: `"market:europe" in value.tags ||
+				Source: `"market:europe" in value.tags ||
     "market:all" in value.tags ||
     length(value.tags | filter tag: tag >= "market:" && tag < "market;") == 0`,
 			},
@@ -197,13 +197,13 @@ func TestPreviewSpace(t *testing.T) {
 		assert.Equal(t, api.SpaceQuery{{"domain:risk"}}, preview.Space.QBE)
 		assert.Equal(t, &api.ScriptConfig{
 			Language: api.ScriptLangArgyll,
-			Script:   `"domain:risk" in value.tags`,
+			Source:   `"domain:risk" in value.tags`,
 		}, preview.Space.Selector)
 
 		preview, err = eng.PreviewSpace(api.Space{
 			Selector: &api.ScriptConfig{
 				Language: api.ScriptLangLua,
-				Script:   `return has(value.tags, "unknown")`,
+				Source:   `return has(value.tags, "unknown")`,
 			},
 		})
 		assert.NoError(t, err)
@@ -238,7 +238,7 @@ func TestSpacesRejectInvalid(t *testing.T) {
 			ID: "invalid-script", Name: "Invalid Script",
 			Selector: &api.ScriptConfig{
 				Language: api.ScriptLangLua,
-				Script:   "return value[",
+				Source:   "return value[",
 			},
 		})
 		assert.ErrorIs(t, err, api.ErrInvalidSpace)
@@ -247,7 +247,7 @@ func TestSpacesRejectInvalid(t *testing.T) {
 			ID: "unknown-language", Name: "Unknown Language",
 			Selector: &api.ScriptConfig{
 				Language: "prolog",
-				Script:   "labels(risk).",
+				Source:   "labels(risk).",
 			},
 		})
 		assert.ErrorIs(t, err, api.ErrInvalidSpace)
@@ -257,7 +257,7 @@ func TestSpacesRejectInvalid(t *testing.T) {
 			ID: "non-boolean", Name: "Non-Boolean",
 			Selector: &api.ScriptConfig{
 				Language: api.ScriptLangArgyll,
-				Script:   "value.tags + 1",
+				Source:   "value.tags + 1",
 			},
 		})
 		assert.ErrorIs(t, err, api.ErrInvalidSpace)

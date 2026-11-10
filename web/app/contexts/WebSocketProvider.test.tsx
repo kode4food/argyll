@@ -281,7 +281,7 @@ describe("WebSocketProvider", () => {
                 risk: {
                   id: "risk",
                   name: "Risk",
-                  selector: { language: "lua", script: "return true" },
+                  selector: { language: "lua", source: "return true" },
                 },
               },
               selected: { risk: ["step-1"] },
@@ -299,7 +299,7 @@ describe("WebSocketProvider", () => {
           risk: {
             id: "risk",
             name: "Risk",
-            selector: { language: "lua", script: "return true" },
+            selector: { language: "lua", source: "return true" },
           },
         },
         selected: { risk: ["step-1"] },

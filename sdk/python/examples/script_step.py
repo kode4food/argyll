@@ -11,7 +11,7 @@ if __name__ == "__main__":
         .output("result") \
         .with_script(ScriptConfig(
             language=ScriptLanguage.LUA,
-            script="return {result = value * 2}",
+            source="return {result = value * 2}",
         )) \
         .with_tags("category:math") \
         .register()

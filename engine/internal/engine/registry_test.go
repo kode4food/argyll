@@ -86,7 +86,7 @@ func TestRegisterNonBooleanPredicates(t *testing.T) {
 			helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 				st := helpers.NewStepWithOutputs("non-boolean", "result")
 				cfg := &api.ScriptConfig{
-					Language: api.ScriptLangArgyll, Script: "1 + 2",
+					Language: api.ScriptLangArgyll, Source: "1 + 2",
 				}
 				if tt.kind == "predicate" {
 					st.Predicate = cfg
@@ -262,7 +262,7 @@ func TestRegisterStepsRollback(t *testing.T) {
 						Mapping: &api.MappingConfig{
 							Script: &api.ScriptConfig{
 								Language: api.ScriptLangArgyll,
-								Script:   "value[",
+								Source:   "value[",
 							},
 						},
 					},
@@ -292,7 +292,7 @@ func TestRegisterStepValidatesMappings(t *testing.T) {
 				Mapping: &api.MappingConfig{
 					Script: &api.ScriptConfig{
 						Language: api.ScriptLangArgyll,
-						Script:   "value[",
+						Source:   "value[",
 					},
 				},
 			},
@@ -335,7 +335,7 @@ func TestArgExValidForScripts(t *testing.T) {
 			Type: api.StepTypeScript,
 			Script: &api.ScriptConfig{
 				Language: api.ScriptLangArgyll,
-				Script:   "value",
+				Source:   "value",
 			},
 			Attributes: api.AttributeSpecs{
 				"value":  {Role: api.RoleRequired},

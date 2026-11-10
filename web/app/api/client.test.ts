@@ -27,7 +27,7 @@ const space: Space = {
   name: "Risk",
   selector: {
     language: "argyll",
-    script: '"domain:risk" in value.tags',
+    source: '"domain:risk" in value.tags',
   },
 };
 
@@ -35,7 +35,7 @@ const feed: Feed = {
   id: "total",
   name: "Total",
   value: "0",
-  fold: { language: "lua", script: "return feed + amount" },
+  fold: { language: "lua", source: "return feed + amount" },
   attributes: ["amount"],
 };
 

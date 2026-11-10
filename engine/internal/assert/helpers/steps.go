@@ -85,7 +85,7 @@ func NewStepWithOutputs(id api.StepID, outputs ...api.Name) *api.Step {
 // NewScriptStep creates a script-based step with the specified language, code,
 // and output attributes
 func NewScriptStep(
-	id api.StepID, language, script string, outputs ...api.Name,
+	id api.StepID, language, src string, outputs ...api.Name,
 ) *api.Step {
 	st := &api.Step{
 		ID:   id,
@@ -93,7 +93,7 @@ func NewScriptStep(
 		Type: api.StepTypeScript,
 		Script: &api.ScriptConfig{
 			Language: language,
-			Script:   script,
+			Source:   src,
 		},
 		Attributes: api.AttributeSpecs{},
 	}
@@ -108,12 +108,12 @@ func NewScriptStep(
 // NewStepWithPredicate creates an HTTP step with a predicate script that
 // determines whether the step should execute
 func NewStepWithPredicate(
-	id api.StepID, lang, script string, outputs ...api.Name,
+	id api.StepID, lang, src string, outputs ...api.Name,
 ) *api.Step {
 	st := NewSimpleStep(id)
 	st.Predicate = &api.ScriptConfig{
 		Language: lang,
-		Script:   script,
+		Source:   src,
 	}
 	if st.Attributes == nil {
 		st.Attributes = api.AttributeSpecs{}

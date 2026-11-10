@@ -41,7 +41,7 @@ const (
 // match predicate that should filter its candidate values
 func InputHasMatch(attr *api.AttributeSpec) bool {
 	cfg := attr.Match()
-	return attr.IsInput() && cfg != nil && cfg.Script != ""
+	return attr.IsInput() && cfg != nil && cfg.Source != ""
 }
 
 // RequiredMatchStepStatus combines all required match gates on a step. Any

@@ -635,7 +635,7 @@ func TestInputMapping(t *testing.T) {
 					Mapping: &api.MappingConfig{
 						Script: &api.ScriptConfig{
 							Language: api.ScriptLangArgyll,
-							Script:   "input.foo",
+							Source:   "input.foo",
 						},
 					},
 				},
@@ -741,7 +741,7 @@ func TestPredicateRuntimeFailure(t *testing.T) {
 				st := helpers.NewStepWithOutputs("predicate", "result")
 				st.Predicate = &api.ScriptConfig{
 					Language: api.ScriptLangLua,
-					Script:   tt.source,
+					Source:   tt.source,
 				}
 				pl := &api.ExecutionPlan{
 					Goals: api.Goals{Steps: []api.StepID{st.ID}},
@@ -768,7 +768,7 @@ func TestRequiredMatchError(t *testing.T) {
 				Role: api.RoleRequired,
 				Required: &api.RequiredConfig{Match: &api.ScriptConfig{
 					Language: api.ScriptLangLua,
-					Script:   "return value.nonexistent.field == 1",
+					Source:   "return value.nonexistent.field == 1",
 				}},
 			}
 			other := helpers.NewStepWithOutputs("fallback", "other")
@@ -945,7 +945,7 @@ func TestMatchFilters(t *testing.T) {
 		pl := fixture.plan
 		consumer.Attributes["data"].Required.Match = &api.ScriptConfig{
 			Language: api.ScriptLangLua,
-			Script:   `return value == "a"`,
+			Source:   `return value == "a"`,
 		}
 
 		assert.NoError(t, env.Engine.RegisterStep(providerA))
@@ -981,7 +981,7 @@ func TestMatchFiltersForEachItems(t *testing.T) {
 		consumer.Attributes["data"].Required.ForEach = true
 		consumer.Attributes["data"].Required.Match = &api.ScriptConfig{
 			Language: api.ScriptLangLua,
-			Script:   `return value > 0`,
+			Source:   `return value > 0`,
 		}
 
 		assert.NoError(t, env.Engine.RegisterStep(providerA))
@@ -1019,7 +1019,7 @@ func TestMatchFirstPending(t *testing.T) {
 		pl := fixture.plan
 		consumer.Attributes["data"].Required.Match = &api.ScriptConfig{
 			Language: api.ScriptLangLua,
-			Script:   `return value == "a"`,
+			Source:   `return value == "a"`,
 		}
 
 		assert.NoError(t, env.Engine.RegisterStep(providerA))
@@ -1054,7 +1054,7 @@ func TestMatchAllPrunes(t *testing.T) {
 		pl := fixture.plan
 		consumer.Attributes["data"].Required.Match = &api.ScriptConfig{
 			Language: api.ScriptLangLua,
-			Script:   `return value == "a"`,
+			Source:   `return value == "a"`,
 		}
 
 		assert.NoError(t, env.Engine.RegisterStep(providerA))
@@ -1094,7 +1094,7 @@ func TestOptionalMatchAllFallsBack(t *testing.T) {
 				Default: `"fallback"`,
 				Match: &api.ScriptConfig{
 					Language: api.ScriptLangLua,
-					Script:   `return value == "a"`,
+					Source:   `return value == "a"`,
 				},
 			},
 		}
@@ -1133,7 +1133,7 @@ func TestMatchSkipInputs(t *testing.T) {
 				Required: &api.RequiredConfig{
 					Match: &api.ScriptConfig{
 						Language: api.ScriptLangLua,
-						Script:   `return value == "paid"`,
+						Source:   `return value == "paid"`,
 					},
 				},
 			},
@@ -1177,7 +1177,7 @@ func TestInputLua(t *testing.T) {
 					Mapping: &api.MappingConfig{
 						Script: &api.ScriptConfig{
 							Language: api.ScriptLangLua,
-							Script:   "return amount * 2",
+							Source:   "return amount * 2",
 						},
 					},
 				},
@@ -1365,7 +1365,7 @@ func routingSteps() routingStepsRes {
 				Required: &api.RequiredConfig{
 					Match: &api.ScriptConfig{
 						Language: api.ScriptLangLua,
-						Script:   `return value == "email"`,
+						Source:   `return value == "email"`,
 					},
 				},
 			},
@@ -1390,7 +1390,7 @@ func routingSteps() routingStepsRes {
 				Required: &api.RequiredConfig{
 					Match: &api.ScriptConfig{
 						Language: api.ScriptLangLua,
-						Script:   `return value == "postal"`,
+						Source:   `return value == "postal"`,
 					},
 				},
 			},

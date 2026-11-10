@@ -18,7 +18,7 @@ func QBESelector(qbe api.SpaceQuery) *api.ScriptConfig {
 	}
 	return &api.ScriptConfig{
 		Language: api.ScriptLangArgyll,
-		Script:   strings.Join(terms, " ||\n"),
+		Source:   strings.Join(terms, " ||\n"),
 	}
 }
 

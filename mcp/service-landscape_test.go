@@ -131,7 +131,7 @@ func TestGenerateStepImplScript(t *testing.T) {
 			"type": "script",
 			"script": map[string]any{
 				"language": "lua",
-				"script":   "return {customer_age = customer_age}",
+				"source":   "return {customer_age = customer_age}",
 			},
 			"attributes": map[string]any{
 				"customer_age": map[string]any{

@@ -202,7 +202,7 @@ func TestWithMethodInvalid(t *testing.T) {
 func TestWithScript(t *testing.T) {
 	script := api.ScriptConfig{
 		Language: api.ScriptLangLua,
-		Script:   "return {result = 1 + 2}",
+		Source:   "return {result = 1 + 2}",
 	}
 	st, err := testClient().NewStep().WithName("Test").
 		WithScript(script).
@@ -210,7 +210,7 @@ func TestWithScript(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.NotNil(t, st.Script)
-	assert.Equal(t, script.Script, st.Script.Script)
+	assert.Equal(t, script.Source, st.Script.Source)
 	assert.Equal(t, script.Language, st.Script.Language)
 	assert.Equal(t, api.StepTypeScript, st.Type)
 }
@@ -219,7 +219,7 @@ func TestWithScriptInvalid(t *testing.T) {
 	st, err := testClient().NewStep().WithName("Test").
 		WithScript(api.ScriptConfig{
 			Language: "custom-lang",
-			Script:   "custom script",
+			Source:   "custom script",
 		}).
 		Build()
 
@@ -301,18 +301,18 @@ func TestWithPredicate(t *testing.T) {
 		WithEndpoint("http://example.com").
 		WithPredicate(api.ScriptConfig{
 			Language: api.ScriptLangLua,
-			Script:   predicate,
+			Source:   predicate,
 		}).
 		Build()
 
 	assert.NoError(t, err)
 	assert.NotNil(t, st.Predicate)
 	assert.Equal(t, api.ScriptLangLua, st.Predicate.Language)
-	assert.Equal(t, predicate, st.Predicate.Script)
+	assert.Equal(t, predicate, st.Predicate.Source)
 }
 
 func TestWithMatch(t *testing.T) {
-	script := `return value == "email"`
+	src := `return value == "email"`
 
 	t.Run("required attribute", func(t *testing.T) {
 		st, err := testClient().NewStep().WithName("Test").
@@ -320,7 +320,7 @@ func TestWithMatch(t *testing.T) {
 			Required("kind").
 			WithMatch("kind", api.ScriptConfig{
 				Language: api.ScriptLangLua,
-				Script:   script,
+				Source:   src,
 			}).
 			Build()
 
@@ -329,7 +329,7 @@ func TestWithMatch(t *testing.T) {
 		assert.Equal(t,
 			api.ScriptLangLua, st.Attributes["kind"].Required.Match.Language,
 		)
-		assert.Equal(t, script, st.Attributes["kind"].Required.Match.Script)
+		assert.Equal(t, src, st.Attributes["kind"].Required.Match.Source)
 	})
 
 	t.Run("optional attribute", func(t *testing.T) {
@@ -338,7 +338,7 @@ func TestWithMatch(t *testing.T) {
 			Optional("kind", `""`).
 			WithMatch("kind", api.ScriptConfig{
 				Language: api.ScriptLangLua,
-				Script:   script,
+				Source:   src,
 			}).
 			Build()
 
@@ -347,7 +347,7 @@ func TestWithMatch(t *testing.T) {
 		assert.Equal(t,
 			api.ScriptLangLua, st.Attributes["kind"].Optional.Match.Language,
 		)
-		assert.Equal(t, script, st.Attributes["kind"].Optional.Match.Script)
+		assert.Equal(t, src, st.Attributes["kind"].Optional.Match.Source)
 	})
 }
 
@@ -367,7 +367,7 @@ func TestBuildValidScriptStep(t *testing.T) {
 	st, err := testClient().NewStep().WithName("Script Step").
 		WithScript(api.ScriptConfig{
 			Language: api.ScriptLangLua,
-			Script:   "return {result = 42}",
+			Source:   "return {result = 42}",
 		}).
 		Required("input").
 		Output("result").
@@ -497,7 +497,7 @@ func TestBuildValidationErrors(t *testing.T) {
 		st, err := testClient().NewStep().WithName("Test").
 			WithScript(api.ScriptConfig{
 				Language: api.ScriptLangLua,
-				Script:   "return {result = 1 + 2}",
+				Source:   "return {result = 1 + 2}",
 			}).
 			Build()
 		assert.NoError(t, err)
@@ -510,7 +510,7 @@ func TestBuildValidationErrors(t *testing.T) {
 			WithEndpoint("http://example.com").
 			WithPredicate(api.ScriptConfig{
 				Language: api.ScriptLangLua,
-				Script:   "return count > 10",
+				Source:   "return count > 10",
 			}).
 			Build()
 		assert.NoError(t, err)
@@ -569,7 +569,7 @@ func TestStepBuilderChaining(t *testing.T) {
 		scriptStep, err := build.
 			WithScript(api.ScriptConfig{
 				Language: api.ScriptLangLua,
-				Script:   "return {result = 1 + 2}",
+				Source:   "return {result = 1 + 2}",
 			}).
 			Build()
 		assert.NoError(t, err)

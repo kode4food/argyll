@@ -81,7 +81,7 @@ func TestStepValid(t *testing.T) {
 				Type: api.StepTypeScript,
 				Script: &api.ScriptConfig{
 					Language: api.ScriptLangLua,
-					Script:   "return {result = 3}",
+					Source:   "return {result = 3}",
 				},
 			},
 		},
@@ -93,7 +93,7 @@ func TestStepValid(t *testing.T) {
 				Type: api.StepTypeScript,
 				Script: &api.ScriptConfig{
 					Language: api.ScriptLangLua,
-					Script:   "return {result = 42}",
+					Source:   "return {result = 42}",
 				},
 			},
 		},
@@ -170,7 +170,7 @@ func TestStepInvalid(t *testing.T) {
 				Name: "Test",
 				Type: api.StepTypeScript,
 				Script: &api.ScriptConfig{
-					Script: "return 1 + 2",
+					Source: "return 1 + 2",
 				},
 			},
 			expectedErrorContain: "language",

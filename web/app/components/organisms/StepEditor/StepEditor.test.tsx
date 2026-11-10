@@ -87,7 +87,7 @@ describe("StepEditor", () => {
     },
     predicate: {
       language: "lua",
-      script: "return temperature > 100",
+      source: "return temperature > 100",
     },
   });
 
@@ -101,11 +101,11 @@ describe("StepEditor", () => {
     },
     script: {
       language: "lua",
-      script: "return {result = 42}",
+      source: "return {result = 42}",
     },
     predicate: {
       language: "lua",
-      script: "return value > 10",
+      source: "return value > 10",
     },
   });
 
@@ -219,7 +219,7 @@ describe("StepEditor", () => {
     step.attributes.input1.required = {
       match: {
         language: "argyll",
-        script: "value.kind",
+        source: "value.kind",
       },
     };
     mockUpdateStep.mockResolvedValue(undefined);
@@ -249,7 +249,7 @@ describe("StepEditor", () => {
               required: expect.objectContaining({
                 match: {
                   language: "lua",
-                  script: 'return value.product_type == "email"',
+                  source: 'return value.product_type == "email"',
                 },
               }),
             }),
@@ -373,7 +373,7 @@ describe("StepEditor", () => {
       {
         id: "risk",
         name: "Risk",
-        selector: { language: "lua", script: "return true" },
+        selector: { language: "lua", source: "return true" },
         qbe: [["domain:risk", "tier:gold"]],
       },
     ];
@@ -715,7 +715,7 @@ describe("StepEditor", () => {
           }),
           predicate: expect.objectContaining({
             language: "lua",
-            script: "return temperature > 100",
+            source: "return temperature > 100",
           }),
         })
       );
@@ -763,7 +763,7 @@ describe("StepEditor", () => {
                   name: "request_payload",
                   script: {
                     language: "argyll",
-                    script: "request_payload.payload.input",
+                    source: "request_payload.payload.input",
                   },
                 },
               },
@@ -1200,7 +1200,7 @@ describe("StepEditor", () => {
           type: "script",
           script: {
             language: "lua",
-            script: "return {result = 42}",
+            source: "return {result = 42}",
           },
         })
       );

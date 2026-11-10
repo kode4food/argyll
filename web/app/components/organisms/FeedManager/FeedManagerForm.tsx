@@ -121,8 +121,8 @@ const FeedManagerForm: React.FC<FeedManagerFormProps> = ({ editor }) => {
         Icon={IconFeed}
         label={t("feedManager.foldLabel")}
         completions={completions}
-        value={draft.fold.script}
-        onChange={(script) => editor.patchFold({ script })}
+        value={draft.fold.source}
+        onChange={(script) => editor.patchFold({ source: script })}
         language={draft.fold.language}
         onLanguageChange={(language) => editor.patchFold({ language })}
       />

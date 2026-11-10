@@ -26,10 +26,10 @@ describe("stepEditorUtils", () => {
           required: {
             collect: "all",
             for_each: true,
-            match: { language: "argyll", script: "value.kind" },
+            match: { language: "argyll", source: "value.kind" },
             mapping: {
               name: "child_in",
-              script: { language: "lua", script: "return value" },
+              script: { language: "lua", source: "return value" },
             },
           },
         },
@@ -217,10 +217,10 @@ describe("stepEditorUtils", () => {
       required: {
         collect: "last",
         for_each: true,
-        match: { language: "lua", script: 'return value == "email"' },
+        match: { language: "lua", source: 'return value == "email"' },
         mapping: {
           name: "request",
-          script: { language: "argyll", script: "request.payload" },
+          script: { language: "argyll", source: "request.payload" },
         },
       },
     });
@@ -235,7 +235,7 @@ describe("stepEditorUtils", () => {
     });
     expect(result.output.output?.mapping?.script).toEqual({
       language: "argyll",
-      script: "output.result",
+      source: "output.result",
     });
   });
 

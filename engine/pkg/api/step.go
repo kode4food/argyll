@@ -52,7 +52,7 @@ type (
 	// ScriptConfig configures script-based step execution
 	ScriptConfig struct {
 		Language string `json:"language"`
-		Script   string `json:"script"`
+		Source   string `json:"source"`
 	}
 
 	// Matcher evaluates a match script against one candidate value
@@ -432,7 +432,7 @@ func (c *ScriptConfig) Equal(other *ScriptConfig) bool {
 	if c == nil || other == nil {
 		return c == other
 	}
-	return c.Language == other.Language && c.Script == other.Script
+	return c.Language == other.Language && c.Source == other.Source
 }
 
 // WithGoals returns a copy of the flow config with the provided goals
@@ -648,7 +648,7 @@ func (s *Step) validateScriptConfig() error {
 	if !validScriptLanguages.Contains(s.Script.Language) {
 		return fmt.Errorf("%w: %s", ErrInvalidScriptLanguage, s.Script.Language)
 	}
-	if s.Script.Script == "" {
+	if s.Script.Source == "" {
 		return ErrScriptEmpty
 	}
 	return nil

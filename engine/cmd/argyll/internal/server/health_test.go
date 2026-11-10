@@ -132,7 +132,7 @@ func TestHealthCheckScript(t *testing.T) {
 			},
 			Script: &api.ScriptConfig{
 				Language: api.ScriptLangLua,
-				Script:   "return {result = 42}",
+				Source:   "return {result = 42}",
 			},
 		}
 		assert.NoError(t, env.Engine.RegisterStep(st))

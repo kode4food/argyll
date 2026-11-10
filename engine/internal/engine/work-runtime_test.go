@@ -20,7 +20,7 @@ func TestInlineScriptChain(t *testing.T) {
 			Type: api.StepTypeScript,
 			Script: &api.ScriptConfig{
 				Language: api.ScriptLangLua,
-				Script:   "return { y = x * 2 }",
+				Source:   "return { y = x * 2 }",
 			},
 			Attributes: api.AttributeSpecs{
 				"x": {Role: api.RoleRequired},
@@ -33,7 +33,7 @@ func TestInlineScriptChain(t *testing.T) {
 			Type: api.StepTypeScript,
 			Script: &api.ScriptConfig{
 				Language: api.ScriptLangLua,
-				Script:   "error('boom')",
+				Source:   "error('boom')",
 			},
 			Attributes: api.AttributeSpecs{
 				"y": {Role: api.RoleRequired},

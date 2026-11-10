@@ -48,7 +48,7 @@ import { api } from "@/app/api";
 const mockApi = api as jest.Mocked<typeof api>;
 const GENERATED_SELECTOR = {
   language: "argyll" as const,
-  script: '"domain:risk" in value.tags',
+  source: '"domain:risk" in value.tags',
 };
 
 describe("SpaceManager", () => {
@@ -61,7 +61,7 @@ describe("SpaceManager", () => {
         description: "Risk steps",
         selector: {
           language: "argyll",
-          script: '"domain:risk" in value.tags',
+          source: '"domain:risk" in value.tags',
         },
         qbe: [["domain:risk"]],
       },
@@ -70,7 +70,7 @@ describe("SpaceManager", () => {
         name: "Gold",
         selector: {
           language: "argyll",
-          script: '"tier:gold" in value.tags',
+          source: '"tier:gold" in value.tags',
         },
       },
     ];
@@ -434,7 +434,7 @@ describe("SpaceManager", () => {
         description: "Risk steps",
         selector: {
           language: "argyll",
-          script: '"tier:gold" in value.tags',
+          source: '"tier:gold" in value.tags',
         },
       })
     );
@@ -449,7 +449,7 @@ describe("SpaceManager", () => {
         description: "Risk steps",
         selector: {
           language: "argyll",
-          script: '"tier:gold" in value.tags',
+          source: '"tier:gold" in value.tags',
         },
       });
     });
@@ -475,7 +475,7 @@ describe("SpaceManager", () => {
         expect.objectContaining({
           selector: {
             language: "argyll",
-            script: '"tier:gold" in value.tags',
+            source: '"tier:gold" in value.tags',
           },
         })
       )
@@ -498,7 +498,7 @@ describe("SpaceManager", () => {
     await waitFor(() =>
       expect(mockApi.previewSpace).toHaveBeenLastCalledWith(
         expect.objectContaining({
-          selector: { language: "argyll", script: typed.trim() },
+          selector: { language: "argyll", source: typed.trim() },
         })
       )
     );
@@ -555,7 +555,7 @@ describe("SpaceManager", () => {
       expect(mockApi.previewSpace).toHaveBeenLastCalledWith({
         id: "risk-script",
         name: "Risk Script",
-        selector: { language: "argyll", script: 'value.type == "service"' },
+        selector: { language: "argyll", source: 'value.type == "service"' },
       })
     );
     fireEvent.click(
@@ -566,7 +566,7 @@ describe("SpaceManager", () => {
       expect(mockApi.registerSpace).toHaveBeenCalledWith({
         id: "risk-script",
         name: "Risk Script",
-        selector: { language: "argyll", script: 'value.type == "service"' },
+        selector: { language: "argyll", source: 'value.type == "service"' },
       });
     });
   });
