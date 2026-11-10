@@ -417,7 +417,7 @@ func TestImmutability(t *testing.T) {
 		Required("input").
 		Output("output").
 		WithEndpoint("http://example.com").
-		WithTimeout(60 * api.Second)
+		WithTimeout(api.Minute)
 
 	_, err1 := original.Build()
 	assert.Error(t, err1)

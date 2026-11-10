@@ -1034,7 +1034,7 @@ func TestDeadlineValidation(t *testing.T) {
 			Role: api.RoleOptional,
 			Optional: &api.OptionalConfig{
 				Default:  `"default"`,
-				Deadline: 365 * 24 * 60 * 60 * 1000,
+				Deadline: api.Year,
 			},
 		}
 		err := spec.Validate("test")

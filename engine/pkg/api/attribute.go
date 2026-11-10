@@ -123,7 +123,7 @@ var (
 
 const (
 	MinAttributeDeadline = 0
-	MaxAttributeDeadline = 365 * 24 * 60 * 60 * 1000
+	MaxAttributeDeadline = Year
 )
 
 var (

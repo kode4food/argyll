@@ -11,9 +11,6 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/events"
 )
 
-// memoForeverYear is the deadline year of a memoized result that never expires
-const memoForeverYear = 9999
-
 // lookupMemoized returns the outputs of an earlier successful work item for a
 // memoized Step definition and inputs
 func (tx *flowTx) lookupMemoized(
@@ -83,7 +80,7 @@ func (tx *flowTx) recordMemoized(
 		return err
 	}
 	return scheduler.Schedule(tx.storeTx.Transaction, path,
-		memoDeadline(st, tx.Now()), &timebox.Message{
+		tx.memoDeadline(st), &timebox.Message{
 			AggregateID: events.FlowKey(tx.flowID),
 			Type:        memoExpired,
 			Data:        data,
@@ -101,11 +98,12 @@ func (tx *flowTx) pendingMemo(path []string) (*timebox.Schedule, error) {
 	return sched, nil
 }
 
-func memoDeadline(st *api.Step, now time.Time) time.Time {
-	if st.WorkConfig == nil || st.WorkConfig.MemoTTL == 0 {
-		return time.Date(memoForeverYear, time.January, 1, 0, 0, 0, 0, time.UTC)
+func (tx *flowTx) memoDeadline(st *api.Step) time.Time {
+	ttl := tx.config.Work.MemoTTL
+	if st.WorkConfig != nil && st.WorkConfig.MemoTTL > 0 {
+		ttl = st.WorkConfig.MemoTTL
 	}
-	return now.Add(time.Duration(st.WorkConfig.MemoTTL) * time.Millisecond)
+	return tx.Now().Add(time.Duration(ttl) * time.Millisecond)
 }
 
 func memoPath(st *api.Step, inputs api.Args) ([]string, error) {

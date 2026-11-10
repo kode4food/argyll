@@ -788,8 +788,8 @@ MEMO_LOOKUP(step, inputs):
     RETURN its raw outputs
 
 MEMO_DEADLINE(step):
-    IF the step's memo TTL is 0: RETURN the far future
-    RETURN now + memo TTL
+    ttl := the step's memo TTL, or the engine's MEMO_TTL when it is 0
+    RETURN now + ttl
 ```
 
 A memoized result is the pending `memo_expired` task for a step definition and input set. The first recorded success wins, because the commit is checked against the task the transaction read, and its delivery at the memo TTL removes it. The memo TTL is the step's `work_config.memo_ttl`, defaulted from the engine's `MEMO_TTL`.

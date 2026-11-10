@@ -201,6 +201,13 @@ func TestLoadConfig(t *testing.T) {
 			wantErr: app.ErrInvalidEnvValue,
 		},
 		{
+			name: "zero_memo_ttl_errors",
+			envVars: map[string]string{
+				"MEMO_TTL": "0",
+			},
+			wantErr: app.ErrEnvOutOfRange,
+		},
+		{
 			name: "negative_memo_ttl_errors",
 			envVars: map[string]string{
 				"MEMO_TTL": "-1",

@@ -68,11 +68,18 @@ func TestConfigValidation(t *testing.T) {
 			errorContains: "invalid retry backoff type",
 		},
 		{
+			name: "zero_memo_ttl",
+			configMod: func(c *config.Config) {
+				c.Work.MemoTTL = 0
+			},
+			errorContains: "memo ttl must be positive",
+		},
+		{
 			name: "negative_memo_ttl",
 			configMod: func(c *config.Config) {
 				c.Work.MemoTTL = -1
 			},
-			errorContains: "memo ttl cannot be negative",
+			errorContains: "memo ttl must be positive",
 		},
 	}
 
@@ -161,6 +168,7 @@ func TestWithDefaults(t *testing.T) {
 		testify.Equal(t,
 			config.DefaultRetryBackoffType, out.Work.BackoffType,
 		)
+		testify.Equal(t, int64(config.DefaultMemoTTL), out.Work.MemoTTL)
 	})
 
 	t.Run("preserves explicit values", func(t *testing.T) {
@@ -169,6 +177,7 @@ func TestWithDefaults(t *testing.T) {
 		cfg.Work.InitBackoff = 2000
 		cfg.Work.MaxBackoff = 30000
 		cfg.Work.BackoffType = "fixed"
+		cfg.Work.MemoTTL = 3000
 
 		out := cfg.WithWorkDefaults()
 
@@ -176,6 +185,7 @@ func TestWithDefaults(t *testing.T) {
 		testify.Equal(t, int64(2000), out.Work.InitBackoff)
 		testify.Equal(t, int64(30000), out.Work.MaxBackoff)
 		testify.Equal(t, "fixed", out.Work.BackoffType)
+		testify.Equal(t, int64(3000), out.Work.MemoTTL)
 	})
 
 	t.Run("does not mutate original", func(t *testing.T) {

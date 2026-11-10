@@ -16,6 +16,7 @@ import (
 	"github.com/kode4food/argyll/engine/internal/assert/wait"
 	"github.com/kode4food/argyll/engine/internal/engine"
 	"github.com/kode4food/argyll/engine/pkg/api"
+	"github.com/kode4food/argyll/engine/pkg/config"
 	"github.com/kode4food/argyll/engine/pkg/flow"
 )
 
@@ -180,6 +181,40 @@ func TestMemoizedTTL(t *testing.T) {
 		for _, work := range fl.Executions[st.ID].WorkItems {
 			assert.Equal(t, "fresh", work.Outputs["raw"])
 		}
+		assert.Len(t, env.MockClient.GetInvocations(), 2)
+	})
+}
+
+func TestMemoizedDefaultTTL(t *testing.T) {
+	var elapsed atomic.Int64
+	base := time.Date(2026, 11, 10, 12, 0, 0, 0, time.UTC)
+	helpers.WithTestEnvDeps(t, engine.Dependencies{
+		Clock: func() time.Time {
+			return base.Add(time.Duration(elapsed.Load()))
+		},
+	}, func(env *helpers.TestEngineEnv) {
+		st := helpers.NewSimpleStep("default-ttl-memo")
+		st.Handling = api.HandlingMemoized
+		pl := &api.ExecutionPlan{
+			Goals: api.Goals{Steps: []api.StepID{st.ID}},
+			Steps: api.Steps{st.ID: st},
+		}
+		assert.NoError(t, env.Engine.RegisterStep(st))
+
+		ttl := time.Duration(config.DefaultMemoTTL) * time.Millisecond
+		run := func(fid api.FlowID, after time.Duration, raw, want string) {
+			elapsed.Store(int64(after))
+			env.MockClient.SetResponse(st.ID, api.Args{"raw": raw})
+			assert.NoError(t, env.Engine.StartPlan(fid, pl))
+			fl := env.WaitForTerminalFlow(fid)
+			for _, work := range fl.Executions[st.ID].WorkItems {
+				assert.Equal(t, want, work.Outputs["raw"])
+			}
+		}
+		run("first", 0, "first", "first")
+		run("within", ttl-time.Millisecond, "second", "first")
+		assert.Len(t, env.MockClient.GetInvocations(), 1)
+		run("expired", ttl, "fresh", "fresh")
 		assert.Len(t, env.MockClient.GetInvocations(), 2)
 	})
 }

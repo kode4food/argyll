@@ -32,6 +32,8 @@ const (
 	DefaultMaxRetryBackoff  = 60000
 	DefaultRetryBackoffType = api.BackoffTypeExponential
 
+	DefaultMemoTTL = api.Day
+
 	EngineStoreCacheSize = 512
 )
 
@@ -50,7 +52,7 @@ var (
 		"retry max backoff must be >= retry initial backoff",
 	)
 	ErrInvalidRetryBackoffType = errors.New("invalid retry backoff type")
-	ErrInvalidMemoTTL          = errors.New("memo ttl cannot be negative")
+	ErrInvalidMemoTTL          = errors.New("memo ttl must be positive")
 )
 
 // NewDefaultConfig creates a configuration with sensible defaults for all
@@ -64,6 +66,7 @@ func NewDefaultConfig() *Config {
 			InitBackoff: DefaultRetryInitBackoff,
 			MaxBackoff:  DefaultMaxRetryBackoff,
 			BackoffType: DefaultRetryBackoffType,
+			MemoTTL:     DefaultMemoTTL,
 		},
 		StepTimeout: DefaultStepTimeout,
 	}
@@ -111,6 +114,9 @@ func (c *Config) WithWorkDefaults() *Config {
 	if res.Work.BackoffType == "" {
 		res.Work.BackoffType = DefaultRetryBackoffType
 	}
+	if res.Work.MemoTTL <= 0 {
+		res.Work.MemoTTL = DefaultMemoTTL
+	}
 	return res
 }
 
@@ -143,7 +149,7 @@ func (c *Config) Validate() error {
 			c.Work.BackoffType)
 	}
 
-	if c.Work.MemoTTL < 0 {
+	if c.Work.MemoTTL <= 0 {
 		return ErrInvalidMemoTTL
 	}
 	return nil

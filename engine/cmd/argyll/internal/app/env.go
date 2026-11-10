@@ -35,8 +35,8 @@ const (
 	MaxTCPPort          = 65535
 	MaxTimeboxCacheSize = 1_024_000
 	MaxRetryMaxRetries  = 1000
-	MaxStepTimeout      = 365 * 24 * 60 * api.Minute // 1 year in ms
-	MaxRetryInitBackoff = 24 * 60 * api.Minute       // 1 day in ms
+	MaxStepTimeout      = api.Year
+	MaxRetryInitBackoff = api.Day
 	MaxRetryMaxBackoff  = MaxRetryInitBackoff
 	MaxMemoTTL          = MaxStepTimeout
 )
@@ -141,7 +141,7 @@ func loadEngineConfig(rc raft.Config) (*config.Config, error) {
 	if err := loadEnvInt(loadEnvIntArgs[int64]{
 		key: "MEMO_TTL",
 		dst: &cfg.Work.MemoTTL,
-		min: 0,
+		min: 1,
 		max: MaxMemoTTL,
 	}); err != nil {
 		return nil, err

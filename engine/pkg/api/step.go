@@ -142,6 +142,7 @@ const (
 	Minute       = Second * 60
 	Hour         = Minute * 60
 	Day          = Hour * 24
+	Year         = Day * 365
 )
 
 var (
