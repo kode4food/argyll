@@ -296,8 +296,7 @@ func (g *pkgGen) serviceSteps(logging bool) ([]sourceStep, error) {
 	return res, nil
 }
 
-// embeddedSteps are keyed by step type, which is the ID an embedded engine runs the step's handler
-// under
+// embeddedSteps are keyed by step type, the ID an embedded engine runs the step's handler under
 func (g *pkgGen) embeddedSteps() []sourceStep {
 	res := make([]sourceStep, 0, len(g.steps))
 	for _, s := range g.steps {

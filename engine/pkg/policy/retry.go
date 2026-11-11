@@ -11,8 +11,7 @@ import (
 type RetryStartAction int
 
 const (
-	// RetryStartIgnore means the work item is already in a state that retry handling should not
-	// touch
+	// RetryStartIgnore means the work item is already in a state retry handling should not touch
 	RetryStartIgnore RetryStartAction = iota
 
 	// RetryStartWait means retry handling should schedule another callback at the returned time,

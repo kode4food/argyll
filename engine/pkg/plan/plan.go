@@ -52,8 +52,7 @@ type (
 )
 
 // Create builds an execution plan for the request's goals, resolving dependencies and required
-// inputs. Children discovered through Request.Children are planned recursively into
-// ExecutionPlan.Children
+// inputs. Children from Request.Children are planned recursively into ExecutionPlan.Children
 func Create(req *Request) (*api.ExecutionPlan, error) {
 	return create(newPlanArgs(req, strictProviders), req.Children, util.Set[api.StepID]{})
 }

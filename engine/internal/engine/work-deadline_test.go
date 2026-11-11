@@ -24,8 +24,7 @@ type deadlineConflictBackend struct {
 	beforeAppend func(timebox.AppendRequest) error
 }
 
-// newDeadlineStep builds an async step whose callback deadline is short enough to expire during a
-// test
+// newDeadlineStep builds an async step whose callback deadline is short enough to expire in a test
 func newDeadlineStep(id api.StepID) *api.Step {
 	st := helpers.NewSimpleStep(id)
 	st.HTTP.Invoke.Mode = api.ActionModeAsync

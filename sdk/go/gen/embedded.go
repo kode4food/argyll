@@ -32,8 +32,7 @@ func EmbeddedSync[I, O any](
 	}
 }
 
-// EmbeddedCompensate adapts a typed compensation function to a step handler's in-process
-// compensation
+// EmbeddedCompensate adapts a typed compensation function to a handler's in-process compensation
 func EmbeddedCompensate[I any](
 	in convert.Converter[I], fn func(I) error,
 ) step.WorkFunc {

@@ -22,8 +22,7 @@ func QBESelector(qbe api.SpaceQuery) *api.ScriptConfig {
 	}
 }
 
-// termScript ANDs a term's tags, grouping them in parentheses when the term sits beside
-// alternatives
+// termScript ANDs a term's tags, parenthesizing them when the term sits beside alternatives
 func termScript(term api.SpaceQueryTerm, group bool) string {
 	clauses := make([]string, 0, len(term))
 	for _, tag := range slices.Sorted(slices.Values(term)) {

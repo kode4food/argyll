@@ -59,8 +59,7 @@ type (
 		args string
 	}
 
-	// wrapNames are the attribute names a wrap directive declares, nil on a side it leaves to the
-	// signature
+	// wrapNames are attribute names a wrap directive declares, nil on a side left to the signature
 	wrapNames struct {
 		inputs  []string
 		outputs []string

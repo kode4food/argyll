@@ -254,9 +254,8 @@ func BenchmarkMatchParallel(b *testing.B) {
 	})
 }
 
-// BenchmarkCompile measures per-script compilation, hoisting environment construction out of the
-// loop and defeating the script cache with a distinct but semantically identical source per
-// iteration
+// BenchmarkCompile measures per-script compilation, hoisting environment setup out of the loop
+// and defeating the script cache with a distinct but semantically identical source per iteration
 func BenchmarkCompile(b *testing.B) {
 	lua := script.NewLuaEnv()
 	jp := script.NewArgExEnv()

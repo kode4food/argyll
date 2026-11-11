@@ -203,8 +203,7 @@ func (c CatalogState) DeleteSpaceSelection(id SpaceID) CatalogState {
 	return c
 }
 
-// SetStepSpaces returns a new CatalogState where the step is selected by exactly the supplied
-// spaces
+// SetStepSpaces returns a new CatalogState where the step is selected by exactly these spaces
 func (c CatalogState) SetStepSpaces(id StepID, spaces []SpaceID) CatalogState {
 	next := util.SetOf(spaces...)
 	selection := Map[SpaceID, Slice[StepID]]{}

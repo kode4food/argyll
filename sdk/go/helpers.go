@@ -38,8 +38,7 @@ var (
 	ErrHandlerPanic     = errors.New("step handler panicked")
 )
 
-// LocalStepAddr reads the step server address from the STEP_HOSTNAME and STEP_PORT environment
-// variables
+// LocalStepAddr reads step server address from STEP_HOSTNAME and STEP_PORT environment variables
 func LocalStepAddr() StepAddr {
 	port := EnvOr(EnvLookup{
 		Name:    "STEP_PORT",

@@ -50,8 +50,7 @@ func literalOf(v reflect.Value) (string, error) {
 	}
 }
 
-// an empty name renders the braces alone, for an element whose type the composite around it already
-// states
+// an empty name renders the braces alone, for an element whose type the composite around it states
 func compositeLiteral(name string, v reflect.Value) (string, error) {
 	parts, err := partsOf(v)
 	if err != nil {
@@ -141,8 +140,7 @@ func elementLiteral(v reflect.Value, t reflect.Type) (string, error) {
 	return literalOf(v)
 }
 
-// elides reports whether a composite literal of this type states its own type only when it stands
-// alone
+// elides reports if a composite literal of this type states its own type only when standing alone
 func elides(t reflect.Type) bool {
 	switch t.Kind() {
 	case reflect.Struct, reflect.Slice, reflect.Array, reflect.Map:

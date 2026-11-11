@@ -44,8 +44,7 @@ func (e *Engine) StartFlow(req api.CreateFlowRequest) error {
 	return e.StartPlan(req.ID, pl, apps...)
 }
 
-// CreatePlan builds an execution plan over the current catalog, narrowed to a space when one is
-// named
+// CreatePlan builds an execution plan over the current catalog, narrowed to a space when given
 func (e *Engine) CreatePlan(req api.ExecutionPlanRequest) (*api.ExecutionPlan, error) {
 	planReq, err := e.planRequest(req)
 	if err != nil {
@@ -72,8 +71,7 @@ func (e *Engine) StartPlan(fid api.FlowID, pl *api.ExecutionPlan, apps ...flow.A
 	})
 }
 
-// planRequest builds a planning request over the current catalog, narrowed to a space when one is
-// named
+// planRequest builds a planning request over the current catalog, narrowed to a space when given
 func (e *Engine) planRequest(req api.ExecutionPlanRequest) (*plan.Request, error) {
 	cat, err := e.GetCatalogState()
 	if err != nil {

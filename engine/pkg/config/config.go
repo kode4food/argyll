@@ -71,8 +71,7 @@ func DefaultTimebox() timebox.Config {
 	})
 }
 
-// EngineStoreConfig returns the engine metadata store configuration derived from the shared Timebox
-// defaults
+// EngineStoreConfig returns the engine metadata store config derived from shared Timebox defaults
 func (c *Config) EngineStoreConfig() timebox.Config {
 	return c.Timebox.With(timebox.Config{
 		CacheSize:     EngineStoreCacheSize,
@@ -89,8 +88,7 @@ func (c *Config) FlowStoreConfig() timebox.Config {
 	})
 }
 
-// WithWorkDefaults returns a copy of the config with zero-valued work fields filled in from
-// defaults
+// WithWorkDefaults returns a copy of config with zero-valued work fields filled in from defaults
 func (c *Config) WithWorkDefaults() *Config {
 	res := util.MutableCopy(c)
 	if res.Work.MaxRetries == 0 {

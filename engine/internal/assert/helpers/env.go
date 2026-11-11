@@ -115,8 +115,7 @@ func WithEngine(t *testing.T, fn func(*engine.Engine)) {
 	WithEngineDeps(t, engine.Dependencies{}, fn)
 }
 
-// WithEngineDeps creates a test engine with dependency overrides and ensures cleanup happens
-// automatically
+// WithEngineDeps creates a test engine with dependency overrides and ensures cleanup automatically
 func WithEngineDeps(
 	t *testing.T, overrides engine.Dependencies, fn func(*engine.Engine),
 ) {

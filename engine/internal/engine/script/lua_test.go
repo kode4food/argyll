@@ -204,8 +204,7 @@ func TestLuaScriptCache(t *testing.T) {
 	assert.Equal(t, proc1, proc2)
 }
 
-// more scripts than a single state keeps loaded, so its chunk table is dropped and rebuilt part way
-// through
+// more scripts than a single state keeps loaded, so its chunk table is dropped and rebuilt midway
 func TestLuaChunkTableReset(t *testing.T) {
 	env := script.NewLuaEnv()
 

@@ -1023,8 +1023,7 @@ func writeSource(t *testing.T, src string) string {
 	return path
 }
 
-// sourceSteps returns the specifications the generator infers from an ad-hoc source, keyed by step
-// ID
+// sourceSteps returns specifications the generator infers from an ad-hoc source, keyed by step ID
 func sourceSteps(t *testing.T, src string) map[api.StepID]*api.Step {
 	t.Helper()
 	return steps(t, "file="+writeSource(t, src))

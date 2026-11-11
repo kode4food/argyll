@@ -22,8 +22,7 @@ type StepDef struct {
 const DefaultTimeout = 30 * time.Second
 
 // Serve registers the given steps with the engine and serves their handlers. The engine URL,
-// hostname and port come from the ARGYLL_ENGINE_URL, STEP_HOSTNAME and STEP_PORT environment
-// variables
+// hostname and port come from ARGYLL_ENGINE_URL, STEP_HOSTNAME and STEP_PORT environment variables
 func Serve(ctx context.Context, steps ...StepDef) error {
 	addr := argyll.LocalStepAddr()
 	engineURL := argyll.EnvOr(argyll.EnvLookup{

@@ -15,8 +15,7 @@ type (
 		*compiler[*compiledArgEx]
 	}
 
-	// compiledArgEx represents a compiled Argyll Expression and the derived short names it can read
-	// bare
+	// compiledArgEx is a compiled Argyll Expression and the derived short names it can read bare
 	compiledArgEx struct {
 		*argex.Program
 		aliases []bareName

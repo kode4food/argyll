@@ -270,8 +270,7 @@ func (s Step) WithType(stepType api.StepType) Step {
 	return s
 }
 
-// WithAsyncInvoke configures the step's invoke call to complete via webhook rather than in the HTTP
-// response
+// WithAsyncInvoke configures the step's invoke to complete via webhook rather than in HTTP response
 func (s Step) WithAsyncInvoke() Step {
 	return s.WithInvokeMode(api.ActionModeAsync)
 }

@@ -9,8 +9,7 @@ type (
 	// Map is a map whose mutators return a modified copy, leaving the receiver untouched
 	Map[K comparable, V any] map[K]V
 
-	// Slice is a slice whose mutators return a modified copy, leaving the receiver's backing array
-	// untouched
+	// Slice is a slice whose mutators return a copy, leaving the receiver's backing array untouched
 	Slice[T any] []T
 )
 

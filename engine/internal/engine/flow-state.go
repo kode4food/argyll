@@ -274,8 +274,7 @@ func (e *Engine) inputHasValue(name api.Name, attr *api.AttributeSpec, fl *api.F
 	return len(matched) > 0
 }
 
-// isFlowComplete reports whether the active goal set has succeeded and no step is still pending or
-// running
+// isFlowComplete reports whether the active goals have succeeded and no step is pending or running
 func isFlowComplete(fl *api.FlowState) bool {
 	active := activeGoals(fl)
 	if active == nil || !goalsComplete(active.Steps, fl) {

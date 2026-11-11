@@ -79,8 +79,7 @@ func NewStepWithOutputs(id api.StepID, outputs ...api.Name) *api.Step {
 	return st
 }
 
-// NewScriptStep creates a script-based step with the specified language, code, and output
-// attributes
+// NewScriptStep creates a script step with the given language, code, and output attributes
 func NewScriptStep(id api.StepID, language, src string, outputs ...api.Name) *api.Step {
 	st := &api.Step{
 		ID:   id,

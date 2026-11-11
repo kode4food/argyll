@@ -85,8 +85,7 @@ type (
 	// Steps contains a map of Steps by their ID
 	Steps = Map[StepID, *Step]
 
-	// Tags contains optional step metadata used for discovery and grouping, held as a set of opaque
-	// strings
+	// Tags holds optional step metadata for discovery and grouping as a set of opaque strings
 	Tags Slice[string]
 
 	stepHash struct {

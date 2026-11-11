@@ -196,8 +196,7 @@ func (tx *flowTx) scheduleCompensationRetry(sid api.StepID, tkn api.Token, errMs
 	return tx.failCompensation(sid, tkn, errMsg)
 }
 
-// CompleteWork records compensation success, so a compensator settles the same way an invocation
-// does
+// CompleteWork records compensation success, so a compensator settles as an invocation does
 func (r compRuntime) CompleteWork(tkn api.Token, _ api.Args) error {
 	return r.engine.CompleteCompensation(r.flowStep(), tkn)
 }

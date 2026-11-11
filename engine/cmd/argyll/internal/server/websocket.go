@@ -425,8 +425,7 @@ func stringsToIDs(parts [][]string) ([]timebox.AggregateID, error) {
 	return res, nil
 }
 
-// stringsToID reads the wire form, where one part names a type's only aggregate and two name one of
-// many
+// stringsToID reads wire form: one part names a type's only aggregate and two name one of many
 func stringsToID(parts []string) (timebox.AggregateID, bool) {
 	switch len(parts) {
 	case 1:
