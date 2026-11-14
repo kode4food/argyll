@@ -377,6 +377,15 @@ def test_parse_step_with_all_fields():
                             "compensated": True,
                             "output": {"mapping": {"name": "result"}},
                         },
+                        "took": {
+                            "role": "metric",
+                            "metric": {
+                                "select": {
+                                    "language": "argyll",
+                                    "source": "elapsed",
+                                },
+                            },
+                        },
                     },
                     "tags": ["env:prod"],
                     "http": {
@@ -431,6 +440,9 @@ def test_parse_step_with_all_fields():
     assert step.attributes["meta"].meta is not None
     assert step.attributes["output"].output is not None
     assert step.attributes["output"].compensated is True
+    took = step.attributes["took"].metric
+    assert took is not None
+    assert took.select.source == "elapsed"
     assert step.script is not None
     assert step.predicate is not None
     assert step.work_config is not None

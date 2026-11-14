@@ -84,21 +84,26 @@ func semanticConfigs(st map[string]any) []semanticConfig {
 		switch role {
 		case "required", "optional":
 			path := "attributes." + name + "." + role
-			res = appendRoleConfigs(res, path, attr[role])
+			res = appendRoleConfigs(res, path, attr[role], "mapping", "match")
 		case "output":
 			path := "attributes." + name + ".output"
-			res = appendRoleConfigs(res, path, attr["output"])
+			res = appendRoleConfigs(res, path, attr["output"], "mapping", "match")
+		case "metric":
+			path := "attributes." + name + ".metric"
+			res = appendRoleConfigs(res, path, attr["metric"], "select")
 		}
 	}
 	return res
 }
 
-func appendRoleConfigs(res []semanticConfig, base string, raw any) []semanticConfig {
+func appendRoleConfigs(
+	res []semanticConfig, base string, raw any, keys ...string,
+) []semanticConfig {
 	cfg, ok := asMap(raw)
 	if !ok {
 		return res
 	}
-	for _, key := range []string{"mapping", "match"} {
+	for _, key := range keys {
 		value, ok := cfg[key]
 		if !ok {
 			continue

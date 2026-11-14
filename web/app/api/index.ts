@@ -14,6 +14,7 @@ export type {
   MetaConfig,
   FeedConfig,
   OutputConfig,
+  MetricConfig,
   MappingConfig,
   HTTPConfig,
   ScriptConfig,
@@ -45,7 +46,9 @@ export {
   SCRIPT_LANGUAGE_ARGYLL,
   SCRIPT_LANGUAGE_LUA,
   AttributeRole,
+  isProducerRole,
   META_KEYS,
+  METRIC_SELECTS,
 } from "./types";
 
 export type { GoalSets } from "./goals";

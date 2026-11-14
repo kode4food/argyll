@@ -1,5 +1,5 @@
 import React, { useMemo } from "react";
-import { Step, AttributeRole } from "@/app/api";
+import { Step, AttributeRole, isProducerRole } from "@/app/api";
 import { getArgIcon } from "@/utils/iconRegistry";
 import styles from "./FlowStats.module.css";
 import { useT } from "@/app/i18n";
@@ -40,7 +40,7 @@ const FlowStats: React.FC<FlowStatsProps> = React.memo(function FlowStats({
           if (spec.role === AttributeRole.Required) requiredKeys.push(name);
           else if (spec.role === AttributeRole.Optional)
             optionalKeys.push(name);
-          else if (spec.role === AttributeRole.Output) outputKeys.push(name);
+          else if (isProducerRole(spec.role)) outputKeys.push(name);
         });
 
         const requiredArgs = requiredKeys.length;

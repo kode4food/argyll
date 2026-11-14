@@ -37,6 +37,22 @@ describe("SelectField", () => {
     expect(face()).toHaveTextContent("missing");
   });
 
+  test("shows the placeholder and face icon without a value", () => {
+    const { container } = render(
+      <SelectField
+        ariaLabel="Choice"
+        Icon={IconStandard}
+        onChange={onChange}
+        options={options}
+        placeholder="Pick one"
+        value=""
+      />
+    );
+
+    expect(face()).toHaveTextContent("Pick one");
+    expect(container.querySelector("button svg")).not.toBeNull();
+  });
+
   test("anchors the list to the viewport", () => {
     renderField();
     fireEvent.click(face());

@@ -66,6 +66,27 @@ describe("attributeUtils", () => {
       expect(result.value).toBeUndefined();
     });
 
+    it("extracts metric values from execution outputs", () => {
+      const arg = {
+        name: "latency",
+        argType: "metric" as const,
+        spec: {
+          role: AttributeRole.Metric,
+          metric: { select: { language: "argyll", source: "elapsed" } },
+        },
+      };
+      const execution = {
+        ...mockExecution,
+        outputs: { latency: { step: "step-1", value: 12 } },
+      };
+
+      const result = getAttributeValue(arg, execution);
+      expect(result).toEqual({
+        hasValue: true,
+        value: { step: "step-1", value: 12 },
+      });
+    });
+
     it("extracts output values from execution outputs", () => {
       const arg = {
         name: "output1",

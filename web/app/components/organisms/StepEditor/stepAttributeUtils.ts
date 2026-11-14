@@ -22,6 +22,7 @@ const ATTR_ROLE_TYPE: Record<AttributeRole, AttributeRoleType> = {
   [AttributeRole.Meta]: "meta",
   [AttributeRole.Feed]: "feed",
   [AttributeRole.Output]: "output",
+  [AttributeRole.Metric]: "metric",
 };
 
 const ATTR_ID_PREFIX: Record<AttributeRole, string> = {
@@ -31,6 +32,7 @@ const ATTR_ID_PREFIX: Record<AttributeRole, string> = {
   [AttributeRole.Meta]: "meta",
   [AttributeRole.Feed]: "feed",
   [AttributeRole.Output]: "output",
+  [AttributeRole.Metric]: "metric",
 };
 
 function buildSingleAttribute(
@@ -51,6 +53,8 @@ function buildSingleAttribute(
     spec.role === AttributeRole.Output
       ? spec.output?.mapping
       : inputConfig?.mapping;
+  const metricSelect =
+    spec.role === AttributeRole.Metric ? spec.metric?.select : undefined;
 
   return {
     id: `${prefix}-${index}-${timestamp}`,
@@ -72,6 +76,8 @@ function buildSingleAttribute(
     matchScript: inputConfig?.match?.source,
     metaKey: spec.role === AttributeRole.Meta ? spec.meta?.key : undefined,
     feedId: spec.role === AttributeRole.Feed ? spec.feed?.id : undefined,
+    metricLanguage: metricSelect?.language,
+    metricScript: metricSelect?.source,
     mappingName: mappingConfig?.name,
     mappingLanguage: mappingConfig?.script?.language,
     mappingScript: mappingConfig?.script?.source,
@@ -143,6 +149,7 @@ const ROLE_MAP: Record<AttributeRoleType, AttributeRole> = {
   meta: AttributeRole.Meta,
   feed: AttributeRole.Feed,
   output: AttributeRole.Output,
+  metric: AttributeRole.Metric,
 };
 
 export function createStepAttributes(
@@ -169,6 +176,16 @@ export function createStepAttributes(
       if (a.feedId?.trim()) spec.feed = { id: a.feedId.trim() };
     } else if (a.role === "output") {
       if (mapping) spec.output = { mapping };
+    } else if (a.role === "metric") {
+      const source = a.metricScript?.trim();
+      if (source) {
+        spec.metric = {
+          select: {
+            language: a.metricLanguage?.trim() || SCRIPT_LANGUAGE_ARGYLL,
+            source,
+          },
+        };
+      }
     }
 
     stepAttributes[a.name] = spec;

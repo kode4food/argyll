@@ -1,4 +1,4 @@
-import { Step, AttributeRole, ExecutionPlan } from "@/app/api";
+import { Step, AttributeRole, ExecutionPlan, isProducerRole } from "@/app/api";
 import { loadNodePositions, NodePositionScope } from "@/utils/nodePositioning";
 
 export function generateOverviewPlan(
@@ -17,7 +17,7 @@ export function generateOverviewPlan(
         attributes[attrName] = { providers: [], consumers: [] };
       }
 
-      if (attr.role === AttributeRole.Output) {
+      if (isProducerRole(attr.role)) {
         attributes[attrName].providers.push(step.id);
       } else if (
         attr.role === AttributeRole.Required ||

@@ -3,6 +3,7 @@ import {
   AttributeRole,
   AttributeSpec,
   InputCollect,
+  isProducerRole,
   ScriptConfig,
 } from "@/app/api";
 import { stepTypeOrder } from "@/app/constants";
@@ -29,6 +30,7 @@ export const roleArgType: Record<AttributeRole, ArgType> = {
   meta: "meta",
   feed: "feed",
   output: "output",
+  metric: "metric",
 };
 
 export const getSortedAttributes = (
@@ -45,6 +47,7 @@ export const getSortedAttributes = (
     ...sortedByName.filter((a) => a.spec.role === AttributeRole.Meta),
     ...sortedByName.filter((a) => a.spec.role === AttributeRole.Feed),
     ...sortedByName.filter((a) => a.spec.role === AttributeRole.Output),
+    ...sortedByName.filter((a) => a.spec.role === AttributeRole.Metric),
   ];
 };
 
@@ -55,9 +58,10 @@ const SPEC_PREVIEWS: Partial<
   [AttributeRole.Const]: (spec) => spec.const?.value,
   [AttributeRole.Meta]: (spec) => spec.meta?.key,
   [AttributeRole.Feed]: (spec) => spec.feed?.id,
+  [AttributeRole.Metric]: (spec) => spec.metric?.select?.source,
 };
 
-// The value a Step declares for an Attribute: default, const, meta key, Feed
+// The value a Step declares for an Attribute: default, const, meta key, Feed, metric select
 export const getSpecPreview = (spec: AttributeSpec): string | undefined =>
   SPEC_PREVIEWS[spec.role]?.(spec) || undefined;
 
@@ -85,8 +89,8 @@ export const getStepType = (step: Step): StepType => {
   const hasRequiredInputs = Object.values(step.attributes).some(
     (attr) => attr.role === AttributeRole.Required
   );
-  const hasOutputs = Object.values(step.attributes).some(
-    (attr) => attr.role === AttributeRole.Output
+  const hasOutputs = Object.values(step.attributes).some((attr) =>
+    isProducerRole(attr.role)
   );
 
   if (hasOutputs && !hasRequiredInputs) return "resolver";

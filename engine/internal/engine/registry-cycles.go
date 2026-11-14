@@ -40,7 +40,7 @@ func (w *attrCycleWalker) check(sid api.StepID) error {
 
 	for name, attr := range w.steps[sid].Attributes {
 		edges := w.deps[name]
-		if !attr.IsInput() || edges == nil {
+		if !attr.IsConsumer() || edges == nil {
 			continue
 		}
 		for _, providerID := range edges.Providers {

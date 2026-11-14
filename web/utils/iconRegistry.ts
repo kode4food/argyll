@@ -24,6 +24,7 @@ import {
   NotebookPen,
   FileCode2,
   Filter,
+  Gauge,
   GitBranch,
   Globe,
   Info,
@@ -60,7 +61,7 @@ import {
 import { Step, StepType } from "@/app/api";
 
 export type ArgType =
-  "required" | "optional" | "const" | "meta" | "feed" | "output";
+  "required" | "optional" | "const" | "meta" | "feed" | "output" | "metric";
 
 export interface ArgIconConfig {
   Icon: LucideIcon;
@@ -116,6 +117,7 @@ export const IconAttributeConst = Lock;
 export const IconAttributeMeta = Tag;
 export const IconAttributeFeed = Rss;
 export const IconAttributeOutput = ArrowLeft;
+export const IconAttributeMetric = Gauge;
 export const IconAttributeLabel = Tags;
 export const IconSpace = Boxes;
 export const IconFeed = Rss;
@@ -153,6 +155,7 @@ const ARG_ICON_MAP: Record<ArgType, ArgIconConfig> = {
   meta: { Icon: IconAttributeMeta, className: "arg-icon meta" },
   feed: { Icon: IconAttributeFeed, className: "arg-icon feed" },
   output: { Icon: IconAttributeOutput, className: "arg-icon output" },
+  metric: { Icon: IconAttributeMetric, className: "arg-icon metric" },
 };
 
 export const getArgIcon = (argType: ArgType): ArgIconConfig => {

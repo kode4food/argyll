@@ -1,4 +1,4 @@
-import { AttributeSpec, AttributeRole } from "@/app/api";
+import { AttributeSpec, AttributeRole, isProducerRole } from "@/app/api";
 
 export interface HandlePosition {
   id: string;
@@ -38,7 +38,7 @@ export const groupAttributesByRole = (
       .filter(([_, spec]) => spec.role === AttributeRole.Optional)
       .map(([name]) => name),
     output: sortedAttrs
-      .filter(([_, spec]) => spec.role === AttributeRole.Output)
+      .filter(([_, spec]) => isProducerRole(spec.role))
       .map(([name]) => name),
   };
 };

@@ -221,7 +221,7 @@ func (e *Engine) needsOutputs(
 	st *api.Step, fl *api.FlowState, scope util.Set[api.StepID], when time.Time,
 ) bool {
 	for name, attr := range st.Attributes {
-		if attr.IsOutput() && e.needsOutput(name, fl, scope, when) {
+		if attr.IsProducer() && e.needsOutput(name, fl, scope, when) {
 			return true
 		}
 	}
@@ -372,7 +372,7 @@ func goalScope(pl *api.ExecutionPlan, goals []api.StepID) util.Set[api.StepID] {
 		}
 		res.Add(sid)
 		for name, attr := range st.Attributes {
-			if deps, ok := pl.Attributes[name]; ok && attr.IsInput() {
+			if deps, ok := pl.Attributes[name]; ok && attr.IsConsumer() {
 				todo = append(todo, deps.Providers...)
 			}
 		}
@@ -406,9 +406,4 @@ func hasActiveWork(fl *api.FlowState) bool {
 		}
 	}
 	return false
-}
-
-func isOutputAttribute(st *api.Step, name api.Name) bool {
-	attr, ok := st.Attributes[name]
-	return ok && attr.IsOutput()
 }

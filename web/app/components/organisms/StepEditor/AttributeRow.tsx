@@ -9,6 +9,8 @@ import { useFeeds } from "@/app/store/flowStore";
 import {
   IconArrayMultiple,
   IconArraySingle,
+  IconAttributeFeed,
+  IconAttributeMeta,
   IconCompensate,
   IconExpandDown,
   IconExpandUp,
@@ -25,12 +27,18 @@ import {
   inputCollectTypes,
 } from "./stepEditorConstants";
 import AttributeMappingPanel from "./AttributeMappingPanel";
-import ComboInput from "@/app/components/molecules/ComboInput";
+import MetricSelectInput from "./MetricSelectInput";
+import PresetSelectInput from "./PresetSelectInput";
 import InlineSelectDropdown, {
   type InlineSelectOption,
 } from "./InlineSelectDropdown";
 
-const NO_MAPPING_ROLES = new Set<Attribute["role"]>(["const", "meta", "feed"]);
+const NO_MAPPING_ROLES = new Set<Attribute["role"]>([
+  "const",
+  "meta",
+  "feed",
+  "metric",
+]);
 
 interface AttributeRowProps {
   attr: Attribute;
@@ -44,6 +52,12 @@ interface AttributeRowProps {
   updateAttribute: (id: string, field: keyof Attribute, value: any) => void;
   removeAttribute: (id: string) => void;
 }
+
+const metaKeyOptions = (t: (key: string) => string): InlineSelectOption[] =>
+  META_KEYS.map((key) => ({
+    value: key,
+    label: t(`stepEditor.metaKey.${key}`),
+  }));
 
 const AttributeRow: React.FC<AttributeRowProps> = ({
   attr,
@@ -59,7 +73,7 @@ const AttributeRow: React.FC<AttributeRowProps> = ({
 }) => {
   const t = useT();
   const feeds = useFeeds();
-  const feedIds = React.useMemo(() => feeds.map((f) => f.id), [feeds]);
+  const feedOptions = feeds.map((f) => ({ value: f.id, label: f.name }));
   const [isMappingExpanded, setIsMappingExpanded] = React.useState(false);
 
   const collect =
@@ -181,7 +195,7 @@ const AttributeRow: React.FC<AttributeRowProps> = ({
             options={roleOptions}
             value={attr.role}
           />
-          {handling === "compensated" && (
+          {handling === "compensated" && attr.role !== "metric" && (
             <button
               type="button"
               onClick={() =>
@@ -209,22 +223,28 @@ const AttributeRow: React.FC<AttributeRowProps> = ({
         </SegmentedGroup>
         {nameControl}
         {attr.role === "meta" && (
-          <ComboInput
-            value={attr.metaKey || ""}
-            suggestions={META_KEYS}
+          <PresetSelectInput
+            ariaLabel={t("stepEditor.metaKeySelect")}
+            Icon={IconAttributeMeta}
             onChange={(v) => updateAttribute(attr.id, "metaKey", v)}
+            presets={metaKeyOptions(t)}
             placeholder={t("stepEditor.metaKeyPlaceholder")}
-            className={formStyles.argValueInput}
+            value={attr.metaKey || ""}
           />
         )}
         {attr.role === "feed" && (
-          <ComboInput
-            value={attr.feedId || ""}
-            suggestions={feedIds}
+          <PresetSelectInput
+            ariaLabel={t("stepEditor.feedSelect")}
+            Icon={IconAttributeFeed}
             onChange={(v) => updateAttribute(attr.id, "feedId", v)}
+            presets={feedOptions}
             placeholder={t("stepEditor.feedIdPlaceholder")}
-            className={formStyles.argValueInput}
+            emptyLabel={t("stepEditor.feedNoneRegistered")}
+            value={attr.feedId || ""}
           />
+        )}
+        {attr.role === "metric" && (
+          <MetricSelectInput attr={attr} updateAttribute={updateAttribute} />
         )}
         {(attr.role === "required" || attr.role === "optional") && (
           <ScriptLanguageInlineInput

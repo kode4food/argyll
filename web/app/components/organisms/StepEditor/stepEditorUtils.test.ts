@@ -53,6 +53,12 @@ describe("stepEditorUtils", () => {
           role: AttributeRole.Output,
           output: { mapping: { name: "child_out" } },
         },
+        metric_arg: {
+          role: AttributeRole.Metric,
+          metric: {
+            select: { language: "lua", source: "return work.attempts.max" },
+          },
+        },
       },
       flow: { goals: { steps: ["goal-1"] } },
     };
@@ -87,6 +93,13 @@ describe("stepEditorUtils", () => {
       expect.objectContaining({ role: "feed", feedId: "order-total" })
     );
     expect(result.output_arg.mappingName).toBe("child_out");
+    expect(result.metric_arg).toEqual(
+      expect.objectContaining({
+        role: "metric",
+        metricLanguage: "lua",
+        metricScript: "return work.attempts.max",
+      })
+    );
     expect(buildAttributesFromStep(null)).toEqual([]);
   });
 
@@ -152,6 +165,11 @@ describe("stepEditorUtils", () => {
       { key: "stepEditor.feedIdRequired", vars: { name: "total" } },
     ],
     [
+      "missing metric selects",
+      [attribute({ role: "metric", name: "took", metricScript: " " })],
+      { key: "stepEditor.metricSelectRequired", vars: { name: "took" } },
+    ],
+    [
       "optional attributes without defaults",
       [attribute({ role: "optional", name: "maybe" })],
       null,
@@ -209,6 +227,12 @@ describe("stepEditorUtils", () => {
         name: "output",
         mappingScript: " output.result ",
       }),
+      attribute({
+        id: "attr-7",
+        role: "metric",
+        name: "took",
+        metricScript: " elapsed ",
+      }),
     ]);
 
     expect(result.input).toEqual({
@@ -236,6 +260,10 @@ describe("stepEditorUtils", () => {
     expect(result.output.output?.mapping?.script).toEqual({
       language: "argyll",
       source: "output.result",
+    });
+    expect(result.took).toEqual({
+      role: AttributeRole.Metric,
+      metric: { select: { language: "argyll", source: "elapsed" } },
     });
   });
 
@@ -356,6 +384,20 @@ describe("stepEditorUtils", () => {
         ],
       },
       { key: "stepEditor.constMappingNotAllowed", vars: { name: "total" } },
+    ],
+    [
+      "metric mappings",
+      {
+        attributes: [
+          attribute({
+            role: "metric",
+            name: "took",
+            metricScript: "elapsed",
+            mappingName: "illegal",
+          }),
+        ],
+      },
+      { key: "stepEditor.constMappingNotAllowed", vars: { name: "took" } },
     ],
     [
       "missing mapping language",

@@ -169,7 +169,7 @@ func validateStepFeeds(cat *api.CatalogState, st *api.Step) error {
 }
 
 // checkFeedCatalog requires the Feed's Space to exist and each of its Attributes to be the output
-// of a registered Step
+// or metric of a registered Step
 func checkFeedCatalog(cat *api.CatalogState, f *api.Feed) error {
 	if _, ok := cat.Spaces.Defined[f.SpaceID]; !ok && f.SpaceID != api.NoSpace {
 		return fmt.Errorf("%w: %w: %s", api.ErrInvalidFeed, api.ErrSpaceNotFound, f.SpaceID)

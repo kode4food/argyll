@@ -1,4 +1,4 @@
-import { AttributeRole } from "@/app/api";
+import { AttributeRole, isProducerRole } from "@/app/api";
 import { stepLayout } from "@/constants/layout";
 
 export interface RoleCounts {
@@ -37,7 +37,7 @@ const countRoleAttributes = (
       counts.optional += 1;
       return;
     }
-    if (spec.role === AttributeRole.Output) {
+    if (isProducerRole(spec.role)) {
       counts.output += 1;
     }
   });

@@ -210,7 +210,7 @@ func (b *builder) computeSatisfiable() {
 			b.satisfiable.Add(st.ID)
 			progress = true
 			for name, attr := range st.Attributes {
-				if attr.IsOutput() && !b.available.Contains(name) {
+				if attr.IsProducer() && !b.available.Contains(name) {
 					b.available.Add(name)
 				}
 			}
@@ -384,7 +384,7 @@ func (b *builder) buildPlan() {
 		st := b.candidates[id]
 		b.steps[id] = st
 		for name, attr := range st.Attributes {
-			if attr.IsOutput() && !b.hasInit(name) {
+			if attr.IsProducer() && !b.hasInit(name) {
 				b.addProvider(name, id)
 			}
 		}
@@ -393,7 +393,7 @@ func (b *builder) buildPlan() {
 	for id := range b.included {
 		st := b.candidates[id]
 		for name, attr := range st.Attributes {
-			if attr.IsInput() && b.inputSatisfied(name) {
+			if attr.IsConsumer() && b.inputSatisfied(name) {
 				b.addConsumer(name, id)
 			}
 		}
@@ -505,7 +505,7 @@ func buildRequired(st *api.Step) util.Set[api.Name] {
 func stepOutputNames(st *api.Step) []api.Name {
 	var outputs []api.Name
 	for name, attr := range st.Attributes {
-		if attr.IsOutput() {
+		if attr.IsProducer() {
 			outputs = append(outputs, name)
 		}
 	}

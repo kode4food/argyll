@@ -41,10 +41,16 @@ const applyAttributeFieldSideEffects = (
       updated.collect = "first";
     }
     const isUncollected =
-      value === "output" || value === "meta" || value === "feed";
+      value === "output" ||
+      value === "meta" ||
+      value === "feed" ||
+      value === "metric";
     if (isUncollected) {
       updated.forEach = false;
       updated.collect = "first";
+    }
+    if (value === "metric") {
+      updated.compensated = false;
     }
   }
 

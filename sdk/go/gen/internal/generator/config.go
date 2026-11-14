@@ -219,6 +219,27 @@ func setRole(s *api.AttributeSpec, role api.AttributeRole) error {
 	return nil
 }
 
+// withMetrics adds the metric Attributes a metrics directive names, each by the script selecting
+// its value, since the engine supplies them and no signature carries them
+func withMetrics(attrs api.AttributeSpecs, metrics Options) (api.AttributeSpecs, error) {
+	res := attrs
+	for _, o := range metrics {
+		name := api.Name(o.Key)
+		if _, ok := res[name]; ok {
+			return nil, fmt.Errorf("%w: metric %q is already an attribute", ErrBadProp, name)
+		}
+		sel := &api.ScriptConfig{Language: api.ScriptLangArgyll}
+		if !parseScript(sel, o.Value) {
+			return nil, fmt.Errorf("%w: metric %q needs a script", ErrBadProp, name)
+		}
+		res = api.Set(res, name, &api.AttributeSpec{
+			Role:   api.RoleMetric,
+			Metric: &api.MetricConfig{Select: sel},
+		})
+	}
+	return res, nil
+}
+
 // default and const values reach the engine as JSON
 func jsonValue(t types.Type, o Option) string {
 	if (o.Key == defaultProp || o.Key == valueProp) && isString(t) {

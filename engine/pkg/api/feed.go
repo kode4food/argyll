@@ -68,7 +68,7 @@ var (
 	ErrFeedAttributeEmpty    = errors.New("feed attribute empty")
 	ErrFeedAttributeReserved = errors.New("feed attribute uses reserved name")
 	ErrFeedAttributeRepeated = errors.New("feed attribute repeated")
-	ErrFeedAttributeUnknown  = errors.New("feed attribute is no Step output")
+	ErrFeedAttributeUnknown  = errors.New("feed attribute is no Step output or metric")
 	ErrFeedNotFound          = errors.New("feed not found")
 	ErrFeedExists            = errors.New("feed exists")
 	ErrInvalidFeed           = errors.New("invalid feed")
@@ -114,14 +114,15 @@ func (f *Feed) Seed() (any, error) {
 	return res, nil
 }
 
-// Folds reports whether a Step's outputs feed this Feed, given the Steps its Space selects
+// Folds reports whether a Step's outputs or metrics feed this Feed, given the Steps its Space
+// selects
 func (f *Feed) Folds(st *Step, selected []StepID) bool {
 	if f.SpaceID != NoSpace && !slices.Contains(selected, st.ID) {
 		return false
 	}
 	return slices.ContainsFunc(f.Attributes, func(name Name) bool {
 		attr, ok := st.Attributes[name]
-		return ok && attr.IsOutput()
+		return ok && attr.IsProducer()
 	})
 }
 

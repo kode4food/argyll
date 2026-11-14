@@ -136,11 +136,11 @@ func (g AttributeGraph) AddStep(st *Step) AttributeGraph {
 			}
 		}
 
-		if attr.IsOutput() {
+		if attr.IsProducer() {
 			edges = edges.addProvider(st.ID)
 		}
 
-		if attr.IsInput() {
+		if attr.IsConsumer() {
 			edges = edges.addConsumer(st.ID)
 		}
 
@@ -161,11 +161,11 @@ func (g AttributeGraph) RemoveStep(st *Step) AttributeGraph {
 
 		edges := res[name]
 
-		if attr.IsOutput() {
+		if attr.IsProducer() {
 			edges = edges.removeProvider(st.ID)
 		}
 
-		if attr.IsInput() {
+		if attr.IsConsumer() {
 			edges = edges.removeConsumer(st.ID)
 		}
 

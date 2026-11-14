@@ -37,6 +37,7 @@ describe("stepUtils", () => {
       feed1: attr(AttributeRole.Feed),
       zOutput: attr(AttributeRole.Output),
       aOutput: attr(AttributeRole.Output),
+      metric1: attr(AttributeRole.Metric),
     };
 
     const result = getSortedAttributes(attributes);
@@ -50,6 +51,7 @@ describe("stepUtils", () => {
       "feed1",
       "aOutput",
       "zOutput",
+      "metric1",
     ]);
     expect(result[0].spec).toBe(alpha);
     expect(getSortedAttributes({})).toEqual([]);
@@ -249,6 +251,13 @@ describe("stepUtils", () => {
     [{ role: AttributeRole.Const, const: { value: '"x"' } }, '"x"'],
     [{ role: AttributeRole.Meta, meta: { key: "flow_id" } }, "flow_id"],
     [{ role: AttributeRole.Feed, feed: { id: "total" } }, "total"],
+    [
+      {
+        role: AttributeRole.Metric,
+        metric: { select: { language: "argyll", source: "work.attempts.max" } },
+      },
+      "work.attempts.max",
+    ],
   ] as [AttributeSpec, string | undefined][])(
     "previews %j as %s",
     (spec, expected) => {

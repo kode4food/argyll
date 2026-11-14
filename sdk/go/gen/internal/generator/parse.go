@@ -72,6 +72,7 @@ type (
 		description string
 		http        Options
 		work        Options
+		metrics     Options
 	}
 
 	// stepDecl is what a step's directives declare
@@ -87,6 +88,7 @@ type (
 		options     Options
 		http        Options
 		work        Options
+		metrics     Options
 	}
 )
 
@@ -99,6 +101,7 @@ const (
 	workDirective      = "work"
 	predicateDirective = "predicate"
 	tagsDirective      = "tags"
+	metricsDirective   = "metrics"
 	descDirective      = "description"
 	memoDirective      = "memoize"
 	compDirective      = "compensate"
@@ -181,6 +184,7 @@ func (g *pkgGen) declOf(fn *ast.FuncDecl, args string, wrap bool) (stepDecl, err
 		options:     options,
 		http:        dirs.http,
 		work:        dirs.work,
+		metrics:     dirs.metrics,
 	}
 	if err := handlingIn(fn, &res); err != nil {
 		return stepDecl{}, g.errorAt(fn, "%w", err)
@@ -243,6 +247,10 @@ func (g *pkgGen) directivesOf(fn *ast.FuncDecl) (stepDirectives, error) {
 	if err != nil {
 		return stepDirectives{}, g.errorAt(fn, "%w", err)
 	}
+	metrics, err := optionsIn(fn, metricsDirective)
+	if err != nil {
+		return stepDirectives{}, g.errorAt(fn, "%w", err)
+	}
 	predicate, err := parsePredicate(fn)
 	if err != nil {
 		return stepDirectives{}, g.errorAt(fn, "%w", err)
@@ -257,6 +265,7 @@ func (g *pkgGen) directivesOf(fn *ast.FuncDecl) (stepDirectives, error) {
 		description: description,
 		http:        http,
 		work:        work,
+		metrics:     metrics,
 	}, nil
 }
 
@@ -275,8 +284,12 @@ func (g *pkgGen) rejectProps(fn *ast.FuncDecl) error {
 func (g *pkgGen) model(config *stepModelConfig) (stepModel, error) {
 	fn := config.function
 	decl := config.declaration
+	attrs, err := withMetrics(config.attributes, decl.metrics)
+	if err != nil {
+		return stepModel{}, g.errorAt(fn, "%w", err)
+	}
 	spec := &api.Step{
-		Attributes:  config.attributes,
+		Attributes:  attrs,
 		Tags:        decl.tags,
 		Predicate:   decl.predicate,
 		Description: decl.description,
@@ -304,7 +317,7 @@ func (g *pkgGen) model(config *stepModelConfig) (stepModel, error) {
 	if len(decl.work) > 0 {
 		spec.WorkConfig = &api.WorkConfig{}
 	}
-	err := applyOptions(spec.WorkConfig, decl.work, workSetters)
+	err = applyOptions(spec.WorkConfig, decl.work, workSetters)
 	if err != nil {
 		return stepModel{}, g.errorAt(fn, "%w", err)
 	}

@@ -1701,6 +1701,8 @@ components:
               invocation time
             - `feed`: Feed value captured at Flow start
             - `output`: Value the step may produce during execution
+            - `metric`: Engine measurement of the step's finished work, for
+              downstream steps and Feeds
           enum:
             - required
             - optional
@@ -1708,6 +1710,7 @@ components:
             - meta
             - feed
             - output
+            - metric
           example: "required"
         required:
           $ref: "#/components/schemas/RequiredConfig"
@@ -1721,6 +1724,8 @@ components:
           $ref: "#/components/schemas/FeedConfig"
         output:
           $ref: "#/components/schemas/OutputConfig"
+        metric:
+          $ref: "#/components/schemas/MetricConfig"
         compensated:
           type: boolean
           default: false
@@ -1889,6 +1894,35 @@ components:
       properties:
         mapping:
           $ref: "#/components/schemas/MappingConfig"
+
+    MetricConfig:
+      type: object
+      description: |
+        Configuration for a metric attribute, measured when the step completes,
+        fails, or is skipped, before any compensation. Its value is an object
+        naming the measuring step and the selected measurement, such as
+        `{"step": "charge", "value": 182}`.
+      required:
+        - select
+      properties:
+        select:
+          allOf:
+            - $ref: "#/components/schemas/ScriptConfig"
+          description: |
+            Script selecting the attribute's value from the step's measured
+            work, bound as these names:
+            - `succeeded`: Whether the step completed
+            - `skipped`: Whether a predicate or required match skipped the
+              step
+            - `elapsed`: Milliseconds from step start until it completes or
+              fails
+            - `work`: `items` and `failed` work items, and `attempts` with
+              `total` invocations across all work items, retries included,
+              and `average`, `min`, and `max` per work item
+            The metric folds when its script evaluates successfully.
+          example:
+            language: argyll
+            source: elapsed
 
     MappingConfig:
       type: object

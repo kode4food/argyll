@@ -80,6 +80,18 @@ var MatchStep = &api.Step{
 	},
 }
 
+// MetricStep is the synthetic step a metric select script compiles against, exposing each
+// top-level metric
+var MetricStep = &api.Step{
+	ID: "metric",
+	Attributes: api.AttributeSpecs{
+		api.MetricSucceeded: {Role: api.RoleRequired},
+		api.MetricSkipped:   {Role: api.RoleRequired},
+		api.MetricElapsed:   {Role: api.RoleRequired},
+		api.MetricWork:      {Role: api.RoleRequired},
+	},
+}
+
 // NewRegistry creates a registry with Argyll Expressions and Lua environments
 func NewRegistry() *Registry {
 	return &Registry{
@@ -126,7 +138,7 @@ func (r *Registry) Get(language string) (Environment, error) {
 }
 
 // ValidateStep checks that a step's predicate and attribute match scripts compile successfully
-// against the registry and can return a Boolean
+// against the registry and can return a Boolean, and that its metric select scripts compile
 func (r *Registry) ValidateStep(st *api.Step) error {
 	if st.Predicate != nil {
 		if err := r.ValidatePredicate(st, st.Predicate); err != nil {
@@ -134,6 +146,9 @@ func (r *Registry) ValidateStep(st *api.Step) error {
 		}
 	}
 	for name, attr := range st.Attributes {
+		if _, err := r.Compile(MetricStep, attr.MetricSelect()); err != nil {
+			return fmt.Errorf("attribute %q select: %w", name, err)
+		}
 		cfg := attr.Match()
 		if cfg == nil {
 			continue
@@ -155,6 +170,19 @@ func (r *Registry) Compile(st *api.Step, cfg *api.ScriptConfig) (Compiled, error
 		return nil, err
 	}
 	return env.Compile(st, cfg)
+}
+
+// Evaluate compiles a script config and evaluates it with the given arguments
+func (r *Registry) Evaluate(st *api.Step, cfg *api.ScriptConfig, args api.Args) (any, error) {
+	env, err := r.Get(cfg.Language)
+	if err != nil {
+		return nil, err
+	}
+	comp, err := env.Compile(st, cfg)
+	if err != nil {
+		return nil, err
+	}
+	return env.Evaluate(comp, st, args)
 }
 
 // ValidatePredicate compiles a predicate or matcher script and checks that it can return a Boolean

@@ -56,6 +56,13 @@ export function validateAttributesList(
         vars: { name: attr.name },
       };
     }
+
+    if (attr.role === "metric" && !attr.metricScript?.trim()) {
+      return {
+        key: "stepEditor.metricSelectRequired",
+        vars: { name: attr.name },
+      };
+    }
   }
   return null;
 }
@@ -72,7 +79,10 @@ export function validateMappings(
     const mappingLanguage = attr.mappingLanguage?.trim() || "";
 
     const isEngineSupplied =
-      attr.role === "const" || attr.role === "meta" || attr.role === "feed";
+      attr.role === "const" ||
+      attr.role === "meta" ||
+      attr.role === "feed" ||
+      attr.role === "metric";
     if (isEngineSupplied && (mappingName || mappingScript)) {
       return {
         key: "stepEditor.constMappingNotAllowed",

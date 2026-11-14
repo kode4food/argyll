@@ -6,11 +6,12 @@ from .errors import StepValidationError
 from .types import AttributeRole, AttributeSpec
 
 _ROLE_EXCLUSIVE = {
-    AttributeRole.REQUIRED: ("optional", "const", "meta", "output"),
-    AttributeRole.OPTIONAL: ("required", "const", "meta", "output"),
-    AttributeRole.CONST: ("required", "optional", "meta", "output"),
-    AttributeRole.META: ("required", "optional", "const", "output"),
-    AttributeRole.OUTPUT: ("required", "optional", "const", "meta"),
+    AttributeRole.REQUIRED: ("optional", "const", "meta", "output", "metric"),
+    AttributeRole.OPTIONAL: ("required", "const", "meta", "output", "metric"),
+    AttributeRole.CONST: ("required", "optional", "meta", "output", "metric"),
+    AttributeRole.META: ("required", "optional", "const", "output", "metric"),
+    AttributeRole.OUTPUT: ("required", "optional", "const", "meta", "metric"),
+    AttributeRole.METRIC: ("required", "optional", "const", "meta", "output"),
 }
 
 
@@ -28,6 +29,19 @@ def check_attribute_role_config(name: str, spec: AttributeSpec) -> None:
         )
     if spec.role == AttributeRole.META and (not spec.meta or not spec.meta.key):
         raise StepValidationError(f"Meta attribute {name} requires meta key")
+    if spec.role == AttributeRole.METRIC:
+        check_metric(name, spec)
+
+
+def check_metric(name: str, spec: AttributeSpec) -> None:
+    if not spec.metric or not spec.metric.select.source:
+        raise StepValidationError(
+            f"Metric attribute {name} requires select script"
+        )
+    if spec.compensated:
+        raise StepValidationError(
+            f"Metric attribute {name} cannot be compensated"
+        )
 
 
 def check_attribute_default(name: str, spec: AttributeSpec) -> None:

@@ -12,6 +12,7 @@ export const attributeRoleTypes: AttributeRoleType[] = [
   "meta",
   "feed",
   "output",
+  "metric",
 ];
 
 export const inputCollectTypes: InputCollect[] = [

@@ -67,7 +67,7 @@ func RequiredInputsAvailable(
 func StepOutputsSatisfied(st *api.Step, satisfied func(api.Name) bool) bool {
 	hasOutputs := false
 	for name, attr := range st.Attributes {
-		if !attr.IsOutput() {
+		if !attr.IsProducer() {
 			continue
 		}
 		hasOutputs = true

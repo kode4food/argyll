@@ -31,6 +31,7 @@
   --arg-icon-meta: #8b5cf6;
   --arg-icon-feed: var(--color-primary);
   --arg-icon-output: #10b981;
+  --arg-icon-metric: var(--arg-icon-meta);
 
   /* Primary Theme Colors - Used for UI elements, can be changed for branding */
   /* Colors from argyll-logo.svg */

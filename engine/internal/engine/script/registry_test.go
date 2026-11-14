@@ -57,6 +57,30 @@ func TestRegistryCompilation(t *testing.T) {
 	})
 }
 
+func TestRegistryEvaluate(t *testing.T) {
+	registry := script.NewRegistry()
+	args := api.Args{"work": map[string]any{"items": float64(3)}}
+
+	res, err := registry.Evaluate(script.MetricStep, &api.ScriptConfig{
+		Language: api.ScriptLangArgyll,
+		Source:   "work.items",
+	}, args)
+	assert.NoError(t, err)
+	assert.EqualValues(t, 3, res)
+
+	_, err = registry.Evaluate(script.MetricStep, &api.ScriptConfig{
+		Language: "cobol",
+		Source:   "work.items",
+	}, args)
+	assert.ErrorIs(t, err, api.ErrInvalidScriptLanguage)
+
+	_, err = registry.Evaluate(script.MetricStep, &api.ScriptConfig{
+		Language: api.ScriptLangArgyll,
+		Source:   "work[",
+	}, args)
+	assert.Error(t, err)
+}
+
 func TestLuaCompilation(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
 		registry := script.NewRegistry()

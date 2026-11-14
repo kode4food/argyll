@@ -93,6 +93,24 @@ func (s Step) Output(name api.Name) Step {
 	return s.withAttribute(name, &api.AttributeSpec{Role: api.RoleOutput})
 }
 
+// Metric declares a metric attribute, whose script selects its value from the metrics the engine
+// measures for Feeds when the step completes or fails. The language defaults to Argyll
+func (s Step) Metric(name api.Name, sel api.ScriptConfig) Step {
+	language := sel.Language
+	if language == "" {
+		language = api.ScriptLangArgyll
+	}
+	return s.withAttribute(name, &api.AttributeSpec{
+		Role: api.RoleMetric,
+		Metric: &api.MetricConfig{
+			Select: &api.ScriptConfig{
+				Language: language,
+				Source:   sel.Source,
+			},
+		},
+	})
+}
+
 // WithCollect sets the collect policy for input attributes
 func (s Step) WithCollect(collect api.InputCollect, names ...api.Name) Step {
 	for _, name := range names {

@@ -1,4 +1,4 @@
-import { AttributeRole, Step } from "@/app/api";
+import { AttributeRole, isProducerRole, Step } from "@/app/api";
 
 export interface StepInput {
   name: string;
@@ -32,7 +32,7 @@ export const buildOutputProducerMap = (
 
   steps.forEach((step) => {
     Object.entries(step.attributes || {}).forEach(([name, spec]) => {
-      if (spec.role !== AttributeRole.Output) {
+      if (!isProducerRole(spec.role)) {
         return;
       }
 

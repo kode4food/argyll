@@ -53,7 +53,7 @@ describe("feedManagerUtils", () => {
     expect(isDraftValid(emptyDraft())).toBe(false);
   });
 
-  test("lists every Step output once", () => {
+  test("lists every Step output and metric once", () => {
     expect(
       outputNames([
         {
@@ -64,6 +64,12 @@ describe("feedManagerUtils", () => {
             b: { role: AttributeRole.Output },
             a: { role: AttributeRole.Output },
             c: { role: AttributeRole.Required },
+            d: {
+              role: AttributeRole.Metric,
+              metric: {
+                select: { language: "argyll", source: "elapsed" },
+              },
+            },
           },
         },
         {
@@ -73,7 +79,7 @@ describe("feedManagerUtils", () => {
           attributes: { a: { role: AttributeRole.Output } },
         },
       ])
-    ).toEqual(["a", "b"]);
+    ).toEqual(["a", "b", "d"]);
   });
 
   test("completes the fold bindings", () => {

@@ -136,6 +136,9 @@ func (tx *flowTx) performSkip(
 	); err != nil {
 		return err
 	}
+	if err := tx.deliverMetrics(tx.Value().Plan.Steps[sid], outcomeSkipped); err != nil {
+		return err
+	}
 	return tx.advanceFlow()
 }
 
@@ -199,7 +202,7 @@ func (tx *flowTx) collectStepInputs(st *api.Step, fl *api.FlowState) (api.Args, 
 			inputs[name] = fl.Feeds[attr.FeedID()]
 			continue
 		}
-		if !attr.IsInput() {
+		if !attr.IsConsumer() {
 			continue
 		}
 

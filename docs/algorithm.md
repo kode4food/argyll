@@ -582,6 +582,7 @@ PREPARE_STEP(step):
         RETURN
     IF closed is nonempty:
         EMIT step_skipped(required-match reason, inputs, closed)
+        DELIVER_METRICS(step, SKIPPED)
         ADVANCE_FLOW()
         RETURN
     items := COMPUTE_WORK_ITEMS(step, inputs)
@@ -595,6 +596,7 @@ PREPARE_STEP(step):
         ELSE: assign a fresh receipt token
     IF items had candidates and every candidate was excluded:
         EMIT step_skipped(predicate-false reason, inputs)
+        DELIVER_METRICS(step, SKIPPED)
         ADVANCE_FLOW()
         RETURN
     EMIT step_started(inputs, items)
@@ -745,11 +747,12 @@ CHECK_STEP_COMPLETION(step):
     require step ACTIVE
     IF any work item is FAILED:
         EMIT step_failed(first available failure reason, or generic failure)
+        DELIVER_METRICS(step, FAILED)
         RETURN SETTLED
     IF any item is PENDING, ACTIVE, or NOT_COMPLETED:
         RETURN UNSETTLED
 
-    outputs := COLLECT_STEP_OUTPUTS(step)
+    outputs := COLLECT_STEP_OUTPUTS(step) with STEP_METRICS(step, COMPLETED)
     IF step is itself a kept goal:
         retain outputs whose name init leaves undeclared
     ELSE:
@@ -978,7 +981,7 @@ A terminal flow has an outcome. A deactivated flow also has no outstanding work,
 
 Sources: [feed-fold.go](../engine/internal/engine/feed-fold.go), [feeds.go](../engine/internal/engine/feeds.go), [plan feeds](../engine/pkg/plan/feeds.go).
 
-A Feed folds settled values of its output Attributes, from every Flow, into one Catalog-wide value. Any Step that outputs one of them contributes, limited to a Space's Steps when the Feed names one. Steps read a Feed through a `feed` Attribute. A Step can't register against an undefined Feed, and a Feed or Space that something refers to can't be unregistered. Feeds never retract, so only uncompensatable outputs fold.
+A Feed folds settled values of its output Attributes, from every Flow, into one Catalog-wide value. Any Step that outputs or measures one of them contributes, limited to a Space's Steps when the Feed names one. Steps read a Feed through a `feed` Attribute. A Step can't register against an undefined Feed, and a Feed or Space that something refers to can't be unregistered. Feeds never retract, so only uncompensatable outputs fold.
 
 ```text
 FEED_KEY(feed): the Feed ID joined with a hash of its seed, fold, sorted
@@ -990,7 +993,7 @@ PLAN_FEEDS(catalog, steps):
     FOR each planned Step with a feed Attribute:
         the Feed it names, which registration guarantees, joins the plan
     FOR each Feed in the catalog:
-        sources := planned Steps that output one of the Feed's Attributes
+        sources := planned Steps that output or measure one of the Feed's Attributes
             and, when the Feed names a Space, that the Space selects
         IF sources is not empty: the Feed joins the plan with its sources
 
@@ -999,10 +1002,33 @@ SNAPSHOT_FEEDS(plan):
         value := the Feed's value at FEED_KEY, or its seed if it never folded
     RETURN values by Feed ID
 
+STEP_METRICS(step, outcome):
+    IF step has no metric Attribute: RETURN nothing
+    metrics :=
+        succeeded: whether the step completed
+        skipped: whether a predicate or required match skipped the step
+        elapsed: milliseconds from step_started to step_completed or step_failed, or 0
+            when skipped
+        work:
+            items: work items
+            failed: failed work items
+            attempts: total invocations across all work items, retries included,
+                with average, min, and max per work item
+    FOR each metric Attribute of step:
+        value, error := evaluate its select script with each top-level metric bound by name
+        IF error: omit the Attribute
+        ELSE: bind {step: step ID, value: value} under the Attribute's name
+
 FOLD_COMPLETED_FEEDS(step, produced):
     IF the plan has no Feeds: RETURN
-    IF step has a compensator: RETURN
-    FOLD_FEEDS(step, produced)
+    IF step has a compensator: FOLD_FEEDS(step, STEP_METRICS(step, COMPLETED))
+    ELSE: FOLD_FEEDS(step, produced with STEP_METRICS(step, COMPLETED))
+
+DELIVER_METRICS(step, outcome):
+    metrics := STEP_METRICS(step, outcome)
+    FOR each metric that NEEDS_OUTPUT(name, GOAL_SCOPE(KEPT_GOALS()), tx.now):
+        EMIT attribute_set(step, name, value)
+    IF the plan has Feeds: FOLD_FEEDS(step, metrics)
 
 FOLD_SETTLED_FEEDS():
     FOR each COMPLETED step with a compensator:
@@ -1022,7 +1048,9 @@ FOLD_FEEDS(step, produced):
         ELSE IF result differs from current: EMIT feed_folded(result)
 ```
 
-Folds commit with `step_completed` or `flow_deactivated`, so each contribution lands once. They use the Step's produced outputs, since the Flow drops outputs nothing consumes. A failed fold leaves the value as it was and the Flow unaffected. A Step with a compensator contributes at deactivation, and only its uncompensated work. Contributions apply in the order their transactions commit, which can differ from the order Steps completed, so a fold suits Feeds best when its result is independent of that order. Each Flow, child Flows included, reads the snapshot it took at start, and folds under the Space membership it was planned with.
+Folds commit with `step_completed`, `step_failed`, `step_skipped`, or `flow_deactivated`, so each contribution lands once. They use the Step's produced outputs, since the Flow drops outputs nothing consumes. A failed fold leaves the value as it was and the Flow unaffected. A Step with a compensator contributes its outputs at deactivation, and only from its uncompensated work. Contributions apply in the order their transactions commit, which can differ from the order Steps completed, so a fold suits Feeds best when its result is independent of that order. Each Flow, child Flows included, reads the snapshot it took at start, and folds under the Space membership it was planned with.
+
+The engine supplies a `metric` Attribute's value. Its `select` script, in any registered language, picks or reshapes that value from the measured metrics, and registration compiles it. Metrics describe how a Step finished, so they fold with `step_completed`, `step_failed`, or a `step_skipped` that a predicate or required match decided, ahead of any compensation or deactivation. Each metric value names its Step, so one fold can key contributions from many Steps by producer. A metric Attribute is a producer like an output: the planner gives it provider edges, and every finished Step records the metric values its consumers need as Flow Attributes. Outputs come only from completed Steps, while metrics come from completed, failed, and skipped Steps alike, so a Step that handles failures or skips can run on its provider's metrics.
 
 ## Compensation
 

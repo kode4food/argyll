@@ -430,6 +430,64 @@ func TestAccessors(t *testing.T) {
 	})
 }
 
+func TestIsMetric(t *testing.T) {
+	spec := &api.AttributeSpec{
+		Role:   api.RoleMetric,
+		Metric: metricSelect("elapsed"),
+	}
+	assert.True(t, spec.IsMetric())
+	assert.False(t, spec.IsOutput())
+	assert.False(t, spec.IsRuntimeInput())
+	assert.Equal(t, "elapsed", spec.MetricSelect().Source)
+	assert.Nil(t, (&api.AttributeSpec{}).MetricSelect())
+}
+
+func TestValidateMetricRole(t *testing.T) {
+	spec := &api.AttributeSpec{
+		Role:   api.RoleMetric,
+		Metric: metricSelect("elapsed"),
+	}
+	assert.NoError(t, spec.Validate("metric_attr"))
+
+	missing := &api.AttributeSpec{Role: api.RoleMetric}
+	assert.ErrorIs(t, missing.Validate("metric_attr"), api.ErrMetricSelectRequired)
+
+	empty := &api.AttributeSpec{
+		Role:   api.RoleMetric,
+		Metric: metricSelect(""),
+	}
+	assert.ErrorIs(t, empty.Validate("metric_attr"), api.ErrMetricSelectRequired)
+
+	wrong := &api.AttributeSpec{
+		Role:   api.RoleOutput,
+		Metric: metricSelect("elapsed"),
+	}
+	assert.ErrorIs(t, wrong.Validate("metric_attr"), api.ErrWrongRoleConfig)
+
+	compensated := &api.AttributeSpec{
+		Role:        api.RoleMetric,
+		Metric:      metricSelect("elapsed"),
+		Compensated: true,
+	}
+	assert.ErrorIs(t, compensated.Validate("metric_attr"), api.ErrMetricCompensated)
+}
+
+func TestMetricConfigEqual(t *testing.T) {
+	duration := &api.AttributeSpec{
+		Role:   api.RoleMetric,
+		Metric: metricSelect("elapsed"),
+	}
+	attempts := &api.AttributeSpec{
+		Role:   api.RoleMetric,
+		Metric: metricSelect("work.attempts.total"),
+	}
+	empty := &api.AttributeSpec{Role: api.RoleMetric}
+	assert.True(t, duration.Equal(duration))
+	assert.True(t, empty.Equal(&api.AttributeSpec{Role: api.RoleMetric}))
+	assert.False(t, duration.Equal(attempts))
+	assert.False(t, duration.Equal(empty))
+}
+
 func TestMetaConfigEqual(t *testing.T) {
 	t.Run("both_nil", func(t *testing.T) {
 		spec1 := &api.AttributeSpec{Role: api.RoleMeta}
@@ -1116,4 +1174,13 @@ func TestDeadlineInEqual(t *testing.T) {
 		}
 		assert.True(t, spec1.Equal(spec2))
 	})
+}
+
+func metricSelect(src string) *api.MetricConfig {
+	return &api.MetricConfig{
+		Select: &api.ScriptConfig{
+			Language: api.ScriptLangArgyll,
+			Source:   src,
+		},
+	}
 }

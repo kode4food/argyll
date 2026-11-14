@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { Step, AttributeRole, ExecutionPlan } from "@/app/api";
+import { Step, ExecutionPlan, isProducerRole } from "@/app/api";
 import { safeParseState } from "./flowFormUtils";
 
 export function useFlowFormStepFiltering(
@@ -45,7 +45,7 @@ export function useFlowFormStepFiltering(
 
     steps.forEach((step) => {
       const outputKeys = Object.entries(step.attributes || {})
-        .filter(([_, spec]) => spec.role === AttributeRole.Output)
+        .filter(([_, spec]) => isProducerRole(spec.role))
         .map(([name]) => name);
 
       if (outputKeys.length > 0) {

@@ -11,6 +11,7 @@ from argyll.types import (
     InputCollect,
     MappingConfig,
     MetaConfig,
+    MetricConfig,
     OptionalConfig,
     OutputConfig,
     ProblemDetails,
@@ -333,6 +334,15 @@ def test_nested_optional_fields():
         role=AttributeRole.OUTPUT,
         output=OutputConfig(mapping=MappingConfig(name="result")),
     )
+    metric = AttributeSpec(
+        role=AttributeRole.METRIC,
+        metric=MetricConfig(
+            select=ScriptConfig(
+                language=ScriptLanguage.ARGYLL,
+                source="work.attempts.max",
+            )
+        ),
+    )
 
     assert optional.to_dict()["optional"] == {
         "collect": "all",
@@ -342,6 +352,9 @@ def test_nested_optional_fields():
     }
     assert meta.to_dict()["meta"] == {"key": "flow_id"}
     assert output.to_dict()["output"] == {"mapping": {"name": "result"}}
+    assert metric.to_dict()["metric"] == {
+        "select": {"language": "argyll", "source": "work.attempts.max"}
+    }
 
 
 def test_remaining_serialization_options():

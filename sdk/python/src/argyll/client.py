@@ -155,6 +155,7 @@ class Client:
             InputCollect,
             MappingConfig,
             MetaConfig,
+            MetricConfig,
             OptionalConfig,
             OutputConfig,
             RequiredConfig,
@@ -193,6 +194,7 @@ class Client:
             const = None
             meta = None
             output = None
+            metric = None
             if role == AttributeRole.REQUIRED and "required" in spec_data:
                 rd = spec_data["required"]
                 required = RequiredConfig(
@@ -221,6 +223,10 @@ class Client:
                 output = OutputConfig(
                     mapping=_parse_mapping(outd.get("mapping"))
                 )
+            elif role == AttributeRole.METRIC and "metric" in spec_data:
+                select = _parse_script(spec_data["metric"].get("select"))
+                if select:
+                    metric = MetricConfig(select=select)
             attributes[name] = AttributeSpec(
                 role=role,
                 required=required,
@@ -228,6 +234,7 @@ class Client:
                 const=const,
                 meta=meta,
                 output=output,
+                metric=metric,
                 compensated=spec_data.get("compensated", False),
             )
 

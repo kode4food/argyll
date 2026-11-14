@@ -428,6 +428,34 @@ func TestWorkConfig(t *testing.T) {
 	}, sourceSteps(t, src)["run"].WorkConfig)
 }
 
+func TestMetricsDirective(t *testing.T) {
+	src := "//argyll:step\n" +
+		"//argyll:metrics took:elapsed;tries:lua:return work.attempts.max\n" +
+		"//argyll:metrics ok:argyll:succeeded\n" +
+		"func Run() {}\n"
+	metric := func(sel *api.ScriptConfig) *api.AttributeSpec {
+		return &api.AttributeSpec{
+			Role:   api.RoleMetric,
+			Metric: &api.MetricConfig{Select: sel},
+		}
+	}
+	attrs := sourceSteps(t, src)["run"].Attributes
+	assert.Equal(t, api.AttributeSpecs{
+		"took": metric(&api.ScriptConfig{
+			Language: api.ScriptLangArgyll,
+			Source:   "elapsed",
+		}),
+		"tries": metric(&api.ScriptConfig{
+			Language: api.ScriptLangLua,
+			Source:   "return work.attempts.max",
+		}),
+		"ok": metric(&api.ScriptConfig{
+			Language: api.ScriptLangArgyll,
+			Source:   "succeeded",
+		}),
+	}, attrs)
+}
+
 func TestRecursiveCodec(t *testing.T) {
 	src, err := render(t, "../../../example")
 	assert.NoError(t, err)
@@ -686,6 +714,19 @@ func TestAdditionalDiagnostics(t *testing.T) {
 			src: "//argyll:step\n//argyll:work parallelism:many\n" +
 				"func Bad(in struct{}) {}",
 			want: "parallelism\" needs an integer",
+		},
+		"metrics need options": {
+			src:  "//argyll:step\n//argyll:metrics\nfunc Bad() {}",
+			want: "takes key:value options",
+		},
+		"metrics need a script": {
+			src:  "//argyll:step\n//argyll:metrics took:lua:\nfunc Bad() {}",
+			want: `metric "took" needs a script`,
+		},
+		"metrics need their own names": {
+			src: "//argyll:step\n//argyll:metrics took:elapsed\n" +
+				"func Bad(in struct{ Took int }) {}",
+			want: `metric "took" is already an attribute`,
 		},
 		"work needs options": {
 			src:  "//argyll:step\n//argyll:work\nfunc Bad() {}",

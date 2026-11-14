@@ -124,6 +124,7 @@ export const useAttributeStatusBadge = () => {
           case "required":
             return requiredStatusBadge(context);
           case "output":
+          case "metric":
             return outputStatusBadge(context);
           default:
             return null;

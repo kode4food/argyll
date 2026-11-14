@@ -143,6 +143,25 @@ func TestMetaArg(t *testing.T) {
 	assert.Equal(t, api.MetaFlowID, st.Attributes["flow_id"].Meta.Key)
 }
 
+func TestMetricArg(t *testing.T) {
+	st, err := testClient().NewStep().WithName("Test").WithEndpoint("http://example.com").
+		Metric("took", api.ScriptConfig{Source: "elapsed"}).
+		Metric("tries", api.ScriptConfig{
+			Language: api.ScriptLangLua,
+			Source:   "return work.attempts.total",
+		}).
+		Build()
+
+	assert.NoError(t, err)
+	assert.Len(t, st.Attributes, 2)
+	assert.EqualValues(t, api.RoleMetric, st.Attributes["took"].Role)
+	assert.Equal(t, &api.ScriptConfig{
+		Language: api.ScriptLangArgyll,
+		Source:   "elapsed",
+	}, st.Attributes["took"].MetricSelect())
+	assert.Equal(t, api.ScriptLangLua, st.Attributes["tries"].MetricSelect().Language)
+}
+
 func TestOutputArg(t *testing.T) {
 	st, err := testClient().NewStep().WithName("Test").WithEndpoint("http://example.com").
 		Output("output1").

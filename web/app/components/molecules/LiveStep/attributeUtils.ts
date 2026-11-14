@@ -56,6 +56,8 @@ export const getAttributeTooltipTitle = (
       return "liveStep.feedValue";
     case "output":
       return "liveStep.outputValue";
+    case "metric":
+      return "liveStep.metricValue";
   }
 };
 
@@ -63,7 +65,7 @@ export const getAttributeValue = (
   arg: UnifiedArg,
   execution?: ExecutionResult
 ): ArgValueResult => {
-  if (arg.argType === "output") {
+  if (arg.argType === "output" || arg.argType === "metric") {
     if (execution?.outputs && arg.name in execution.outputs) {
       return { hasValue: true, value: execution.outputs[arg.name] };
     }

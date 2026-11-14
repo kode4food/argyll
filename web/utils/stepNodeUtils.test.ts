@@ -30,6 +30,17 @@ describe("stepNodeUtils", () => {
       expect(result.output).toContain("output1");
     });
 
+    it("gives metric attributes an output handle", () => {
+      const result = groupAttributesByRole({
+        latency: {
+          role: AttributeRole.Metric,
+          metric: { select: { language: "argyll", source: "elapsed" } },
+        },
+      });
+
+      expect(result.output).toEqual(["latency"]);
+    });
+
     it("sorts attribute names alphabetically", () => {
       const attributes = {
         zebra: {

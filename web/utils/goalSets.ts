@@ -3,6 +3,7 @@ import {
   AttributeSpec,
   ExecutionResult,
   GoalSets,
+  isProducerRole,
   Step,
 } from "@/app/api";
 
@@ -43,7 +44,7 @@ export function upstreamSteps(steps: Step[], goals: string[]): Set<string> {
   const providers = new Map<string, string[]>();
   steps.forEach((step) => {
     Object.entries(step.attributes || {}).forEach(([name, spec]) => {
-      if (spec.role !== AttributeRole.Output) return;
+      if (!isProducerRole(spec.role)) return;
       providers.set(name, [...(providers.get(name) ?? []), step.id]);
     });
   });

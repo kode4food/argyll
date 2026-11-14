@@ -34,7 +34,12 @@ export enum AttributeRole {
   Meta = "meta",
   Feed = "feed",
   Output = "output",
+  Metric = "metric",
 }
+
+// A producer supplies its Attribute's value to the Flow, as an output or a metric
+export const isProducerRole = (role?: AttributeRole): boolean =>
+  role === AttributeRole.Output || role === AttributeRole.Metric;
 
 export interface MappingConfig {
   name?: string;
@@ -67,12 +72,18 @@ const META_KEY_FLOW_ID = "flow_id";
 const META_KEY_STEP_ID = "step_id";
 const META_KEY_RECEIPT_TOKEN = "receipt_token";
 const META_KEY_WEBHOOK_URL = "webhook_url";
+const META_KEY_PARENT_FLOW_ID = "parent_flow_id";
+const META_KEY_PARENT_STEP_ID = "parent_step_id";
+const META_KEY_PARENT_WORK_ITEM_TOKEN = "parent_work_item_token";
 
 export const META_KEYS = [
   META_KEY_FLOW_ID,
   META_KEY_STEP_ID,
   META_KEY_RECEIPT_TOKEN,
   META_KEY_WEBHOOK_URL,
+  META_KEY_PARENT_FLOW_ID,
+  META_KEY_PARENT_STEP_ID,
+  META_KEY_PARENT_WORK_ITEM_TOKEN,
 ] as const;
 
 export interface MetaConfig {
@@ -87,6 +98,22 @@ export interface OutputConfig {
   mapping?: MappingConfig;
 }
 
+export const METRIC_SELECTS = [
+  "succeeded",
+  "skipped",
+  "elapsed",
+  "work.items",
+  "work.failed",
+  "work.attempts.total",
+  "work.attempts.average",
+  "work.attempts.min",
+  "work.attempts.max",
+] as const;
+
+export interface MetricConfig {
+  select: ScriptConfig;
+}
+
 export interface AttributeSpec {
   role: AttributeRole;
   required?: RequiredConfig;
@@ -95,6 +122,7 @@ export interface AttributeSpec {
   meta?: MetaConfig;
   feed?: FeedConfig;
   output?: OutputConfig;
+  metric?: MetricConfig;
   compensated?: boolean;
 }
 

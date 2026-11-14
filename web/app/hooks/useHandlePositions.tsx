@@ -50,15 +50,19 @@ export const useHandlePositions = (
       };
     };
 
+    // The first row type names the handle, so metric rows share output handles
     const findHandles = (
-      argType: string,
+      rowTypes: string[],
       argNames: string[],
       handleType: "input" | "output"
     ): HandlePosition[] => {
+      const [argType] = rowTypes;
       return argNames
         .map((name) => {
           const element = stepWidgetRef.current?.querySelector(
-            `[data-arg-type="${argType}"][data-arg-name="${name}"]`
+            rowTypes
+              .map((t) => `[data-arg-type="${t}"][data-arg-name="${name}"]`)
+              .join(", ")
           );
           return element
             ? getHandlePosition(element, { type: argType, name, handleType })
@@ -68,9 +72,9 @@ export const useHandlePositions = (
     };
 
     setHandlePositions({
-      required: findHandles("required", required, "input"),
-      optional: findHandles("optional", optional, "input"),
-      output: findHandles("output", output, "output"),
+      required: findHandles(["required"], required, "input"),
+      optional: findHandles(["optional"], optional, "input"),
+      output: findHandles(["output", "metric"], output, "output"),
     });
   }, [step.attributes]);
 

@@ -172,9 +172,24 @@ func TestFeedFolds(t *testing.T) {
 			"amount": {Role: api.RoleRequired},
 		},
 	}
+	measured := &api.Step{
+		ID: "measured",
+		Attributes: api.AttributeSpecs{
+			"amount": {
+				Role: api.RoleMetric,
+				Metric: &api.MetricConfig{
+					Select: &api.ScriptConfig{
+						Language: api.ScriptLangArgyll,
+						Source:   "elapsed",
+					},
+				},
+			},
+		},
+	}
 	f := newFeed()
 	assert.True(t, f.Folds(charge, nil))
 	assert.False(t, f.Folds(reader, nil))
+	assert.True(t, f.Folds(measured, nil))
 
 	f.Attributes = api.Slice[api.Name]{"refunded", "amount"}
 	assert.True(t, f.Folds(charge, nil))
@@ -192,7 +207,7 @@ func TestFeedAttributeRole(t *testing.T) {
 	assert.NoError(t, ok.Validate("total"))
 	assert.True(t, ok.IsFeed())
 	assert.True(t, ok.IsRuntimeInput())
-	assert.False(t, ok.IsInput())
+	assert.False(t, ok.IsConsumer())
 	assert.Equal(t, api.FeedID("order-total"), ok.FeedID())
 
 	missing := &api.AttributeSpec{Role: api.RoleFeed}

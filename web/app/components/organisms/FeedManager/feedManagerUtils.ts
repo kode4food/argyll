@@ -1,6 +1,6 @@
 import {
-  AttributeRole,
   Feed,
+  isProducerRole,
   SCRIPT_LANGUAGE_ARGYLL,
   ScriptConfig,
   Step,
@@ -64,12 +64,12 @@ export const isDraftValid = (draft: FeedDraft): boolean => {
   return hasDetails && hasSeed && hasAttributes && !!draft.fold.source.trim();
 };
 
-// Every Attribute some registered Step outputs, which is what a Feed can fold
+// Every Attribute some registered Step produces, which is what a Feed can fold
 export const outputNames = (steps: Step[]): string[] => {
   const names = new Set<string>();
   steps.forEach((step) =>
     Object.entries(step.attributes).forEach(([name, spec]) => {
-      if (spec.role === AttributeRole.Output) names.add(name);
+      if (isProducerRole(spec.role)) names.add(name);
     })
   );
   return [...names].sort();

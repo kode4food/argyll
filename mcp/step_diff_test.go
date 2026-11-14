@@ -271,6 +271,15 @@ func TestApplyProposedStepsVerifiesSemanticReadback(t *testing.T) {
 							"mapping": map[string]any{"name": "message_text"},
 						},
 					},
+					"took": map[string]any{
+						"role": "metric",
+						"metric": map[string]any{
+							"select": map[string]any{
+								"language": "argyll",
+								"source":   "elapsed",
+							},
+						},
+					},
 				},
 			},
 		},
@@ -282,11 +291,17 @@ func TestApplyProposedStepsVerifiesSemanticReadback(t *testing.T) {
 
 	summary := payload["summary"].(map[string]any)
 	assert.Equal(t, "failed", summary["verification_status"])
-	assert.Equal(t, float64(1), summary["verification_issues"])
+	assert.Equal(t, float64(2), summary["verification_issues"])
 
 	verification := payload["verification"].(map[string]any)
-	issues := verification["issues"].([]any)
-	issue := issues[0].(map[string]any)
-	assert.Equal(t, "send-sms", issue["step_id"])
-	assert.Equal(t, "attributes.body.required.mapping", issue["path"])
+	var paths []any
+	for _, raw := range verification["issues"].([]any) {
+		issue := raw.(map[string]any)
+		assert.Equal(t, "send-sms", issue["step_id"])
+		paths = append(paths, issue["path"])
+	}
+	assert.ElementsMatch(t, []any{
+		"attributes.body.required.mapping",
+		"attributes.took.metric.select",
+	}, paths)
 }

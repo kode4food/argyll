@@ -486,7 +486,7 @@ func dependents(pl *api.ExecutionPlan, sid api.StepID) []api.StepID {
 	}
 	var res []api.StepID
 	for name, attr := range st.Attributes {
-		if !attr.IsOutput() {
+		if !attr.IsProducer() {
 			continue
 		}
 		if deps, ok := pl.Attributes[name]; ok {

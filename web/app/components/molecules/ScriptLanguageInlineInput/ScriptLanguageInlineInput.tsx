@@ -17,6 +17,7 @@ export interface ScriptLanguageInlineInputProps {
   ariaLabel: string;
   className?: string;
   language?: string;
+  leading?: React.ReactNode;
   onLanguageChange: (language: string) => void;
   onScriptChange: (script: string) => void;
   placeholder: string;
@@ -28,6 +29,7 @@ const ScriptLanguageInlineInput: React.FC<ScriptLanguageInlineInputProps> = ({
   ariaLabel,
   className,
   language,
+  leading,
   onLanguageChange,
   onScriptChange,
   placeholder,
@@ -51,6 +53,7 @@ const ScriptLanguageInlineInput: React.FC<ScriptLanguageInlineInputProps> = ({
 
   return (
     <SegmentedGroup className={className}>
+      {leading}
       <div
         ref={wrapperRef}
         className={styles.languageWrapper}

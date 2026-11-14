@@ -290,7 +290,7 @@ func (s *Step) MultiArgNames() []Name {
 
 // GetAllInputArgs returns all input argument names (required and optional)
 func (s *Step) GetAllInputArgs() []Name {
-	return s.filterAttributes((*AttributeSpec).IsInput)
+	return s.filterAttributes((*AttributeSpec).IsConsumer)
 }
 
 // GetRequiredArgs returns all required argument names

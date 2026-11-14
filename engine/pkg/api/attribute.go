@@ -17,6 +17,7 @@ type (
 		Meta        *MetaConfig     `json:"meta,omitempty"`
 		Feed        *FeedConfig     `json:"feed,omitempty"`
 		Output      *OutputConfig   `json:"output,omitempty"`
+		Metric      *MetricConfig   `json:"metric,omitempty"`
 		Role        AttributeRole   `json:"role"`
 		Compensated bool            `json:"compensated,omitempty"`
 	}
@@ -59,6 +60,12 @@ type (
 		Mapping *MappingConfig `json:"mapping,omitempty"`
 	}
 
+	// MetricConfig selects, from the metrics the engine measures of a Step's finished work, the
+	// value a metric attribute carries
+	MetricConfig struct {
+		Select *ScriptConfig `json:"select"`
+	}
+
 	// MappingConfig defines parameter name mapping and value transformation
 	MappingConfig struct {
 		Script *ScriptConfig `json:"script,omitempty"`
@@ -82,6 +89,26 @@ const (
 	RoleMeta     AttributeRole = "meta"
 	RoleFeed     AttributeRole = "feed"
 	RoleOutput   AttributeRole = "output"
+	RoleMetric   AttributeRole = "metric"
+)
+
+// Top-level metric names a metric select script reads
+const (
+	MetricSucceeded Name = "succeeded"
+	MetricSkipped   Name = "skipped"
+	MetricElapsed   Name = "elapsed"
+	MetricWork      Name = "work"
+)
+
+// Fields of the work metric and its per Work Item statistics
+const (
+	MetricItems    = "items"
+	MetricFailed   = "failed"
+	MetricAttempts = "attempts"
+	MetricTotal    = "total"
+	MetricAverage  = "average"
+	MetricMin      = "min"
+	MetricMax      = "max"
 )
 
 const (
@@ -98,6 +125,8 @@ var (
 	ErrConstValueRequired       = errors.New("const value required for const attribute")
 	ErrMetaKeyRequired          = errors.New("meta key required for meta attribute")
 	ErrFeedIDRequired           = errors.New("feed ID required for feed attribute")
+	ErrMetricSelectRequired     = errors.New("select script required for metric attribute")
+	ErrMetricCompensated        = errors.New("metric attribute cannot be compensated")
 	ErrForEachRequiresCollect   = errors.New("for_each processing requires collect all or some")
 	ErrInvalidDefaultValue      = errors.New("invalid default value")
 	ErrInvalidMappingConfig     = errors.New("invalid attribute mapping")
@@ -117,7 +146,7 @@ const (
 
 var (
 	validAttributeRoles = util.SetOf(
-		RoleRequired, RoleOptional, RoleConst, RoleMeta, RoleFeed, RoleOutput,
+		RoleRequired, RoleOptional, RoleConst, RoleMeta, RoleFeed, RoleOutput, RoleMetric,
 	)
 
 	validInputCollect = util.SetOf(
@@ -148,6 +177,8 @@ func (s *AttributeSpec) Validate(name Name) error {
 		return s.validateFeed(name)
 	case RoleOutput:
 		return s.validateOutput(name)
+	case RoleMetric:
+		return s.validateMetric(name)
 	}
 	return nil
 }
@@ -160,6 +191,7 @@ func (s *AttributeSpec) validateRoleConfig(name Name) error {
 		RoleMeta:     s.Meta != nil,
 		RoleFeed:     s.Feed != nil,
 		RoleOutput:   s.Output != nil,
+		RoleMetric:   s.Metric != nil,
 	}
 	for role, set := range hasConfig {
 		if role != s.Role && set {
@@ -235,19 +267,40 @@ func (s *AttributeSpec) validateOutput(name Name) error {
 	return validateMapping(s.Output.Mapping, name)
 }
 
-// IsInput returns true if the attribute is an input (required or optional)
-func (s *AttributeSpec) IsInput() bool {
+func (s *AttributeSpec) validateMetric(name Name) error {
+	if sel := s.MetricSelect(); sel == nil || sel.Source == "" {
+		return fmt.Errorf("%w: %q", ErrMetricSelectRequired, name)
+	}
+	if s.Compensated {
+		return fmt.Errorf("%w: %q", ErrMetricCompensated, name)
+	}
+	return nil
+}
+
+// IsConsumer returns true if the attribute consumes a value from the Flow (required or optional)
+func (s *AttributeSpec) IsConsumer() bool {
 	return s.Role == RoleRequired || s.Role == RoleOptional
 }
 
 // IsRuntimeInput returns true if the attribute is passed into a step
 func (s *AttributeSpec) IsRuntimeInput() bool {
-	return s.IsInput() || s.IsConst() || s.IsMeta() || s.IsFeed()
+	return s.IsConsumer() || s.IsConst() || s.IsMeta() || s.IsFeed()
 }
 
 // IsOutput returns true if the attribute is an output
 func (s *AttributeSpec) IsOutput() bool {
 	return s.Role == RoleOutput
+}
+
+// IsMetric returns true if the engine measures the attribute when the Step completes or fails
+func (s *AttributeSpec) IsMetric() bool {
+	return s.Role == RoleMetric
+}
+
+// IsProducer returns true if the Step produces the attribute's value for the Flow, as an output or
+// a metric
+func (s *AttributeSpec) IsProducer() bool {
+	return s.IsOutput() || s.IsMetric()
 }
 
 // IsRequired returns true if the attribute is required
@@ -333,6 +386,14 @@ func (s *AttributeSpec) MetaKey() string {
 	return s.Meta.Key
 }
 
+// MetricSelect returns the script a metric attribute selects its value with
+func (s *AttributeSpec) MetricSelect() *ScriptConfig {
+	if s.Metric == nil {
+		return nil
+	}
+	return s.Metric.Select
+}
+
 // FeedID returns the ID of the Feed a feed attribute reads
 func (s *AttributeSpec) FeedID() FeedID {
 	if s.Feed == nil {
@@ -378,7 +439,8 @@ func (s *AttributeSpec) Equal(other *AttributeSpec) bool {
 		s.Const.equal(other.Const) &&
 		s.Meta.equal(other.Meta) &&
 		s.Feed.equal(other.Feed) &&
-		s.Output.equal(other.Output)
+		s.Output.equal(other.Output) &&
+		s.Metric.equal(other.Metric)
 }
 
 // Equal returns true if two attribute spec maps are equal
@@ -461,6 +523,16 @@ func (c *OutputConfig) equal(other *OutputConfig) bool {
 		return false
 	}
 	return c.Mapping.equal(other.Mapping)
+}
+
+func (c *MetricConfig) equal(other *MetricConfig) bool {
+	if c == nil && other == nil {
+		return true
+	}
+	if c == nil || other == nil {
+		return false
+	}
+	return c.Select.equal(other.Select)
 }
 
 func (c *MappingConfig) equal(other *MappingConfig) bool {

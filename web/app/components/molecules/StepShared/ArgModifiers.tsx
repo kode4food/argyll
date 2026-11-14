@@ -19,6 +19,7 @@ export const argTypeTitleKey: Record<ArgType, string> = {
   meta: "attribute.roleMeta",
   feed: "attribute.roleFeed",
   output: "attribute.roleOutput",
+  metric: "attribute.roleMetric",
 };
 
 const ArgModifiers: React.FC<ArgModifiersProps> = ({ modifiers, t }) => (

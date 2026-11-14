@@ -21,9 +21,11 @@ from .types import (
     HTTPConfig,
     InitArgs,
     MetaConfig,
+    MetricConfig,
     OptionalConfig,
     RequiredConfig,
     ScriptConfig,
+    ScriptLanguage,
     Step,
     StepID,
     StepType,
@@ -114,6 +116,22 @@ class StepBuilder:
         """Declare output attribute."""
         new_attrs = dict(self._attributes)
         new_attrs[name] = AttributeSpec(role=AttributeRole.OUTPUT)
+        return self._copy(_attributes=new_attrs)
+
+    def metric(
+        self,
+        name: str,
+        source: str,
+        language: ScriptLanguage = ScriptLanguage.ARGYLL,
+    ) -> "StepBuilder":
+        """Add metric attribute selecting a value from the measured work."""
+        new_attrs = dict(self._attributes)
+        new_attrs[name] = AttributeSpec(
+            role=AttributeRole.METRIC,
+            metric=MetricConfig(
+                select=ScriptConfig(language=language, source=source)
+            ),
+        )
         return self._copy(_attributes=new_attrs)
 
     def with_for_each(self, *names: str) -> "StepBuilder":

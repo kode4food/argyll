@@ -414,6 +414,10 @@
   color: var(--arg-icon-output);
 }
 
+.arg-icon.metric {
+  color: var(--arg-icon-metric);
+}
+
 /* Step Type Icon Colors - from the parent widget, or the icon's own class */
 .step-widget.resolver .step-type-icon,
 .step-type-icon.resolver {

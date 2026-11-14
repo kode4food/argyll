@@ -45,6 +45,7 @@ class AttributeRole(str, Enum):
     CONST = "const"
     META = "meta"
     OUTPUT = "output"
+    METRIC = "metric"
 
 
 class InputCollect(str, Enum):
@@ -175,6 +176,17 @@ class OutputConfig:
 
 
 @dataclass(frozen=True)
+class MetricConfig:
+    """Configuration for metric attributes, selecting from measured work."""
+
+    select: "ScriptConfig"
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to API dictionary format."""
+        return {"select": self.select.to_dict()}
+
+
+@dataclass(frozen=True)
 class AttributeSpec:
     """Specification for a step attribute."""
 
@@ -184,6 +196,7 @@ class AttributeSpec:
     const: Optional[ConstConfig] = None
     meta: Optional[MetaConfig] = None
     output: Optional[OutputConfig] = None
+    metric: Optional[MetricConfig] = None
     compensated: bool = False
 
     def to_dict(self) -> Dict[str, Any]:
@@ -199,6 +212,8 @@ class AttributeSpec:
             result["meta"] = self.meta.to_dict()
         if self.output is not None:
             result["output"] = self.output.to_dict()
+        if self.metric is not None:
+            result["metric"] = self.metric.to_dict()
         if self.compensated:
             result["compensated"] = True
         return result

@@ -20,6 +20,7 @@ from argyll.types import (
     InputCollect,
     MappingConfig,
     MetaConfig,
+    MetricConfig,
     OptionalConfig,
     OutputConfig,
     RequiredConfig,
@@ -838,6 +839,29 @@ def test_step_builder_meta():
     assert step.attributes["tenant"].meta.key == "tenantId"
 
 
+def test_step_builder_metric():
+    client = Client()
+    step = (
+        client.new_step()
+        .with_name("Test")
+        .with_endpoint("http://localhost:8081/test")
+        .metric("took", "elapsed")
+        .metric("tries", "return work.attempts.max", ScriptLanguage.LUA)
+        .build()
+    )
+    took = step.attributes["took"]
+    assert took.role == AttributeRole.METRIC
+    assert took.metric == MetricConfig(
+        select=ScriptConfig(
+            language=ScriptLanguage.ARGYLL,
+            source="elapsed",
+        )
+    )
+    tries = step.attributes["tries"].metric
+    assert tries is not None
+    assert tries.select.language == ScriptLanguage.LUA
+
+
 def test_step_builder_with_for_each_optional():
     client = Client()
     builder = (
@@ -862,6 +886,61 @@ def test_validate_step_meta_missing_key():
         }
     )
     with pytest.raises(StepValidationError):
+        _validate_step(step)
+
+
+def test_validate_step_metric_missing_select():
+    step = _make_step(
+        attributes={
+            "took": AttributeSpec(
+                role=AttributeRole.METRIC,
+                metric=MetricConfig(
+                    select=ScriptConfig(
+                        language=ScriptLanguage.ARGYLL,
+                        source="",
+                    )
+                ),
+            )
+        }
+    )
+    with pytest.raises(StepValidationError, match="requires select"):
+        _validate_step(step)
+
+
+def test_validate_step_metric_compensated():
+    step = _make_step(
+        attributes={
+            "took": AttributeSpec(
+                role=AttributeRole.METRIC,
+                metric=MetricConfig(
+                    select=ScriptConfig(
+                        language=ScriptLanguage.ARGYLL,
+                        source="elapsed",
+                    )
+                ),
+                compensated=True,
+            )
+        }
+    )
+    with pytest.raises(StepValidationError, match="cannot be compensated"):
+        _validate_step(step)
+
+
+def test_validate_step_metric_wrong_config():
+    step = _make_step(
+        attributes={
+            "took": AttributeSpec(
+                role=AttributeRole.OUTPUT,
+                metric=MetricConfig(
+                    select=ScriptConfig(
+                        language=ScriptLanguage.ARGYLL,
+                        source="elapsed",
+                    )
+                ),
+            )
+        }
+    )
+    with pytest.raises(StepValidationError, match="Wrong config type"):
         _validate_step(step)
 
 

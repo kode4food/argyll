@@ -55,17 +55,26 @@ func (tx *flowTx) snapshotFeeds(pl *api.ExecutionPlan) (api.FeedValues, error) {
 	return res, nil
 }
 
-// foldCompletedFeeds folds a just-completed Step's outputs when nothing can compensate them, since
-// they are final from this moment
-func (tx *flowTx) foldCompletedFeeds(st *api.Step, outputs api.Args) error {
+type foldCompletedFeedsArgs struct {
+	step    *api.Step
+	outputs api.Args
+	metrics api.Args
+}
+
+// foldCompletedFeeds folds a just-completed Step's metrics, and its outputs when nothing can
+// compensate them, since they are final from this moment
+func (tx *flowTx) foldCompletedFeeds(args foldCompletedFeedsArgs) error {
 	if len(tx.Value().Plan.Feeds) == 0 {
 		return nil
 	}
-	comp, err := tx.steps.Compensator(st)
-	if err != nil || comp != nil {
+	comp, err := tx.steps.Compensator(args.step)
+	if err != nil {
 		return err
 	}
-	return tx.foldFeeds(st.ID, outputs)
+	if comp != nil {
+		return tx.foldFeeds(args.step.ID, args.metrics)
+	}
+	return tx.foldFeeds(args.step.ID, args.outputs.Apply(args.metrics))
 }
 
 // foldSettledFeeds folds, at deactivation, the outputs of completed Steps with a compensator whose
@@ -160,16 +169,7 @@ func (tx *flowTx) foldFeed(f *api.Feed, sid api.StepID, outputs api.Args) error 
 
 // evaluateFold runs a fold script with its bindings and returns the new value
 func (e *Engine) evaluateFold(f *api.Feed, args api.Args) (any, error) {
-	st := feedFoldStep(f)
-	comp, err := e.scripts.Compile(st, f.Fold)
-	if err != nil {
-		return nil, errors.Join(ErrFeedFoldFailed, err)
-	}
-	env, err := e.scripts.Get(f.Fold.Language)
-	if err != nil {
-		return nil, errors.Join(ErrFeedFoldFailed, err)
-	}
-	res, err := env.Evaluate(comp, st, args)
+	res, err := e.scripts.Evaluate(feedFoldStep(f), f.Fold, args)
 	if err != nil {
 		return nil, errors.Join(ErrFeedFoldFailed, err)
 	}

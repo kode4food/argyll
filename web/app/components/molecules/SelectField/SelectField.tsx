@@ -17,18 +17,22 @@ export interface SelectFieldOption {
 export interface SelectFieldProps {
   ariaLabel?: string;
   className?: string;
+  Icon?: LucideIcon;
   label?: string;
   onChange: (value: string) => void;
   options: SelectFieldOption[];
+  placeholder?: string;
   value: string;
 }
 
 const SelectField: React.FC<SelectFieldProps> = ({
   ariaLabel,
   className,
+  Icon,
   label,
   onChange,
   options,
+  placeholder,
   value,
 }) => {
   const {
@@ -40,7 +44,7 @@ const SelectField: React.FC<SelectFieldProps> = ({
     handleKeyDown,
   } = useDropdown(options, value, onChange);
   const selected = options.find((option) => option.value === value);
-  const SelectedIcon = selected?.Icon;
+  const SelectedIcon = selected?.Icon ?? Icon;
 
   const listRef = React.useRef<HTMLDivElement>(null);
   useAnchoredList({
@@ -67,7 +71,7 @@ const SelectField: React.FC<SelectFieldProps> = ({
           aria-label={ariaLabel}
         >
           {SelectedIcon && <SelectedIcon className={styles.icon} />}
-          <span>{selected?.label ?? value}</span>
+          <span>{selected?.label ?? (value || placeholder)}</span>
         </button>
         {open && (
           <div

@@ -87,6 +87,41 @@ describe("useHandlePositions", () => {
     );
   });
 
+  it("gives a metric row an output handle", () => {
+    const step = {
+      id: "step-1",
+      name: "Test",
+      type: "service" as const,
+      attributes: {
+        latency: {
+          role: AttributeRole.Metric,
+          metric: { select: { language: "argyll", source: "elapsed" } },
+        },
+      },
+    };
+    const mockDiv = document.createElement("div");
+    const mockMetric = document.createElement("div");
+    mockMetric.setAttribute("data-arg-type", "metric");
+    mockMetric.setAttribute("data-arg-name", "latency");
+    mockDiv.appendChild(mockMetric);
+
+    const ref = React.createRef<HTMLDivElement>();
+    Object.defineProperty(ref, "current", {
+      value: mockDiv,
+      writable: false,
+    });
+
+    const { result } = renderHook(() => useHandlePositions(step as any, ref));
+
+    expect(result.current.handlePositions.output).toEqual([
+      expect.objectContaining({
+        id: "output-latency",
+        argName: "latency",
+        handleType: "output",
+      }),
+    ]);
+  });
+
   it("returns empty arrays when ref is null", () => {
     const step = {
       id: "step-1",

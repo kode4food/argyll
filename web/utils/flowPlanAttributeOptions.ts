@@ -1,4 +1,4 @@
-import { AttributeRole, ExecutionPlan, Step } from "@/app/api";
+import { AttributeRole, ExecutionPlan, isProducerRole, Step } from "@/app/api";
 import {
   FlowInputMeta,
   getInputPriorityRank,
@@ -92,7 +92,7 @@ export const getFlowPlanAttributeOptions = (
         });
         return;
       }
-      if (spec.role === AttributeRole.Output) {
+      if (isProducerRole(spec.role)) {
         outputSet.add(name);
       }
     });
