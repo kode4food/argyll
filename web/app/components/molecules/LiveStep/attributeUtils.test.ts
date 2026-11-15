@@ -72,7 +72,7 @@ describe("attributeUtils", () => {
         argType: "metric" as const,
         spec: {
           role: AttributeRole.Metric,
-          metric: { select: { language: "argyll", source: "elapsed" } },
+          metric: { selector: { language: "argyll", source: "elapsed" } },
         },
       };
       const execution = {

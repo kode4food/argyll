@@ -48,7 +48,7 @@ export {
   AttributeRole,
   isProducerRole,
   META_KEYS,
-  METRIC_SELECTS,
+  METRIC_SELECTORS,
 } from "./types";
 
 export type { GoalSets } from "./goals";

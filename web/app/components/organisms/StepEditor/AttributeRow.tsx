@@ -27,7 +27,7 @@ import {
   inputCollectTypes,
 } from "./stepEditorConstants";
 import AttributeMappingPanel from "./AttributeMappingPanel";
-import MetricSelectInput from "./MetricSelectInput";
+import MetricSelectorInput from "./MetricSelectorInput";
 import PresetSelectInput from "./PresetSelectInput";
 import InlineSelectDropdown, {
   type InlineSelectOption,
@@ -85,6 +85,7 @@ const AttributeRow: React.FC<AttributeRowProps> = ({
   const hasMappingConfigured = Boolean(
     attr.mappingName?.trim() || attr.mappingScript?.trim()
   );
+  const compensable = handling === "compensated" && attr.role !== "metric";
   const innerName = attr.mappingName?.trim() || attr.name.trim();
   const hasCompensationConflict =
     !attr.compensated && compensatedInnerNames.has(innerName);
@@ -195,7 +196,7 @@ const AttributeRow: React.FC<AttributeRowProps> = ({
             options={roleOptions}
             value={attr.role}
           />
-          {handling === "compensated" && attr.role !== "metric" && (
+          {compensable && (
             <button
               type="button"
               onClick={() =>
@@ -244,7 +245,7 @@ const AttributeRow: React.FC<AttributeRowProps> = ({
           />
         )}
         {attr.role === "metric" && (
-          <MetricSelectInput attr={attr} updateAttribute={updateAttribute} />
+          <MetricSelectorInput attr={attr} updateAttribute={updateAttribute} />
         )}
         {(attr.role === "required" || attr.role === "optional") && (
           <ScriptLanguageInlineInput
@@ -313,6 +314,8 @@ const AttributeRow: React.FC<AttributeRowProps> = ({
       {isMappingExpanded && hasMapping && (
         <AttributeMappingPanel
           attr={attr}
+          nameClass={nameClass}
+          compensable={compensable}
           stepType={stepType}
           flowInputOptions={flowInputOptions}
           flowOutputOptions={flowOutputOptions}

@@ -43,7 +43,7 @@ export const isProducerRole = (role?: AttributeRole): boolean =>
 
 export interface MappingConfig {
   name?: string;
-  script?: ScriptConfig;
+  selector?: ScriptConfig;
 }
 
 export type InputCollect = "first" | "last" | "some" | "all" | "none";
@@ -98,7 +98,7 @@ export interface OutputConfig {
   mapping?: MappingConfig;
 }
 
-export const METRIC_SELECTS = [
+export const METRIC_SELECTORS = [
   "succeeded",
   "skipped",
   "elapsed",
@@ -111,7 +111,7 @@ export const METRIC_SELECTS = [
 ] as const;
 
 export interface MetricConfig {
-  select: ScriptConfig;
+  selector: ScriptConfig;
 }
 
 export interface AttributeSpec {

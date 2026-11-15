@@ -181,7 +181,7 @@ describe("StepEditorAttributesSection", () => {
       name: t("stepEditor.metricPresetSelect"),
     });
     expect(picker).toHaveTextContent(
-      `${t("stepEditor.metricSelect.elapsed")} (elapsed)`
+      `${t("stepEditor.metricSelector.elapsed")} (elapsed)`
     );
     expect(screen.getAllByRole("textbox")).toHaveLength(1);
     expect(
@@ -193,7 +193,7 @@ describe("StepEditorAttributesSection", () => {
     fireEvent.click(picker);
     fireEvent.click(
       screen.getByRole("option", {
-        name: `${t("stepEditor.metricSelect.work.failed")} (work.failed)`,
+        name: `${t("stepEditor.metricSelector.work.failed")} (work.failed)`,
       })
     );
     expect(baseProps.updateAttribute).toHaveBeenCalledWith(
@@ -208,7 +208,7 @@ describe("StepEditorAttributesSection", () => {
     );
   });
 
-  test("edits a custom metric select", () => {
+  test("edits a custom metric selector", () => {
     render(
       <StepEditorAttributesSection
         {...baseProps}
@@ -227,14 +227,16 @@ describe("StepEditorAttributesSection", () => {
       screen.getByRole("button", { name: t("stepEditor.metricPresetSelect") })
     );
     fireEvent.click(
-      screen.getByRole("option", { name: t("stepEditor.metricSelect.custom") })
+      screen.getByRole("option", {
+        name: t("stepEditor.metricSelector.custom"),
+      })
     );
     expect(
       screen.getByRole("button", { name: t("stepEditor.metricLanguageLabel") })
     ).toBeInTheDocument();
 
     const input = screen.getByPlaceholderText(
-      t("stepEditor.metricSelectPlaceholder")
+      t("stepEditor.metricSelectorPlaceholder")
     );
     expect(input).toHaveValue("elapsed");
     fireEvent.change(input, { target: { value: "work.attempts.max * 2" } });
@@ -245,7 +247,7 @@ describe("StepEditorAttributesSection", () => {
     );
   });
 
-  test("opens a non-preset metric select as custom", () => {
+  test("opens a non-preset metric selector as custom", () => {
     render(
       <StepEditorAttributesSection
         {...baseProps}
@@ -262,7 +264,7 @@ describe("StepEditorAttributesSection", () => {
     );
 
     expect(
-      screen.getByPlaceholderText(t("stepEditor.metricSelectPlaceholder"))
+      screen.getByPlaceholderText(t("stepEditor.metricSelectorPlaceholder"))
     ).toHaveValue("return work.attempts.max");
   });
 

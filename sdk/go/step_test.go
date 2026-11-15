@@ -158,8 +158,8 @@ func TestMetricArg(t *testing.T) {
 	assert.Equal(t, &api.ScriptConfig{
 		Language: api.ScriptLangArgyll,
 		Source:   "elapsed",
-	}, st.Attributes["took"].MetricSelect())
-	assert.Equal(t, api.ScriptLangLua, st.Attributes["tries"].MetricSelect().Language)
+	}, st.Attributes["took"].MetricSelector())
+	assert.Equal(t, api.ScriptLangLua, st.Attributes["tries"].MetricSelector().Language)
 }
 
 func TestOutputArg(t *testing.T) {

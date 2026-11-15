@@ -332,7 +332,7 @@ func TestAttributeScripts(t *testing.T) {
 			Language: "argyll",
 			Source:   "value",
 		},
-		attrs["default"].Required.Mapping.Script)
+		attrs["default"].Required.Mapping.Selector)
 	assert.Equal(t,
 		&api.ScriptConfig{
 			Language: "lua",
@@ -344,7 +344,7 @@ func TestAttributeScripts(t *testing.T) {
 			Language: "argyll",
 			Source:   "value",
 		},
-		attrs["value"].Output.Mapping.Script)
+		attrs["value"].Output.Mapping.Selector)
 }
 
 func TestAttributeProps(t *testing.T) {
@@ -436,7 +436,7 @@ func TestMetricsDirective(t *testing.T) {
 	metric := func(sel *api.ScriptConfig) *api.AttributeSpec {
 		return &api.AttributeSpec{
 			Role:   api.RoleMetric,
-			Metric: &api.MetricConfig{Select: sel},
+			Metric: &api.MetricConfig{Selector: sel},
 		}
 	}
 	attrs := sourceSteps(t, src)["run"].Attributes

@@ -274,7 +274,7 @@ func TestApplyProposedStepsVerifiesSemanticReadback(t *testing.T) {
 					"took": map[string]any{
 						"role": "metric",
 						"metric": map[string]any{
-							"select": map[string]any{
+							"selector": map[string]any{
 								"language": "argyll",
 								"source":   "elapsed",
 							},
@@ -302,6 +302,6 @@ func TestApplyProposedStepsVerifiesSemanticReadback(t *testing.T) {
 	}
 	assert.ElementsMatch(t, []any{
 		"attributes.body.required.mapping",
-		"attributes.took.metric.select",
+		"attributes.took.metric.selector",
 	}, paths)
 }

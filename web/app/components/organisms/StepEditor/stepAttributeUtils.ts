@@ -53,8 +53,8 @@ function buildSingleAttribute(
     spec.role === AttributeRole.Output
       ? spec.output?.mapping
       : inputConfig?.mapping;
-  const metricSelect =
-    spec.role === AttributeRole.Metric ? spec.metric?.select : undefined;
+  const metricSelector =
+    spec.role === AttributeRole.Metric ? spec.metric?.selector : undefined;
 
   return {
     id: `${prefix}-${index}-${timestamp}`,
@@ -76,11 +76,11 @@ function buildSingleAttribute(
     matchScript: inputConfig?.match?.source,
     metaKey: spec.role === AttributeRole.Meta ? spec.meta?.key : undefined,
     feedId: spec.role === AttributeRole.Feed ? spec.feed?.id : undefined,
-    metricLanguage: metricSelect?.language,
-    metricScript: metricSelect?.source,
+    metricLanguage: metricSelector?.language,
+    metricScript: metricSelector?.source,
     mappingName: mappingConfig?.name,
-    mappingLanguage: mappingConfig?.script?.language,
-    mappingScript: mappingConfig?.script?.source,
+    mappingLanguage: mappingConfig?.selector?.language,
+    mappingScript: mappingConfig?.selector?.source,
     compensated: spec.compensated,
   };
 }
@@ -134,7 +134,7 @@ function buildMappingConfig(a: Attribute): MappingConfig | undefined {
   const config: MappingConfig = {};
   if (mappingName) config.name = mappingName;
   if (mappingScript) {
-    config.script = {
+    config.selector = {
       language: a.mappingLanguage?.trim() || SCRIPT_LANGUAGE_ARGYLL,
       source: mappingScript,
     };
@@ -180,7 +180,7 @@ export function createStepAttributes(
       const source = a.metricScript?.trim();
       if (source) {
         spec.metric = {
-          select: {
+          selector: {
             language: a.metricLanguage?.trim() || SCRIPT_LANGUAGE_ARGYLL,
             source,
           },

@@ -620,7 +620,7 @@ func TestInputMapping(t *testing.T) {
 				Role: api.RoleRequired,
 				Required: &api.RequiredConfig{
 					Mapping: &api.MappingConfig{
-						Script: &api.ScriptConfig{
+						Selector: &api.ScriptConfig{
 							Language: api.ScriptLangArgyll,
 							Source:   "input.foo",
 						},
@@ -1153,7 +1153,7 @@ func TestInputLua(t *testing.T) {
 				Role: api.RoleRequired,
 				Required: &api.RequiredConfig{
 					Mapping: &api.MappingConfig{
-						Script: &api.ScriptConfig{
+						Selector: &api.ScriptConfig{
 							Language: api.ScriptLangLua,
 							Source:   "return amount * 2",
 						},

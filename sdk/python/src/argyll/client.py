@@ -168,14 +168,14 @@ class Client:
         def _parse_mapping(m: Any) -> Optional[MappingConfig]:
             if not m:
                 return None
-            script = None
-            if "script" in m:
-                s = m["script"]
-                script = ScriptConfig(
+            selector = None
+            if "selector" in m:
+                s = m["selector"]
+                selector = ScriptConfig(
                     language=ScriptLanguage(s["language"]),
                     source=s["source"],
                 )
-            return MappingConfig(name=m.get("name", ""), script=script)
+            return MappingConfig(name=m.get("name", ""), selector=selector)
 
         def _parse_script(s: Any) -> Optional[ScriptConfig]:
             if not s:
@@ -224,9 +224,9 @@ class Client:
                     mapping=_parse_mapping(outd.get("mapping"))
                 )
             elif role == AttributeRole.METRIC and "metric" in spec_data:
-                select = _parse_script(spec_data["metric"].get("select"))
-                if select:
-                    metric = MetricConfig(select=select)
+                selector = _parse_script(spec_data["metric"].get("selector"))
+                if selector:
+                    metric = MetricConfig(selector=selector)
             attributes[name] = AttributeSpec(
                 role=role,
                 required=required,

@@ -137,7 +137,7 @@ func TestValidateDefault(t *testing.T) {
 				Role: api.RoleRequired,
 				Required: &api.RequiredConfig{
 					Mapping: &api.MappingConfig{
-						Script: &api.ScriptConfig{
+						Selector: &api.ScriptConfig{
 							Language: api.ScriptLangArgyll,
 							Source:   "value.foo",
 						},
@@ -153,7 +153,7 @@ func TestValidateDefault(t *testing.T) {
 				Role: api.RoleOutput,
 				Output: &api.OutputConfig{
 					Mapping: &api.MappingConfig{
-						Script: &api.ScriptConfig{
+						Selector: &api.ScriptConfig{
 							Language: api.ScriptLangArgyll,
 							Source:   "value.books | map item: item.book",
 						},
@@ -170,7 +170,7 @@ func TestValidateDefault(t *testing.T) {
 				Const: &api.ConstConfig{Value: "{}"},
 				Output: &api.OutputConfig{
 					Mapping: &api.MappingConfig{
-						Script: &api.ScriptConfig{
+						Selector: &api.ScriptConfig{
 							Language: api.ScriptLangArgyll,
 							Source:   "value.foo",
 						},
@@ -186,7 +186,7 @@ func TestValidateDefault(t *testing.T) {
 				Role: api.RoleOptional,
 				Optional: &api.OptionalConfig{
 					Mapping: &api.MappingConfig{
-						Script: &api.ScriptConfig{
+						Selector: &api.ScriptConfig{
 							Language: api.ScriptLangArgyll,
 							Source:   "value[",
 						},
@@ -433,40 +433,40 @@ func TestAccessors(t *testing.T) {
 func TestIsMetric(t *testing.T) {
 	spec := &api.AttributeSpec{
 		Role:   api.RoleMetric,
-		Metric: metricSelect("elapsed"),
+		Metric: metricSelector("elapsed"),
 	}
 	assert.True(t, spec.IsMetric())
 	assert.False(t, spec.IsOutput())
 	assert.False(t, spec.IsRuntimeInput())
-	assert.Equal(t, "elapsed", spec.MetricSelect().Source)
-	assert.Nil(t, (&api.AttributeSpec{}).MetricSelect())
+	assert.Equal(t, "elapsed", spec.MetricSelector().Source)
+	assert.Nil(t, (&api.AttributeSpec{}).MetricSelector())
 }
 
 func TestValidateMetricRole(t *testing.T) {
 	spec := &api.AttributeSpec{
 		Role:   api.RoleMetric,
-		Metric: metricSelect("elapsed"),
+		Metric: metricSelector("elapsed"),
 	}
 	assert.NoError(t, spec.Validate("metric_attr"))
 
 	missing := &api.AttributeSpec{Role: api.RoleMetric}
-	assert.ErrorIs(t, missing.Validate("metric_attr"), api.ErrMetricSelectRequired)
+	assert.ErrorIs(t, missing.Validate("metric_attr"), api.ErrMetricSelectorRequired)
 
 	empty := &api.AttributeSpec{
 		Role:   api.RoleMetric,
-		Metric: metricSelect(""),
+		Metric: metricSelector(""),
 	}
-	assert.ErrorIs(t, empty.Validate("metric_attr"), api.ErrMetricSelectRequired)
+	assert.ErrorIs(t, empty.Validate("metric_attr"), api.ErrMetricSelectorRequired)
 
 	wrong := &api.AttributeSpec{
 		Role:   api.RoleOutput,
-		Metric: metricSelect("elapsed"),
+		Metric: metricSelector("elapsed"),
 	}
 	assert.ErrorIs(t, wrong.Validate("metric_attr"), api.ErrWrongRoleConfig)
 
 	compensated := &api.AttributeSpec{
 		Role:        api.RoleMetric,
-		Metric:      metricSelect("elapsed"),
+		Metric:      metricSelector("elapsed"),
 		Compensated: true,
 	}
 	assert.ErrorIs(t, compensated.Validate("metric_attr"), api.ErrMetricCompensated)
@@ -475,11 +475,11 @@ func TestValidateMetricRole(t *testing.T) {
 func TestMetricConfigEqual(t *testing.T) {
 	duration := &api.AttributeSpec{
 		Role:   api.RoleMetric,
-		Metric: metricSelect("elapsed"),
+		Metric: metricSelector("elapsed"),
 	}
 	attempts := &api.AttributeSpec{
 		Role:   api.RoleMetric,
-		Metric: metricSelect("work.attempts.total"),
+		Metric: metricSelector("work.attempts.total"),
 	}
 	empty := &api.AttributeSpec{Role: api.RoleMetric}
 	assert.True(t, duration.Equal(duration))
@@ -610,7 +610,7 @@ func TestEqualEdgeCases(t *testing.T) {
 			Role: api.RoleOutput,
 			Output: &api.OutputConfig{
 				Mapping: &api.MappingConfig{
-					Script: &api.ScriptConfig{
+					Selector: &api.ScriptConfig{
 						Language: api.ScriptLangArgyll,
 						Source:   "value.foo",
 					},
@@ -621,7 +621,7 @@ func TestEqualEdgeCases(t *testing.T) {
 			Role: api.RoleOutput,
 			Output: &api.OutputConfig{
 				Mapping: &api.MappingConfig{
-					Script: &api.ScriptConfig{
+					Selector: &api.ScriptConfig{
 						Language: api.ScriptLangArgyll,
 						Source:   "value.bar",
 					},
@@ -908,7 +908,7 @@ func TestValidateEdgeCases(t *testing.T) {
 			Const: &api.ConstConfig{Value: "{}"},
 			Output: &api.OutputConfig{
 				Mapping: &api.MappingConfig{
-					Script: &api.ScriptConfig{
+					Selector: &api.ScriptConfig{
 						Language: api.ScriptLangArgyll,
 						Source:   "value.foo",
 					},
@@ -924,7 +924,7 @@ func TestValidateEdgeCases(t *testing.T) {
 			Role: api.RoleRequired,
 			Required: &api.RequiredConfig{
 				Mapping: &api.MappingConfig{
-					Script: &api.ScriptConfig{
+					Selector: &api.ScriptConfig{
 						Language: api.ScriptLangArgyll,
 						Source:   "value[",
 					},
@@ -952,7 +952,7 @@ func TestMappingConfigValidation(t *testing.T) {
 			Role: api.RoleRequired,
 			Required: &api.RequiredConfig{
 				Mapping: &api.MappingConfig{
-					Script: &api.ScriptConfig{
+					Selector: &api.ScriptConfig{
 						Language: api.ScriptLangArgyll,
 						Source:   "value",
 					},
@@ -968,7 +968,7 @@ func TestMappingConfigValidation(t *testing.T) {
 			Required: &api.RequiredConfig{
 				Mapping: &api.MappingConfig{
 					Name: "api_field",
-					Script: &api.ScriptConfig{
+					Selector: &api.ScriptConfig{
 						Language: api.ScriptLangArgyll,
 						Source:   "data.value",
 					},
@@ -1176,9 +1176,9 @@ func TestDeadlineInEqual(t *testing.T) {
 	})
 }
 
-func metricSelect(src string) *api.MetricConfig {
+func metricSelector(src string) *api.MetricConfig {
 	return &api.MetricConfig{
-		Select: &api.ScriptConfig{
+		Selector: &api.ScriptConfig{
 			Language: api.ScriptLangArgyll,
 			Source:   src,
 		},

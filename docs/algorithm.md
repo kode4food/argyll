@@ -1015,7 +1015,7 @@ STEP_METRICS(step, outcome):
             attempts: total invocations across all work items, retries included,
                 with average, min, and max per work item
     FOR each metric Attribute of step:
-        value, error := evaluate its select script with each top-level metric bound by name
+        value, error := evaluate its selector with each top-level metric bound by name
         IF error: omit the Attribute
         ELSE: bind {step: step ID, value: value} under the Attribute's name
 
@@ -1050,7 +1050,7 @@ FOLD_FEEDS(step, produced):
 
 Folds commit with `step_completed`, `step_failed`, `step_skipped`, or `flow_deactivated`, so each contribution lands once. They use the Step's produced outputs, since the Flow drops outputs nothing consumes. A failed fold leaves the value as it was and the Flow unaffected. A Step with a compensator contributes its outputs at deactivation, and only from its uncompensated work. Contributions apply in the order their transactions commit, which can differ from the order Steps completed, so a fold suits Feeds best when its result is independent of that order. Each Flow, child Flows included, reads the snapshot it took at start, and folds under the Space membership it was planned with.
 
-The engine supplies a `metric` Attribute's value. Its `select` script, in any registered language, picks or reshapes that value from the measured metrics, and registration compiles it. Metrics describe how a Step finished, so they fold with `step_completed`, `step_failed`, or a `step_skipped` that a predicate or required match decided, ahead of any compensation or deactivation. Each metric value names its Step, so one fold can key contributions from many Steps by producer. A metric Attribute is a producer like an output: the planner gives it provider edges, and every finished Step records the metric values its consumers need as Flow Attributes. Outputs come only from completed Steps, while metrics come from completed, failed, and skipped Steps alike, so a Step that handles failures or skips can run on its provider's metrics.
+The engine supplies a `metric` Attribute's value. Its `selector`, in any registered language, picks or reshapes that value from the measured metrics, and registration compiles it. Metrics describe how a Step finished, so they fold with `step_completed`, `step_failed`, or a `step_skipped` that a predicate or required match decided, ahead of any compensation or deactivation. Each metric value names its Step, so one fold can key contributions from many Steps by producer. A metric Attribute is a producer like an output: the planner gives it provider edges, and every finished Step records the metric values its consumers need as Flow Attributes. Outputs come only from completed Steps, while metrics come from completed, failed, and skipped Steps alike, so a Step that handles failures or skips can run on its provider's metrics.
 
 ## Compensation
 

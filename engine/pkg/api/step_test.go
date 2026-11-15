@@ -1326,7 +1326,7 @@ func TestStepCopy(t *testing.T) {
 					Required: &api.RequiredConfig{
 						Mapping: &api.MappingConfig{
 							Name: "arg_input",
-							Script: &api.ScriptConfig{
+							Selector: &api.ScriptConfig{
 								Language: api.ScriptLangArgyll,
 								Source:   "input",
 							},
@@ -1351,7 +1351,7 @@ func TestStepCopy(t *testing.T) {
 		cpy.WorkConfig.MaxRetries = 9
 		cpy.Tags[0] = "team:platform"
 		cpy.Attributes["input"].Required.Mapping.Name = "changed"
-		cpy.Attributes["input"].Required.Mapping.Script.Source = "changed"
+		cpy.Attributes["input"].Required.Mapping.Selector.Source = "changed"
 
 		as.Equal("http://localhost:8081", st.HTTP.Invoke.Endpoint)
 		as.Equal(api.StepID("goal-b"), st.Flow.Goals.Steps[0])
@@ -1360,7 +1360,7 @@ func TestStepCopy(t *testing.T) {
 		as.Equal(9, st.WorkConfig.MaxRetries)
 		as.Equal(api.Tags{"team:platform"}, st.Tags)
 		as.Equal("changed", st.Attributes["input"].Required.Mapping.Name)
-		as.Equal("changed", st.Attributes["input"].Required.Mapping.Script.Source)
+		as.Equal("changed", st.Attributes["input"].Required.Mapping.Selector.Source)
 	})
 }
 

@@ -90,7 +90,7 @@ func semanticConfigs(st map[string]any) []semanticConfig {
 			res = appendRoleConfigs(res, path, attr["output"], "mapping", "match")
 		case "metric":
 			path := "attributes." + name + ".metric"
-			res = appendRoleConfigs(res, path, attr["metric"], "select")
+			res = appendRoleConfigs(res, path, attr["metric"], "selector")
 		}
 	}
 	return res

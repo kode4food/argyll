@@ -360,7 +360,6 @@
   display: flex;
   align-items: center;
   gap: var(--spacing-sm);
-  margin-left: 40px;
   margin-right: calc((32px * 2) + (var(--spacing-sm) * 2));
   min-height: 32px;
 }
@@ -369,14 +368,14 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 20px;
+  width: calc(32px + 2px);
   height: 20px;
   flex-shrink: 0;
   color: var(--overlay-light-70);
 }
 
-.mappingInlineInput {
-  flex: 1 1 180px;
+.mappingIndicatorWide {
+  width: calc((32px * 2) + 3px);
 }
 
 .mappingScriptInlineInput {
@@ -386,10 +385,8 @@
 @media (max-width: 960px) {
   .attrMappingPanel {
     flex-wrap: wrap;
-    margin-left: 0;
   }
 
-  .mappingInlineInput,
   .mappingScriptInlineInput {
     min-width: 180px;
   }

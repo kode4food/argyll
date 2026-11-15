@@ -376,7 +376,7 @@ func TestOutputMapping(t *testing.T) {
 				Role: api.RoleOutput,
 				Output: &api.OutputConfig{
 					Mapping: &api.MappingConfig{
-						Script: &api.ScriptConfig{
+						Selector: &api.ScriptConfig{
 							Language: api.ScriptLangArgyll,
 							Source:   "result.payload.value",
 						},

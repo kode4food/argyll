@@ -63,13 +63,13 @@ type (
 	// MetricConfig selects, from the metrics the engine measures of a Step's finished work, the
 	// value a metric attribute carries
 	MetricConfig struct {
-		Select *ScriptConfig `json:"select"`
+		Selector *ScriptConfig `json:"selector"`
 	}
 
 	// MappingConfig defines parameter name mapping and value transformation
 	MappingConfig struct {
-		Script *ScriptConfig `json:"script,omitempty"`
-		Name   string        `json:"name,omitempty"`
+		Selector *ScriptConfig `json:"selector,omitempty"`
+		Name     string        `json:"name,omitempty"`
 	}
 
 	// AttributeSpecs is a map of attribute names to their specifications
@@ -92,7 +92,7 @@ const (
 	RoleMetric   AttributeRole = "metric"
 )
 
-// Top-level metric names a metric select script reads
+// Top-level metric names a metric selector reads
 const (
 	MetricSucceeded Name = "succeeded"
 	MetricSkipped   Name = "skipped"
@@ -125,7 +125,7 @@ var (
 	ErrConstValueRequired       = errors.New("const value required for const attribute")
 	ErrMetaKeyRequired          = errors.New("meta key required for meta attribute")
 	ErrFeedIDRequired           = errors.New("feed ID required for feed attribute")
-	ErrMetricSelectRequired     = errors.New("select script required for metric attribute")
+	ErrMetricSelectorRequired   = errors.New("selector required for metric attribute")
 	ErrMetricCompensated        = errors.New("metric attribute cannot be compensated")
 	ErrForEachRequiresCollect   = errors.New("for_each processing requires collect all or some")
 	ErrInvalidDefaultValue      = errors.New("invalid default value")
@@ -268,8 +268,8 @@ func (s *AttributeSpec) validateOutput(name Name) error {
 }
 
 func (s *AttributeSpec) validateMetric(name Name) error {
-	if sel := s.MetricSelect(); sel == nil || sel.Source == "" {
-		return fmt.Errorf("%w: %q", ErrMetricSelectRequired, name)
+	if sel := s.MetricSelector(); sel == nil || sel.Source == "" {
+		return fmt.Errorf("%w: %q", ErrMetricSelectorRequired, name)
 	}
 	if s.Compensated {
 		return fmt.Errorf("%w: %q", ErrMetricCompensated, name)
@@ -386,12 +386,12 @@ func (s *AttributeSpec) MetaKey() string {
 	return s.Meta.Key
 }
 
-// MetricSelect returns the script a metric attribute selects its value with
-func (s *AttributeSpec) MetricSelect() *ScriptConfig {
+// MetricSelector returns the script a metric attribute selects its value with
+func (s *AttributeSpec) MetricSelector() *ScriptConfig {
 	if s.Metric == nil {
 		return nil
 	}
-	return s.Metric.Select
+	return s.Metric.Selector
 }
 
 // FeedID returns the ID of the Feed a feed attribute reads
@@ -532,7 +532,7 @@ func (c *MetricConfig) equal(other *MetricConfig) bool {
 	if c == nil || other == nil {
 		return false
 	}
-	return c.Select.equal(other.Select)
+	return c.Selector.equal(other.Selector)
 }
 
 func (c *MappingConfig) equal(other *MappingConfig) bool {
@@ -542,7 +542,7 @@ func (c *MappingConfig) equal(other *MappingConfig) bool {
 	if c == nil || other == nil {
 		return false
 	}
-	return c.Name == other.Name && c.Script.equal(other.Script)
+	return c.Name == other.Name && c.Selector.equal(other.Selector)
 }
 
 func (c *ScriptConfig) equal(other *ScriptConfig) bool {
@@ -569,7 +569,7 @@ func validateMapping(m *MappingConfig, name Name) error {
 	if m == nil {
 		return nil
 	}
-	if m.Name == "" && m.Script == nil {
+	if m.Name == "" && m.Selector == nil {
 		return fmt.Errorf("%w: %q", ErrInvalidMappingConfig, name)
 	}
 	return nil

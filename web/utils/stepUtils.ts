@@ -58,10 +58,10 @@ const SPEC_PREVIEWS: Partial<
   [AttributeRole.Const]: (spec) => spec.const?.value,
   [AttributeRole.Meta]: (spec) => spec.meta?.key,
   [AttributeRole.Feed]: (spec) => spec.feed?.id,
-  [AttributeRole.Metric]: (spec) => spec.metric?.select?.source,
+  [AttributeRole.Metric]: (spec) => spec.metric?.selector?.source,
 };
 
-// The value a Step declares for an Attribute: default, const, meta key, Feed, metric select
+// The value a Step declares for an Attribute: default, const, meta key, Feed, metric selector
 export const getSpecPreview = (spec: AttributeSpec): string | undefined =>
   SPEC_PREVIEWS[spec.role]?.(spec) || undefined;
 

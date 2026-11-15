@@ -254,7 +254,9 @@ describe("stepUtils", () => {
     [
       {
         role: AttributeRole.Metric,
-        metric: { select: { language: "argyll", source: "work.attempts.max" } },
+        metric: {
+          selector: { language: "argyll", source: "work.attempts.max" },
+        },
       },
       "work.attempts.max",
     ],

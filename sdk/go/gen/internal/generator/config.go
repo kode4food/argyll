@@ -190,7 +190,7 @@ var attrSetters = map[string]setter[api.AttributeSpec]{
 		if !parseScript(cfg, v) {
 			return fmt.Errorf("%w: %q needs a script", ErrBadProp, mappingTag)
 		}
-		mapping.Script = cfg
+		mapping.Selector = cfg
 		return nil
 	},
 }
@@ -234,7 +234,7 @@ func withMetrics(attrs api.AttributeSpecs, metrics Options) (api.AttributeSpecs,
 		}
 		res = api.Set(res, name, &api.AttributeSpec{
 			Role:   api.RoleMetric,
-			Metric: &api.MetricConfig{Select: sel},
+			Metric: &api.MetricConfig{Selector: sel},
 		})
 	}
 	return res, nil

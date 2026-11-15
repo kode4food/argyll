@@ -34,7 +34,7 @@ describe("stepNodeUtils", () => {
       const result = groupAttributesByRole({
         latency: {
           role: AttributeRole.Metric,
-          metric: { select: { language: "argyll", source: "elapsed" } },
+          metric: { selector: { language: "argyll", source: "elapsed" } },
         },
       });
 

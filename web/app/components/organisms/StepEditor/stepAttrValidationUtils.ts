@@ -59,7 +59,7 @@ export function validateAttributesList(
 
     if (attr.role === "metric" && !attr.metricScript?.trim()) {
       return {
-        key: "stepEditor.metricSelectRequired",
+        key: "stepEditor.metricSelectorRequired",
         vars: { name: attr.name },
       };
     }

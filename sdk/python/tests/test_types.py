@@ -323,7 +323,7 @@ def test_nested_optional_fields():
             collect=InputCollect.ALL,
             for_each=True,
             deadline=1000,
-            mapping=MappingConfig(script=script),
+            mapping=MappingConfig(selector=script),
         ),
     )
     meta = AttributeSpec(
@@ -337,7 +337,7 @@ def test_nested_optional_fields():
     metric = AttributeSpec(
         role=AttributeRole.METRIC,
         metric=MetricConfig(
-            select=ScriptConfig(
+            selector=ScriptConfig(
                 language=ScriptLanguage.ARGYLL,
                 source="work.attempts.max",
             )
@@ -348,12 +348,12 @@ def test_nested_optional_fields():
         "collect": "all",
         "for_each": True,
         "deadline": 1000,
-        "mapping": {"script": script.to_dict()},
+        "mapping": {"selector": script.to_dict()},
     }
     assert meta.to_dict()["meta"] == {"key": "flow_id"}
     assert output.to_dict()["output"] == {"mapping": {"name": "result"}}
     assert metric.to_dict()["metric"] == {
-        "select": {"language": "argyll", "source": "work.attempts.max"}
+        "selector": {"language": "argyll", "source": "work.attempts.max"}
     }
 
 

@@ -29,7 +29,7 @@ describe("stepEditorUtils", () => {
             match: { language: "argyll", source: "value.kind" },
             mapping: {
               name: "child_in",
-              script: { language: "lua", source: "return value" },
+              selector: { language: "lua", source: "return value" },
             },
           },
         },
@@ -56,7 +56,7 @@ describe("stepEditorUtils", () => {
         metric_arg: {
           role: AttributeRole.Metric,
           metric: {
-            select: { language: "lua", source: "return work.attempts.max" },
+            selector: { language: "lua", source: "return work.attempts.max" },
           },
         },
       },
@@ -167,7 +167,7 @@ describe("stepEditorUtils", () => {
     [
       "missing metric selects",
       [attribute({ role: "metric", name: "took", metricScript: " " })],
-      { key: "stepEditor.metricSelectRequired", vars: { name: "took" } },
+      { key: "stepEditor.metricSelectorRequired", vars: { name: "took" } },
     ],
     [
       "optional attributes without defaults",
@@ -244,7 +244,7 @@ describe("stepEditorUtils", () => {
         match: { language: "lua", source: 'return value == "email"' },
         mapping: {
           name: "request",
-          script: { language: "argyll", source: "request.payload" },
+          selector: { language: "argyll", source: "request.payload" },
         },
       },
     });
@@ -257,13 +257,13 @@ describe("stepEditorUtils", () => {
       role: AttributeRole.Feed,
       feed: { id: "order-total" },
     });
-    expect(result.output.output?.mapping?.script).toEqual({
+    expect(result.output.output?.mapping?.selector).toEqual({
       language: "argyll",
       source: "output.result",
     });
     expect(result.took).toEqual({
       role: AttributeRole.Metric,
-      metric: { select: { language: "argyll", source: "elapsed" } },
+      metric: { selector: { language: "argyll", source: "elapsed" } },
     });
   });
 

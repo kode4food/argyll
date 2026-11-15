@@ -67,18 +67,18 @@ func (m *Mapper) MapValue(
 // MapInput maps a step input value and falls back to original value
 func (m *Mapper) MapInput(st *api.Step, name api.Name, attr *api.AttributeSpec, value any) any {
 	mapping := attr.Mapping()
-	if mapping == nil || mapping.Script == nil {
+	if mapping == nil || mapping.Selector == nil {
 		return value
 	}
 
 	mapped, _ := st.MappedName(name)
-	if argName, ok := m.MapValue(st, mapped, mapping.Script, value); ok {
+	if argName, ok := m.MapValue(st, mapped, mapping.Selector, value); ok {
 		return argName
 	}
 
 	args := []any{
 		slog.String("attribute", string(name)),
-		slog.String("language", mapping.Script.Language),
+		slog.String("language", mapping.Selector.Language),
 	}
 	args = append(args, log.StepID(st.ID))
 	slog.Warn("Input mapping failed; using original value", args...)
@@ -104,11 +104,11 @@ func (m *Mapper) MapOutputs(st *api.Step, outputs api.Args) api.Args {
 func (m *Mapper) validateStep(st *api.Step) error {
 	for name, attr := range st.Attributes {
 		mapping := attr.Mapping()
-		if mapping == nil || mapping.Script == nil {
+		if mapping == nil || mapping.Selector == nil {
 			continue
 		}
 
-		if _, err := m.Compile(st, mapping.Script); err != nil {
+		if _, err := m.Compile(st, mapping.Selector); err != nil {
 			return fmt.Errorf("%w for attribute %q: %v", api.ErrInvalidMappingConfig, name, err)
 		}
 	}
@@ -118,8 +118,8 @@ func (m *Mapper) validateStep(st *api.Step) error {
 func (m *Mapper) mapOutput(
 	st *api.Step, name api.Name, attr *api.AttributeSpec, outputs api.Args,
 ) (any, bool) {
-	if mapping := attr.Mapping(); mapping != nil && mapping.Script != nil {
-		return m.MapValue(st, name, mapping.Script, outputs)
+	if mapping := attr.Mapping(); mapping != nil && mapping.Selector != nil {
+		return m.MapValue(st, name, mapping.Selector, outputs)
 	}
 	return outputByName(st, name, outputs)
 }

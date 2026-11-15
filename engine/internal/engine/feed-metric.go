@@ -23,7 +23,7 @@ const (
 )
 
 // stepMetrics selects each metric Attribute's value from a completed, failed, or skipped Step's
-// measured work, tagged with the Step that produced it. A failed select omits its metric
+// measured work, tagged with the Step that produced it. A failed selector omits its metric
 func (tx *flowTx) stepMetrics(st *api.Step, outcome stepOutcome) api.Args {
 	var metrics api.Args
 	res := api.Args{}
@@ -35,9 +35,9 @@ func (tx *flowTx) stepMetrics(st *api.Step, outcome stepOutcome) api.Args {
 			ex := tx.Value().Executions[st.ID]
 			metrics = tx.measureMetrics(&ex, outcome)
 		}
-		value, err := tx.scripts.Evaluate(script.MetricStep, attr.MetricSelect(), metrics)
+		value, err := tx.scripts.Evaluate(script.MetricStep, attr.MetricSelector(), metrics)
 		if err != nil {
-			slog.Warn("Metric select failed, omitting metric",
+			slog.Warn("Metric selector failed, omitting metric",
 				slog.String("attribute", string(name)),
 				log.StepID(st.ID),
 				log.Error(err))

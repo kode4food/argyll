@@ -127,7 +127,7 @@ func TestScriptUsesMappedName(t *testing.T) {
 					Required: &api.RequiredConfig{
 						Mapping: &api.MappingConfig{
 							Name: "value",
-							Script: &api.ScriptConfig{
+							Selector: &api.ScriptConfig{
 								Language: api.ScriptLangLua,
 								Source:   "return value * 2",
 							},
@@ -226,7 +226,7 @@ func TestMapInput(t *testing.T) {
 				Role: api.RoleRequired,
 				Required: &api.RequiredConfig{
 					Mapping: &api.MappingConfig{
-						Script: argExCfg("input.key"),
+						Selector: argExCfg("input.key"),
 					},
 				},
 			}
@@ -243,7 +243,7 @@ func TestMapInput(t *testing.T) {
 				Role: api.RoleRequired,
 				Required: &api.RequiredConfig{
 					Mapping: &api.MappingConfig{
-						Script: argExCfg("input?.missing"),
+						Selector: argExCfg("input?.missing"),
 					},
 				},
 			}

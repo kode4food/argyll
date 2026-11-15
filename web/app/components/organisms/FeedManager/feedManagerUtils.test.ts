@@ -67,7 +67,7 @@ describe("feedManagerUtils", () => {
             d: {
               role: AttributeRole.Metric,
               metric: {
-                select: { language: "argyll", source: "elapsed" },
+                selector: { language: "argyll", source: "elapsed" },
               },
             },
           },

@@ -852,14 +852,14 @@ def test_step_builder_metric():
     took = step.attributes["took"]
     assert took.role == AttributeRole.METRIC
     assert took.metric == MetricConfig(
-        select=ScriptConfig(
+        selector=ScriptConfig(
             language=ScriptLanguage.ARGYLL,
             source="elapsed",
         )
     )
     tries = step.attributes["tries"].metric
     assert tries is not None
-    assert tries.select.language == ScriptLanguage.LUA
+    assert tries.selector.language == ScriptLanguage.LUA
 
 
 def test_step_builder_with_for_each_optional():
@@ -895,7 +895,7 @@ def test_validate_step_metric_missing_select():
             "took": AttributeSpec(
                 role=AttributeRole.METRIC,
                 metric=MetricConfig(
-                    select=ScriptConfig(
+                    selector=ScriptConfig(
                         language=ScriptLanguage.ARGYLL,
                         source="",
                     )
@@ -903,7 +903,7 @@ def test_validate_step_metric_missing_select():
             )
         }
     )
-    with pytest.raises(StepValidationError, match="requires select"):
+    with pytest.raises(StepValidationError, match="requires selector"):
         _validate_step(step)
 
 
@@ -913,7 +913,7 @@ def test_validate_step_metric_compensated():
             "took": AttributeSpec(
                 role=AttributeRole.METRIC,
                 metric=MetricConfig(
-                    select=ScriptConfig(
+                    selector=ScriptConfig(
                         language=ScriptLanguage.ARGYLL,
                         source="elapsed",
                     )
@@ -932,7 +932,7 @@ def test_validate_step_metric_wrong_config():
             "took": AttributeSpec(
                 role=AttributeRole.OUTPUT,
                 metric=MetricConfig(
-                    select=ScriptConfig(
+                    selector=ScriptConfig(
                         language=ScriptLanguage.ARGYLL,
                         source="elapsed",
                     )

@@ -80,7 +80,7 @@ var MatchStep = &api.Step{
 	},
 }
 
-// MetricStep is the synthetic step a metric select script compiles against, exposing each
+// MetricStep is the synthetic step a metric selector compiles against, exposing each
 // top-level metric
 var MetricStep = &api.Step{
 	ID: "metric",
@@ -138,7 +138,7 @@ func (r *Registry) Get(language string) (Environment, error) {
 }
 
 // ValidateStep checks that a step's predicate and attribute match scripts compile successfully
-// against the registry and can return a Boolean, and that its metric select scripts compile
+// against the registry and can return a Boolean, and that its metric selectors compile
 func (r *Registry) ValidateStep(st *api.Step) error {
 	if st.Predicate != nil {
 		if err := r.ValidatePredicate(st, st.Predicate); err != nil {
@@ -146,8 +146,8 @@ func (r *Registry) ValidateStep(st *api.Step) error {
 		}
 	}
 	for name, attr := range st.Attributes {
-		if _, err := r.Compile(MetricStep, attr.MetricSelect()); err != nil {
-			return fmt.Errorf("attribute %q select: %w", name, err)
+		if _, err := r.Compile(MetricStep, attr.MetricSelector()); err != nil {
+			return fmt.Errorf("attribute %q selector: %w", name, err)
 		}
 		cfg := attr.Match()
 		if cfg == nil {

@@ -34,10 +34,8 @@ def check_attribute_role_config(name: str, spec: AttributeSpec) -> None:
 
 
 def check_metric(name: str, spec: AttributeSpec) -> None:
-    if not spec.metric or not spec.metric.select.source:
-        raise StepValidationError(
-            f"Metric attribute {name} requires select script"
-        )
+    if not spec.metric or not spec.metric.selector.source:
+        raise StepValidationError(f"Metric attribute {name} requires selector")
     if spec.compensated:
         raise StepValidationError(
             f"Metric attribute {name} cannot be compensated"

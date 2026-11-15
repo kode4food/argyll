@@ -103,7 +103,7 @@ func (s Step) Metric(name api.Name, sel api.ScriptConfig) Step {
 	return s.withAttribute(name, &api.AttributeSpec{
 		Role: api.RoleMetric,
 		Metric: &api.MetricConfig{
-			Select: &api.ScriptConfig{
+			Selector: &api.ScriptConfig{
 				Language: language,
 				Source:   sel.Source,
 			},

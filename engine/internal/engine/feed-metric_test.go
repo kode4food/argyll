@@ -193,7 +193,7 @@ func TestFeedFoldsLuaMetric(t *testing.T) {
 	})
 }
 
-func TestFeedOmitsFailedSelect(t *testing.T) {
+func TestFeedOmitsFailedSelector(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		charge := newMeasuredStep("charge", api.AttributeSpecs{
 			"bad": metricSpec(argExCfg("work.missing.field")),
@@ -283,7 +283,7 @@ func TestSkippedStepMetricActivatesConsumer(t *testing.T) {
 	})
 }
 
-func TestRegisterStepRejectsBadSelect(t *testing.T) {
+func TestRegisterStepRejectsBadSelector(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		st := newMeasuredStep("charge", api.AttributeSpecs{
 			"tries": metricSpec(argExCfg("work[")),
@@ -295,7 +295,7 @@ func TestRegisterStepRejectsBadSelect(t *testing.T) {
 func metricSpec(sel *api.ScriptConfig) *api.AttributeSpec {
 	return &api.AttributeSpec{
 		Role:   api.RoleMetric,
-		Metric: &api.MetricConfig{Select: sel},
+		Metric: &api.MetricConfig{Selector: sel},
 	}
 }
 

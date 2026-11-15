@@ -1903,9 +1903,9 @@ components:
         naming the measuring step and the selected measurement, such as
         `{"step": "charge", "value": 182}`.
       required:
-        - select
+        - selector
       properties:
-        select:
+        selector:
           allOf:
             - $ref: "#/components/schemas/ScriptConfig"
           description: |
@@ -1919,7 +1919,7 @@ components:
             - `work`: `items` and `failed` work items, and `attempts` with
               `total` invocations across all work items, retries included,
               and `average`, `min`, and `max` per work item
-            The metric folds when its script evaluates successfully.
+            The metric folds when its selector evaluates successfully.
           example:
             language: argyll
             source: elapsed
@@ -1934,7 +1934,7 @@ components:
         Output expressions receive the complete service response under the
         output Attribute name. Arrays retain their shape.
 
-        At least one of `name` or `script` must be provided. Not allowed on
+        At least one of `name` or `selector` must be provided. Not allowed on
         const or meta attributes.
 
         The example maps an input Attribute `price_dollars` to the service
@@ -1954,11 +1954,11 @@ components:
             when the output is retained for a Goal or downstream consumer,
             stores it in Flow state using the attribute name.
           example: "user_email"
-        script:
+        selector:
           $ref: "#/components/schemas/ScriptConfig"
       example:
         name: "amount"
-        script:
+        selector:
           language: "argyll"
           source: "amount * 100"
 

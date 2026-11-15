@@ -264,7 +264,7 @@ func TestRegisterStepsRollback(t *testing.T) {
 					Role: api.RoleOutput,
 					Output: &api.OutputConfig{
 						Mapping: &api.MappingConfig{
-							Script: &api.ScriptConfig{
+							Selector: &api.ScriptConfig{
 								Language: api.ScriptLangArgyll,
 								Source:   "value[",
 							},
@@ -294,7 +294,7 @@ func TestRegisterStepValidatesMappings(t *testing.T) {
 			Role: api.RoleRequired,
 			Required: &api.RequiredConfig{
 				Mapping: &api.MappingConfig{
-					Script: &api.ScriptConfig{
+					Selector: &api.ScriptConfig{
 						Language: api.ScriptLangArgyll,
 						Source:   "value[",
 					},

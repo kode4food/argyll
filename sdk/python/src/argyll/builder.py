@@ -129,7 +129,7 @@ class StepBuilder:
         new_attrs[name] = AttributeSpec(
             role=AttributeRole.METRIC,
             metric=MetricConfig(
-                select=ScriptConfig(language=language, source=source)
+                selector=ScriptConfig(language=language, source=source)
             ),
         )
         return self._copy(_attributes=new_attrs)

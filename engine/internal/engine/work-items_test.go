@@ -148,7 +148,7 @@ func TestOutputMappingDescendants(t *testing.T) {
 					Role: api.RoleOutput,
 					Output: &api.OutputConfig{
 						Mapping: &api.MappingConfig{
-							Script: &api.ScriptConfig{
+							Selector: &api.ScriptConfig{
 								Language: api.ScriptLangArgyll,
 								Source: "books.payload.sections | map " +
 									"item: item.book",

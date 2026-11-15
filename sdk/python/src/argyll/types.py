@@ -78,15 +78,15 @@ class MappingConfig:
     """Mapping configuration for attribute transformation."""
 
     name: str = ""
-    script: Optional["ScriptConfig"] = None
+    selector: Optional["ScriptConfig"] = None
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert to API dictionary format."""
         result: Dict[str, Any] = {}
         if self.name:
             result["name"] = self.name
-        if self.script:
-            result["script"] = self.script.to_dict()
+        if self.selector:
+            result["selector"] = self.selector.to_dict()
         return result
 
 
@@ -179,11 +179,11 @@ class OutputConfig:
 class MetricConfig:
     """Configuration for metric attributes, selecting from measured work."""
 
-    select: "ScriptConfig"
+    selector: "ScriptConfig"
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert to API dictionary format."""
-        return {"select": self.select.to_dict()}
+        return {"selector": self.selector.to_dict()}
 
 
 @dataclass(frozen=True)

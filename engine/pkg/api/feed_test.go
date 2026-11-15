@@ -178,7 +178,7 @@ func TestFeedFolds(t *testing.T) {
 			"amount": {
 				Role: api.RoleMetric,
 				Metric: &api.MetricConfig{
-					Select: &api.ScriptConfig{
+					Selector: &api.ScriptConfig{
 						Language: api.ScriptLangArgyll,
 						Source:   "elapsed",
 					},

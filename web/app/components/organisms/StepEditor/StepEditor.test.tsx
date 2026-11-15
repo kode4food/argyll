@@ -761,7 +761,7 @@ describe("StepEditor", () => {
               required: {
                 mapping: {
                   name: "request_payload",
-                  script: {
+                  selector: {
                     language: "argyll",
                     source: "request_payload.payload.input",
                   },

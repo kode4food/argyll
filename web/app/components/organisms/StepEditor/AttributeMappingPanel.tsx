@@ -15,6 +15,8 @@ import InlineSelectDropdown, {
 
 interface AttributeMappingPanelProps {
   attr: Attribute;
+  nameClass: string;
+  compensable: boolean;
   stepType: StepType;
   flowInputOptions: FlowInputOption[];
   flowOutputOptions: string[];
@@ -25,6 +27,8 @@ interface AttributeMappingPanelProps {
 
 const AttributeMappingPanel: React.FC<AttributeMappingPanelProps> = ({
   attr,
+  nameClass,
+  compensable,
   stepType,
   flowInputOptions,
   flowOutputOptions,
@@ -43,7 +47,12 @@ const AttributeMappingPanel: React.FC<AttributeMappingPanelProps> = ({
 
   return (
     <div className={formStyles.attrMappingPanel}>
-      <span className={formStyles.mappingIndicator} aria-hidden>
+      <span
+        className={`${formStyles.mappingIndicator} ${
+          compensable ? formStyles.mappingIndicatorWide : ""
+        }`}
+        aria-hidden
+      >
         <IconMapping className={styles.iconSm} />
       </span>
       {stepType === "flow" ? (
@@ -72,7 +81,7 @@ const AttributeMappingPanel: React.FC<AttributeMappingPanelProps> = ({
                 })),
               ];
           return (
-            <SegmentedGroup className={formStyles.mappingInlineInput}>
+            <SegmentedGroup className={nameClass}>
               <InlineSelectDropdown
                 value={attr.mappingName || ""}
                 options={flowOptions}
@@ -94,7 +103,7 @@ const AttributeMappingPanel: React.FC<AttributeMappingPanelProps> = ({
             updateAttribute(attr.id, "mappingName", e.target.value)
           }
           placeholder={mappingNameHint}
-          className={`${formStyles.formControl} ${formStyles.mappingInlineInput}`}
+          className={`${formStyles.formControl} ${nameClass}`}
         />
       )}
       <ScriptLanguageInlineInput
