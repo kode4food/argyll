@@ -35,18 +35,18 @@ func makeFeedAppliers() timebox.Appliers[api.FeedState] {
 }
 
 func feedFolded(state api.FeedState, ev *timebox.Event, data api.FeedFoldedEvent) api.FeedState {
-	state.ID = data.FeedID
-	state.Version = data.Version
-	state.Value = data.Value
-	state.LastUpdated = ev.Timestamp
-	return state
+	return state.
+		SetID(data.FeedID).
+		SetVersion(data.Version).
+		SetValue(data.Value).
+		SetLastUpdated(ev.Timestamp)
 }
 
 func feedFoldFailed(
 	state api.FeedState, ev *timebox.Event, data api.FeedFoldFailedEvent,
 ) api.FeedState {
 	// Version marks a state that holds a value, which a failed fold never sets
-	state.ID = data.FeedID
-	state.LastUpdated = ev.Timestamp
-	return state
+	return state.
+		SetID(data.FeedID).
+		SetLastUpdated(ev.Timestamp)
 }

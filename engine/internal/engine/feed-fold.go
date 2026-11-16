@@ -204,8 +204,7 @@ func uncompensatedWork(items api.WorkItems) api.WorkItems {
 	res := api.WorkItems{}
 	for tkn, work := range items {
 		if policy.WorkEffectStands(work.Status) {
-			work.Status = api.WorkSucceeded
-			res[tkn] = work
+			res[tkn] = work.SetStatus(api.WorkSucceeded)
 		}
 	}
 	return res

@@ -152,10 +152,10 @@ func (e *Engine) feedState(f *api.Feed) (api.FeedState, error) {
 	if err != nil {
 		return api.FeedState{}, err
 	}
-	state.ID = f.ID
-	state.Version = version
-	state.Value = seed
-	return state, nil
+	return state.
+		SetID(f.ID).
+		SetVersion(version).
+		SetValue(seed), nil
 }
 
 // validateStepFeeds requires every Feed a Step reads to be registered

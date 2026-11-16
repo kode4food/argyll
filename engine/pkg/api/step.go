@@ -218,6 +218,24 @@ func (s *Step) Copy() *Step {
 	}
 }
 
+// Sanitized returns the step, or a copy with its ID and every ID it references sanitized
+func (s *Step) Sanitized() *Step {
+	if s == nil {
+		return &Step{}
+	}
+	sid := SanitizeID(s.ID)
+	flow := s.Flow.Sanitized()
+	attrs, changed := s.Attributes.sanitized()
+	if sid == s.ID && flow == s.Flow && !changed {
+		return s
+	}
+	res := s.Copy()
+	res.ID = sid
+	res.Flow = flow
+	res.Attributes = attrs
+	return res
+}
+
 // WithWorkDefaults returns a copy of the step with zero-valued work fields filled in from defaults
 func (s *Step) WithWorkDefaults(defaults *WorkConfig) *Step {
 	res := s.Copy()
@@ -406,6 +424,22 @@ func (c *FlowConfig) WithGoals(goals Goals) *FlowConfig {
 	return res
 }
 
+// Sanitized returns the flow config, or a copy with its goal and Space IDs sanitized
+func (c *FlowConfig) Sanitized() *FlowConfig {
+	if c == nil {
+		return nil
+	}
+	goals := c.Goals.Sanitized()
+	spaceID := SanitizeID(c.SpaceID)
+	if goals == &c.Goals && spaceID == c.SpaceID {
+		return c
+	}
+	return &FlowConfig{
+		Goals:   *goals,
+		SpaceID: spaceID,
+	}
+}
+
 // Equal returns true if two flow configs are equal
 func (c *FlowConfig) Equal(other *FlowConfig) bool {
 	if c == nil || other == nil {
@@ -446,7 +480,7 @@ func (s *Step) validateIdentity() error {
 	if s.ID == "" {
 		return ErrStepIDEmpty
 	}
-	if SanitizeID(s.ID) != s.ID {
+	if unsanitized(s.ID) {
 		return ErrStepIDInvalid
 	}
 	if s.Name == "" {
@@ -586,8 +620,7 @@ func (s *Step) validateFlowConfig() error {
 	if !s.Flow.Goals.Valid() {
 		return ErrFlowGoalsRequired
 	}
-	if s.Flow.SpaceID != NoSpace &&
-		SanitizeID(s.Flow.SpaceID) != s.Flow.SpaceID {
+	if s.Flow.SpaceID != NoSpace && unsanitized(s.Flow.SpaceID) {
 		return ErrSpaceIDInvalid
 	}
 	return nil

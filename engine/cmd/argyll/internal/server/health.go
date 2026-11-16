@@ -164,7 +164,7 @@ func (s *Server) handleEngineHealth(c *gin.Context) {
 }
 
 func (s *Server) handleEngineHealthByID(c *gin.Context) {
-	sid := api.StepID(c.Param("step_id"))
+	sid := sanitizedParam[api.StepID](c, "step_id")
 
 	health, err := s.engine.GetStepHealth(sid)
 	if errors.Is(err, api.ErrStepNotFound) {

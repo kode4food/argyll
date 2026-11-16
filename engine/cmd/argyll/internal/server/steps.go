@@ -29,23 +29,16 @@ func (s *Server) listSteps(c *gin.Context) {
 }
 
 func (s *Server) createStep(c *gin.Context) {
-	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, MaxStepBodyBytes)
-	var st api.Step
-	if err := c.ShouldBindJSON(&st); err != nil {
-		c.JSON(http.StatusBadRequest, api.ErrorResponse{
-			Error:  fmt.Sprintf("%s: %v", ErrInvalidJSON, err),
-			Status: http.StatusBadRequest,
-		})
+	st, ok := bindJSON[*api.Step](c, MaxStepBodyBytes)
+	if !ok {
 		return
 	}
 
-	st.ID = api.SanitizeID(st.ID)
-
-	err := s.engine.RegisterStep(&st)
+	err := s.engine.RegisterStep(st)
 	if err == nil {
 		c.JSON(http.StatusCreated, api.StepRegisteredResponse{
 			Message: "Step registered",
-			Step:    &st,
+			Step:    st,
 		})
 		return
 	}
@@ -71,7 +64,7 @@ func (s *Server) createStep(c *gin.Context) {
 }
 
 func (s *Server) getStep(c *gin.Context) {
-	sid := api.StepID(c.Param("step_id"))
+	sid := sanitizedParam[api.StepID](c, "step_id")
 
 	cat, err := s.engine.GetCatalogState()
 	if err != nil {
@@ -94,20 +87,12 @@ func (s *Server) getStep(c *gin.Context) {
 }
 
 func (s *Server) updateStep(c *gin.Context) {
-	sid := api.StepID(c.Param("step_id"))
+	sid := sanitizedParam[api.StepID](c, "step_id")
 
-	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, MaxStepBodyBytes)
-	var st api.Step
-	if err := c.ShouldBindJSON(&st); err != nil {
-		c.JSON(http.StatusBadRequest, api.ErrorResponse{
-			Error:  fmt.Sprintf("%s: %v", ErrInvalidJSON, err),
-			Status: http.StatusBadRequest,
-		})
+	st, ok := bindJSON[*api.Step](c, MaxStepBodyBytes)
+	if !ok {
 		return
 	}
-
-	st.ID = api.SanitizeID(st.ID)
-	sid = api.SanitizeID(sid)
 
 	if st.ID != sid {
 		c.JSON(http.StatusBadRequest, api.ErrorResponse{
@@ -117,11 +102,11 @@ func (s *Server) updateStep(c *gin.Context) {
 		return
 	}
 
-	err := s.engine.UpdateStep(&st)
+	err := s.engine.UpdateStep(st)
 	if err == nil {
 		c.JSON(http.StatusOK, api.StepRegisteredResponse{
 			Message: "Step updated",
-			Step:    &st,
+			Step:    st,
 		})
 		return
 	}
@@ -147,7 +132,7 @@ func (s *Server) updateStep(c *gin.Context) {
 }
 
 func (s *Server) deleteStep(c *gin.Context) {
-	sid := api.StepID(c.Param("step_id"))
+	sid := sanitizedParam[api.StepID](c, "step_id")
 
 	cat, err := s.engine.GetCatalogState()
 	if err != nil {

@@ -2,7 +2,6 @@ package server
 
 import (
 	"errors"
-	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -28,11 +27,10 @@ func (s *Server) listFeeds(c *gin.Context) {
 }
 
 func (s *Server) createFeed(c *gin.Context) {
-	f, ok := bindFeed(c)
+	f, ok := bindJSON[*api.Feed](c, MaxStepBodyBytes)
 	if !ok {
 		return
 	}
-	f.ID = api.SanitizeID(f.ID)
 	err := s.engine.RegisterFeed(f)
 	if err == nil {
 		c.JSON(http.StatusCreated, api.FeedRegisteredResponse{
@@ -56,7 +54,7 @@ func (s *Server) createFeed(c *gin.Context) {
 }
 
 func (s *Server) getFeed(c *gin.Context) {
-	res, err := s.engine.GetFeed(api.FeedID(c.Param("feed_id")))
+	res, err := s.engine.GetFeed(sanitizedParam[api.FeedID](c, "feed_id"))
 	if err == nil {
 		c.JSON(http.StatusOK, res)
 		return
@@ -72,12 +70,11 @@ func (s *Server) getFeed(c *gin.Context) {
 }
 
 func (s *Server) updateFeed(c *gin.Context) {
-	f, ok := bindFeed(c)
+	f, ok := bindJSON[*api.Feed](c, MaxStepBodyBytes)
 	if !ok {
 		return
 	}
-	f.ID = api.SanitizeID(f.ID)
-	id := api.SanitizeID(api.FeedID(c.Param("feed_id")))
+	id := sanitizedParam[api.FeedID](c, "feed_id")
 	if f.ID != id {
 		c.JSON(http.StatusBadRequest, api.ErrorResponse{
 			Error:  "Feed ID in URL does not match Feed ID in body",
@@ -108,7 +105,7 @@ func (s *Server) updateFeed(c *gin.Context) {
 }
 
 func (s *Server) deleteFeed(c *gin.Context) {
-	err := s.engine.UnregisterFeed(api.FeedID(c.Param("feed_id")))
+	err := s.engine.UnregisterFeed(sanitizedParam[api.FeedID](c, "feed_id"))
 	if err == nil {
 		c.JSON(http.StatusOK, api.MessageResponse{
 			Message: "Feed unregistered",
@@ -134,17 +131,4 @@ func writeFeedStatus(c *gin.Context, status int, err error) {
 		Error:  err.Error(),
 		Status: status,
 	})
-}
-
-func bindFeed(c *gin.Context) (*api.Feed, bool) {
-	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, MaxStepBodyBytes)
-	f := &api.Feed{}
-	if err := c.ShouldBindJSON(f); err != nil {
-		c.JSON(http.StatusBadRequest, api.ErrorResponse{
-			Error:  fmt.Sprintf("%s: %v", ErrInvalidJSON, err),
-			Status: http.StatusBadRequest,
-		})
-		return nil, false
-	}
-	return f, true
 }

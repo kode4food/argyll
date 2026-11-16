@@ -5,7 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"slices"
-	"time"
+
+	"github.com/kode4food/argyll/engine/pkg/util"
 )
 
 type (
@@ -23,14 +24,6 @@ type (
 
 	// FeedID uniquely identifies a Feed
 	FeedID string
-
-	// FeedState is the folded value of one Feed definition version
-	FeedState struct {
-		LastUpdated time.Time `json:"last_updated"`
-		Value       any       `json:"value"`
-		ID          FeedID    `json:"id"`
-		Version     string    `json:"version"`
-	}
 
 	// FeedValues holds Feed values captured when a Flow starts
 	FeedValues = Map[FeedID, any]
@@ -126,11 +119,27 @@ func (f *Feed) Folds(st *Step, selected []StepID) bool {
 	})
 }
 
+// Sanitized returns the definition, or a copy with its ID and Space ID sanitized
+func (f *Feed) Sanitized() *Feed {
+	if f == nil {
+		return &Feed{}
+	}
+	id := SanitizeID(f.ID)
+	spaceID := SanitizeID(f.SpaceID)
+	if id == f.ID && spaceID == f.SpaceID {
+		return f
+	}
+	res := util.MutableCopy(f)
+	res.ID = id
+	res.SpaceID = spaceID
+	return res
+}
+
 func (f *Feed) validateShape() error {
 	if f.ID == "" {
 		return ErrFeedIDEmpty
 	}
-	if SanitizeID(f.ID) != f.ID {
+	if unsanitized(f.ID) {
 		return ErrFeedIDInvalid
 	}
 	if f.Name == "" {

@@ -107,17 +107,11 @@ func (s *Server) listFlows(c *gin.Context) {
 }
 
 func (s *Server) startFlow(c *gin.Context) {
-	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, MaxFlowBodyBytes)
-	var req api.CreateFlowRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, api.ErrorResponse{
-			Error:  fmt.Sprintf("%s: %v", ErrInvalidJSON, err),
-			Status: http.StatusBadRequest,
-		})
+	req, ok := bindJSON[*api.CreateFlowRequest](c, MaxFlowBodyBytes)
+	if !ok {
 		return
 	}
 
-	req.ID = api.SanitizeID(req.ID)
 	if err := req.Validate(); err != nil {
 		c.JSON(http.StatusBadRequest, api.ErrorResponse{
 			Error:  err.Error(),
@@ -166,7 +160,7 @@ func (s *Server) startFlow(c *gin.Context) {
 }
 
 func (s *Server) getFlow(c *gin.Context) {
-	id := api.FlowID(c.Param("flow_id"))
+	id := sanitizedParam[api.FlowID](c, "flow_id")
 
 	fl, err := s.engine.GetFlowState(id)
 	if err == nil {
@@ -188,7 +182,7 @@ func (s *Server) getFlow(c *gin.Context) {
 }
 
 func (s *Server) getFlowEvents(c *gin.Context) {
-	id := api.FlowID(c.Param("flow_id"))
+	id := sanitizedParam[api.FlowID](c, "flow_id")
 	evs, err := s.engine.GetFlowEvents(id)
 	if writeError(c, writeErrorArgs{
 		sentinel: ErrGetFlowEvents,
@@ -210,7 +204,7 @@ func (s *Server) getFlowEvents(c *gin.Context) {
 }
 
 func (s *Server) getFlowStatus(c *gin.Context) {
-	id := api.FlowID(c.Param("flow_id"))
+	id := sanitizedParam[api.FlowID](c, "flow_id")
 
 	status, err := s.engine.GetFlowStatus(id)
 	if err == nil {
@@ -258,12 +252,8 @@ func (s *Server) createPlan(
 }
 
 func (s *Server) handlePlanPreview(c *gin.Context) {
-	var req api.ExecutionPlanRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, api.ErrorResponse{
-			Error:  fmt.Sprintf("%s: %v", ErrInvalidJSON, err),
-			Status: http.StatusBadRequest,
-		})
+	req, ok := bindJSON[*api.ExecutionPlanRequest](c, MaxFlowBodyBytes)
+	if !ok {
 		return
 	}
 
@@ -275,7 +265,7 @@ func (s *Server) handlePlanPreview(c *gin.Context) {
 		return
 	}
 
-	pl := s.createPlan(c, req, s.engine.PreviewPlan)
+	pl := s.createPlan(c, *req, s.engine.PreviewPlan)
 	if pl != nil {
 		c.JSON(http.StatusOK, pl)
 	}

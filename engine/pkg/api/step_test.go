@@ -1912,3 +1912,41 @@ func TestMappingValidation(t *testing.T) {
 		as.ErrorIs(err, api.ErrCompensateArgConflict)
 	})
 }
+
+func TestStepSanitized(t *testing.T) {
+	newStep := func(id api.StepID, goal api.StepID, feed api.FeedID) *api.Step {
+		return &api.Step{
+			ID: id,
+			Flow: &api.FlowConfig{
+				Goals:   api.Goals{Steps: []api.StepID{goal}},
+				SpaceID: "space",
+			},
+			Attributes: api.AttributeSpecs{
+				"total": {Role: api.RoleFeed, Feed: &api.FeedConfig{ID: feed}},
+			},
+		}
+	}
+
+	t.Run("returns the original when already sane", func(t *testing.T) {
+		as := assert.New(t)
+		st := newStep("step", "goal", "feed")
+		as.Same(st, st.Sanitized())
+	})
+
+	t.Run("copies when a nested ID changes", func(t *testing.T) {
+		as := assert.New(t)
+		st := newStep("step", "My Goal", "My Feed")
+		res := st.Sanitized()
+		as.NotSame(st, res)
+		as.Equal([]api.StepID{"my-goal"}, res.Flow.Goals.Steps)
+		as.Equal(api.FeedID("my-feed"), res.Attributes["total"].FeedID())
+		as.Equal([]api.StepID{"My Goal"}, st.Flow.Goals.Steps)
+		as.Equal(api.FeedID("My Feed"), st.Attributes["total"].FeedID())
+	})
+
+	t.Run("nil yields an empty step", func(t *testing.T) {
+		as := assert.New(t)
+		var st *api.Step
+		as.Equal(api.StepID(""), st.Sanitized().ID)
+	})
+}

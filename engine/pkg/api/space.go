@@ -4,6 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"slices"
+
+	"github.com/kode4food/argyll/engine/pkg/util"
 )
 
 type (
@@ -43,7 +45,7 @@ func (s Space) Validate() error {
 	if s.ID == "" {
 		return ErrSpaceIDEmpty
 	}
-	if SanitizeID(s.ID) != s.ID {
+	if unsanitized(s.ID) {
 		return ErrSpaceIDInvalid
 	}
 	if s.Name == "" {
@@ -71,6 +73,20 @@ func (s Space) Normalize() Space {
 	}
 	s.QBE = s.QBE.Normalize()
 	return s
+}
+
+// Sanitized returns the space, or a copy with its ID sanitized
+func (s *Space) Sanitized() *Space {
+	if s == nil {
+		return &Space{}
+	}
+	id := SanitizeID(s.ID)
+	if id == s.ID {
+		return s
+	}
+	res := util.MutableCopy(s)
+	res.ID = id
+	return res
 }
 
 // Equal returns true if two normalized space definitions are equal

@@ -74,6 +74,56 @@ func TestGetStepExists(t *testing.T) {
 	})
 }
 
+func TestGetStepSanitizesPath(t *testing.T) {
+	withTestServerEnv(t, func(testEnv *testServerEnv) {
+		st := helpers.NewSimpleStep("existing-step")
+		assert.NoError(t, testEnv.Engine.RegisterStep(st))
+
+		req := httptest.NewRequest("GET", "/engine/steps/Existing%20Step", nil)
+		w := httptest.NewRecorder()
+
+		router := testEnv.Server.SetupRoutes()
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, 200, w.Code)
+	})
+}
+
+func TestCreateStepNullBody(t *testing.T) {
+	withTestServerEnv(t, func(testEnv *testServerEnv) {
+		req := httptest.NewRequest("POST", "/engine/steps", bytes.NewReader([]byte("null")))
+		req.Header.Set("Content-Type", api.JSONContentType)
+		w := httptest.NewRecorder()
+
+		router := testEnv.Server.SetupRoutes()
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, 400, w.Code)
+	})
+}
+
+func TestPlanPreviewSanitizesGoals(t *testing.T) {
+	withTestServerEnv(t, func(testEnv *testServerEnv) {
+		st := helpers.NewSimpleStep("test-step")
+		assert.NoError(t, testEnv.Engine.RegisterStep(st))
+
+		body, _ := json.Marshal(api.ExecutionPlanRequest{
+			Goals: api.Goals{Steps: []api.StepID{"Test Step"}},
+		})
+		req := httptest.NewRequest("POST", "/engine/plan", bytes.NewReader(body))
+		req.Header.Set("Content-Type", api.JSONContentType)
+		w := httptest.NewRecorder()
+
+		router := testEnv.Server.SetupRoutes()
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, 200, w.Code)
+		var pl api.ExecutionPlan
+		assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &pl))
+		assert.Equal(t, []api.StepID{"test-step"}, pl.Goals.Steps)
+	})
+}
+
 func TestListStepsWithMultiple(t *testing.T) {
 	withTestServerEnv(t, func(testEnv *testServerEnv) {
 		step1 := helpers.NewSimpleStep("step1")

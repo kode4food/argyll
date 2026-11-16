@@ -1,6 +1,7 @@
 package server
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -106,6 +107,25 @@ func writeEvents[E any](c *gin.Context, sentinel error, evs []E, err error) {
 			"count":  len(evs),
 		})
 	}
+}
+
+// bindJSON binds a request body of at most limit bytes and returns a sanitized copy
+func bindJSON[T api.Sanitizer[T]](c *gin.Context, limit int64) (T, bool) {
+	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, limit)
+	var v T
+	if err := json.NewDecoder(c.Request.Body).Decode(&v); err != nil {
+		c.JSON(http.StatusBadRequest, api.ErrorResponse{
+			Error:  fmt.Sprintf("%s: %v", ErrInvalidJSON, err),
+			Status: http.StatusBadRequest,
+		})
+		return v, false
+	}
+	return v.Sanitized(), true
+}
+
+// sanitizedParam reads a path parameter as a sanitized ID
+func sanitizedParam[T ~string](c *gin.Context, name string) T {
+	return api.SanitizeID(T(c.Param(name)))
 }
 
 type writeErrorArgs struct {

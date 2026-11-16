@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"maps"
 
 	"github.com/kode4food/argyll/engine/pkg/util"
 )
@@ -443,6 +444,20 @@ func (s *AttributeSpec) Equal(other *AttributeSpec) bool {
 		s.Metric.equal(other.Metric)
 }
 
+// Sanitized returns the spec, or a copy with its Feed ID sanitized when it reads a Feed
+func (s *AttributeSpec) Sanitized() *AttributeSpec {
+	if s == nil || s.Feed == nil {
+		return s
+	}
+	id := SanitizeID(s.Feed.ID)
+	if id == s.Feed.ID {
+		return s
+	}
+	res := util.MutableCopy(s)
+	res.Feed = &FeedConfig{ID: id}
+	return res
+}
+
 // Equal returns true if two attribute spec maps are equal
 func (a AttributeSpecs) Equal(other AttributeSpecs) bool {
 	if len(a) != len(other) {
@@ -455,6 +470,25 @@ func (a AttributeSpecs) Equal(other AttributeSpecs) bool {
 		}
 	}
 	return true
+}
+
+// sanitized returns the spec map, or a copy with every Feed ID sanitized, and whether it changed
+func (a AttributeSpecs) sanitized() (AttributeSpecs, bool) {
+	var res AttributeSpecs
+	for name, spec := range a {
+		san := spec.Sanitized()
+		if san == spec {
+			continue
+		}
+		if res == nil {
+			res = maps.Clone(a)
+		}
+		res[name] = san
+	}
+	if res == nil {
+		return a, false
+	}
+	return res, true
 }
 
 func (c *RequiredConfig) equal(other *RequiredConfig) bool {

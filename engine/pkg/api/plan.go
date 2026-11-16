@@ -90,6 +90,22 @@ func (g *Goals) Copy() *Goals {
 	return res
 }
 
+// Sanitized returns the goal chain, or a copy with every step ID sanitized
+func (g *Goals) Sanitized() *Goals {
+	if g == nil {
+		return nil
+	}
+	els := g.Else.Sanitized()
+	steps, changed := sanitizeIDs(g.Steps)
+	if els == g.Else && !changed {
+		return g
+	}
+	return &Goals{
+		Else:  els,
+		Steps: steps,
+	}
+}
+
 // Sets returns the chain's goal sets in the order they are attempted
 func (g *Goals) Sets() [][]StepID {
 	var res [][]StepID

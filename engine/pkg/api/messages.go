@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"slices"
 	"time"
+
+	"github.com/kode4food/argyll/engine/pkg/util"
 )
 
 var (
@@ -154,6 +156,22 @@ const (
 	FlowSortRecentAsc  FlowSort = "recent_asc"
 )
 
+// Sanitized returns the request, or a copy with its flow ID and every ID it references sanitized
+func (r *CreateFlowRequest) Sanitized() *CreateFlowRequest {
+	if r == nil {
+		return &CreateFlowRequest{}
+	}
+	req := r.ExecutionPlanRequest.Sanitized()
+	id := SanitizeID(r.ID)
+	if req == &r.ExecutionPlanRequest && id == r.ID {
+		return r
+	}
+	res := util.MutableCopy(r)
+	res.ExecutionPlanRequest = *req
+	res.ID = id
+	return res
+}
+
 // Validate checks that the request has a valid flow ID and at least one goal
 func (r *CreateFlowRequest) Validate() error {
 	if err := r.validateID(); err != nil {
@@ -177,11 +195,27 @@ func (r *CreateFlowRequest) Validate() error {
 	return nil
 }
 
+// Sanitized returns the request, or a copy with its goal and Space IDs sanitized
+func (r *ExecutionPlanRequest) Sanitized() *ExecutionPlanRequest {
+	if r == nil {
+		return &ExecutionPlanRequest{}
+	}
+	spaceID := SanitizeID(r.SpaceID)
+	goals := r.Goals.Sanitized()
+	if spaceID == r.SpaceID && goals == &r.Goals {
+		return r
+	}
+	res := util.MutableCopy(r)
+	res.SpaceID = spaceID
+	res.Goals = *goals
+	return res
+}
+
 func (r *CreateFlowRequest) validateID() error {
 	if r.ID == "" {
 		return ErrFlowIDEmpty
 	}
-	if SanitizeID(r.ID) != r.ID {
+	if unsanitized(r.ID) {
 		return ErrFlowIDInvalid
 	}
 	if len(r.ID) > MaxFlowIDLen {

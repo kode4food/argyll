@@ -50,6 +50,14 @@ type (
 		Health   Map[StepID, HealthState] `json:"health"`
 	}
 
+	// FeedState is the folded value of one Feed definition version
+	FeedState struct {
+		LastUpdated time.Time `json:"last_updated"`
+		Value       any       `json:"value"`
+		ID          FeedID    `json:"id"`
+		Version     string    `json:"version"`
+	}
+
 	// FlowState contains the complete state of a flow execution
 	FlowState struct {
 		CreatedAt     time.Time       `json:"created_at"`
@@ -307,6 +315,30 @@ func (n NodeState) SetHealth(id StepID, h HealthState) NodeState {
 func (n NodeState) SetLastSeen(t time.Time) NodeState {
 	n.LastSeen = t
 	return n
+}
+
+// SetID returns a new FeedState with the Feed ID set
+func (f FeedState) SetID(id FeedID) FeedState {
+	f.ID = id
+	return f
+}
+
+// SetVersion returns a new FeedState with the definition version set
+func (f FeedState) SetVersion(version string) FeedState {
+	f.Version = version
+	return f
+}
+
+// SetValue returns a new FeedState with the folded value set
+func (f FeedState) SetValue(value any) FeedState {
+	f.Value = value
+	return f
+}
+
+// SetLastUpdated returns a new FeedState with the last updated timestamp set
+func (f FeedState) SetLastUpdated(t time.Time) FeedState {
+	f.LastUpdated = t
+	return f
 }
 
 // GetAttributes returns all attribute values as Args

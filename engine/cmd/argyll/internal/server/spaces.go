@@ -27,12 +27,11 @@ func (s *Server) listSpaces(c *gin.Context) {
 }
 
 func (s *Server) createSpace(c *gin.Context) {
-	sp, ok := bindSpace(c)
+	body, ok := bindJSON[*api.Space](c, MaxStepBodyBytes)
 	if !ok {
 		return
 	}
-	sp.ID = api.SanitizeID(sp.ID)
-	sp = sp.Normalize()
+	sp := body.Normalize()
 	err := s.engine.RegisterSpace(sp)
 	if err == nil {
 		c.JSON(http.StatusCreated, api.SpaceRegisteredResponse{
@@ -62,11 +61,11 @@ func (s *Server) createSpace(c *gin.Context) {
 }
 
 func (s *Server) previewSpace(c *gin.Context) {
-	sp, ok := bindSpace(c)
+	sp, ok := bindJSON[*api.Space](c, MaxStepBodyBytes)
 	if !ok {
 		return
 	}
-	preview, err := s.engine.PreviewSpace(sp)
+	preview, err := s.engine.PreviewSpace(*sp)
 	if errors.Is(err, api.ErrInvalidSpace) {
 		c.JSON(http.StatusBadRequest, api.ErrorResponse{
 			Error:  err.Error(),
@@ -86,7 +85,7 @@ func (s *Server) getSpace(c *gin.Context) {
 		})
 		return
 	}
-	id := api.SpaceID(c.Param("space_id"))
+	id := sanitizedParam[api.SpaceID](c, "space_id")
 	if sp, ok := cat.Spaces.Defined[id]; ok {
 		c.JSON(http.StatusOK, sp)
 		return
@@ -105,7 +104,7 @@ func (s *Server) listSpaceSteps(c *gin.Context) {
 	}) {
 		return
 	}
-	id := api.SpaceID(c.Param("space_id"))
+	id := sanitizedParam[api.SpaceID](c, "space_id")
 	if _, ok := cat.Spaces.Defined[id]; !ok {
 		c.JSON(http.StatusNotFound, api.ErrorResponse{
 			Error:  fmt.Sprintf("%s: %s", api.ErrSpaceNotFound, id),
@@ -125,13 +124,12 @@ func (s *Server) listSpaceSteps(c *gin.Context) {
 }
 
 func (s *Server) updateSpace(c *gin.Context) {
-	sp, ok := bindSpace(c)
+	body, ok := bindJSON[*api.Space](c, MaxStepBodyBytes)
 	if !ok {
 		return
 	}
-	sp.ID = api.SanitizeID(sp.ID)
-	sp = sp.Normalize()
-	id := api.SanitizeID(api.SpaceID(c.Param("space_id")))
+	sp := body.Normalize()
+	id := sanitizedParam[api.SpaceID](c, "space_id")
 	if sp.ID != id {
 		c.JSON(http.StatusBadRequest, api.ErrorResponse{
 			Error:  "Space ID in URL does not match space ID in body",
@@ -175,7 +173,7 @@ func (s *Server) updateSpace(c *gin.Context) {
 }
 
 func (s *Server) deleteSpace(c *gin.Context) {
-	id := api.SpaceID(c.Param("space_id"))
+	id := sanitizedParam[api.SpaceID](c, "space_id")
 	err := s.engine.UnregisterSpace(id)
 	if err == nil {
 		c.JSON(http.StatusOK, api.MessageResponse{
@@ -201,17 +199,4 @@ func (s *Server) deleteSpace(c *gin.Context) {
 		Error:  fmt.Sprintf("%s: %v", ErrUnregisterSpace, err),
 		Status: http.StatusInternalServerError,
 	})
-}
-
-func bindSpace(c *gin.Context) (api.Space, bool) {
-	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, MaxStepBodyBytes)
-	var sp api.Space
-	if err := c.ShouldBindJSON(&sp); err != nil {
-		c.JSON(http.StatusBadRequest, api.ErrorResponse{
-			Error:  fmt.Sprintf("%s: %v", ErrInvalidJSON, err),
-			Status: http.StatusBadRequest,
-		})
-		return api.Space{}, false
-	}
-	return sp, true
 }
