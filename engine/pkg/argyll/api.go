@@ -47,9 +47,7 @@ type (
 		GetStepHealth(api.StepID) (api.HealthState, error)
 
 		// UpdateStepHealth records the health of a single step
-		UpdateStepHealth(
-			sid api.StepID, health api.HealthStatus, errMsg string,
-		) error
+		UpdateStepHealth(sid api.StepID, health api.HealthStatus, errMsg string) error
 	}
 
 	// Spaces scopes the catalog to the steps a flow may plan over
@@ -116,13 +114,13 @@ type (
 	// Work is how a step reports the outcome of what it was asked to do
 	Work interface {
 		// CompleteWork records a work item's successful outputs and the usage its attempt reported
-		CompleteWork(fs api.FlowStep, tkn api.Token, outputs api.Args, usage api.Usage) error
+		CompleteWork(api.FlowStep, api.Token, api.Args, api.Usage) error
 
 		// RetryWork records a work item's failure for its retry settings to try again
-		RetryWork(fs api.FlowStep, tkn api.Token, cause error, usage api.Usage) error
+		RetryWork(api.FlowStep, api.Token, error, api.Usage) error
 
 		// FailWork records a work item's permanent failure
-		FailWork(fs api.FlowStep, tkn api.Token, cause error, usage api.Usage) error
+		FailWork(api.FlowStep, api.Token, error, api.Usage) error
 
 		// CompleteCompensation records a compensation as completed
 		CompleteCompensation(api.FlowStep, api.Token) error

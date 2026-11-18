@@ -13,6 +13,7 @@ import (
 
 type (
 	testRuntime struct {
+		step.Runtime
 		meta    api.Metadata
 		token   api.Token
 		outputs api.Args
@@ -172,10 +173,6 @@ func (r *testRuntime) RetryWork(api.Token, error) error {
 }
 
 func (r *testRuntime) FailWork(api.Token, error) error {
-	return nil
-}
-
-func (r *testRuntime) UpdateHealth(api.HealthStatus, string) error {
 	return nil
 }
 

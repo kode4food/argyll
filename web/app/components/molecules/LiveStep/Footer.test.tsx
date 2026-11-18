@@ -357,6 +357,120 @@ describe("Footer", () => {
     ).toBeInTheDocument();
   });
 
+  test("shows reported Agent usage in a table after duration", () => {
+    const step: Step = {
+      id: "step-1",
+      name: "Agent Step",
+      type: "agent",
+      attributes: {},
+    };
+    const work = { status: "succeeded" as const, inputs: {}, retry_count: 0 };
+    const execution: ExecutionResult = {
+      step_id: step.id,
+      flow_id: "wf-1",
+      status: "completed",
+      inputs: {},
+      started_at: "2024-01-01T00:00:00Z",
+      duration_ms: 2500,
+      work_items: {
+        a: {
+          ...work,
+          token: "a",
+          usage: {
+            cost: 0.00001,
+            cost_calculated: 0.00001,
+            input_tokens: 500,
+            output_tokens: 20,
+            cache_input_tokens: 150,
+            cache_output_tokens: 50,
+            provider_metric: 2,
+          },
+        },
+        b: {
+          ...work,
+          token: "b",
+          usage: {
+            input_tokens: 100,
+            cost_unpriced_tokens: 100,
+            provider_metric: 3,
+          },
+        },
+        c: {
+          ...work,
+          token: "c",
+          usage: { cost: 0.00002, cost_reported: 0.00002 },
+        },
+      },
+    };
+
+    const { rerender } = render(
+      <Footer step={step} flowId="wf-1" execution={execution} />
+    );
+
+    expect(
+      screen.getByRole("table", { name: t("liveStep.usageTitle") })
+    ).toBeInTheDocument();
+    const cost = screen.getByRole("rowheader", {
+      name: t("liveStep.usage.cost"),
+    });
+    expect(cost.nextElementSibling).toHaveTextContent("0.00003");
+    expect(
+      screen.getByRole("rowheader", { name: "Calculated Cost" })
+        .nextElementSibling
+    ).toHaveTextContent("0.00001");
+    expect(
+      screen.getByRole("rowheader", { name: "Provider-Reported Cost" })
+        .nextElementSibling
+    ).toHaveTextContent("0.00002");
+    expect(
+      screen.getByRole("rowheader", { name: "Unpriced Tokens" })
+        .nextElementSibling
+    ).toHaveTextContent("100");
+    expect(
+      screen.getByText(t("liveStep.usageTitle")).parentElement
+        ?.previousElementSibling
+    ).toHaveTextContent(t("liveStep.durationTitle"));
+    expect(
+      screen.getByText(t("liveStep.usage.input_tokens")).nextElementSibling
+    ).toHaveTextContent("600");
+    expect(
+      screen.getByText(t("liveStep.usage.output_tokens")).nextElementSibling
+    ).toHaveTextContent("20");
+    expect(
+      screen.getByText(t("liveStep.usage.cache_input_tokens"))
+        .nextElementSibling
+    ).toHaveTextContent("150");
+    expect(
+      screen.getByText(t("liveStep.usage.cache_output_tokens"))
+        .nextElementSibling
+    ).toHaveTextContent("50");
+    expect(
+      screen.getByRole("rowheader", { name: "provider_metric" })
+        .nextElementSibling
+    ).toHaveTextContent("5");
+
+    rerender(
+      <Footer
+        step={step}
+        flowId="wf-1"
+        execution={{
+          ...execution,
+          work_items: { a: { ...work, token: "a", usage: { cost: 0 } } },
+        }}
+      />
+    );
+    expect(cost.nextElementSibling).toHaveTextContent(/^0$/);
+
+    rerender(
+      <Footer
+        step={step}
+        flowId="wf-1"
+        execution={{ ...execution, work_items: {} }}
+      />
+    );
+    expect(screen.queryByRole("table")).not.toBeInTheDocument();
+  });
+
   test("handles step with no http or script", () => {
     const step: Step = {
       id: "step-1",

@@ -64,9 +64,10 @@ cover.out
 
 .toe
 
-# Local Compose environment files
+# Local Compose configuration
 /.env
 /.env.d/
+/docker-compose.override.yml
 
 # argyll-gen output, rebuilt by `make generate`
 zz_argyll_gen.go

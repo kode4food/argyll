@@ -22,8 +22,18 @@ type stepSchemas struct {
 
 const (
 	finishTool   = "finish"
-	finishPrompt = "The user message holds your inputs as a JSON object. When you are " +
-		"done, call the `" + finishTool + "` tool with the outputs."
+	finishPrompt = "Read inputs from the JSON object in the user message. " +
+		"The input schema lists the fields this Step can receive. Optional fields may be absent. " +
+		"Use the field names exactly as shown in the schemas. " +
+		"When the task needs a tool, use its schema to form the call " +
+		"and use its result to continue. " +
+		"If a tool reports invalid arguments, correct them before retrying. " +
+		"Return the Step's results by calling `" + finishTool +
+		"` with exactly the fields in its schema. Include a value for every declared output. " +
+		"If the schema lists zero output fields, pass `{}`."
+	compactFinishPrompt = "Read the user message as input JSON using the input schema. " +
+		"Use tool schemas and correct invalid arguments before retrying. Call `" + finishTool +
+		"` with exactly the outputs in its schema, or `{}` for zero outputs."
 	finishNudge = "Call the `" + finishTool + "` tool with the outputs."
 
 	usageInput          = "input_tokens"
@@ -81,22 +91,23 @@ func (w *Worker) converse(
 	if err != nil {
 		return nil, err
 	}
-	system := cfg.Prologue + "\n\n" + finishPrompt
+	var stepContext string
 	if req.Step.Name != "" {
-		system += "\n\nStep: " + string(req.Step.Name)
+		stepContext += "\n\nStep: " + string(req.Step.Name)
 	}
 	if req.Step.Description != "" {
-		system += "\n\nStep description: " + req.Step.Description
+		stepContext += "\n\nStep description: " + req.Step.Description
 	}
-	system += "\n\nPossible input fields (JSON Schema):\n" + schemas.input
+	stepContext += "\n\nPossible input fields (JSON Schema):\n" + schemas.input
 	slices.SortFunc(box.specs, func(a, b ToolSpec) int {
 		return strings.Compare(a.Name, b.Name)
 	})
 	conv, err := w.provider.Open(&Chat{
-		Config: cfg,
-		System: system,
-		User:   string(user),
-		Tools:  append(box.specs, schemas.finish),
+		Config:        cfg,
+		System:        cfg.Prologue + "\n\n" + finishPrompt + stepContext,
+		CompactSystem: cfg.Prologue + "\n\n" + compactFinishPrompt + stepContext,
+		User:          string(user),
+		Tools:         append(box.specs, schemas.finish),
 	})
 	if err != nil {
 		return nil, err

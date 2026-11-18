@@ -49,8 +49,8 @@ func (e *ExecContext) Metadata() api.Metadata {
 	return e.meta
 }
 
-func (e *ExecContext) UpdateHealth(s api.HealthStatus, msg string) error {
-	return e.engine.UpdateStepHealth(e.stepID, s, msg)
+func (e *ExecContext) UpdateHealth(s api.HealthStatus, cause error) error {
+	return e.engine.UpdateStepHealth(e.stepID, s, errorText(cause))
 }
 
 func (tx *flowTx) executeStartedWork(

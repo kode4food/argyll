@@ -250,6 +250,7 @@ export interface WorkState {
   completed_at?: string;
   inputs: Record<string, any>;
   outputs?: Record<string, any>;
+  usage?: Record<string, number>;
   error?: string;
   retry_count: number;
   next_retry_at?: string;

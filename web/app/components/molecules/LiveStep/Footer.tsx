@@ -8,6 +8,7 @@ import styles from "../StepShared/StepFooter.module.css";
 import StepInfoDisplay from "../StepShared/StepInfoDisplay";
 import { flowGoalsText, stepDisplayInfo } from "../StepShared/stepDisplayInfo";
 import { useT } from "@/app/i18n";
+import { useLocale } from "@/app/store/i18nStore";
 
 interface FooterProps {
   step: Step;
@@ -18,6 +19,7 @@ interface FooterProps {
 const MS_PER_SECOND = 1000;
 const SECONDS_PER_MINUTE = 60;
 const COMPLETE_PERCENT = 100;
+const USAGE_SIGNIFICANT_DIGITS = 10;
 
 const formatRemaining = (ms: number): string => {
   const totalSeconds = Math.max(0, Math.ceil(ms / MS_PER_SECOND));
@@ -112,15 +114,61 @@ const skippedReason = (
 interface ExecutionContext {
   execution: ExecutionResult | undefined;
   flowId: string | undefined;
+  locale: string;
   progressState: ReturnType<typeof useStepProgress>;
 }
+
+const agentUsageTable = (
+  items: ExecutionResult["work_items"],
+  locale: string,
+  t: (key: string) => string
+) => {
+  const total = new Map<string, number>();
+  for (const work of Object.values(items ?? {})) {
+    for (const [name, value] of Object.entries(work.usage ?? {})) {
+      total.set(name, (total.get(name) ?? 0) + value);
+    }
+  }
+  if (total.size === 0) return null;
+  const rows = [...total].sort(
+    ([left], [right]) => Number(right === "cost") - Number(left === "cost")
+  );
+  return (
+    <TooltipSection key="usage" title={t("liveStep.usageTitle")}>
+      <table
+        className={styles.usageTable}
+        aria-label={t("liveStep.usageTitle")}
+      >
+        <tbody>
+          {rows.map(([name, value]) => {
+            const key = `liveStep.usage.${name}`;
+            const label = t(key);
+            return (
+              <tr key={name}>
+                <th scope="row">{label === key ? name : label}</th>
+                <td>
+                  {value.toLocaleString(
+                    locale,
+                    Number.isInteger(value)
+                      ? undefined
+                      : { maximumSignificantDigits: USAGE_SIGNIFICANT_DIGITS }
+                  )}
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </TooltipSection>
+  );
+};
 
 const buildTooltipSections = (
   step: Step,
   ctx: ExecutionContext,
   t: (key: string, vars?: Record<string, string | number>) => string
 ): React.ReactElement[] => {
-  const { execution, flowId, progressState } = ctx;
+  const { execution, flowId, locale, progressState } = ctx;
   const sections: React.ReactElement[] = [];
   const goals = flowGoalsText(step);
 
@@ -190,6 +238,11 @@ const buildTooltipSections = (
     );
   }
 
+  if (step.type === "agent") {
+    const usage = agentUsageTable(execution.work_items, locale, t);
+    if (usage) sections.push(usage);
+  }
+
   Object.entries(execution.work_items ?? {}).forEach(([token, work]) => {
     const timing = workTimerTiming(work, step);
     if (!timing) return;
@@ -205,12 +258,18 @@ const buildTooltipSections = (
 
 const Footer: React.FC<FooterProps> = ({ step, flowId, execution }) => {
   const t = useT();
+  const locale = useLocale();
   const progressState = useStepProgress(step.id, flowId, execution);
 
   const displayInfo = useMemo(() => stepDisplayInfo(step), [step]);
   const tooltipSections = useMemo(
-    () => buildTooltipSections(step, { execution, flowId, progressState }, t),
-    [execution, flowId, progressState, step, t]
+    () =>
+      buildTooltipSections(
+        step,
+        { execution, flowId, locale, progressState },
+        t
+      ),
+    [execution, flowId, locale, progressState, step, t]
   );
 
   const useProgress = flowId && progressState.flowId === flowId;

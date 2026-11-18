@@ -13,14 +13,14 @@ import (
 type (
 	// Converter turns a JSON-shaped value into a Go value and back
 	Converter[T any] interface {
-		From(any) (T, error)
+		From(jsonValue any) (T, error)
 		To(T) (any, error)
 	}
 
 	// StructField binds one object member to a field of struct S
 	StructField[S any] interface {
 		Name() string
-		from(any, *S) error
+		from(jsonValue any, dst *S) error
 		to(*S, *toState) (any, error)
 	}
 

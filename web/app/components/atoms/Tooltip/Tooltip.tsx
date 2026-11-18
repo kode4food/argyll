@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { UI } from "@/constants/common";
 import styles from "./Tooltip.module.css";
@@ -14,27 +14,38 @@ const Tooltip: React.FC<TooltipProps> = ({ trigger, children }) => {
   const [showBelow, setShowBelow] = useState(false);
   const [portalRoot, setPortalRoot] = useState<Element>(document.body);
   const containerRef = useRef<HTMLDivElement>(null);
+  const tooltipRef = useRef<HTMLDivElement>(null);
 
   const handleMouseEnter = () => {
-    if (containerRef.current) {
-      // A modal dialog sits in the top layer, above anything portalled to body
-      setPortalRoot(containerRef.current.closest("dialog") ?? document.body);
-      const rect = containerRef.current.getBoundingClientRect();
-      const tooltipHeight = 120;
-      const spaceBelow = window.innerHeight - rect.bottom;
-
-      const shouldShowBelow = spaceBelow >= tooltipHeight + UI.TOOLTIP_OFFSET;
-
-      setShowBelow(shouldShowBelow);
-      setTooltipPosition({
-        top: shouldShowBelow
-          ? rect.bottom + UI.TOOLTIP_OFFSET
-          : rect.top - UI.TOOLTIP_OFFSET,
-        left: rect.left,
-      });
-      setIsVisible(true);
-    }
+    const container = containerRef.current;
+    if (!container) return;
+    // A modal dialog sits in the top layer, above anything portalled to body
+    setPortalRoot(container.closest("dialog") ?? document.body);
+    setTooltipPosition({
+      top: 0,
+      left: container.getBoundingClientRect().left,
+    });
+    setIsVisible(true);
   };
+
+  useLayoutEffect(() => {
+    const container = containerRef.current;
+    const tooltip = tooltipRef.current;
+    if (!isVisible || !container || !tooltip) return;
+
+    const rect = container.getBoundingClientRect();
+    const height = tooltip.getBoundingClientRect().height;
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const shouldShowBelow = spaceBelow >= height + UI.TOOLTIP_OFFSET;
+
+    setShowBelow(shouldShowBelow);
+    setTooltipPosition({
+      top: shouldShowBelow
+        ? rect.bottom + UI.TOOLTIP_OFFSET
+        : rect.top - UI.TOOLTIP_OFFSET,
+      left: rect.left,
+    });
+  }, [children, isVisible, portalRoot]);
 
   const handleMouseLeave = () => {
     setIsVisible(false);
@@ -53,6 +64,7 @@ const Tooltip: React.FC<TooltipProps> = ({ trigger, children }) => {
 
   const tooltip = (
     <div
+      ref={tooltipRef}
       className={[
         styles.portal,
         isVisible && styles.visible,

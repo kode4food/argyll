@@ -82,7 +82,7 @@ func (p *Provider) Open(ch *worker.Chat) (worker.Convo, error) {
 			MaxTokens: int64(ch.Config.MaxTokens),
 			System: []anthropic.TextBlockParam{
 				{
-					Text:         ch.System,
+					Text:         selectSystem(ch, tools),
 					CacheControl: anthropic.NewCacheControlEphemeralParam(),
 				},
 			},

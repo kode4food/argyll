@@ -79,6 +79,22 @@
   white-space: nowrap;
 }
 
+.usageTable {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.usageTable th {
+  font-weight: var(--font-normal);
+  text-align: start;
+  padding-inline-end: var(--spacing-md);
+}
+
+.usageTable td {
+  text-align: end;
+  font-variant-numeric: tabular-nums;
+}
+
 .workTimerProgress {
   display: block;
   width: 100%;

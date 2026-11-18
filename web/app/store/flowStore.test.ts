@@ -613,18 +613,40 @@ describe("flowStore", () => {
         ],
       });
 
-      useFlowStore.getState().updateWorkItem("step-1", "token-1", {
+      const { updateWorkItem } = useFlowStore.getState();
+      updateWorkItem("step-1", "token-1", {
+        status: "not_completed",
+        usage: { cost: 0.00001, input_tokens: 100, constructor: 2 },
+      });
+      updateWorkItem("step-1", "token-1", {
         status: "pending",
-        inputs: { key: "value" },
         retry_count: 1,
+      });
+      updateWorkItem("step-1", "token-1", {
+        status: "not_completed",
+        usage: { input_tokens: 50 },
+      });
+      expect(
+        useFlowStore.getState().executions[0].work_items?.["token-1"]?.usage
+          ?.cost
+      ).toBe(0.00001);
+      updateWorkItem("step-1", "token-1", {
+        status: "succeeded",
+        usage: { cost: 0.00002, output_tokens: 20, constructor: 3 },
       });
 
       const state = useFlowStore.getState();
       expect(state.executions[0].work_items?.["token-1"]).toEqual({
         token: "token-1",
-        status: "pending",
+        status: "succeeded",
         inputs: { key: "value" },
         retry_count: 1,
+        usage: {
+          cost: expect.closeTo(0.00003, 12),
+          input_tokens: 150,
+          output_tokens: 20,
+          constructor: 5,
+        },
       });
       expect(Object.keys(state.executions[0].work_items || {}).length).toBe(1);
     });

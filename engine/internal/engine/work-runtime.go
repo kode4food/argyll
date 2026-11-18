@@ -50,7 +50,8 @@ func (r *txRuntime) Metadata() api.Metadata {
 	return r.tx.Value().Metadata
 }
 
-func (r *txRuntime) UpdateHealth(s api.HealthStatus, msg string) error {
+func (r *txRuntime) UpdateHealth(s api.HealthStatus, cause error) error {
+	msg := errorText(cause)
 	r.tx.OnSuccess(func(api.FlowState, []*timebox.Event) {
 		if err := r.tx.UpdateStepHealth(r.sid, s, msg); err != nil {
 			slog.Error("Failed to update step health", log.StepID(r.sid), log.Error(err))
@@ -103,7 +104,7 @@ func settleFailure(rt step.Runtime, tkn api.Token, err error) {
 	}
 }
 
-// errorText is the message an error records on its work item
+// errorText returns the message recorded for work and health failures
 func errorText(err error) string {
 	if err == nil {
 		return ""

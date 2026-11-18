@@ -322,7 +322,7 @@ export const useFlowStore = create<FlowState>()(
       updateWorkItem: (
         stepId: string,
         token: string,
-        updates: Partial<WorkState>
+        { usage, ...updates }: Partial<WorkState>
       ) => {
         const { executions } = get();
         const index = executions.findIndex((e) => e.step_id === stepId);
@@ -336,13 +336,24 @@ export const useFlowStore = create<FlowState>()(
           inputs: {},
           retry_count: 0,
         };
+        const work = { ...existingItem, ...updates };
+        if (usage) {
+          const total: Record<string, number> = Object.assign(
+            Object.create(null),
+            work.usage
+          );
+          for (const [name, value] of Object.entries(usage)) {
+            total[name] = (total[name] ?? 0) + value;
+          }
+          work.usage = total;
+        }
 
         const updated = [...executions];
         updated[index] = {
           ...execution,
           work_items: {
             ...workItems,
-            [token]: { ...existingItem, ...updates },
+            [token]: work,
           },
         };
 

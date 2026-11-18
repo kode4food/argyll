@@ -151,5 +151,6 @@ func TestScriptFailure(t *testing.T) {
 	assert.Error(t, err)
 	assert.ErrorIs(t, err, builtins.ErrScriptCompileFailed)
 	assert.Equal(t, api.HealthUnhealthy, calls.healthStatus)
-	assert.NotEmpty(t, calls.healthError)
+	assert.Error(t, calls.healthError)
+	assert.ErrorIs(t, err, calls.healthError)
 }

@@ -82,6 +82,29 @@ describe("Tooltip", () => {
     expect(tooltip?.style.position).toBe("fixed");
   });
 
+  test.each([
+    { height: 100, side: "below" },
+    { height: 180, side: "above" },
+  ])("places a $height px tooltip $side", ({ height, side }) => {
+    render(
+      <Tooltip trigger={<button>Hover me</button>}>
+        <div>Usage table</div>
+      </Tooltip>
+    );
+    const trigger = screen.getByRole("button").parentElement!;
+    const tooltip = screen.getByText("Usage table").parentElement!;
+    jest
+      .spyOn(trigger, "getBoundingClientRect")
+      .mockReturnValue(new DOMRect(0, window.innerHeight - 170, 20, 30));
+    jest
+      .spyOn(tooltip, "getBoundingClientRect")
+      .mockReturnValue(new DOMRect(0, 0, 100, height));
+
+    fireEvent.mouseEnter(trigger);
+
+    expect(tooltip).toHaveClass(side);
+  });
+
   test("listens for hideTooltips custom event", () => {
     const addEventListenerSpy = jest.spyOn(document, "addEventListener");
 

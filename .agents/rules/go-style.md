@@ -284,12 +284,26 @@ type EventConsumer interface {
 }
 
 type StepInvoker interface {
-    Invoke(ctx context.Context, req *Request) (*Response, error)
+    Invoke(context.Context, *Request) (*Response, error)
 }
 
 // Bad - describes what it is
 type EventConsumerInterface interface { ... }
 type IEventConsumer interface { ... }
+```
+
+### Interface Method Parameters
+
+Omit parameter names when the method and parameter types make every role clear. Keep names when they identify otherwise ambiguous values, such as plain strings or multiple parameters of the same type with different roles. Go requires each parameter list to be entirely named or entirely unnamed. If one parameter needs a name, name every parameter in that list.
+
+```go
+type ModelLister interface {
+    Models(ctx context.Context, provider string) ([]string, error)
+}
+
+type Nudger interface {
+    Nudge(text string)
+}
 ```
 
 ### Constant Names

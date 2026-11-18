@@ -31,7 +31,7 @@ type (
 		failCalls     int
 		cause         error
 		healthStatus  api.HealthStatus
-		healthError   string
+		healthError   error
 		healthCalls   int
 	}
 )
@@ -167,9 +167,9 @@ func (r *testRuntime) FailWork(_ api.Token, cause error) error {
 	return nil
 }
 
-func (r *testRuntime) UpdateHealth(status api.HealthStatus, errMsg string) error {
+func (r *testRuntime) UpdateHealth(status api.HealthStatus, cause error) error {
 	r.healthStatus = status
-	r.healthError = errMsg
+	r.healthError = cause
 	r.healthCalls++
 	return nil
 }

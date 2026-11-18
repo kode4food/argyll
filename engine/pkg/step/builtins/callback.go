@@ -12,9 +12,9 @@ type (
 	// CallbackEngine records the outcomes that step callbacks report
 	CallbackEngine interface {
 		GetFlowState(api.FlowID) (api.FlowState, error)
-		CompleteWork(fs api.FlowStep, tkn api.Token, outputs api.Args, usage api.Usage) error
-		RetryWork(fs api.FlowStep, tkn api.Token, cause error, usage api.Usage) error
-		FailWork(fs api.FlowStep, tkn api.Token, cause error, usage api.Usage) error
+		CompleteWork(api.FlowStep, api.Token, api.Args, api.Usage) error
+		RetryWork(api.FlowStep, api.Token, error, api.Usage) error
+		FailWork(api.FlowStep, api.Token, error, api.Usage) error
 		CompleteCompensation(api.FlowStep, api.Token) error
 		FailCompensation(fs api.FlowStep, tkn api.Token, errMsg string) error
 	}

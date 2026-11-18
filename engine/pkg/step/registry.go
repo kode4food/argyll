@@ -46,7 +46,7 @@ type (
 		CompleteWork(api.Token, api.Args) error
 		RetryWork(api.Token, error) error
 		FailWork(api.Token, error) error
-		UpdateHealth(api.HealthStatus, string) error
+		UpdateHealth(api.HealthStatus, error) error
 	}
 
 	// HealthFunc reports whether a step can currently run

@@ -118,16 +118,19 @@ const workItemPatchers: Partial<Record<WorkItemEventType, WorkItemPatcher>> = {
     status: "succeeded",
     completed_at: ts,
     outputs: data?.outputs,
+    usage: data?.usage,
   }),
   work_failed: (data, ts) => ({
     status: "failed",
     completed_at: ts,
     error: data?.error,
+    usage: data?.usage,
   }),
   work_not_completed: (data, ts) => ({
     status: "not_completed",
     completed_at: ts,
     error: data?.error,
+    usage: data?.usage,
   }),
   work_retry_scheduled: (data, ts) => ({
     status: "pending",

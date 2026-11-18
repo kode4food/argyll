@@ -11,16 +11,16 @@ import (
 type (
 	// Provider connects the shared worker to a model API
 	Provider interface {
-		Supports(name string) bool
+		Supports(provider string) bool
 		Names() []string
-		Models(ctx context.Context, name string) ([]string, error)
-		Open(ch *Chat) (Convo, error)
+		Models(ctx context.Context, provider string) ([]string, error)
+		Open(*Chat) (Convo, error)
 	}
 
 	// Convo is one attempt's exchange with a model
 	Convo interface {
-		Turn(ctx context.Context) (Turn, error)
-		Answer(results []ToolResult)
+		Turn(context.Context) (Turn, error)
+		Answer([]ToolResult)
 		Nudge(text string)
 	}
 
@@ -49,10 +49,11 @@ type (
 
 	// Chat supplies the initial model context and available tools
 	Chat struct {
-		Config *api.AgentConfig
-		System string
-		User   string
-		Tools  []ToolSpec
+		Config        *api.AgentConfig
+		System        string
+		CompactSystem string
+		User          string
+		Tools         []ToolSpec
 	}
 
 	// ToolSpec describes a tool available to a model

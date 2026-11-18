@@ -614,6 +614,7 @@ describe("WebSocketProvider", () => {
         step_id: "step-1",
         token: "token-2",
         outputs: { result: "done" },
+        usage: { cost: 0.00002 },
       },
     });
     flowHandler({
@@ -624,6 +625,18 @@ describe("WebSocketProvider", () => {
         step_id: "step-1",
         token: "token-3",
         error: "something went wrong",
+        usage: { cost: 0.00003 },
+      },
+    });
+    flowHandler({
+      type: "work_not_completed",
+      timestamp: Date.parse("2024-01-01T00:00:03Z"),
+      data: {
+        flow_id: "flow-1",
+        step_id: "step-1",
+        token: "token-4",
+        error: "attempt failed",
+        usage: { cost: 0 },
       },
     });
     flowHandler({
@@ -657,6 +670,7 @@ describe("WebSocketProvider", () => {
         status: "succeeded",
         completed_at: "2024-01-01T00:00:01.000Z",
         outputs: { result: "done" },
+        usage: { cost: 0.00002 },
       }
     );
     expect(flowStore.__storeState.updateWorkItem).toHaveBeenCalledWith(
@@ -666,6 +680,17 @@ describe("WebSocketProvider", () => {
         status: "failed",
         completed_at: "2024-01-01T00:00:02.000Z",
         error: "something went wrong",
+        usage: { cost: 0.00003 },
+      }
+    );
+    expect(flowStore.__storeState.updateWorkItem).toHaveBeenCalledWith(
+      "step-1",
+      "token-4",
+      {
+        status: "not_completed",
+        completed_at: "2024-01-01T00:00:03.000Z",
+        error: "attempt failed",
+        usage: { cost: 0 },
       }
     );
     expect(flowStore.__storeState.updateWorkItem).toHaveBeenCalledWith(
