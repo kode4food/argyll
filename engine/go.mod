@@ -4,13 +4,13 @@ go 1.27.0
 
 require (
 	github.com/Shopify/go-lua v0.0.0-20261007132305-3f823f845ff9
-	github.com/gin-contrib/slog v1.2.3
+	github.com/gin-contrib/slog v1.2.5
 	github.com/gin-gonic/gin v1.12.0
 	github.com/gorilla/websocket v1.5.3
 	github.com/kode4food/argex v0.1.11
-	github.com/kode4food/caravan v0.0.0-20260905062940-5af4c3674974
-	github.com/kode4food/lru v0.0.0-20260821124822-50bd9a308b71
-	github.com/kode4food/timebox v0.4.1-0.20261109115459-8d6af13dc2a8
+	github.com/kode4food/caravan v0.0.0-20261110162553-22d42e0829c8
+	github.com/kode4food/lru v0.0.0-20261011080515-d1c90c62daee
+	github.com/kode4food/timebox v0.4.1-0.20261117103344-496eeef3071e
 	github.com/stretchr/testify v1.12.1
 )
 
@@ -56,17 +56,17 @@ require (
 	go.opentelemetry.io/otel/trace v1.47.0 // indirect
 	go.yaml.in/yaml/v3 v3.0.5 // indirect
 	golang.org/x/arch v0.30.0 // indirect
-	golang.org/x/crypto v0.57.0 // indirect
+	golang.org/x/crypto v0.59.0 // indirect
 	golang.org/x/exp/typeparams v0.0.0-20260824195058-e88cd73687aa // indirect
-	golang.org/x/mod v0.41.0 // indirect
-	golang.org/x/net v0.60.0 // indirect
-	golang.org/x/sync v0.23.0 // indirect
-	golang.org/x/sys v0.48.0 // indirect
-	golang.org/x/telemetry v0.0.0-20260924152758-ed294f943157 // indirect
-	golang.org/x/text v0.42.0 // indirect
-	golang.org/x/tools v0.51.0 // indirect
+	golang.org/x/mod v0.43.0 // indirect
+	golang.org/x/net v0.63.0 // indirect
+	golang.org/x/sync v0.25.0 // indirect
+	golang.org/x/sys v0.50.0 // indirect
+	golang.org/x/telemetry v0.0.0-20261116191925-e77a43154acb // indirect
+	golang.org/x/text v0.44.0 // indirect
+	golang.org/x/tools v0.53.0 // indirect
 	google.golang.org/protobuf v1.36.12 // indirect
-	honnef.co/go/tools v0.8.1 // indirect
+	honnef.co/go/tools v0.8.2 // indirect
 )
 
 tool (

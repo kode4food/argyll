@@ -10,10 +10,11 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/kode4food/lru"
+
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/log"
 	"github.com/kode4food/argyll/engine/pkg/step/builtins"
-	"github.com/kode4food/lru"
 )
 
 // Worker serves the Agent Worker Contract

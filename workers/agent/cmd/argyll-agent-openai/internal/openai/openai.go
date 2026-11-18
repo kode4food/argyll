@@ -113,8 +113,7 @@ func (p *Provider) Open(ch *worker.Chat) (worker.Convo, error) {
 func (o *openAIConvo) Turn(ctx context.Context) (worker.Turn, error) {
 	comp, err := o.client.Chat.Completions.New(ctx, o.params)
 	if err != nil {
-		var providerError *openai.Error
-		if errors.As(err, &providerError) {
+		if providerError, ok := errors.AsType[*openai.Error](err); ok {
 			return worker.Turn{}, &api.ProblemDetails{
 				Status: providerError.StatusCode,
 				Detail: err.Error(),

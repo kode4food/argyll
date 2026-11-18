@@ -98,8 +98,7 @@ func (p *Provider) Open(ch *worker.Chat) (worker.Convo, error) {
 func (c *convo) Turn(ctx context.Context) (worker.Turn, error) {
 	msg, err := c.client.Messages.New(ctx, c.params)
 	if err != nil {
-		var providerError *anthropic.Error
-		if errors.As(err, &providerError) {
+		if providerError, ok := errors.AsType[*anthropic.Error](err); ok {
 			return worker.Turn{}, &api.ProblemDetails{
 				Status: providerError.StatusCode,
 				Detail: err.Error(),
