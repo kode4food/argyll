@@ -21,6 +21,8 @@
   "stepEditor.typeServiceTitle": "HTTP Service",
   "stepEditor.typeScriptTitle": "Script (Lua)",
   "stepEditor.typeFlowTitle": "Flow",
+  "stepEditor.typeAgentLabel": "Agent",
+  "stepEditor.typeAgentTitle": "Agent (LLM)",
   "stepEditor.actionMode.sync": "Sync",
   "stepEditor.actionMode.async": "Async",
   "stepEditor.attrRole.required": "Required",

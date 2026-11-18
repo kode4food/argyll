@@ -1,4 +1,10 @@
-import { GoalSets, Handling, HTTPMethod, StepType } from "@/app/api";
+import {
+  AgentConfig,
+  GoalSets,
+  Handling,
+  HTTPMethod,
+  StepType,
+} from "@/app/api";
 import { getValidationError } from "./stepValidationUtils";
 import { Attribute } from "./stepEditorTypes";
 
@@ -171,6 +177,45 @@ describe("stepValidationUtils", () => {
     ).toEqual({
       key: "stepEditor.compensatedAttributeConflict",
       vars: { name: "value" },
+    });
+  });
+
+  describe("agent steps", () => {
+    const agent: AgentConfig = {
+      provider: "anthropic",
+      model: "claude-sonnet-5-5",
+      prologue: "# Score",
+      max_turns: 4,
+      max_tokens: 1024,
+      mcp: [{ server: "crm", tools: ["lookup"] }],
+    };
+    const validate = (overrides: Partial<AgentConfig>) =>
+      getValidationError({
+        ...BASE_ARGS,
+        stepType: "agent",
+        agent: { ...agent, ...overrides },
+      });
+
+    test("accepts a complete configuration", () => {
+      expect(validate({})).toBeNull();
+    });
+
+    test.each([
+      [{ provider: " " }, { key: "stepEditor.agentProviderRequired" }],
+      [{ model: "" }, { key: "stepEditor.agentModelRequired" }],
+      [{ prologue: "" }, { key: "stepEditor.agentPrologueRequired" }],
+      [{ max_turns: 0 }, { key: "stepEditor.agentMaxTurnsPositive" }],
+      [{ max_tokens: 0 }, { key: "stepEditor.agentMaxTokensPositive" }],
+      [
+        { mcp: [{ server: " " }] },
+        { key: "stepEditor.agentMCPServerRequired" },
+      ],
+      [
+        { mcp: [{ server: "crm" }, { server: "crm" }] },
+        { key: "stepEditor.agentMCPServerDuplicate", vars: { name: "crm" } },
+      ],
+    ])("rejects %j", (overrides, expected) => {
+      expect(validate(overrides)).toEqual(expected);
     });
   });
 });

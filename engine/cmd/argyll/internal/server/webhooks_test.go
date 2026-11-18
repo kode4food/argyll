@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -64,13 +65,151 @@ func TestCompensationCallbackSucceedsWithoutBody(t *testing.T) {
 	})
 }
 
+func TestCallbackRejectsMalformedProblem(t *testing.T) {
+	withTestServerEnv(t, func(env *testServerEnv) {
+		fs, tkn := seedCompensatingWebhook(t, env, "comp-bad")
+		path := fmt.Sprintf("/callbacks/%s/%s/%s/compensate", fs.FlowID, fs.StepID, tkn)
+		req := httptest.NewRequest("POST", path, bytes.NewReader([]byte(`{`)))
+		req.Header.Set("Content-Type", api.ProblemJSONContentType)
+		w := httptest.NewRecorder()
+
+		env.Server.SetupRoutes().ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+		fl, err := env.Engine.GetFlowState(fs.FlowID)
+		assert.NoError(t, err)
+		assert.Equal(t, api.WorkCompensating, fl.Executions[fs.StepID].WorkItems[tkn].Status)
+	})
+}
+
+func TestAgentCallbackUsage(t *testing.T) {
+	for _, tc := range []struct {
+		name   string
+		body   string
+		status api.WorkStatus
+	}{
+		{
+			name:   "outputs with usage",
+			body:   `{"outputs":{"result":"ok"},"usage":{"input_tokens":10}}`,
+			status: api.WorkSucceeded,
+		},
+		{
+			name:   "problem with usage",
+			body:   `{"problem":{"status":422,"detail":"declined"},"usage":{"input_tokens":10}}`,
+			status: api.WorkFailed,
+		},
+		{
+			name:   "empty outputs with usage",
+			body:   `{"outputs":{},"usage":{"input_tokens":10}}`,
+			status: api.WorkSucceeded,
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			withTestServerEnv(t, func(env *testServerEnv) {
+				fs, tkn := seedActiveWebhook(t, env, api.StepTypeAgent)
+				path := api.CallbackPath(fs.FlowID, fs.StepID, tkn, api.ActionAgent)
+				w := postCallback(env, path, bytes.NewBufferString(tc.body))
+
+				assert.Equal(t, http.StatusOK, w.Code)
+				fl, err := env.Engine.GetFlowState(fs.FlowID)
+				assert.NoError(t, err)
+				work := fl.Executions[fs.StepID].WorkItems[tkn]
+				assert.Equal(t, tc.status, work.Status)
+				assert.Equal(t, api.Usage{"input_tokens": 10}, work.Usage)
+			})
+		})
+	}
+}
+
+func TestAgentCallbackRejects(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		body string
+	}{
+		{name: "malformed JSON", body: `{`},
+		{name: "malformed usage", body: `{"outputs":{},"usage":{"cost":"ten"}}`},
+		{name: "non-finite usage", body: `{"outputs":{},"usage":{"cost":1e999}}`},
+		{name: "missing outcome", body: `{"usage":{"cost":1}}`},
+		{name: "ambiguous outcome", body: `{"outputs":{},"problem":{"status":422}}`},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			withTestServerEnv(t, func(env *testServerEnv) {
+				fs, tkn := seedActiveWebhook(t, env, api.StepTypeAgent)
+				path := api.CallbackPath(fs.FlowID, fs.StepID, tkn, api.ActionAgent)
+				w := postCallback(env, path, bytes.NewBufferString(tc.body))
+
+				assert.Equal(t, http.StatusBadRequest, w.Code)
+				fl, err := env.Engine.GetFlowState(fs.FlowID)
+				assert.NoError(t, err)
+				assert.Equal(t, api.WorkActive, fl.Executions[fs.StepID].WorkItems[tkn].Status)
+			})
+		})
+	}
+}
+
+func TestCallbackMissingExecution(t *testing.T) {
+	withTestServerEnv(t, func(env *testServerEnv) {
+		fs, tkn := seedActiveWebhook(t, env, api.StepTypeService)
+		path := api.CallbackPath(fs.FlowID, "missing", tkn, api.ActionInvoke)
+		w := postCallback(env, path, bytes.NewBufferString(`{}`))
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+	})
+}
+
+func TestServiceCallbackKeepsRawOutputs(t *testing.T) {
+	withTestServerEnv(t, func(env *testServerEnv) {
+		fs, tkn := seedActiveWebhook(t, env, api.StepTypeService)
+		body := `{"outputs":{"result":"ok"},"usage":{"cost":1}}`
+		path := api.CallbackPath(fs.FlowID, fs.StepID, tkn, api.ActionInvoke)
+		w := postCallback(env, path, bytes.NewBufferString(body))
+		assert.Equal(t, http.StatusOK, w.Code)
+		fl, err := env.Engine.GetFlowState(fs.FlowID)
+		assert.NoError(t, err)
+		work := fl.Executions[fs.StepID].WorkItems[tkn]
+		assert.Equal(t, api.WorkSucceeded, work.Status)
+		assert.Nil(t, work.Usage)
+		assert.Contains(t, work.Outputs, api.Name("usage"))
+	})
+}
+
+func postCallback(env *testServerEnv, path string, body io.Reader) *httptest.ResponseRecorder {
+	req := httptest.NewRequest(http.MethodPost, path, body)
+	req.Header.Set("Content-Type", api.JSONContentType)
+	w := httptest.NewRecorder()
+	env.Server.SetupRoutes().ServeHTTP(w, req)
+	return w
+}
+
+func seedActiveWebhook(
+	t *testing.T, env *testServerEnv, stepType api.StepType,
+) (api.FlowStep, api.Token) {
+	t.Helper()
+	st := &api.Step{
+		ID:   "active-step",
+		Type: stepType,
+	}
+	fs := api.FlowStep{
+		FlowID: "active-flow",
+		StepID: st.ID,
+	}
+	tkn := api.Token("work")
+	assert.NoError(t, env.SeedStartedWork(fs, &api.ExecutionPlan{
+		Goals: api.Goals{Steps: []api.StepID{st.ID}},
+		Steps: api.Steps{st.ID: st},
+	}, tkn))
+	return fs, tkn
+}
+
 func seedCompensatingWebhook(
 	t *testing.T, env *testServerEnv, name string,
 ) (api.FlowStep, api.Token) {
 	t.Helper()
 	id := api.FlowID(name + "-flow")
 	tkn := api.Token("work")
-	st := &api.Step{ID: api.StepID(name + "-step")}
+	st := &api.Step{
+		ID:   api.StepID(name + "-step"),
+		Type: api.StepTypeService,
+	}
 	pl := &api.ExecutionPlan{
 		Goals: api.Goals{Steps: []api.StepID{st.ID}},
 		Steps: api.Steps{st.ID: st},

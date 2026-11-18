@@ -78,6 +78,9 @@ func (tx *flowTx) deliverMetrics(st *api.Step, outcome stepOutcome) error {
 	if err := tx.recordAttributes(st, tx.consumedOutputs(st, metrics, &fl)); err != nil {
 		return err
 	}
+	if outcome == outcomeFailed && st.Type == api.StepTypeFlow {
+		return tx.foldFlowStepMetrics(st.ID)
+	}
 	return tx.foldFeeds(st.ID, metrics)
 }
 

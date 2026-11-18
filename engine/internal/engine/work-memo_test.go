@@ -121,17 +121,17 @@ func TestMemoizedConcurrentResults(t *testing.T) {
 		done := make(chan error, memoConcurrentWriters)
 		go func() {
 			<-ready
-			done <- env.Engine.CompleteWork(first, "first", api.Args{"raw": 1})
+			done <- env.Engine.CompleteWork(first, "first", api.Args{"raw": 1}, nil)
 		}()
 		go func() {
 			<-ready
-			done <- other.CompleteWork(second, "second", api.Args{"raw": 2})
+			done <- other.CompleteWork(second, "second", api.Args{"raw": 2}, nil)
 		}()
 		close(ready)
 		assert.NoError(t, <-done)
 		assert.NoError(t, <-done)
 		assert.NoError(t,
-			env.Engine.CompleteWork(late, "late", api.Args{"raw": 3}),
+			env.Engine.CompleteWork(late, "late", api.Args{"raw": 3}, nil),
 		)
 		assert.NoError(t, env.Engine.StartPlan("reuse-first", pl))
 		assert.NoError(t, other.StartPlan("reuse-second", pl))
@@ -275,7 +275,7 @@ func TestMemoizedRollback(t *testing.T) {
 		}
 		assert.NoError(t, env.SeedStartedWork(fs, pl, "token"))
 		backend.reject.Store(true)
-		err := env.Engine.CompleteWork(fs, "token", api.Args{"raw": "lost"})
+		err := env.Engine.CompleteWork(fs, "token", api.Args{"raw": "lost"}, nil)
 		assert.ErrorIs(t, err, ErrMemoAppend)
 		env.MockClient.SetResponse(st.ID, api.Args{"raw": "fresh"})
 		assert.NoError(t, env.Engine.StartPlan("after-rollback", pl))
@@ -375,11 +375,8 @@ func TestMemoizedWorkHistory(t *testing.T) {
 				))
 				if status == api.WorkSucceeded {
 					assert.NoError(t, env.Engine.CompleteWork(
-						api.FlowStep{
-							FlowID: "history",
-							StepID: st.ID,
-						}, "first",
-						api.Args{"raw": "saved"},
+						api.FlowStep{FlowID: "history", StepID: st.ID},
+						"first", api.Args{"raw": "saved"}, nil,
 					))
 				}
 				other, err := env.NewEngineInstance()

@@ -494,6 +494,35 @@ func TestSetWorkOutputs(t *testing.T) {
 	assert.Empty(t, original.Outputs)
 }
 
+func TestWorkStateAddUsage(t *testing.T) {
+	work := api.WorkState{}.AddUsage(api.Usage{"input_tokens": 1})
+	work = work.AddUsage(api.Usage{"input_tokens": 2})
+	assert.Equal(t, api.Usage{"input_tokens": 3}, work.Usage)
+}
+
+func TestUsageAdd(t *testing.T) {
+	a := api.Usage{"input_tokens": 1, "cost": 0.5}
+	b := api.Usage{"input_tokens": 10, "cost": 0.25}
+	assert.Equal(t, api.Usage{"input_tokens": 11, "cost": 0.75}, a.Add(b))
+
+	assert.Equal(t, a, a.Add(nil))
+	assert.Equal(t, b, api.Usage(nil).Add(b))
+
+	cents := api.Usage{"cost": 0.1}.Add(api.Usage{"cost": 0.2})
+	assert.Equal(t, api.Usage{"cost": 0.3}, cents)
+
+	unpriced := a.Add(api.Usage{
+		"input_tokens": 2,
+		"cache_read":   4,
+	})
+	assert.Equal(t,
+		api.Usage{
+			"input_tokens": 3,
+			"cost":         0.5,
+			"cache_read":   4,
+		}, unpriced)
+}
+
 func TestFlowChain(t *testing.T) {
 	original := &api.FlowState{
 		ID:         "test-flow",
@@ -502,7 +531,8 @@ func TestFlowChain(t *testing.T) {
 		Executions: api.Executions{},
 	}
 
-	result := original.SetStatus(api.FlowCompleted).
+	result := original.
+		SetStatus(api.FlowCompleted).
 		SetAttribute(
 			"attr1", &api.AttributeValue{
 				Value: "value1",
@@ -528,7 +558,9 @@ func TestExecChain(t *testing.T) {
 	startTime := scheduler.Now()
 	completedTime := startTime.Add(time.Second)
 
-	result := original.SetStatus(api.StepActive).SetStartedAt(startTime).
+	result := original.
+		SetStatus(api.StepActive).
+		SetStartedAt(startTime).
 		SetInputs(api.Args{"input": "value"}).
 		SetStatus(api.StepCompleted).
 		SetOutputs(api.Args{"output": "result"}).
@@ -656,7 +688,9 @@ func TestWorkChain(t *testing.T) {
 	completedTime := startTime.Add(time.Second)
 	outputs := api.Args{"result": "success"}
 
-	result := original.SetStatus(api.WorkActive).SetStartedAt(startTime).
+	result := original.
+		SetStatus(api.WorkActive).
+		SetStartedAt(startTime).
 		SetStatus(api.WorkSucceeded).
 		SetCompletedAt(completedTime).
 		SetOutputs(outputs)

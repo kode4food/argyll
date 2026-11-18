@@ -13,6 +13,9 @@ export const stepDisplayInfo = (step: Step): DisplayInfo => {
   const icon = getStepActionIcon(step);
   const goals = flowGoalsText(step);
 
+  if (step.type === "agent" && step.agent) {
+    return { icon, text: `${step.agent.provider}/${step.agent.model}` };
+  }
   if (step.type === "script" && step.script) {
     return {
       icon,

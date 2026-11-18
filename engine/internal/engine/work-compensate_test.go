@@ -131,8 +131,8 @@ func TestLateSuccessCompensates(t *testing.T) {
 			FlowID: fl.ID,
 			StepID: st.ID,
 		}
-		assert.NoError(t, env.Engine.FailWork(fs, failed, "failed"))
-		assert.NoError(t, env.Engine.CompleteWork(fs, late, api.Args{}))
+		assert.NoError(t, env.Engine.FailWork(fs, failed, errors.New("failed"), nil))
+		assert.NoError(t, env.Engine.CompleteWork(fs, late, api.Args{}, nil))
 		fl, err = env.Engine.GetFlowState(fl.ID)
 		assert.NoError(t, err)
 		assert.Equal(t, api.FlowFailed, fl.Status)

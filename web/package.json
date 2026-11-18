@@ -5,6 +5,7 @@
   "license": "Apache-2.0",
   "dependencies": {
     "@codemirror/lang-json": "^6.0.2",
+    "@codemirror/lang-markdown": "^6.5.2",
     "@codemirror/language": "^6.11.3",
     "@codemirror/legacy-modes": "^6.5.2",
     "@dagrejs/dagre": "^3.0.0",

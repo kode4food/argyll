@@ -1,4 +1,4 @@
-SUBPROJECTS = engine web mcp sdk/go sdk/python \
+SUBPROJECTS = engine web mcp sdk/go sdk/python workers/agent \
 	examples/inventory-resolver examples/notification-sender \
 	examples/order-creator examples/simple-step \
 	examples/stock-reservation examples/user-resolver

@@ -1,4 +1,4 @@
-import { renderHook } from "@testing-library/react";
+import { fireEvent, renderHook } from "@testing-library/react";
 import { useAnchoredList } from "./useAnchoredList";
 
 const withRect = (rect: Partial<DOMRect>): HTMLElement => {
@@ -49,5 +49,34 @@ describe("useAnchoredList", () => {
     renderHook(() => useAnchoredList({ isOpen: false, anchorRef, listRef }));
 
     expect(listRef.current.style.position).toBe("");
+  });
+
+  test("opens above the anchor when the viewport ends below it", () => {
+    const anchorRef = {
+      current: withRect({
+        top: window.innerHeight - 40,
+        bottom: window.innerHeight - 8,
+      }),
+    };
+    const listRef = { current: withRect({ height: window.innerHeight }) };
+    renderHook(() => useAnchoredList({ isOpen: true, anchorRef, listRef }));
+
+    expect(listRef.current.style.top).toBe("0px");
+    expect(listRef.current.style.maxHeight).toBe(
+      `${window.innerHeight - 44}px`
+    );
+    expect(listRef.current.style.overflowY).toBe("auto");
+  });
+
+  test("follows the anchor when a container scrolls", () => {
+    const { anchorRef, listRef } = refs();
+    renderHook(() => useAnchoredList({ isOpen: true, anchorRef, listRef }));
+    anchorRef.current.getBoundingClientRect = withRect({
+      top: 75,
+      bottom: 100,
+    }).getBoundingClientRect;
+    fireEvent.scroll(window);
+
+    expect(listRef.current.style.top).toBe("84px");
   });
 });

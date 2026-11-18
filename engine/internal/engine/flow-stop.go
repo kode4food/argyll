@@ -90,7 +90,8 @@ func (tx *flowTx) failAbandonedWork() error {
 			if !policy.WorkPending(work.Status) {
 				continue
 			}
-			if err := tx.raiseWorkFailed(sid, tkn, "execution no longer active"); err != nil {
+			err := tx.raiseWorkFailed(sid, tkn, "execution no longer active", nil)
+			if err != nil {
 				return err
 			}
 		}
@@ -118,7 +119,7 @@ func (tx *flowTx) deactivate(parent api.FlowState) error {
 	); err != nil {
 		return err
 	}
-	if err := tx.foldSettledFeeds(); err != nil {
+	if err := call.Perform(tx.foldSettledFeeds, tx.foldParentStepMetrics); err != nil {
 		return err
 	}
 	return tx.releaseChildFlows()
@@ -185,6 +186,7 @@ func (tx *flowTx) completeParentWork() (api.FlowState, error) {
 func (tx *flowTx) completeParentFlowWork(
 	child api.FlowState, target *parentWork,
 ) (api.FlowState, error) {
+	usage := flowUsage(&child)
 	settle := func(parentTx *flowTx) error {
 		parent := parentTx.Value()
 		if parent.ID == "" {
@@ -194,25 +196,33 @@ func (tx *flowTx) completeParentFlowWork(
 		ex := parent.Executions[target.fs.StepID]
 		work := ex.WorkItems[target.token]
 		if !policy.WorkAcceptsResult(work.Status) {
-			return nil
+			return parentTx.reportUsage(target, usage)
 		}
-
-		if child.Status == api.FlowCompleted {
-			outputs := child.GetAttributes()
-			err := validateFlowOutputs(parent.Plan.Steps[target.fs.StepID], outputs)
-			if err != nil {
-				return parentTx.failWork(target.fs.StepID, target.token, err.Error())
-			}
-			return parentTx.completeWork(target.fs.StepID, target.token, outputs)
+		if err := parentTx.settleChildWork(child, target, usage); err != nil {
+			return err
 		}
-
-		errMsg := child.Error
-		if errMsg == "" {
-			errMsg = "child flow failed"
-		}
-		return parentTx.failWork(target.fs.StepID, target.token, errMsg)
+		return parentTx.reportParentUsage()
 	}
 	return tx.flowTx(target.fs.FlowID, settle)
+}
+
+func (tx *flowTx) settleChildWork(
+	child api.FlowState, target *parentWork, usage api.Usage,
+) error {
+	if child.Status == api.FlowCompleted {
+		outputs := child.GetAttributes()
+		err := validateFlowOutputs(tx.Value().Plan.Steps[target.fs.StepID], outputs)
+		if err != nil {
+			return tx.failWork(target.fs.StepID, target.token, err.Error(), usage)
+		}
+		return tx.completeWork(target.fs.StepID, target.token, outputs, usage)
+	}
+
+	errMsg := child.Error
+	if errMsg == "" {
+		errMsg = "child flow failed"
+	}
+	return tx.failWork(target.fs.StepID, target.token, errMsg, usage)
 }
 
 // flowResult includes initial outputs of goals excluded as already satisfied

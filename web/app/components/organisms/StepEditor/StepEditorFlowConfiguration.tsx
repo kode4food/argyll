@@ -249,12 +249,14 @@ const StepEditorFlowConfiguration: React.FC<
     <div className={formStyles.section}>
       <div className={localStyles.flowGoalRow}>
         <div className={localStyles.flowSpaceColumn}>
-          <label className={localStyles.flowSpaceLabel}>
-            <span className={formStyles.labelIcon}>
-              <IconSpace aria-hidden="true" />
-            </span>
-            {t("flowCreate.spaceLabel")}
-          </label>
+          <div className={formStyles.sectionHeader}>
+            <label className={formStyles.labelWithIcon}>
+              <span className={formStyles.labelIcon}>
+                <IconSpace aria-hidden="true" />
+              </span>
+              {t("flowCreate.spaceLabel")}
+            </label>
+          </div>
           <SelectField
             ariaLabel={t("flowCreate.spaceLabel")}
             onChange={handleSpaceChange}
@@ -263,7 +265,7 @@ const StepEditorFlowConfiguration: React.FC<
           />
         </div>
         <div className={localStyles.flowGoalColumn}>
-          <div className={localStyles.flowLabelRow}>
+          <div className={formStyles.sectionHeader}>
             <label className={formStyles.labelWithIcon}>
               <span className={formStyles.labelIcon}>
                 <IconFlowGoals aria-hidden="true" />

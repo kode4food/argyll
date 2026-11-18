@@ -10,32 +10,44 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/util/call"
 )
 
-// CompleteWork marks a work item as successfully completed with the given output values
-func (e *Engine) CompleteWork(fs api.FlowStep, tkn api.Token, outputs api.Args) error {
+// CompleteWork marks a work item as successfully completed with the given output values and the
+// usage its attempt reported
+func (e *Engine) CompleteWork(
+	fs api.FlowStep, tkn api.Token, outputs api.Args, usage api.Usage,
+) error {
 	return e.flowTx(fs.FlowID, func(tx *flowTx) error {
-		return tx.completeWork(fs.StepID, tkn, outputs)
-	})
-}
-
-// FailWork marks a work item as failed with the specified error message
-func (e *Engine) FailWork(fs api.FlowStep, tkn api.Token, errMsg string) error {
-	return e.flowTx(fs.FlowID, func(tx *flowTx) error {
-		return tx.failWork(fs.StepID, tkn, errMsg)
-	})
-}
-
-// NotCompleteWork marks a work item as not completed with specified error
-func (e *Engine) NotCompleteWork(fs api.FlowStep, tkn api.Token, errMsg string) error {
-	return e.flowTx(fs.FlowID, func(tx *flowTx) error {
-		if err := tx.raiseWorkNotCompleted(fs.StepID, tkn, errMsg); err != nil {
+		if err := tx.completeWork(fs.StepID, tkn, outputs, usage); err != nil {
 			return err
 		}
-
-		return tx.handleWorkNotCompleted(fs.StepID, tkn)
+		return tx.forwardUsage(usage)
 	})
 }
 
-func (tx *flowTx) completeWork(sid api.StepID, tkn api.Token, outputs api.Args) error {
+// FailWork marks a work item as failed with the error that ended it and the usage its attempt
+// reported
+func (e *Engine) FailWork(fs api.FlowStep, tkn api.Token, cause error, usage api.Usage) error {
+	return e.flowTx(fs.FlowID, func(tx *flowTx) error {
+		if err := tx.failWork(fs.StepID, tkn, errorText(cause), usage); err != nil {
+			return err
+		}
+		return tx.forwardUsage(usage)
+	})
+}
+
+// RetryWork marks a work item as not completed with the error that interrupted it and the usage
+// its attempt reported, leaving its retry settings to try again
+func (e *Engine) RetryWork(fs api.FlowStep, tkn api.Token, cause error, usage api.Usage) error {
+	return e.flowTx(fs.FlowID, func(tx *flowTx) error {
+		if err := tx.retryWork(fs.StepID, tkn, errorText(cause), usage); err != nil {
+			return err
+		}
+		return tx.forwardUsage(usage)
+	})
+}
+
+func (tx *flowTx) completeWork(
+	sid api.StepID, tkn api.Token, outputs api.Args, usage api.Usage,
+) error {
 	err := tx.checkWorkTransition(sid, tkn, api.WorkSucceeded)
 	if err != nil {
 		return err
@@ -50,6 +62,7 @@ func (tx *flowTx) completeWork(sid api.StepID, tkn api.Token, outputs api.Args) 
 			StepID:  sid,
 			Token:   tkn,
 			Outputs: outputs,
+			Usage:   usage,
 		},
 	); err != nil {
 		return err
@@ -58,11 +71,20 @@ func (tx *flowTx) completeWork(sid api.StepID, tkn api.Token, outputs api.Args) 
 	return tx.settleStep(sid)
 }
 
-func (tx *flowTx) failWork(sid api.StepID, tkn api.Token, errMsg string) error {
-	if err := tx.raiseWorkFailed(sid, tkn, errMsg); err != nil {
+func (tx *flowTx) failWork(sid api.StepID, tkn api.Token, errMsg string, usage api.Usage) error {
+	if err := tx.raiseWorkFailed(sid, tkn, errMsg, usage); err != nil {
 		return err
 	}
 	return tx.settleStep(sid)
+}
+
+func (tx *flowTx) retryWork(
+	sid api.StepID, tkn api.Token, errMsg string, usage api.Usage,
+) error {
+	if err := tx.raiseWorkNotCompleted(sid, tkn, errMsg, usage); err != nil {
+		return err
+	}
+	return tx.handleWorkNotCompleted(sid, tkn)
 }
 
 func (tx *flowTx) checkWorkTransition(
@@ -102,7 +124,9 @@ func (tx *flowTx) handleWorkNotCompleted(sid api.StepID, tkn api.Token) error {
 	)
 }
 
-func (tx *flowTx) raiseWorkFailed(sid api.StepID, tkn api.Token, errMsg string) error {
+func (tx *flowTx) raiseWorkFailed(
+	sid api.StepID, tkn api.Token, errMsg string, usage api.Usage,
+) error {
 	if err := tx.checkWorkTransition(sid, tkn, api.WorkFailed); err != nil {
 		return err
 	}
@@ -112,6 +136,7 @@ func (tx *flowTx) raiseWorkFailed(sid api.StepID, tkn api.Token, errMsg string) 
 			StepID: sid,
 			Token:  tkn,
 			Error:  errMsg,
+			Usage:  usage,
 		},
 	)
 }
@@ -134,7 +159,9 @@ func (tx *flowTx) raiseRetryScheduled(
 	)
 }
 
-func (tx *flowTx) raiseWorkNotCompleted(sid api.StepID, tkn api.Token, errMsg string) error {
+func (tx *flowTx) raiseWorkNotCompleted(
+	sid api.StepID, tkn api.Token, errMsg string, usage api.Usage,
+) error {
 	if err := tx.checkWorkTransition(sid, tkn, api.WorkNotCompleted); err != nil {
 		return err
 	}
@@ -144,6 +171,7 @@ func (tx *flowTx) raiseWorkNotCompleted(sid api.StepID, tkn api.Token, errMsg st
 			StepID: sid,
 			Token:  tkn,
 			Error:  errMsg,
+			Usage:  usage,
 		},
 	)
 }

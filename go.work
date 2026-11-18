@@ -10,4 +10,5 @@ use (
 	./examples/user-resolver
 	./mcp
 	./sdk/go
+	./workers/agent
 )

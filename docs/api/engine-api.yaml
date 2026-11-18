@@ -24,8 +24,8 @@ info:
     - **Multi-Instance Support**: Horizontal scaling with optimistic concurrency
       control
     - **Real-Time Updates**: WebSocket streaming for live flow monitoring
-    - **Three Step Types**: Service (HTTP, sync or async via webhooks), Script
-      (Argyll Expressions or Lua), and Flow (sub-flow execution)
+    - **Step Types**: Service (HTTP), Script (Argyll Expressions or Lua), Flow
+      (sub-flow execution), and Agent (model task)
 
     ## Step Implementation
 
@@ -546,6 +546,48 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
         "409":
           description: A Feed or a Flow Step names the Space
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /engine/agents/capabilities:
+    get:
+      summary: List Agent Capabilities
+      description: |
+        Lists providers routed to available workers, with their models and MCP
+        servers. Unavailable workers are omitted if other workers respond.
+      operationId: listAgentCapabilities
+      tags:
+        - Agents
+      responses:
+        "200":
+          description: The available Agent providers
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - providers
+                properties:
+                  providers:
+                    type: array
+                    items:
+                      type: object
+                      required: [provider, models, mcp]
+                      properties:
+                        provider:
+                          type: string
+                        models:
+                          type: array
+                          items:
+                            type: string
+                        mcp:
+                          type: array
+                          items:
+                            $ref: "#/components/schemas/MCPServer"
+        "502":
+          description: No configured worker returned capabilities
           content:
             application/json:
               schema:
@@ -1347,8 +1389,8 @@ paths:
           flow_deactivated, step_started, step_completed, step_failed,
           step_skipped, attribute_set, work_started, work_succeeded,
           work_failed, work_not_completed, work_retry_scheduled,
-          dispatch_deferred, comp_started, comp_retry_scheduled, comp_succeeded,
-          comp_failed
+          child_usage_updated, dispatch_deferred, comp_started,
+          comp_retry_scheduled, comp_succeeded, comp_failed
 
         For flow lifecycle consumers, `flow_completed` and `flow_failed`
         establish an outcome that callers can use immediately.
@@ -1597,13 +1639,15 @@ components:
           example: "resolve product inventory details by product_id"
         type:
           type: string
-          enum: ["service", "script", "flow"]
+          enum: ["service", "script", "flow", "agent"]
           description: |
             - `service`: HTTP endpoint. The `invoke` action's `mode` controls
               whether it returns results immediately or completes later via
               webhook
             - `script`: Argyll Expression or Lua script executed in-engine
             - `flow`: Sub-flow executed by the engine using child flow goals
+            - `agent`: A language model produces the declared outputs from the
+              inputs, guided by the prologue
           example: "service"
         attributes:
           type: object
@@ -1681,8 +1725,75 @@ components:
           $ref: "#/components/schemas/FlowConfig"
         script:
           $ref: "#/components/schemas/StepScriptConfig"
+        agent:
+          $ref: "#/components/schemas/AgentConfig"
         work_config:
           $ref: "#/components/schemas/WorkConfig"
+
+    AgentConfig:
+      type: object
+      description: "Configuration for agent steps (`type: agent`)"
+      required:
+        - provider
+        - model
+        - prologue
+        - max_turns
+        - max_tokens
+      properties:
+        provider:
+          type: string
+          description: Model provider
+          example: "anthropic"
+        model:
+          type: string
+          description: Model the provider runs
+          example: "claude-sonnet-5-5"
+        prologue:
+          type: string
+          description: |
+            Markdown telling the model what to do with the inputs and what each
+            output means
+          example: "# Fraud review\n\nScore the `order` for fraud risk."
+        mcp:
+          type: array
+          description: MCP servers whose tools the model may call
+          items:
+            $ref: "#/components/schemas/MCPServer"
+        max_turns:
+          type: integer
+          minimum: 1
+          description: Most model turns one attempt may take
+          example: 8
+        max_tokens:
+          type: integer
+          minimum: 1
+          description: Most tokens one model turn may produce
+          example: 4096
+        timeout:
+          type: integer
+          format: int64
+          description: |
+            Optional attempt timeout in milliseconds. If omitted, the global
+            engine timeout applies
+          example: 120000
+
+    MCPServer:
+      type: object
+      required:
+        - server
+      properties:
+        server:
+          type: string
+          description: Name of an MCP server
+          example: "crm"
+        tools:
+          type: array
+          description: |
+            Tools the model may call. Omit the list to allow every tool, or use
+            an empty list to allow zero tools.
+          items:
+            type: string
+          example: ["lookup_customer"]
 
     AttributeSpec:
       type: object
@@ -1917,8 +2028,9 @@ components:
             - `elapsed`: Milliseconds from step start until it completes or
               fails
             - `work`: `items` and `failed` work items, and `attempts` with
-              `total` invocations across all work items, retries included,
-              and `average`, `min`, and `max` per work item
+              `total` invocations across all work items, retries included, and
+              `average`, `min`, and `max` per work item. When work reported
+              usage, `usage` holds it summed over every attempt
             The metric folds when its selector evaluates successfully.
           example:
             language: argyll
@@ -2941,6 +3053,20 @@ components:
           type: string
           format: date-time
           description: When the next retry is scheduled
+        usage:
+          $ref: "#/components/schemas/Usage"
+
+    Usage:
+      type: object
+      description: |
+        Reported usage summed by name across successful and failed attempts.
+        Agent Steps report token counts and sum known charges under `cost`.
+      additionalProperties:
+        type: number
+      example:
+        input_tokens: 1840
+        output_tokens: 212
+        cost: 0.0041
 
     MessageResponse:
       type: object
@@ -2976,6 +3102,8 @@ tags:
     description: Dynamic planning scopes over registered Steps
   - name: Feeds
     description: Catalog-wide values folded from settled Step outputs
+  - name: Agents
+    description: What the agent workers offer
   - name: Health
     description: Health monitoring for steps and engine
   - name: Flows

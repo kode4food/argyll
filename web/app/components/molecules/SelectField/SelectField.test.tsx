@@ -60,6 +60,29 @@ describe("SelectField", () => {
     expect(screen.getByRole("listbox")).toHaveStyle({ position: "fixed" });
   });
 
+  test("places the list in the dialog outside the scrolling form", () => {
+    render(
+      <dialog open>
+        <div data-testid="scroller" style={{ overflow: "auto" }}>
+          <SelectField
+            ariaLabel="Choice"
+            onChange={onChange}
+            options={options}
+            value="first"
+          />
+        </div>
+      </dialog>
+    );
+    fireEvent.click(face());
+    const list = screen.getByRole("listbox");
+    expect(screen.getByRole("dialog")).toContainElement(list);
+    expect(screen.getByTestId("scroller")).not.toContainElement(list);
+    const option = screen.getByRole("option", { name: "Second" });
+    fireEvent.mouseDown(option);
+    fireEvent.click(option);
+    expect(onChange).toHaveBeenCalledWith("second");
+  });
+
   test("opens and closes the list", () => {
     renderField();
     expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
@@ -95,12 +118,8 @@ describe("SelectField", () => {
   test("selects with the keyboard", () => {
     renderField();
     fireEvent.click(face());
-    fireEvent.keyDown(screen.getByRole("listbox").parentElement!, {
-      key: "ArrowDown",
-    });
-    fireEvent.keyDown(screen.getByRole("listbox").parentElement!, {
-      key: "Enter",
-    });
+    fireEvent.keyDown(face(), { key: "ArrowDown" });
+    fireEvent.keyDown(face(), { key: "Enter" });
 
     expect(onChange).toHaveBeenCalledWith("second");
   });

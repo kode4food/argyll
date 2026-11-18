@@ -7,6 +7,7 @@ import styles from "./StepEditor.module.css";
 import formStyles from "./StepEditorForm.module.css";
 import fadeStyles from "@/app/styles/components/scrollFade.module.css";
 import { useStepEditorForm } from "./useStepEditorForm";
+import { parseJsonStep } from "./useStepPersistence";
 import { useModalDimensions } from "./useModalDimensions";
 import { useT } from "@/app/i18n";
 import { useSpaces, useSteps } from "@/app/store/flowStore";
@@ -17,6 +18,7 @@ import { getFlowPlanAttributeOptions } from "@/utils/flowPlanAttributeOptions";
 import { IconPredicate, IconStepTypeScript } from "@/utils/iconRegistry";
 import StepEditorBasicFields from "./StepEditorBasicFields";
 import StepEditorAttributesSection from "./StepEditorAttributesSection";
+import StepEditorAgentConfiguration from "./StepEditorAgentConfiguration";
 import StepEditorFlowConfiguration from "./StepEditorFlowConfiguration";
 import StepEditorHttpConfiguration from "./StepEditorHttpConfiguration";
 import StepEditorFooter from "./StepEditorFooter";
@@ -64,7 +66,6 @@ const StepEditor: React.FC<StepEditorProps> = ({
     setError,
     handleSave,
     handleJsonSave,
-    validateJsonDraft,
     getSerializedStepData,
     applyStepData,
     isCreateMode,
@@ -104,6 +105,8 @@ const StepEditor: React.FC<StepEditorProps> = ({
     setFlowGoals,
     flowSpaceId,
     setFlowSpaceId,
+    agent,
+    setAgent,
   } = useStepEditorForm({ step, onUpdate, onClose, defaultTags, draft });
 
   const [editorMode, setEditorMode] = React.useState<"basic" | "json">("basic");
@@ -165,13 +168,14 @@ const StepEditor: React.FC<StepEditorProps> = ({
       return;
     }
 
-    const jsonError = validateJsonDraft(jsonDraft);
-    if (jsonError) {
-      setError(jsonError);
+    const result = parseJsonStep(jsonDraft, t);
+    if ("error" in result) {
+      setError(result.error);
       return;
     }
 
-    applyStepData(JSON.parse(jsonDraft) as Step);
+    applyStepData(result.step);
+    setError(null);
     setEditorMode("basic");
   };
 
@@ -267,6 +271,11 @@ const StepEditor: React.FC<StepEditorProps> = ({
                   language={scriptLanguage}
                   onLanguageChange={setScriptLanguage}
                   containerClassName={formStyles.scriptEditorContainer}
+                />
+              ) : formStepType === "agent" ? (
+                <StepEditorAgentConfiguration
+                  agent={agent}
+                  setAgent={setAgent}
                 />
               ) : formStepType === "flow" ? (
                 <StepEditorFlowConfiguration

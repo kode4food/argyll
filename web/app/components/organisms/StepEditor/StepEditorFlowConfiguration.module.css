@@ -4,20 +4,9 @@
   gap: var(--spacing-sm);
 }
 
-.flowLabelRow {
-  composes: sectionHeader from "@/app/styles/components/form.module.css";
-}
-
-.flowSpaceLabel {
-  composes: labelWithIcon from "@/app/styles/components/form.module.css";
-}
-
 .flowGoalColumn {
-  display: flex;
+  composes: field from "./StepEditorForm.module.css";
   flex: 1;
-  flex-direction: column;
-  gap: var(--label-gap);
-  min-width: 0;
 }
 
 .flowGoalList {

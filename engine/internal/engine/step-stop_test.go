@@ -188,11 +188,8 @@ func TestMissingOutputOtherProvider(t *testing.T) {
 		fl = env.WaitForFlowStatus(fid, func() {
 			for tkn := range fl.Executions[other.ID].WorkItems {
 				err := env.Engine.CompleteWork(
-					api.FlowStep{
-						FlowID: fid,
-						StepID: other.ID,
-					}, tkn,
-					api.Args{"inventory": "available"},
+					api.FlowStep{FlowID: fid, StepID: other.ID},
+					tkn, api.Args{"inventory": "available"}, nil,
 				)
 				testify.NoError(t, err)
 			}

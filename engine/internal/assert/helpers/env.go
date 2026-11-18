@@ -74,8 +74,13 @@ type (
 	}
 )
 
-// CallbackBaseURL is the base of the webhook URLs test engines hand to async HTTP steps
-const CallbackBaseURL = "http://localhost:8080"
+const (
+	// CallbackBaseURL is the base of the webhook URLs test engines hand to async HTTP steps
+	CallbackBaseURL = "http://localhost:8080"
+
+	// AgentWorkerURL is the worker test engines dispatch every agent provider to
+	AgentWorkerURL = "http://localhost:1"
+)
 
 var (
 	ErrInvalidSeedFlowStatus = errors.New("invalid seeded flow status")
@@ -343,7 +348,12 @@ func (e *TestEngineEnv) unsubscribeAll() {
 
 func (e *TestEngineEnv) engineDeps(clock scheduler.Clock) engine.Dependencies {
 	scripts := script.NewRegistry()
-	steps := step.NewRegistry(builtins.All(e.MockClient, builtins.BaseCallbackURL(CallbackBaseURL)))
+	callback := builtins.BaseCallbackURL(CallbackBaseURL)
+	steps := step.NewRegistry(builtins.All(e.MockClient, callback).With(step.Handlers{
+		api.StepTypeAgent: builtins.Agent(
+			builtins.AgentWorkers{builtins.AnyProvider: AgentWorkerURL}, callback, time.Second,
+		),
+	}))
 
 	// Every engine publishes what it hears to its own hub, so a second engine on the test's hub
 	// would deliver each event twice

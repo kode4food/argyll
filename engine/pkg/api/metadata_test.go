@@ -37,6 +37,13 @@ func TestMetadataGetString(t *testing.T) {
 		assert.Equal(t, api.StepID("test-step"), val)
 	})
 
+	t.Run("converts typed string to string", func(t *testing.T) {
+		meta := api.Metadata{"token": api.Token("tok-1")}
+		val, ok := meta.GetString[string]("token")
+		assert.True(t, ok)
+		assert.Equal(t, "tok-1", val)
+	})
+
 	t.Run("returns false for non-string value", func(t *testing.T) {
 		meta := api.Metadata{"count": 42}
 		val, ok := meta.GetString[api.FlowID]("count")

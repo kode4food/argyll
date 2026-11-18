@@ -28,6 +28,8 @@ type parentWriteBackend struct {
 
 var (
 	ErrParentWrite = errors.New("parent write unavailable")
+
+	errLeafDeclined = errors.New("agent declined: unsure")
 )
 
 func TestCompleteFlow(t *testing.T) {
@@ -683,7 +685,8 @@ func TestParentSettledAtomically(t *testing.T) {
 
 			// the parent write fails, so neither half may land
 			fail.Store(true)
-			testify.ErrorIs(t, env.Engine.CompleteWork(childStep, "w", api.Args{}), ErrParentWrite)
+			testify.ErrorIs(t,
+				env.Engine.CompleteWork(childStep, "w", api.Args{}, nil), ErrParentWrite)
 
 			after, err := env.Engine.GetFlowState(childID)
 			testify.NoError(t, err)
@@ -699,7 +702,7 @@ func TestParentSettledAtomically(t *testing.T) {
 
 			// with the write allowed, both halves land in one commit
 			fail.Store(false)
-			testify.NoError(t, env.Engine.CompleteWork(childStep, "w", api.Args{}))
+			testify.NoError(t, env.Engine.CompleteWork(childStep, "w", api.Args{}, nil))
 
 			child, err := env.Engine.GetFlowState(childID)
 			testify.NoError(t, err)
@@ -709,4 +712,210 @@ func TestParentSettledAtomically(t *testing.T) {
 			testify.NoError(t, err)
 			testify.Equal(t, api.WorkSucceeded, parent.Executions[sub.ID].WorkItems["token"].Status)
 		})
+}
+
+func TestFlowStepRollsUpUsage(t *testing.T) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		testify.NoError(t, env.Engine.Start())
+
+		leaf := newAsyncLeafStep("leaf")
+		inner := newSubFlowStep("inner", leaf.ID)
+		outer := newSubFlowStep("outer", inner.ID)
+		err := env.Engine.RegisterSteps(leaf, inner, outer)
+		testify.NoError(t, err)
+
+		work := startLeafWork(t, env, "usage-flow", outer.ID)[leaf.ID]
+		usage := api.Usage{
+			"input_tokens": 10,
+			"cost":         0.5,
+		}
+		fl := env.WaitForFlowStatus("usage-flow", func() {
+			testify.NoError(t, completeLeaf(env, work, usage))
+		})
+		testify.Equal(t, api.FlowCompleted, fl.Status)
+		testify.Len(t, fl.Executions[outer.ID].WorkItems, 1)
+		for _, item := range fl.Executions[outer.ID].WorkItems {
+			testify.Equal(t, usage, item.Usage)
+		}
+	})
+}
+
+func TestFailedFlowStepRollsUpUsage(t *testing.T) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		testify.NoError(t, env.Engine.Start())
+
+		leaf := newAsyncLeafStep("leaf")
+		outer := newSubFlowStep("outer", leaf.ID)
+		err := env.Engine.RegisterSteps(leaf, outer)
+		testify.NoError(t, err)
+
+		work := startLeafWork(t, env, "failed-usage-flow", outer.ID)[leaf.ID]
+		usage := api.Usage{"input_tokens": 3}
+		fl := env.WaitForFlowStatus("failed-usage-flow", func() {
+			testify.NoError(t, failLeaf(env, work, usage))
+		})
+		testify.Equal(t, api.FlowFailed, fl.Status)
+		testify.Len(t, fl.Executions[outer.ID].WorkItems, 1)
+		for _, item := range fl.Executions[outer.ID].WorkItems {
+			testify.Equal(t, api.WorkFailed, item.Status)
+			testify.Equal(t, usage, item.Usage)
+		}
+	})
+}
+
+func TestLateChildUsageReported(t *testing.T) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		testify.NoError(t, env.Engine.Start())
+
+		fast := newAsyncLeafStep("leaf")
+		slow := newAsyncLeafStep("leaf-slow")
+		outer := &api.Step{
+			ID:   "outer",
+			Name: "Sub-flow",
+			Type: api.StepTypeFlow,
+			Flow: &api.FlowConfig{
+				Goals: api.Goals{Steps: []api.StepID{fast.ID, slow.ID}},
+			},
+			Attributes: api.AttributeSpecs{
+				"spend": metricSpec(argExCfg("work.usage")),
+			},
+		}
+		err := env.Engine.RegisterSteps(fast, slow, outer)
+		testify.NoError(t, err)
+		err = env.Engine.RegisterFeed(newMetricFeed("spend", "{}", argExCfg("spend.value")))
+		testify.NoError(t, err)
+
+		works := startLeafWork(t, env, "late-usage-flow", outer.ID)
+		env.WaitForFlowStatus("late-usage-flow", func() {
+			testify.NoError(t, failLeaf(env, works[fast.ID], api.Usage{"input_tokens": 3}))
+		})
+		testify.Equal(t, map[string]any{}, feedTotal(t, env))
+
+		env.WaitFor(wait.FlowDeactivated("late-usage-flow"), func() {
+			testify.NoError(t, failLeaf(env, works[slow.ID], api.Usage{"input_tokens": 4}))
+		})
+
+		fl, err := env.Engine.GetFlowState("late-usage-flow")
+		testify.NoError(t, err)
+		testify.Len(t, fl.Executions[outer.ID].WorkItems, 1)
+		for _, item := range fl.Executions[outer.ID].WorkItems {
+			testify.Equal(t, api.WorkFailed, item.Status)
+			testify.Equal(t, api.Usage{"input_tokens": 7}, item.Usage)
+		}
+		testify.EqualValues(t, map[string]any{"input_tokens": 7.0}, feedTotal(t, env))
+	})
+}
+
+func TestFlowStepMetricsFoldAfterChildDeactivates(t *testing.T) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		testify.NoError(t, env.Engine.Start())
+
+		leaf := newAsyncLeafStep("leaf")
+		outer := &api.Step{
+			ID:   "outer",
+			Name: "Sub-flow",
+			Type: api.StepTypeFlow,
+			Flow: &api.FlowConfig{
+				Goals: api.Goals{Steps: []api.StepID{leaf.ID}},
+			},
+			Attributes: api.AttributeSpecs{
+				"spend": metricSpec(argExCfg("work.usage")),
+			},
+		}
+		err := env.Engine.RegisterSteps(leaf, outer)
+		testify.NoError(t, err)
+		err = env.Engine.RegisterFeed(newMetricFeed("spend", "{}", argExCfg("spend.value")))
+		testify.NoError(t, err)
+
+		work := startLeafWork(t, env, "fold-flow", outer.ID)[leaf.ID]
+		env.WaitFor(wait.FlowDeactivated(work.FlowID), func() {
+			testify.NoError(t, completeLeaf(env, work, api.Usage{"input_tokens": 10}))
+		})
+		testify.EqualValues(t, map[string]any{"input_tokens": 10.0}, feedTotal(t, env))
+	})
+}
+
+// startLeafWork starts a flow reaching its async leaves through sub-flows and returns each leaf's
+// started work by step, waiting for its settlement
+func startLeafWork(
+	t *testing.T, env *helpers.TestEngineEnv, fid api.FlowID, goal api.StepID,
+) map[api.StepID]api.WorkStartedEvent {
+	t.Helper()
+	res := map[api.StepID]api.WorkStartedEvent{}
+	env.WaitForCount(leafCount(env, goal), wait.And(
+		wait.Type(api.EventTypeWorkStarted),
+		wait.PredicateFilter(func(data api.WorkStartedEvent) bool {
+			if !isLeaf(data.StepID) {
+				return false
+			}
+			res[data.StepID] = data
+			return true
+		}),
+	), func() {
+		err := env.Engine.StartFlow(api.CreateFlowRequest{
+			ID:    fid,
+			Goals: api.Goals{Steps: []api.StepID{goal}},
+		})
+		testify.NoError(t, err)
+	})
+	return res
+}
+
+func completeLeaf(env *helpers.TestEngineEnv, work api.WorkStartedEvent, usage api.Usage) error {
+	return env.Engine.CompleteWork(leafStep(work), work.Token, api.Args{}, usage)
+}
+
+func failLeaf(env *helpers.TestEngineEnv, work api.WorkStartedEvent, usage api.Usage) error {
+	return env.Engine.FailWork(leafStep(work), work.Token, errLeafDeclined, usage)
+}
+
+func leafStep(work api.WorkStartedEvent) api.FlowStep {
+	return api.FlowStep{
+		FlowID: work.FlowID,
+		StepID: work.StepID,
+	}
+}
+
+// leafCount counts the async leaves a goal reaches through its sub-flows
+func leafCount(env *helpers.TestEngineEnv, sid api.StepID) int {
+	cat, err := env.Engine.GetCatalogState()
+	testify.NoError(env.T, err)
+	st := cat.Steps[sid]
+	if st.Flow == nil {
+		return 1
+	}
+	n := 0
+	for _, goal := range st.Flow.Goals.Steps {
+		n += leafCount(env, goal)
+	}
+	return n
+}
+
+func isLeaf(sid api.StepID) bool {
+	return sid == "leaf" || sid == "leaf-slow"
+}
+
+func newAsyncLeafStep(id api.StepID) *api.Step {
+	return &api.Step{
+		ID:   id,
+		Name: "Leaf",
+		Type: api.StepTypeService,
+		HTTP: &api.HTTPConfig{
+			Invoke: api.HTTPAction{
+				Endpoint: "http://test:8080",
+				Mode:     api.ActionModeAsync,
+			},
+		},
+	}
+}
+
+func newSubFlowStep(id api.StepID, goals ...api.StepID) *api.Step {
+	return &api.Step{
+		ID:   id,
+		Name: "Sub-flow",
+		Type: api.StepTypeFlow,
+		Flow: &api.FlowConfig{
+			Goals: api.Goals{Steps: goals},
+		},
+	}
 }

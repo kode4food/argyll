@@ -1,5 +1,6 @@
 import {
   ActionMode,
+  AgentConfig,
   AttributeSpec,
   DEFAULT_HTTP_METHOD,
   fromGoalSets,
@@ -53,6 +54,7 @@ export function buildStepPayload({
   httpTimeout,
   flowGoals,
   flowSpaceId,
+  agent,
   handling,
 }: {
   stepId: string;
@@ -76,6 +78,7 @@ export function buildStepPayload({
   httpTimeout: number;
   flowGoals: GoalSets;
   flowSpaceId: string;
+  agent: AgentConfig;
   handling: Handling;
 }): Step {
   const stepData: Step = {
@@ -94,6 +97,10 @@ export function buildStepPayload({
     handling: handling === "standard" ? undefined : handling,
   };
 
+  if (stepType === "agent") {
+    stepData.agent = agentPayload(agent);
+    return stepData;
+  }
   if (stepType === "flow") {
     stepData.flow = {
       goals: fromGoalSets(nonEmptyGoalSets(flowGoals)),
@@ -134,4 +141,20 @@ export function buildStepPayload({
   }
 
   return stepData;
+}
+
+function agentPayload(agent: AgentConfig): AgentConfig {
+  const mcp = (agent.mcp ?? []).map((s) => ({
+    server: s.server.trim(),
+    tools: s.tools,
+  }));
+  return {
+    provider: agent.provider.trim(),
+    model: agent.model.trim(),
+    prologue: agent.prologue,
+    max_turns: agent.max_turns,
+    max_tokens: agent.max_tokens,
+    timeout: agent.timeout || undefined,
+    mcp: mcp.length > 0 ? mcp : undefined,
+  };
 }

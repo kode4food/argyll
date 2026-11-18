@@ -12,13 +12,6 @@ import (
 )
 
 type (
-	// workSettler records how dispatched work or its compensation ended
-	workSettler interface {
-		step.Runtime
-		notCompleteWork(api.Token, string) error
-		failWork(api.Token, string) error
-	}
-
 	// workRuntime is the Runtime an invocation receives, settling work items
 	workRuntime struct {
 		*ExecContext
@@ -34,7 +27,15 @@ type (
 )
 
 func (r workRuntime) CompleteWork(tkn api.Token, outputs api.Args) error {
-	return r.engine.CompleteWork(r.flowStep(), tkn, outputs)
+	return r.engine.CompleteWork(r.flowStep(), tkn, outputs, nil)
+}
+
+func (r workRuntime) RetryWork(tkn api.Token, cause error) error {
+	return r.engine.RetryWork(r.flowStep(), tkn, cause, nil)
+}
+
+func (r workRuntime) FailWork(tkn api.Token, cause error) error {
+	return r.engine.FailWork(r.flowStep(), tkn, cause, nil)
 }
 
 func (r *txRuntime) FlowID() api.FlowID {
@@ -59,26 +60,15 @@ func (r *txRuntime) UpdateHealth(s api.HealthStatus, msg string) error {
 }
 
 func (r *txRuntime) CompleteWork(tkn api.Token, outputs api.Args) error {
-	return r.settle(r.tx.completeWork(r.sid, tkn, outputs))
+	return r.settle(r.tx.completeWork(r.sid, tkn, outputs, nil))
 }
 
-func (r workRuntime) notCompleteWork(tkn api.Token, errMsg string) error {
-	return r.engine.NotCompleteWork(r.flowStep(), tkn, errMsg)
+func (r *txRuntime) RetryWork(tkn api.Token, cause error) error {
+	return r.settle(r.tx.retryWork(r.sid, tkn, errorText(cause), nil))
 }
 
-func (r workRuntime) failWork(tkn api.Token, errMsg string) error {
-	return r.engine.FailWork(r.flowStep(), tkn, errMsg)
-}
-
-func (r *txRuntime) notCompleteWork(tkn api.Token, errMsg string) error {
-	if err := r.tx.raiseWorkNotCompleted(r.sid, tkn, errMsg); err != nil {
-		return r.settle(err)
-	}
-	return r.settle(r.tx.handleWorkNotCompleted(r.sid, tkn))
-}
-
-func (r *txRuntime) failWork(tkn api.Token, errMsg string) error {
-	return r.settle(r.tx.failWork(r.sid, tkn, errMsg))
+func (r *txRuntime) FailWork(tkn api.Token, cause error) error {
+	return r.settle(r.tx.failWork(r.sid, tkn, errorText(cause), nil))
 }
 
 func (r *txRuntime) settle(err error) error {
@@ -90,25 +80,33 @@ func (r *txRuntime) settle(err error) error {
 
 // settleFailure records a handler error as a retry when the handler reports the work not completed,
 // and as a permanent failure otherwise
-func settleFailure(s workSettler, tkn api.Token, err error) {
+func settleFailure(rt step.Runtime, tkn api.Token, err error) {
 	if errors.Is(err, api.ErrInvalidWorkTransition) {
 		return
 	}
 
 	if errors.Is(err, api.ErrWorkNotCompleted) {
-		if recErr := s.notCompleteWork(tkn, err.Error()); recErr != nil {
+		if recErr := rt.RetryWork(tkn, err); recErr != nil {
 			slog.Error("Failed to record work not completed",
-				log.FlowID(s.FlowID()),
-				log.StepID(s.StepID()),
+				log.FlowID(rt.FlowID()),
+				log.StepID(rt.StepID()),
 				log.Error(recErr))
 		}
 		return
 	}
 
-	if recErr := s.failWork(tkn, err.Error()); recErr != nil {
+	if recErr := rt.FailWork(tkn, err); recErr != nil {
 		slog.Error("Failed to record work failure",
-			log.FlowID(s.FlowID()),
-			log.StepID(s.StepID()),
+			log.FlowID(rt.FlowID()),
+			log.StepID(rt.StepID()),
 			log.Error(recErr))
 	}
+}
+
+// errorText is the message an error records on its work item
+func errorText(err error) string {
+	if err == nil {
+		return ""
+	}
+	return err.Error()
 }

@@ -1,4 +1,5 @@
 import React from "react";
+import { createPortal } from "react-dom";
 import DropdownOption from "@/app/components/atoms/DropdownOption";
 import { useAnchoredList } from "@/app/hooks/useAnchoredList";
 import useDropdown from "@/app/hooks/useDropdown";
@@ -41,14 +42,20 @@ const SelectField: React.FC<SelectFieldProps> = ({
     highlightedIndex,
     setHighlightedIndex,
     wrapperRef,
+    listRef,
     handleKeyDown,
   } = useDropdown(options, value, onChange);
   const selected = options.find((option) => option.value === value);
   const SelectedIcon = selected?.Icon ?? Icon;
+  const disabled = options.length === 0;
+  const isOpen = open && !disabled;
 
-  const listRef = React.useRef<HTMLDivElement>(null);
+  React.useEffect(() => {
+    if (disabled) setOpen(false);
+  }, [disabled, setOpen]);
+
   useAnchoredList({
-    isOpen: open,
+    isOpen,
     anchorRef: wrapperRef,
     listRef,
     shouldMatchWidth: true,
@@ -60,45 +67,48 @@ const SelectField: React.FC<SelectFieldProps> = ({
       <div
         ref={wrapperRef}
         className={styles.wrapper}
-        onKeyDown={handleKeyDown}
+        onKeyDown={disabled ? undefined : handleKeyDown}
       >
         <button
           type="button"
+          disabled={disabled}
           onClick={() => setOpen((isOpen) => !isOpen)}
-          className={`${styles.face} ${open ? styles.faceOpen : ""}`}
-          aria-expanded={open}
+          className={`${styles.face} ${isOpen ? styles.faceOpen : ""}`}
+          aria-expanded={isOpen}
           aria-haspopup="listbox"
           aria-label={ariaLabel}
         >
           {SelectedIcon && <SelectedIcon className={styles.icon} />}
           <span>{selected?.label ?? (value || placeholder)}</span>
         </button>
-        {open && (
-          <div
-            ref={listRef}
-            className={`${dropdownStyles.list} ${styles.list}`}
-            role="listbox"
-            data-ui-overlay="dropdown"
-          >
-            {options.map((option, index) => (
-              <DropdownOption
-                key={option.value}
-                title={option.title ?? option.label}
-                icon={option.Icon && <option.Icon className={styles.icon} />}
-                isActive={value === option.value}
-                isDisabled={option.disabled}
-                isHighlighted={index === highlightedIndex}
-                onHover={() => setHighlightedIndex(index)}
-                onSelect={() => {
-                  onChange(option.value);
-                  setOpen(false);
-                }}
-              >
-                {option.label}
-              </DropdownOption>
-            ))}
-          </div>
-        )}
+        {isOpen &&
+          createPortal(
+            <div
+              ref={listRef}
+              className={`${dropdownStyles.list} ${styles.list}`}
+              role="listbox"
+              data-ui-overlay="dropdown"
+            >
+              {options.map((option, index) => (
+                <DropdownOption
+                  key={option.value}
+                  title={option.title ?? option.label}
+                  icon={option.Icon && <option.Icon className={styles.icon} />}
+                  isActive={value === option.value}
+                  isDisabled={option.disabled}
+                  isHighlighted={index === highlightedIndex}
+                  onHover={() => setHighlightedIndex(index)}
+                  onSelect={() => {
+                    onChange(option.value);
+                    setOpen(false);
+                  }}
+                >
+                  {option.label}
+                </DropdownOption>
+              ))}
+            </div>,
+            wrapperRef.current?.closest("dialog") ?? document.body
+          )}
       </div>
     </div>
   );

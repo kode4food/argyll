@@ -11,12 +11,14 @@ import (
 
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/config"
+	"github.com/kode4food/argyll/engine/pkg/step/builtins"
 )
 
 // Config holds everything the App runs with: the engine, the raft backend beneath it, and the HTTP
 // server that fronts it
 type Config struct {
 	Engine          *config.Config
+	AgentWorkers    builtins.AgentWorkers
 	Raft            raft.Config
 	APIHost         string
 	WebhookBaseURL  string
@@ -56,9 +58,14 @@ func LoadConfig() (Config, error) {
 	if err != nil {
 		return Config{}, err
 	}
+	workers, err := loadAgentWorkers()
+	if err != nil {
+		return Config{}, err
+	}
 
 	cfg := Config{
 		Engine:          eng,
+		AgentWorkers:    workers,
 		Raft:            rc,
 		APIHost:         DefaultAPIHost,
 		WebhookBaseURL:  DefaultWebhookBaseURL,

@@ -115,11 +115,14 @@ type (
 
 	// Work is how a step reports the outcome of what it was asked to do
 	Work interface {
-		// CompleteWork records a work item's successful outputs
-		CompleteWork(fs api.FlowStep, tkn api.Token, outputs api.Args) error
+		// CompleteWork records a work item's successful outputs and the usage its attempt reported
+		CompleteWork(fs api.FlowStep, tkn api.Token, outputs api.Args, usage api.Usage) error
+
+		// RetryWork records a work item's failure for its retry settings to try again
+		RetryWork(fs api.FlowStep, tkn api.Token, cause error, usage api.Usage) error
 
 		// FailWork records a work item's permanent failure
-		FailWork(fs api.FlowStep, tkn api.Token, errMsg string) error
+		FailWork(fs api.FlowStep, tkn api.Token, cause error, usage api.Usage) error
 
 		// CompleteCompensation records a compensation as completed
 		CompleteCompensation(api.FlowStep, api.Token) error

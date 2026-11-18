@@ -22,6 +22,7 @@ type (
 		WorkConfig  *WorkConfig    `json:"work_config,omitempty"`
 		HTTP        *HTTPConfig    `json:"http,omitempty"`
 		Flow        *FlowConfig    `json:"flow,omitempty"`
+		Agent       *AgentConfig   `json:"agent,omitempty"`
 		Type        StepType       `json:"type"`
 		ID          StepID         `json:"id"`
 		Name        Name           `json:"name"`
@@ -92,6 +93,7 @@ type (
 		Flow       *FlowConfig   `json:"flow,omitempty"`
 		HTTP       *HTTPConfig   `json:"http,omitempty"`
 		Script     *ScriptConfig `json:"script,omitempty"`
+		Agent      *AgentConfig  `json:"agent,omitempty"`
 		Predicate  *ScriptConfig `json:"predicate,omitempty"`
 		WorkConfig *WorkConfig   `json:"work_config,omitempty"`
 		Type       StepType      `json:"type"`
@@ -109,6 +111,7 @@ const (
 	StepTypeService StepType = "service"
 	StepTypeScript  StepType = "script"
 	StepTypeFlow    StepType = "flow"
+	StepTypeAgent   StepType = "agent"
 
 	ScriptLangArgyll = "argyll"
 	ScriptLangLua    = "lua"
@@ -207,6 +210,7 @@ func (s *Step) Copy() *Step {
 		HTTP:        s.HTTP,
 		Flow:        s.Flow,
 		Script:      s.Script,
+		Agent:       s.Agent,
 		WorkConfig:  s.WorkConfig,
 		Tags:        s.Tags,
 		ID:          s.ID,
@@ -340,7 +344,7 @@ func (s *Step) Equal(other *Step) bool {
 	sameIdentity := s.ID == other.ID && s.Name == other.Name &&
 		s.Type == other.Type && s.Description == other.Description
 	sameAction := s.HTTP.Equal(other.HTTP) && s.Flow.Equal(other.Flow) &&
-		s.Script.Equal(other.Script)
+		s.Script.Equal(other.Script) && s.Agent.Equal(other.Agent)
 	sameWork := s.DefaultedHandling() == other.DefaultedHandling() &&
 		s.WorkConfig.Equal(other.WorkConfig) &&
 		s.Predicate.Equal(other.Predicate)
@@ -517,6 +521,8 @@ func (s *Step) validateTypeConfig() error {
 		return s.validateFlowConfig()
 	case StepTypeScript:
 		return s.validateScriptConfig()
+	case StepTypeAgent:
+		return s.validateAgentConfig()
 	}
 	return nil
 }
@@ -538,6 +544,9 @@ func (s *Step) validateHTTPConfig() error {
 	}
 	if s.Script != nil {
 		return ErrScriptNotAllowed
+	}
+	if s.Agent != nil {
+		return ErrAgentNotAllowed
 	}
 	if err := validateAction(&s.HTTP.Invoke); err != nil {
 		return err
@@ -617,6 +626,9 @@ func (s *Step) validateFlowConfig() error {
 	if s.Script != nil {
 		return ErrScriptNotAllowed
 	}
+	if s.Agent != nil {
+		return ErrAgentNotAllowed
+	}
 	if !s.Flow.Goals.Valid() {
 		return ErrFlowGoalsRequired
 	}
@@ -635,6 +647,9 @@ func (s *Step) validateScriptConfig() error {
 	}
 	if s.Flow != nil {
 		return ErrFlowNotAllowed
+	}
+	if s.Agent != nil {
+		return ErrAgentNotAllowed
 	}
 	if s.Script.Language == "" {
 		return ErrScriptLanguageEmpty
@@ -664,27 +679,24 @@ func (s *Step) validateAttributes() error {
 }
 
 func (s *Step) validateMappingNames() error {
-	inputInnerNames := map[string]Name{}
-	outputInnerNames := map[string]Name{}
+	inputInnerNames := map[Name]bool{}
+	outputInnerNames := map[Name]bool{}
 
 	for name, attr := range s.Attributes {
-		mapped, ok := s.MappedName(name)
-		if !ok {
-			continue
-		}
+		mapped, _ := s.MappedName(name)
 
 		if attr.IsRuntimeInput() {
-			if _, ok := inputInnerNames[string(mapped)]; ok {
+			if _, ok := inputInnerNames[mapped]; ok {
 				return fmt.Errorf("%w: %q", ErrDuplicateInnerName, mapped)
 			}
-			inputInnerNames[string(mapped)] = name
+			inputInnerNames[mapped] = true
 		}
 
 		if attr.IsOutput() {
-			if _, ok := outputInnerNames[string(mapped)]; ok {
+			if _, ok := outputInnerNames[mapped]; ok {
 				return fmt.Errorf("%w: %q", ErrDuplicateInnerName, mapped)
 			}
-			outputInnerNames[string(mapped)] = name
+			outputInnerNames[mapped] = true
 		}
 	}
 
@@ -763,6 +775,7 @@ func (s *Step) computeHashKey() (string, error) {
 		Attributes: attrs,
 		HTTP:       httpCfg,
 		Script:     s.Script,
+		Agent:      s.Agent,
 		Flow:       s.Flow,
 		Predicate:  s.Predicate,
 		WorkConfig: s.WorkConfig,

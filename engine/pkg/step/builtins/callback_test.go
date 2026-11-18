@@ -2,9 +2,6 @@ package builtins_test
 
 import (
 	"errors"
-	"net/http"
-	"net/http/httptest"
-	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -20,6 +17,7 @@ type callbackEngine struct {
 	called  string
 	errMsg  string
 	outputs api.Args
+	usage   api.Usage
 }
 
 const (
@@ -33,104 +31,110 @@ var errEngineDown = errors.New("engine down")
 func TestCallbackLookup(t *testing.T) {
 	eng := newCallbackEngine(api.WorkActive)
 	eng.flowErr = api.ErrFlowNotFound
-	status, err := builtins.Callback(eng, invokeRequest(`{}`))
-	assert.Equal(t, http.StatusBadRequest, status)
-	assert.ErrorIs(t, err, api.ErrFlowNotFound)
+	err := builtins.Callback(eng, invokeRequest(api.Args{}))
+	assert.ErrorIs(t, err, builtins.ErrInvalidCallback)
 
 	eng = newCallbackEngine(api.WorkActive)
-	req := invokeRequest(`{}`)
+	req := invokeRequest(api.Args{})
 	req.FlowStep.StepID = "missing"
-	status, err = builtins.Callback(eng, req)
-	assert.Equal(t, http.StatusBadRequest, status)
-	assert.ErrorIs(t, err, builtins.ErrInvalidCallback)
+	err = builtins.Callback(eng, req)
+	assert.ErrorIs(t, err, builtins.ErrCallbackExecutionNotFound)
 
-	req = invokeRequest(`{}`)
+	req = invokeRequest(api.Args{})
 	req.Token = "missing"
-	status, err = builtins.Callback(eng, req)
-	assert.Equal(t, http.StatusBadRequest, status)
+	err = builtins.Callback(eng, req)
 	assert.ErrorIs(t, err, api.ErrWorkItemNotFound)
 
-	req = invokeRequest(`{}`)
+	req = invokeRequest(api.Args{})
 	req.Action = "bogus"
-	status, err = builtins.Callback(eng, req)
-	assert.Equal(t, http.StatusBadRequest, status)
-	assert.ErrorIs(t, err, builtins.ErrInvalidCallback)
+	err = builtins.Callback(eng, req)
+	assert.ErrorIs(t, err, builtins.ErrInvalidCallbackAction)
 	assert.Empty(t, eng.called)
 }
 
 func TestCallbackInvoke(t *testing.T) {
-	eng := newCallbackEngine(api.WorkActive)
-	status, err := builtins.Callback(eng, invokeRequest(`{"result":"ok"}`))
-	assert.Equal(t, http.StatusOK, status)
-	assert.NoError(t, err)
-	assert.Equal(t, "CompleteWork", eng.called)
-	assert.Equal(t, api.Args{"result": "ok"}, eng.outputs)
+	for _, action := range []api.CallbackAction{api.ActionInvoke, api.ActionAgent} {
+		t.Run(string(action), func(t *testing.T) {
+			usage := api.Usage{"input_tokens": 10}
+			eng := newCallbackEngine(api.WorkActive)
+			err := builtins.Callback(eng, &builtins.CallbackRequest{
+				FlowStep: callbackFlowStep(),
+				Token:    callbackToken,
+				Action:   action,
+				Outputs:  api.Args{"result": "ok"},
+				Usage:    usage,
+			})
+			assert.NoError(t, err)
+			assert.Equal(t, "CompleteWork", eng.called)
+			assert.Equal(t, api.Args{"result": "ok"}, eng.outputs)
+			assert.Equal(t, usage, eng.usage)
+		})
+	}
+}
 
-	eng = newCallbackEngine(api.WorkActive)
-	req := invokeRequest(`{"detail":"boom"}`)
-	req.Request.Header.Set("Content-Type", api.ProblemJSONContentType)
-	status, err = builtins.Callback(eng, req)
-	assert.Equal(t, http.StatusOK, status)
-	assert.NoError(t, err)
-	assert.Equal(t, "FailWork", eng.called)
-	assert.Equal(t, "boom", eng.errMsg)
+func TestCallbackInvokeProblem(t *testing.T) {
+	for _, tc := range []struct {
+		name   string
+		status int
+		called string
+	}{
+		{name: "permanent", status: 422, called: "FailWork"},
+		{name: "retryable", status: 503, called: "RetryWork"},
+		{name: "no status", called: "RetryWork"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			usage := api.Usage{"input_tokens": 3}
+			eng := newCallbackEngine(api.WorkActive)
+			err := builtins.Callback(eng, &builtins.CallbackRequest{
+				FlowStep: callbackFlowStep(),
+				Token:    callbackToken,
+				Action:   api.ActionInvoke,
+				Problem: &api.ProblemDetails{
+					Status: tc.status,
+					Detail: "boom",
+				},
+				Usage: usage,
+			})
+			assert.NoError(t, err)
+			assert.Equal(t, tc.called, eng.called)
+			assert.Equal(t, "boom", eng.errMsg)
+			assert.Equal(t, usage, eng.usage)
+		})
+	}
 }
 
 func TestCallbackInvokeErrors(t *testing.T) {
 	eng := newCallbackEngine(api.WorkActive)
-	status, err := builtins.Callback(eng, invokeRequest("invalid json"))
-	assert.Equal(t, http.StatusBadRequest, status)
-	assert.ErrorIs(t, err, builtins.ErrInvalidCallback)
-
-	status, err = builtins.Callback(eng, invokeRequest(""))
-	assert.Equal(t, http.StatusBadRequest, status)
-	assert.ErrorIs(t, err, builtins.ErrInvalidCallback)
-	assert.Empty(t, eng.called)
-
 	eng.workErr = api.ErrInvalidWorkTransition
-	status, err = builtins.Callback(eng, invokeRequest(`{}`))
-	assert.Equal(t, http.StatusOK, status)
+	err := builtins.Callback(eng, invokeRequest(api.Args{}))
 	assert.NoError(t, err)
 
 	eng.workErr = errEngineDown
-	status, err = builtins.Callback(eng, invokeRequest(`{}`))
-	assert.Equal(t, http.StatusInternalServerError, status)
+	err = builtins.Callback(eng, invokeRequest(api.Args{}))
 	assert.ErrorIs(t, err, errEngineDown)
+	assert.NotErrorIs(t, err, builtins.ErrInvalidCallback)
 }
 
 func TestCallbackCompensate(t *testing.T) {
 	eng := newCallbackEngine(api.WorkActive)
-	status, err := builtins.Callback(eng, compensateRequest(""))
-	assert.Equal(t, http.StatusBadRequest, status)
-	assert.ErrorIs(t, err, builtins.ErrInvalidCallback)
+	err := builtins.Callback(eng, compensateRequest(nil))
+	assert.ErrorIs(t, err, builtins.ErrCallbackNotCompensating)
 	assert.Empty(t, eng.called)
 
 	eng = newCallbackEngine(api.WorkCompensating)
-	status, err = builtins.Callback(eng, compensateRequest(""))
-	assert.Equal(t, http.StatusOK, status)
+	err = builtins.Callback(eng, compensateRequest(nil))
 	assert.NoError(t, err)
 	assert.Equal(t, "CompleteCompensation", eng.called)
 
 	eng = newCallbackEngine(api.WorkCompensating)
-	req := compensateRequest(`{"detail":"rollback failed"}`)
-	req.Request.Header.Set("Content-Type", api.ProblemJSONContentType)
-	status, err = builtins.Callback(eng, req)
-	assert.Equal(t, http.StatusOK, status)
+	err = builtins.Callback(eng, compensateRequest(&api.ProblemDetails{Detail: "rollback failed"}))
 	assert.NoError(t, err)
 	assert.Equal(t, "FailCompensation", eng.called)
 	assert.Equal(t, "rollback failed", eng.errMsg)
 
 	eng = newCallbackEngine(api.WorkCompensating)
-	req = compensateRequest("invalid json")
-	req.Request.Header.Set("Content-Type", api.ProblemJSONContentType)
-	status, err = builtins.Callback(eng, req)
-	assert.Equal(t, http.StatusBadRequest, status)
-	assert.ErrorIs(t, err, builtins.ErrInvalidCallback)
-
-	eng = newCallbackEngine(api.WorkCompensating)
 	eng.workErr = errEngineDown
-	status, err = builtins.Callback(eng, compensateRequest(""))
-	assert.Equal(t, http.StatusInternalServerError, status)
+	err = builtins.Callback(eng, compensateRequest(nil))
 	assert.ErrorIs(t, err, errEngineDown)
 }
 
@@ -138,15 +142,30 @@ func (e *callbackEngine) GetFlowState(api.FlowID) (api.FlowState, error) {
 	return e.flow, e.flowErr
 }
 
-func (e *callbackEngine) CompleteWork(_ api.FlowStep, _ api.Token, outputs api.Args) error {
+func (e *callbackEngine) CompleteWork(
+	_ api.FlowStep, _ api.Token, outputs api.Args, usage api.Usage,
+) error {
 	e.called = "CompleteWork"
 	e.outputs = outputs
+	e.usage = usage
 	return e.workErr
 }
 
-func (e *callbackEngine) FailWork(_ api.FlowStep, _ api.Token, errMsg string) error {
+func (e *callbackEngine) RetryWork(
+	_ api.FlowStep, _ api.Token, cause error, usage api.Usage,
+) error {
+	e.called = "RetryWork"
+	e.errMsg = cause.Error()
+	e.usage = usage
+	return e.workErr
+}
+
+func (e *callbackEngine) FailWork(
+	_ api.FlowStep, _ api.Token, cause error, usage api.Usage,
+) error {
 	e.called = "FailWork"
-	e.errMsg = errMsg
+	e.errMsg = cause.Error()
+	e.usage = usage
 	return e.workErr
 }
 
@@ -176,24 +195,27 @@ func newCallbackEngine(status api.WorkStatus) *callbackEngine {
 	}
 }
 
-func invokeRequest(body string) *builtins.CallbackRequest {
-	return callbackRequest(api.ActionInvoke, body)
+func callbackFlowStep() api.FlowStep {
+	return api.FlowStep{
+		FlowID: callbackFlow,
+		StepID: callbackStep,
+	}
 }
 
-func compensateRequest(body string) *builtins.CallbackRequest {
-	return callbackRequest(api.ActionCompensate, body)
-}
-
-func callbackRequest(action api.CallbackAction, body string) *builtins.CallbackRequest {
-	r := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(body))
-	r.Header.Set("Content-Type", api.JSONContentType)
+func invokeRequest(outputs api.Args) *builtins.CallbackRequest {
 	return &builtins.CallbackRequest{
-		FlowStep: api.FlowStep{
-			FlowID: callbackFlow,
-			StepID: callbackStep,
-		},
-		Token:   callbackToken,
-		Action:  action,
-		Request: r,
+		FlowStep: callbackFlowStep(),
+		Token:    callbackToken,
+		Action:   api.ActionInvoke,
+		Outputs:  outputs,
+	}
+}
+
+func compensateRequest(problem *api.ProblemDetails) *builtins.CallbackRequest {
+	return &builtins.CallbackRequest{
+		FlowStep: callbackFlowStep(),
+		Token:    callbackToken,
+		Action:   api.ActionCompensate,
+		Problem:  problem,
 	}
 }

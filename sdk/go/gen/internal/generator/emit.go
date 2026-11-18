@@ -150,7 +150,8 @@ const (
 
 var (
 	ErrUnsupportedType = errors.New("unsupported attribute type")
-	ErrBadTag          = errors.New("invalid argyll field tag")
+	ErrFieldAttributes = errors.New("a field tag can only name one attribute")
+	ErrAttributeName   = errors.New("bad attribute name")
 	ErrAmbiguousField  = errors.New("ambiguous embedded field")
 	ErrServerPackage   = errors.New("generated server requires package main")
 	ErrMainDeclared    = errors.New("package already declares main")
@@ -761,14 +762,11 @@ func attrOf(f *types.Var, tag string) (fieldSpec, bool, error) {
 	}
 	decl := SplitHead(head)
 	if decl.Attrs != "" {
-		return fieldSpec{}, false, fmt.Errorf(
-			"%w: %s is a field, so it names one attribute", ErrBadTag,
-			f.Name())
+		return fieldSpec{}, false, fmt.Errorf("%w: %s", ErrFieldAttributes, f.Name())
 	}
 	name := decl.Name
 	if strings.ContainsAny(name, " \t") {
-		return fieldSpec{}, false, fmt.Errorf(
-			"%w: bad attribute name %q on %s", ErrBadTag, name, f.Name())
+		return fieldSpec{}, false, fmt.Errorf("%w: %q (%s)", ErrAttributeName, name, f.Name())
 	}
 	if name == "" {
 		name = SnakeCase(f.Name())

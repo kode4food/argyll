@@ -153,13 +153,24 @@ type (
 	// WorkSucceededEvent is emitted when a work item succeeds
 	WorkSucceededEvent struct {
 		Outputs Args   `json:"outputs"`
+		Usage   Usage  `json:"usage,omitempty"`
 		FlowID  FlowID `json:"flow_id"`
 		StepID  StepID `json:"step_id"`
 		Token   Token  `json:"token"`
 	}
 
+	// ChildUsageUpdatedEvent replaces a settled flow step work item's usage with its child flow's
+	// latest total
+	ChildUsageUpdatedEvent struct {
+		Usage  Usage  `json:"usage"`
+		FlowID FlowID `json:"flow_id"`
+		StepID StepID `json:"step_id"`
+		Token  Token  `json:"token"`
+	}
+
 	// WorkFailedEvent is emitted when a work item fails permanently
 	WorkFailedEvent struct {
+		Usage  Usage  `json:"usage,omitempty"`
 		FlowID FlowID `json:"flow_id"`
 		StepID StepID `json:"step_id"`
 		Token  Token  `json:"token"`
@@ -168,6 +179,7 @@ type (
 
 	// WorkNotCompletedEvent is emitted when a work item fails transiently
 	WorkNotCompletedEvent struct {
+		Usage  Usage  `json:"usage,omitempty"`
 		FlowID FlowID `json:"flow_id"`
 		StepID StepID `json:"step_id"`
 		Token  Token  `json:"token"`
@@ -259,6 +271,7 @@ const (
 	EventTypeWorkFailed         EventType = "work_failed"
 	EventTypeWorkNotCompleted   EventType = "work_not_completed"
 	EventTypeWorkRetryScheduled EventType = "work_retry_scheduled"
+	EventTypeChildUsageUpdated  EventType = "child_usage_updated"
 	EventTypeDispatchDeferred   EventType = "dispatch_deferred"
 	EventTypeCompStarted        EventType = "comp_started"
 	EventTypeCompRetryScheduled EventType = "comp_retry_scheduled"

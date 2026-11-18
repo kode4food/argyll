@@ -517,7 +517,7 @@ func TestDiagnostics(t *testing.T) {
 		},
 		"tag name": {
 			pattern: "./testdata/badtagname",
-			wants:   []string{`bad attribute name "order amount"`},
+			wants:   []string{`bad attribute name: "order amount"`},
 		},
 		"step ID": {
 			pattern: "./testdata/badid",
@@ -533,7 +533,7 @@ func TestDiagnostics(t *testing.T) {
 		},
 		"field attributes": {
 			pattern: "./testdata/badfieldattrs",
-			wants:   []string{"Amount is a field, so it names one attribute"},
+			wants:   []string{"a field tag can only name one attribute: Amount"},
 		},
 		"role mismatch": {
 			pattern: "./testdata/badroles",

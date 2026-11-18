@@ -16,7 +16,7 @@ export type WorkStatus =
   | "compensate_failed";
 
 export type HealthStatus = "healthy" | "unhealthy" | "unconfigured" | "unknown";
-export type StepType = "service" | "script" | "flow";
+export type StepType = "service" | "script" | "flow" | "agent";
 
 export type ActionMode = "sync" | "async";
 export type Handling = "standard" | "memoized" | "compensated";
@@ -108,6 +108,10 @@ export const METRIC_SELECTORS = [
   "work.attempts.average",
   "work.attempts.min",
   "work.attempts.max",
+  "work.usage",
+  "work.usage.input_tokens",
+  "work.usage.output_tokens",
+  "work.usage.cost",
 ] as const;
 
 export interface MetricConfig {
@@ -156,6 +160,28 @@ export interface FlowConfig {
   space_id?: string;
 }
 
+export interface AgentProvider {
+  provider: string;
+  models: string[];
+  mcp: MCPServer[];
+}
+
+// An MCP server an Agent may use, limited to `tools` when they are listed
+export interface MCPServer {
+  server: string;
+  tools?: string[];
+}
+
+export interface AgentConfig {
+  provider: string;
+  model: string;
+  prologue: string;
+  max_turns: number;
+  max_tokens: number;
+  timeout?: number;
+  mcp?: MCPServer[];
+}
+
 export interface WorkConfig {
   max_retries?: number;
   init_backoff?: number;
@@ -180,6 +206,7 @@ export interface Step {
   http?: HTTPConfig;
   script?: ScriptConfig;
   flow?: FlowConfig;
+  agent?: AgentConfig;
 }
 
 export interface Dependencies {

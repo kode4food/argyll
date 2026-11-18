@@ -78,6 +78,9 @@ func WorkDeadline(st *api.Step, work *api.WorkState, fallback time.Duration) (ti
 		if st.HTTP != nil {
 			ms = st.HTTP.Invoke.Timeout
 		}
+		if st.Agent != nil {
+			ms = st.Agent.Timeout
+		}
 	default:
 		return time.Time{}, false
 	}

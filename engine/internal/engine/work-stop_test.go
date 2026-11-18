@@ -141,10 +141,7 @@ func TestPendingRetryCanComplete(t *testing.T) {
 		))
 
 		err := env.Engine.CompleteWork(
-			api.FlowStep{
-				FlowID: id,
-				StepID: st.ID,
-			}, tkn, api.Args{"output": "ok"},
+			api.FlowStep{FlowID: id, StepID: st.ID}, tkn, api.Args{"output": "ok"}, nil,
 		)
 		assert.NoError(t, err)
 
@@ -200,10 +197,7 @@ func TestPendingRetryCanFail(t *testing.T) {
 		))
 
 		err := env.Engine.FailWork(
-			api.FlowStep{
-				FlowID: id,
-				StepID: st.ID,
-			}, tkn, "permanent",
+			api.FlowStep{FlowID: id, StepID: st.ID}, tkn, errors.New("permanent"), nil,
 		)
 		assert.NoError(t, err)
 
@@ -297,20 +291,20 @@ func TestLateResultsAfterFlowFails(t *testing.T) {
 
 		// One item fails permanently, which fails the step and the flow while the other is still
 		// awaiting its callback
-		assert.NoError(t, env.Engine.FailWork(fs, tokens[0], "permanent"))
+		assert.NoError(t, env.Engine.FailWork(fs, tokens[0], errors.New("permanent"), nil))
 		fl, err = env.Engine.GetFlowState(id)
 		assert.NoError(t, err)
 		assert.Equal(t, api.FlowFailed, fl.Status)
 
 		// The terminal flow leaves a late not-completed report at rest
-		assert.NoError(t, env.Engine.NotCompleteWork(fs, tokens[1], "not yet"))
+		assert.NoError(t, env.Engine.RetryWork(fs, tokens[1], errors.New("not yet"), nil))
 		fl, err = env.Engine.GetFlowState(id)
 		assert.NoError(t, err)
 		late := fl.Executions[st.ID].WorkItems[tokens[1]]
 		assert.Equal(t, api.WorkNotCompleted, late.Status)
 
 		// A later success is still recorded, for the audit trail
-		assert.NoError(t, env.Engine.CompleteWork(fs, tokens[1], api.Args{}))
+		assert.NoError(t, env.Engine.CompleteWork(fs, tokens[1], api.Args{}, nil))
 		fl, err = env.Engine.GetFlowState(id)
 		assert.NoError(t, err)
 		late = fl.Executions[st.ID].WorkItems[tokens[1]]
@@ -382,7 +376,7 @@ func TestSideEffectRunsOnceUnderConflict(t *testing.T) {
 
 		// Another writer wins the race, so the command body runs twice
 		env.ConflictOnNextAppend(id)
-		assert.NoError(t, env.Engine.CompleteWork(fs, first, api.Args{}))
+		assert.NoError(t, env.Engine.CompleteWork(fs, first, api.Args{}, nil))
 		assert.True(t, env.ConflictFired())
 
 		assert.Eventually(t, func() bool {

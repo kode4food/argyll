@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useState } from "react";
 import {
   ActionMode,
+  AgentConfig,
   toGoalSets,
   GoalSets,
   Handling,
@@ -17,6 +18,7 @@ import {
 } from "./stepEditorUtils";
 import { useT } from "@/app/i18n";
 import { useAttributeList } from "./useAttributeList";
+import { EMPTY_AGENT } from "./stepEditorConstants";
 import { useStepPersistence } from "./useStepPersistence";
 
 export interface StepEditorFormOptions {
@@ -81,6 +83,7 @@ export function useStepEditorForm({
     toGoalSets(seed?.flow?.goals)
   );
   const [flowSpaceId, setFlowSpaceId] = useState(seed?.flow?.space_id || "");
+  const [agent, setAgent] = useState<AgentConfig>(seed?.agent ?? EMPTY_AGENT);
   const [handling, setHandling] = useState<Handling>(
     step?.handling || "standard"
   );
@@ -140,9 +143,11 @@ export function useStepEditorForm({
       httpTimeout,
       flowGoals,
       flowSpaceId,
+      agent,
       handling,
     });
   }, [
+    agent,
     attributes,
     tags,
     compensate,
@@ -181,6 +186,7 @@ export function useStepEditorForm({
       setScriptLanguage(stepData.script?.language || SCRIPT_LANGUAGE_LUA);
       setFlowGoals(toGoalSets(stepData.flow?.goals));
       setFlowSpaceId(stepData.flow?.space_id || "");
+      setAgent({ ...EMPTY_AGENT, ...stepData.agent });
       setEndpoint(stepData.http?.invoke?.endpoint || "");
       setHttpMethod(normalizeHttpMethod(stepData.http?.invoke?.method));
       setHttpMode(stepData.http?.invoke?.mode ?? "sync");
@@ -205,13 +211,11 @@ export function useStepEditorForm({
     setError,
     handleSave,
     handleJsonSave,
-    validateJsonDraft,
     getSerializedStepData,
   } = useStepPersistence({
     isCreateMode,
     stepId,
     buildStepData,
-    applyStepData,
     onUpdate,
     onClose,
     t,
@@ -317,6 +321,8 @@ export function useStepEditorForm({
     setFlowGoals,
     flowSpaceId,
     setFlowSpaceId,
+    agent,
+    setAgent,
     handling,
     setHandling: changeHandling,
     attributes,
@@ -330,7 +336,6 @@ export function useStepEditorForm({
     setError,
     handleSave,
     handleJsonSave,
-    validateJsonDraft,
     getSerializedStepData,
     applyStepData,
     isCreateMode,

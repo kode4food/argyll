@@ -95,7 +95,9 @@ func TestFlowWithGoal(t *testing.T) {
 	defer server.Close()
 
 	client := argyll.NewClient(server.URL, 5*time.Second)
-	err := client.NewFlow("wf-1").WithGoal("goal-1").WithGoal("goal-2").
+	err := client.NewFlow("wf-1").
+		WithGoal("goal-1").
+		WithGoal("goal-2").
 		WithGoals(api.Goals{
 			Steps: []api.StepID{"goal-1", "goal-2"},
 			Else:  &api.Goals{Steps: []api.StepID{"goal-3"}},

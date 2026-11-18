@@ -27,6 +27,9 @@ type (
 		completeToken api.Token
 		completeOut   api.Args
 		completeCalls int
+		retryCalls    int
+		failCalls     int
+		cause         error
 		healthStatus  api.HealthStatus
 		healthError   string
 		healthCalls   int
@@ -149,6 +152,18 @@ func (r *testRuntime) CompleteWork(tkn api.Token, outputs api.Args) error {
 	r.completeToken = tkn
 	r.completeOut = outputs
 	r.completeCalls++
+	return nil
+}
+
+func (r *testRuntime) RetryWork(_ api.Token, cause error) error {
+	r.cause = cause
+	r.retryCalls++
+	return nil
+}
+
+func (r *testRuntime) FailWork(_ api.Token, cause error) error {
+	r.cause = cause
+	r.failCalls++
 	return nil
 }
 

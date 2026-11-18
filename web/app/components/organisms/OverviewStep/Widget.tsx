@@ -14,6 +14,8 @@ const isStepEditable = (step: Step): boolean => {
       return !!step.http;
     case "flow":
       return !!step.flow;
+    case "agent":
+      return !!step.agent;
     default:
       return false;
   }

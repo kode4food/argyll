@@ -175,15 +175,33 @@ func (c *httpClient) sendAction(a sendActionArgs) ([]byte, error) {
 			log.Error(err))
 		return nil, err
 	}
-
-	httpReq.Header.Set("Accept", api.JSONContentType)
-	httpReq.Header.Set("User-Agent", engine.UserAgent)
-	api.SetMetadataHeaders(httpReq.Header, a.meta)
-	if body != nil {
-		httpReq.Header.Set("Content-Type", api.JSONContentType)
-	}
+	setRequestHeaders(httpReq, a.meta)
 
 	return c.sendRequest(a.step, c.requestTimeout(a.timeout), httpReq)
+}
+
+// postJSON posts a JSON body to url with the Argyll metadata headers, under the default timeout
+func (c *httpClient) postJSON(st *api.Step, url string, v any, meta api.Metadata) error {
+	data, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	httpReq, err := http.NewRequest(http.MethodPost, url, bytes.NewReader(data))
+	if err != nil {
+		return err
+	}
+	setRequestHeaders(httpReq, meta)
+	_, err = c.sendRequest(st, c.timeout, httpReq)
+	return err
+}
+
+func setRequestHeaders(httpReq *http.Request, meta api.Metadata) {
+	httpReq.Header.Set("Accept", api.JSONContentType)
+	httpReq.Header.Set("User-Agent", engine.UserAgent)
+	api.SetMetadataHeaders(httpReq.Header, meta)
+	if httpReq.Body != nil {
+		httpReq.Header.Set("Content-Type", api.JSONContentType)
+	}
 }
 
 func resolveEndpoint(endpoint string, args api.Args) (string, error) {

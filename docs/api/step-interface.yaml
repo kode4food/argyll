@@ -213,7 +213,8 @@ x-implementation-notes: |
   Retryable failure: return 5xx, 429, timeout, or close the connection. Argyll
   records the work item as not completed and applies retry policy.
   Async invocation completion: POST the success output object or problem
-  details object to `Argyll-Webhook-URL`.
+  details object to `Argyll-Webhook-URL`. A problem's status follows the failure
+  rules above, and a missing status is retryable.
   Compensation: when handling is `compensated`, the engine sends only
   attributes marked `compensated` as one flattened object using
   invocation-mapped names. The same names resolve URL placeholders. Duplicate

@@ -538,10 +538,7 @@ func TestAtomicFlowLifecycle(t *testing.T) {
 					}
 					assert.NoError(t,
 						env.Engine.CompleteWork(
-							api.FlowStep{
-								FlowID: fid,
-								StepID: leaf.ID,
-							}, token, api.Args{},
+							api.FlowStep{FlowID: fid, StepID: leaf.ID}, token, api.Args{}, nil,
 						),
 					)
 					child, err = env.Engine.GetFlowState(fid)
@@ -556,10 +553,8 @@ func TestAtomicFlowLifecycle(t *testing.T) {
 					}
 					assert.NoError(t,
 						env.Engine.CompleteWork(
-							api.FlowStep{
-								FlowID: "atomic",
-								StepID: sibling.ID,
-							}, token, api.Args{},
+							api.FlowStep{FlowID: "atomic", StepID: sibling.ID},
+							token, api.Args{}, nil,
 						),
 					)
 					child, err = env.Engine.GetFlowState(fid)

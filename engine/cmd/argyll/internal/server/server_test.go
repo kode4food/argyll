@@ -830,7 +830,7 @@ func TestEngineHealthUnknownSteps(t *testing.T) {
 		if peer != nil {
 			defer func() { _ = peer.Stop() }()
 		}
-		checker := server.NewHealthChecker(peer)
+		checker := server.NewHealthChecker(peer, nil)
 		defer checker.Stop()
 
 		testEnv.WaitFor(

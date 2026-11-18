@@ -71,6 +71,14 @@ func (tx *flowTx) foldCompletedFeeds(args foldCompletedFeedsArgs) error {
 	if err != nil {
 		return err
 	}
+	if args.step.Type == api.StepTypeFlow {
+		if comp == nil {
+			if err := tx.foldFeeds(args.step.ID, args.outputs); err != nil {
+				return err
+			}
+		}
+		return tx.foldFlowStepMetrics(args.step.ID)
+	}
 	if comp != nil {
 		return tx.foldFeeds(args.step.ID, args.metrics)
 	}
@@ -103,6 +111,59 @@ func (tx *flowTx) foldSettledFeeds() error {
 		}
 	}
 	return nil
+}
+
+// foldFlowStepMetrics folds a finished flow Step's metrics once every child flow it started has
+// deactivated, since only then has every child reported its usage
+func (tx *flowTx) foldFlowStepMetrics(sid api.StepID) error {
+	fl := tx.Value()
+	if fl.Plan == nil || len(fl.Plan.Feeds) == 0 {
+		return nil
+	}
+	ex := fl.Executions[sid]
+	outcome, ok := finishedOutcome(ex.Status)
+	if !ok {
+		return nil
+	}
+	done, err := tx.childrenDeactivated(sid, ex.WorkItems)
+	if err != nil || !done {
+		return err
+	}
+	return tx.foldFeeds(sid, tx.stepMetrics(fl.Plan.Steps[sid], outcome))
+}
+
+// foldParentStepMetrics gives the flow Step that started this flow its chance to fold metrics
+func (tx *flowTx) foldParentStepMetrics() error {
+	fl := tx.Value()
+	target := &parentWork{}
+	ok, err := parentMeta(&fl, target)
+	if !ok || err != nil {
+		return err
+	}
+	_, err = tx.flowTx(target.fs.FlowID, func(parentTx *flowTx) error {
+		return parentTx.foldFlowStepMetrics(target.fs.StepID)
+	})
+	return err
+}
+
+func (tx *flowTx) childrenDeactivated(sid api.StepID, items api.WorkItems) (bool, error) {
+	fs := api.FlowStep{
+		FlowID: tx.flowID,
+		StepID: sid,
+	}
+	for tkn := range items {
+		child, err := tx.flowTx(childFlowID(fs, tkn), func(*flowTx) error {
+			return nil
+		})
+		if err != nil {
+			return false, err
+		}
+		if child.ID == "" || !child.DeactivatedAt.IsZero() {
+			continue
+		}
+		return false, nil
+	}
+	return true, nil
 }
 
 // foldFeeds folds one Step's outputs into every Feed the plan sources from it
@@ -208,4 +269,15 @@ func uncompensatedWork(items api.WorkItems) api.WorkItems {
 		}
 	}
 	return res
+}
+
+func finishedOutcome(status api.StepStatus) (stepOutcome, bool) {
+	switch {
+	case policy.StepSucceeded(status):
+		return outcomeSucceeded, true
+	case policy.StepFailed(status):
+		return outcomeFailed, true
+	default:
+		return 0, false
+	}
 }

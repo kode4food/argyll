@@ -885,7 +885,9 @@ func TestMatchRoutes(t *testing.T) {
 						email.ID:    email,
 						postal.ID:   postal,
 					},
-					Attributes: api.AttributeGraph{}.AddStep(route).AddStep(customer).
+					Attributes: api.AttributeGraph{}.
+						AddStep(route).
+						AddStep(customer).
 						AddStep(email).
 						AddStep(postal),
 				}

@@ -31,6 +31,22 @@ jobs:
       - name: Build and Test Go SDK
         run: cd sdk/go && make
 
+  build-agent-worker:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version-file: workers/agent/go.mod
+          cache-dependency-path: workers/agent/go.sum
+      - name: Build and Test Agent Worker
+        working-directory: workers/agent
+        run: |
+          make test
+          GOWORK=off go build -mod=readonly -o "$RUNNER_TEMP/" ./cmd/...
+
   build-python-sdk:
     runs-on: ubuntu-latest
     steps:
@@ -65,7 +81,7 @@ jobs:
 
   coverage:
     runs-on: ubuntu-latest
-    needs: [build-engine, build-go-sdk, build-python-sdk, build-web]
+    needs: [build-engine, build-go-sdk, build-agent-worker, build-python-sdk, build-web]
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
@@ -92,7 +108,10 @@ jobs:
         run: cd web && npm ci
 
       - name: Run Engine tests with coverage
-        run: cd engine && go test ./... -coverpkg=./... -coverprofile=cover.out
+        run: |
+          cd engine
+          go test ./... ../workers/agent/... \
+            -coverpkg=./...,../workers/agent/... -coverprofile=cover.out
 
       - name: Run Go SDK tests with coverage
         run: |

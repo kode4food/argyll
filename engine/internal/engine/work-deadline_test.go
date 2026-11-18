@@ -99,7 +99,7 @@ func TestCallbackBeforeDeadlineSurvives(t *testing.T) {
 		fl, err := env.Engine.GetFlowState(id)
 		assert.NoError(t, err)
 		for tkn := range fl.Executions[st.ID].WorkItems {
-			assert.NoError(t, env.Engine.CompleteWork(fs, tkn, api.Args{}))
+			assert.NoError(t, env.Engine.CompleteWork(fs, tkn, api.Args{}, nil))
 		}
 
 		fl = env.WaitForTerminalFlow(id)

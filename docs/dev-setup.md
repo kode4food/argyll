@@ -12,6 +12,7 @@ This starts:
 
 - Argyll engine on http://localhost:8080
 - UI on http://localhost:3001
+- Anthropic and OpenAI Agent workers on the Compose network
 - Example step services (ports 8081–8086)
 
 Docker Compose configures the services and their connections for local development.
@@ -41,11 +42,27 @@ Local defaults are defined in `docker-compose.yml`. The most important settings 
 
 - `API_HOST` and `API_PORT` (engine HTTP server)
 - `WEBHOOK_BASE_URL` (used for async step callbacks)
+- `AGENT_WORKERS` (agent worker for each provider, as comma-separated `provider=url` pairs, with `*` serving every provider not listed)
 - `RAFT_NODE_ID`, `RAFT_ADDRESS`, and `RAFT_DATA_DIR` (single-node or cluster identity)
 - `RAFT_LOG_TAIL_SIZE` (number of recent write-ahead log entries retained in memory, default `20480`)
 - `RAFT_SERVERS` (initial voting members of a multi-node cluster)
 
 If you run the engine outside Docker, make sure these are set appropriately for your host and network.
+
+## Running the reference Agent workers
+
+Docker Compose starts `argyll-agent-anthropic` and `argyll-agent-openai` automatically. Both offer the `argyll` MCP server for you to select in a Step. To enable a provider, create `.env.d/agent.env` at the repository root and add the corresponding API key. The file is optional and is excluded from Git and Docker builds.
+
+```dotenv
+ANTHROPIC_API_KEY=your-anthropic-key
+OPENAI_API_KEY=your-openai-key
+```
+
+Add the keys you use. After updating the file, run `docker compose up -d argyll-agent-anthropic argyll-agent-openai` to apply the new environment.
+
+The workers share the Go module in `workers/agent`. From the repository root, run `go run ./workers/agent/cmd/argyll-agent-anthropic` or `go run ./workers/agent/cmd/argyll-agent-openai`. To run both locally, set a different `PORT` for each process and configure `AGENT_WORKERS` with their URLs. To build or test with the Go workspace disabled, run `GOWORK=off go build -mod=readonly ./cmd/...` or `make test` from `workers/agent`. The module uses the engine contract from the same checkout.
+
+To calculate charges from token counts, point `MODEL_PRICES` to a JSON file of rates per million tokens keyed by `provider/model`. Provide the rates you have for `input`, `output`, `cache_read`, and `cache_write`, using zero for free tokens. Provider-reported charges take precedence. See the [Agent Worker Contract](api/agent-worker.yaml) for the usage fields.
 
 ## UI dev loop
 

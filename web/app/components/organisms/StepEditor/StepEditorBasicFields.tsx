@@ -48,6 +48,11 @@ const STEP_TYPE_OPTIONS = [
     labelKey: "stepEditor.typeFlowLabel",
     titleKey: "stepEditor.typeFlowTitle",
   },
+  {
+    value: "agent" as StepType,
+    labelKey: "stepEditor.typeAgentLabel",
+    titleKey: "stepEditor.typeAgentTitle",
+  },
 ];
 
 const StepEditorBasicFields: React.FC<StepEditorBasicFieldsProps> = ({

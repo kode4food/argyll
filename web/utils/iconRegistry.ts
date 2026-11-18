@@ -6,6 +6,7 @@ import {
   ArrowRightLeft,
   ArrowRight,
   Ban,
+  Bot,
   Boxes,
   Braces,
   ChevronDown,
@@ -37,9 +38,11 @@ import {
   MinusCircle,
   Moon,
   Play,
+  Plug,
   Plus,
   RefreshCw,
   Rss,
+  ScrollText,
   Search,
   Server,
   Split,
@@ -128,6 +131,8 @@ export const IconAttributes = Braces;
 export const IconFlowGoals = Target;
 export const IconGoalFallback = Split;
 export const IconPredicate = GitBranch;
+export const IconPrologue = ScrollText;
+export const IconMCPServer = Plug;
 
 export const IconAttributeStatusSatisfied = CheckCircle2;
 export const IconAttributeStatusMissing = AlertCircle;
@@ -144,6 +149,7 @@ export const IconAttributeStatusFlowStart = CircleEqual;
 export const IconStepTypeService = Server;
 export const IconStepTypeScript = FileCode2;
 export const IconStepTypeFlow = Workflow;
+export const IconStepTypeAgent = Bot;
 
 export const IconActionModeSync = Globe;
 export const IconActionModeAsync = Webhook;
@@ -166,6 +172,7 @@ const STEP_TYPE_ICON_MAP: Record<StepType, LucideIcon> = {
   service: IconStepTypeService,
   script: IconStepTypeScript,
   flow: IconStepTypeFlow,
+  agent: IconStepTypeAgent,
 };
 
 export const getStepTypeIcon = (stepType: StepType): LucideIcon => {

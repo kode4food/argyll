@@ -118,6 +118,18 @@ func TestWorkDeadline(t *testing.T) {
 	assert.True(t, ok)
 	assert.Equal(t, started.Add(deadlineFallback), at)
 
+	agent := &api.Step{
+		ID:    "agent-step",
+		Type:  api.StepTypeAgent,
+		Agent: &api.AgentConfig{Timeout: 7000},
+	}
+	at, ok = policy.WorkDeadline(agent, &api.WorkState{
+		Status:    api.WorkActive,
+		StartedAt: started,
+	}, deadlineFallback)
+	assert.True(t, ok)
+	assert.Equal(t, started.Add(7*time.Second), at)
+
 	// A script has no timeout of its own, so the fallback bounds a lost invocation
 	script := &api.Step{
 		ID:   "script-step",

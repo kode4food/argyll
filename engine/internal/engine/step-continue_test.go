@@ -855,10 +855,7 @@ func TestFinalityDeadline(t *testing.T) {
 					for token := range items {
 						assert.NoError(t,
 							env.Engine.CompleteWork(
-								api.FlowStep{
-									FlowID: fid,
-									StepID: sid,
-								}, token, outputs,
+								api.FlowStep{FlowID: fid, StepID: sid}, token, outputs, nil,
 							))
 					}
 				}
@@ -1592,10 +1589,7 @@ func completeOptionalWork(
 	for token := range items {
 		assert.NoError(t,
 			env.Engine.CompleteWork(
-				api.FlowStep{
-					FlowID: fl.ID,
-					StepID: sid,
-				}, token, outputs,
+				api.FlowStep{FlowID: fl.ID, StepID: sid}, token, outputs, nil,
 			))
 	}
 }

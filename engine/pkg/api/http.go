@@ -22,6 +22,9 @@ const (
 	// ActionInvoke reports the outcome of a step invocation
 	ActionInvoke CallbackAction = "invoke"
 
+	// ActionAgent reports an Agent invocation's outcome envelope
+	ActionAgent CallbackAction = "agent"
+
 	// ActionCompensate reports the outcome of a step compensation
 	ActionCompensate CallbackAction = "compensate"
 

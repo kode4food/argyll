@@ -37,12 +37,15 @@ type (
 	// case it receives only the compensated attributes
 	WorkFunc func(Runtime, *api.Step, api.Args, api.Token) error
 
-	// Runtime exposes engine services available during work execution
+	// Runtime exposes engine services available during work execution. RetryWork lets the work's
+	// retry settings try again and FailWork never does
 	Runtime interface {
 		FlowID() api.FlowID
 		StepID() api.StepID
 		Metadata() api.Metadata
 		CompleteWork(api.Token, api.Args) error
+		RetryWork(api.Token, error) error
+		FailWork(api.Token, error) error
 		UpdateHealth(api.HealthStatus, string) error
 	}
 

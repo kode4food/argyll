@@ -1,5 +1,6 @@
 import {
   Attribute,
+  buildStepPayload,
   buildAttributesFromStep,
   createStepAttributes,
   getValidationError,
@@ -419,5 +420,54 @@ describe("stepEditorUtils", () => {
     expect(getValidationError({ ...baseValidationArgs, ...overrides })).toEqual(
       expected
     );
+  });
+
+  test("builds an agent payload with only its own configuration", () => {
+    const step = buildStepPayload({
+      stepId: " score-lead ",
+      name: "Score Lead",
+      description: "",
+      stepType: "agent",
+      attributes: {},
+      tags: undefined,
+      predicate: "",
+      predicateLanguage: "argyll",
+      script: "return 1",
+      scriptLanguage: "lua",
+      endpoint: "http://example.com",
+      httpMethod: "POST",
+      httpMode: "sync",
+      healthCheck: "",
+      compensate: "",
+      compensateMethod: "POST",
+      compensateTimeout: 0,
+      compensateMode: "sync",
+      httpTimeout: 5000,
+      flowGoals: [],
+      flowSpaceId: "",
+      agent: {
+        provider: " anthropic ",
+        model: "claude-sonnet-5-5 ",
+        prologue: "# Score\n",
+        max_turns: 4,
+        max_tokens: 1024,
+        timeout: 0,
+        mcp: [{ server: " crm ", tools: [] }],
+      },
+      handling: "standard",
+    });
+
+    expect(step.id).toBe("score-lead");
+    expect(step.http).toBeUndefined();
+    expect(step.script).toBeUndefined();
+    expect(step.agent).toEqual({
+      provider: "anthropic",
+      model: "claude-sonnet-5-5",
+      prologue: "# Score\n",
+      max_turns: 4,
+      max_tokens: 1024,
+      timeout: undefined,
+      mcp: [{ server: "crm", tools: [] }],
+    });
   });
 });

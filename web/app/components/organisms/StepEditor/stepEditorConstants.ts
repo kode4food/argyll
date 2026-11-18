@@ -1,9 +1,21 @@
 import {
+  AgentConfig,
   InputCollect,
   SCRIPT_LANGUAGE_ARGYLL,
   SCRIPT_LANGUAGE_LUA,
 } from "@/app/api";
 import { AttributeRoleType } from "./stepEditorTypes";
+
+export const DEFAULT_AGENT_MAX_TURNS = 4;
+export const DEFAULT_AGENT_MAX_TOKENS = 1024;
+
+export const EMPTY_AGENT: AgentConfig = {
+  provider: "",
+  model: "",
+  prologue: "",
+  max_turns: DEFAULT_AGENT_MAX_TURNS,
+  max_tokens: DEFAULT_AGENT_MAX_TOKENS,
+};
 
 export const attributeRoleTypes: AttributeRoleType[] = [
   "required",

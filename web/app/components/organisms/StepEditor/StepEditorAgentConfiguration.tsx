@@ -1,0 +1,235 @@
+import React from "react";
+import type { AgentConfig, MCPServer } from "@/app/api";
+import DurationInput from "@/app/components/molecules/DurationInput";
+import ScriptEditor from "@/app/components/molecules/ScriptEditor";
+import SelectField, {
+  type SelectFieldOption,
+} from "@/app/components/molecules/SelectField";
+import TagInput from "@/app/components/molecules/TagInput";
+import { useT } from "@/app/i18n";
+import {
+  IconAdd,
+  IconMCPServer,
+  IconPrologue,
+  IconRemove,
+  IconStepTypeAgent,
+} from "@/utils/iconRegistry";
+import styles from "./StepEditor.module.css";
+import formStyles from "./StepEditorForm.module.css";
+import localStyles from "./StepEditorAgentConfiguration.module.css";
+import { useAgentCapabilities } from "./useAgentCapabilities";
+
+interface StepEditorAgentConfigurationProps {
+  agent: AgentConfig;
+  setAgent: (agent: AgentConfig) => void;
+}
+
+interface AgentNumberFieldProps {
+  label: string;
+  value: number;
+  onChange: (value: number) => void;
+}
+
+const NO_TOOLS: readonly string[] = [];
+
+const options = (names: string[]): SelectFieldOption[] =>
+  names.map((name) => ({ label: name, value: name }));
+
+const offeredTools = (
+  offered: MCPServer[],
+  server: string
+): readonly string[] =>
+  offered.find((s) => s.server === server)?.tools ?? NO_TOOLS;
+
+const AgentNumberField: React.FC<AgentNumberFieldProps> = ({
+  label,
+  value,
+  onChange,
+}) => (
+  <div className={formStyles.fieldNoFlex}>
+    <label className={formStyles.label}>{label}</label>
+    <input
+      type="number"
+      min={1}
+      value={value || ""}
+      onChange={(e) => onChange(Number(e.target.value))}
+      className={localStyles.numberInput}
+    />
+  </div>
+);
+
+const StepEditorAgentConfiguration: React.FC<
+  StepEditorAgentConfigurationProps
+> = ({ agent, setAgent }) => {
+  const t = useT();
+  const providers = useAgentCapabilities();
+  const provider = providers.find((item) => item.provider === agent.provider);
+  const offered = provider?.mcp ?? [];
+  const servers = agent.mcp ?? [];
+  const available = offered.filter(
+    (item) => !servers.some((s) => s.server === item.server)
+  );
+  const update = (patch: Partial<AgentConfig>) =>
+    setAgent({ ...agent, ...patch });
+  const updateServer = (idx: number, patch: Partial<MCPServer>) =>
+    update({
+      mcp: servers.map((s, i) => (i === idx ? { ...s, ...patch } : s)),
+    });
+
+  return (
+    <section
+      aria-label={t("stepEditor.agentConfigLabel")}
+      className={formStyles.section}
+    >
+      <div className={formStyles.sectionHeader}>
+        <label className={formStyles.labelWithIcon}>
+          <span className={formStyles.labelIcon}>
+            <IconStepTypeAgent aria-hidden="true" />
+          </span>
+          {t("stepEditor.agentConfigLabel")}
+        </label>
+      </div>
+      <div className={localStyles.agentFields}>
+        <div className={formStyles.row}>
+          <div className={`${formStyles.field} ${formStyles.flex1}`}>
+            <label className={formStyles.label}>
+              {t("stepEditor.agentProviderLabel")}
+            </label>
+            <SelectField
+              ariaLabel={t("stepEditor.agentProviderLabel")}
+              value={agent.provider}
+              onChange={(name) => {
+                if (name !== agent.provider) {
+                  update({ provider: name, model: "", mcp: [] });
+                }
+              }}
+              options={options(providers.map((item) => item.provider))}
+              placeholder={t("stepEditor.agentProviderPlaceholder")}
+            />
+          </div>
+          <div className={`${formStyles.field} ${formStyles.flex2}`}>
+            <label className={formStyles.label}>
+              {t("stepEditor.agentModelLabel")}
+            </label>
+            <SelectField
+              ariaLabel={t("stepEditor.agentModelLabel")}
+              value={agent.model}
+              onChange={(model) => update({ model })}
+              options={options(provider?.models ?? [])}
+              placeholder={t("stepEditor.agentModelPlaceholder")}
+            />
+          </div>
+          <AgentNumberField
+            label={t("stepEditor.agentMaxTurnsLabel")}
+            value={agent.max_turns}
+            onChange={(max_turns) => update({ max_turns })}
+          />
+          <AgentNumberField
+            label={t("stepEditor.agentMaxTokensLabel")}
+            value={agent.max_tokens}
+            onChange={(max_tokens) => update({ max_tokens })}
+          />
+          <div className={formStyles.fieldNoFlex}>
+            <label className={formStyles.label}>
+              {t("stepEditor.timeoutLabel")}
+            </label>
+            <DurationInput
+              value={agent.timeout ?? 0}
+              onChange={(timeout) => update({ timeout })}
+            />
+          </div>
+        </div>
+        <div className={formStyles.field}>
+          <div className={formStyles.sectionHeader}>
+            <label className={formStyles.labelWithIcon}>
+              <span className={formStyles.labelIcon}>
+                <IconMCPServer aria-hidden="true" />
+              </span>
+              {t("stepEditor.agentMCPLabel")}
+            </label>
+            <button
+              type="button"
+              disabled={
+                available.length === 0 || servers.some((s) => !s.server)
+              }
+              onClick={() => update({ mcp: [...servers, { server: "" }] })}
+              className={`${formStyles.addButtonStyle} ${localStyles.addServer}`}
+              title={t("stepEditor.addMCPServer")}
+            >
+              <IconAdd className={styles.iconMd} />
+            </button>
+          </div>
+          <div className={formStyles.argList}>
+            {servers.map((s, idx) => (
+              <div key={idx} className={formStyles.attrRowInputs}>
+                <SelectField
+                  ariaLabel={t("stepEditor.agentMCPLabel")}
+                  className={formStyles.argNameInput}
+                  Icon={IconMCPServer}
+                  onChange={(server) => {
+                    if (server !== s.server) {
+                      updateServer(idx, { server, tools: undefined });
+                    }
+                  }}
+                  options={options(
+                    offered
+                      .filter(
+                        (item) =>
+                          item.server === s.server || available.includes(item)
+                      )
+                      .map((item) => item.server)
+                  )}
+                  placeholder={t("stepEditor.agentMCPServerSelect")}
+                  value={s.server}
+                />
+                <div className={`${formStyles.field} ${formStyles.flex2}`}>
+                  <TagInput
+                    Icon={IconMCPServer}
+                    removeLabel={t("stepEditor.removeMCPTool")}
+                    placeholder={t(
+                      s.tools?.length === 0
+                        ? "stepEditor.agentMCPNoTools"
+                        : "stepEditor.agentMCPToolsPlaceholder"
+                    )}
+                    tags={s.tools ?? []}
+                    onChange={(tools) => updateServer(idx, { tools })}
+                    shouldEnforceSuggestions={
+                      offeredTools(offered, s.server) !== NO_TOOLS
+                    }
+                    suggestions={offeredTools(offered, s.server)}
+                  />
+                </div>
+                <button
+                  onClick={() =>
+                    update({ mcp: servers.filter((_, i) => i !== idx) })
+                  }
+                  className={`${formStyles.iconButton} ${formStyles.removeButtonStyle}`}
+                  title={t("stepEditor.removeMCPServer")}
+                >
+                  <IconRemove className={styles.iconSm} />
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className={formStyles.field}>
+          <label className={formStyles.labelWithIcon}>
+            <span className={formStyles.labelIcon}>
+              <IconPrologue aria-hidden="true" />
+            </span>
+            {t("stepEditor.agentPrologueLabel")}
+          </label>
+          <div className={localStyles.prologueEditor}>
+            <ScriptEditor
+              value={agent.prologue}
+              onChange={(prologue) => update({ prologue })}
+              language="markdown"
+            />
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+};
+
+export default StepEditorAgentConfiguration;

@@ -7,6 +7,7 @@ import (
 
 	"github.com/kode4food/argyll/engine/cmd/argyll/internal/app"
 	"github.com/kode4food/argyll/engine/pkg/config"
+	"github.com/kode4food/argyll/engine/pkg/step/builtins"
 )
 
 func TestLoadConfig(t *testing.T) {
@@ -204,6 +205,32 @@ func TestLoadConfig(t *testing.T) {
 				"MEMO_TTL": "-1",
 			},
 			wantErr: app.ErrEnvOutOfRange,
+		},
+		{
+			name: "load_agent_workers",
+			envVars: map[string]string{
+				"AGENT_WORKERS": " anthropic = http://claude:9000/ ,, *=http://any:9000",
+			},
+			check: func(t *testing.T, c app.Config) {
+				assert.Equal(t, builtins.AgentWorkers{
+					"anthropic": "http://claude:9000",
+					"*":         "http://any:9000",
+				}, c.AgentWorkers)
+			},
+		},
+		{
+			name: "invalid_agent_workers_errors",
+			envVars: map[string]string{
+				"AGENT_WORKERS": "anthropic",
+			},
+			wantErr: app.ErrInvalidAgentWorkers,
+		},
+		{
+			name: "empty_agent_worker_url_errors",
+			envVars: map[string]string{
+				"AGENT_WORKERS": "anthropic=",
+			},
+			wantErr: app.ErrInvalidAgentWorkers,
 		},
 	}
 

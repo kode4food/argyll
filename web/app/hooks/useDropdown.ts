@@ -12,6 +12,7 @@ interface UseDropdownResult {
   highlightedIndex: number;
   setHighlightedIndex: React.Dispatch<React.SetStateAction<number>>;
   wrapperRef: React.RefObject<HTMLDivElement | null>;
+  listRef: React.RefObject<HTMLDivElement | null>;
   handleKeyDown: (e: React.KeyboardEvent) => void;
 }
 
@@ -23,6 +24,7 @@ const useDropdown = <T extends DropdownItem>(
   const [open, setOpen] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const wrapperRef = useRef<HTMLDivElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (open) {
@@ -35,7 +37,13 @@ const useDropdown = <T extends DropdownItem>(
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
-  useClickOutside(wrapperRef, () => setOpen(false), open);
+  useClickOutside(
+    wrapperRef,
+    (event) => {
+      if (!listRef.current?.contains(event.target as Node)) setOpen(false);
+    },
+    open
+  );
 
   const navigate = (direction: 1 | -1) => {
     setHighlightedIndex((current) => {
@@ -70,6 +78,7 @@ const useDropdown = <T extends DropdownItem>(
         setOpen(false);
       }
     } else if (e.key === "Escape" || e.key === "Tab") {
+      if (e.key === "Escape") e.preventDefault();
       setOpen(false);
     }
   };
@@ -80,6 +89,7 @@ const useDropdown = <T extends DropdownItem>(
     highlightedIndex,
     setHighlightedIndex,
     wrapperRef,
+    listRef,
     handleKeyDown,
   };
 };

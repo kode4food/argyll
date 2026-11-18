@@ -417,7 +417,10 @@ func startStepServer(t *testing.T, args startStepServerArgs) string {
 
 	client := argyll.NewClient(args.engineURL, time.Second)
 	go func() {
-		_ = client.NewStep().WithName(args.stepName).WithID(string(args.stepID)).WithSyncInvoke().
+		_ = client.NewStep().
+			WithName(args.stepName).
+			WithID(string(args.stepID)).
+			WithSyncInvoke().
 			Start(args.invoke)
 	}()
 
@@ -459,7 +462,10 @@ func startCompensatingServer(t *testing.T, args startCompensatingServerArgs) str
 
 	client := argyll.NewClient(args.engineURL, time.Second)
 	go func() {
-		_ = client.NewStep().WithName(args.stepName).WithID(string(args.stepID)).WithSyncInvoke().
+		_ = client.NewStep().
+			WithName(args.stepName).
+			WithID(string(args.stepID)).
+			WithSyncInvoke().
 			Required("order").
 			Output("reservation").
 			WithCompensated("order").

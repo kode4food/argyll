@@ -2,6 +2,7 @@ import { render } from "@testing-library/react";
 import ScriptEditor from "./ScriptEditor";
 import { StreamLanguage } from "@codemirror/language";
 import { json as jsonLanguage } from "@codemirror/lang-json";
+import { markdown as markdownLanguage } from "@codemirror/lang-markdown";
 
 const codeMirrorMock = jest.fn(
   ({ value, onChange, readOnly, theme, height }: any) => (
@@ -31,6 +32,10 @@ jest.mock("@codemirror/language", () => ({
 
 jest.mock("@codemirror/lang-json", () => ({
   json: jest.fn(() => "json-extension"),
+}));
+
+jest.mock("@codemirror/lang-markdown", () => ({
+  markdown: jest.fn(() => "markdown-extension"),
 }));
 
 jest.mock("@codemirror/legacy-modes/mode/lua", () => ({
@@ -118,6 +123,15 @@ describe("ScriptEditor", () => {
     expect(jsonLanguage).toHaveBeenCalled();
     expect(StreamLanguage.define).not.toHaveBeenCalled();
     expect(codeMirrorMock).toHaveBeenCalled();
+  });
+
+  test("uses Markdown language extension when language is markdown", () => {
+    render(
+      <ScriptEditor value="# Intent" onChange={jest.fn()} language="markdown" />
+    );
+
+    expect(markdownLanguage).toHaveBeenCalled();
+    expect(StreamLanguage.define).not.toHaveBeenCalled();
   });
 
   test("passes custom height and theme", () => {

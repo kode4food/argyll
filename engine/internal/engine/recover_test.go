@@ -967,7 +967,7 @@ func TestFailedWorkNotRestarted(t *testing.T) {
 		assert.NoError(t, env.Engine.RecoverFlow(id))
 		assert.False(t, env.MockClient.WaitForInvocation(st.ID, 100*time.Millisecond))
 
-		err := env.Engine.CompleteWork(fs, tkn, api.Args{})
+		err := env.Engine.CompleteWork(fs, tkn, api.Args{}, nil)
 		assert.True(t, errors.Is(err, api.ErrInvalidWorkTransition))
 
 		fl, err := env.Engine.GetFlowState(id)

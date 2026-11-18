@@ -160,7 +160,7 @@ func TestWithDefaults(t *testing.T) {
 		testify.Equal(t, int64(config.DefaultRetryInitBackoff), out.Work.InitBackoff)
 		testify.Equal(t, int64(config.DefaultMaxRetryBackoff), out.Work.MaxBackoff)
 		testify.Equal(t, config.DefaultRetryBackoffType, out.Work.BackoffType)
-		testify.Equal(t, int64(config.DefaultMemoTTL), out.Work.MemoTTL)
+		testify.Equal(t, config.DefaultMemoTTL, out.Work.MemoTTL)
 	})
 
 	t.Run("preserves explicit values", func(t *testing.T) {

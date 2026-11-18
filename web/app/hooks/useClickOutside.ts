@@ -2,7 +2,7 @@ import { useRef, useEffect, useLayoutEffect } from "react";
 
 const useClickOutside = (
   ref: React.RefObject<HTMLElement | null>,
-  onClickOutside: () => void,
+  onClickOutside: (event: MouseEvent) => void,
   active: boolean
 ): void => {
   const callbackRef = useRef(onClickOutside);
@@ -14,7 +14,7 @@ const useClickOutside = (
     if (!active) return;
     const handler = (e: MouseEvent) => {
       if (!ref.current?.contains(e.target as Node)) {
-        callbackRef.current();
+        callbackRef.current(e);
       }
     };
     document.addEventListener("mousedown", handler);

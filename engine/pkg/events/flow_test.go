@@ -584,6 +584,64 @@ func TestWorkNotCompleted(t *testing.T) {
 	assert.Equal(t, "work not completed", work.Error)
 }
 
+func TestWorkUsage(t *testing.T) {
+	fl := api.FlowState{
+		ID:     "test-flow",
+		Status: api.FlowActive,
+		Executions: api.Executions{
+			"step1": {
+				Status: api.StepActive,
+				WorkItems: api.WorkItems{
+					"token1": {Status: api.WorkActive},
+				},
+			},
+		},
+	}
+
+	for _, ev := range []struct {
+		typ  api.EventType
+		data any
+	}{
+		{
+			typ: api.EventTypeWorkNotCompleted,
+			data: api.WorkNotCompletedEvent{
+				StepID: "step1",
+				Token:  "token1",
+				Usage:  api.Usage{"input_tokens": 1},
+			},
+		},
+		{
+			typ: api.EventTypeWorkFailed,
+			data: api.WorkFailedEvent{
+				StepID: "step1",
+				Token:  "token1",
+				Usage:  api.Usage{"input_tokens": 2},
+			},
+		},
+		{
+			typ: api.EventTypeWorkSucceeded,
+			data: api.WorkSucceededEvent{
+				StepID: "step1",
+				Token:  "token1",
+				Usage:  api.Usage{"input_tokens": 4},
+			},
+		},
+	} {
+		data, err := json.Marshal(ev.data)
+		assert.NoError(t, err)
+		event := &timebox.Event{
+			Timestamp:   scheduler.Now(),
+			AggregateID: events.FlowKey("test-flow"),
+			Type:        timebox.EventType(ev.typ),
+			Data:        data,
+		}
+		fl = events.FlowAppliers[event.Type](fl, event)
+	}
+
+	work := fl.Executions["step1"].WorkItems["token1"]
+	assert.Equal(t, api.Usage{"input_tokens": 7}, work.Usage)
+}
+
 func TestRetryScheduled(t *testing.T) {
 	fl := api.FlowState{
 		ID:     "test-flow",

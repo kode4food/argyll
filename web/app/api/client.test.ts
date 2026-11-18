@@ -120,6 +120,19 @@ describe("ArgyllApi", () => {
     );
   });
 
+  test("lists Agent capabilities", async () => {
+    const providers = [
+      { provider: "openai", models: ["model"], mcp: [{ server: "crm" }] },
+    ];
+    respond({ providers });
+
+    await expect(api.listAgentCapabilities()).resolves.toEqual(providers);
+    expect(fetchMock).toHaveBeenCalledWith(
+      "http://localhost:8080/engine/agents/capabilities",
+      expect.anything()
+    );
+  });
+
   test("unregisters a Feed", async () => {
     respond({ message: "ok" });
 

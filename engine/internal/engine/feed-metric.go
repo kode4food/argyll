@@ -52,11 +52,15 @@ func (tx *flowTx) stepMetrics(st *api.Step, outcome stepOutcome) api.Args {
 }
 
 // measureMetrics builds every metric of a finished Step. A skipped Step never started, so it
-// measures no elapsed time
+// measures no elapsed time. A Step measured after it settled ends at its completion
 func (tx *flowTx) measureMetrics(ex *api.ExecutionState, outcome stepOutcome) api.Args {
+	end := tx.Now()
+	if !ex.Completion.At.IsZero() {
+		end = ex.Completion.At
+	}
 	elapsed := 0.0
 	if outcome != outcomeSkipped {
-		elapsed = float64(max(tx.Now().Sub(ex.StartedAt).Milliseconds(), 0))
+		elapsed = float64(max(end.Sub(ex.StartedAt).Milliseconds(), 0))
 	}
 	return api.Args{
 		api.MetricSucceeded: outcome == outcomeSucceeded,
@@ -73,11 +77,37 @@ func workMetric(items api.WorkItems) map[string]any {
 			failed++
 		}
 	}
-	return map[string]any{
+	res := map[string]any{
 		api.MetricItems:    float64(len(items)),
 		api.MetricFailed:   float64(failed),
 		api.MetricAttempts: attemptsMetric(items),
 	}
+	if usage := workUsage(items); usage != nil {
+		res[api.MetricUsage] = usage
+	}
+	return res
+}
+
+// workUsage is the usage metric of a Step's work items, nil when none reported any
+func workUsage(items api.WorkItems) map[string]any {
+	sum := sumUsage(items)
+	if sum == nil {
+		return nil
+	}
+	res := make(map[string]any, len(sum))
+	for k, v := range sum {
+		res[k] = v
+	}
+	return res
+}
+
+// sumUsage sums the usage work items reported, nil when none reported any
+func sumUsage(items api.WorkItems) api.Usage {
+	var res api.Usage
+	for _, work := range items {
+		res = res.Add(work.Usage)
+	}
+	return res
 }
 
 // attemptsMetric counts every invocation across a Step's work items, retries included

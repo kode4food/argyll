@@ -80,7 +80,7 @@ func (tx *flowTx) scheduleRetry(sid api.StepID, tkn api.Token) error {
 		return tx.scheduleRetryTask(sid, tkn, nextRetryAt)
 	}
 
-	return tx.raiseWorkFailed(sid, tkn, work.Error)
+	return tx.raiseWorkFailed(sid, tkn, work.Error, nil)
 }
 
 func (tx *flowTx) continueStepWork(sid api.StepID) error {

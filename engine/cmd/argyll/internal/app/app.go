@@ -18,6 +18,7 @@ import (
 	"github.com/kode4food/argyll/engine/internal/engine"
 	"github.com/kode4food/argyll/engine/internal/engine/script"
 	"github.com/kode4food/argyll/engine/internal/event"
+	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/log"
 	"github.com/kode4food/argyll/engine/pkg/step"
 	"github.com/kode4food/argyll/engine/pkg/step/builtins"
@@ -117,9 +118,12 @@ func (a *App) Shutdown() {
 }
 
 func (a *App) startEngine() error {
-	stepClient := builtins.NewHTTPClient(time.Duration(a.cfg.Engine.StepTimeout) * time.Millisecond)
-	steps := step.NewRegistry(builtins.All(
-		stepClient, builtins.BaseCallbackURL(a.cfg.WebhookBaseURL),
+	timeout := time.Duration(a.cfg.Engine.StepTimeout) * time.Millisecond
+	callback := builtins.BaseCallbackURL(a.cfg.WebhookBaseURL)
+	steps := step.NewRegistry(builtins.All(builtins.NewHTTPClient(timeout), callback).With(
+		step.Handlers{
+			api.StepTypeAgent: builtins.Agent(a.cfg.AgentWorkers, callback, timeout),
+		},
 	))
 
 	eng, err := engine.New(a.cfg.Engine, engine.Dependencies{
@@ -154,13 +158,14 @@ func (a *App) startServer() error {
 	if err != nil {
 		return err
 	}
-	a.health = server.NewHealthChecker(a.engine)
+	a.health = server.NewHealthChecker(a.engine, a.cfg.AgentWorkers)
 	a.health.Start()
 
 	a.apiServer = server.NewServer(
 		a.engine, a.engine.GetEventHub(), NewRaftStatusProvider(a.backend),
 	)
 	mux := a.apiServer.SetupRoutes()
+	server.RegisterAgentRoutes(mux, a.cfg.AgentWorkers)
 
 	a.httpServer = &http.Server{
 		Addr:    addr,

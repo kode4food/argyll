@@ -27,6 +27,7 @@ jest.mock("@/app/api", () => ({
   ...jest.requireActual("@/app/api"),
   ArgyllApi: jest.fn(),
   api: {
+    listAgentCapabilities: jest.fn().mockResolvedValue([]),
     getExecutionPlan: jest.fn().mockResolvedValue({
       steps: {},
       required: [],
@@ -813,6 +814,78 @@ describe("StepEditor", () => {
         )
       ).toBeInTheDocument();
     });
+  });
+
+  test("returns to Basic with an incomplete Agent draft and validates on save", async () => {
+    const step: Step = {
+      id: "agent-draft",
+      name: "Agent draft",
+      type: "agent",
+      agent: {
+        provider: "",
+        model: "",
+        prologue: "Draft",
+        max_turns: 4,
+        max_tokens: 1024,
+      },
+    };
+    render(
+      <StepEditor step={step} onClose={mockOnClose} onUpdate={mockOnUpdate} />
+    );
+
+    fireEvent.click(
+      await screen.findByRole("button", { name: t("stepEditor.modeJson") })
+    );
+    fireEvent.change(screen.getByTestId("script-editor"), {
+      target: {
+        value: JSON.stringify({
+          ...step,
+          agent: { prologue: "Edited in JSON" },
+        }),
+      },
+    });
+    fireEvent.click(
+      screen.getByRole("button", { name: t("stepEditor.modeBasic") })
+    );
+
+    expect(
+      await screen.findByRole("region", {
+        name: t("stepEditor.agentConfigLabel"),
+      })
+    ).toBeInTheDocument();
+    expect(screen.getByDisplayValue("Edited in JSON")).toBeInTheDocument();
+    expect(
+      screen.queryByText(t("stepEditor.agentProviderRequired"))
+    ).toBeNull();
+    fireEvent.click(screen.getByText(t("stepEditor.save")));
+    expect(
+      screen.getByText(t("stepEditor.agentProviderRequired"))
+    ).toBeInTheDocument();
+    expect(mockUpdateStep).not.toHaveBeenCalled();
+  });
+
+  test("keeps malformed Agent configuration in JSON mode", async () => {
+    render(
+      <StepEditor
+        step={createHttpStep()}
+        onClose={mockOnClose}
+        onUpdate={mockOnUpdate}
+      />
+    );
+    fireEvent.click(
+      await screen.findByRole("button", { name: t("stepEditor.modeJson") })
+    );
+    const draft = JSON.stringify({ type: "agent", agent: { mcp: "tools" } });
+    fireEvent.change(screen.getByTestId("script-editor"), {
+      target: { value: draft },
+    });
+    fireEvent.click(
+      screen.getByRole("button", { name: t("stepEditor.modeBasic") })
+    );
+    expect(
+      screen.getByText(t("stepEditor.invalidJsonAgent"))
+    ).toBeInTheDocument();
+    expect(screen.getByTestId("script-editor")).toHaveValue(draft);
   });
 
   test("saves edits from JSON mode", async () => {

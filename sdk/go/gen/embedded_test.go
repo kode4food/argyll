@@ -167,6 +167,14 @@ func (r *testRuntime) CompleteWork(tkn api.Token, outputs api.Args) error {
 	return nil
 }
 
+func (r *testRuntime) RetryWork(api.Token, error) error {
+	return nil
+}
+
+func (r *testRuntime) FailWork(api.Token, error) error {
+	return nil
+}
+
 func (r *testRuntime) UpdateHealth(api.HealthStatus, string) error {
 	return nil
 }

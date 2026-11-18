@@ -38,10 +38,7 @@ func (tx *flowTx) handleWorkDeadline(sid api.StepID, tkn api.Token) error {
 	if policy.WorkCompActive(work.Status) {
 		return tx.scheduleCompensationRetry(sid, tkn, ErrWorkDeadlineExceeded.Error())
 	}
-	if err := tx.raiseWorkNotCompleted(sid, tkn, ErrWorkDeadlineExceeded.Error()); err != nil {
-		return err
-	}
-	return tx.handleWorkNotCompleted(sid, tkn)
+	return tx.retryWork(sid, tkn, ErrWorkDeadlineExceeded.Error(), nil)
 }
 
 func (e *Engine) workDeadline(fl *api.FlowState, sid api.StepID, tkn api.Token) (time.Time, bool) {

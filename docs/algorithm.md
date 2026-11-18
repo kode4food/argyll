@@ -673,11 +673,20 @@ HTTP_INVOKE(step, token, inputs):
     resolve endpoint placeholders
     encode arguments and metadata
     send configured HTTP method with configured/default request timeout
-    transport/read failures and HTTP 5xx => retryable NOT_COMPLETED error
-    other non-2xx responses => permanent failure
+    transport/read failures or a retryable HTTP status => NOT_COMPLETED error
+    a permanent HTTP status => permanent failure
     decode successful response as output arguments
     IF asynchronous: wait for callback or attempt deadline
     ELSE: COMPLETE_WORK(outputs)
+
+AGENT_INVOKE(step, token, inputs):
+    worker := the worker serving step's provider, else the worker serving any provider
+    IF no worker: permanent failure
+    POST the Agent Step definition, resolved inputs, and effective timeout
+        with metadata headers and callback URL
+    transport/read failures or a retryable HTTP status => NOT_COMPLETED error
+    a permanent HTTP status => permanent failure
+    wait for the agent report callback or attempt deadline
 
 SCRIPT_INVOKE(step, token, inputs):
     compile script, inject meta arguments, evaluate inline
@@ -686,7 +695,7 @@ SCRIPT_INVOKE(step, token, inputs):
 
 SETTLE_HANDLER_ERROR(error):
     IF invalid work transition: ignore stale/duplicate settlement
-    ELSE IF error is retryable NOT_COMPLETED: NOT_COMPLETE_WORK(error)
+    ELSE IF error is retryable NOT_COMPLETED: RETRY_WORK(error)
     ELSE: FAIL_WORK(error)
 
 ON_DISPATCH_WAKEUP(step):
@@ -697,29 +706,31 @@ ON_DISPATCH_WAKEUP(step):
         start eligible pending work and invoke it after commit
 ```
 
-The HTTP callback validates the flow, execution, receipt token, and action. Invocation callbacks route output objects to `COMPLETE_WORK`, and problem responses to `FAIL_WORK`. Stale invocation transitions are acknowledged as duplicates. Compensation callbacks similarly settle only the compensation phase.
+The callback validates the flow, execution, receipt token, and action. An invocation callback completes the work item with its outputs, or on a problem fails it when the status is permanent and retries it otherwise. Agent callbacks send a JSON envelope with either `outputs` or `problem` and the attempt's `usage`. Stale invocation transitions are acknowledged as duplicates. Compensation callbacks settle only the compensation phase.
+
+Each settlement carries the usage its attempt reported. `work_succeeded`, `work_failed`, and `work_not_completed` record it, and applying each adds it to the work item's usage, so failed attempts count. A duplicate report fails the transition check and is never counted twice.
 
 ## Work settlement and retained outputs
 
 Sources: [work-stop.go](../engine/internal/engine/work-stop.go), [work-memo.go](../engine/internal/engine/work-memo.go), [step-stop.go](../engine/internal/engine/step-stop.go), [work-items.go](../engine/internal/engine/work-items.go).
 
 ```text
-COMPLETE_WORK(step, token, outputs):
+COMPLETE_WORK(step, token, outputs, optional usage):
     TRANSACT or reuse the current inline/parent-child transaction:
         validate work transition to SUCCEEDED
         IF handling is memoized and MEMO_LOOKUP(step, item inputs) misses:
             schedule keyed memo_expired task carrying raw outputs at MEMO_DEADLINE(step)
-        EMIT work_succeeded(token, raw outputs)
+        EMIT work_succeeded(token, raw outputs, usage)
         SETTLE_STEP(step)
 
-FAIL_WORK(step, token, error):
+FAIL_WORK(step, token, error, optional usage):
     validate work transition to FAILED
-    EMIT work_failed(token, error)
+    EMIT work_failed(token, error, usage)
     SETTLE_STEP(step)
 
-NOT_COMPLETE_WORK(step, token, error):
+RETRY_WORK(step, token, error, optional usage):
     validate work transition to NOT_COMPLETED
-    EMIT work_not_completed(token, error)
+    EMIT work_not_completed(token, error, usage)
     IF flow is terminal:
         MAYBE_DEACTIVATE()
         RETURN
@@ -863,7 +874,7 @@ ON_WORK_DEADLINE(step, token):
     IF item is COMPENSATING:
         REQUEST_COMPENSATION_RETRY(deadline-exceeded error)
     ELSE:
-        NOT_COMPLETE_WORK(deadline-exceeded error)
+        RETRY_WORK(deadline-exceeded error)
 ```
 
 ## Optional timers and scheduled delivery
@@ -915,17 +926,33 @@ COMPLETE_PARENT_WORK(child):
     require parent exists
     item := referenced parent work item
     IF item no longer accepts a result: RETURN current parent
+    usage := sum of the usage every child work item reported
     IF child COMPLETED:
         outputs := child's first recorded value for each attribute
         validate presence of every mapped declared parent-step output
-        IF validation fails: FAIL_WORK(parent item, output error)
-        ELSE: COMPLETE_WORK(parent item, outputs)
+        IF validation fails: FAIL_WORK(parent item, output error, usage)
+        ELSE: COMPLETE_WORK(parent item, outputs, usage)
     ELSE:
-        FAIL_WORK(parent item, child error or generic child failure)
+        FAIL_WORK(parent item, child error or generic child failure, usage)
     RETURN current parent
 ```
 
 Parent work start and child creation commit together. Child outcome and parent work settlement also commit together. Nested-flow attempts do not use the ordinary work deadline. Their child flows control completion.
+
+A child's usage is summed when the child turns terminal. A flow step's own work items already hold their child's usage, so nested flows roll up level by level.
+
+```text
+REPORT_PARENT_USAGE(flow):
+    IF flow is not terminal or has no parent: RETURN
+    REPORT_USAGE(parent item, sum of the usage every flow work item reported)
+
+REPORT_USAGE(item, usage):
+    IF item still accepts a result or item usage equals usage: RETURN
+    EMIT child_usage_updated(item, usage)
+    REPORT_PARENT_USAGE(item's flow)
+```
+
+A settlement that carries usage in a terminal flow, and a child settling a parent item, end with `REPORT_PARENT_USAGE`. A child finishing after its parent item stopped accepting results calls `REPORT_USAGE` instead of settling. `child_usage_updated` replaces the item's usage with the child's latest total, so usage reported after a child's outcome still reaches every ancestor.
 
 ## Flow completion and deactivation
 
@@ -965,6 +992,7 @@ MAYBE_DEACTIVATE():
     IF parent has not released this child: RETURN
     EMIT flow_deactivated(current terminal status)
     FOLD_SETTLED_FEEDS()
+    IF flow has a parent: join parent and FOLD_FLOW_STEP_METRICS(parent step)
     FOR each child identified by a nested-flow work token:
         join child in the same transaction
         MAYBE_DEACTIVATE(child)
@@ -1014,6 +1042,8 @@ STEP_METRICS(step, outcome):
             failed: failed work items
             attempts: total invocations across all work items, retries included,
                 with average, min, and max per work item
+            usage: when any work item reported usage, the sum by name over the
+                work items that reported each name
     FOR each metric Attribute of step:
         value, error := evaluate its selector with each top-level metric bound by name
         IF error: omit the Attribute
@@ -1021,14 +1051,24 @@ STEP_METRICS(step, outcome):
 
 FOLD_COMPLETED_FEEDS(step, produced):
     IF the plan has no Feeds: RETURN
-    IF step has a compensator: FOLD_FEEDS(step, STEP_METRICS(step, COMPLETED))
+    IF step is a nested flow:
+        IF step has no compensator: FOLD_FEEDS(step, produced)
+        FOLD_FLOW_STEP_METRICS(step)
+    ELSE IF step has a compensator: FOLD_FEEDS(step, STEP_METRICS(step, COMPLETED))
     ELSE: FOLD_FEEDS(step, produced with STEP_METRICS(step, COMPLETED))
 
 DELIVER_METRICS(step, outcome):
     metrics := STEP_METRICS(step, outcome)
     FOR each metric that NEEDS_OUTPUT(name, GOAL_SCOPE(KEPT_GOALS()), tx.now):
         EMIT attribute_set(step, name, value)
-    IF the plan has Feeds: FOLD_FEEDS(step, metrics)
+    IF the plan has no Feeds: RETURN
+    IF outcome is FAILED and step is a nested flow: FOLD_FLOW_STEP_METRICS(step)
+    ELSE: FOLD_FEEDS(step, metrics)
+
+FOLD_FLOW_STEP_METRICS(step):
+    IF the plan has no Feeds or step is neither COMPLETED nor FAILED: RETURN
+    IF a child flow started by any of step's work items is not deactivated: RETURN
+    FOLD_FEEDS(step, STEP_METRICS(step, step's outcome))
 
 FOLD_SETTLED_FEEDS():
     FOR each COMPLETED step with a compensator:
@@ -1048,9 +1088,9 @@ FOLD_FEEDS(step, produced):
         ELSE IF result differs from current: EMIT feed_folded(result)
 ```
 
-Folds commit with `step_completed`, `step_failed`, `step_skipped`, or `flow_deactivated`, so each contribution lands once. They use the Step's produced outputs, since the Flow drops outputs nothing consumes. A failed fold leaves the value as it was and the Flow unaffected. A Step with a compensator contributes its outputs at deactivation, and only from its uncompensated work. Contributions apply in the order their transactions commit, which can differ from the order Steps completed, so a fold suits Feeds best when its result is independent of that order. Each Flow, child Flows included, reads the snapshot it took at start, and folds under the Space membership it was planned with.
+Folds commit with `step_completed`, `step_failed`, `step_skipped`, or `flow_deactivated`. Each fold receives the watched values from one contribution. A Feed that watches both outputs and metrics from a Step receives both in one fold when they settle together, or in separate folds when they settle at different times. Folds use the Step's produced outputs, since the Flow drops outputs nothing consumes. A failed fold leaves the value as it was and the Flow unaffected. A Step with a compensator contributes its outputs at deactivation, and only from its uncompensated work. Contributions apply in the order their transactions commit, which can differ from the order Steps completed, so a fold suits Feeds best when its result is independent of that order. Each Flow, child Flows included, reads the snapshot it took at start, and folds under the Space membership it was planned with.
 
-The engine supplies a `metric` Attribute's value. Its `selector`, in any registered language, picks or reshapes that value from the measured metrics, and registration compiles it. Metrics describe how a Step finished, so they fold with `step_completed`, `step_failed`, or a `step_skipped` that a predicate or required match decided, ahead of any compensation or deactivation. Each metric value names its Step, so one fold can key contributions from many Steps by producer. A metric Attribute is a producer like an output: the planner gives it provider edges, and every finished Step records the metric values its consumers need as Flow Attributes. Outputs come only from completed Steps, while metrics come from completed, failed, and skipped Steps alike, so a Step that handles failures or skips can run on its provider's metrics.
+The engine supplies a `metric` Attribute's value. Its `selector`, in any registered language, picks or reshapes that value from the measured metrics, and registration compiles it. Metrics describe how a Step finished, so they fold with `step_completed`, `step_failed`, or a `step_skipped` that a predicate or required match decided, ahead of any compensation or deactivation. A completed or failed nested-flow Step instead folds its metrics once every child flow it started has deactivated, since a child can still report usage after the Step settles, and its `elapsed` still ends at the Step's own completion. Each metric value names its Step, so one fold can key contributions from many Steps by producer. A metric Attribute is a producer like an output: the planner gives it provider edges, and every finished Step records the metric values its consumers need as Flow Attributes. Outputs come only from completed Steps, while metrics come from completed, failed, and skipped Steps alike, so a Step that handles failures or skips can run on its provider's metrics.
 
 ## Compensation
 

@@ -1,4 +1,10 @@
-import { GoalSets, Handling, HTTPMethod, StepType } from "@/app/api";
+import {
+  AgentConfig,
+  GoalSets,
+  Handling,
+  HTTPMethod,
+  StepType,
+} from "@/app/api";
 import { nonEmptyGoalSets } from "@/utils/goalSets";
 import { Attribute, ValidationError } from "./stepEditorTypes";
 import {
@@ -73,6 +79,36 @@ function validateCompensation(
   return null;
 }
 
+const AGENT_REQUIRED_TEXT: [keyof AgentConfig, string][] = [
+  ["provider", "stepEditor.agentProviderRequired"],
+  ["model", "stepEditor.agentModelRequired"],
+  ["prologue", "stepEditor.agentPrologueRequired"],
+];
+
+function validateAgentStepConfig(
+  agent: AgentConfig | undefined
+): ValidationError | null {
+  for (const [field, key] of AGENT_REQUIRED_TEXT) {
+    if (!String(agent?.[field] ?? "").trim()) return { key };
+  }
+  if (!agent || !(agent.max_turns > 0)) {
+    return { key: "stepEditor.agentMaxTurnsPositive" };
+  }
+  if (!(agent.max_tokens > 0)) {
+    return { key: "stepEditor.agentMaxTokensPositive" };
+  }
+  const names = new Set<string>();
+  for (const { server } of agent.mcp ?? []) {
+    const name = server.trim();
+    if (!name) return { key: "stepEditor.agentMCPServerRequired" };
+    if (names.has(name)) {
+      return { key: "stepEditor.agentMCPServerDuplicate", vars: { name } };
+    }
+    names.add(name);
+  }
+  return null;
+}
+
 interface HttpStepConfig {
   endpoint: string;
   httpMethod: HTTPMethod;
@@ -106,6 +142,7 @@ export function getValidationError({
   httpMethod,
   httpTimeout,
   flowGoals,
+  agent,
   handling,
   compensateEndpoint,
 }: {
@@ -118,6 +155,7 @@ export function getValidationError({
   httpMethod: HTTPMethod;
   httpTimeout: number;
   flowGoals: GoalSets;
+  agent?: AgentConfig;
   handling: Handling;
   compensateEndpoint: string;
 }): ValidationError | null {
@@ -137,6 +175,9 @@ export function getValidationError({
 
   if (stepType === "flow") {
     return validateFlowStepConfig(flowGoals);
+  }
+  if (stepType === "agent") {
+    return validateAgentStepConfig(agent);
   }
   if (stepType === "script") {
     return script.trim() ? null : { key: "stepEditor.scriptRequired" };

@@ -1,5 +1,7 @@
 package api
 
+import "reflect"
+
 // Metadata contains additional context passed to step handlers
 type Metadata Map[string, any]
 
@@ -19,27 +21,13 @@ func (m Metadata) Apply(other Metadata) Metadata {
 	return Apply(m, other)
 }
 
-// GetString retrieves a string value from the metadata as the requested string type, returning
-// false if it is missing, empty, or not a string
+// GetString retrieves a value of any string type from the metadata as the requested string type,
+// returning false if it is missing, empty, or not a string
 func (m Metadata) GetString[T ~string](key string) (T, bool) {
 	var zero T
-	val, ok := m[key]
-	if !ok {
+	v := reflect.ValueOf(m[key])
+	if v.Kind() != reflect.String || v.Len() == 0 {
 		return zero, false
 	}
-
-	switch v := val.(type) {
-	case T:
-		if v == "" {
-			return zero, false
-		}
-		return v, true
-	case string:
-		if v == "" {
-			return zero, false
-		}
-		return T(v), true
-	default:
-		return zero, false
-	}
+	return T(v.String()), true
 }

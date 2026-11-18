@@ -1,8 +1,11 @@
 package api
 
 import (
+	"maps"
 	"slices"
 	"time"
+
+	"github.com/kode4food/argex"
 
 	"github.com/kode4food/argyll/engine/pkg/util"
 )
@@ -118,10 +121,14 @@ type (
 		NextRetryAt time.Time  `json:"next_retry_at"`
 		Inputs      Args       `json:"inputs"`
 		Outputs     Args       `json:"outputs,omitempty"`
+		Usage       Usage      `json:"usage,omitempty"`
 		Status      WorkStatus `json:"status"`
 		Error       string     `json:"error,omitempty"`
 		RetryCount  int        `json:"retry_count,omitempty"`
 	}
+
+	// Usage measures what work consumed as named numeric dimensions, such as tokens or cost
+	Usage map[string]float64
 
 	// HealthState contains the health status of a step service
 	HealthState struct {
@@ -543,4 +550,35 @@ func (w WorkState) SetError(err string) WorkState {
 func (w WorkState) SetOutputs(outputs Args) WorkState {
 	w.Outputs = outputs
 	return w
+}
+
+// SetUsage returns a new WorkState with its usage replaced
+func (w WorkState) SetUsage(u Usage) WorkState {
+	w.Usage = u
+	return w
+}
+
+// AddUsage returns a new WorkState with an attempt's usage added to its own
+func (w WorkState) AddUsage(u Usage) WorkState {
+	w.Usage = w.Usage.Add(u)
+	return w
+}
+
+// Add sums matching usage dimensions with the same arithmetic as Argyll Expressions
+func (u Usage) Add(other Usage) Usage {
+	if u == nil {
+		return other
+	}
+	if other == nil {
+		return u
+	}
+	res := maps.Clone(u)
+	for k, v := range other {
+		if sum, ok := argex.Add(res[k], v); ok {
+			res[k] = sum
+			continue
+		}
+		res[k] += v
+	}
+	return res
 }

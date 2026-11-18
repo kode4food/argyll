@@ -1,0 +1,255 @@
+openapi: 3.0.3
+info:
+  title: Argyll Agent Worker Contract
+  version: "1"
+  description: |
+    An agent worker runs the attempts of `agent` steps for the providers it
+    serves. The engine POSTs one attempt to `/invoke`, and the worker answers
+    with a quick 2xx. When the attempt ends, the worker POSTs a JSON outcome
+    envelope to the URL in `Argyll-Webhook-URL`.
+
+    A worker must:
+    - Take at most `max_turns` model turns, each producing at most `max_tokens`,
+      and stop when `timeout` elapses
+    - Offer the model only the allowed tools of the listed MCP servers
+    - Respond with exactly the Step's mapped output names
+    - Report the token counts the provider returned, never estimates, on every
+      outcome, failures included
+    - Keep no conversation state between attempts
+
+servers:
+  - url: "{protocol}://{host}:{port}"
+    variables:
+      protocol:
+        enum: [http, https]
+        default: http
+      host:
+        default: localhost
+      port:
+        default: "8070"
+
+paths:
+  /invoke:
+    post:
+      summary: Start an Agent Attempt
+      operationId: invokeAgent
+      parameters:
+        - $ref: "#/components/parameters/FlowID"
+        - $ref: "#/components/parameters/StepID"
+        - $ref: "#/components/parameters/ReceiptToken"
+        - $ref: "#/components/parameters/WebhookURL"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AgentRequest"
+      responses:
+        "202":
+          description: Attempt accepted. Its outcome arrives at the webhook URL
+        "4XX":
+          description: |
+            Request rejected. Use 400 for an invalid request or 422 for an
+            unsupported provider or MCP server. Argyll retries 429.
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetails"
+        "5XX":
+          description: Retryable failure
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetails"
+
+  /health:
+    get:
+      summary: Report Worker Health
+      operationId: workerHealth
+      responses:
+        "2XX":
+          description: The worker is ready
+
+  /capabilities:
+    get:
+      summary: List Worker Capabilities
+      description: |
+        Lists providers, their models, and the worker's MCP servers with their
+        tools. The worker discovers models for providers in `PROVIDER_URLS` that
+        its provider API supports, and its default provider when an API key is
+        set. Models come from each provider's model listing API. If discovery
+        fails, the worker returns any models already retrieved. An unreachable
+        MCP server is listed without tools.
+      operationId: listCapabilities
+      responses:
+        "200":
+          description: The providers, models, and MCP servers the worker offers
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AgentCapabilities"
+
+  /webhook:
+    post:
+      summary: Report an Attempt (Engine Endpoint)
+      description: |
+        Posted to the `Argyll-Webhook-URL` from the invoke request
+        (`/callbacks/{flow_id}/{step_id}/{token}/agent` on the engine). Both
+        outcomes carry usage in the JSON body. The problem status decides whether
+        a failed attempt retries.
+      operationId: reportAgent
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AgentOutcome"
+      responses:
+        "200":
+          description: Outcome recorded, or a duplicate acknowledged
+        "400":
+          description: Outcome rejected
+
+components:
+  parameters:
+    FlowID:
+      name: Argyll-Flow-ID
+      in: header
+      required: true
+      schema:
+        type: string
+    StepID:
+      name: Argyll-Step-ID
+      in: header
+      required: true
+      schema:
+        type: string
+    ReceiptToken:
+      name: Argyll-Receipt-Token
+      in: header
+      required: true
+      schema:
+        type: string
+    WebhookURL:
+      name: Argyll-Webhook-URL
+      in: header
+      required: true
+      schema:
+        type: string
+        format: uri
+  schemas:
+    AgentRequest:
+      type: object
+      required:
+        - step
+        - inputs
+        - timeout
+      properties:
+        step:
+          description: The Agent Step definition from the flow's execution plan
+          allOf:
+            - $ref: "./engine-api.yaml#/components/schemas/StepRegistration"
+            - type: object
+              required: [agent, attributes]
+              properties:
+                type:
+                  enum: [agent]
+        inputs:
+          type: object
+          description: Input arguments keyed by their mapped names
+          additionalProperties: true
+        timeout:
+          type: integer
+          format: int64
+          description: Milliseconds the attempt may run
+
+    Usage:
+      type: object
+      description: |
+        What the attempt consumed as named numbers. `input_tokens` includes
+        cached input, which can also appear as `cache_read_tokens` or
+        `cache_write_tokens`. `cost` sums known charges. `cost_reported` holds
+        provider-reported charges and `cost_calculated` holds charges calculated
+        from configured rates. `cost_unpriced_tokens` counts tokens with no
+        known price. These values add across attempts and child Flows. Use a
+        consistent currency for charges you combine. A turn's provider-reported
+        cost takes precedence over configured rates, including a reported zero.
+      additionalProperties:
+        type: number
+      example:
+        input_tokens: 1840
+        output_tokens: 212
+        cache_read_tokens: 1500
+        cost: 0.0041
+
+    AgentCapabilities:
+      type: object
+      required:
+        - providers
+      properties:
+        providers:
+          type: array
+          items:
+            $ref: "#/components/schemas/AgentProvider"
+
+    AgentProvider:
+      type: object
+      required: [provider, models, mcp]
+      properties:
+        provider:
+          type: string
+          example: "anthropic"
+        models:
+          type: array
+          items:
+            type: string
+        mcp:
+          type: array
+          items:
+            type: object
+            required: [server]
+            properties:
+              server:
+                type: string
+                example: "crm"
+              tools:
+                type: array
+                items:
+                  type: string
+                example: ["lookup"]
+
+    AgentOutcome:
+      type: object
+      required: [usage]
+      properties:
+        outputs:
+          type: object
+          description: |
+            Outputs keyed by their mapped names. Use an empty object for a Step
+            without outputs.
+          additionalProperties: true
+        problem:
+          $ref: "#/components/schemas/ProblemDetails"
+        usage:
+          $ref: "#/components/schemas/Usage"
+      oneOf:
+        - required: [outputs]
+        - required: [problem]
+
+    ProblemDetails:
+      type: object
+      description: RFC 9457 Problem Details
+      properties:
+        type:
+          type: string
+        title:
+          type: string
+        status:
+          type: integer
+          description: |
+            400, 401, 403, 404, 405, 406, 410, 411, 413, 414, 415, 422, or
+            431 fails permanently. Any other status, or none, retries
+        detail:
+          type: string
+        instance:
+          type: string

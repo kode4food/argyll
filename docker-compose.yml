@@ -34,6 +34,7 @@ services:
       API_PORT: "8080"
       API_HOST: "0.0.0.0"
       WEBHOOK_BASE_URL: http://argyll-engine-1:8080
+      AGENT_WORKERS: "anthropic=http://argyll-agent-anthropic:8070,*=http://argyll-agent-openai:8070"
       LOG_LEVEL: debug
       RAFT_NODE_ID: argyll-1
       RAFT_ADDRESS: argyll-engine-1:9701
@@ -62,6 +63,7 @@ services:
       API_PORT: "8080"
       API_HOST: "0.0.0.0"
       WEBHOOK_BASE_URL: http://argyll-engine-2:8080
+      AGENT_WORKERS: "anthropic=http://argyll-agent-anthropic:8070,*=http://argyll-agent-openai:8070"
       LOG_LEVEL: debug
       RAFT_NODE_ID: argyll-2
       RAFT_ADDRESS: argyll-engine-2:9701
@@ -90,6 +92,7 @@ services:
       API_PORT: "8080"
       API_HOST: "0.0.0.0"
       WEBHOOK_BASE_URL: http://argyll-engine-3:8080
+      AGENT_WORKERS: "anthropic=http://argyll-agent-anthropic:8070,*=http://argyll-agent-openai:8070"
       LOG_LEVEL: debug
       RAFT_NODE_ID: argyll-3
       RAFT_ADDRESS: argyll-engine-3:9701
@@ -109,6 +112,39 @@ services:
       timeout: 3s
       retries: 3
       start_period: 15s
+
+  argyll-mcp:
+    build:
+      context: .
+      dockerfile: mcp/Dockerfile
+    command: ["-engine", "http://argyll-proxy:8080", "-listen", ":8071"]
+    restart: unless-stopped
+
+  argyll-agent-anthropic:
+    build:
+      context: .
+      dockerfile: workers/agent/Dockerfile
+      args:
+        WORKER: argyll-agent-anthropic
+    environment:
+      ARGYLL_MCP_URL: http://argyll-mcp:8071/mcp
+    env_file:
+      - path: ./.env.d/agent.env
+        required: false
+    restart: unless-stopped
+
+  argyll-agent-openai:
+    build:
+      context: .
+      dockerfile: workers/agent/Dockerfile
+      args:
+        WORKER: argyll-agent-openai
+    environment:
+      ARGYLL_MCP_URL: http://argyll-mcp:8071/mcp
+    env_file:
+      - path: ./.env.d/agent.env
+        required: false
+    restart: unless-stopped
 
   argyll-ui:
     build:

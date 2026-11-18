@@ -29,7 +29,33 @@ const formatValidationError = (
   return t(validationError.key, vars);
 };
 
-const parseJsonStep = (
+const isObject = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null && !Array.isArray(value);
+
+function isAgentDraft(value: unknown): boolean {
+  if (value == null) return true;
+  if (!isObject(value)) return false;
+  const validText = ["provider", "model", "prologue"].every(
+    (key) => value[key] === undefined || typeof value[key] === "string"
+  );
+  const validNumbers = ["max_turns", "max_tokens", "timeout"].every(
+    (key) => value[key] === undefined || typeof value[key] === "number"
+  );
+  if (!validText || !validNumbers) return false;
+  const { mcp } = value;
+  if (mcp == null) return true;
+  return Array.isArray(mcp) && mcp.every(isMCPSelection);
+}
+
+function isMCPSelection(value: unknown): boolean {
+  if (!isObject(value) || typeof value.server !== "string") return false;
+  const { tools } = value;
+  const validTools =
+    Array.isArray(tools) && tools.every((tool) => typeof tool === "string");
+  return tools == null || validTools;
+}
+
+export const parseJsonStep = (
   rawValue: string,
   t: TFn
 ): { step: Step } | { error: string } => {
@@ -39,17 +65,19 @@ const parseJsonStep = (
   } catch {
     return { error: t("stepEditor.invalidJson") };
   }
-  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+  if (!isObject(parsed)) {
     return { error: t("stepEditor.invalidJsonObject") };
   }
-  return { step: parsed as Step };
+  if (!isAgentDraft(parsed.agent)) {
+    return { error: t("stepEditor.invalidJsonAgent") };
+  }
+  return { step: parsed as unknown as Step };
 };
 
 interface UseStepPersistenceArgs {
   isCreateMode: boolean;
   stepId: string;
   buildStepData: () => Step;
-  applyStepData: (step: Step) => void;
   onUpdate: (step: Step) => void;
   onClose: () => void;
   t: TFn;
@@ -79,6 +107,7 @@ export function useStepPersistence({
         httpMethod: normalizeHttpMethod(stepData.http?.invoke?.method),
         httpTimeout: stepData.http?.invoke?.timeout || 0,
         flowGoals: toGoalSets(stepData.flow?.goals),
+        agent: stepData.agent,
         handling: stepData.handling || "standard",
         compensateEndpoint: stepData.http?.compensate?.endpoint || "",
       });
@@ -132,16 +161,6 @@ export function useStepPersistence({
     [persistStepData, t]
   );
 
-  const validateJsonDraft = useCallback(
-    (rawValue: string) => {
-      const result = parseJsonStep(rawValue, t);
-      if ("error" in result) return result.error;
-      const validationError = getStepValidationError(result.step);
-      return formatValidationError(validationError, t);
-    },
-    [getStepValidationError, t]
-  );
-
   const getSerializedStepData = useCallback(
     () => formatJSON(buildStepData()),
     [buildStepData]
@@ -153,7 +172,6 @@ export function useStepPersistence({
     setError,
     handleSave,
     handleJsonSave,
-    validateJsonDraft,
     getSerializedStepData,
   };
 }

@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"time"
@@ -13,14 +14,16 @@ import (
 	"github.com/kode4food/argyll/engine/internal/engine"
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/log"
+	"github.com/kode4food/argyll/engine/pkg/step/builtins"
 )
 
 // HealthChecker monitors the health of registered step services
 type HealthChecker struct {
-	engine *engine.Engine
-	ctx    context.Context
-	cancel context.CancelFunc
-	client *http.Client
+	engine  *engine.Engine
+	workers builtins.AgentWorkers
+	ctx     context.Context
+	cancel  context.CancelFunc
+	client  *http.Client
 }
 
 const (
@@ -34,14 +37,15 @@ var (
 	ErrGetStepHealth = errors.New("failed to get step health")
 )
 
-// NewHealthChecker creates a health checker that periodically monitors HTTP step service
-// availability and updates their health status
-func NewHealthChecker(eng *engine.Engine) *HealthChecker {
+// NewHealthChecker creates a health checker that periodically monitors HTTP step service and agent
+// worker availability and updates their health status
+func NewHealthChecker(eng *engine.Engine, workers builtins.AgentWorkers) *HealthChecker {
 	ctx, cancel := context.WithCancel(context.Background())
 	return &HealthChecker{
-		engine: eng,
-		ctx:    ctx,
-		cancel: cancel,
+		engine:  eng,
+		workers: workers,
+		ctx:     ctx,
+		cancel:  cancel,
 		client: &http.Client{
 			Timeout: healthCheckTimeout,
 		},
@@ -82,25 +86,36 @@ func (h *HealthChecker) checkAllSteps() {
 		return
 	}
 
-	var steps []*api.Step
+	probed := map[api.StepID]api.HealthState{}
+	endpoints := map[string][]api.StepID{}
 	for _, st := range cat.Steps {
-		if st.Type == api.StepTypeService && st.HTTP != nil &&
-			st.HTTP.Health != "" {
-			steps = append(steps, st)
+		if !probesHealth(st) {
+			continue
 		}
+		url, err := h.healthURL(st)
+		if err != nil {
+			probed[st.ID] = api.HealthState{
+				Status: api.HealthUnhealthy,
+				Error:  err.Error(),
+			}
+			continue
+		}
+		endpoints[url] = append(endpoints[url], st.ID)
 	}
 
 	// The engine derives script and flow step health on its own, so a pass with nothing probed
 	// still refreshes those
-	probed := make(map[api.StepID]api.HealthState, len(steps))
 	h.refresh(probed)
 
 	var delay time.Duration
-	if len(steps) > 1 {
-		delay = healthCheckInterval / time.Duration(len(steps))
+	if len(endpoints) > 1 {
+		delay = healthCheckInterval / time.Duration(len(endpoints))
 	}
-	for _, st := range steps {
-		probed[st.ID] = h.probe(st)
+	for url, ids := range endpoints {
+		health := h.probe(ids[0], url)
+		for _, sid := range ids {
+			probed[sid] = health
+		}
 		h.refresh(probed)
 		if delay > 0 {
 			time.Sleep(delay)
@@ -114,10 +129,10 @@ func (h *HealthChecker) refresh(probed map[api.StepID]api.HealthState) {
 	}
 }
 
-func (h *HealthChecker) probe(st *api.Step) api.HealthState {
-	resp, err := h.client.Get(st.HTTP.Health)
+func (h *HealthChecker) probe(sid api.StepID, url string) api.HealthState {
+	resp, err := h.client.Get(url)
 	if err != nil {
-		slog.Error("Health check failed", log.StepID(st.ID), log.Error(err))
+		slog.Error("Health check failed", log.StepID(sid), log.Error(err))
 		return api.HealthState{
 			Status: api.HealthUnhealthy,
 			Error:  err.Error(),
@@ -126,13 +141,37 @@ func (h *HealthChecker) probe(st *api.Step) api.HealthState {
 
 	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode >= httpErrorThreshold {
-		slog.Error("Health check failed", log.StepID(st.ID), log.Status(resp.Status))
+		slog.Error("Health check failed", log.StepID(sid), log.Status(resp.Status))
 		return api.HealthState{
 			Status: api.HealthUnhealthy,
 			Error:  "HTTP " + resp.Status,
 		}
 	}
 	return api.HealthState{Status: api.HealthHealthy}
+}
+
+// healthURL returns where a step's health is probed: its service's health endpoint, or the health
+// endpoint of the worker serving its agent provider
+func (h *HealthChecker) healthURL(st *api.Step) (string, error) {
+	if st.Type != api.StepTypeAgent {
+		return st.HTTP.Health, nil
+	}
+	base, ok := h.workers.URL(st.Agent.Provider)
+	if !ok {
+		return "", fmt.Errorf("%w: %s", builtins.ErrNoAgentWorker, st.Agent.Provider)
+	}
+	return base + builtins.AgentHealthPath, nil
+}
+
+func probesHealth(st *api.Step) bool {
+	switch st.Type {
+	case api.StepTypeService:
+		return st.HTTP != nil && st.HTTP.Health != ""
+	case api.StepTypeAgent:
+		return st.Agent != nil
+	default:
+		return false
+	}
 }
 
 func (s *Server) handleHealth(c *gin.Context) {

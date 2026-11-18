@@ -201,12 +201,12 @@ func (r compRuntime) CompleteWork(tkn api.Token, _ api.Args) error {
 	return r.engine.CompleteCompensation(r.flowStep(), tkn)
 }
 
-func (r compRuntime) notCompleteWork(tkn api.Token, errMsg string) error {
-	return r.engine.NotCompleteCompensation(r.flowStep(), tkn, errMsg)
+func (r compRuntime) RetryWork(tkn api.Token, cause error) error {
+	return r.engine.NotCompleteCompensation(r.flowStep(), tkn, errorText(cause))
 }
 
-func (r compRuntime) failWork(tkn api.Token, errMsg string) error {
-	return r.engine.FailCompensation(r.flowStep(), tkn, errMsg)
+func (r compRuntime) FailWork(tkn api.Token, cause error) error {
+	return r.engine.FailCompensation(r.flowStep(), tkn, errorText(cause))
 }
 
 func (e *ExecContext) performCompensation(args api.Args, tkn api.Token) {

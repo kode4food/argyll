@@ -110,6 +110,7 @@ const (
 	MetricAverage  = "average"
 	MetricMin      = "min"
 	MetricMax      = "max"
+	MetricUsage    = "usage"
 )
 
 const (
