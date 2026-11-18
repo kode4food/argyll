@@ -62,7 +62,7 @@ Add the keys you use. After updating the file, run `docker compose up -d argyll-
 
 The workers share the Go module in `workers/agent`. From the repository root, run `go run ./workers/agent/cmd/argyll-agent-anthropic` or `go run ./workers/agent/cmd/argyll-agent-openai`. To run both locally, set a different `PORT` for each process and configure `AGENT_WORKERS` with their URLs. To build or test with the Go workspace disabled, run `GOWORK=off go build -mod=readonly ./cmd/...` or `make test` from `workers/agent`. The module uses the engine contract from the same checkout.
 
-To calculate charges from token counts, point `MODEL_PRICES` to a JSON file of rates per million tokens keyed by `provider/model`. Provide the rates you have for `input`, `output`, `cache_read`, and `cache_write`, using zero for free tokens. Provider-reported charges take precedence. See the [Agent Worker Contract](api/agent-worker.yaml) for the usage fields.
+To calculate charges from token counts, point `MODEL_PRICES` to a JSON file of rates per million tokens keyed by `provider/model`. Provide the rates you have for `input`, `output`, `cache_input`, and `cache_output`, using zero for free tokens. Provider-reported charges take precedence. See the [Agent Worker Contract](api/agent-worker.yaml) for the usage fields.
 
 ## UI dev loop
 

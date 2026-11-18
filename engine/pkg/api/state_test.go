@@ -512,14 +512,14 @@ func TestUsageAdd(t *testing.T) {
 	assert.Equal(t, api.Usage{"cost": 0.3}, cents)
 
 	unpriced := a.Add(api.Usage{
-		"input_tokens": 2,
-		"cache_read":   4,
+		"input_tokens":       2,
+		"cache_input_tokens": 4,
 	})
 	assert.Equal(t,
 		api.Usage{
-			"input_tokens": 3,
-			"cost":         0.5,
-			"cache_read":   4,
+			"input_tokens":       3,
+			"cost":               0.5,
+			"cache_input_tokens": 4,
 		}, unpriced)
 }
 

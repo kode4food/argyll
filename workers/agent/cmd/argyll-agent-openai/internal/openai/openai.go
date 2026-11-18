@@ -31,7 +31,7 @@ type (
 	openAIUsage struct {
 		Cost                *float64 `json:"cost"`
 		PromptTokensDetails struct {
-			CacheWriteTokens int64 `json:"cache_write_tokens"`
+			CacheOutputTokens int64 `json:"cache_write_tokens"`
 		} `json:"prompt_tokens_details"`
 	}
 )
@@ -131,7 +131,7 @@ func (o *openAIConvo) Turn(ctx context.Context) (worker.Turn, error) {
 		InputTokens:       comp.Usage.PromptTokens,
 		OutputTokens:      comp.Usage.CompletionTokens,
 		CacheInputTokens:  comp.Usage.PromptTokensDetails.CachedTokens,
-		CacheOutputTokens: usage.PromptTokensDetails.CacheWriteTokens,
+		CacheOutputTokens: usage.PromptTokensDetails.CacheOutputTokens,
 	}
 	if len(comp.Choices) == 0 {
 		return res, ErrNoChoices

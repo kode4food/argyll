@@ -28,8 +28,8 @@ const (
 
 	usageInput          = "input_tokens"
 	usageOutput         = "output_tokens"
-	usageCacheRead      = "cache_read_tokens"
-	usageCacheWrite     = "cache_write_tokens"
+	usageCacheInput     = "cache_input_tokens"
+	usageCacheOutput    = "cache_output_tokens"
 	usageCost           = "cost"
 	usageCostReported   = "cost_reported"
 	usageCostCalculated = "cost_calculated"
@@ -106,10 +106,10 @@ func (w *Worker) converse(
 		usage[usageInput] += float64(t.InputTokens)
 		usage[usageOutput] += float64(t.OutputTokens)
 		if t.CacheInputTokens > 0 {
-			usage[usageCacheRead] += float64(t.CacheInputTokens)
+			usage[usageCacheInput] += float64(t.CacheInputTokens)
 		}
 		if t.CacheOutputTokens > 0 {
-			usage[usageCacheWrite] += float64(t.CacheOutputTokens)
+			usage[usageCacheOutput] += float64(t.CacheOutputTokens)
 		}
 		w.recordCost(usage, &t, cfg)
 		if err != nil {
@@ -167,8 +167,8 @@ func (w *Worker) recordCost(usage api.Usage, t *Turn, cfg *api.AgentConfig) {
 	}{
 		{tokens: input, price: price.Input},
 		{tokens: t.OutputTokens, price: price.Output},
-		{tokens: t.CacheInputTokens, price: price.CacheRead},
-		{tokens: t.CacheOutputTokens, price: price.CacheWrite},
+		{tokens: t.CacheInputTokens, price: price.CacheInput},
+		{tokens: t.CacheOutputTokens, price: price.CacheOutput},
 	} {
 		if charge.tokens == 0 {
 			continue

@@ -166,20 +166,20 @@ components:
     Usage:
       type: object
       description: |
-        What the attempt consumed as named numbers. `input_tokens` includes
-        cached input, which can also appear as `cache_read_tokens` or
-        `cache_write_tokens`. `cost` sums known charges. `cost_reported` holds
-        provider-reported charges and `cost_calculated` holds charges calculated
-        from configured rates. `cost_unpriced_tokens` counts tokens with no
-        known price. These values add across attempts and child Flows. Use a
-        consistent currency for charges you combine. A turn's provider-reported
-        cost takes precedence over configured rates, including a reported zero.
+        `input_tokens` includes tokens reused from cache (`cache_input_tokens`)
+        and tokens written to cache (`cache_output_tokens`). `cost` sums known
+        charges. `cost_reported` holds provider-reported charges and
+        `cost_calculated` holds charges calculated from configured rates.
+        `cost_unpriced_tokens` counts tokens with no known price. These values
+        add across attempts and child Flows. Use a consistent currency for
+        charges you combine. A turn's provider-reported cost takes precedence
+        over configured rates, including a reported zero.
       additionalProperties:
         type: number
       example:
         input_tokens: 1840
         output_tokens: 212
-        cache_read_tokens: 1500
+        cache_input_tokens: 1500
         cost: 0.0041
 
     AgentCapabilities:

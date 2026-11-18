@@ -159,17 +159,15 @@ func (s *suite) testInvoke(t *testing.T) {
 		crmSrv := crmServer(t)
 		defer crmSrv.Close()
 
-		read := 0.3
-		write := 3.75
 		cfg := &worker.Config{
 			Servers:   crmConfig(crmSrv.URL),
 			Providers: map[string]string{providerAnthropic: modelSrv.URL},
 			Prices: map[string]worker.Price{
 				"anthropic/claude-sonnet-5-5": {
-					Input:      new(float64(3)),
-					Output:     new(float64(15)),
-					CacheRead:  &read,
-					CacheWrite: &write,
+					Input:       new(float64(3)),
+					Output:      new(float64(15)),
+					CacheInput:  new(0.3),
+					CacheOutput: new(3.75),
 				},
 			},
 		}
@@ -187,12 +185,12 @@ func (s *suite) testInvoke(t *testing.T) {
 		assert.Equal(t, api.JSONContentType, out.contentType)
 		assert.Equal(t, api.Args{"score": float64(80)}, out.body.Outputs)
 		usage := api.Usage{
-			"input_tokens":       320,
-			"output_tokens":      10,
-			"cache_read_tokens":  100,
-			"cache_write_tokens": 200,
-			"cost":               0.00099,
-			"cost_calculated":    0.00099,
+			"input_tokens":        320,
+			"output_tokens":       10,
+			"cache_input_tokens":  100,
+			"cache_output_tokens": 200,
+			"cost":                0.00099,
+			"cost_calculated":     0.00099,
 		}
 		assert.Equal(t, usage, out.body.Usage)
 
@@ -295,7 +293,7 @@ func (s *suite) testInvoke(t *testing.T) {
 
 		assert.Equal(t, api.Args{"score": float64(7)}, out.body.Outputs)
 		assert.Equal(t, float64(50), out.body.Usage["input_tokens"])
-		assert.Equal(t, float64(4), out.body.Usage["cache_read_tokens"])
+		assert.Equal(t, float64(4), out.body.Usage["cache_input_tokens"])
 		assert.Equal(t, "llama-4", model.request(0)["model"])
 		assert.Contains(t, mustJSON(t, model.request(1)), "Call the `finish` tool")
 		assert.Contains(t, mustJSON(t, model.request(2)), "arguments must be a JSON object")
@@ -402,8 +400,8 @@ func (s *suite) testCost(t *testing.T) {
 				"cost":                 0.000087,
 				"cost_calculated":      0.000087,
 				"cost_unpriced_tokens": 6,
-				"cache_read_tokens":    4,
-				"cache_write_tokens":   2,
+				"cache_input_tokens":   4,
+				"cache_output_tokens":  2,
 			},
 		},
 		{

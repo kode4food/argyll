@@ -26,10 +26,10 @@ type (
 
 	// Price is what a model charges per million tokens
 	Price struct {
-		CacheRead  *float64 `json:"cache_read,omitempty"`
-		CacheWrite *float64 `json:"cache_write,omitempty"`
-		Input      *float64 `json:"input,omitempty"`
-		Output     *float64 `json:"output,omitempty"`
+		CacheInput  *float64 `json:"cache_input,omitempty"`
+		CacheOutput *float64 `json:"cache_output,omitempty"`
+		Input       *float64 `json:"input,omitempty"`
+		Output      *float64 `json:"output,omitempty"`
 	}
 )
 

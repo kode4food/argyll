@@ -18,7 +18,8 @@ func TestLoadConfig(t *testing.T) {
 		t.Setenv("CRM_TOKEN", crmToken)
 		t.Setenv("MCP_SERVERS", writeFile(t, `{"crm": {"url": "http://crm/mcp",
 			"headers": {"Authorization": "Bearer ${CRM_TOKEN}"}}}`))
-		prices := writeFile(t, `{"anthropic/claude-sonnet-5-5": {"input": 3, "output": 15}}`)
+		prices := writeFile(t, `{"anthropic/claude-sonnet-5-5": {
+			"input": 3, "output": 15, "cache_input": 0.3, "cache_output": 3.75}}`)
 		t.Setenv("MODEL_PRICES", prices)
 		t.Setenv("PROVIDER_URLS", "groq=https://api.groq.com/openai/v1, ollama=http://ollama")
 
@@ -37,8 +38,10 @@ func TestLoadConfig(t *testing.T) {
 			},
 			Prices: map[string]worker.Price{
 				"anthropic/claude-sonnet-5-5": {
-					Input:  new(float64(3)),
-					Output: new(float64(15)),
+					Input:       new(float64(3)),
+					Output:      new(float64(15)),
+					CacheInput:  new(0.3),
+					CacheOutput: new(3.75),
 				},
 			},
 		}
