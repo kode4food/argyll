@@ -4,7 +4,7 @@ go 1.27.0
 
 require (
 	github.com/getkin/kin-openapi v0.149.0
-	github.com/kode4food/argyll/engine v0.0.0-20261009102201-cf4904e2b790
+	github.com/kode4food/argyll/engine v0.0.0-20261118071315-005be6f050a3
 	github.com/localrivet/gomcp v1.7.2
 	github.com/santhosh-tekuri/jsonschema/v6 v6.0.3
 	github.com/stretchr/testify v1.12.1
@@ -12,7 +12,6 @@ require (
 
 require (
 	github.com/BurntSushi/toml v1.6.0 // indirect
-	github.com/Shopify/go-lua v0.0.0-20261007132305-3f823f845ff9 // indirect
 	github.com/eclipse/paho.mqtt.golang v1.5.1 // indirect
 	github.com/go-openapi/jsonpointer v1.0.0 // indirect
 	github.com/go-openapi/testify/v2 v2.6.1 // indirect
@@ -21,7 +20,7 @@ require (
 	github.com/gobwas/ws v1.4.0 // indirect
 	github.com/gorilla/websocket v1.5.3 // indirect
 	github.com/klauspost/compress v1.19.2 // indirect
-	github.com/kode4food/timebox v0.4.1-0.20261109115459-8d6af13dc2a8 // indirect
+	github.com/kode4food/argex v0.1.11 // indirect
 	github.com/kr/pretty v0.3.1 // indirect
 	github.com/localrivet/wilduri v0.0.0-20250504021349-6ce732e97cca // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
@@ -35,7 +34,7 @@ require (
 	golang.org/x/crypto v0.57.0 // indirect
 	golang.org/x/exp/typeparams v0.0.0-20260824195058-e88cd73687aa // indirect
 	golang.org/x/mod v0.41.0 // indirect
-	golang.org/x/net v0.59.0 // indirect
+	golang.org/x/net v0.60.0 // indirect
 	golang.org/x/sync v0.23.0 // indirect
 	golang.org/x/sys v0.48.0 // indirect
 	golang.org/x/telemetry v0.0.0-20260924152758-ed294f943157 // indirect
