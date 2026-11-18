@@ -144,10 +144,9 @@ export function buildStepPayload({
 }
 
 function agentPayload(agent: AgentConfig): AgentConfig {
-  const mcp = (agent.mcp ?? []).map((s) => ({
-    server: s.server.trim(),
-    tools: s.tools,
-  }));
+  const mcp = (agent.mcp ?? [])
+    .map((s) => ({ server: s.server.trim(), tools: s.tools }))
+    .filter((s) => s.server !== "");
   return {
     provider: agent.provider.trim(),
     model: agent.model.trim(),

@@ -1,5 +1,20 @@
-.agentFields {
-  composes: httpFields from "./StepEditorControls.module.css";
+.settingsRow {
+  composes: row from "./StepEditorForm.module.css";
+  flex-wrap: wrap;
+}
+
+.providerField {
+  composes: field from "./StepEditorForm.module.css";
+}
+
+.providerField,
+.mcpServerField {
+  flex: 0 0 11rem;
+}
+
+.modelField {
+  composes: field from "./StepEditorForm.module.css";
+  flex: 1 1 10rem;
 }
 
 .numberInput {

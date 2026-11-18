@@ -14,7 +14,7 @@
 
 .face {
   composes: interactive hoverFill focusFill focusRing from "@/app/styles/components/interaction.module.css";
-  composes: chevron from "@/app/styles/components/control.module.css";
+  composes: chevron disabledFace from "@/app/styles/components/control.module.css";
   --control-hover-bg: var(--color-info-bg);
   --control-hover-border: var(--color-info);
   --control-focus-bg: var(--color-info-bg);
@@ -39,11 +39,6 @@
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-.face:disabled {
-  cursor: default;
-  opacity: 0.5;
 }
 
 .faceOpen {

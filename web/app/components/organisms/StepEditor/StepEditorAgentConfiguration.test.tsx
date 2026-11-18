@@ -28,9 +28,10 @@ jest.mock("@/app/components/molecules/ScriptEditor", () => ({
 
 jest.mock("@/app/components/molecules/TagInput", () => ({
   __esModule: true,
-  default: ({ tags, suggestions, shouldEnforceSuggestions }: any) => (
+  default: ({ readOnly, tags, suggestions, shouldEnforceSuggestions }: any) => (
     <div
       data-testid="tool-tags"
+      data-read-only={String(!!readOnly)}
       data-suggestions={suggestions.join(",")}
       data-enforced={String(!!shouldEnforceSuggestions)}
     >
@@ -69,7 +70,7 @@ describe("StepEditorAgentConfiguration", () => {
     return setAgent;
   };
 
-  test("renders the configuration with a Markdown prologue", () => {
+  test("renders separate sections for model settings, MCP servers, and prologue", () => {
     renderConfig();
 
     const config = within(
@@ -77,12 +78,18 @@ describe("StepEditorAgentConfiguration", () => {
     );
     expect(config.getByText("anthropic")).toBeInTheDocument();
     expect(config.getByText("claude-sonnet-5-5")).toBeInTheDocument();
-    expect(config.getByTestId("prologue-editor")).toHaveAttribute(
+    const prologue = within(
+      screen.getByRole("region", { name: t("stepEditor.agentPrologueLabel") })
+    );
+    expect(prologue.getByTestId("prologue-editor")).toHaveAttribute(
       "data-language",
       "markdown"
     );
-    expect(config.getByText("crm")).toBeInTheDocument();
-    const tools = config.getByTestId("tool-tags");
+    const mcp = within(
+      screen.getByRole("region", { name: t("stepEditor.agentMCPLabel") })
+    );
+    expect(mcp.getByText("crm")).toBeInTheDocument();
+    const tools = mcp.getByTestId("tool-tags");
     expect(tools).toHaveTextContent("lookup");
     expect(tools).toHaveAttribute("data-suggestions", "delete,lookup");
     expect(tools).toHaveAttribute("data-enforced", "true");
@@ -146,13 +153,18 @@ describe("StepEditorAgentConfiguration", () => {
     expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
   });
 
-  test("enables adding MCP servers once a provider with servers is selected", () => {
+  test("shows the first MCP selector before a server is configured", () => {
     const setAgent = jest.fn();
     const empty = { ...AGENT, provider: "", model: "", mcp: [] };
     const { rerender } = render(
       <StepEditorAgentConfiguration agent={empty} setAgent={setAgent} />
     );
     const add = screen.getByTitle(t("stepEditor.addMCPServer"));
+    const selector = screen.getByRole("button", {
+      name: t("stepEditor.agentMCPLabel"),
+    });
+    expect(selector).toHaveTextContent(t("stepEditor.agentMCPServerSelect"));
+    expect(selector).toBeDisabled();
     expect(add).toBeDisabled();
     fireEvent.click(add);
     expect(setAgent).not.toHaveBeenCalled();
@@ -163,7 +175,30 @@ describe("StepEditorAgentConfiguration", () => {
         setAgent={setAgent}
       />
     );
-    expect(add).toBeEnabled();
+    expect(selector).toBeEnabled();
+    expect(add).toBeDisabled();
+    const tools = screen.getByTestId("tool-tags");
+    expect(tools).toBeVisible();
+    expect(tools).toHaveAttribute("data-read-only", "true");
+    expect(tools.parentElement).toHaveAttribute("inert");
+
+    fireEvent.click(selector);
+    fireEvent.click(screen.getByText("crm"));
+    expect(setAgent).toHaveBeenLastCalledWith({
+      ...empty,
+      provider: AGENT.provider,
+      mcp: [{ server: "crm", tools: undefined }],
+    });
+
+    rerender(
+      <StepEditorAgentConfiguration
+        agent={setAgent.mock.lastCall![0]}
+        setAgent={setAgent}
+      />
+    );
+    expect(tools).toHaveAttribute("data-read-only", "false");
+    expect(tools.parentElement).not.toHaveAttribute("inert");
+    expect(tools).toHaveAttribute("data-suggestions", "delete,lookup");
   });
 
   test("updates fields", () => {

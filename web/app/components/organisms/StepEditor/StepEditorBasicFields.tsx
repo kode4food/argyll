@@ -44,14 +44,14 @@ const STEP_TYPE_OPTIONS = [
     titleKey: "stepEditor.typeScriptTitle",
   },
   {
-    value: "flow" as StepType,
-    labelKey: "stepEditor.typeFlowLabel",
-    titleKey: "stepEditor.typeFlowTitle",
-  },
-  {
     value: "agent" as StepType,
     labelKey: "stepEditor.typeAgentLabel",
     titleKey: "stepEditor.typeAgentTitle",
+  },
+  {
+    value: "flow" as StepType,
+    labelKey: "stepEditor.typeFlowLabel",
+    titleKey: "stepEditor.typeFlowTitle",
   },
 ];
 

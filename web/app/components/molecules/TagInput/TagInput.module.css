@@ -16,6 +16,7 @@
 
 .field {
   composes: focusWithinRing from "@/app/styles/components/interaction.module.css";
+  composes: disabledFace from "@/app/styles/components/control.module.css";
   /* The line box the tags and the caret share inside the control */
   --tag-line: 1.25rem;
   --tag-caret-width: 1px;

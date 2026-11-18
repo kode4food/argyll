@@ -1,3 +1,9 @@
+.disabledFace:disabled,
+[inert] .disabledFace {
+  cursor: default;
+  opacity: 0.5;
+}
+
 .chevron {
   position: relative;
 }

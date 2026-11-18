@@ -452,7 +452,7 @@ describe("stepEditorUtils", () => {
         max_turns: 4,
         max_tokens: 1024,
         timeout: 0,
-        mcp: [{ server: " crm ", tools: [] }],
+        mcp: [{ server: " crm ", tools: [] }, { server: " " }],
       },
       handling: "standard",
     });

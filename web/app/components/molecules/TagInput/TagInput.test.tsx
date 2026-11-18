@@ -39,23 +39,47 @@ describe("TagInput", () => {
     jest.clearAllMocks();
   });
 
-  test("rejects tags outside its suggestions when enforced", async () => {
-    const { container } = render(
+  test("enables editing and enforces suggestions when configured", async () => {
+    const props = {
+      Icon: IconAttributeLabel,
+      label: "Tags",
+      onChange,
+      removeLabel: "Remove",
+    };
+    const { container, rerender } = render(
       <TagInput
+        {...props}
+        placeholder="No tools selected"
+        readOnly
+        suggestions={[]}
+        tags={[]}
+      />
+    );
+    const editor = container.querySelector(".tagify");
+    const editorInput = editor?.querySelector(".tagify__input");
+    expect(editor).toHaveAttribute("readonly");
+    expect(editorInput).not.toHaveAttribute("contenteditable");
+    expect(editorInput).toHaveAttribute(
+      "data-placeholder",
+      "No tools selected"
+    );
+
+    rerender(
+      <TagInput
+        {...props}
+        placeholder="All tools"
         shouldEnforceSuggestions
-        Icon={IconAttributeLabel}
-        label="Tags"
-        onChange={onChange}
-        placeholder="add tag"
-        removeLabel="Remove"
         suggestions={suggestions}
         tags={["alpha"]}
       />
     );
+    expect(editor).not.toHaveAttribute("readonly");
+    expect(editorInput).toHaveAttribute("data-placeholder", "All tools");
     expect(tagTexts(container)).toEqual(["alpha"]);
 
-    await addTag(screen.getByLabelText("add tag"), "zeta");
-    await addTag(screen.getByLabelText("add tag"), "beta");
+    const input = screen.getByLabelText("All tools");
+    await addTag(input, "zeta");
+    await addTag(input, "beta");
 
     expect(tagTexts(container)).toEqual(["alpha", "beta"]);
   });

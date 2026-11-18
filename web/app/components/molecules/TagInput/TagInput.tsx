@@ -15,6 +15,7 @@ export interface TagInputProps {
   label?: string;
   onChange: (tags: string[]) => void;
   placeholder: string;
+  readOnly?: boolean;
   removeLabel: string;
   shouldFocus?: boolean;
   shouldShowFieldIcon?: boolean;
@@ -51,6 +52,7 @@ const TagInput: React.FC<TagInputProps> = ({
   label,
   onChange,
   placeholder,
+  readOnly = false,
   removeLabel,
   shouldFocus,
   shouldShowFieldIcon,
@@ -108,10 +110,28 @@ const TagInput: React.FC<TagInputProps> = ({
       if (first) dropdown.highlightOption(first);
     });
     tagifyRef.current = tagify;
-    if (shouldFocus) tagify.DOM.input.focus();
+    if (shouldFocus && !readOnly) tagify.DOM.input.focus();
     return () => tagify.destroy();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  React.useEffect(() => {
+    const tagify = tagifyRef.current;
+    if (tagify && tagify.settings.readonly !== readOnly) {
+      tagify.setReadonly(readOnly);
+    }
+  }, [readOnly]);
+
+  React.useEffect(() => {
+    tagifyRef.current?.setPlaceholder(placeholder);
+  }, [placeholder]);
+
+  React.useEffect(() => {
+    const tagify = tagifyRef.current;
+    if (!tagify) return;
+    tagify.whitelist = [...suggestions];
+    tagify.settings.enforceWhitelist = shouldEnforceSuggestions;
+  }, [shouldEnforceSuggestions, suggestions]);
 
   React.useEffect(() => {
     const tagify = tagifyRef.current;
@@ -120,10 +140,6 @@ const TagInput: React.FC<TagInputProps> = ({
     if (!tagify || valuesOf(tagify).join(",") === tags.join(",")) return;
     tagify.loadOriginalValues(tags);
   }, [tags]);
-
-  React.useEffect(() => {
-    if (tagifyRef.current) tagifyRef.current.whitelist = [...suggestions];
-  }, [suggestions]);
 
   return (
     // Unlabelled inputs are rows inside someone else's section, so they skip
@@ -152,6 +168,7 @@ const TagInput: React.FC<TagInputProps> = ({
         <input
           ref={inputRef}
           aria-label={placeholder}
+          readOnly={readOnly}
           defaultValue={tags.join(",")}
         />
       </div>
