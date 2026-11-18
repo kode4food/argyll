@@ -23,7 +23,10 @@ func TestLoadConfig(t *testing.T) {
 		t.Setenv("MODEL_PRICES", prices)
 		t.Setenv("PROVIDER_URLS", "groq=https://api.groq.com/openai/v1, ollama=http://ollama")
 
-		cfg, err := worker.LoadConfig()
+		cfg, err := worker.LoadConfig(`{
+			"anthropic/claude-sonnet-5-5": {"input": 2},
+			"anthropic/claude-haiku-5-5": {"input": 0.1, "output": 0.5}
+		}`)
 		assert.NoError(t, err)
 		want := &worker.Config{
 			Servers: map[string]worker.MCPServer{
@@ -42,6 +45,10 @@ func TestLoadConfig(t *testing.T) {
 					Output:      new(float64(15)),
 					CacheInput:  new(0.3),
 					CacheOutput: new(3.75),
+				},
+				"anthropic/claude-haiku-5-5": {
+					Input:  new(0.1),
+					Output: new(0.5),
 				},
 			},
 		}
@@ -81,7 +88,7 @@ func TestLoadConfig(t *testing.T) {
 				t.Setenv("MCP_SERVERS", writeFile(t, tc.servers))
 				t.Setenv("MODEL_PRICES", "")
 				t.Setenv("PROVIDER_URLS", tc.providers)
-				_, err := worker.LoadConfig()
+				_, err := worker.LoadConfig(`{}`)
 				assert.ErrorIs(t, err, tc.want)
 			})
 		}
@@ -90,7 +97,7 @@ func TestLoadConfig(t *testing.T) {
 	t.Run("price file cannot be read", func(t *testing.T) {
 		t.Setenv("MCP_SERVERS", "")
 		t.Setenv("MODEL_PRICES", filepath.Join(t.TempDir(), "missing.json"))
-		_, err := worker.LoadConfig()
+		_, err := worker.LoadConfig(`{}`)
 		assert.ErrorIs(t, err, os.ErrNotExist)
 	})
 
@@ -99,7 +106,7 @@ func TestLoadConfig(t *testing.T) {
 		t.Setenv("MCP_SERVERS", writeFile(t, `{"tools":{"url":"http://tools/mcp"}}`))
 		t.Setenv("MODEL_PRICES", "")
 		t.Setenv("PROVIDER_URLS", "")
-		cfg, err := worker.LoadConfig()
+		cfg, err := worker.LoadConfig(`{}`)
 		assert.NoError(t, err)
 		assert.Equal(t, "http://argyll-mcp:8071/mcp", cfg.Servers["argyll"].URL)
 		assert.Equal(t, "http://tools/mcp", cfg.Servers["tools"].URL)

@@ -5,6 +5,8 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -17,11 +19,13 @@ import (
 
 func TestPromptPrefix(t *testing.T) {
 	t.Setenv("ANTHROPIC_API_KEY", "test")
+	t.Setenv("PREFIX_THRESHOLDS", "")
 	for _, tc := range []struct {
 		name          string
 		compactBytes  int
 		expandedBytes int
 		expectCompact bool
+		overrides     string
 	}{
 		{
 			name:          "compact qualifies",
@@ -33,6 +37,13 @@ func TestPromptPrefix(t *testing.T) {
 			name:          "expanded qualifies",
 			compactBytes:  374,
 			expandedBytes: 703,
+		},
+		{
+			name:          "override raises threshold",
+			compactBytes:  374,
+			expandedBytes: 703,
+			expectCompact: true,
+			overrides:     `{"claude-haiku-5-5":1024}`,
 		},
 		{
 			name:          "compact just above minimum",
@@ -52,6 +63,12 @@ func TestPromptPrefix(t *testing.T) {
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
+			if tc.overrides != "" {
+				path := filepath.Join(t.TempDir(), "prefix-thresholds.json")
+				err := os.WriteFile(path, []byte(tc.overrides), 0o600)
+				assert.NoError(t, err)
+				t.Setenv("PREFIX_THRESHOLDS", path)
+			}
 			compact := strings.Repeat("c", tc.compactBytes)
 			expanded := strings.Repeat("e", tc.expandedBytes)
 			system := expanded
@@ -74,7 +91,10 @@ func TestPromptPrefix(t *testing.T) {
 			}
 			srv := httptest.NewServer(http.HandlerFunc(handler))
 			defer srv.Close()
-			p := anthropic.New(map[string]string{anthropic.Name: srv.URL})
+			p, err := anthropic.New(map[string]string{anthropic.Name: srv.URL})
+			if !assert.NoError(t, err) {
+				return
+			}
 			c, err := p.Open(&worker.Chat{
 				Config: &api.AgentConfig{
 					Model:     "claude-haiku-5-5",

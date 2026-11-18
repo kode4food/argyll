@@ -12,12 +12,12 @@ import (
 const exitFailed = 1
 
 func main() {
-	cfg, err := worker.LoadConfig()
+	cfg, p, err := anthropic.LoadConfig()
 	if err != nil {
 		slog.Error("Invalid configuration", log.Error(err))
 		os.Exit(exitFailed)
 	}
-	if err := worker.Serve(cfg, anthropic.New(cfg.Providers)); err != nil {
+	if err := worker.Serve(cfg, p); err != nil {
 		slog.Error("Agent worker stopped", log.Error(err))
 		os.Exit(exitFailed)
 	}

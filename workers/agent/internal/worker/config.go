@@ -40,9 +40,9 @@ var (
 	ErrInvalidProviders  = errors.New("invalid PROVIDER_URLS")
 )
 
-// LoadConfig reads the MCP servers, provider URLs, and model prices from the environment. Headers
+// LoadConfig combines embedded model prices with worker settings from the environment. Headers
 // in the MCP server file may reference environment variables as ${VAR}
-func LoadConfig() (*Config, error) {
+func LoadConfig(defaultPrices string) (*Config, error) {
 	servers, err := loadServers(os.Getenv("MCP_SERVERS"))
 	if err != nil {
 		return nil, err
@@ -51,7 +51,10 @@ func LoadConfig() (*Config, error) {
 	if _, ok := servers["argyll"]; !ok && url != "" {
 		servers["argyll"] = MCPServer{URL: url}
 	}
-	prices := map[string]Price{}
+	var prices map[string]Price
+	if err := json.Unmarshal([]byte(defaultPrices), &prices); err != nil {
+		return nil, err
+	}
 	if err := readJSON(os.Getenv("MODEL_PRICES"), &prices); err != nil {
 		return nil, err
 	}

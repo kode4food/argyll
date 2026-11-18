@@ -12,7 +12,7 @@ import (
 const exitFailed = 1
 
 func main() {
-	cfg, err := worker.LoadConfig()
+	cfg, err := openai.LoadConfig()
 	if err != nil {
 		slog.Error("Invalid configuration", log.Error(err))
 		os.Exit(exitFailed)

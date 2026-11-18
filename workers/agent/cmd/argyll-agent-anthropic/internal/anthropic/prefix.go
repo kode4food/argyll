@@ -16,9 +16,9 @@ const (
 )
 
 // selectSystem estimates cache eligibility from the stable text and tool schemas
-func selectSystem(ch *worker.Chat, tools []anthropic.ToolUnionParam) string {
-	minTokens := cacheMinimum(ch.Config.Model)
-	if minTokens == 0 || ch.CompactSystem == "" {
+func (p *Provider) selectSystem(ch *worker.Chat, tools []anthropic.ToolUnionParam) string {
+	minTokens := p.pfxTokens[ch.Config.Model]
+	if minTokens <= 0 || ch.CompactSystem == "" {
 		return ch.System
 	}
 	b, err := json.Marshal(tools)
@@ -37,22 +37,4 @@ func selectSystem(ch *worker.Chat, tools []anthropic.ToolUnionParam) string {
 		return ch.CompactSystem
 	}
 	return ch.System
-}
-
-func cacheMinimum(model string) int {
-	switch model {
-	case "claude-fable-5-2", "claude-fable-5-1", "claude-fable-5", "claude-opus-5-5",
-		"claude-opus-5", "claude-sonnet-5-5", "claude-haiku-5-5":
-		return 512
-	case "claude-opus-4-8", "claude-sonnet-5", "claude-sonnet-4-6", "claude-sonnet-4-5",
-		"claude-sonnet-4-5-20250929":
-		return 1024
-	case "claude-opus-4-7":
-		return 2048
-	case "claude-opus-4-6", "claude-opus-4-5", "claude-opus-4-5-20251101",
-		"claude-haiku-4-5", "claude-haiku-4-5-20251001":
-		return 4096
-	default:
-		return 0
-	}
 }

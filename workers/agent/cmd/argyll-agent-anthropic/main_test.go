@@ -11,15 +11,22 @@ import (
 )
 
 func TestWorker(t *testing.T) {
+	t.Setenv("PREFIX_THRESHOLDS", "")
 	workertest.Run(t, anthropic.Name, func(cfg *worker.Config) worker.Provider {
-		return anthropic.New(cfg.Providers)
+		p, err := anthropic.New(cfg.Providers)
+		assert.NoError(t, err)
+		return p
 	})
 }
 
 func TestDefaultProvider(t *testing.T) {
 	t.Setenv("ANTHROPIC_API_KEY", "test")
 	t.Setenv("OPENAI_API_KEY", "test")
-	p := anthropic.New(nil)
+	t.Setenv("PREFIX_THRESHOLDS", "")
+	p, err := anthropic.New(nil)
+	if !assert.NoError(t, err) {
+		return
+	}
 	assert.Equal(t, []string{anthropic.Name}, p.Names())
 	assert.True(t, p.Supports(anthropic.Name))
 	assert.False(t, p.Supports("openai"))

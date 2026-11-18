@@ -16,7 +16,8 @@ import (
 type (
 	// Provider runs agent work through the Anthropic API
 	Provider struct {
-		url string
+		url        string
+		pfxTokens map[string]int
 	}
 
 	convo struct {
@@ -31,8 +32,15 @@ const Name = "anthropic"
 var _ worker.Convo = (*convo)(nil)
 
 // New returns an Anthropic provider using the configured base URL
-func New(urls map[string]string) *Provider {
-	return &Provider{url: urls[Name]}
+func New(urls map[string]string) (*Provider, error) {
+	thresholds, err := loadPrefixThresholds()
+	if err != nil {
+		return nil, err
+	}
+	return &Provider{
+		url:        urls[Name],
+		pfxTokens: thresholds,
+	}, nil
 }
 
 // Supports reports whether this adapter serves the named provider
@@ -82,7 +90,7 @@ func (p *Provider) Open(ch *worker.Chat) (worker.Convo, error) {
 			MaxTokens: int64(ch.Config.MaxTokens),
 			System: []anthropic.TextBlockParam{
 				{
-					Text:         selectSystem(ch, tools),
+					Text:         p.selectSystem(ch, tools),
 					CacheControl: anthropic.NewCacheControlEphemeralParam(),
 				},
 			},
