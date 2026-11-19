@@ -3,7 +3,7 @@ module github.com/kode4food/argyll/sdk/go
 go 1.27.0
 
 require (
-	github.com/kode4food/argyll/engine v0.0.0-20261119132443-bb583dcd39dc
+	github.com/kode4food/argyll/engine v0.0.0-20261119145642-29fc26fe4e96
 	github.com/kode4food/timebox v0.4.1-0.20261117103344-496eeef3071e
 	github.com/stretchr/testify v1.12.1
 	golang.org/x/tools v0.53.0

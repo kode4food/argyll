@@ -3,8 +3,8 @@ module github.com/kode4food/argyll/examples/notification-sender
 go 1.27.0
 
 require (
-	github.com/kode4food/argyll/engine v0.0.0-20261119132443-bb583dcd39dc
-	github.com/kode4food/argyll/sdk/go v0.0.0-20261119132443-bb583dcd39dc
+	github.com/kode4food/argyll/engine v0.0.0-20261119145642-29fc26fe4e96
+	github.com/kode4food/argyll/sdk/go v0.0.0-20261119145642-29fc26fe4e96
 )
 
 require (

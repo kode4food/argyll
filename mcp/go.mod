@@ -4,7 +4,7 @@ go 1.27.0
 
 require (
 	github.com/getkin/kin-openapi v0.153.0
-	github.com/kode4food/argyll/engine v0.0.0-20261119132443-bb583dcd39dc
+	github.com/kode4food/argyll/engine v0.0.0-20261119145642-29fc26fe4e96
 	github.com/localrivet/gomcp v1.7.2
 	github.com/santhosh-tekuri/jsonschema/v6 v6.0.3
 	github.com/stretchr/testify v1.12.1
