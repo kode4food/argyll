@@ -170,16 +170,20 @@ func (w *Worker) recordCost(usage api.Usage, t *Turn, cfg *api.AgentConfig) {
 		addCharge(usage, usageCostReported, *t.Cost)
 		return
 	}
-	price := w.cfg.Prices[cfg.Provider+"/"+cfg.Model]
+	price := w.cfg.Prices[ModelKey{
+		Provider: cfg.Provider,
+		Model:    cfg.Model,
+	}]
+	rates := price.ratesFor(t.InputTokens)
 	input := max(t.InputTokens-t.CacheInputTokens-t.CacheOutputTokens, 0)
 	for _, charge := range []struct {
 		tokens int64
 		price  *float64
 	}{
-		{tokens: input, price: price.Input},
-		{tokens: t.OutputTokens, price: price.Output},
-		{tokens: t.CacheInputTokens, price: price.CacheInput},
-		{tokens: t.CacheOutputTokens, price: price.CacheOutput},
+		{tokens: input, price: rates.Input},
+		{tokens: t.OutputTokens, price: rates.Output},
+		{tokens: t.CacheInputTokens, price: rates.CacheInput},
+		{tokens: t.CacheOutputTokens, price: rates.CacheOutput},
 	} {
 		if charge.tokens == 0 {
 			continue

@@ -18,12 +18,12 @@ import (
 func TestAgentCapabilities(t *testing.T) {
 	anthropic := api.AgentProvider{
 		Provider: "anthropic",
-		Models:   []string{"claude"},
+		Models:   []api.AgentModel{{ID: "claude", Efforts: []api.Effort{"low"}}},
 		MCP:      []api.MCPServer{{Server: "crm", Tools: []string{"lookup"}}},
 	}
 	local := api.AgentProvider{
 		Provider: "local",
-		Models:   []string{"model"},
+		Models:   []api.AgentModel{{ID: "model"}},
 		MCP:      []api.MCPServer{},
 	}
 	var calls atomic.Int32

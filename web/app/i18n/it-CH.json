@@ -163,6 +163,8 @@
   "stepEditor.addAttribute": "Aggiungi Attribute",
   "stepEditor.addMCPServer": "Aggiungi server MCP",
   "stepEditor.agentConfigLabel": "Configurazione Agent",
+  "stepEditor.agentEffortLabel": "Sforzo di ragionamento",
+  "stepEditor.agentEffortDefault": "Predefinito",
   "stepEditor.agentMCPLabel": "Server MCP",
   "stepEditor.agentMCPServerDuplicate": "Il server MCP {name} compare più volte",
   "stepEditor.agentMCPServerRequired": "Tutti i nomi dei server MCP sono obbligatori",

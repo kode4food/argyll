@@ -1,6 +1,7 @@
 package server
 
 import (
+	"cmp"
 	"context"
 	"encoding/json"
 	"errors"
@@ -8,7 +9,6 @@ import (
 	"log/slog"
 	"net/http"
 	"slices"
-	"strings"
 	"sync"
 	"time"
 
@@ -17,6 +17,7 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/log"
 	"github.com/kode4food/argyll/engine/pkg/step/builtins"
+	"github.com/kode4food/argyll/engine/pkg/util"
 )
 
 // DefaultAgentListTimeout bounds discovery of Agent capabilities
@@ -45,12 +46,12 @@ func RegisterAgentRoutes(router *gin.Engine, workers builtins.AgentWorkers) {
 func listAgentCapabilities(
 	ctx context.Context, client *http.Client, workers builtins.AgentWorkers,
 ) (*api.AgentCapabilities, error) {
-	urls := map[string]bool{}
+	urls := util.Set[string]{}
 	for _, base := range workers {
-		urls[base] = true
+		urls.Add(base)
 	}
 	res := &api.AgentCapabilities{Providers: []api.AgentProvider{}}
-	seen := map[string]bool{}
+	seen := util.Set[api.ProviderID]{}
 	var wg sync.WaitGroup
 	var mu sync.Mutex
 	var answered bool
@@ -66,21 +67,21 @@ func listAgentCapabilities(
 			answered = true
 			for _, provider := range providers {
 				url, ok := workers.URL(provider.Provider)
-				if !ok || url != base || seen[provider.Provider] ||
+				if !ok || url != base || seen.Contains(provider.Provider) ||
 					provider.Provider == "" || provider.Provider == builtins.AnyProvider {
 					continue
 				}
 				res.Providers = append(res.Providers, provider)
-				seen[provider.Provider] = true
+				seen.Add(provider.Provider)
 			}
 		})
 	}
 	wg.Wait()
-	if len(urls) > 0 && !answered {
+	if !urls.IsEmpty() && !answered {
 		return nil, ErrAgentCapabilities
 	}
 	slices.SortFunc(res.Providers, func(a, b api.AgentProvider) int {
-		return strings.Compare(a.Provider, b.Provider)
+		return cmp.Compare(a.Provider, b.Provider)
 	})
 	return res, nil
 }

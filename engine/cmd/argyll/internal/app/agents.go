@@ -6,6 +6,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/step/builtins"
 )
 
@@ -28,7 +29,7 @@ func loadAgentWorkers() (builtins.AgentWorkers, error) {
 		if !ok || provider == "" || url == "" {
 			return nil, fmt.Errorf("%w: %q", ErrInvalidAgentWorkers, part)
 		}
-		res[provider] = url
+		res[api.ProviderID(provider)] = url
 	}
 	return res, nil
 }

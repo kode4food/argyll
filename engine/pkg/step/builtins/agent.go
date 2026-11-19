@@ -13,7 +13,7 @@ import (
 type (
 	// AgentWorkers maps each agent provider to the base URL of the worker serving it. AnyProvider
 	// names the worker serving every provider not listed
-	AgentWorkers map[string]string
+	AgentWorkers map[api.ProviderID]string
 
 	agentHandler struct {
 		workers  AgentWorkers
@@ -58,7 +58,7 @@ func Agent(workers AgentWorkers, callback CallbackURL, timeout time.Duration) *s
 }
 
 // URL returns the base URL of the worker serving a provider
-func (w AgentWorkers) URL(provider string) (string, bool) {
+func (w AgentWorkers) URL(provider api.ProviderID) (string, bool) {
 	if u, ok := w[provider]; ok {
 		return u, true
 	}

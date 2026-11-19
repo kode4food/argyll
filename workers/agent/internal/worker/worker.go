@@ -23,6 +23,7 @@ type Worker struct {
 	client   *http.Client
 	schemas  *lru.Cache[stepSchemas]
 	provider Provider
+	catalog  catalogCache
 }
 
 const (

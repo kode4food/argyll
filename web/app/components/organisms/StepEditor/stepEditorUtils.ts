@@ -150,6 +150,7 @@ function agentPayload(agent: AgentConfig): AgentConfig {
   return {
     provider: agent.provider.trim(),
     model: agent.model.trim(),
+    effort: agent.effort || undefined,
     prologue: agent.prologue,
     max_turns: agent.max_turns,
     max_tokens: agent.max_tokens,

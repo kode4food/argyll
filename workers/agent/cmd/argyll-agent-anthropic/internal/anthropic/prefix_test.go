@@ -91,7 +91,9 @@ func TestPromptPrefix(t *testing.T) {
 			}
 			srv := httptest.NewServer(http.HandlerFunc(handler))
 			defer srv.Close()
-			p, err := anthropic.New(map[string]string{anthropic.Name: srv.URL})
+			p, err := anthropic.New(map[api.ProviderID]string{
+				anthropic.Name: srv.URL,
+			})
 			if !assert.NoError(t, err) {
 				return
 			}

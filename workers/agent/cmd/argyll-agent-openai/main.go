@@ -12,12 +12,12 @@ import (
 const exitFailed = 1
 
 func main() {
-	cfg, err := openai.LoadConfig()
+	cfg, provider, err := openai.LoadConfig()
 	if err != nil {
 		slog.Error("Invalid configuration", log.Error(err))
 		os.Exit(exitFailed)
 	}
-	if err := worker.Serve(cfg, openai.New(cfg.Providers)); err != nil {
+	if err := worker.Serve(cfg, provider); err != nil {
 		slog.Error("Agent worker stopped", log.Error(err))
 		os.Exit(exitFailed)
 	}

@@ -273,7 +273,7 @@ func collectRequestBodyInputs(op *openapi.Operation, entity string) []argSpec {
 			Service:    name,
 			Type:       schemaRefType(ref),
 			Schema:     schemaFacts(ref),
-			Required:   required[name],
+			Required:   required.Contains(name),
 			Location:   "body",
 			Confidence: confidence(name, entity),
 		})

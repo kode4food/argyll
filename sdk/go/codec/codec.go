@@ -6,6 +6,8 @@ import (
 	"errors"
 	"fmt"
 	"io"
+
+	"github.com/kode4food/argyll/engine/pkg/util"
 )
 
 type (
@@ -55,7 +57,7 @@ type (
 	}
 
 	encodeState struct {
-		active map[any]bool
+		active util.Set[any]
 	}
 )
 
@@ -412,18 +414,18 @@ func (f structField[S, T]) encode(e *jsontext.Encoder, s *S, state *encodeState)
 }
 
 func (s *encodeState) enter(v any) error {
-	if s.active[v] {
+	if s.active.Contains(v) {
 		return fmt.Errorf("%w: %T", ErrCyclicValue, v)
 	}
 	if s.active == nil {
-		s.active = map[any]bool{}
+		s.active = util.Set[any]{}
 	}
-	s.active[v] = true
+	s.active.Add(v)
 	return nil
 }
 
 func (s *encodeState) leave(v any) {
-	delete(s.active, v)
+	s.active.Remove(v)
 }
 
 func integral[T Numeric]() bool {

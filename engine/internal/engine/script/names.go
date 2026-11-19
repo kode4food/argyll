@@ -5,6 +5,7 @@ import (
 	"regexp"
 
 	"github.com/kode4food/argyll/engine/pkg/api"
+	"github.com/kode4food/argyll/engine/pkg/util"
 )
 
 type bareName struct {
@@ -20,24 +21,26 @@ var (
 // bareNames pairs each short name source can use with the input it reads. A usable name wins over a
 // derived tail, and tails two inputs share bind none
 func bareNames(names []string, usable func(string) bool) []bareName {
-	taken := map[string]bool{}
+	taken := util.Set[string]{}
 	for _, name := range names {
-		taken[name] = usable(name)
+		if usable(name) {
+			taken.Add(name)
+		}
 	}
 
 	tails := map[string]int{}
 	for _, name := range names {
-		if taken[name] {
+		if taken.Contains(name) {
 			continue
 		}
-		if tail, ok := derivedName(name, usable); ok && !taken[tail] {
+		if tail, ok := derivedName(name, usable); ok && !taken.Contains(tail) {
 			tails[tail]++
 		}
 	}
 
 	var res []bareName
 	for _, name := range names {
-		if taken[name] {
+		if taken.Contains(name) {
 			res = append(res, bareName{
 				name:  name,
 				input: name,

@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/kode4food/argyll/engine/pkg/api"
+	"github.com/kode4food/argyll/engine/pkg/util"
 )
 
 type (
@@ -119,11 +120,7 @@ var (
 var (
 	validStepID = regexp.MustCompile(`^[a-z][a-z0-9]*(-[a-z0-9]+)*$`)
 
-	reservedStepTypes = map[api.StepType]bool{
-		api.StepTypeService: true,
-		api.StepTypeScript:  true,
-		api.StepTypeFlow:    true,
-	}
+	reservedStepTypes = util.SetOf(api.StepTypeService, api.StepTypeScript, api.StepTypeFlow)
 )
 
 func (g *pkgGen) addFunc(fn *ast.FuncDecl) error {
@@ -221,7 +218,7 @@ func (g *pkgGen) claimEmbedType(fn *ast.FuncDecl, id string) (string, error) {
 	if !validStepID.MatchString(typ) {
 		return "", g.errorAt(fn, "%w: bad step type %q", ErrBadDirective, typ)
 	}
-	if reservedStepTypes[api.StepType(typ)] {
+	if reservedStepTypes.Contains(api.StepType(typ)) {
 		return "", g.errorAt(fn, "%w: step type %q is built in", ErrBadDirective, typ)
 	}
 	if other, ok := g.embedTypes[typ]; ok {
@@ -543,7 +540,7 @@ func (g *pkgGen) stepCompHandler(cfg *compHandlerConfig, sig *types.Signature) (
 	for _, f := range cfg.fields {
 		available[f.name] = f.typ
 	}
-	seen := make(map[string]bool, len(fields))
+	seen := make(util.Set[string], len(fields))
 	for _, f := range fields {
 		fieldName := resolveInnerName(f)
 		want, ok := available[fieldName]
@@ -552,12 +549,12 @@ func (g *pkgGen) stepCompHandler(cfg *compHandlerConfig, sig *types.Signature) (
 				"%w: compensator %s field %s is not compensated",
 				ErrBadSignature, name, fieldName)
 		}
-		if seen[fieldName] {
+		if seen.Contains(fieldName) {
 			return "", g.errorAt(cfg.fn,
 				"%w: compensator %s repeats field %s",
 				ErrBadSignature, name, fieldName)
 		}
-		seen[fieldName] = true
+		seen.Add(fieldName)
 		if !types.Identical(f.Type(), want) {
 			return "", g.errorAt(cfg.fn,
 				"%w: compensator %s field %s has type %s; want %s",
@@ -584,7 +581,7 @@ func (g *pkgGen) wrapCompHandler(cfg *compHandlerConfig, sig *types.Signature) (
 	names := make([]string, params.Len())
 	selectedTypes := make([]types.Type, params.Len())
 	args := make([]string, params.Len())
-	used := map[string]bool{}
+	used := util.Set[string]{}
 	for i := range params.Len() {
 		param := params.At(i)
 		paramName := SnakeCase(param.Name())
@@ -611,12 +608,12 @@ func (g *pkgGen) wrapCompHandler(cfg *compHandlerConfig, sig *types.Signature) (
 				"%w: compensator %s argument %s is not a step attribute",
 				ErrBadSignature, name, param.Name())
 		}
-		if used[found.name] {
+		if used.Contains(found.name) {
 			return "", g.errorAt(cfg.fn,
 				"%w: compensator %s repeats attribute %s",
 				ErrBadSignature, name, found.name)
 		}
-		used[found.name] = true
+		used.Add(found.name)
 		if !types.Identical(param.Type(), found.typ) {
 			return "", g.errorAt(cfg.fn,
 				"%w: compensator %s argument %s has type %s; want %s",

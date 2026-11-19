@@ -4,14 +4,17 @@ import (
 	"errors"
 	"fmt"
 	"slices"
+
+	"github.com/kode4food/argyll/engine/pkg/util"
 )
 
 type (
 	// AgentConfig configures agent-based step execution, run by the worker serving its provider
 	AgentConfig struct {
 		MCP       []MCPServer `json:"mcp,omitempty"`
-		Provider  string      `json:"provider"`
-		Model     string      `json:"model"`
+		Provider  ProviderID  `json:"provider"`
+		Model     ModelID     `json:"model"`
+		Effort    Effort      `json:"effort,omitempty"`
 		Prologue  string      `json:"prologue"`
 		MaxTurns  int         `json:"max_turns"`
 		MaxTokens int         `json:"max_tokens"`
@@ -39,10 +42,25 @@ type (
 
 	// AgentProvider lists a provider's models and the MCP servers on its worker
 	AgentProvider struct {
-		Provider string      `json:"provider"`
-		Models   []string    `json:"models"`
-		MCP      []MCPServer `json:"mcp"`
+		Provider ProviderID   `json:"provider"`
+		Models   []AgentModel `json:"models"`
+		MCP      []MCPServer  `json:"mcp"`
 	}
+
+	// AgentModel describes a model and the reasoning effort values it accepts
+	AgentModel struct {
+		ID      ModelID  `json:"id"`
+		Efforts []Effort `json:"efforts,omitempty"`
+	}
+
+	// ProviderID identifies an Agent provider
+	ProviderID string
+
+	// ModelID identifies a model within its provider
+	ModelID string
+
+	// Effort is a provider-supported setting for reasoning depth
+	Effort string
 
 	// MCPServer names an MCP server an agent may use, optionally limited to some of its tools
 	MCPServer struct {
@@ -71,7 +89,7 @@ func (c *AgentConfig) Equal(other *AgentConfig) bool {
 		return c == other
 	}
 	sameModel := c.Provider == other.Provider && c.Model == other.Model &&
-		c.Prologue == other.Prologue
+		c.Effort == other.Effort && c.Prologue == other.Prologue
 	sameLimits := c.MaxTurns == other.MaxTurns && c.MaxTokens == other.MaxTokens &&
 		c.Timeout == other.Timeout
 	return sameModel && sameLimits && slices.EqualFunc(c.MCP, other.MCP, MCPServer.Equal)
@@ -118,15 +136,15 @@ func (c *AgentConfig) validate() error {
 }
 
 func validateMCPServers(servers []MCPServer) error {
-	seen := map[string]bool{}
+	seen := util.Set[string]{}
 	for _, m := range servers {
 		if m.Server == "" {
 			return ErrMCPServerEmpty
 		}
-		if seen[m.Server] {
+		if seen.Contains(m.Server) {
 			return fmt.Errorf("%w: %s", ErrMCPServerDuplicate, m.Server)
 		}
-		seen[m.Server] = true
+		seen.Add(m.Server)
 		if slices.Contains(m.Tools, "") {
 			return fmt.Errorf("%w: %s", ErrMCPToolEmpty, m.Server)
 		}

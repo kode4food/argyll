@@ -8,6 +8,8 @@ import (
 	"github.com/kode4food/caravan/closer"
 	"github.com/kode4food/caravan/topic"
 	"github.com/kode4food/timebox"
+
+	"github.com/kode4food/argyll/engine/pkg/util"
 )
 
 type (
@@ -41,8 +43,8 @@ type (
 
 	// interests describes what events a consumer is interested in
 	interests struct {
-		eventTypes map[timebox.EventType]bool // empty = all event types
-		ids        []timebox.AggregateID      // empty = all aggregates
+		eventTypes util.Set[timebox.EventType] // empty = all event types
+		ids        []timebox.AggregateID       // empty = all aggregates
 	}
 
 	aggregateNode struct {
@@ -122,10 +124,7 @@ func (h *Hub) NewAggregatesConsumer(
 	}
 
 	if len(eventTypes) > 0 {
-		i.eventTypes = make(map[timebox.EventType]bool)
-		for _, et := range eventTypes {
-			i.eventTypes[et] = true
-		}
+		i.eventTypes = util.SetOf(eventTypes...)
 	}
 
 	h.registry.register(i)
@@ -186,7 +185,7 @@ func (c *Consumer) matches(ev *timebox.Event) bool {
 		return false
 	}
 
-	if len(c.interests.eventTypes) > 0 && !c.interests.eventTypes[ev.Type] {
+	if !c.interests.eventTypes.IsEmpty() && !c.interests.eventTypes.Contains(ev.Type) {
 		return false
 	}
 

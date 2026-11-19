@@ -7,6 +7,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
+	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/workers/agent/internal/worker"
 )
 
@@ -18,8 +19,14 @@ func TestLoadConfig(t *testing.T) {
 		t.Setenv("CRM_TOKEN", crmToken)
 		t.Setenv("MCP_SERVERS", writeFile(t, `{"crm": {"url": "http://crm/mcp",
 			"headers": {"Authorization": "Bearer ${CRM_TOKEN}"}}}`))
-		prices := writeFile(t, `{"anthropic/claude-sonnet-5-5": {
-			"input": 3, "output": 15, "cache_input": 0.3, "cache_output": 3.75}}`)
+		prices := writeFile(t, `{
+			"anthropic/claude-sonnet-5-5": {
+				"input": 3, "output": 15, "cache_input": 0.3, "cache_output": 3.75
+			},
+			"groq/openai/gpt-oss-20b": {
+				"input": 0.075, "tiers": [{"input_over": 128000, "input": 0.15}]
+			}
+		}`)
 		t.Setenv("MODEL_PRICES", prices)
 		t.Setenv("PROVIDER_URLS", "groq=https://api.groq.com/openai/v1, ollama=http://ollama")
 
@@ -35,20 +42,36 @@ func TestLoadConfig(t *testing.T) {
 					Headers: map[string]string{"Authorization": "Bearer " + crmToken},
 				},
 			},
-			Providers: map[string]string{
+			Providers: map[api.ProviderID]string{
 				"groq":   "https://api.groq.com/openai/v1",
 				"ollama": "http://ollama",
 			},
-			Prices: map[string]worker.Price{
-				"anthropic/claude-sonnet-5-5": {
+			Prices: map[worker.ModelKey]worker.Price{
+				{
+					Provider: "anthropic",
+					Model:    "claude-sonnet-5-5",
+				}: {
 					Input:       new(float64(3)),
 					Output:      new(float64(15)),
 					CacheInput:  new(0.3),
 					CacheOutput: new(3.75),
 				},
-				"anthropic/claude-haiku-5-5": {
+				{
+					Provider: "anthropic",
+					Model:    "claude-haiku-5-5",
+				}: {
 					Input:  new(0.1),
 					Output: new(0.5),
+				},
+				{
+					Provider: "groq",
+					Model:    "openai/gpt-oss-20b",
+				}: {
+					Input: new(0.075),
+					Tiers: []worker.PriceTier{{
+						InputOver: 128000,
+						Input:     new(0.15),
+					}},
 				},
 			},
 		}
@@ -99,6 +122,20 @@ func TestLoadConfig(t *testing.T) {
 		t.Setenv("MODEL_PRICES", filepath.Join(t.TempDir(), "missing.json"))
 		_, err := worker.LoadConfig(`{}`)
 		assert.ErrorIs(t, err, os.ErrNotExist)
+	})
+
+	t.Run("rejects a price key without a provider", func(t *testing.T) {
+		t.Setenv("MCP_SERVERS", "")
+		t.Setenv("MODEL_PRICES", writeFile(t, `{"claude": {"input": 1}}`))
+		_, err := worker.LoadConfig(`{}`)
+		assert.ErrorIs(t, err, worker.ErrInvalidModelKey)
+	})
+
+	t.Run("rejects duplicate price tiers", func(t *testing.T) {
+		t.Setenv("MCP_SERVERS", "")
+		t.Setenv("MODEL_PRICES", "")
+		_, err := worker.LoadConfig(`{"local/model":{"tiers":[{"input_over":4},{"input_over":4}]}}`)
+		assert.ErrorIs(t, err, worker.ErrInvalidPriceTier)
 	})
 
 	t.Run("offers the default Argyll MCP alongside configured servers", func(t *testing.T) {

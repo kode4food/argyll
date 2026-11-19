@@ -17,7 +17,7 @@ const (
 
 // selectSystem estimates cache eligibility from the stable text and tool schemas
 func (p *Provider) selectSystem(ch *worker.Chat, tools []anthropic.ToolUnionParam) string {
-	minTokens := p.pfxTokens[ch.Config.Model]
+	minTokens := p.prefixMin[ch.Config.Model]
 	if minTokens <= 0 || ch.CompactSystem == "" {
 		return ch.System
 	}

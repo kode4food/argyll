@@ -131,6 +131,8 @@ services:
     env_file:
       - path: ./.env.d/agent.env
         required: false
+      - path: ./.env.d/agent-anthropic.env
+        required: false
     restart: unless-stopped
 
   argyll-agent-openai:
@@ -143,6 +145,8 @@ services:
       ARGYLL_MCP_URL: http://argyll-mcp:8071/mcp
     env_file:
       - path: ./.env.d/agent.env
+        required: false
+      - path: ./.env.d/agent-openai.env
         required: false
     restart: unless-stopped
 

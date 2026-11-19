@@ -122,7 +122,11 @@ describe("ArgyllApi", () => {
 
   test("lists Agent capabilities", async () => {
     const providers = [
-      { provider: "openai", models: ["model"], mcp: [{ server: "crm" }] },
+      {
+        provider: "openai",
+        models: [{ id: "model" }],
+        mcp: [{ server: "crm" }],
+      },
     ];
     respond({ providers });
 

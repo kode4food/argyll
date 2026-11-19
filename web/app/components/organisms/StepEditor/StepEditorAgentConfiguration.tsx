@@ -64,6 +64,9 @@ const StepEditorAgentConfiguration: React.FC<
   const t = useT();
   const providers = useAgentCapabilities();
   const provider = providers.find((item) => item.provider === agent.provider);
+  const models = provider?.models ?? [];
+  const efforts = models.find(({ id }) => id === agent.model)?.efforts;
+  const defaultEffort = t("stepEditor.agentEffortDefault");
   const offered = provider?.mcp ?? [];
   const servers: MCPServer[] = agent.mcp?.length ? agent.mcp : [{ server: "" }];
   const available = offered.filter(
@@ -98,7 +101,12 @@ const StepEditorAgentConfiguration: React.FC<
               value={agent.provider}
               onChange={(name) => {
                 if (name !== agent.provider) {
-                  update({ provider: name, model: "", mcp: [] });
+                  update({
+                    provider: name,
+                    model: "",
+                    effort: undefined,
+                    mcp: [],
+                  });
                 }
               }}
               options={options(providers.map((item) => item.provider))}
@@ -112,9 +120,27 @@ const StepEditorAgentConfiguration: React.FC<
             <SelectField
               ariaLabel={t("stepEditor.agentModelLabel")}
               value={agent.model}
-              onChange={(model) => update({ model })}
-              options={options(provider?.models ?? [])}
+              onChange={(model) => {
+                if (model !== agent.model) update({ model, effort: undefined });
+              }}
+              options={options(models.map(({ id }) => id))}
               placeholder={t("stepEditor.agentModelPlaceholder")}
+            />
+          </div>
+          <div className={localStyles.providerField}>
+            <label className={formStyles.label}>
+              {t("stepEditor.agentEffortLabel")}
+            </label>
+            <SelectField
+              ariaLabel={t("stepEditor.agentEffortLabel")}
+              value={agent.effort ?? ""}
+              onChange={(effort) => update({ effort: effort || undefined })}
+              options={
+                efforts?.length
+                  ? [{ label: defaultEffort, value: "" }, ...options(efforts)]
+                  : []
+              }
+              placeholder={agent.effort || defaultEffort}
             />
           </div>
           <AgentNumberField

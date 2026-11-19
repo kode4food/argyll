@@ -30,6 +30,15 @@ const useDropdown = <T extends DropdownItem>(
     if (open) {
       const idx = options.findIndex((o) => o.value === value);
       setHighlightedIndex(idx >= 0 ? idx : 0);
+
+      const list =
+        listRef.current ??
+        wrapperRef.current?.querySelector('[role="listbox"]');
+      if (list && list.scrollHeight > list.clientHeight) {
+        list.querySelector('[aria-selected="true"]')?.scrollIntoView({
+          block: "nearest",
+        });
+      }
     } else {
       setHighlightedIndex(-1);
     }

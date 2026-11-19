@@ -162,8 +162,13 @@ export interface FlowConfig {
 
 export interface AgentProvider {
   provider: string;
-  models: string[];
+  models: AgentModel[];
   mcp: MCPServer[];
+}
+
+export interface AgentModel {
+  id: string;
+  efforts?: string[];
 }
 
 // An MCP server an Agent may use, limited to `tools` when they are listed
@@ -175,6 +180,7 @@ export interface MCPServer {
 export interface AgentConfig {
   provider: string;
   model: string;
+  effort?: string;
   prologue: string;
   max_turns: number;
   max_tokens: number;

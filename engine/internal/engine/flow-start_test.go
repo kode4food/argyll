@@ -16,13 +16,14 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/events"
 	"github.com/kode4food/argyll/engine/pkg/flow"
 	"github.com/kode4food/argyll/engine/pkg/plan"
+	"github.com/kode4food/argyll/engine/pkg/util"
 )
 
 type atomicFlowBackend struct {
 	timebox.Backend
 	mu            sync.Mutex
 	childConflict bool
-	conflicts     map[api.EventType]bool
+	conflicts     util.Set[api.EventType]
 	commits       map[api.EventType][]timebox.AppendRequest
 }
 
@@ -458,7 +459,7 @@ func TestAtomicFlowLifecycle(t *testing.T) {
 			backend := &atomicFlowBackend{
 				Backend:       memory.Open(),
 				childConflict: childConflict,
-				conflicts:     map[api.EventType]bool{},
+				conflicts:     util.Set[api.EventType]{},
 				commits:       map[api.EventType][]timebox.AppendRequest{},
 			}
 			helpers.WithTestBackend(t, backend,
@@ -568,7 +569,7 @@ func TestAtomicFlowLifecycle(t *testing.T) {
 						api.EventTypeFlowCompleted,
 						api.EventTypeFlowDeactivated,
 					} {
-						assert.True(t, backend.conflicts[phase])
+						assert.True(t, backend.conflicts.Contains(phase))
 						batch := backend.commits[phase]
 						kinds := map[api.FlowID][]api.EventType{}
 						flowRequests := 0
@@ -673,8 +674,8 @@ func (b *atomicFlowBackend) Append(reqs ...timebox.AppendRequest) error {
 	}
 	for _, req := range reqs {
 		child := req.ID != events.FlowKey("atomic")
-		if phase != "" && !b.conflicts[phase] && child == b.childConflict {
-			b.conflicts[phase] = true
+		if phase != "" && !b.conflicts.Contains(phase) && child == b.childConflict {
+			b.conflicts.Add(phase)
 			return &timebox.VersionConflictError{
 				ID:               req.ID,
 				ExpectedSequence: req.ExpectedSequence,

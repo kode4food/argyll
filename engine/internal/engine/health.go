@@ -11,6 +11,7 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/events"
 	"github.com/kode4food/argyll/engine/pkg/plan"
+	"github.com/kode4food/argyll/engine/pkg/util"
 )
 
 type healthResolver struct {
@@ -19,7 +20,7 @@ type healthResolver struct {
 	steps    api.Steps
 	base     map[api.StepID]api.HealthState
 	cache    map[api.StepID]api.HealthState
-	visiting map[api.StepID]bool
+	visiting util.Set[api.StepID]
 	plans    map[api.StepID]*api.ExecutionPlan
 	planErrs map[api.StepID]error
 	match    api.Matcher
@@ -108,7 +109,7 @@ func (e *Engine) ResolveHealth(
 		steps:    cat.Steps,
 		base:     base,
 		cache:    map[api.StepID]api.HealthState{},
-		visiting: map[api.StepID]bool{},
+		visiting: util.Set[api.StepID]{},
 		plans:    map[api.StepID]*api.ExecutionPlan{},
 		planErrs: map[api.StepID]error{},
 		match:    match,
@@ -216,7 +217,7 @@ func (r *healthResolver) resolve(sid api.StepID) api.HealthState {
 		return h
 	}
 
-	if r.visiting[sid] {
+	if r.visiting.Contains(sid) {
 		h := api.HealthState{
 			Status: api.HealthUnknown,
 			Error:  fmt.Sprintf("flow health cycle at step %s", sid),
@@ -240,8 +241,8 @@ func (r *healthResolver) resolve(sid api.StepID) api.HealthState {
 		return h
 	}
 
-	r.visiting[sid] = true
-	defer delete(r.visiting, sid)
+	r.visiting.Add(sid)
+	defer r.visiting.Remove(sid)
 
 	pl, err := r.previewFlowPlan(sid, children)
 	if err != nil {

@@ -10,12 +10,19 @@ import (
 	"github.com/kode4food/argyll/mcp/openapi/handoff"
 )
 
-type handoffInput struct {
-	Info          Info
-	ExistingSteps []RegisteredStep
-	Operations    []Operation
-	Capabilities  Capabilities
-}
+type (
+	handoffInput struct {
+		Info          Info
+		ExistingSteps []RegisteredStep
+		Operations    []Operation
+		Capabilities  Capabilities
+	}
+
+	argKey struct {
+		Name     string
+		Location string
+	}
+)
 
 func operationsPayload(ops []opSpec) []Operation {
 	res := make([]Operation, 0, len(ops))
@@ -137,9 +144,12 @@ func infoPayload(doc *openapi.T) Info {
 }
 
 func dedupeArgs(args []argSpec) []argSpec {
-	seen := map[string]argSpec{}
+	seen := map[argKey]argSpec{}
 	for _, arg := range args {
-		key := arg.Name + "|" + arg.Location
+		key := argKey{
+			Name:     arg.Name,
+			Location: arg.Location,
+		}
 		prev, ok := seen[key]
 		if !ok || preferArg(prev, arg) {
 			seen[key] = arg

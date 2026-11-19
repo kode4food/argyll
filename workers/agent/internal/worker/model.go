@@ -11,9 +11,9 @@ import (
 type (
 	// Provider connects the shared worker to a model API
 	Provider interface {
-		Supports(provider string) bool
-		Names() []string
-		Models(ctx context.Context, provider string) ([]string, error)
+		Supports(api.ProviderID) bool
+		Names() []api.ProviderID
+		Models(context.Context, api.ProviderID) ([]api.AgentModel, error)
 		Open(*Chat) (Convo, error)
 	}
 

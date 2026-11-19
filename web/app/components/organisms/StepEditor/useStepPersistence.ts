@@ -35,7 +35,7 @@ const isObject = (value: unknown): value is Record<string, unknown> =>
 function isAgentDraft(value: unknown): boolean {
   if (value == null) return true;
   if (!isObject(value)) return false;
-  const validText = ["provider", "model", "prologue"].every(
+  const validText = ["provider", "model", "prologue", "effort"].every(
     (key) => value[key] === undefined || typeof value[key] === "string"
   );
   const validNumbers = ["max_turns", "max_tokens", "timeout"].every(

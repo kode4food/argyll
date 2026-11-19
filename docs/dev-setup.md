@@ -51,18 +51,18 @@ If you run the engine outside Docker, make sure these are set appropriately for 
 
 ## Running the reference Agent workers
 
-Docker Compose starts `argyll-agent-anthropic` and `argyll-agent-openai` automatically. Both offer the `argyll` MCP server for you to select in a Step. To enable a provider, create `.env.d/agent.env` at the repository root and add the corresponding API key. The file is optional and is excluded from Git and Docker builds.
+Docker Compose starts `argyll-agent-anthropic` and `argyll-agent-openai` automatically. Both offer the `argyll` MCP server for you to select in a Step. To enable a provider, add its API key to that worker's file at the repository root:
 
-```dotenv
-ANTHROPIC_API_KEY=your-anthropic-key
-OPENAI_API_KEY=your-openai-key
-```
+- Anthropic uses `ANTHROPIC_API_KEY` in `.env.d/agent-anthropic.env`.
+- OpenAI uses `OPENAI_API_KEY` in `.env.d/agent-openai.env`.
 
-Add the keys you use. After updating the file, run `docker compose up -d argyll-agent-anthropic argyll-agent-openai` to apply the new environment.
+Set custom `PROVIDER_URLS` in the file for the worker serving those endpoints. Use the optional `.env.d/agent.env` for settings both workers share. Worker-specific values take precedence. The `.env.d/` directory is excluded from Git and Docker builds.
+
+Run `docker compose up -d argyll-agent-anthropic argyll-agent-openai` to apply the new environment.
 
 The workers share the Go module in `workers/agent`. From the repository root, run `go run ./workers/agent/cmd/argyll-agent-anthropic` or `go run ./workers/agent/cmd/argyll-agent-openai`. To run both locally, set a different `PORT` for each process and configure `AGENT_WORKERS` with their URLs. To build or test with the Go workspace disabled, run `GOWORK=off go build -mod=readonly ./cmd/...` or `make test` from `workers/agent`. The module uses the engine contract from the same checkout.
 
-Each Agent worker includes rates for its default provider. To replace a model’s rates or add a model, set `MODEL_PRICES` to the path of a JSON file readable by the worker. Use `provider/model` keys and rates per million tokens for `input`, `output`, `cache_input`, and `cache_output`, with zero for free tokens. Each entry replaces that model’s full rate entry. Provider-reported charges take precedence. See the [Agent Worker Contract](api/agent-worker.yaml) for the usage fields.
+Each Agent worker includes rates for its default provider. To replace a model's rates or add a model, set `MODEL_PRICES` to a JSON file readable by the worker. Use `provider/model` keys and rates per million tokens for `input`, `output`, `cache_input`, and `cache_output`, with zero for free tokens. Optional `tiers` entries set an `input_over` cutoff and the rates for turns above it. A model override replaces its base rates and tiers. Provider-reported charges take precedence. See the [Agent Worker Contract](api/agent-worker.yaml) for the usage fields.
 
 ## UI dev loop
 

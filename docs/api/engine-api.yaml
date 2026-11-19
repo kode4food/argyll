@@ -581,7 +581,16 @@ paths:
                         models:
                           type: array
                           items:
-                            type: string
+                            type: object
+                            required: [id]
+                            properties:
+                              id:
+                                type: string
+                              efforts:
+                                type: array
+                                description: Reasoning effort values supported by the model
+                                items:
+                                  type: string
                         mcp:
                           type: array
                           items:
@@ -1748,6 +1757,10 @@ components:
           type: string
           description: Model the provider runs
           example: "claude-sonnet-5-5"
+        effort:
+          type: string
+          description: Reasoning effort supported by the selected model
+          example: "low"
         prologue:
           type: string
           description: |

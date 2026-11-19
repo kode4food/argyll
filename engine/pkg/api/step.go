@@ -679,24 +679,24 @@ func (s *Step) validateAttributes() error {
 }
 
 func (s *Step) validateMappingNames() error {
-	inputInnerNames := map[Name]bool{}
-	outputInnerNames := map[Name]bool{}
+	inputInnerNames := util.Set[Name]{}
+	outputInnerNames := util.Set[Name]{}
 
 	for name, attr := range s.Attributes {
 		mapped, _ := s.MappedName(name)
 
 		if attr.IsRuntimeInput() {
-			if _, ok := inputInnerNames[mapped]; ok {
+			if inputInnerNames.Contains(mapped) {
 				return fmt.Errorf("%w: %q", ErrDuplicateInnerName, mapped)
 			}
-			inputInnerNames[mapped] = true
+			inputInnerNames.Add(mapped)
 		}
 
 		if attr.IsOutput() {
-			if _, ok := outputInnerNames[mapped]; ok {
+			if outputInnerNames.Contains(mapped) {
 				return fmt.Errorf("%w: %q", ErrDuplicateInnerName, mapped)
 			}
-			outputInnerNames[mapped] = true
+			outputInnerNames.Add(mapped)
 		}
 	}
 

@@ -23,7 +23,7 @@ import (
 
 type (
 	suite struct {
-		protocol string
+		protocol api.ProviderID
 		provider func(*worker.Config) worker.Provider
 	}
 
@@ -58,16 +58,17 @@ type (
 )
 
 const (
-	providerAnthropic = "anthropic"
-	providerOpenAI    = "openai"
-	crmToken          = "secret"
-	anthropicKeyEnv   = "ANTHROPIC_API_KEY"
-	waitTimeout       = 5 * time.Second
-	maxTestTurns      = 5
+	providerAnthropic api.ProviderID = "anthropic"
+	providerOpenAI    api.ProviderID = "openai"
+
+	crmToken        = "secret"
+	anthropicKeyEnv = "ANTHROPIC_API_KEY"
+	waitTimeout     = 5 * time.Second
+	maxTestTurns    = 5
 )
 
 // Run exercises a provider through the shared worker's HTTP contract
-func Run(t *testing.T, protocol string, provider func(*worker.Config) worker.Provider) {
+func Run(t *testing.T, protocol api.ProviderID, provider func(*worker.Config) worker.Provider) {
 	t.Helper()
 	s := &suite{
 		protocol: protocol,
@@ -85,6 +86,7 @@ func Run(t *testing.T, protocol string, provider func(*worker.Config) worker.Pro
 		{name: "callback retry", run: s.testCallbackRetry},
 		{name: "rejects", run: s.testInvokeRejects},
 		{name: "capabilities", run: s.testAgentCapabilities},
+		{name: "model discovery failure", run: s.testModelDiscoveryFailure},
 		{name: "isolation", run: s.testProviderIsolation},
 		{name: "empty capabilities", run: s.testEmptyCapabilities},
 		{name: "health", run: s.testHealth},
@@ -161,9 +163,12 @@ func (s *suite) testInvoke(t *testing.T) {
 
 		cfg := &worker.Config{
 			Servers:   crmConfig(crmSrv.URL),
-			Providers: map[string]string{providerAnthropic: modelSrv.URL},
-			Prices: map[string]worker.Price{
-				"anthropic/claude-sonnet-5-5": {
+			Providers: map[api.ProviderID]string{providerAnthropic: modelSrv.URL},
+			Prices: map[worker.ModelKey]worker.Price{
+				{
+					Provider: providerAnthropic,
+					Model:    "claude-sonnet-5-5",
+				}: {
 					Input:       new(float64(3)),
 					Output:      new(float64(15)),
 					CacheInput:  new(0.3),
@@ -285,7 +290,7 @@ func (s *suite) testInvoke(t *testing.T) {
 		defer modelSrv.Close()
 
 		cfg := &worker.Config{
-			Providers: map[string]string{"groq": modelSrv.URL},
+			Providers: map[api.ProviderID]string{"groq": modelSrv.URL},
 		}
 		req := agentRequest("groq")
 		req.Step.Agent.MaxTurns = maxTestTurns
@@ -318,7 +323,7 @@ func (s *suite) testInvoke(t *testing.T) {
 		defer modelSrv.Close()
 
 		cfg := &worker.Config{
-			Providers: map[string]string{providerAnthropic: modelSrv.URL},
+			Providers: map[api.ProviderID]string{providerAnthropic: modelSrv.URL},
 		}
 		out := s.invoke(t, cfg, agentRequest(providerAnthropic))
 
@@ -338,7 +343,7 @@ func (s *suite) testInvoke(t *testing.T) {
 		req := agentRequest("local")
 		delete(req.Step.Attributes, "score")
 		cfg := &worker.Config{
-			Providers: map[string]string{"local": modelSrv.URL},
+			Providers: map[api.ProviderID]string{"local": modelSrv.URL},
 		}
 		out := s.invoke(t, cfg, req)
 
@@ -376,6 +381,39 @@ func (s *suite) testCost(t *testing.T) {
 			name:  "configured rates",
 			price: price,
 			usage: api.Usage{"cost": 0.000105, "cost_calculated": 0.000105},
+		},
+		{
+			name: "at the threshold uses the base rates",
+			price: worker.Price{
+				Rates: price.Rates,
+				Tiers: []worker.PriceTier{{InputOver: 10}},
+			},
+			usage: api.Usage{"cost": 0.000105, "cost_calculated": 0.000105},
+		},
+		{
+			name: "cached input counts toward the highest qualifying tier",
+			price: worker.Price{
+				Rates: price.Rates,
+				Tiers: []worker.PriceTier{
+					{
+						InputOver:   9,
+						Input:       new(float64(6)),
+						Output:      new(float64(20)),
+						CacheInput:  new(float64(2)),
+						CacheOutput: new(float64(8)),
+					},
+					{
+						InputOver: 4,
+					},
+				},
+			},
+			cached: true,
+			usage: api.Usage{
+				"cost":                0.000148,
+				"cost_calculated":     0.000148,
+				"cache_input_tokens":  4,
+				"cache_output_tokens": 2,
+			},
 		},
 		{
 			name: "missing rate preserves known charges",
@@ -462,8 +500,13 @@ func (s *suite) testCost(t *testing.T) {
 			srv := httptest.NewServer(model)
 			defer srv.Close()
 			cfg := &worker.Config{
-				Providers: map[string]string{"local": srv.URL},
-				Prices:    map[string]worker.Price{"local/llama-4": tc.price},
+				Providers: map[api.ProviderID]string{"local": srv.URL},
+				Prices: map[worker.ModelKey]worker.Price{
+					{
+						Provider: "local",
+						Model:    "llama-4",
+					}: tc.price,
+				},
 			}
 			out := s.invoke(t, cfg, agentRequest("local"))
 			assert.Nil(t, out.body.Problem)
@@ -494,7 +537,7 @@ func (s *suite) testInvokeFailures(t *testing.T) {
 		defer modelSrv.Close()
 
 		cfg := &worker.Config{
-			Providers: map[string]string{providerAnthropic: modelSrv.URL},
+			Providers: map[api.ProviderID]string{providerAnthropic: modelSrv.URL},
 		}
 		out := s.invoke(t, cfg, agentRequest(providerAnthropic))
 
@@ -513,7 +556,7 @@ func (s *suite) testInvokeFailures(t *testing.T) {
 		defer modelSrv.Close()
 
 		cfg := &worker.Config{
-			Providers: map[string]string{providerAnthropic: modelSrv.URL},
+			Providers: map[api.ProviderID]string{providerAnthropic: modelSrv.URL},
 		}
 		out := s.invoke(t, cfg, agentRequest(providerAnthropic))
 
@@ -555,7 +598,7 @@ func (s *suite) testInvokeFailures(t *testing.T) {
 					status:    tc.providerStatus,
 				})
 				defer model.Close()
-				cfg := &worker.Config{Providers: map[string]string{"local": model.URL}}
+				cfg := &worker.Config{Providers: map[api.ProviderID]string{"local": model.URL}}
 				out := s.invoke(t, cfg, agentRequest("local"))
 				assert.Equal(t, tc.wantStatus, out.body.Problem.Status)
 				if tc.usage != nil {
@@ -609,7 +652,7 @@ func (s *suite) testInvokeAcceptsBeforeModelAnswers(t *testing.T) {
 	hookSrv := httptest.NewServer(hook)
 	defer hookSrv.Close()
 	srv := httptest.NewServer(s.newWorker(t, &worker.Config{
-		Providers: map[string]string{providerAnthropic: modelSrv.URL},
+		Providers: map[api.ProviderID]string{providerAnthropic: modelSrv.URL},
 	}, providerAnthropic).Handler())
 	defer srv.Close()
 
@@ -634,7 +677,7 @@ func (s *suite) testMissingAPIKey(t *testing.T) {
 	defer modelSrv.Close()
 
 	cfg := &worker.Config{
-		Providers: map[string]string{providerAnthropic: modelSrv.URL},
+		Providers: map[api.ProviderID]string{providerAnthropic: modelSrv.URL},
 	}
 	out := s.invoke(t, cfg, agentRequest(providerAnthropic))
 
@@ -661,7 +704,7 @@ func (s *suite) testCallbackRetry(t *testing.T) {
 		hook.ServeHTTP(w, r)
 	}))
 	defer cb.Close()
-	cfg := &worker.Config{Providers: map[string]string{"local": model.URL}}
+	cfg := &worker.Config{Providers: map[api.ProviderID]string{"local": model.URL}}
 	srv := httptest.NewServer(s.newWorker(t, cfg, providerOpenAI).Handler())
 	defer srv.Close()
 
@@ -751,14 +794,25 @@ func (s *suite) testInvokeRejects(t *testing.T) {
 func (s *suite) testAgentCapabilities(t *testing.T) {
 	t.Setenv(anthropicKeyEnv, "test")
 	t.Setenv("OPENAI_API_KEY", "")
+	var calls atomic.Int32
 	models := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		calls.Add(1)
 		w.Header().Set("Content-Type", api.JSONContentType)
 		switch r.URL.Path {
 		case "/v1/models":
 			assert.Equal(t, "test", r.Header.Get("x-api-key"))
-			_, _ = io.WriteString(w, `{"data":[{"id":"claude"}],"has_more":false}`)
+			_, _ = io.WriteString(w, `{"data":[
+				{"id":"claude","lifecycle":"deprecated","capabilities":{
+					"effort":{"supported":true,"low":{"supported":true}}
+				}},
+				{"id":"claude-retired","lifecycle":"retired"}
+			],"has_more":false}`)
 		case "/openai/models":
-			_, _ = io.WriteString(w, `{"data":[{"id":"second"},{"id":"first"}]}`)
+			_, _ = io.WriteString(w, `{"data":[
+				{"id":"second","shutdown_date":"2099-01-01"},
+				{"id":"first"},
+				{"id":"retired","shutdown_date":"2000-01-01"}
+			]}`)
 		default:
 			http.NotFound(w, r)
 		}
@@ -768,55 +822,86 @@ func (s *suite) testAgentCapabilities(t *testing.T) {
 	defer crmSrv.Close()
 	servers := crmConfig(crmSrv.URL)
 	servers["down"] = worker.MCPServer{URL: "http://localhost:1"}
-	cfg := &worker.Config{
-		Servers: servers,
-		Providers: map[string]string{
-			"anthropic": models.URL,
-			"local":     models.URL + "/openai/",
-		},
+	urls := map[api.ProviderID]string{
+		"anthropic": models.URL,
+		"local":     models.URL + "/openai/",
 	}
 	serversList := []api.MCPServer{
 		{Server: "crm", Tools: []string{"delete", "lookup"}},
 		{Server: "down"},
 	}
 	providers := []api.AgentProvider{
-		{Provider: "anthropic", Models: []string{"claude"}, MCP: serversList},
-		{Provider: "local", Models: []string{"first", "second"}, MCP: serversList},
+		{
+			Provider: "anthropic",
+			Models:   []api.AgentModel{{ID: "claude", Efforts: []api.Effort{"low"}}},
+			MCP:      serversList,
+		},
+		{
+			Provider: "local",
+			Models:   []api.AgentModel{{ID: "first"}, {ID: "second"}},
+			MCP:      serversList,
+		},
 	}
 	for _, provider := range providers {
-		t.Run(provider.Provider, func(t *testing.T) {
+		t.Run(string(provider.Provider), func(t *testing.T) {
 			protocol := providerOpenAI
 			if provider.Provider == providerAnthropic {
 				protocol = providerAnthropic
 			}
-			srv := httptest.NewServer(s.newWorker(t, cfg, protocol).Handler())
-			defer srv.Close()
-			resp, err := http.Get(srv.URL + builtins.AgentCapabilitiesPath)
-			assert.NoError(t, err)
-			defer func() { _ = resp.Body.Close() }()
-			assert.Equal(t, http.StatusOK, resp.StatusCode)
-			var list api.AgentCapabilities
-			assert.NoError(t, json.NewDecoder(resp.Body).Decode(&list))
-			assert.Equal(t, []api.AgentProvider{provider}, list.Providers)
+			cfg := &worker.Config{
+				Servers:   servers,
+				Providers: map[api.ProviderID]string{provider.Provider: urls[provider.Provider]},
+			}
+			handler := s.newWorker(t, cfg, protocol).Handler()
+			calls.Store(0)
+			for range 2 {
+				req := httptest.NewRequest(http.MethodGet, builtins.AgentCapabilitiesPath, nil)
+				resp := httptest.NewRecorder()
+				handler.ServeHTTP(resp, req)
+				assert.Equal(t, http.StatusOK, resp.Code)
+				var list api.AgentCapabilities
+				assert.NoError(t, json.NewDecoder(resp.Body).Decode(&list))
+				assert.Equal(t, []api.AgentProvider{provider}, list.Providers)
+			}
+			assert.Equal(t, int32(1), calls.Load())
 		})
 	}
 }
 
+func (s *suite) testModelDiscoveryFailure(t *testing.T) {
+	srv := httptest.NewServer(http.NotFoundHandler())
+	defer srv.Close()
+	cfg := &worker.Config{
+		Providers: map[api.ProviderID]string{s.protocol: srv.URL},
+	}
+	handler := s.newWorker(t, cfg, s.protocol).Handler()
+	req := httptest.NewRequest(http.MethodGet, builtins.AgentCapabilitiesPath, nil)
+	resp := httptest.NewRecorder()
+	handler.ServeHTTP(resp, req)
+	assert.Equal(t, http.StatusOK, resp.Code)
+	var res api.AgentCapabilities
+	assert.NoError(t, json.NewDecoder(resp.Body).Decode(&res))
+	assert.Equal(t, []api.AgentProvider{{
+		Provider: s.protocol,
+		Models:   []api.AgentModel{},
+		MCP:      []api.MCPServer{},
+	}}, res.Providers)
+}
+
 func (s *suite) testProviderIsolation(t *testing.T) {
 	for _, tc := range []struct {
-		protocol string
-		provider string
+		protocol api.ProviderID
+		provider api.ProviderID
 	}{
 		{protocol: providerAnthropic, provider: providerOpenAI},
 		{protocol: providerAnthropic, provider: "local"},
 		{protocol: providerOpenAI, provider: providerAnthropic},
 	} {
-		t.Run(tc.protocol+"/"+tc.provider, func(t *testing.T) {
+		t.Run(string(tc.protocol)+"/"+string(tc.provider), func(t *testing.T) {
 			cfg := &worker.Config{
-				Providers: map[string]string{
-					providerAnthropic: "http://localhost:1",
-					providerOpenAI:    "http://localhost:1",
-					"local":           "http://localhost:1",
+				Providers: map[api.ProviderID]string{
+					tc.protocol: "http://localhost:1",
+					"local":     "http://localhost:1",
 				},
 			}
 			srv := httptest.NewServer(s.newWorker(t, cfg, tc.protocol).Handler())
@@ -859,7 +944,9 @@ func (s *suite) invoke(t *testing.T, cfg *worker.Config, req *api.AgentRequest) 
 	return invokeWorker(t, srv.URL, req)
 }
 
-func (s *suite) newWorker(t *testing.T, cfg *worker.Config, protocol string) *worker.Worker {
+func (s *suite) newWorker(
+	t *testing.T, cfg *worker.Config, protocol api.ProviderID,
+) *worker.Worker {
 	t.Helper()
 	if protocol != s.protocol {
 		t.Skip("exercised by the other provider's test suite")
@@ -910,7 +997,7 @@ func postInvoke(t *testing.T, base string, body any, webhook string) *http.Respo
 	return resp
 }
 
-func agentRequest(provider string, mcpServers ...api.MCPServer) *api.AgentRequest {
+func agentRequest(provider api.ProviderID, mcpServers ...api.MCPServer) *api.AgentRequest {
 	model := "claude-sonnet-5-5"
 	if provider != providerAnthropic {
 		model = "llama-4"
@@ -923,7 +1010,7 @@ func agentRequest(provider string, mcpServers ...api.MCPServer) *api.AgentReques
 			Type:        api.StepTypeAgent,
 			Agent: &api.AgentConfig{
 				Provider:  provider,
-				Model:     model,
+				Model:     api.ModelID(model),
 				Prologue:  "# Score",
 				MCP:       mcpServers,
 				MaxTurns:  2,

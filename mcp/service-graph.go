@@ -47,6 +47,12 @@ type (
 		Kind       string `json:"kind"`
 		Confidence string `json:"confidence"`
 	}
+
+	missingAttrKey struct {
+		Service   string
+		StepID    string
+		Attribute string
+	}
 )
 
 func existingCatalogPayload(steps []openapi.Step) []catalogStep {
@@ -162,14 +168,18 @@ func missingAttributes(nodes []serviceNode) []missingAttr {
 		}
 	}
 
-	seen := util.Set[string]{}
+	seen := util.Set[missingAttrKey]{}
 	var res []missingAttr
 	for _, node := range nodes {
 		for _, in := range node.Inputs {
 			if _, ok := provided[in]; ok {
 				continue
 			}
-			key := node.Service + "|" + node.ID + "|" + in
+			key := missingAttrKey{
+				Service:   node.Service,
+				StepID:    node.ID,
+				Attribute: in,
+			}
 			if seen.Contains(key) {
 				continue
 			}

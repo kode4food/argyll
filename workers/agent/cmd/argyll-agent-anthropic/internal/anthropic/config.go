@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"os"
 
+	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/workers/agent/internal/worker"
 )
 
@@ -26,20 +27,12 @@ func LoadConfig() (*worker.Config, *Provider, error) {
 	return cfg, p, err
 }
 
-func loadPrefixThresholds() (map[string]int, error) {
-	var thresholds map[string]int
+func loadPrefixThresholds() (map[api.ModelID]int, error) {
+	var thresholds map[api.ModelID]int
 	if err := json.Unmarshal([]byte(defaultPrefixThresholds), &thresholds); err != nil {
 		return nil, err
 	}
-	path := os.Getenv("PREFIX_THRESHOLDS")
-	if path == "" {
-		return thresholds, nil
-	}
-	b, err := os.ReadFile(path)
-	if err != nil {
-		return nil, err
-	}
-	if err := json.Unmarshal(b, &thresholds); err != nil {
+	if err := worker.ReadJSON(os.Getenv("PREFIX_THRESHOLDS"), &thresholds); err != nil {
 		return nil, err
 	}
 	return thresholds, nil

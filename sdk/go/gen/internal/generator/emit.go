@@ -18,6 +18,7 @@ import (
 	"golang.org/x/tools/imports"
 
 	"github.com/kode4food/argyll/engine/pkg/api"
+	"github.com/kode4food/argyll/engine/pkg/util"
 )
 
 type (
@@ -51,8 +52,8 @@ type (
 		dialect    dialect
 		imports    map[string]string
 		codecs     map[string]string
-		active     map[string]bool
-		recursive  map[string]bool
+		active     util.Set[string]
+		recursive  util.Set[string]
 		embedTypes map[string]string
 		decls      []string
 		steps      []stepModel
@@ -236,8 +237,8 @@ func newPkgGen(pkg *packages.Package, d dialect) *pkgGen {
 		dialect:    d,
 		imports:    map[string]string{},
 		codecs:     map[string]string{},
-		active:     map[string]bool{},
-		recursive:  map[string]bool{},
+		active:     util.Set[string]{},
+		recursive:  util.Set[string]{},
 		embedTypes: map[string]string{},
 	}
 }
@@ -426,13 +427,15 @@ func (g *pkgGen) wrapCodec(kind string, elem types.Type) (string, error) {
 func (g *pkgGen) structCodec(t types.Type, u *types.Struct) (string, error) {
 	name := g.typeOf(t)
 	if v, ok := g.codecs[name]; ok {
-		g.recursive[name] = g.recursive[name] || g.active[name]
+		if g.active.Contains(name) {
+			g.recursive.Add(name)
+		}
 		return v, nil
 	}
 	v := g.codecName(t)
 	g.codecs[name] = v
-	g.active[name] = true
-	defer delete(g.active, name)
+	g.active.Add(name)
+	defer g.active.Remove(name)
 
 	specs, err := structFields(u)
 	if err != nil {
@@ -457,7 +460,7 @@ func (g *pkgGen) structCodec(t types.Type, u *types.Struct) (string, error) {
 		name:    v,
 		owner:   name,
 		fields:  fields,
-		lazy:    g.recursive[name],
+		lazy:    g.recursive.Contains(name),
 	}))
 	return v, nil
 }
@@ -735,17 +738,17 @@ func embeddedStruct(f *types.Var, tag string) (*types.Struct, bool) {
 // checkAmbiguous rejects what flattening can collide: two attributes of the same name, or two Go
 // fields the generated accessor cannot tell apart
 func checkAmbiguous(fields []fieldSpec) error {
-	attrs := make(map[string]bool, len(fields))
-	names := make(map[string]bool, len(fields))
+	attrs := make(util.Set[string], len(fields))
+	names := make(util.Set[string], len(fields))
 	for _, f := range fields {
-		if attrs[f.attr] {
+		if attrs.Contains(f.attr) {
 			return fmt.Errorf("%w: attribute %q", ErrAmbiguousField, f.attr)
 		}
-		if names[f.Name()] {
+		if names.Contains(f.Name()) {
 			return fmt.Errorf("%w: field %s", ErrAmbiguousField, f.Name())
 		}
-		attrs[f.attr] = true
-		names[f.Name()] = true
+		attrs.Add(f.attr)
+		names.Add(f.Name())
 	}
 	return nil
 }

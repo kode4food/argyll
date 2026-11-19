@@ -44,13 +44,17 @@ jest.mock("./useAgentCapabilities", () => ({
   useAgentCapabilities: () => [
     {
       provider: "anthropic",
-      models: ["claude-sonnet-5-5", "claude-haiku"],
+      models: [
+        { id: "claude-sonnet-5-5", efforts: ["low", "high"] },
+        { id: "claude-haiku" },
+      ],
       mcp: [
         { server: "crm", tools: ["delete", "lookup"] },
         { server: "docs", tools: ["search"] },
       ],
     },
-    { provider: "openai", models: ["gpt"], mcp: [] },
+    { provider: "openai", models: [{ id: "gpt" }], mcp: [] },
+    { provider: "unavailable", models: null, mcp: [] },
   ],
 }));
 
@@ -117,7 +121,7 @@ describe("StepEditorAgentConfiguration", () => {
   });
 
   test("selects providers and models from the catalog", () => {
-    const setAgent = renderConfig();
+    const setAgent = renderConfig({ ...AGENT, effort: "high" });
 
     fireEvent.click(
       screen.getByRole("button", { name: t("stepEditor.agentModelLabel") })
@@ -126,6 +130,7 @@ describe("StepEditorAgentConfiguration", () => {
     expect(setAgent).toHaveBeenLastCalledWith({
       ...AGENT,
       model: "claude-haiku",
+      effort: undefined,
     });
 
     fireEvent.click(
@@ -136,8 +141,44 @@ describe("StepEditorAgentConfiguration", () => {
       ...AGENT,
       provider: "openai",
       model: "",
+      effort: undefined,
       mcp: [],
     });
+  });
+
+  test("offers reasoning effort only for models that advertise it", () => {
+    const setAgent = renderConfig();
+    const effort = screen.getByRole("button", {
+      name: t("stepEditor.agentEffortLabel"),
+    });
+    expect(effort).toHaveTextContent(t("stepEditor.agentEffortDefault"));
+    fireEvent.click(effort);
+    fireEvent.click(screen.getByText("high"));
+    expect(setAgent).toHaveBeenLastCalledWith({ ...AGENT, effort: "high" });
+
+    const setUnsupportedAgent = jest.fn();
+    render(
+      <StepEditorAgentConfiguration
+        agent={{ ...AGENT, model: "claude-haiku" }}
+        setAgent={setUnsupportedAgent}
+      />
+    );
+    expect(
+      screen.getAllByRole("button", {
+        name: t("stepEditor.agentEffortLabel"),
+      })[1]
+    ).toBeDisabled();
+  });
+
+  test("disables model and effort fields when discovery returns null", () => {
+    renderConfig({ ...AGENT, provider: "unavailable" });
+
+    expect(
+      screen.getByRole("button", { name: t("stepEditor.agentModelLabel") })
+    ).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: t("stepEditor.agentEffortLabel") })
+    ).toBeDisabled();
   });
 
   test("disables MCP selection and adding when there are no servers", () => {

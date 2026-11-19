@@ -33,7 +33,16 @@
     "input": 0.1,
     "output": 0.5,
     "cache_input": 0.01,
-    "cache_output": 0.125
+    "cache_output": 0.125,
+    "tiers": [
+      {
+        "input_over": 100000,
+        "input": 0.5,
+        "output": 2.5,
+        "cache_input": 0.05,
+        "cache_output": 0.625
+      }
+    ]
   },
   "anthropic/claude-opus-4-5": {
     "input": 5,

@@ -18,6 +18,7 @@ export function useFlowDropdownManagement(
 
   const filteredFlows = filterFlowsBySearch(flows, searchTerm);
   const selectableItems = filteredFlows.map((w) => w.id);
+  const currentIndex = selectableItems.findIndex((id) => id === selectedFlow);
 
   const closeDropdown = () => {
     setShowDropdown(false);
@@ -76,6 +77,12 @@ export function useFlowDropdownManagement(
         break;
     }
   };
+
+  useEffect(() => {
+    const list = dropdownRef.current;
+    if (!showDropdown || searchTerm || !list || currentIndex < 0) return;
+    list.children[currentIndex + 1]?.scrollIntoView({ block: "nearest" });
+  }, [showDropdown, searchTerm, currentIndex]);
 
   useEffect(() => {
     if (selectedIndex >= 0 && dropdownRef.current) {

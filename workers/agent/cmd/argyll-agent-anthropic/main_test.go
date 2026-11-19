@@ -5,6 +5,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
+	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/workers/agent/cmd/argyll-agent-anthropic/internal/anthropic"
 	"github.com/kode4food/argyll/workers/agent/internal/worker"
 	"github.com/kode4food/argyll/workers/agent/internal/workertest"
@@ -27,7 +28,7 @@ func TestDefaultProvider(t *testing.T) {
 	if !assert.NoError(t, err) {
 		return
 	}
-	assert.Equal(t, []string{anthropic.Name}, p.Names())
+	assert.Equal(t, []api.ProviderID{anthropic.Name}, p.Names())
 	assert.True(t, p.Supports(anthropic.Name))
 	assert.False(t, p.Supports("openai"))
 }

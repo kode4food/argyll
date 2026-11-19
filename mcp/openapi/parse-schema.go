@@ -7,6 +7,7 @@ import (
 	openapi "github.com/getkin/kin-openapi/openapi3"
 
 	"github.com/kode4food/argyll/engine/pkg/api"
+	"github.com/kode4food/argyll/engine/pkg/util"
 )
 
 var schemaTypeMap = map[string]string{
@@ -89,15 +90,12 @@ func mediaSchema(content openapi.Content) *openapi.SchemaRef {
 	return nil
 }
 
-func schemaProps(schema *openapi.Schema) (map[string]*openapi.SchemaRef, map[string]bool) {
+func schemaProps(schema *openapi.Schema) (map[string]*openapi.SchemaRef, util.Set[string]) {
 	props := map[string]*openapi.SchemaRef{}
-	required := map[string]bool{}
 	if schema == nil {
-		return props, required
+		return props, nil
 	}
-	for _, name := range schema.Required {
-		required[name] = true
-	}
+	required := util.SetOf(schema.Required...)
 	maps.Copy(props, schema.Properties)
 	for _, ref := range schema.AllOf {
 		if ref == nil || ref.Value == nil {
@@ -106,7 +104,7 @@ func schemaProps(schema *openapi.Schema) (map[string]*openapi.SchemaRef, map[str
 		partProps, partRequired := schemaProps(ref.Value)
 		maps.Copy(props, partProps)
 		for name := range partRequired {
-			required[name] = true
+			required.Add(name)
 		}
 	}
 	return props, required

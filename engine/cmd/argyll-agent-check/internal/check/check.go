@@ -133,8 +133,8 @@ func (c *checker) request() api.AgentRequest {
 			Name: checkID,
 			Type: api.StepTypeAgent,
 			Agent: &api.AgentConfig{
-				Provider:  c.cfg.Provider,
-				Model:     c.cfg.Model,
+				Provider:  api.ProviderID(c.cfg.Provider),
+				Model:     api.ModelID(c.cfg.Model),
 				Prologue:  prologue,
 				MaxTurns:  DefaultMaxTurns,
 				MaxTokens: DefaultMaxTokens,

@@ -202,7 +202,16 @@ components:
         models:
           type: array
           items:
-            type: string
+            type: object
+            required: [id]
+            properties:
+              id:
+                type: string
+              efforts:
+                type: array
+                description: Reasoning effort values supported by the model
+                items:
+                  type: string
         mcp:
           type: array
           items:

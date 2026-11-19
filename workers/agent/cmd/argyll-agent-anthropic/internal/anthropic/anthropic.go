@@ -16,8 +16,8 @@ import (
 type (
 	// Provider runs agent work through the Anthropic API
 	Provider struct {
-		url        string
-		pfxTokens map[string]int
+		url       string
+		prefixMin map[api.ModelID]int
 	}
 
 	convo struct {
@@ -27,42 +27,52 @@ type (
 )
 
 // Name identifies the Anthropic provider
-const Name = "anthropic"
+const Name api.ProviderID = "anthropic"
 
-var _ worker.Convo = (*convo)(nil)
+var (
+	_ worker.Provider = (*Provider)(nil)
+	_ worker.Convo    = (*convo)(nil)
+)
 
 // New returns an Anthropic provider using the configured base URL
-func New(urls map[string]string) (*Provider, error) {
+func New(urls map[api.ProviderID]string) (*Provider, error) {
 	thresholds, err := loadPrefixThresholds()
 	if err != nil {
 		return nil, err
 	}
 	return &Provider{
-		url:        urls[Name],
-		pfxTokens: thresholds,
+		url:       urls[Name],
+		prefixMin: thresholds,
 	}, nil
 }
 
 // Supports reports whether this adapter serves the named provider
-func (*Provider) Supports(name string) bool {
+func (*Provider) Supports(name api.ProviderID) bool {
 	return name == Name
 }
 
 // Names lists Anthropic when a key or base URL is configured
-func (p *Provider) Names() []string {
+func (p *Provider) Names() []api.ProviderID {
 	if p.url != "" || os.Getenv("ANTHROPIC_API_KEY") != "" {
-		return []string{Name}
+		return []api.ProviderID{Name}
 	}
 	return nil
 }
 
 // Models lists available Anthropic models
-func (p *Provider) Models(ctx context.Context, _ string) ([]string, error) {
-	var models []string
+func (p *Provider) Models(ctx context.Context, _ api.ProviderID) ([]api.AgentModel, error) {
+	var models []api.AgentModel
 	client := p.client(os.Getenv("ANTHROPIC_API_KEY"))
 	pager := client.Models.ListAutoPaging(ctx, anthropic.ModelListParams{})
 	for pager.Next() {
-		models = append(models, pager.Current().ID)
+		m := pager.Current()
+		if m.Lifecycle == anthropic.ModelInfoLifecycleRetired {
+			continue
+		}
+		models = append(models, api.AgentModel{
+			ID:      api.ModelID(m.ID),
+			Efforts: effortLevels(m.Capabilities.Effort),
+		})
 	}
 	return models, pager.Err()
 }
@@ -86,7 +96,7 @@ func (p *Provider) Open(ch *worker.Chat) (worker.Convo, error) {
 	return &convo{
 		client: p.client(key),
 		params: anthropic.MessageNewParams{
-			Model:     ch.Config.Model,
+			Model:     anthropic.Model(ch.Config.Model),
 			MaxTokens: int64(ch.Config.MaxTokens),
 			System: []anthropic.TextBlockParam{
 				{
@@ -98,6 +108,9 @@ func (p *Provider) Open(ch *worker.Chat) (worker.Convo, error) {
 				anthropic.NewUserMessage(anthropic.NewTextBlock(ch.User)),
 			},
 			Tools: tools,
+			OutputConfig: anthropic.OutputConfigParam{
+				Effort: anthropic.OutputConfigEffort(ch.Config.Effort),
+			},
 		},
 	}, nil
 }
@@ -160,6 +173,28 @@ func (p *Provider) client(key string) anthropic.Client {
 		opts = append(opts, option.WithBaseURL(p.url))
 	}
 	return anthropic.NewClient(opts...)
+}
+
+func effortLevels(effort anthropic.EffortCapability) []api.Effort {
+	if !effort.Supported {
+		return nil
+	}
+	var levels []api.Effort
+	for _, level := range []struct {
+		name      api.Effort
+		supported bool
+	}{
+		{name: api.Effort(anthropic.OutputConfigEffortLow), supported: effort.Low.Supported},
+		{name: api.Effort(anthropic.OutputConfigEffortMedium), supported: effort.Medium.Supported},
+		{name: api.Effort(anthropic.OutputConfigEffortHigh), supported: effort.High.Supported},
+		{name: api.Effort(anthropic.OutputConfigEffortXhigh), supported: effort.Xhigh.Supported},
+		{name: api.Effort(anthropic.OutputConfigEffortMax), supported: effort.Max.Supported},
+	} {
+		if level.supported {
+			levels = append(levels, level.name)
+		}
+	}
+	return levels
 }
 
 func toolSchema(schema map[string]any) anthropic.ToolInputSchemaParam {

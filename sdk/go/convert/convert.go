@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"math"
 	"reflect"
+
+	"github.com/kode4food/argyll/engine/pkg/util"
 )
 
 type (
@@ -54,7 +56,7 @@ type (
 	}
 
 	toState struct {
-		active map[any]bool
+		active util.Set[any]
 	}
 )
 
@@ -329,18 +331,18 @@ func (f structField[S, T]) to(s *S, state *toState) (any, error) {
 }
 
 func (s *toState) enter(v any) error {
-	if s.active[v] {
+	if s.active.Contains(v) {
 		return fmt.Errorf("%w: %T", ErrCyclicValue, v)
 	}
 	if s.active == nil {
-		s.active = map[any]bool{}
+		s.active = util.Set[any]{}
 	}
-	s.active[v] = true
+	s.active.Add(v)
 	return nil
 }
 
 func (s *toState) leave(v any) {
-	delete(s.active, v)
+	s.active.Remove(v)
 }
 
 func integral[T Numeric]() bool {
