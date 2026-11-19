@@ -50,7 +50,7 @@ paths:
         "4XX":
           description: |
             Request rejected. Use 400 for an invalid request or 422 for an
-            unsupported provider or MCP server. Argyll retries 429.
+            unsupported provider or MCP server. Argyll retries 408 and 429.
           content:
             application/problem+json:
               schema:

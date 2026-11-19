@@ -408,7 +408,8 @@ func TestHTTPStatusRetry(t *testing.T) {
 		{http.StatusRequestHeaderFieldsTooLarge, false},
 		{http.StatusTooManyRequests, true},
 		{http.StatusRequestTimeout, true},
-		{http.StatusConflict, true},
+		{http.StatusConflict, false},
+		{http.StatusPreconditionFailed, false},
 		{http.StatusInternalServerError, true},
 	}
 	for _, tc := range tests {

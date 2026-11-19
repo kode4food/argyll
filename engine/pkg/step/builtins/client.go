@@ -37,13 +37,7 @@ var (
 
 var endpointParamPattern = regexp.MustCompile(`\{([^{}]+)\}`)
 
-var permanentHTTPStatuses = util.SetOf(
-	http.StatusBadRequest, http.StatusUnauthorized, http.StatusForbidden, http.StatusNotFound,
-	http.StatusMethodNotAllowed, http.StatusNotAcceptable, http.StatusGone,
-	http.StatusLengthRequired, http.StatusRequestEntityTooLarge, http.StatusRequestURITooLong,
-	http.StatusUnsupportedMediaType, http.StatusUnprocessableEntity,
-	http.StatusRequestHeaderFieldsTooLarge,
-)
+var retryableHTTPStatuses = util.SetOf(http.StatusRequestTimeout, http.StatusTooManyRequests)
 
 // NewHTTPClient creates a new HTTP client with the specified request timeout
 func NewHTTPClient(timeout time.Duration) Client {
@@ -280,7 +274,7 @@ func httpStatusError(status int, problem *api.ProblemDetails) error {
 }
 
 func retryableHTTPStatus(status int) bool {
-	return !permanentHTTPStatuses.Contains(status)
+	return status >= http.StatusInternalServerError || retryableHTTPStatuses.Contains(status)
 }
 
 func problemFromBody(contentType string, body []byte) *api.ProblemDetails {

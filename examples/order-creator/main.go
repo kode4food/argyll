@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"math/rand"
+	"net/http"
 	"os"
 	"sync"
 	"time"
@@ -37,7 +38,11 @@ type (
 
 const version = "dev"
 
-var orders sync.Map
+var (
+	orders sync.Map
+
+	unprocessable = argyll.MakeHTTPError(http.StatusUnprocessableEntity)
+)
 
 func main() {
 	engineURL := os.Getenv("ARGYLL_ENGINE_URL")
@@ -161,7 +166,7 @@ func createOrder(ctx argyll.StepContext, args api.Args) (api.Args, error) {
 			slog.String("user_id", userID),
 			slog.Float64("grand_total", grandTotal),
 			slog.Float64("credit_limit", creditLimit))
-		return nil, argyll.Conflict(
+		return nil, unprocessable(
 			"order total $%.2f exceeds credit limit $%.2f", grandTotal, creditLimit,
 		)
 	}

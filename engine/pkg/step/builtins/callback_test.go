@@ -80,7 +80,7 @@ func TestCallbackInvokeProblem(t *testing.T) {
 	}{
 		{name: "permanent", status: 422, called: "FailWork"},
 		{name: "retryable", status: 503, called: "RetryWork"},
-		{name: "no status", called: "RetryWork"},
+		{name: "no status", called: "FailWork"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			usage := api.Usage{"input_tokens": 3}

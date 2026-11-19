@@ -4,7 +4,7 @@ go 1.27.0
 
 require (
 	github.com/getkin/kin-openapi v0.153.0
-	github.com/kode4food/argyll/engine v0.0.0-20261118073932-093178e5786b
+	github.com/kode4food/argyll/engine v0.0.0-20261119132443-bb583dcd39dc
 	github.com/localrivet/gomcp v1.7.2
 	github.com/santhosh-tekuri/jsonschema/v6 v6.0.3
 	github.com/stretchr/testify v1.12.1
@@ -21,9 +21,6 @@ require (
 	github.com/gorilla/websocket v1.5.3 // indirect
 	github.com/klauspost/compress v1.19.2 // indirect
 	github.com/kode4food/argex v0.1.11 // indirect
-	github.com/kode4food/caravan v0.0.0-20261110162553-22d42e0829c8 // indirect
-	github.com/kode4food/lru v0.0.0-20261011080515-d1c90c62daee // indirect
-	github.com/kode4food/timebox v0.4.1-0.20261117103344-496eeef3071e // indirect
 	github.com/localrivet/wilduri v0.0.0-20250504021349-6ce732e97cca // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/nats-io/nats.go v1.53.1 // indirect

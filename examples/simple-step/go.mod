@@ -3,16 +3,13 @@ module github.com/kode4food/argyll/examples/simple-step
 go 1.27.0
 
 require (
-	github.com/kode4food/argyll/engine v0.0.0-20261118073932-093178e5786b
-	github.com/kode4food/argyll/sdk/go v0.0.0-20261118073932-093178e5786b
+	github.com/kode4food/argyll/engine v0.0.0-20261119132443-bb583dcd39dc
+	github.com/kode4food/argyll/sdk/go v0.0.0-20261119132443-bb583dcd39dc
 )
 
 require (
 	github.com/BurntSushi/toml v1.6.0 // indirect
 	github.com/kode4food/argex v0.1.11 // indirect
-	github.com/kode4food/caravan v0.0.0-20261110162553-22d42e0829c8 // indirect
-	github.com/kode4food/lru v0.0.0-20261011080515-d1c90c62daee // indirect
-	github.com/kode4food/timebox v0.4.1-0.20261117103344-496eeef3071e // indirect
 	golang.org/x/exp/typeparams v0.0.0-20260824195058-e88cd73687aa // indirect
 	golang.org/x/mod v0.43.0 // indirect
 	golang.org/x/sync v0.25.0 // indirect

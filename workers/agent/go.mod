@@ -5,7 +5,7 @@ go 1.27.0
 require (
 	github.com/anthropics/anthropic-sdk-go v1.84.0
 	github.com/kode4food/argex v0.1.11
-	github.com/kode4food/argyll/engine v0.0.0-20261118073932-093178e5786b
+	github.com/kode4food/argyll/engine v0.0.0-20261119132443-bb583dcd39dc
 	github.com/kode4food/lru v0.0.0-20261011080515-d1c90c62daee
 	github.com/modelcontextprotocol/go-sdk v1.8.0
 	github.com/openai/openai-go/v3 v3.102.0

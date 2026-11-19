@@ -3,8 +3,8 @@ module github.com/kode4food/argyll/examples/stock-reservation
 go 1.27.0
 
 require (
-	github.com/kode4food/argyll/engine v0.0.0-20261118073932-093178e5786b
-	github.com/kode4food/argyll/sdk/go v0.0.0-20261119122004-66c9d1b987cd
+	github.com/kode4food/argyll/engine v0.0.0-20261119132443-bb583dcd39dc
+	github.com/kode4food/argyll/sdk/go v0.0.0-20261119132443-bb583dcd39dc
 )
 
 require (
