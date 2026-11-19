@@ -364,6 +364,32 @@ func TestAttributeProps(t *testing.T) {
 	assert.Equal(t, "value > 0", attrs["amount"].Required.Match.Source)
 }
 
+func TestMetaKey(t *testing.T) {
+	src := "type In struct {\n" +
+		"ReceiptToken string `argyll:\"role:meta\"`\n" +
+		"Step string `argyll:\"step_id;role:meta\"`\n" +
+		"Flow string `argyll:\"role:meta;key:flow_id\"`\n" +
+		"}\n" +
+		"//argyll:step\nfunc Run(in In) {}\n"
+	attrs := sourceSteps(t, src)["run"].Attributes
+	assert.Equal(t, "receipt_token", attrs["receipt_token"].MetaKey())
+	assert.Equal(t, "step_id", attrs["step_id"].MetaKey())
+	assert.Equal(t, "flow_id", attrs["flow"].MetaKey())
+}
+
+func TestFeedID(t *testing.T) {
+	src := "type In struct {\n" +
+		"OrderTotal int `argyll:\"role:feed\"`\n" +
+		"Orders int `argyll:\"order_count;role:feed\"`\n" +
+		"Revenue int `argyll:\"role:feed;id:daily-revenue\"`\n" +
+		"}\n" +
+		"//argyll:step\nfunc Run(in In) {}\n"
+	attrs := sourceSteps(t, src)["run"].Attributes
+	assert.Equal(t, api.FeedID("order_total"), attrs["order_total"].FeedID())
+	assert.Equal(t, api.FeedID("order_count"), attrs["order_count"].FeedID())
+	assert.Equal(t, api.FeedID("daily-revenue"), attrs["revenue"].FeedID())
+}
+
 func TestStepConfig(t *testing.T) {
 	byID := steps(t, "../../../example")
 	st := byID["charge-card-v2"]
@@ -837,6 +863,11 @@ func TestAdditionalDiagnostics(t *testing.T) {
 			src: "type In struct { Value string `argyll:\";key:x\"` }\n" +
 				"//argyll:step\nfunc Bad(in In) {}",
 			want: "key\" needs role",
+		},
+		"id needs a feed": {
+			src: "type In struct { Value string `argyll:\"id:orders\"` }\n" +
+				"//argyll:step\nfunc Bad(in In) {}",
+			want: "id\" needs role",
 		},
 	}
 

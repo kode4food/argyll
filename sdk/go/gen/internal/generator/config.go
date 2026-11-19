@@ -27,6 +27,7 @@ const (
 	defaultProp     = "default"
 	valueProp       = "value"
 	keyProp         = "key"
+	idProp          = "id"
 	collectProp     = "collect"
 	deadlineProp    = "deadline"
 	forEachProp     = "for_each"
@@ -128,6 +129,13 @@ var attrSetters = map[string]setter[api.AttributeSpec]{
 		s.Meta.Key = v
 		return nil
 	},
+	idProp: func(s *api.AttributeSpec, v string) error {
+		if s.Feed == nil {
+			return roleError(idProp, api.RoleFeed)
+		}
+		s.Feed.ID = api.FeedID(v)
+		return nil
+	},
 	deadlineProp: func(s *api.AttributeSpec, v string) error {
 		if s.Optional == nil {
 			return roleError(deadlineProp, api.RoleOptional)
@@ -200,6 +208,7 @@ func setRole(s *api.AttributeSpec, role api.AttributeRole) error {
 	s.Optional = nil
 	s.Const = nil
 	s.Meta = nil
+	s.Feed = nil
 	s.Output = nil
 	switch role {
 	case api.RoleRequired:
@@ -210,6 +219,8 @@ func setRole(s *api.AttributeSpec, role api.AttributeRole) error {
 		s.Const = &api.ConstConfig{}
 	case api.RoleMeta:
 		s.Meta = &api.MetaConfig{}
+	case api.RoleFeed:
+		s.Feed = &api.FeedConfig{}
 	case api.RoleOutput:
 		s.Output = &api.OutputConfig{}
 	default:

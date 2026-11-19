@@ -28,6 +28,8 @@ func Greet(args GreetArgs) GreetRes {
 
 Run `go generate ./...`, then serve the generated Steps with `gen.Serve(ctx, ArgyllServiceSteps()...)`.
 
+Fields tagged `role:meta` or `role:feed` use the Attribute name as the metadata key or Feed ID. Use `key:` or `id:` to select a different source. For example, `OrderTotal int` with `argyll:"role:feed;id:daily-total"` reads the `daily-total` Feed as the `order_total` Attribute.
+
 For a standalone `package main`, pass `-server` before the package pattern to generate a minimal `main` function that registers and serves the steps. Generated servers log each step invocation with `slog`:
 
 ```go

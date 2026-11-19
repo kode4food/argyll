@@ -665,6 +665,12 @@ func (g *pkgGen) contract(
 		if err != nil {
 			return "", nil, g.errorAt(fn, "%w on %s", err, f.Name())
 		}
+		if spec.Meta != nil && spec.Meta.Key == "" {
+			spec.Meta.Key = f.attr
+		}
+		if spec.Feed != nil && spec.Feed.ID == "" {
+			spec.Feed.ID = api.FeedID(f.attr)
+		}
 		attrs[api.Name(f.attr)] = spec
 	}
 	return expr, attrs, nil
