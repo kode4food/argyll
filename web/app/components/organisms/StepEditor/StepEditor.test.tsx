@@ -710,7 +710,7 @@ describe("StepEditor", () => {
           http: expect.objectContaining({
             invoke: expect.objectContaining({
               endpoint: "http://localhost:8080/test",
-              timeout: expect.any(Number),
+              timeout: 5000,
             }),
             health: "http://localhost:8080/health",
           }),
@@ -888,7 +888,7 @@ describe("StepEditor", () => {
     expect(screen.getByTestId("script-editor")).toHaveValue(draft);
   });
 
-  test("saves edits from JSON mode", async () => {
+  test("saves JSON edits that remove an invoke timeout", async () => {
     const step = createHttpStep();
     mockUpdateStep.mockResolvedValue(undefined);
 
@@ -903,6 +903,7 @@ describe("StepEditor", () => {
 
     const jsonInput = await screen.findByTestId("script-editor");
 
+    delete step.http?.invoke.timeout;
     fireEvent.change(jsonInput, {
       target: {
         value: JSON.stringify(
@@ -926,6 +927,9 @@ describe("StepEditor", () => {
         })
       );
     });
+    expect(mockUpdateStep.mock.calls[0][1].http.invoke).not.toHaveProperty(
+      "timeout"
+    );
   });
 
   test("shows error when endpoint is empty", async () => {
@@ -953,53 +957,50 @@ describe("StepEditor", () => {
     });
   });
 
-  test("shows error when timeout is invalid", async () => {
+  test("keeps an omitted invoke timeout unset when saving", async () => {
     const step = createHttpStep();
+    delete step.http?.invoke.timeout;
+    mockUpdateStep.mockResolvedValue(step);
 
     render(
       <StepEditor step={step} onClose={mockOnClose} onUpdate={mockOnUpdate} />
     );
 
-    await waitFor(() => {
-      const durationInputs = screen.getAllByTestId("duration-input");
-      const httpTimeoutInput = durationInputs[durationInputs.length - 1];
-      fireEvent.change(httpTimeoutInput, { target: { value: "0" } });
-
-      const saveButton = screen.getByText(t("stepEditor.save"));
-      fireEvent.click(saveButton);
-    });
+    expect(screen.getAllByTestId("duration-input").at(-1)).toHaveValue("");
+    fireEvent.click(screen.getByText(t("stepEditor.save")));
 
     await waitFor(() => {
-      expect(
-        screen.getByText(t("stepEditor.timeoutPositive"))
-      ).toBeInTheDocument();
-      expect(mockUpdateStep).not.toHaveBeenCalled();
+      expect(mockUpdateStep).toHaveBeenCalledTimes(1);
     });
-  });
-
-  test("shows error when timeout is not a number", async () => {
-    const step = createHttpStep();
-
-    render(
-      <StepEditor step={step} onClose={mockOnClose} onUpdate={mockOnUpdate} />
+    expect(mockUpdateStep.mock.calls[0][1].http.invoke).not.toHaveProperty(
+      "timeout"
     );
-
-    await waitFor(() => {
-      const durationInputs = screen.getAllByTestId("duration-input");
-      const httpTimeoutInput = durationInputs[durationInputs.length - 1];
-      fireEvent.change(httpTimeoutInput, { target: { value: "" } });
-
-      const saveButton = screen.getByText(t("stepEditor.save"));
-      fireEvent.click(saveButton);
-    });
-
-    await waitFor(() => {
-      expect(
-        screen.getByText(t("stepEditor.timeoutPositive"))
-      ).toBeInTheDocument();
-      expect(mockUpdateStep).not.toHaveBeenCalled();
-    });
   });
+
+  test.each(["", "0"])(
+    "clears an explicit invoke timeout with %j",
+    async (value) => {
+      const step = createHttpStep();
+      mockUpdateStep.mockResolvedValue(step);
+
+      render(
+        <StepEditor step={step} onClose={mockOnClose} onUpdate={mockOnUpdate} />
+      );
+
+      const durationInputs = screen.getAllByTestId("duration-input");
+      fireEvent.change(durationInputs[durationInputs.length - 1], {
+        target: { value },
+      });
+      fireEvent.click(screen.getByText(t("stepEditor.save")));
+
+      await waitFor(() => {
+        expect(mockUpdateStep).toHaveBeenCalledTimes(1);
+      });
+      expect(mockUpdateStep.mock.calls[0][1].http.invoke).not.toHaveProperty(
+        "timeout"
+      );
+    }
+  );
 
   test("handles API error on save", async () => {
     const step = createHttpStep();

@@ -14,10 +14,16 @@ ENGINE_URL = os.getenv("ARGYLL_ENGINE_URL", "http://localhost:8080")
 
 # Client expects base_url without /engine path prefix
 client = Client(ENGINE_URL)
+payments = {}
+payments_lock = threading.Lock()
 
 
 def handle_payment(ctx: StepContext, args: dict) -> dict:
     """Process payment asynchronously."""
+    token = ctx.metadata.get("receipt_token")
+    if not token:
+        raise HTTPError(400, "receipt token required")
+
     order = args.get("order")
     if not isinstance(order, dict):
         raise HTTPError(400, "order must be an object")
@@ -41,6 +47,19 @@ def handle_payment(ctx: StepContext, args: dict) -> dict:
 
     print(f"Webhook URL: {webhook_url}")
     async_ctx = AsyncContext(context=ctx, webhook_url=webhook_url)
+
+    with payments_lock:
+        is_retry = token in payments
+        outputs = payments.get(token)
+        if not is_retry:
+            payments[token] = None
+
+    if is_retry:
+        if outputs is not None:
+            threading.Thread(
+                target=async_ctx.success, args=(outputs,), daemon=True
+            ).start()
+        return {}
 
     def process_payment():
         """Background payment processing."""
@@ -71,7 +90,10 @@ def handle_payment(ctx: StepContext, args: dict) -> dict:
                 f"amount={grand_total}"
             )
 
-            async_ctx.success({"payment_result": payment_result})
+            outputs = {"payment_result": payment_result}
+            with payments_lock:
+                payments[token] = outputs
+            async_ctx.success(outputs)
 
         else:
             failure_reasons = [
@@ -85,7 +107,11 @@ def handle_payment(ctx: StepContext, args: dict) -> dict:
 
             print(f"Payment failed: order_id={order_id}, reason={reason}")
 
-            async_ctx.fail(f"payment failed: {reason}")
+            try:
+                async_ctx.fail(f"payment failed: {reason}")
+            finally:
+                with payments_lock:
+                    del payments[token]
 
     threading.Thread(target=process_payment, daemon=True).start()
 

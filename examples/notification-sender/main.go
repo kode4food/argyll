@@ -6,8 +6,10 @@ import (
 	"math/rand"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 
+	"github.com/kode4food/argyll/engine/pkg/api"
 	argyll "github.com/kode4food/argyll/sdk/go"
 )
 
@@ -38,14 +40,38 @@ type (
 		Email           string
 		PreferredMethod string
 	}
+
+	notificationCall func() error
 )
+
+var notifications sync.Map
 
 //go:generate go tool argyll-gen -server .
 
 //argyll:step
 //argyll:description send order confirmation notifications
 //argyll:tags domain:notifications; capability:send; example; demo:checkout
-func NotificationSender(args NotificationArgs) error {
+func NotificationSender(ctx argyll.StepContext, args NotificationArgs) error {
+	tkn, ok := ctx.Metadata().GetString[api.Token](api.MetaReceiptToken)
+	if !ok {
+		return argyll.BadRequest("receipt token required")
+	}
+	call := notificationCall(sync.OnceValue(func() error {
+		return sendNotifications(args)
+	}))
+	entry, _ := notifications.LoadOrStore(tkn, &call)
+	succeeded := false
+	defer func() {
+		if !succeeded {
+			notifications.CompareAndDelete(tkn, entry)
+		}
+	}()
+	err := (*entry.(*notificationCall))()
+	succeeded = err == nil
+	return err
+}
+
+func sendNotifications(args NotificationArgs) error {
 	payment := args.PaymentResult
 	user := args.UserInfo
 

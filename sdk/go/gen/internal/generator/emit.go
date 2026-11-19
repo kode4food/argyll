@@ -103,8 +103,7 @@ type (
 
 	// wrapBodyView is the snippet's view of a wrapper's call and result assembly
 	wrapBodyView struct {
-		Function string
-		Inputs   []string
+		Call     string
 		Outputs  []string
 		OutType  string
 		HasError bool
@@ -125,6 +124,7 @@ const (
 	mappingTag = "argyll-mapping"
 	skipField  = "-"
 
+	sdkPackage     = "github.com/kode4food/argyll/sdk/go"
 	codecPackage   = "github.com/kode4food/argyll/sdk/go/codec"
 	convertPackage = "github.com/kode4food/argyll/sdk/go/convert"
 	runtimePackage = "github.com/kode4food/argyll/sdk/go/gen"
@@ -168,15 +168,15 @@ var (
 	serviceDialect = dialect{
 		pkg:        "codec",
 		iface:      "Codec",
-		sync:       "gen.Sync(",
-		compensate: "gen.Compensate(",
+		sync:       "gen.Sync",
+		compensate: "gen.Comp",
 	}
 
 	embeddedDialect = dialect{
 		pkg:        "convert",
 		iface:      "Converter",
-		sync:       "gen.EmbeddedSync(",
-		compensate: "gen.EmbeddedCompensate(",
+		sync:       "gen.EmbedSync",
+		compensate: "gen.EmbedComp",
 	}
 
 	serverPackages = []string{
@@ -585,12 +585,13 @@ func renderStructDeclaration(decl structDeclaration) string {
 
 // syncHandlerArgs are the pieces of a generated synchronous handler
 type syncHandlerArgs struct {
-	Adapter    string
-	InAdapter  string
-	OutAdapter string
-	InType     string
-	OutType    string
-	Body       string
+	Adapter     string
+	ContextType string
+	InAdapter   string
+	OutAdapter  string
+	InType      string
+	OutType     string
+	Body        string
 }
 
 func syncHandler(args syncHandlerArgs) string {
@@ -608,25 +609,20 @@ func syncBody(args syncBodyArgs) string {
 	return snippet(syncBodySnippet, args)
 }
 
-func wrapBody(fn string, names wrapNames, outType string, hasErr bool) string {
-	inputs := make([]string, len(names.inputs))
-	for i, n := range names.inputs {
-		inputs[i] = ExportedName(n)
-	}
-	outputs := make([]string, len(names.outputs))
-	for i, n := range names.outputs {
+func wrapBody(call string, names []string, outType string, hasErr bool) string {
+	outputs := make([]string, len(names))
+	for i, n := range names {
 		outputs[i] = ExportedName(n)
 	}
 	return snippet(wrapBodySnippet, wrapBodyView{
-		Function: fn,
-		Inputs:   inputs,
+		Call:     call,
 		Outputs:  outputs,
 		OutType:  outType,
 		HasError: hasErr,
 	})
 }
 
-func compAdapter(cfg compAdapterConfig) string {
+func compAdapter(cfg *compAdapterConfig) string {
 	return snippet(compensateHandlerSnippet, cfg)
 }
 

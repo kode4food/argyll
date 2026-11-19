@@ -69,6 +69,42 @@ func TestSyncNoOutputs(t *testing.T) {
 	assert.JSONEq(t, `{}`, w.Body.String())
 }
 
+func TestHTTPContext(t *testing.T) {
+	newRequest := func(path string) *http.Request {
+		r := httptest.NewRequestWithContext(
+			t.Context(), http.MethodPost, path, strings.NewReader(`{"left":2}`),
+		)
+		r.Header.Set(api.HeaderFlowID, "flow-1")
+		r.Header.Set(api.HeaderStepID, "sum")
+		r.Header.Set(api.HeaderReceiptToken, "tkn")
+		return r
+	}
+
+	r := newRequest("/sum")
+	check := func(ctx argyll.StepContext, in sumArgs) error {
+		assert.Equal(t, r.Context().Done(), ctx.Done())
+		assert.Equal(t, api.StepID("sum"), ctx.StepID())
+		assert.Equal(t, api.FlowID("flow-1"), ctx.FlowID())
+		assert.Equal(t, "tkn", ctx.Metadata()[api.MetaReceiptToken])
+		assert.Equal(t, 2, in.Left)
+		return nil
+	}
+	h := gen.SyncCtx(
+		sumArgsCodec(), codec.Struct[struct{}](),
+		func(ctx argyll.StepContext, in sumArgs) (struct{}, error) {
+			return struct{}{}, check(ctx, in)
+		},
+	)
+	w := httptest.NewRecorder()
+	h(w, r)
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	w = httptest.NewRecorder()
+	r = newRequest("/sum/compensate")
+	gen.CompCtx(sumArgsCodec(), check)(w, r)
+	assert.Equal(t, http.StatusNoContent, w.Code)
+}
+
 func TestSyncError(t *testing.T) {
 	h := gen.Sync(sumArgsCodec(), sumResultCodec(),
 		func(sumArgs) (sumResult, error) {
@@ -156,7 +192,7 @@ func TestSyncMethodNotAllowed(t *testing.T) {
 
 func TestCompensate(t *testing.T) {
 	var got compArgs
-	h := gen.Compensate(
+	h := gen.Comp(
 		compArgsCodec(),
 		func(args compArgs) error {
 			got = args
@@ -175,7 +211,7 @@ func TestCompensate(t *testing.T) {
 }
 
 func TestCompensateError(t *testing.T) {
-	h := gen.Compensate(
+	h := gen.Comp(
 		codec.Struct[struct{}](), func(struct{}) error { return errRefused },
 	)
 
@@ -230,7 +266,7 @@ func TestServeFailure(t *testing.T) {
 
 func TestMux(t *testing.T) {
 	st := sumStep()
-	st.Compensate = gen.Compensate(
+	st.Compensate = gen.Comp(
 		codec.Struct[struct{}](), func(struct{}) error { return nil },
 	)
 	srv := httptest.NewServer(gen.Mux(st))

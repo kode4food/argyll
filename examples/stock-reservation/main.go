@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/kode4food/argyll/engine/pkg/api"
 	argyll "github.com/kode4food/argyll/sdk/go"
 )
 
@@ -35,6 +36,7 @@ type (
 		mu           sync.Mutex
 		stockLevels  map[string]int
 		reservations map[string][]StockReservation
+		completed    map[api.Token]StockReservation
 	}
 )
 
@@ -52,6 +54,7 @@ func newInventory() *inventory {
 			"prod-headphones": 0,
 		},
 		reservations: map[string][]StockReservation{},
+		completed:    map[api.Token]StockReservation{},
 	}
 }
 
@@ -59,7 +62,18 @@ func newInventory() *inventory {
 //argyll:compensate releaseStock
 //argyll:description reserve inventory for an order
 //argyll:tags domain:inventory; capability:reserve; example; demo:checkout
-func reserveStock(order Order) (reservation StockReservation, err error) {
+func reserveStock(ctx argyll.StepContext, order Order) (reservation StockReservation, err error) {
+	tkn, ok := ctx.Metadata().GetString[api.Token](api.MetaReceiptToken)
+	if !ok {
+		return StockReservation{}, argyll.BadRequest("receipt token required")
+	}
+	inv.mu.Lock()
+	out, ok := inv.completed[tkn]
+	inv.mu.Unlock()
+	if ok {
+		return out, nil
+	}
+
 	orderID := order.ID
 	productID := order.ProductID
 	quantity := order.Quantity
@@ -71,9 +85,11 @@ func reserveStock(order Order) (reservation StockReservation, err error) {
 
 	simulateLatency()
 
-	// Thread-safe stock reservation
 	inv.mu.Lock()
 	defer inv.mu.Unlock()
+	if out, ok := inv.completed[tkn]; ok {
+		return out, nil
+	}
 
 	currentStock, ok := inv.stockLevels[productID]
 	if !ok {
@@ -108,6 +124,7 @@ func reserveStock(order Order) (reservation StockReservation, err error) {
 
 	// Track reservation
 	inv.reservations[productID] = append(inv.reservations[productID], reservation)
+	inv.completed[tkn] = reservation
 
 	slog.Info("Stock reserved",
 		slog.String("reservation_id", reservation.ReservationID),
@@ -127,10 +144,7 @@ func releaseStock(reservation StockReservation) error {
 		slog.String("reservation_id", reservationID),
 		slog.String("product_id", productID))
 
-	simulateLatency()
-
 	inv.mu.Lock()
-	defer inv.mu.Unlock()
 
 	// Releasing an unknown reservation is a no-op, so a repeated compensation cannot return the
 	// same stock twice
@@ -139,6 +153,7 @@ func releaseStock(reservation StockReservation) error {
 		return r.ReservationID == reservationID
 	})
 	if idx < 0 {
+		inv.mu.Unlock()
 		slog.Info("Reservation already released",
 			slog.String("reservation_id", reservationID),
 			slog.String("product_id", productID))
@@ -147,15 +162,19 @@ func releaseStock(reservation StockReservation) error {
 
 	quantity := held[idx].Quantity
 	before := inv.stockLevels[productID]
-	inv.stockLevels[productID] = before + quantity
+	after := before + quantity
+	inv.stockLevels[productID] = after
 	inv.reservations[productID] = slices.Delete(held, idx, idx+1)
+	inv.mu.Unlock()
+
+	simulateLatency()
 
 	slog.Info("Stock released",
 		slog.String("reservation_id", reservationID),
 		slog.String("product_id", productID),
 		slog.Int("quantity", quantity),
 		slog.Int("stock_before", before),
-		slog.Int("stock_after", inv.stockLevels[productID]))
+		slog.Int("stock_after", after))
 
 	return nil
 }

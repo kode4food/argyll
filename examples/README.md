@@ -14,9 +14,11 @@ docker compose up
 | `inventory-resolver` | Sync product and stock lookup |
 | `order-creator` | Validation and derived order values |
 | `payment-processor` | Async completion through a webhook |
-| `stock-reservation` | `//argyll:wrap`, shared simulation state, and `//argyll:compensate` |
+| `stock-reservation` | Stock reservation and compensation |
 | `notification-sender` | `//argyll:step` sink over several upstream results |
 | `simple-step` | Inline Lua Steps |
+
+Order creation, stock reservation, payment processing, and notification sending keep successful results in memory and replay them when the same receipt token is retried.
 
 ## Run the Complete Flow
 

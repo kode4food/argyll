@@ -33,21 +33,19 @@ var (
 )
 
 // Sync adapts a plain Go function to a synchronous Argyll step handler
-func Sync[I, O any](
-	in codec.Codec[I], out codec.Codec[O], fn func(I) (O, error),
+func Sync[I, O any](in codec.Codec[I], out codec.Codec[O], fn func(I) (O, error)) http.HandlerFunc {
+	return syncHTTP(in, out, func(_ *http.Request, args I) (O, error) {
+		return fn(args)
+	})
+}
+
+// SyncCtx adapts a typed function that accepts the Step's HTTP request context
+func SyncCtx[I, O any](
+	in codec.Codec[I], out codec.Codec[O], fn func(argyll.StepContext, I) (O, error),
 ) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		args, ok := decodeBody(w, r, in)
-		if !ok {
-			return
-		}
-		res, err := invoke(fn, args)
-		if err != nil {
-			writeFailure(w, err, FailureStatus, "Step")
-			return
-		}
-		writeValue(w, http.StatusOK, out, res)
-	}
+	return syncHTTP(in, out, func(r *http.Request, args I) (O, error) {
+		return fn(requestCtx(r), args)
+	})
 }
 
 func (e *PanicError) Error() string {
@@ -56,6 +54,30 @@ func (e *PanicError) Error() string {
 
 func (e *PanicError) Unwrap() error {
 	return argyll.ErrHandlerPanic
+}
+
+func syncHTTP[I, O any](
+	in codec.Codec[I], out codec.Codec[O], fn func(*http.Request, I) (O, error),
+) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		args, ok := decodeBody(w, r, in)
+		if !ok {
+			return
+		}
+		res, err := invoke(func(in I) (O, error) { return fn(r, in) }, args)
+		if err != nil {
+			writeFailure(w, err, FailureStatus, "Step")
+			return
+		}
+		writeValue(w, http.StatusOK, out, res)
+	}
+}
+
+func requestCtx(r *http.Request) argyll.StepContext {
+	meta := api.MetadataFromHeaders(r.Header)
+	fid, _ := meta.GetString[api.FlowID](api.MetaFlowID)
+	sid, _ := meta.GetString[api.StepID](api.MetaStepID)
+	return argyll.NewStepContext(r.Context(), fid, sid, meta)
 }
 
 func invoke[I, O any](fn func(I) (O, error), in I) (out O, err error) {

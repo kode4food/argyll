@@ -71,9 +71,7 @@ export function useStepEditorForm({
     step?.http?.compensate?.mode ?? "sync"
   );
   const [httpTimeout, setHttpTimeout] = useState(
-    step && step.type === "service" && step.http?.invoke?.timeout
-      ? step.http.invoke.timeout
-      : 5000
+    step?.http?.invoke?.timeout ?? 0
   );
   const [script, setScript] = useState(step?.script?.source || "");
   const [scriptLanguage, setScriptLanguage] = useState(
@@ -197,7 +195,7 @@ export function useStepEditorForm({
       );
       setCompensateTimeout(stepData.http?.compensate?.timeout || 0);
       setCompensateMode(stepData.http?.compensate?.mode ?? "sync");
-      setHttpTimeout(stepData.http?.invoke?.timeout || 5000);
+      setHttpTimeout(stepData.http?.invoke?.timeout ?? 0);
       setHandling(stepData.handling || "standard");
       resetAttributes(stepData);
       setTags(stepData?.tags ?? []);

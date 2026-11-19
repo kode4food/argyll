@@ -336,7 +336,7 @@ describe("stepEditorUtils", () => {
       { endpoint: " " },
       { key: "stepEditor.endpointRequired" },
     ],
-    ["zero timeout", { httpTimeout: 0 }, { key: "stepEditor.timeoutPositive" }],
+    ["unset timeout", { httpTimeout: 0 }, null],
     [
       "negative timeout",
       { httpTimeout: -1000 },

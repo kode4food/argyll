@@ -105,11 +105,11 @@ func setupStepServer(client *Client, st Step, handle InvokeHandler) error {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/health", HealthHandler(api.Name(id)))
 
-	handler := makeInvokeHandler(client, id, handle)
+	handler := makeInvokeHandler(id, handle)
 	mux.HandleFunc("/"+string(id), handler)
 
 	if st.compensate != nil {
-		compHandler := makeCompensateHandler(client, id, st.compensate)
+		compHandler := makeCompensateHandler(id, st.compensate)
 		mux.HandleFunc("/"+string(id)+"/compensate", compHandler)
 	}
 
@@ -126,9 +126,7 @@ func setupStepServer(client *Client, st Step, handle InvokeHandler) error {
 	return server.ListenAndServe()
 }
 
-func makeCompensateHandler(
-	client *Client, id api.StepID, handler CompensateHandler,
-) http.HandlerFunc {
+func makeCompensateHandler(id api.StepID, handler CompensateHandler) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			WriteProblem(w, http.StatusMethodNotAllowed, "Method not allowed")
@@ -141,16 +139,7 @@ func makeCompensateHandler(
 			return
 		}
 
-		meta := api.MetadataFromHeaders(r.Header)
-		fid, _ := meta.GetString[api.FlowID](api.MetaFlowID)
-
-		ctx := &StepContext{
-			Context:  r.Context(),
-			Client:   client.Flow(fid),
-			StepID:   id,
-			Metadata: meta,
-		}
-
+		ctx := requestStepContext(r, id)
 		httpErr := compensateWithRecovery(ctx, handler, body)
 		if httpErr != nil {
 			WriteProblem(w, httpErr.StatusCode, httpErr.Message)
@@ -161,7 +150,7 @@ func makeCompensateHandler(
 	}
 }
 
-func makeInvokeHandler(client *Client, id api.StepID, handler InvokeHandler) http.HandlerFunc {
+func makeInvokeHandler(id api.StepID, handler InvokeHandler) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			WriteProblem(w, http.StatusMethodNotAllowed, "Method not allowed")
@@ -174,15 +163,7 @@ func makeInvokeHandler(client *Client, id api.StepID, handler InvokeHandler) htt
 			return
 		}
 
-		meta := api.MetadataFromHeaders(r.Header)
-		fid, _ := meta.GetString[api.FlowID](api.MetaFlowID)
-
-		ctx := &StepContext{
-			Context:  r.Context(),
-			Client:   client.Flow(fid),
-			StepID:   id,
-			Metadata: meta,
-		}
+		ctx := requestStepContext(r, id)
 		outputs, err := invokeWithRecovery(ctx, handler, args)
 		if err != nil {
 			WriteProblem(w, err.StatusCode, err.Message)
@@ -194,13 +175,19 @@ func makeInvokeHandler(client *Client, id api.StepID, handler InvokeHandler) htt
 	}
 }
 
+func requestStepContext(r *http.Request, sid api.StepID) StepContext {
+	meta := api.MetadataFromHeaders(r.Header)
+	fid, _ := meta.GetString[api.FlowID](api.MetaFlowID)
+	return NewStepContext(r.Context(), fid, sid, meta)
+}
+
 func invokeWithRecovery(
-	ctx *StepContext, handler InvokeHandler, args api.Args,
+	ctx StepContext, handler InvokeHandler, args api.Args,
 ) (outputs api.Args, httpErr *HTTPError) {
 	defer func() {
 		if r := recover(); r != nil {
 			slog.Error("Step handler panicked",
-				log.StepID(ctx.StepID),
+				log.StepID(ctx.StepID()),
 				log.Error(ErrHandlerPanic),
 				slog.String("panic", fmt.Sprintf("%v", r)))
 			httpErr = InternalServerError("%s: %v", ErrHandlerPanic, r)
@@ -219,12 +206,12 @@ func invokeWithRecovery(
 }
 
 func compensateWithRecovery(
-	ctx *StepContext, handler CompensateHandler, args api.Args,
+	ctx StepContext, handler CompensateHandler, args api.Args,
 ) (httpErr *HTTPError) {
 	defer func() {
 		if r := recover(); r != nil {
 			slog.Error("Compensate handler panicked",
-				log.StepID(ctx.StepID),
+				log.StepID(ctx.StepID()),
 				log.Error(ErrHandlerPanic),
 				slog.String("panic", fmt.Sprintf("%v", r)))
 			httpErr = InternalServerError("%s: %v", ErrHandlerPanic, r)

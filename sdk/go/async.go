@@ -14,7 +14,7 @@ import (
 // AsyncContext provides functionality to manage asynchronous step execution and embeds StepContext
 // with the webhook URL for result delivery
 type AsyncContext struct {
-	*StepContext
+	StepContext
 	webhookURL string
 }
 
@@ -26,12 +26,13 @@ var (
 
 // NewAsyncContext creates a new async context from a StepContext and extracts webhook_url from the
 // StepContext metadata
-func NewAsyncContext(ctx *StepContext) (*AsyncContext, error) {
-	if ctx.Metadata == nil {
+func NewAsyncContext(ctx StepContext) (*AsyncContext, error) {
+	meta := ctx.Metadata()
+	if meta == nil {
 		return nil, ErrMetadataNotFound
 	}
 
-	webhookURL, ok := ctx.Metadata[api.MetaWebhookURL].(string)
+	webhookURL, ok := meta[api.MetaWebhookURL].(string)
 	if !ok || webhookURL == "" {
 		return nil, ErrWebhookURLNotFound
 	}
@@ -60,12 +61,12 @@ func (c *AsyncContext) Fail(err error) error {
 
 // FlowID returns the flow ID for this async context
 func (c *AsyncContext) FlowID() string {
-	return string(c.Client.FlowID())
+	return string(c.StepContext.FlowID())
 }
 
 // StepID returns the step ID for this async context
 func (c *AsyncContext) StepID() string {
-	return string(c.StepContext.StepID)
+	return string(c.StepContext.StepID())
 }
 
 // WebhookURL returns the webhook URL for delivering step results

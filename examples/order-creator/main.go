@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"math/rand"
 	"os"
+	"sync"
 	"time"
 
 	"github.com/kode4food/argyll/engine/pkg/api"
@@ -13,23 +14,30 @@ import (
 	argyll "github.com/kode4food/argyll/sdk/go"
 )
 
-type Order struct {
-	ID             string  `json:"id"`
-	UserID         string  `json:"user_id"`
-	ProductID      string  `json:"product_id"`
-	Quantity       int     `json:"quantity"`
-	UnitPrice      float64 `json:"unit_price"`
-	TotalAmount    float64 `json:"total_amount"`
-	ShippingCost   float64 `json:"shipping_cost"`
-	Tax            float64 `json:"tax"`
-	GrandTotal     float64 `json:"grand_total"`
-	Status         string  `json:"status"`
-	PaymentMethod  string  `json:"payment_method"`
-	ShippingMethod string  `json:"shipping_method"`
-	CreatedAt      string  `json:"created_at"`
-}
+type (
+	// Order holds the validated order and its calculated totals
+	Order struct {
+		ID             string  `json:"id"`
+		UserID         string  `json:"user_id"`
+		ProductID      string  `json:"product_id"`
+		Quantity       int     `json:"quantity"`
+		UnitPrice      float64 `json:"unit_price"`
+		TotalAmount    float64 `json:"total_amount"`
+		ShippingCost   float64 `json:"shipping_cost"`
+		Tax            float64 `json:"tax"`
+		GrandTotal     float64 `json:"grand_total"`
+		Status         string  `json:"status"`
+		PaymentMethod  string  `json:"payment_method"`
+		ShippingMethod string  `json:"shipping_method"`
+		CreatedAt      string  `json:"created_at"`
+	}
+
+	orderCall func() (api.Args, error)
+)
 
 const version = "dev"
+
+var orders sync.Map
 
 func main() {
 	engineURL := os.Getenv("ARGYLL_ENGINE_URL")
@@ -63,7 +71,27 @@ func main() {
 	}
 }
 
-func handle(ctx *argyll.StepContext, args api.Args) (api.Args, error) {
+func handle(ctx argyll.StepContext, args api.Args) (api.Args, error) {
+	tkn, ok := ctx.Metadata().GetString[api.Token](api.MetaReceiptToken)
+	if !ok {
+		return nil, argyll.BadRequest("receipt token required")
+	}
+	call := orderCall(sync.OnceValues(func() (api.Args, error) {
+		return createOrder(ctx, args)
+	}))
+	entry, _ := orders.LoadOrStore(tkn, &call)
+	succeeded := false
+	defer func() {
+		if !succeeded {
+			orders.CompareAndDelete(tkn, entry)
+		}
+	}()
+	out, err := (*entry.(*orderCall))()
+	succeeded = err == nil
+	return out, err
+}
+
+func createOrder(ctx argyll.StepContext, args api.Args) (api.Args, error) {
 	// Extract and validate user info
 	userInfo, ok := args["user_info"].(map[string]any)
 	if !ok {
@@ -151,7 +179,7 @@ func handle(ctx *argyll.StepContext, args api.Args) (api.Args, error) {
 		selectedErr := errMsg[rand.Intn(len(errMsg))]
 		slog.Warn("Simulating transient failure (will retry)",
 			log.Error(errors.New(selectedErr)),
-			log.StepID(ctx.StepID))
+			log.StepID(ctx.StepID()))
 		return nil, argyll.ServiceUnavailable("%s", selectedErr)
 	}
 

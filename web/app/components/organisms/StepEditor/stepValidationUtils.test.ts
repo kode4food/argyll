@@ -112,11 +112,11 @@ describe("stepValidationUtils", () => {
     ).toBeNull();
   });
 
-  test("requires positive timeout for http steps", () => {
+  test("rejects a negative timeout for HTTP Steps", () => {
     expect(
       getValidationError({
         ...BASE_ARGS,
-        httpTimeout: 0,
+        httpTimeout: -1000,
       })
     ).toEqual({ key: "stepEditor.timeoutPositive" });
   });

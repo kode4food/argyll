@@ -1,12 +1,10 @@
 package argyll_test
 
 import (
-	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 
@@ -22,13 +20,7 @@ func TestNewAsyncContext(t *testing.T) {
 			"test-flow/test-step/t123",
 	}
 
-	client := argyll.NewClient("http://localhost:8080", 30*time.Second)
-	ctx := &argyll.StepContext{
-		Context:  context.Background(),
-		Client:   client.Flow("test-flow"),
-		StepID:   "test-step",
-		Metadata: meta,
-	}
+	ctx := argyll.NewStepContext(t.Context(), "test-flow", "test-step", meta)
 
 	ac, err := argyll.NewAsyncContext(ctx)
 	assert.NoError(t, err)
@@ -55,15 +47,9 @@ func TestAsyncContextMissingMeta(t *testing.T) {
 		},
 	}
 
-	client := argyll.NewClient("http://localhost:8080", 30*time.Second)
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ctx := &argyll.StepContext{
-				Context:  context.Background(),
-				Client:   client.Flow("test-flow"),
-				StepID:   "test-step",
-				Metadata: tt.meta,
-			}
+			ctx := argyll.NewStepContext(t.Context(), "test-flow", "test-step", tt.meta)
 			_, err := argyll.NewAsyncContext(ctx)
 			assert.ErrorIs(t, err, tt.wantErr)
 		})
@@ -91,13 +77,7 @@ func TestAsyncContextComplete(t *testing.T) {
 		api.MetaWebhookURL: server.URL,
 	}
 
-	client := argyll.NewClient(server.URL, 30*time.Second)
-	ctx := &argyll.StepContext{
-		Context:  context.Background(),
-		Client:   client.Flow("test-flow"),
-		StepID:   "test-step",
-		Metadata: meta,
-	}
+	ctx := argyll.NewStepContext(t.Context(), "test-flow", "test-step", meta)
 	ac, err := argyll.NewAsyncContext(ctx)
 	assert.NoError(t, err)
 
@@ -125,13 +105,7 @@ func TestAsyncContextFail(t *testing.T) {
 		api.MetaWebhookURL: server.URL,
 	}
 
-	client := argyll.NewClient(server.URL, 30*time.Second)
-	ctx := &argyll.StepContext{
-		Context:  context.Background(),
-		Client:   client.Flow("test-flow"),
-		StepID:   "test-step",
-		Metadata: meta,
-	}
+	ctx := argyll.NewStepContext(t.Context(), "test-flow", "test-step", meta)
 	ac, err := argyll.NewAsyncContext(ctx)
 	assert.NoError(t, err)
 
@@ -154,13 +128,7 @@ func TestAsyncContextWebhookError(t *testing.T) {
 		api.MetaWebhookURL: server.URL,
 	}
 
-	client := argyll.NewClient(server.URL, 30*time.Second)
-	ctx := &argyll.StepContext{
-		Context:  context.Background(),
-		Client:   client.Flow("test-flow"),
-		StepID:   "test-step",
-		Metadata: meta,
-	}
+	ctx := argyll.NewStepContext(t.Context(), "test-flow", "test-step", meta)
 	ac, err := argyll.NewAsyncContext(ctx)
 	assert.NoError(t, err)
 
@@ -192,13 +160,7 @@ func TestComplete(t *testing.T) {
 		api.MetaWebhookURL: server.URL,
 	}
 
-	client := argyll.NewClient(server.URL, 30*time.Second)
-	ctx := &argyll.StepContext{
-		Context:  context.Background(),
-		Client:   client.Flow("test-flow"),
-		StepID:   "test-step",
-		Metadata: meta,
-	}
+	ctx := argyll.NewStepContext(t.Context(), "test-flow", "test-step", meta)
 	ac, err := argyll.NewAsyncContext(ctx)
 	assert.NoError(t, err)
 

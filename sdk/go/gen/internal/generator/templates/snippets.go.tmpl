@@ -32,9 +32,9 @@ return &v.{{.Field}}
 
 {{define "loggedHandler"}}logged({{printf "%q" .ID}}, {{.Handler}}){{end}}
 
-{{define "syncHandler"}}{{.Adapter}}
+{{define "syncHandler"}}{{.Adapter}}{{if .ContextType}}Ctx{{end}}(
 {{.InAdapter}}, {{.OutAdapter}},
-func(in {{.InType}}) ({{.OutType}}, error) {
+func({{if .ContextType}}ctx {{.ContextType}}, {{end}}in {{.InType}}) ({{.OutType}}, error) {
 {{.Body}}
 }){{end}}
 
@@ -55,8 +55,7 @@ return {{.OutputType}}{}, nil
 {{- if or .Outputs .HasError}}
 {{- range $i, $out := .Outputs}}{{if $i}}, {{end}}r{{$i}}{{end}}
 {{- if .HasError}}{{if .Outputs}}, {{end}}err{{end}} :=
-{{- end}} {{.Function}}(
-{{- range $i, $in := .Inputs}}{{if $i}}, {{end}}in.{{$in}}{{end}})
+{{- end}} {{.Call}}
 {{if .HasError}}if err != nil {
 return {{.OutType}}{}, err
 }
@@ -64,9 +63,9 @@ return {{.OutType}}{}, err
 {{- range $i, $out := .Outputs}}{{if $i}}, {{end}}{{$out}}: r{{$i}}{{end}}}, nil
 {{- end}}
 
-{{define "compensateHandler"}}{{.Adapter}}
+{{define "compensateHandler"}}{{.Adapter}}{{if .ContextType}}Ctx{{end}}(
 {{.CompensateAdapter}},
-func(in {{.Type}}) error {
+func({{if .ContextType}}ctx {{.ContextType}}, {{end}}in {{.Type}}) error {
 {{if .Fallible}}return {{.Call}}
 {{- else}}{{.Call}}
 return nil

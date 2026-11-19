@@ -8,8 +8,8 @@ github.com/kode4food/argex v0.1.11 h1:y0PWlXTOiP+6nSlkr2a7fRmHvZXaLN9WDuxAYpHdWC
 github.com/kode4food/argex v0.1.11/go.mod h1:JG0tTv5KE93koAXtOclwNu7KRS+wbuNV6HSu+topkWI=
 github.com/kode4food/argyll/engine v0.0.0-20261118073932-093178e5786b h1:Fg4F7A918fnGRKDqyEO4sRrNbZtd2v0CGyNaInDUiwk=
 github.com/kode4food/argyll/engine v0.0.0-20261118073932-093178e5786b/go.mod h1:UqxIVbVPqExZXLVASMWE9zJyaJWiI6dhJMiU6sOua20=
-github.com/kode4food/argyll/sdk/go v0.0.0-20261118073932-093178e5786b h1:r/8gzdESs7kfn7krwkGvpZC1Xl+vHfFl8S8sevkOtAM=
-github.com/kode4food/argyll/sdk/go v0.0.0-20261118073932-093178e5786b/go.mod h1:iEQp9wTVO3Qr8MqHOyWGThSTPb3okM6h/g3GFT7XwDs=
+github.com/kode4food/argyll/sdk/go v0.0.0-20261119122004-66c9d1b987cd h1:CA0aJPXrMc8R21Q7/mTgeqGGuGY54qTMPxB10BVJv3s=
+github.com/kode4food/argyll/sdk/go v0.0.0-20261119122004-66c9d1b987cd/go.mod h1:KOKySx2g1cfA9xHPXFMcJ41slHFNTiNUZH0PqJXluiI=
 github.com/kode4food/caravan v0.0.0-20261110162553-22d42e0829c8 h1:Q2JSXKYvvC3Ne1JUjepfNavTp1dGKdi764LDyeXlOkI=
 github.com/kode4food/caravan v0.0.0-20261110162553-22d42e0829c8/go.mod h1:Tp+5ZCngBCAdnC25fcjuTCSiYYe5hyOQcuXM0NNUQdE=
 github.com/kode4food/lru v0.0.0-20261011080515-d1c90c62daee h1:VCagisdenZ3Q0iSL0Ku5AOLr4g/GSYP7CwQJNm2G/mY=

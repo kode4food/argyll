@@ -121,7 +121,7 @@ export function buildStepPayload({
       invoke: {
         endpoint: endpoint.trim(),
         method: httpMethod,
-        timeout: httpTimeout,
+        ...(httpTimeout !== 0 && { timeout: httpTimeout }),
         mode: httpMode,
       },
       compensate:

@@ -121,8 +121,8 @@ func TestGeneratedEmbeddedSurface(t *testing.T) {
 	assert.Contains(t, text, "func ArgyllEmbeddedSteps() []*api.Step")
 	assert.Contains(t, text, `"calculate-risk": {`)
 	assert.Contains(t, text, `"greeter": {`)
-	assert.Contains(t, text, "Invoke: gen.EmbeddedSync(")
-	assert.Contains(t, text, "Compensate: gen.EmbeddedCompensate(")
+	assert.Contains(t, text, "Invoke: gen.EmbedSync(")
+	assert.Contains(t, text, "Compensate: gen.EmbedComp(")
 	assert.Regexp(t, `Type:\s+"calculate-risk",`, text)
 	assert.Regexp(t, `Type:\s+"greeter",`, text)
 	assert.Contains(t, text, "convertRiskArgs := convert.Struct(")
@@ -143,7 +143,7 @@ func TestGeneratedServerEmbedded(t *testing.T) {
 
 	assert.NotContains(t, text, "ArgyllEmbeddedHandlers")
 	assert.NotContains(t, text, "ArgyllEmbeddedSteps")
-	assert.NotContains(t, text, "gen.EmbeddedSync")
+	assert.NotContains(t, text, "gen.EmbedSync")
 	assert.NotContains(t, text, "convert")
 }
 
@@ -262,6 +262,40 @@ func TestWrapInference(t *testing.T) {
 	assert.Contains(t, byID, api.StepID("grade-customer"))
 	assert.Contains(t, text, "type GradeCustomerIn struct {\n\t\tCustomerId")
 	assert.Contains(t, text, "type GradeCustomerOut struct {\n\t\tScore")
+}
+
+func TestStepContext(t *testing.T) {
+	src := "import \"github.com/kode4food/argyll/sdk/go\"\n" +
+		"type Ctx = argyll.StepContext\n" +
+		"type Args struct { Order string `argyll:\"compensated:true\"` }\n" +
+		"//argyll:step\n//argyll:compensate Undo\n" +
+		"func Run(ctx Ctx, in Args) {}\n" +
+		"func Undo(ctx Ctx, in Args) error { return nil }\n" +
+		"//argyll:wrap (order-id) -> (reservation)\n//argyll:compensate Release\n" +
+		"func Reserve(ctx argyll.StepContext, id string) string { return id }\n" +
+		"func Release(ctx argyll.StepContext, reservation string) {}\n" +
+		"//argyll:wrap\nfunc Audit(ctx argyll.StepContext) {}\n"
+	steps := sourceSteps(t, src)
+	assert.Len(t, steps["run"].Attributes, 1)
+	assert.Len(t, steps["reserve"].Attributes, 2)
+	assert.Empty(t, steps["audit"].Attributes)
+
+	out, err := renderSource(t, src)
+	assert.NoError(t, err)
+	text := string(out)
+	for _, want := range []string{
+		"gen.SyncCtx(",
+		"gen.CompCtx(",
+		"gen.EmbedSyncCtx(",
+		"gen.EmbedCompCtx(",
+		"Run(ctx, in)",
+		"Undo(ctx, in)",
+		"Reserve(ctx, in.OrderId)",
+		"Release(ctx, in.Reservation)",
+		"Audit(ctx)",
+	} {
+		assert.Contains(t, text, want)
+	}
 }
 
 func TestZeroOutputStep(t *testing.T) {
@@ -947,7 +981,7 @@ func TestCompensate(t *testing.T) {
 	assert.Contains(t, text, "return Undo(in)")
 	assert.Contains(t, text, "Unwrap(in.Result)\n")
 	assert.Contains(t, text, "Reset()\n")
-	assert.Contains(t, text, "Compensate: gen.Compensate(")
+	assert.Contains(t, text, "Compensate: gen.Comp(")
 }
 
 func TestEmbeddedFields(t *testing.T) {

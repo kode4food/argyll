@@ -112,7 +112,7 @@ func main() {
 	}
 }
 
-func handle(_ *argyll.StepContext, args api.Args) (api.Args, error) {
+func handle(_ argyll.StepContext, args api.Args) (api.Args, error) {
 	time.Sleep(time.Duration(5+rand.Intn(5)) * time.Second)
 
 	productID, hasProductID := args["product_id"].(string)

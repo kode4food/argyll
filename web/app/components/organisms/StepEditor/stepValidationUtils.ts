@@ -126,7 +126,7 @@ function validateHttpStepConfig(
     const endpointError = validateGetEndpointParams(attributes, http.endpoint);
     if (endpointError) return endpointError;
   }
-  if (!http.httpTimeout || http.httpTimeout <= 0) {
+  if (http.httpTimeout < 0) {
     return { key: "stepEditor.timeoutPositive" };
   }
   return null;

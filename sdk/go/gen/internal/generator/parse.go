@@ -7,6 +7,7 @@ import (
 	"go/types"
 	"maps"
 	"regexp"
+	"slices"
 	"strings"
 
 	"github.com/kode4food/argyll/engine/pkg/api"
@@ -36,6 +37,7 @@ type (
 
 	compAdapterConfig struct {
 		Adapter           string
+		ContextType       string
 		CompensateAdapter string
 		Type              string
 		Call              string
@@ -329,17 +331,18 @@ func (g *pkgGen) model(config *stepModelConfig) (stepModel, error) {
 }
 
 func (g *pkgGen) stepFor(fn *ast.FuncDecl, sig *types.Signature, decl stepDecl) (stepModel, error) {
-	n := sig.Params().Len()
+	params, ctxType := g.handlerParams(sig)
+	n := params.Len()
 	if n > 1 {
 		return stepModel{}, g.errorAt(fn,
 			"%w: %s takes zero or one argument struct",
 			ErrBadSignature, fn.Name.Name)
 	}
 	var in types.Type
-	call := fn.Name.Name + "()"
+	call := handlerCall(fn.Name.Name, ctxType != "")
 	if n == 1 {
-		in = sig.Params().At(0).Type()
-		call = fn.Name.Name + "(in)"
+		in = params.At(0).Type()
+		call = handlerCall(fn.Name.Name, ctxType != "", "in")
 	}
 	inCodec, inAttrs, err := g.contract(fn, in, false)
 	if err != nil {
@@ -387,24 +390,26 @@ func (g *pkgGen) stepFor(fn *ast.FuncDecl, sig *types.Signature, decl stepDecl) 
 		declaration: decl,
 		attributes:  attrs,
 		invoke: syncHandler(syncHandlerArgs{
-			Adapter:    g.dialect.sync,
-			InAdapter:  inCodec,
-			OutAdapter: outCodec,
-			InType:     g.typeOf(in),
-			OutType:    g.typeOf(res),
-			Body:       body,
+			Adapter:     g.dialect.sync,
+			ContextType: ctxType,
+			InAdapter:   inCodec,
+			OutAdapter:  outCodec,
+			InType:      g.typeOf(in),
+			OutType:     g.typeOf(res),
+			Body:        body,
 		}),
 		compensate: compensate,
 	})
 }
 
 func (g *pkgGen) wrapFor(fn *ast.FuncDecl, sig *types.Signature, decl stepDecl) (stepModel, error) {
+	params, ctxType := g.handlerParams(sig)
 	names, err := parseWrap(decl.attrs)
 	if err != nil {
 		return stepModel{}, g.errorAt(fn, "%w: %s", err, fn.Name.Name)
 	}
 	if names.inputs == nil {
-		names.inputs, err = g.inferNames(fn, sig.Params(), sig.Params().Len(), "parameter")
+		names.inputs, err = g.inferNames(fn, params, params.Len(), "parameter")
 	}
 	if err != nil {
 		return stepModel{}, err
@@ -415,10 +420,10 @@ func (g *pkgGen) wrapFor(fn *ast.FuncDecl, sig *types.Signature, decl stepDecl) 
 	if err != nil {
 		return stepModel{}, err
 	}
-	if sig.Params().Len() != len(names.inputs) {
+	if params.Len() != len(names.inputs) {
 		return stepModel{}, g.errorAt(fn,
 			"%w: %s declares %d inputs but takes %d", ErrBadDirective,
-			fn.Name.Name, len(names.inputs), sig.Params().Len())
+			fn.Name.Name, len(names.inputs), params.Len())
 	}
 	res, hasErr, err := g.wrapResults(fn, sig, len(names.outputs))
 	if err != nil {
@@ -427,7 +432,8 @@ func (g *pkgGen) wrapFor(fn *ast.FuncDecl, sig *types.Signature, decl stepDecl) 
 
 	inType := fn.Name.Name + "In"
 	outType := fn.Name.Name + "Out"
-	inCodec, inAttrs, err := g.wrapStruct(inType, names.inputs, paramTypes(sig), false)
+	inTypes := paramTypes(params)
+	inCodec, inAttrs, err := g.wrapStruct(inType, names.inputs, inTypes, false)
 	if err != nil {
 		return stepModel{}, g.errorAt(fn, "%w", err)
 	}
@@ -435,7 +441,7 @@ func (g *pkgGen) wrapFor(fn *ast.FuncDecl, sig *types.Signature, decl stepDecl) 
 	if err != nil {
 		return stepModel{}, g.errorAt(fn, "%w", err)
 	}
-	compFields := namedCompFields(names.inputs, paramTypes(sig), inAttrs)
+	compFields := namedCompFields(names.inputs, inTypes, inAttrs)
 	outFields := namedCompFields(names.outputs, res, outAttrs)
 	compFields = append(compFields, outFields...)
 	compensate, err := g.compHandler(&compHandlerConfig{
@@ -452,17 +458,19 @@ func (g *pkgGen) wrapFor(fn *ast.FuncDecl, sig *types.Signature, decl stepDecl) 
 		inputs:  inAttrs,
 		outputs: outAttrs,
 	})
+	call := wrappedCall(fn.Name.Name, ctxType != "", names.inputs)
 	return g.model(&stepModelConfig{
 		function:    fn,
 		declaration: decl,
 		attributes:  attrs,
 		invoke: syncHandler(syncHandlerArgs{
-			Adapter:    g.dialect.sync,
-			InAdapter:  inCodec,
-			OutAdapter: outCodec,
-			InType:     inType,
-			OutType:    outType,
-			Body:       wrapBody(fn.Name.Name, names, outType, hasErr),
+			Adapter:     g.dialect.sync,
+			ContextType: ctxType,
+			InAdapter:   inCodec,
+			OutAdapter:  outCodec,
+			InType:      inType,
+			OutType:     outType,
+			Body:        wrapBody(call, names.outputs, outType, hasErr),
 		}),
 		compensate: compensate,
 	})
@@ -477,19 +485,22 @@ func (g *pkgGen) compHandler(cfg *compHandlerConfig) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	if sig.Params().Len() == 0 {
-		return compAdapter(compAdapterConfig{
-			Adapter:           g.dialect.compensate,
-			CompensateAdapter: g.emptyCodec(),
-			Type:              "struct{}",
-			Call:              name + "()",
-			Fallible:          sig.Results().Len() == 1,
-		}), nil
+	params, ctxType := g.handlerParams(sig)
+	adapter := &compAdapterConfig{
+		Adapter:     g.dialect.compensate,
+		ContextType: ctxType,
+		Fallible:    sig.Results().Len() == 1,
+	}
+	if params.Len() == 0 {
+		adapter.CompensateAdapter = g.emptyCodec()
+		adapter.Type = "struct{}"
+		adapter.Call = handlerCall(name, ctxType != "")
+		return compAdapter(adapter), nil
 	}
 	if cfg.wrap {
-		return g.wrapCompHandler(cfg, sig)
+		return g.wrapCompHandler(cfg, params, adapter)
 	}
-	return g.stepCompHandler(cfg, sig)
+	return g.stepCompHandler(cfg, params, adapter)
 }
 
 func (g *pkgGen) compSignature(fn *ast.FuncDecl, name string) (*types.Signature, error) {
@@ -516,9 +527,10 @@ func (g *pkgGen) compSignature(fn *ast.FuncDecl, name string) (*types.Signature,
 	return sig, nil
 }
 
-func (g *pkgGen) stepCompHandler(cfg *compHandlerConfig, sig *types.Signature) (string, error) {
+func (g *pkgGen) stepCompHandler(
+	cfg *compHandlerConfig, params *types.Tuple, adapter *compAdapterConfig,
+) (string, error) {
 	name := cfg.decl.compensate
-	params := sig.Params()
 	if params.Len() > 1 {
 		return "", g.errorAt(cfg.fn,
 			"%w: compensator %s takes zero or one argument struct",
@@ -566,21 +578,18 @@ func (g *pkgGen) stepCompHandler(cfg *compHandlerConfig, sig *types.Signature) (
 	if err != nil {
 		return "", g.errorAt(cfg.fn, "%w", err)
 	}
-	return compAdapter(compAdapterConfig{
-		Adapter:           g.dialect.compensate,
-		CompensateAdapter: codec,
-		Type:              g.typeOf(typ),
-		Call:              name + "(in)",
-		Fallible:          sig.Results().Len() == 1,
-	}), nil
+	adapter.CompensateAdapter = codec
+	adapter.Type = g.typeOf(typ)
+	adapter.Call = handlerCall(name, adapter.ContextType != "", "in")
+	return compAdapter(adapter), nil
 }
 
-func (g *pkgGen) wrapCompHandler(cfg *compHandlerConfig, sig *types.Signature) (string, error) {
+func (g *pkgGen) wrapCompHandler(
+	cfg *compHandlerConfig, params *types.Tuple, adapter *compAdapterConfig,
+) (string, error) {
 	name := cfg.decl.compensate
-	params := sig.Params()
 	names := make([]string, params.Len())
 	selectedTypes := make([]types.Type, params.Len())
-	args := make([]string, params.Len())
 	used := util.Set[string]{}
 	for i := range params.Len() {
 		param := params.At(i)
@@ -623,7 +632,6 @@ func (g *pkgGen) wrapCompHandler(cfg *compHandlerConfig, sig *types.Signature) (
 		found.attr.Compensated = true
 		names[i] = found.name
 		selectedTypes[i] = found.typ
-		args[i] = "in." + ExportedName(found.name)
 	}
 
 	inType := cfg.fn.Name.Name + "CompIn"
@@ -631,14 +639,19 @@ func (g *pkgGen) wrapCompHandler(cfg *compHandlerConfig, sig *types.Signature) (
 	if err != nil {
 		return "", g.errorAt(cfg.fn, "%w", err)
 	}
-	call := fmt.Sprintf("%s(%s)", name, strings.Join(args, ", "))
-	return compAdapter(compAdapterConfig{
-		Adapter:           g.dialect.compensate,
-		CompensateAdapter: codec,
-		Type:              inType,
-		Call:              call,
-		Fallible:          sig.Results().Len() == 1,
-	}), nil
+	adapter.CompensateAdapter = codec
+	adapter.Type = inType
+	adapter.Call = wrappedCall(name, adapter.ContextType != "", names)
+	return compAdapter(adapter), nil
+}
+
+func (g *pkgGen) handlerParams(sig *types.Signature) (*types.Tuple, string) {
+	params := sig.Params()
+	if params.Len() == 0 || !isStepContext(params.At(0).Type()) {
+		return params, ""
+	}
+	vars := slices.Collect(params.Variables())
+	return types.NewTuple(vars[1:]...), g.typeOf(vars[0].Type())
 }
 
 func (g *pkgGen) contract(
@@ -755,13 +768,36 @@ func mergeAttributes(attrs attributeSets) api.AttributeSpecs {
 	return res
 }
 
-func paramTypes(sig *types.Signature) []types.Type {
-	params := sig.Params()
+func paramTypes(params *types.Tuple) []types.Type {
 	res := make([]types.Type, params.Len())
 	for i := range params.Len() {
 		res[i] = params.At(i).Type()
 	}
 	return res
+}
+
+func isStepContext(t types.Type) bool {
+	named, ok := types.Unalias(t).(*types.Named)
+	if !ok {
+		return false
+	}
+	obj := named.Obj()
+	return obj.Name() == "StepContext" && obj.Pkg() != nil && obj.Pkg().Path() == sdkPackage
+}
+
+func handlerCall(name string, contextual bool, args ...string) string {
+	if contextual {
+		args = slices.Insert(args, 0, "ctx")
+	}
+	return name + "(" + strings.Join(args, ", ") + ")"
+}
+
+func wrappedCall(name string, contextual bool, inputs []string) string {
+	args := make([]string, len(inputs))
+	for i, n := range inputs {
+		args[i] = "in." + ExportedName(n)
+	}
+	return handlerCall(name, contextual, args...)
 }
 
 func isError(t types.Type) bool {
