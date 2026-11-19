@@ -64,7 +64,7 @@ type (
 	dialect struct {
 		pkg        string
 		iface      string
-		sync       string
+		invoke     string
 		compensate string
 	}
 
@@ -168,14 +168,14 @@ var (
 	serviceDialect = dialect{
 		pkg:        "codec",
 		iface:      "Codec",
-		sync:       "gen.Sync",
+		invoke:     "gen.Invoke",
 		compensate: "gen.Comp",
 	}
 
 	embeddedDialect = dialect{
 		pkg:        "convert",
 		iface:      "Converter",
-		sync:       "gen.EmbedSync",
+		invoke:     "gen.EmbedInvoke",
 		compensate: "gen.EmbedComp",
 	}
 

@@ -31,8 +31,8 @@ type (
 
 var _ step.Runtime = (*testRuntime)(nil)
 
-func TestEmbeddedSyncOutputs(t *testing.T) {
-	exec := gen.EmbedSync(sumArgsConverter(), sumResultConverter(),
+func TestEmbeddedInvokeOutputs(t *testing.T) {
+	exec := gen.EmbedInvoke(sumArgsConverter(), sumResultConverter(),
 		func(in sumArgs) (sumResult, error) {
 			total := in.Left + in.Right
 			return sumResult{
@@ -54,9 +54,9 @@ func TestEmbeddedSyncOutputs(t *testing.T) {
 	}, rt.outputs)
 }
 
-func TestEmbeddedSyncMeta(t *testing.T) {
+func TestEmbeddedInvokeMeta(t *testing.T) {
 	var got metaArgs
-	exec := gen.EmbedSync(metaArgsConverter(), convert.Struct[struct{}](),
+	exec := gen.EmbedInvoke(metaArgsConverter(), convert.Struct[struct{}](),
 		func(in metaArgs) (struct{}, error) {
 			got = in
 			return struct{}{}, nil
@@ -87,31 +87,31 @@ func TestEmbeddedSyncMeta(t *testing.T) {
 	}, got)
 }
 
-func TestEmbeddedSyncErrors(t *testing.T) {
+func TestEmbeddedInvokeErrors(t *testing.T) {
 	ok := func(sumArgs) (sumResult, error) {
 		return sumResult{}, nil
 	}
 	rt := &testRuntime{}
 	st := &api.Step{}
 
-	exec := gen.EmbedSync(sumArgsConverter(), sumResultConverter(), ok)
+	exec := gen.EmbedInvoke(sumArgsConverter(), sumResultConverter(), ok)
 	err := exec(rt, st, api.Args{"left": "x"}, "tkn")
 	assert.ErrorIs(t, err, gen.ErrInvalidInputs)
 
-	exec = gen.EmbedSync(sumArgsConverter(), sumResultConverter(),
+	exec = gen.EmbedInvoke(sumArgsConverter(), sumResultConverter(),
 		func(sumArgs) (sumResult, error) {
 			return sumResult{}, errRefused
 		})
 	assert.ErrorIs(t, exec(rt, st, api.Args{}, "tkn"), errRefused)
 
-	exec = gen.EmbedSync(sumArgsConverter(), sumResultConverter(),
+	exec = gen.EmbedInvoke(sumArgsConverter(), sumResultConverter(),
 		func(sumArgs) (sumResult, error) {
 			panic("boom")
 		})
 	var panicErr *gen.PanicError
 	assert.ErrorAs(t, exec(rt, st, api.Args{}, "tkn"), &panicErr)
 
-	exec = gen.EmbedSync(sumArgsConverter(), failConverter{}, ok)
+	exec = gen.EmbedInvoke(sumArgsConverter(), failConverter{}, ok)
 	assert.ErrorIs(t, exec(rt, st, api.Args{}, "tkn"), errRefused)
 	assert.Nil(t, rt.outputs)
 }
@@ -130,7 +130,7 @@ func TestEmbeddedContext(t *testing.T) {
 		assert.Equal(t, 2, in.Left)
 		return nil
 	}
-	exec := gen.EmbedSyncCtx(
+	exec := gen.EmbedInvokeCtx(
 		sumArgsConverter(), convert.Struct[struct{}](),
 		func(ctx argyll.StepContext, in sumArgs) (struct{}, error) {
 			return struct{}{}, check(ctx, in)

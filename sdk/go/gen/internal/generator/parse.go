@@ -390,7 +390,7 @@ func (g *pkgGen) stepFor(fn *ast.FuncDecl, sig *types.Signature, decl stepDecl) 
 		declaration: decl,
 		attributes:  attrs,
 		invoke: syncHandler(syncHandlerArgs{
-			Adapter:     g.dialect.sync,
+			Adapter:     g.dialect.invoke,
 			ContextType: ctxType,
 			InAdapter:   inCodec,
 			OutAdapter:  outCodec,
@@ -464,7 +464,7 @@ func (g *pkgGen) wrapFor(fn *ast.FuncDecl, sig *types.Signature, decl stepDecl) 
 		declaration: decl,
 		attributes:  attrs,
 		invoke: syncHandler(syncHandlerArgs{
-			Adapter:     g.dialect.sync,
+			Adapter:     g.dialect.invoke,
 			ContextType: ctxType,
 			InAdapter:   inCodec,
 			OutAdapter:  outCodec,

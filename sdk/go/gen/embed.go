@@ -10,21 +10,21 @@ import (
 	"github.com/kode4food/argyll/sdk/go/convert"
 )
 
-// EmbedSync adapts a native function to a step handler an embedded engine runs in process,
+// EmbedInvoke adapts a native function to a step handler an embedded engine runs in process,
 // converting its values in memory
-func EmbedSync[I, O any](
+func EmbedInvoke[I, O any](
 	in convert.Converter[I], out convert.Converter[O], fn func(I) (O, error),
 ) step.WorkFunc {
-	return embedSync(in, out, func(_ api.Metadata, args I) (O, error) {
+	return embedInvoke(in, out, func(_ api.Metadata, args I) (O, error) {
 		return fn(args)
 	})
 }
 
-// EmbedSyncCtx adapts an embedded function that accepts the Work Item's context
-func EmbedSyncCtx[I, O any](
+// EmbedInvokeCtx adapts an embedded function that accepts the Work Item's context
+func EmbedInvokeCtx[I, O any](
 	in convert.Converter[I], out convert.Converter[O], fn func(argyll.StepContext, I) (O, error),
 ) step.WorkFunc {
-	return embedSync(in, out, func(meta api.Metadata, args I) (O, error) {
+	return embedInvoke(in, out, func(meta api.Metadata, args I) (O, error) {
 		return fn(embedCtx(meta), args)
 	})
 }
@@ -45,7 +45,7 @@ func EmbedCompCtx[I any](
 	})
 }
 
-func embedSync[I, O any](
+func embedInvoke[I, O any](
 	in convert.Converter[I], out convert.Converter[O], fn func(api.Metadata, I) (O, error),
 ) step.WorkFunc {
 	return func(
@@ -56,7 +56,7 @@ func embedSync[I, O any](
 		if err != nil {
 			return errors.Join(ErrInvalidInputs, err)
 		}
-		res, err := invoke(func(in I) (O, error) { return fn(meta, in) }, args)
+		res, err := call(func(in I) (O, error) { return fn(meta, in) }, args)
 		if err != nil {
 			return err
 		}
@@ -78,7 +78,7 @@ func embedComp[I any](
 		if err != nil {
 			return errors.Join(ErrInvalidInputs, err)
 		}
-		_, err = invoke(
+		_, err = call(
 			func(in I) (struct{}, error) {
 				return struct{}{}, fn(rt, tkn, in)
 			},

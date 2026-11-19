@@ -121,7 +121,7 @@ func TestGeneratedEmbeddedSurface(t *testing.T) {
 	assert.Contains(t, text, "func ArgyllEmbeddedSteps() []*api.Step")
 	assert.Contains(t, text, `"calculate-risk": {`)
 	assert.Contains(t, text, `"greeter": {`)
-	assert.Contains(t, text, "Invoke: gen.EmbedSync(")
+	assert.Contains(t, text, "Invoke: gen.EmbedInvoke(")
 	assert.Contains(t, text, "Compensate: gen.EmbedComp(")
 	assert.Regexp(t, `Type:\s+"calculate-risk",`, text)
 	assert.Regexp(t, `Type:\s+"greeter",`, text)
@@ -143,7 +143,7 @@ func TestGeneratedServerEmbedded(t *testing.T) {
 
 	assert.NotContains(t, text, "ArgyllEmbeddedHandlers")
 	assert.NotContains(t, text, "ArgyllEmbeddedSteps")
-	assert.NotContains(t, text, "gen.EmbedSync")
+	assert.NotContains(t, text, "gen.EmbedInvoke")
 	assert.NotContains(t, text, "convert")
 }
 
@@ -194,7 +194,7 @@ func TestGeneratedServer(t *testing.T) {
 	assert.Contains(t, text, "func main()")
 	assert.Contains(t, text, "gen.Serve(context.Background(), steps...)")
 	assert.Contains(t, text, `slog.Info("Argyll step invoked",`)
-	assert.Contains(t, text, `Invoke: logged("run", gen.Sync(`)
+	assert.Contains(t, text, `Invoke: logged("run", gen.Invoke(`)
 	assert.Contains(t, text, `slog.Any("error", err)`)
 	assert.NotContains(t, text, "ArgyllServiceSteps")
 }
@@ -284,9 +284,9 @@ func TestStepContext(t *testing.T) {
 	assert.NoError(t, err)
 	text := string(out)
 	for _, want := range []string{
-		"gen.SyncCtx(",
+		"gen.InvokeCtx(",
 		"gen.CompCtx(",
-		"gen.EmbedSyncCtx(",
+		"gen.EmbedInvokeCtx(",
 		"gen.EmbedCompCtx(",
 		"Run(ctx, in)",
 		"Undo(ctx, in)",

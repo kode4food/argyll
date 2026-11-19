@@ -6,18 +6,11 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
-	"runtime/debug"
 
 	"github.com/kode4food/argyll/engine/pkg/api"
 	argyll "github.com/kode4food/argyll/sdk/go"
 	"github.com/kode4food/argyll/sdk/go/codec"
 )
-
-// PanicError carries a value recovered from a panicking step function
-type PanicError struct {
-	Value any
-	Stack []byte
-}
 
 const (
 	// FailureStatus reports a step function that returned an error
@@ -28,35 +21,42 @@ const (
 )
 
 var (
-	ErrInvalidInputs = errors.New("invalid step inputs")
-	ErrMethod        = errors.New("method not allowed")
+	ErrMethod = errors.New("method not allowed")
 )
 
-// Sync adapts a plain Go function to a synchronous Argyll step handler
-func Sync[I, O any](in codec.Codec[I], out codec.Codec[O], fn func(I) (O, error)) http.HandlerFunc {
-	return syncHTTP(in, out, func(_ *http.Request, args I) (O, error) {
+// Invoke adapts a plain Go function to a synchronous Argyll step handler
+func Invoke[I, O any](
+	in codec.Codec[I], out codec.Codec[O], fn func(I) (O, error),
+) http.HandlerFunc {
+	return invokeHTTP(in, out, func(_ *http.Request, args I) (O, error) {
 		return fn(args)
 	})
 }
 
-// SyncCtx adapts a typed function that accepts the Step's HTTP request context
-func SyncCtx[I, O any](
+// InvokeCtx adapts a typed function that accepts the Step's HTTP request context
+func InvokeCtx[I, O any](
 	in codec.Codec[I], out codec.Codec[O], fn func(argyll.StepContext, I) (O, error),
 ) http.HandlerFunc {
-	return syncHTTP(in, out, func(r *http.Request, args I) (O, error) {
+	return invokeHTTP(in, out, func(r *http.Request, args I) (O, error) {
 		return fn(requestCtx(r), args)
 	})
 }
 
-func (e *PanicError) Error() string {
-	return fmt.Sprintf("%s: %v", argyll.ErrHandlerPanic, e.Value)
+// Comp adapts a typed compensation function to an HTTP handler
+func Comp[I any](in codec.Codec[I], fn func(I) error) http.HandlerFunc {
+	return compHTTP(in, func(_ *http.Request, args I) error {
+		return fn(args)
+	})
 }
 
-func (e *PanicError) Unwrap() error {
-	return argyll.ErrHandlerPanic
+// CompCtx adapts a compensation function that accepts the Step's HTTP request context
+func CompCtx[I any](in codec.Codec[I], fn func(argyll.StepContext, I) error) http.HandlerFunc {
+	return compHTTP(in, func(r *http.Request, args I) error {
+		return fn(requestCtx(r), args)
+	})
 }
 
-func syncHTTP[I, O any](
+func invokeHTTP[I, O any](
 	in codec.Codec[I], out codec.Codec[O], fn func(*http.Request, I) (O, error),
 ) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -64,7 +64,7 @@ func syncHTTP[I, O any](
 		if !ok {
 			return
 		}
-		res, err := invoke(func(in I) (O, error) { return fn(r, in) }, args)
+		res, err := call(func(in I) (O, error) { return fn(r, in) }, args)
 		if err != nil {
 			writeFailure(w, err, FailureStatus, "Step")
 			return
@@ -73,25 +73,31 @@ func syncHTTP[I, O any](
 	}
 }
 
+func compHTTP[I any](in codec.Codec[I], fn func(*http.Request, I) error) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		args, ok := decodeBody(w, r, in)
+		if !ok {
+			return
+		}
+		_, err := call(
+			func(in I) (struct{}, error) {
+				return struct{}{}, fn(r, in)
+			},
+			args,
+		)
+		if err != nil {
+			writeFailure(w, err, http.StatusInternalServerError, "Compensation")
+			return
+		}
+		w.WriteHeader(http.StatusNoContent)
+	}
+}
+
 func requestCtx(r *http.Request) argyll.StepContext {
 	meta := api.MetadataFromHeaders(r.Header)
 	fid, _ := meta.GetString[api.FlowID](api.MetaFlowID)
 	sid, _ := meta.GetString[api.StepID](api.MetaStepID)
 	return argyll.NewStepContext(r.Context(), fid, sid, meta)
-}
-
-func invoke[I, O any](fn func(I) (O, error), in I) (out O, err error) {
-	defer func() {
-		if r := recover(); r != nil {
-			var zero O
-			out = zero
-			err = &PanicError{
-				Value: r,
-				Stack: debug.Stack(),
-			}
-		}
-	}()
-	return fn(in)
 }
 
 func decodeBody[T any](w http.ResponseWriter, r *http.Request, c codec.Codec[T]) (T, bool) {
