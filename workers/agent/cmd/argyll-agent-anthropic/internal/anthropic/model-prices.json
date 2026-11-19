@@ -1,119 +1,155 @@
 {
   "anthropic/claude-fable-5": {
-    "input": 10,
-    "output": 50,
     "cache_input": 1,
-    "cache_output": 12.5
+    "cache_output": 12.5,
+    "input": 10,
+    "output": 50
   },
   "anthropic/claude-fable-5-1": {
-    "input": 10,
-    "output": 50,
     "cache_input": 0.25,
-    "cache_output": 12.5
+    "cache_output": 12.5,
+    "input": 10,
+    "output": 50
   },
   "anthropic/claude-fable-5-2": {
-    "input": 8,
-    "output": 40,
     "cache_input": 0.2,
-    "cache_output": 10
+    "cache_output": 10,
+    "input": 8,
+    "output": 40
   },
   "anthropic/claude-haiku-4-5": {
-    "input": 1,
-    "output": 5,
     "cache_input": 0.1,
-    "cache_output": 1.25
+    "cache_output": 1.25,
+    "input": 1,
+    "output": 5
   },
   "anthropic/claude-haiku-4-5-20251001": {
-    "input": 1,
-    "output": 5,
     "cache_input": 0.1,
-    "cache_output": 1.25
+    "cache_output": 1.25,
+    "input": 1,
+    "output": 5
   },
   "anthropic/claude-haiku-5-5": {
-    "input": 0.1,
-    "output": 0.5,
     "cache_input": 0.01,
     "cache_output": 0.125,
+    "input": 0.1,
+    "output": 0.5,
     "tiers": [
       {
-        "input_over": 100000,
+        "cache_input": 0.05,
+        "cache_output": 0.625,
         "input": 0.5,
         "output": 2.5,
-        "cache_input": 0.05,
-        "cache_output": 0.625
+        "input_over": 100000
       }
     ]
   },
+  "anthropic/claude-mythos-5": {
+    "cache_input": 1,
+    "cache_output": 12.5,
+    "input": 10,
+    "output": 50
+  },
+  "anthropic/claude-mythos-5-1": {
+    "cache_input": 0.25,
+    "cache_output": 12.5,
+    "input": 10,
+    "output": 50
+  },
+  "anthropic/claude-mythos-5-2": {
+    "cache_input": 0.2,
+    "cache_output": 10,
+    "input": 8,
+    "output": 40
+  },
+  "anthropic/claude-opus-4": {
+    "cache_input": 1.5,
+    "cache_output": 18.75,
+    "input": 15,
+    "output": 75
+  },
+  "anthropic/claude-opus-4-1": {
+    "cache_input": 1.5,
+    "cache_output": 18.75,
+    "input": 15,
+    "output": 75
+  },
   "anthropic/claude-opus-4-5": {
-    "input": 5,
-    "output": 25,
     "cache_input": 0.5,
-    "cache_output": 6.25
+    "cache_output": 6.25,
+    "input": 5,
+    "output": 25
   },
   "anthropic/claude-opus-4-5-20251101": {
-    "input": 5,
-    "output": 25,
     "cache_input": 0.5,
-    "cache_output": 6.25
+    "cache_output": 6.25,
+    "input": 5,
+    "output": 25
   },
   "anthropic/claude-opus-4-6": {
-    "input": 5,
-    "output": 25,
     "cache_input": 0.5,
-    "cache_output": 6.25
+    "cache_output": 6.25,
+    "input": 5,
+    "output": 25
   },
   "anthropic/claude-opus-4-7": {
-    "input": 5,
-    "output": 25,
     "cache_input": 0.5,
-    "cache_output": 6.25
+    "cache_output": 6.25,
+    "input": 5,
+    "output": 25
   },
   "anthropic/claude-opus-4-8": {
-    "input": 5,
-    "output": 25,
     "cache_input": 0.5,
-    "cache_output": 6.25
+    "cache_output": 6.25,
+    "input": 5,
+    "output": 25
   },
   "anthropic/claude-opus-5": {
-    "input": 5,
-    "output": 25,
     "cache_input": 0.5,
-    "cache_output": 6.25
+    "cache_output": 6.25,
+    "input": 5,
+    "output": 25
   },
   "anthropic/claude-opus-5-5": {
-    "input": 4,
-    "output": 20,
     "cache_input": 0.2,
-    "cache_output": 5
+    "cache_output": 5,
+    "input": 4,
+    "output": 20
+  },
+  "anthropic/claude-sonnet-4": {
+    "cache_input": 0.3,
+    "cache_output": 3.75,
+    "input": 3,
+    "output": 15
   },
   "anthropic/claude-sonnet-4-5": {
-    "input": 3,
-    "output": 15,
     "cache_input": 0.3,
-    "cache_output": 3.75
+    "cache_output": 3.75,
+    "input": 3,
+    "output": 15
   },
   "anthropic/claude-sonnet-4-5-20250929": {
-    "input": 3,
-    "output": 15,
     "cache_input": 0.3,
-    "cache_output": 3.75
+    "cache_output": 3.75,
+    "input": 3,
+    "output": 15
   },
   "anthropic/claude-sonnet-4-6": {
-    "input": 3,
-    "output": 15,
     "cache_input": 0.3,
-    "cache_output": 3.75
+    "cache_output": 3.75,
+    "input": 3,
+    "output": 15
   },
   "anthropic/claude-sonnet-5": {
-    "input": 2,
-    "output": 10,
     "cache_input": 0.2,
-    "cache_output": 2.5
+    "cache_output": 2.5,
+    "input": 2,
+    "output": 10
   },
   "anthropic/claude-sonnet-5-5": {
-    "input": 2,
-    "output": 10,
     "cache_input": 0.1,
-    "cache_output": 2.5
+    "cache_output": 2.5,
+    "input": 2,
+    "output": 10
   }
 }

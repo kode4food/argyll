@@ -45,7 +45,7 @@ jest.mock("./useAgentCapabilities", () => ({
     {
       provider: "anthropic",
       models: [
-        { id: "claude-sonnet-5-5", efforts: ["low", "high"] },
+        { id: "claude-sonnet-5-5", efforts: ["low", "high", "xhigh"] },
         { id: "claude-haiku" },
       ],
       mcp: [
@@ -153,8 +153,9 @@ describe("StepEditorAgentConfiguration", () => {
     });
     expect(effort).toHaveTextContent(t("stepEditor.agentEffortDefault"));
     fireEvent.click(effort);
-    fireEvent.click(screen.getByText("high"));
-    expect(setAgent).toHaveBeenLastCalledWith({ ...AGENT, effort: "high" });
+    expect(screen.getByRole("option", { name: "High" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("option", { name: "Extra High" }));
+    expect(setAgent).toHaveBeenLastCalledWith({ ...AGENT, effort: "xhigh" });
 
     const setUnsupportedAgent = jest.fn();
     render(

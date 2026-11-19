@@ -1,75 +1,499 @@
 {
-  "openai/gpt-5": { "efforts": ["minimal", "low", "medium", "high"] },
-  "openai/gpt-5-2025-08-07": { "efforts": ["minimal", "low", "medium", "high"] },
-  "openai/gpt-5-mini": { "efforts": ["minimal", "low", "medium", "high"] },
-  "openai/gpt-5-mini-2025-08-07": { "efforts": ["minimal", "low", "medium", "high"] },
-  "openai/gpt-5-nano": { "efforts": ["minimal", "low", "medium", "high"] },
-  "openai/gpt-5-nano-2025-08-07": { "efforts": ["minimal", "low", "medium", "high"] },
-  "openai/gpt-5.1": { "efforts": ["none", "low", "medium", "high"] },
-  "openai/gpt-5.1-2025-11-13": { "efforts": ["none", "low", "medium", "high"] },
-  "openai/gpt-5.2": { "efforts": ["none", "low", "medium", "high", "xhigh"] },
-  "openai/gpt-5.2-2025-12-11": { "efforts": ["none", "low", "medium", "high", "xhigh"] },
-  "openai/gpt-5.2-pro": { "endpoint": "responses", "efforts": ["medium", "high", "xhigh"] },
+  "openai/chat-latest": {
+    "hidden": true
+  },
+  "openai/chatgpt-image-latest": {
+    "hidden": true
+  },
+  "openai/gpt-4o-audio": {
+    "hidden": true
+  },
+  "openai/gpt-4o-mini-audio": {
+    "hidden": true
+  },
+  "openai/gpt-4o-mini-realtime": {
+    "hidden": true
+  },
+  "openai/gpt-4o-mini-transcribe": {
+    "hidden": true
+  },
+  "openai/gpt-4o-mini-transcribe-2025-03-20": {
+    "hidden": true
+  },
+  "openai/gpt-4o-mini-transcribe-2025-12-15": {
+    "hidden": true
+  },
+  "openai/gpt-4o-mini-tts": {
+    "hidden": true
+  },
+  "openai/gpt-4o-mini-tts-2025-03-20": {
+    "hidden": true
+  },
+  "openai/gpt-4o-mini-tts-2025-12-15": {
+    "hidden": true
+  },
+  "openai/gpt-4o-realtime": {
+    "hidden": true
+  },
+  "openai/gpt-4o-transcribe": {
+    "hidden": true
+  },
+  "openai/gpt-4o-transcribe-diarize": {
+    "hidden": true
+  },
+  "openai/gpt-5": {
+    "efforts": [
+      "minimal",
+      "low",
+      "medium",
+      "high"
+    ]
+  },
+  "openai/gpt-5-2025-08-07": {
+    "efforts": [
+      "minimal",
+      "low",
+      "medium",
+      "high"
+    ]
+  },
+  "openai/gpt-5-mini": {
+    "efforts": [
+      "minimal",
+      "low",
+      "medium",
+      "high"
+    ]
+  },
+  "openai/gpt-5-mini-2025-08-07": {
+    "efforts": [
+      "minimal",
+      "low",
+      "medium",
+      "high"
+    ]
+  },
+  "openai/gpt-5-nano": {
+    "efforts": [
+      "minimal",
+      "low",
+      "medium",
+      "high"
+    ]
+  },
+  "openai/gpt-5-nano-2025-08-07": {
+    "efforts": [
+      "minimal",
+      "low",
+      "medium",
+      "high"
+    ]
+  },
+  "openai/gpt-5-pro": {
+    "endpoint": "responses"
+  },
+  "openai/gpt-5-pro-2025-10-06": {
+    "endpoint": "responses"
+  },
+  "openai/gpt-5.1": {
+    "efforts": [
+      "none",
+      "low",
+      "medium",
+      "high"
+    ]
+  },
+  "openai/gpt-5.1-2025-11-13": {
+    "efforts": [
+      "none",
+      "low",
+      "medium",
+      "high"
+    ]
+  },
+  "openai/gpt-5.2": {
+    "efforts": [
+      "none",
+      "low",
+      "medium",
+      "high",
+      "xhigh"
+    ]
+  },
+  "openai/gpt-5.2-2025-12-11": {
+    "efforts": [
+      "none",
+      "low",
+      "medium",
+      "high",
+      "xhigh"
+    ]
+  },
+  "openai/gpt-5.2-pro": {
+    "efforts": [
+      "medium",
+      "high",
+      "xhigh"
+    ],
+    "endpoint": "responses"
+  },
   "openai/gpt-5.2-pro-2025-12-11": {
-    "endpoint": "responses",
-    "efforts": ["medium", "high", "xhigh"]
+    "efforts": [
+      "medium",
+      "high",
+      "xhigh"
+    ],
+    "endpoint": "responses"
   },
-  "openai/gpt-5.4": { "efforts": ["none", "low", "medium", "high", "xhigh"] },
-  "openai/gpt-5.4-2026-03-05": { "efforts": ["none", "low", "medium", "high", "xhigh"] },
-  "openai/gpt-5.4-mini": { "efforts": ["none", "low", "medium", "high", "xhigh"] },
-  "openai/gpt-5.4-mini-2026-03-17": { "efforts": ["none", "low", "medium", "high", "xhigh"] },
-  "openai/gpt-5.4-nano": { "efforts": ["none", "low", "medium", "high", "xhigh"] },
-  "openai/gpt-5.4-nano-2026-03-17": { "efforts": ["none", "low", "medium", "high", "xhigh"] },
-  "openai/gpt-5.4-pro": { "endpoint": "responses", "efforts": ["medium", "high", "xhigh"] },
+  "openai/gpt-5.3-codex": {
+    "endpoint": "responses"
+  },
+  "openai/gpt-5.4": {
+    "efforts": [
+      "none",
+      "low",
+      "medium",
+      "high",
+      "xhigh"
+    ]
+  },
+  "openai/gpt-5.4-2026-03-05": {
+    "efforts": [
+      "none",
+      "low",
+      "medium",
+      "high",
+      "xhigh"
+    ]
+  },
+  "openai/gpt-5.4-mini": {
+    "efforts": [
+      "none",
+      "low",
+      "medium",
+      "high",
+      "xhigh"
+    ]
+  },
+  "openai/gpt-5.4-mini-2026-03-17": {
+    "efforts": [
+      "none",
+      "low",
+      "medium",
+      "high",
+      "xhigh"
+    ]
+  },
+  "openai/gpt-5.4-nano": {
+    "efforts": [
+      "none",
+      "low",
+      "medium",
+      "high",
+      "xhigh"
+    ]
+  },
+  "openai/gpt-5.4-nano-2026-03-17": {
+    "efforts": [
+      "none",
+      "low",
+      "medium",
+      "high",
+      "xhigh"
+    ]
+  },
+  "openai/gpt-5.4-pro": {
+    "efforts": [
+      "medium",
+      "high",
+      "xhigh"
+    ],
+    "endpoint": "responses"
+  },
   "openai/gpt-5.4-pro-2026-03-05": {
-    "endpoint": "responses",
-    "efforts": ["medium", "high", "xhigh"]
+    "efforts": [
+      "medium",
+      "high",
+      "xhigh"
+    ],
+    "endpoint": "responses"
   },
-  "openai/gpt-5.5": { "efforts": ["none", "low", "medium", "high", "xhigh"] },
-  "openai/gpt-5.5-2026-04-23": { "efforts": ["none", "low", "medium", "high", "xhigh"] },
-  "openai/gpt-5.5-pro": { "endpoint": "responses", "efforts": ["medium", "high", "xhigh"] },
+  "openai/gpt-5.5": {
+    "efforts": [
+      "none",
+      "low",
+      "medium",
+      "high",
+      "xhigh"
+    ]
+  },
+  "openai/gpt-5.5-2026-04-23": {
+    "efforts": [
+      "none",
+      "low",
+      "medium",
+      "high",
+      "xhigh"
+    ]
+  },
+  "openai/gpt-5.5-pro": {
+    "efforts": [
+      "medium",
+      "high",
+      "xhigh"
+    ],
+    "endpoint": "responses"
+  },
   "openai/gpt-5.5-pro-2026-04-23": {
-    "endpoint": "responses",
-    "efforts": ["medium", "high", "xhigh"]
+    "efforts": [
+      "medium",
+      "high",
+      "xhigh"
+    ],
+    "endpoint": "responses"
+  },
+  "openai/gpt-5.6-cyber": {
+    "endpoint": "responses"
   },
   "openai/gpt-5.6-luna": {
-    "endpoint": "responses",
-    "efforts": ["none", "low", "medium", "high", "xhigh", "max"]
+    "efforts": [
+      "none",
+      "low",
+      "medium",
+      "high",
+      "xhigh",
+      "max"
+    ],
+    "endpoint": "responses"
   },
   "openai/gpt-5.6-sol": {
-    "endpoint": "responses",
-    "efforts": ["none", "low", "medium", "high", "xhigh", "max"]
+    "efforts": [
+      "none",
+      "low",
+      "medium",
+      "high",
+      "xhigh",
+      "max"
+    ],
+    "endpoint": "responses"
   },
   "openai/gpt-5.6-terra": {
-    "endpoint": "responses",
-    "efforts": ["none", "low", "medium", "high", "xhigh", "max"]
+    "efforts": [
+      "none",
+      "low",
+      "medium",
+      "high",
+      "xhigh",
+      "max"
+    ],
+    "endpoint": "responses"
   },
   "openai/gpt-6-astra": {
-    "endpoint": "responses",
-    "efforts": ["low", "medium", "high", "xhigh", "max"]
+    "efforts": [
+      "low",
+      "medium",
+      "high",
+      "xhigh",
+      "max"
+    ],
+    "endpoint": "responses"
   },
   "openai/gpt-6-luna": {
-    "endpoint": "responses",
-    "efforts": ["none", "low", "medium", "high", "xhigh", "max"]
+    "efforts": [
+      "none",
+      "low",
+      "medium",
+      "high",
+      "xhigh",
+      "max"
+    ],
+    "endpoint": "responses"
   },
   "openai/gpt-6-sol": {
-    "endpoint": "responses",
-    "efforts": ["none", "low", "medium", "high", "xhigh", "max"]
+    "efforts": [
+      "none",
+      "low",
+      "medium",
+      "high",
+      "xhigh",
+      "max"
+    ],
+    "endpoint": "responses"
   },
   "openai/gpt-6.1-sol": {
-    "endpoint": "responses",
-    "efforts": ["low", "medium", "high", "xhigh", "max"]
+    "efforts": [
+      "low",
+      "medium",
+      "high",
+      "xhigh",
+      "max"
+    ],
+    "endpoint": "responses"
   },
   "openai/gpt-6.1-terra": {
-    "endpoint": "responses",
-    "efforts": ["none", "low", "medium", "high", "xhigh", "max"]
+    "efforts": [
+      "none",
+      "low",
+      "medium",
+      "high",
+      "xhigh",
+      "max"
+    ],
+    "endpoint": "responses"
   },
   "openai/gpt-6.2-astra": {
-    "endpoint": "responses",
-    "efforts": ["low", "medium", "high", "xhigh", "max"]
+    "efforts": [
+      "low",
+      "medium",
+      "high",
+      "xhigh",
+      "max"
+    ],
+    "endpoint": "responses"
   },
   "openai/gpt-6.2-sol": {
-    "endpoint": "responses",
-    "efforts": ["low", "medium", "high", "xhigh", "max"]
+    "efforts": [
+      "low",
+      "medium",
+      "high",
+      "xhigh",
+      "max"
+    ],
+    "endpoint": "responses"
+  },
+  "openai/gpt-audio": {
+    "hidden": true
+  },
+  "openai/gpt-audio-1.5": {
+    "hidden": true
+  },
+  "openai/gpt-audio-2025-08-28": {
+    "hidden": true
+  },
+  "openai/gpt-audio-mini": {
+    "hidden": true
+  },
+  "openai/gpt-audio-mini-2025-12-15": {
+    "hidden": true
+  },
+  "openai/gpt-daybreak-blue-latest": {
+    "endpoint": "responses"
+  },
+  "openai/gpt-daybreak-red-latest": {
+    "endpoint": "responses"
+  },
+  "openai/gpt-image-1": {
+    "hidden": true
+  },
+  "openai/gpt-image-1-mini": {
+    "hidden": true
+  },
+  "openai/gpt-image-1.5": {
+    "hidden": true
+  },
+  "openai/gpt-image-1.5-2025-12-16": {
+    "hidden": true
+  },
+  "openai/gpt-image-2": {
+    "hidden": true
+  },
+  "openai/gpt-image-2-2026-04-21": {
+    "hidden": true
+  },
+  "openai/gpt-image-2.5-flare": {
+    "hidden": true
+  },
+  "openai/gpt-image-2.5-flare-2026-09-08": {
+    "hidden": true
+  },
+  "openai/gpt-image-2.5-sunburst": {
+    "hidden": true
+  },
+  "openai/gpt-image-2.5-sunburst-2026-09-08": {
+    "hidden": true
+  },
+  "openai/gpt-image-2.6-flare": {
+    "hidden": true
+  },
+  "openai/gpt-image-2.6-sunburst": {
+    "hidden": true
+  },
+  "openai/gpt-live-1": {
+    "hidden": true
+  },
+  "openai/gpt-live-transcribe": {
+    "hidden": true
+  },
+  "openai/gpt-realtime": {
+    "hidden": true
+  },
+  "openai/gpt-realtime-1.5": {
+    "hidden": true
+  },
+  "openai/gpt-realtime-2": {
+    "hidden": true
+  },
+  "openai/gpt-realtime-2.1": {
+    "hidden": true
+  },
+  "openai/gpt-realtime-2.1-mini": {
+    "hidden": true
+  },
+  "openai/gpt-realtime-2025-08-28": {
+    "hidden": true
+  },
+  "openai/gpt-realtime-mini": {
+    "hidden": true
+  },
+  "openai/gpt-realtime-mini-2025-10-06": {
+    "hidden": true
+  },
+  "openai/gpt-realtime-mini-2025-12-15": {
+    "hidden": true
+  },
+  "openai/gpt-realtime-translate": {
+    "hidden": true
+  },
+  "openai/gpt-realtime-whisper": {
+    "hidden": true
+  },
+  "openai/gpt-transcribe": {
+    "hidden": true
+  },
+  "openai/o3-pro": {
+    "endpoint": "responses"
+  },
+  "openai/o3-pro-2025-06-10": {
+    "endpoint": "responses"
+  },
+  "openai/omni-moderation-2024-09-26": {
+    "hidden": true
+  },
+  "openai/omni-moderation-latest": {
+    "hidden": true
+  },
+  "openai/text-embedding-3-large": {
+    "hidden": true
+  },
+  "openai/text-embedding-3-small": {
+    "hidden": true
+  },
+  "openai/text-embedding-ada-002": {
+    "hidden": true
+  },
+  "openai/tts-1": {
+    "hidden": true
+  },
+  "openai/tts-1-1106": {
+    "hidden": true
+  },
+  "openai/tts-1-hd": {
+    "hidden": true
+  },
+  "openai/tts-1-hd-1106": {
+    "hidden": true
+  },
+  "openai/whisper-1": {
+    "hidden": true
   }
 }

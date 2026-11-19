@@ -62,6 +62,8 @@ Run `docker compose up -d argyll-agent-anthropic argyll-agent-openai` to apply t
 
 The workers share the Go module in `workers/agent`. From the repository root, run `go run ./workers/agent/cmd/argyll-agent-anthropic` or `go run ./workers/agent/cmd/argyll-agent-openai`. To run both locally, set a different `PORT` for each process and configure `AGENT_WORKERS` with their URLs. To build or test with the Go workspace disabled, run `GOWORK=off go build -mod=readonly ./cmd/...` or `make test` from `workers/agent`. The module uses the engine contract from the same checkout.
 
+Run `make -C workers/agent refresh-anthropic-models` to refresh Anthropic prices and cache thresholds. Run `make -C workers/agent refresh-openai-models` to refresh OpenAI prices and model capabilities. Each command reads the provider's published documentation and updates that worker's bundled JSON.
+
 Each Agent worker includes rates for its default provider. To replace a model's rates or add a model, set `MODEL_PRICES` to a JSON file readable by the worker. Use `provider/model` keys and rates per million tokens for `input`, `output`, `cache_input`, and `cache_output`, with zero for free tokens. Optional `tiers` entries set an `input_over` cutoff and the rates for turns above it. A model override replaces its base rates and tiers. Provider-reported charges take precedence. See the [Agent Worker Contract](api/agent-worker.yaml) for the usage fields.
 
 ## UI dev loop

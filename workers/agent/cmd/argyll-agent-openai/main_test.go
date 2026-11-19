@@ -55,8 +55,19 @@ func TestModelEfforts(t *testing.T) {
 		w.Header().Set("Content-Type", api.JSONContentType)
 		switch r.URL.Path {
 		case "/models":
-			_, _ = io.WriteString(w, `{"data":[{"id":"gpt-5.4-nano"},`+
-				`{"id":"gpt-5.4-nano-2026-03-17"},{"id":"new-model"}]}`)
+			_, _ = io.WriteString(w, `{"data":[
+				{"id":"gpt-5.4-nano"},
+				{"id":"gpt-5.4-nano-2026-03-17"},
+				{"id":"gpt-image-2.6-flare"},
+				{"id":"gpt-transcribe"},
+				{"id":"text-embedding-3-small"},
+				{"id":"gpt-realtime-2.1"},
+				{"id":"gpt-audio-1.5"},
+				{"id":"gpt-audio-mini-2025-12-15"},
+				{"id":"tts-1-hd-1106"},
+				{"id":"chat-latest"},
+				{"id":"new-model"}
+			]}`)
 		case "/chat/completions":
 			var req struct {
 				Effort api.Effort `json:"reasoning_effort"`
@@ -105,7 +116,7 @@ func TestCapabilityOverride(t *testing.T) {
 		w.Header().Set("Content-Type", api.JSONContentType)
 		switch r.URL.Path {
 		case "/models":
-			_, _ = io.WriteString(w, `{"data":[{"id":"org/model"}]}`)
+			_, _ = io.WriteString(w, `{"data":[{"id":"org/model"},{"id":"org/hidden"}]}`)
 		case "/responses":
 			var req struct {
 				Reasoning struct{ Effort api.Effort }
@@ -119,7 +130,10 @@ func TestCapabilityOverride(t *testing.T) {
 	}))
 	defer srv.Close()
 	path := filepath.Join(t.TempDir(), "models.json")
-	data := []byte(`{"local/org/model":{"endpoint":"responses","efforts":["high"]}}`)
+	data := []byte(`{
+		"local/org/model":{"endpoint":"responses","efforts":["high"]},
+		"local/org/hidden":{"hidden":true}
+	}`)
 	if !assert.NoError(t, os.WriteFile(path, data, 0o600)) {
 		return
 	}

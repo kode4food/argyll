@@ -16,6 +16,7 @@ type (
 	modelCapabilities struct {
 		Efforts  []api.Effort  `json:"efforts"`
 		Endpoint modelEndpoint `json:"endpoint"`
+		Hidden   bool          `json:"hidden"`
 	}
 
 	modelEndpoint string

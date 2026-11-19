@@ -35,6 +35,14 @@ const NO_TOOLS: readonly string[] = [];
 const options = (names: string[]): SelectFieldOption[] =>
   names.map((name) => ({ label: name, value: name }));
 
+const effortLabel = (effort: string): string => {
+  if (effort === "xhigh") return "Extra High";
+  return effort
+    .split(/[-_\s]+/)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+};
+
 const offeredTools = (
   offered: MCPServer[],
   server: string
@@ -137,7 +145,13 @@ const StepEditorAgentConfiguration: React.FC<
               onChange={(effort) => update({ effort: effort || undefined })}
               options={
                 efforts?.length
-                  ? [{ label: defaultEffort, value: "" }, ...options(efforts)]
+                  ? [
+                      { label: defaultEffort, value: "" },
+                      ...efforts.map((value) => ({
+                        label: effortLabel(value),
+                        value,
+                      })),
+                    ]
                   : []
               }
               placeholder={agent.effort || defaultEffort}

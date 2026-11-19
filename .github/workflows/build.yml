@@ -45,7 +45,8 @@ jobs:
         working-directory: workers/agent
         run: |
           make test
-          GOWORK=off go build -mod=readonly -o "$RUNNER_TEMP/" ./cmd/...
+          GOWORK=off go build -mod=readonly -o "$RUNNER_TEMP/" \
+            ./cmd/argyll-agent-anthropic ./cmd/argyll-agent-openai
 
   build-python-sdk:
     runs-on: ubuntu-latest

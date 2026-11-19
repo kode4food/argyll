@@ -90,6 +90,9 @@ func (p *Provider) Models(ctx context.Context, name api.ProviderID) ([]api.Agent
 			Provider: name,
 			Model:    id,
 		}]
+		if caps.Hidden {
+			continue
+		}
 		models = append(models, api.AgentModel{
 			ID:      id,
 			Efforts: caps.Efforts,
