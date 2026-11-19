@@ -8,6 +8,7 @@ Async payment processor step example using the Argyll Python SDK.
 - **Realistic simulation** - Random processing time (5-10 seconds)
 - **Random outcomes** - 50% success, 50% failure
 - **Rich metadata** - Returns payment ID, timestamps, status
+- **Compensation** - Refunds a completed payment when the Flow rolls back
 
 ## Inputs
 
@@ -74,3 +75,4 @@ client.new_flow("order-flow-123") \
 - Uses Python's `threading` module for background processing
 - Simulates payment gateway delays with `time.sleep()`
 - Returns immediately from handler, completes via webhook
+- Refunds synchronously by receipt token, and refunding an unknown or already refunded payment is a no-op

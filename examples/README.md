@@ -13,7 +13,7 @@ docker compose up
 | `user-resolver` | Sync source for customer data |
 | `inventory-resolver` | Sync product and stock lookup |
 | `order-creator` | Validation and derived order values |
-| `payment-processor` | Async completion through a webhook |
+| `payment-processor` | Async completion through a webhook and refund compensation |
 | `stock-reservation` | Stock reservation and compensation |
 | `notification-sender` | `//argyll:step` sink over several upstream results |
 | `simple-step` | Inline Lua Steps |

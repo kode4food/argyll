@@ -15,6 +15,7 @@ ENGINE_URL = os.getenv("ARGYLL_ENGINE_URL", "http://localhost:8080")
 # Client expects base_url without /engine path prefix
 client = Client(ENGINE_URL)
 payments = {}
+refunds = set()
 payments_lock = threading.Lock()
 
 
@@ -118,6 +119,34 @@ def handle_payment(ctx: StepContext, args: dict) -> dict:
     return {}
 
 
+def refund_payment(ctx: StepContext, args: dict) -> None:
+    """Refund a completed payment."""
+    token = ctx.metadata.get("receipt_token")
+    if not token:
+        raise HTTPError(400, "receipt token required")
+
+    print(f"Attempting refund: token={token}")
+
+    # Refunding an unknown or already refunded payment is a no-op, so a
+    # repeated compensation cannot return the same money twice
+    with payments_lock:
+        outputs = payments.get(token)
+        if outputs is None or token in refunds:
+            print(f"Nothing to refund: token={token}")
+            return
+        refunds.add(token)
+
+    payment = outputs["payment_result"]
+    payment_id = payment["payment_id"]
+    time.sleep(5 + random.randint(0, 5))
+
+    print(
+        f"Payment refunded: payment_id={payment_id}, "
+        f"order_id={payment.get('order_id')}, "
+        f"amount={payment.get('amount')}"
+    )
+
+
 if __name__ == "__main__":
     client.new_step().with_name("Payment Processor") \
         .with_description("process payment asynchronously") \
@@ -130,6 +159,7 @@ if __name__ == "__main__":
         ) \
         .required("order") \
         .output("payment_result") \
+        .with_compensate_handler(refund_payment) \
         .with_async_invoke() \
         .with_timeout(300000) \
         .start(handle_payment)
