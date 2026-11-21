@@ -130,7 +130,7 @@ describe("ArgyllApi", () => {
     ];
     respond({ providers });
 
-    await expect(api.listAgentCapabilities()).resolves.toEqual(providers);
+    await expect(api.listAgentCapabilities()).resolves.toEqual({ providers });
     expect(fetchMock).toHaveBeenCalledWith(
       "http://localhost:8080/engine/agents/capabilities",
       expect.anything()

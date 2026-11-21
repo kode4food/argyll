@@ -8,15 +8,15 @@ import (
 	"net/http"
 	"slices"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"github.com/kode4food/argyll/engine/pkg/api"
+	"github.com/kode4food/argyll/engine/pkg/log"
 )
 
 type catalogCache struct {
 	mu      sync.Mutex
-	value   api.AgentCapabilities
+	value   *api.AgentCapabilities
 	expires time.Time
 }
 
@@ -31,7 +31,7 @@ func (w *Worker) capabilities(rw http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(rw).Encode(res)
 }
 
-func (w *Worker) loadCapabilities(ctx context.Context) api.AgentCapabilities {
+func (w *Worker) loadCapabilities(ctx context.Context) *api.AgentCapabilities {
 	cache := &w.catalog
 	cache.mu.Lock()
 	defer cache.mu.Unlock()
@@ -51,25 +51,27 @@ func (w *Worker) loadCapabilities(ctx context.Context) api.AgentCapabilities {
 	return res
 }
 
-func (w *Worker) discoverCapabilities(ctx context.Context) (api.AgentCapabilities, bool) {
+func (w *Worker) discoverCapabilities(ctx context.Context) (*api.AgentCapabilities, bool) {
 	names := w.provider.Names()
 	providers := make([]api.AgentProvider, len(names))
+	problems := make([]*api.ProblemDetails, len(names))
 	var servers []api.MCPServer
+	var failures []api.ProblemDetails
 	var wg sync.WaitGroup
-	var modelFailure atomic.Bool
 	if len(names) > 0 {
-		wg.Go(func() { servers = listServers(ctx, w.cfg.Servers) })
+		wg.Go(func() { servers, failures = listServers(ctx, w.cfg.Servers) })
 	}
 	for i, name := range names {
 		wg.Go(func() {
 			models, err := w.provider.Models(ctx, name)
 			if err != nil {
-				slog.Warn("Agent model discovery failed", slog.String("provider", string(name)))
-				modelFailure.Store(true)
+				slog.Warn("Agent model discovery failed",
+					slog.String("provider", string(name)), log.Error(err))
+				p := *problemOf(err)
+				p.Instance = "provider/" + string(name)
+				problems[i] = &p
 			}
-			if models == nil {
-				models = []api.AgentModel{}
-			}
+			models = w.listedModels(name, models)
 			slices.SortFunc(models, func(a, b api.AgentModel) int {
 				return cmp.Compare(a.ID, b.ID)
 			})
@@ -85,8 +87,33 @@ func (w *Worker) discoverCapabilities(ctx context.Context) (api.AgentCapabilitie
 	for i := range providers {
 		providers[i].MCP = servers
 	}
-	serverFailure := slices.ContainsFunc(servers, func(s api.MCPServer) bool {
-		return s.Tools == nil
-	})
-	return api.AgentCapabilities{Providers: providers}, !modelFailure.Load() && !serverFailure
+	for _, p := range problems {
+		if p != nil {
+			failures = append(failures, *p)
+		}
+	}
+	return &api.AgentCapabilities{
+		Providers: providers,
+		Problems:  failures,
+	}, len(failures) == 0
+}
+
+// listedModels applies the configured capabilities: hidden models are left out, and configured
+// effort levels replace the provider's
+func (w *Worker) listedModels(provider api.ProviderID, models []api.AgentModel) []api.AgentModel {
+	res := make([]api.AgentModel, 0, len(models))
+	for _, m := range models {
+		caps := w.cfg.Capabilities[ModelKey{
+			Provider: provider,
+			Model:    m.ID,
+		}]
+		if caps.Hidden {
+			continue
+		}
+		if len(caps.Efforts) > 0 {
+			m.Efforts = caps.Efforts
+		}
+		res = append(res, m)
+	}
+	return res
 }

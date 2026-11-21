@@ -20,6 +20,8 @@ export type {
   ScriptConfig,
   FlowConfig,
   AgentConfig,
+  AgentCapabilities,
+  ProblemDetails,
   AgentProvider,
   MCPServer,
   Goals,

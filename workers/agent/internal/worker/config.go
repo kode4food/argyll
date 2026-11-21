@@ -1,6 +1,7 @@
 package worker
 
 import (
+	"cmp"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -15,17 +16,31 @@ import (
 
 type (
 	// Config is what a worker offers: the MCP servers an Agent may use, the base URLs of the
-	// providers it reaches, and the model prices behind the cost it reports
+	// providers it reaches, the model prices behind the cost it reports, and how it lists models
 	Config struct {
-		Servers   map[string]MCPServer
-		Providers map[api.ProviderID]string
-		Prices    map[ModelKey]Price
+		Servers      map[string]MCPServer
+		Providers    map[api.ProviderID]string
+		Prices       map[ModelKey]Price
+		Capabilities map[ModelKey]Capabilities
+	}
+
+	// Defaults are the model prices and capabilities a worker bundles
+	Defaults struct {
+		Prices       string
+		Capabilities string
 	}
 
 	// MCPServer is an MCP server reached over streamable HTTP
 	MCPServer struct {
 		Headers map[string]string `json:"headers"`
 		URL     string            `json:"url"`
+	}
+
+	// Capabilities describes a model's availability, effort options, and API endpoint
+	Capabilities struct {
+		Efforts  []api.Effort `json:"efforts,omitempty"`
+		Hidden   bool         `json:"hidden,omitempty"`
+		Endpoint string       `json:"endpoint,omitempty"`
 	}
 
 	// ModelKey identifies a model by its provider and model ID
@@ -64,9 +79,9 @@ var (
 	ErrInvalidPriceTier  = errors.New("invalid model price tier")
 )
 
-// LoadConfig combines embedded model prices with worker settings from the environment. Headers
+// LoadConfig combines a worker's bundled defaults with its settings from the environment. Headers
 // in the MCP server file may reference environment variables as ${VAR}
-func LoadConfig(defaultPrices string) (*Config, error) {
+func LoadConfig(defaults Defaults) (*Config, error) {
 	servers, err := loadServers(os.Getenv("MCP_SERVERS"))
 	if err != nil {
 		return nil, err
@@ -75,7 +90,10 @@ func LoadConfig(defaultPrices string) (*Config, error) {
 	if _, ok := servers["argyll"]; !ok && url != "" {
 		servers["argyll"] = MCPServer{URL: url}
 	}
-	prices, err := loadPrices(defaultPrices, os.Getenv("MODEL_PRICES"))
+	prices, err := loadPrices(loadPricesArgs{
+		defaults: defaults.Prices,
+		path:     os.Getenv("MODEL_PRICES"),
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -83,10 +101,15 @@ func LoadConfig(defaultPrices string) (*Config, error) {
 	if err != nil {
 		return nil, err
 	}
+	caps, err := loadCapabilities(defaults.Capabilities, providers)
+	if err != nil {
+		return nil, err
+	}
 	return &Config{
-		Servers:   servers,
-		Providers: providers,
-		Prices:    prices,
+		Servers:      servers,
+		Providers:    providers,
+		Prices:       prices,
+		Capabilities: caps,
 	}, nil
 }
 
@@ -127,13 +150,38 @@ func (p Price) ratesFor(input int64) Rates {
 	return rates
 }
 
-func loadPrices(defaults, path string) (map[ModelKey]Price, error) {
+// loadCapabilities excludes bundled entries for custom endpoints before applying local overrides
+func loadCapabilities(
+	defaults string, urls map[api.ProviderID]string,
+) (map[ModelKey]Capabilities, error) {
+	models := map[ModelKey]Capabilities{}
+	if err := json.Unmarshal([]byte(cmp.Or(defaults, "{}")), &models); err != nil {
+		return nil, err
+	}
+	maps.DeleteFunc(models, func(k ModelKey, _ Capabilities) bool {
+		_, ok := urls[k.Provider]
+		return ok
+	})
+	var overrides map[ModelKey]Capabilities
+	if err := ReadJSON(os.Getenv("MODEL_CAPABILITIES"), &overrides); err != nil {
+		return nil, err
+	}
+	maps.Copy(models, overrides)
+	return models, nil
+}
+
+type loadPricesArgs struct {
+	defaults string
+	path     string
+}
+
+func loadPrices(args loadPricesArgs) (map[ModelKey]Price, error) {
 	prices := map[ModelKey]Price{}
-	if err := json.Unmarshal([]byte(defaults), &prices); err != nil {
+	if err := json.Unmarshal([]byte(args.defaults), &prices); err != nil {
 		return nil, err
 	}
 	var overrides map[ModelKey]Price
-	if err := ReadJSON(path, &overrides); err != nil {
+	if err := ReadJSON(args.path, &overrides); err != nil {
 		return nil, err
 	}
 	if prices == nil {

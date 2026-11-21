@@ -41,21 +41,30 @@ jest.mock("@/app/components/molecules/TagInput", () => ({
 }));
 
 jest.mock("./useAgentCapabilities", () => ({
-  useAgentCapabilities: () => [
-    {
-      provider: "anthropic",
-      models: [
-        { id: "claude-sonnet-5-5", efforts: ["low", "high", "xhigh"] },
-        { id: "claude-haiku" },
-      ],
-      mcp: [
-        { server: "crm", tools: ["delete", "lookup"] },
-        { server: "docs", tools: ["search"] },
-      ],
-    },
-    { provider: "openai", models: [{ id: "gpt" }], mcp: [] },
-    { provider: "unavailable", models: null, mcp: [] },
-  ],
+  useAgentCapabilities: () => ({
+    problems: [
+      {
+        instance: "provider/bedrock",
+        status: 403,
+        detail: "Credentials rejected",
+      },
+    ],
+    providers: [
+      {
+        provider: "anthropic",
+        models: [
+          { id: "claude-sonnet-5-5", efforts: ["low", "high", "xhigh"] },
+          { id: "claude-haiku" },
+        ],
+        mcp: [
+          { server: "crm", tools: ["delete", "lookup"] },
+          { server: "docs", tools: ["search"] },
+        ],
+      },
+      { provider: "openai", models: [{ id: "gpt" }], mcp: [] },
+      { provider: "unavailable", models: null, mcp: [] },
+    ],
+  }),
 }));
 
 const AGENT: AgentConfig = {
@@ -73,6 +82,14 @@ describe("StepEditorAgentConfiguration", () => {
     render(<StepEditorAgentConfiguration agent={agent} setAgent={setAgent} />);
     return setAgent;
   };
+
+  test("shows discovery errors alongside available providers", () => {
+    renderConfig();
+    expect(screen.getByRole("alert")).toHaveTextContent("provider/bedrock");
+    expect(screen.getByRole("alert")).toHaveTextContent("403");
+    expect(screen.getByRole("alert")).toHaveTextContent("Credentials rejected");
+    expect(screen.getByText("anthropic")).toBeInTheDocument();
+  });
 
   test("renders separate sections for model settings, MCP servers, and prologue", () => {
     renderConfig();

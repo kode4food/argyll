@@ -163,6 +163,7 @@
   "stepEditor.addAttribute": "Ajouter un Attribute",
   "stepEditor.addMCPServer": "Ajouter un serveur MCP",
   "stepEditor.agentConfigLabel": "Configuration Agent",
+  "stepEditor.agentDiscoveryFailed": "Impossible de charger les fournisseurs et les outils",
   "stepEditor.agentEffortLabel": "Effort de raisonnement",
   "stepEditor.agentEffortDefault": "Par défaut",
   "stepEditor.agentMCPLabel": "Serveurs MCP",

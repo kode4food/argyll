@@ -20,9 +20,8 @@ import (
 
 type (
 	modelCapabilities struct {
-		Efforts  []string `json:"efforts,omitempty"`
-		Endpoint string   `json:"endpoint,omitempty"`
-		Hidden   bool     `json:"hidden,omitempty"`
+		worker.Capabilities
+		Endpoint string `json:"endpoint,omitempty"`
 	}
 
 	modelCatalog struct {
@@ -34,11 +33,11 @@ type (
 )
 
 const (
-	catalogURL  = "https://developers.openai.com/api/docs/models/all.md"
-	pricingURL  = "https://developers.openai.com/api/docs/pricing.md"
-	modelURL    = "https://developers.openai.com/api/docs/models/"
-	defaultFile = "cmd/argyll-agent-openai/internal/openai/model-capabilities.json"
-	exitFailed  = 1
+	catalogURL = "https://developers.openai.com/api/docs/models/all.md"
+	pricingURL = "https://developers.openai.com/api/docs/pricing.md"
+	modelURL   = "https://developers.openai.com/api/docs/models/"
+	defaultDir = "internal/openai/"
+	exitFailed = 1
 )
 
 var (
@@ -51,16 +50,16 @@ var (
 )
 
 func main() {
-	path := flag.String("file", defaultFile, "model capabilities file to update")
+	dir := flag.String("dir", defaultDir, "directory of the model defaults to update")
 	flag.Parse()
-	if err := Refresh(*path, catalog.Fetch); err != nil {
+	if err := Refresh(*dir, catalog.Fetch); err != nil {
 		_, _ = fmt.Fprintln(os.Stderr, err)
 		os.Exit(exitFailed)
 	}
 }
 
 // Refresh updates the bundled OpenAI prices and model capabilities
-func Refresh(path string, fetch func(string) (string, error)) error {
+func Refresh(dir string, fetch func(string) (string, error)) error {
 	document, err := fetch(catalogURL)
 	if err != nil {
 		return err
@@ -77,11 +76,12 @@ func Refresh(path string, fetch func(string) (string, error)) error {
 	if err != nil {
 		return err
 	}
+	path := filepath.Join(dir, "model-capabilities.json")
 	models, err := catalog.ReadTable[modelCapabilities](path)
 	if err != nil {
 		return err
 	}
-	pricePath := filepath.Join(filepath.Dir(path), "model-prices.json")
+	pricePath := filepath.Join(dir, "model-prices.json")
 	prices, err := catalog.ReadTable[worker.Price](pricePath)
 	if err != nil {
 		return err
@@ -92,10 +92,16 @@ func Refresh(path string, fetch func(string) (string, error)) error {
 		models[key] = caps
 	}
 	updateModels(models, prices, listing, fetch)
-	if err := catalog.WriteTable(path, models); err != nil {
-		return err
-	}
-	return catalog.WriteTable(pricePath, prices)
+	return catalog.WriteTables(
+		catalog.Table{
+			Path:   path,
+			Values: models,
+		},
+		catalog.Table{
+			Path:   pricePath,
+			Values: prices,
+		},
+	)
 }
 
 func readCatalog(r io.Reader) (modelCatalog, error) {

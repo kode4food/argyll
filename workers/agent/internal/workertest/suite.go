@@ -22,9 +22,46 @@ import (
 )
 
 type (
+	// Harness adapts one provider implementation to the shared worker suite. The suite serves
+	// Reply bodies from a fake model reached through the Provider's base URL
+	Harness struct {
+		Provider    api.ProviderID
+		New         func(*worker.Config) worker.Provider
+		Credentials func(t *testing.T, set bool)
+		MissingKey  string
+		ReportsCost bool
+		Reply       func(Reply) string
+		System      func(body map[string]any) any
+		Tools       func(body map[string]any) any
+		ModelList   string
+		Models      []api.AgentModel
+		Failures    map[string]string
+	}
+
+	// Reply is a scripted model response, answering with text when it has no tool calls
+	Reply struct {
+		Calls []ToolCall
+		Usage Usage
+	}
+
+	// ToolCall is a tool call in a scripted model response
+	ToolCall struct {
+		ID        string
+		Name      string
+		Arguments string
+	}
+
+	// Usage is the token accounting a scripted response reports, as the worker counts it
+	Usage struct {
+		Input       int64
+		Output      int64
+		CacheInput  int64
+		CacheOutput int64
+		Cost        *float64
+	}
+
 	suite struct {
-		protocol api.ProviderID
-		provider func(*worker.Config) worker.Provider
+		h *Harness
 	}
 
 	// fakeModel answers each completion with the next scripted response
@@ -49,31 +86,24 @@ type (
 	lookupInput struct {
 		Name string `json:"name"`
 	}
-
-	modelToolCall struct {
-		id        string
-		name      string
-		arguments string
-	}
 )
 
 const (
-	providerAnthropic api.ProviderID = "anthropic"
-	providerOpenAI    api.ProviderID = "openai"
-
-	crmToken        = "secret"
-	anthropicKeyEnv = "ANTHROPIC_API_KEY"
-	waitTimeout     = 5 * time.Second
-	maxTestTurns    = 5
+	testModel             api.ModelID = "test-model"
+	crmToken                          = "secret"
+	replyInput                        = 10
+	replyOutput                       = 5
+	waitTimeout                       = 5 * time.Second
+	maxTestTurns                      = 5
+	permanentReportWindow             = 2 * time.Second
+	reportPollInterval                = 10 * time.Millisecond
 )
 
-// Run exercises a provider through the shared worker's HTTP contract
-func Run(t *testing.T, protocol api.ProviderID, provider func(*worker.Config) worker.Provider) {
+// Run exercises a provider implementation through the shared worker's HTTP contract
+func Run(t *testing.T, h *Harness) {
 	t.Helper()
-	s := &suite{
-		protocol: protocol,
-		provider: provider,
-	}
+	h.Credentials(t, true)
+	s := &suite{h: h}
 	for _, tc := range []struct {
 		name string
 		run  func(*testing.T)
@@ -81,13 +111,14 @@ func Run(t *testing.T, protocol api.ProviderID, provider func(*worker.Config) wo
 		{name: "invoke", run: s.testInvoke},
 		{name: "cost", run: s.testCost},
 		{name: "failures", run: s.testInvokeFailures},
+		{name: "terminal model responses", run: s.testTerminalResponses},
 		{name: "async", run: s.testInvokeAcceptsBeforeModelAnswers},
 		{name: "missing key", run: s.testMissingAPIKey},
 		{name: "callback retry", run: s.testCallbackRetry},
+		{name: "callback rejection", run: s.testCallbackRejection},
 		{name: "rejects", run: s.testInvokeRejects},
 		{name: "capabilities", run: s.testAgentCapabilities},
 		{name: "model discovery failure", run: s.testModelDiscoveryFailure},
-		{name: "isolation", run: s.testProviderIsolation},
 		{name: "empty capabilities", run: s.testEmptyCapabilities},
 		{name: "health", run: s.testHealth},
 	} {
@@ -95,6 +126,7 @@ func Run(t *testing.T, protocol api.ProviderID, provider func(*worker.Config) wo
 	}
 }
 
+// ServeHTTP records the request body and answers with the next scripted response
 func (m *fakeModel) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if m.gate != nil {
 		<-m.gate
@@ -116,6 +148,7 @@ func (m *fakeModel) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	_, _ = io.WriteString(w, res)
 }
 
+// ServeHTTP captures the reported outcome
 func (h *webhook) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var body api.AgentOutcome
 	_ = json.NewDecoder(r.Body).Decode(&body)
@@ -127,33 +160,29 @@ func (h *webhook) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *suite) testInvoke(t *testing.T) {
-	t.Setenv(anthropicKeyEnv, "test")
-
-	t.Run("anthropic with MCP tools", func(t *testing.T) {
-		firstReply := anthropicToolUse(modelToolCall{
-			id:        "t1",
-			name:      "crm__lookup",
-			arguments: `{"name": "acme"}`,
+	t.Run("with MCP tools", func(t *testing.T) {
+		firstReply := s.h.Reply(Reply{
+			Calls: []ToolCall{{ID: "t1", Name: "crm__lookup", Arguments: `{"name": "acme"}`}},
+			Usage: Usage{
+				Input:       310,
+				Output:      replyOutput,
+				CacheInput:  100,
+				CacheOutput: 200,
+			},
 		})
-		finishReply := anthropicToolUse(modelToolCall{
-			id:        "t2",
-			name:      "finish",
-			arguments: `{"score": 80}`,
+		finishReply := s.reply(ToolCall{
+			ID:        "t2",
+			Name:      "finish",
+			Arguments: `{"score": 80}`,
 		})
-		modelUsage := map[string]any{
-			"input_tokens":                10,
-			"output_tokens":               5,
-			"cache_read_input_tokens":     100,
-			"cache_creation_input_tokens": 200,
-		}
 		model := &fakeModel{responses: []string{
-			withModelUsage(t, firstReply, modelUsage),
+			firstReply,
 			finishReply,
 			finishReply,
-			anthropicToolUse(modelToolCall{
-				id:        "t3",
-				name:      "finish",
-				arguments: `{"lead_score": 85}`,
+			s.reply(ToolCall{
+				ID:        "t3",
+				Name:      "finish",
+				Arguments: `{"lead_score": 85}`,
 			}),
 		}}
 		modelSrv := httptest.NewServer(model)
@@ -161,29 +190,27 @@ func (s *suite) testInvoke(t *testing.T) {
 		crmSrv := crmServer(t)
 		defer crmSrv.Close()
 
-		cfg := &worker.Config{
-			Servers:   crmConfig(crmSrv.URL),
-			Providers: map[api.ProviderID]string{providerAnthropic: modelSrv.URL},
-			Prices: map[worker.ModelKey]worker.Price{
-				{
-					Provider: providerAnthropic,
-					Model:    "claude-sonnet-5-5",
-				}: {
-					Input:       new(float64(3)),
-					Output:      new(float64(15)),
-					CacheInput:  new(0.3),
-					CacheOutput: new(3.75),
-				},
+		cfg := s.config(modelSrv.URL)
+		cfg.Servers = crmConfig(crmSrv.URL)
+		cfg.Prices = map[worker.ModelKey]worker.Price{
+			{
+				Provider: s.h.Provider,
+				Model:    testModel,
+			}: {
+				Input:       new(float64(3)),
+				Output:      new(float64(15)),
+				CacheInput:  new(0.3),
+				CacheOutput: new(3.75),
 			},
 		}
-		req := agentRequest(providerAnthropic, crmSelection())
+		req := s.request(crmSelection())
 		req.Step.Attributes["customer_note"] = &api.AttributeSpec{
 			Role: api.RoleOptional,
 			Optional: &api.OptionalConfig{
 				Mapping: &api.MappingConfig{Name: "note"},
 			},
 		}
-		srv := httptest.NewServer(s.newWorker(t, cfg, providerAnthropic).Handler())
+		srv := httptest.NewServer(s.newWorker(cfg).Handler())
 		defer srv.Close()
 		out := invokeWorker(t, srv.URL, req)
 
@@ -201,16 +228,18 @@ func (s *suite) testInvoke(t *testing.T) {
 
 		first := model.request(0)
 		second := model.request(1)
-		system := mustJSON(t, first["system"])
+		system := mustJSON(t, s.h.System(first))
 		assert.Contains(t, system, `\"note\"`)
 		assert.NotContains(t, system, "customer_note")
 		assert.Contains(t, system, "Score a lead based on company size")
-		assert.Contains(t, system, "ephemeral")
-		assert.Equal(t, first["system"], second["system"])
-		assert.Equal(t, first["tools"], second["tools"])
-		assert.Contains(t, mustJSON(t, first["messages"]), "acme")
+		assert.Equal(t, s.h.System(first), s.h.System(second))
+		assert.NotNil(t, s.h.Tools(first))
+		assert.Equal(t, s.h.Tools(first), s.h.Tools(second))
+		assert.Contains(t, mustJSON(t, first), "acme")
 		assert.Contains(t, mustJSON(t, second), "acme has 40 seats")
-		assert.Equal(t, []string{"crm__lookup", "finish"}, toolNames(first))
+		tools := mustJSON(t, s.h.Tools(first))
+		assert.Contains(t, tools, `"crm__lookup"`)
+		assert.Contains(t, tools, `"finish"`)
 
 		req.Step.Name = "Score prospect"
 		req.Step.Description = "Score using the updated criteria"
@@ -218,16 +247,16 @@ func (s *suite) testInvoke(t *testing.T) {
 		out = invokeWorker(t, srv.URL, req)
 		assert.Equal(t, api.Args{"score": float64(80)}, out.body.Outputs)
 		third := model.request(2)
-		system = mustJSON(t, third["system"])
+		system = mustJSON(t, s.h.System(third))
 		assert.Contains(t, system, "Step: Score prospect")
 		assert.Contains(t, system, req.Step.Description)
 		assert.Contains(t, system, `\"note\"`)
 		assert.NotContains(t, system, "customer_note")
-		assert.Equal(t, first["tools"], third["tools"])
-		assert.Contains(t, mustJSON(t, third["messages"]), "other lead")
+		assert.Equal(t, s.h.Tools(first), s.h.Tools(third))
+		assert.Contains(t, mustJSON(t, third), "other lead")
 
 		// A new definition keeps the Step ID and metadata but uses new attribute mappings
-		next := agentRequest(providerAnthropic, crmSelection())
+		next := s.request(crmSelection())
 		next.Step.Name = req.Step.Name
 		next.Step.Description = req.Step.Description
 		next.Step.Attributes["customer_note"] = &api.AttributeSpec{
@@ -248,104 +277,72 @@ func (s *suite) testInvoke(t *testing.T) {
 		out = invokeWorker(t, srv.URL, next)
 		assert.Equal(t, api.Args{"lead_score": float64(85)}, out.body.Outputs)
 		fourth := model.request(3)
-		system = mustJSON(t, fourth["system"])
+		system = mustJSON(t, s.h.System(fourth))
 		assert.Contains(t, system, `\"account_note\"`)
 		assert.NotContains(t, system, `\"note\"`)
-		assert.Contains(t, system, "ephemeral")
-		tools := mustJSON(t, fourth["tools"])
+		tools = mustJSON(t, s.h.Tools(fourth))
 		assert.Contains(t, tools, `"lead_score"`)
 		assert.NotContains(t, tools, `"score"`)
 	})
 
-	t.Run("OpenAI-compatible provider", func(t *testing.T) {
-		modelUsage := map[string]any{
-			"prompt_tokens":         10,
-			"completion_tokens":     5,
-			"prompt_tokens_details": map[string]int{"cached_tokens": 4},
-		}
+	t.Run("corrects bad tool calls", func(t *testing.T) {
 		model := &fakeModel{responses: []string{
-			withModelUsage(t, openAIText(), modelUsage),
-			openAIToolCall(modelToolCall{
-				id:        "bad",
-				name:      "finish",
-				arguments: `{`,
+			s.h.Reply(Reply{
+				Usage: Usage{
+					Input:      replyInput,
+					Output:     replyOutput,
+					CacheInput: 4,
+				},
 			}),
-			openAIToolCall(modelToolCall{
-				id:        "missing",
-				name:      "unlisted",
-				arguments: `{}`,
+			s.reply(ToolCall{
+				ID:        "bad",
+				Name:      "finish",
+				Arguments: `1`,
 			}),
-			openAIToolCall(modelToolCall{
-				id:        "t1",
-				name:      "finish",
-				arguments: `{"score": 1, "extra": 2}`,
+			s.reply(ToolCall{
+				ID:        "missing",
+				Name:      "unlisted",
+				Arguments: `{}`,
 			}),
-			openAIToolCall(modelToolCall{
-				id:        "t2",
-				name:      "finish",
-				arguments: `{"score": 7}`,
+			s.reply(ToolCall{
+				ID:        "t1",
+				Name:      "finish",
+				Arguments: `{"score": 1, "extra": 2}`,
+			}),
+			s.reply(ToolCall{
+				ID:        "t2",
+				Name:      "finish",
+				Arguments: `{"score": 7}`,
 			}),
 		}}
 		modelSrv := httptest.NewServer(model)
 		defer modelSrv.Close()
 
-		cfg := &worker.Config{
-			Providers: map[api.ProviderID]string{"groq": modelSrv.URL},
-		}
-		req := agentRequest("groq")
+		req := s.request()
 		req.Step.Agent.MaxTurns = maxTestTurns
-		out := s.invoke(t, cfg, req)
+		out := s.invoke(t, s.config(modelSrv.URL), req)
 
 		assert.Equal(t, api.Args{"score": float64(7)}, out.body.Outputs)
 		assert.Equal(t, float64(50), out.body.Usage["input_tokens"])
 		assert.Equal(t, float64(4), out.body.Usage["cache_input_tokens"])
-		assert.Equal(t, "llama-4", model.request(0)["model"])
 		assert.Contains(t, mustJSON(t, model.request(1)), "Call the `finish` tool")
 		assert.Contains(t, mustJSON(t, model.request(2)), "arguments must be a JSON object")
 		assert.Contains(t, mustJSON(t, model.request(3)), "unknown tool unlisted")
 		assert.Contains(t, mustJSON(t, model.request(4)), "finish takes exactly score")
 	})
 
-	t.Run("corrects a wrong finish", func(t *testing.T) {
-		model := &fakeModel{responses: []string{
-			anthropicToolUse(modelToolCall{
-				id:        "t1",
-				name:      "finish",
-				arguments: `{"extra": 2}`,
-			}),
-			anthropicToolUse(modelToolCall{
-				id:        "t2",
-				name:      "finish",
-				arguments: `{"score": 2}`,
-			}),
-		}}
-		modelSrv := httptest.NewServer(model)
-		defer modelSrv.Close()
-
-		cfg := &worker.Config{
-			Providers: map[api.ProviderID]string{providerAnthropic: modelSrv.URL},
-		}
-		out := s.invoke(t, cfg, agentRequest(providerAnthropic))
-
-		assert.Equal(t, api.Args{"score": float64(2)}, out.body.Outputs)
-		assert.Contains(t, mustJSON(t, model.request(1)), "finish takes exactly score")
-	})
-
 	t.Run("reports an empty outputs object", func(t *testing.T) {
-		model := &fakeModel{responses: []string{openAIToolCall(modelToolCall{
-			id:        "t1",
-			name:      "finish",
-			arguments: `{}`,
+		model := &fakeModel{responses: []string{s.reply(ToolCall{
+			ID:        "t1",
+			Name:      "finish",
+			Arguments: `{}`,
 		})}}
 		modelSrv := httptest.NewServer(model)
 		defer modelSrv.Close()
 
-		req := agentRequest("local")
+		req := s.request()
 		delete(req.Step.Attributes, "score")
-		cfg := &worker.Config{
-			Providers: map[api.ProviderID]string{"local": modelSrv.URL},
-		}
-		out := s.invoke(t, cfg, req)
+		out := s.invoke(t, s.config(modelSrv.URL), req)
 
 		assert.Equal(t, api.Args{}, out.body.Outputs)
 		assert.Nil(t, out.body.Problem)
@@ -385,15 +382,21 @@ func (s *suite) testCost(t *testing.T) {
 		{
 			name: "at the threshold uses the base rates",
 			price: worker.Price{
-				Rates: price.Rates,
-				Tiers: []worker.PriceTier{{InputOver: 10}},
+				Input:       price.Input,
+				Output:      price.Output,
+				CacheInput:  price.CacheInput,
+				CacheOutput: price.CacheOutput,
+				Tiers:       []worker.PriceTier{{InputOver: 10}},
 			},
 			usage: api.Usage{"cost": 0.000105, "cost_calculated": 0.000105},
 		},
 		{
 			name: "cached input counts toward the highest qualifying tier",
 			price: worker.Price{
-				Rates: price.Rates,
+				Input:       price.Input,
+				Output:      price.Output,
+				CacheInput:  price.CacheInput,
+				CacheOutput: price.CacheOutput,
 				Tiers: []worker.PriceTier{
 					{
 						InputOver:   9,
@@ -473,42 +476,44 @@ func (s *suite) testCost(t *testing.T) {
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			finish := openAIToolCall(modelToolCall{
-				id:        "finish",
-				name:      "finish",
-				arguments: `{"score": 80}`,
-			})
-			reply := finish
-			if tc.mixed {
-				reply = openAIText()
+			if tc.cost != nil && !s.h.ReportsCost {
+				t.Skip("provider reports no cost")
 			}
-			usage := map[string]any{
-				"prompt_tokens":     10,
-				"completion_tokens": 5,
-				"cost":              tc.cost,
+			finish := ToolCall{
+				ID:        "finish",
+				Name:      "finish",
+				Arguments: `{"score": 80}`,
+			}
+			usage := Usage{
+				Input:  replyInput,
+				Output: replyOutput,
+				Cost:   tc.cost,
 			}
 			if tc.cached {
-				usage["prompt_tokens_details"] = map[string]int{
-					"cached_tokens":      4,
-					"cache_write_tokens": 2,
-				}
+				usage.CacheInput = 4
+				usage.CacheOutput = 2
 			}
-			model := &fakeModel{responses: []string{withModelUsage(t, reply, usage)}}
+			first := Reply{
+				Calls: []ToolCall{finish},
+				Usage: usage,
+			}
 			if tc.mixed {
-				model.responses = append(model.responses, finish)
+				first.Calls = nil
+			}
+			model := &fakeModel{responses: []string{s.h.Reply(first)}}
+			if tc.mixed {
+				model.responses = append(model.responses, s.reply(finish))
 			}
 			srv := httptest.NewServer(model)
 			defer srv.Close()
-			cfg := &worker.Config{
-				Providers: map[api.ProviderID]string{"local": srv.URL},
-				Prices: map[worker.ModelKey]worker.Price{
-					{
-						Provider: "local",
-						Model:    "llama-4",
-					}: tc.price,
-				},
+			cfg := s.config(srv.URL)
+			cfg.Prices = map[worker.ModelKey]worker.Price{
+				{
+					Provider: s.h.Provider,
+					Model:    testModel,
+				}: tc.price,
 			}
-			out := s.invoke(t, cfg, agentRequest("local"))
+			out := s.invoke(t, cfg, s.request())
 			assert.Nil(t, out.body.Problem)
 			assert.Equal(t, api.Args{"score": float64(80)}, out.body.Outputs)
 			want := tc.usage
@@ -524,22 +529,12 @@ func (s *suite) testCost(t *testing.T) {
 }
 
 func (s *suite) testInvokeFailures(t *testing.T) {
-	t.Setenv(anthropicKeyEnv, "test")
-
 	t.Run("provider status stands", func(t *testing.T) {
-		model := &fakeModel{
-			status: http.StatusUnauthorized,
-			responses: []string{
-				`{"type": "error", "error": {"type": "authentication_error", "message": "bad"}}`,
-			},
-		}
+		model := &fakeModel{status: http.StatusUnauthorized}
 		modelSrv := httptest.NewServer(model)
 		defer modelSrv.Close()
 
-		cfg := &worker.Config{
-			Providers: map[api.ProviderID]string{providerAnthropic: modelSrv.URL},
-		}
-		out := s.invoke(t, cfg, agentRequest(providerAnthropic))
+		out := s.invoke(t, s.config(modelSrv.URL), s.request())
 
 		assert.Equal(t, api.JSONContentType, out.contentType)
 		assert.Equal(t, http.StatusUnauthorized, out.body.Problem.Status)
@@ -551,68 +546,22 @@ func (s *suite) testInvokeFailures(t *testing.T) {
 	})
 
 	t.Run("turn limit fails permanently", func(t *testing.T) {
-		model := &fakeModel{responses: []string{anthropicText(), anthropicText()}}
+		model := &fakeModel{responses: []string{s.reply(), s.reply()}}
 		modelSrv := httptest.NewServer(model)
 		defer modelSrv.Close()
 
-		cfg := &worker.Config{
-			Providers: map[api.ProviderID]string{providerAnthropic: modelSrv.URL},
-		}
-		out := s.invoke(t, cfg, agentRequest(providerAnthropic))
+		out := s.invoke(t, s.config(modelSrv.URL), s.request())
 
 		assert.Equal(t, http.StatusUnprocessableEntity, out.body.Problem.Status)
 		assert.Contains(t, mustJSON(t, model.request(1)), "Call the `finish` tool")
 	})
 
-	t.Run("OpenAI failures", func(t *testing.T) {
-		for _, tc := range []struct {
-			name           string
-			response       string
-			providerStatus int
-			wantStatus     int
-			usage          api.Usage
-		}{
-			{
-				name: "missing choices",
-				response: `{"choices":[],"usage":{"prompt_tokens":10,
-					"completion_tokens":2,"cost":0.125}}`,
-				providerStatus: http.StatusOK,
-				wantStatus:     http.StatusBadGateway,
-				usage: api.Usage{
-					"input_tokens":  10,
-					"output_tokens": 2,
-					"cost":          0.125,
-					"cost_reported": 0.125,
-				},
-			},
-			{
-				name:           "unauthorized",
-				response:       `{"error":{"message":"bad key","type":"invalid_api_key"}}`,
-				providerStatus: http.StatusUnauthorized,
-				wantStatus:     http.StatusUnauthorized,
-			},
-		} {
-			t.Run(tc.name, func(t *testing.T) {
-				model := httptest.NewServer(&fakeModel{
-					responses: []string{tc.response},
-					status:    tc.providerStatus,
-				})
-				defer model.Close()
-				cfg := &worker.Config{Providers: map[api.ProviderID]string{"local": model.URL}}
-				out := s.invoke(t, cfg, agentRequest("local"))
-				assert.Equal(t, tc.wantStatus, out.body.Problem.Status)
-				if tc.usage != nil {
-					assert.Equal(t, tc.usage, out.body.Usage)
-				}
-			})
-		}
-	})
-
 	t.Run("unavailable MCP server fails the attempt", func(t *testing.T) {
 		crm := httptest.NewServer(http.NotFoundHandler())
 		defer crm.Close()
-		cfg := &worker.Config{Servers: crmConfig(crm.URL)}
-		out := s.invoke(t, cfg, agentRequest(providerAnthropic, crmSelection()))
+		cfg := s.config("http://localhost:1")
+		cfg.Servers = crmConfig(crm.URL)
+		out := s.invoke(t, cfg, s.request(crmSelection()))
 		assert.Equal(t, http.StatusBadGateway, out.body.Problem.Status)
 		assert.Nil(t, out.body.Outputs)
 	})
@@ -620,9 +569,10 @@ func (s *suite) testInvokeFailures(t *testing.T) {
 	t.Run("rejects duplicate model tool names", func(t *testing.T) {
 		crm := crmServer(t, "ops__lookup")
 		defer crm.Close()
-		cfg := &worker.Config{Servers: crmConfig(crm.URL)}
+		cfg := s.config("http://localhost:1")
+		cfg.Servers = crmConfig(crm.URL)
 		cfg.Servers["crm__ops"] = cfg.Servers["crm"]
-		req := agentRequest(providerAnthropic, api.MCPServer{
+		req := s.request(api.MCPServer{
 			Server: "crm",
 			Tools:  []string{"ops__lookup"},
 		}, api.MCPServer{
@@ -635,12 +585,31 @@ func (s *suite) testInvokeFailures(t *testing.T) {
 	})
 }
 
+func (s *suite) testTerminalResponses(t *testing.T) {
+	for reason, body := range s.h.Failures {
+		t.Run(reason, func(t *testing.T) {
+			model := &fakeModel{responses: []string{body}}
+			srv := httptest.NewServer(model)
+			defer srv.Close()
+			out := s.invoke(t, s.config(srv.URL), s.request())
+			if assert.NotNil(t, out.body.Problem) {
+				assert.Equal(t, http.StatusUnprocessableEntity, out.body.Problem.Status)
+				assert.Contains(t, out.body.Problem.Detail, reason)
+				assert.NotContains(t, out.body.Problem.Detail, worker.ErrTurnLimit.Error())
+			}
+			assert.Equal(t, float64(10), out.body.Usage["input_tokens"])
+			assert.Equal(t, float64(5), out.body.Usage["output_tokens"])
+			assert.NotNil(t, model.request(0))
+			assert.Nil(t, model.request(1))
+		})
+	}
+}
+
 func (s *suite) testInvokeAcceptsBeforeModelAnswers(t *testing.T) {
-	t.Setenv(anthropicKeyEnv, "test")
-	reply := anthropicToolUse(modelToolCall{
-		id:        "t1",
-		name:      "finish",
-		arguments: `{"score": 1}`,
+	reply := s.reply(ToolCall{
+		ID:        "t1",
+		Name:      "finish",
+		Arguments: `{"score": 1}`,
 	})
 	model := &fakeModel{
 		gate:      make(chan struct{}),
@@ -651,12 +620,10 @@ func (s *suite) testInvokeAcceptsBeforeModelAnswers(t *testing.T) {
 	hook := &webhook{outcomes: make(chan reported, 1)}
 	hookSrv := httptest.NewServer(hook)
 	defer hookSrv.Close()
-	srv := httptest.NewServer(s.newWorker(t, &worker.Config{
-		Providers: map[api.ProviderID]string{providerAnthropic: modelSrv.URL},
-	}, providerAnthropic).Handler())
+	srv := httptest.NewServer(s.newWorker(s.config(modelSrv.URL)).Handler())
 	defer srv.Close()
 
-	resp := postInvoke(t, srv.URL, agentRequest(providerAnthropic), hookSrv.URL)
+	resp := postInvoke(t, srv.URL, s.request(), hookSrv.URL)
 	_ = resp.Body.Close()
 	assert.Equal(t, http.StatusAccepted, resp.StatusCode)
 	assert.Nil(t, model.request(0))
@@ -671,68 +638,102 @@ func (s *suite) testInvokeAcceptsBeforeModelAnswers(t *testing.T) {
 }
 
 func (s *suite) testMissingAPIKey(t *testing.T) {
-	t.Setenv(anthropicKeyEnv, "")
+	if s.h.MissingKey == "" {
+		t.Skip("provider runs without credentials")
+	}
+	s.h.Credentials(t, false)
 	model := &fakeModel{}
 	modelSrv := httptest.NewServer(model)
 	defer modelSrv.Close()
 
-	cfg := &worker.Config{
-		Providers: map[api.ProviderID]string{providerAnthropic: modelSrv.URL},
-	}
-	out := s.invoke(t, cfg, agentRequest(providerAnthropic))
+	out := s.invoke(t, s.config(modelSrv.URL), s.request())
 
 	assert.Equal(t, http.StatusUnauthorized, out.body.Problem.Status)
-	assert.Contains(t, out.body.Problem.Detail, anthropicKeyEnv)
+	assert.Contains(t, out.body.Problem.Detail, s.h.MissingKey)
 	assert.Nil(t, model.request(0))
 }
 
 func (s *suite) testCallbackRetry(t *testing.T) {
-	reply := openAIToolCall(modelToolCall{
-		id:        "t1",
-		name:      "finish",
-		arguments: `{"score":7}`,
-	})
-	model := httptest.NewServer(&fakeModel{responses: []string{reply}})
-	defer model.Close()
-	hook := &webhook{outcomes: make(chan reported, 1)}
-	var calls atomic.Int32
-	cb := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if calls.Add(1) == 1 {
-			w.WriteHeader(http.StatusServiceUnavailable)
-			return
-		}
-		hook.ServeHTTP(w, r)
-	}))
-	defer cb.Close()
-	cfg := &worker.Config{Providers: map[api.ProviderID]string{"local": model.URL}}
-	srv := httptest.NewServer(s.newWorker(t, cfg, providerOpenAI).Handler())
-	defer srv.Close()
-
-	resp := postInvoke(t, srv.URL, agentRequest("local"), cb.URL)
-	_ = resp.Body.Close()
-	assert.Equal(t, http.StatusAccepted, resp.StatusCode)
-
-	select {
-	case out := <-hook.outcomes:
-		assert.Equal(t, api.Args{"score": float64(7)}, out.body.Outputs)
-		assert.EqualValues(t, 2, calls.Load())
-	case <-time.After(waitTimeout):
-		assert.Fail(t, "no outcome reported after retry")
+	for _, status := range []int{
+		http.StatusServiceUnavailable, http.StatusRequestTimeout, http.StatusTooManyRequests,
+	} {
+		t.Run(http.StatusText(status), func(t *testing.T) {
+			reply := s.reply(ToolCall{
+				ID:        "t1",
+				Name:      "finish",
+				Arguments: `{"score":7}`,
+			})
+			model := httptest.NewServer(&fakeModel{responses: []string{reply}})
+			defer model.Close()
+			hook := &webhook{outcomes: make(chan reported, 1)}
+			var calls atomic.Int32
+			cb := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if calls.Add(1) == 1 {
+					w.WriteHeader(status)
+					return
+				}
+				hook.ServeHTTP(w, r)
+			}))
+			defer cb.Close()
+			srv := httptest.NewServer(s.newWorker(s.config(model.URL)).Handler())
+			defer srv.Close()
+			resp := postInvoke(t, srv.URL, s.request(), cb.URL)
+			_ = resp.Body.Close()
+			assert.Equal(t, http.StatusAccepted, resp.StatusCode)
+			select {
+			case out := <-hook.outcomes:
+				assert.Equal(t, api.Args{"score": float64(7)}, out.body.Outputs)
+				assert.EqualValues(t, 2, calls.Load())
+			case <-time.After(waitTimeout):
+				assert.Fail(t, "no outcome reported after retry")
+			}
+		})
 	}
 }
 
+func (s *suite) testCallbackRejection(t *testing.T) {
+	reply := s.reply(ToolCall{
+		ID:        "t1",
+		Name:      "finish",
+		Arguments: `{"score":7}`,
+	})
+	model := httptest.NewServer(&fakeModel{responses: []string{reply}})
+	defer model.Close()
+	calls := make(chan struct{}, 2)
+	cb := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", api.ProblemJSONContentType)
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(api.NewProblem(http.StatusBadRequest, "invalid receipt"))
+		calls <- struct{}{}
+	}))
+	defer cb.Close()
+	srv := httptest.NewServer(s.newWorker(s.config(model.URL)).Handler())
+	defer srv.Close()
+	resp := postInvoke(t, srv.URL, s.request(), cb.URL)
+	_ = resp.Body.Close()
+	assert.Equal(t, http.StatusAccepted, resp.StatusCode)
+	select {
+	case <-calls:
+	case <-time.After(waitTimeout):
+		assert.Fail(t, "no outcome reported")
+		return
+	}
+	assert.Never(t,
+		func() bool { return len(calls) > 0 }, permanentReportWindow, reportPollInterval)
+}
+
 func (s *suite) testInvokeRejects(t *testing.T) {
-	srv := httptest.NewServer(s.newWorker(t, &worker.Config{
-		Servers: crmConfig("http://localhost:1"),
-	}, providerAnthropic).Handler())
+	cfg := s.config("http://localhost:1")
+	cfg.Servers = crmConfig("http://localhost:1")
+	srv := httptest.NewServer(s.newWorker(cfg).Handler())
 	defer srv.Close()
 
-	valid := agentRequest(providerAnthropic)
-	invalid := agentRequest(providerAnthropic)
+	valid := s.request()
+	invalid := s.request()
 	invalid.Step.Agent.MaxTurns = 0
 	unknownProvider := agentRequest("nowhere")
-	unknownServer := agentRequest(providerAnthropic, api.MCPServer{Server: "docs"})
-	emptyServer := agentRequest(providerAnthropic, api.MCPServer{})
+	unknownServer := s.request(api.MCPServer{Server: "docs"})
+	emptyServer := s.request(api.MCPServer{})
 
 	for _, tc := range []struct {
 		name    string
@@ -792,89 +793,55 @@ func (s *suite) testInvokeRejects(t *testing.T) {
 }
 
 func (s *suite) testAgentCapabilities(t *testing.T) {
-	t.Setenv(anthropicKeyEnv, "test")
-	t.Setenv("OPENAI_API_KEY", "")
 	var calls atomic.Int32
-	models := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	models := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		calls.Add(1)
 		w.Header().Set("Content-Type", api.JSONContentType)
-		switch r.URL.Path {
-		case "/v1/models":
-			assert.Equal(t, "test", r.Header.Get("x-api-key"))
-			_, _ = io.WriteString(w, `{"data":[
-				{"id":"claude","lifecycle":"deprecated","capabilities":{
-					"effort":{"supported":true,"low":{"supported":true}}
-				}},
-				{"id":"claude-retired","lifecycle":"retired"}
-			],"has_more":false}`)
-		case "/openai/models":
-			_, _ = io.WriteString(w, `{"data":[
-				{"id":"second","shutdown_date":"2099-01-01"},
-				{"id":"first"},
-				{"id":"retired","shutdown_date":"2000-01-01"}
-			]}`)
-		default:
-			http.NotFound(w, r)
-		}
+		_, _ = io.WriteString(w, s.h.ModelList)
 	}))
 	defer models.Close()
 	crmSrv := crmServer(t)
 	defer crmSrv.Close()
-	servers := crmConfig(crmSrv.URL)
-	servers["down"] = worker.MCPServer{URL: "http://localhost:1"}
-	urls := map[api.ProviderID]string{
-		"anthropic": models.URL,
-		"local":     models.URL + "/openai/",
-	}
-	serversList := []api.MCPServer{
-		{Server: "crm", Tools: []string{"delete", "lookup"}},
-		{Server: "down"},
-	}
-	providers := []api.AgentProvider{
+	cfg := s.config(models.URL)
+	cfg.Servers = crmConfig(crmSrv.URL)
+	cfg.Servers["down"] = worker.MCPServer{URL: "http://localhost:1"}
+	want := []api.AgentProvider{
 		{
-			Provider: "anthropic",
-			Models:   []api.AgentModel{{ID: "claude", Efforts: []api.Effort{"low"}}},
-			MCP:      serversList,
-		},
-		{
-			Provider: "local",
-			Models:   []api.AgentModel{{ID: "first"}, {ID: "second"}},
-			MCP:      serversList,
+			Provider: s.h.Provider,
+			Models:   s.h.Models,
+			MCP: []api.MCPServer{
+				{Server: "crm", Tools: []string{"delete", "lookup"}},
+				{Server: "down"},
+			},
 		},
 	}
-	for _, provider := range providers {
-		t.Run(string(provider.Provider), func(t *testing.T) {
-			protocol := providerOpenAI
-			if provider.Provider == providerAnthropic {
-				protocol = providerAnthropic
-			}
-			cfg := &worker.Config{
-				Servers:   servers,
-				Providers: map[api.ProviderID]string{provider.Provider: urls[provider.Provider]},
-			}
-			handler := s.newWorker(t, cfg, protocol).Handler()
-			calls.Store(0)
-			for range 2 {
-				req := httptest.NewRequest(http.MethodGet, builtins.AgentCapabilitiesPath, nil)
-				resp := httptest.NewRecorder()
-				handler.ServeHTTP(resp, req)
-				assert.Equal(t, http.StatusOK, resp.Code)
-				var list api.AgentCapabilities
-				assert.NoError(t, json.NewDecoder(resp.Body).Decode(&list))
-				assert.Equal(t, []api.AgentProvider{provider}, list.Providers)
-			}
-			assert.Equal(t, int32(1), calls.Load())
-		})
+	handler := s.newWorker(cfg).Handler()
+	listed := int32(0)
+	for range 2 {
+		req := httptest.NewRequest(http.MethodGet, builtins.AgentCapabilitiesPath, nil)
+		resp := httptest.NewRecorder()
+		handler.ServeHTTP(resp, req)
+		assert.Equal(t, http.StatusOK, resp.Code)
+		var list api.AgentCapabilities
+		assert.NoError(t, json.NewDecoder(resp.Body).Decode(&list))
+		assert.Equal(t, want, list.Providers)
+		if assert.Len(t, list.Problems, 1) {
+			assert.Equal(t, "mcp/down", list.Problems[0].Instance)
+			assert.NotEmpty(t, list.Problems[0].Detail)
+		}
+		if listed == 0 {
+			listed = calls.Load()
+		}
 	}
+	// The second request is served from the cached listing
+	assert.Positive(t, listed)
+	assert.Equal(t, listed, calls.Load())
 }
 
 func (s *suite) testModelDiscoveryFailure(t *testing.T) {
 	srv := httptest.NewServer(http.NotFoundHandler())
 	defer srv.Close()
-	cfg := &worker.Config{
-		Providers: map[api.ProviderID]string{s.protocol: srv.URL},
-	}
-	handler := s.newWorker(t, cfg, s.protocol).Handler()
+	handler := s.newWorker(s.config(srv.URL)).Handler()
 	req := httptest.NewRequest(http.MethodGet, builtins.AgentCapabilitiesPath, nil)
 	resp := httptest.NewRecorder()
 	handler.ServeHTTP(resp, req)
@@ -882,41 +849,20 @@ func (s *suite) testModelDiscoveryFailure(t *testing.T) {
 	var res api.AgentCapabilities
 	assert.NoError(t, json.NewDecoder(resp.Body).Decode(&res))
 	assert.Equal(t, []api.AgentProvider{{
-		Provider: s.protocol,
+		Provider: s.h.Provider,
 		Models:   []api.AgentModel{},
 		MCP:      []api.MCPServer{},
 	}}, res.Providers)
-}
-
-func (s *suite) testProviderIsolation(t *testing.T) {
-	for _, tc := range []struct {
-		protocol api.ProviderID
-		provider api.ProviderID
-	}{
-		{protocol: providerAnthropic, provider: providerOpenAI},
-		{protocol: providerAnthropic, provider: "local"},
-		{protocol: providerOpenAI, provider: providerAnthropic},
-	} {
-		t.Run(string(tc.protocol)+"/"+string(tc.provider), func(t *testing.T) {
-			cfg := &worker.Config{
-				Providers: map[api.ProviderID]string{
-					tc.protocol: "http://localhost:1",
-					"local":     "http://localhost:1",
-				},
-			}
-			srv := httptest.NewServer(s.newWorker(t, cfg, tc.protocol).Handler())
-			defer srv.Close()
-			resp := postInvoke(t, srv.URL, agentRequest(tc.provider), "http://localhost:1")
-			defer func() { _ = resp.Body.Close() }()
-			assert.Equal(t, http.StatusUnprocessableEntity, resp.StatusCode)
-		})
+	if assert.Len(t, res.Problems, 1) {
+		assert.Equal(t, "provider/"+string(s.h.Provider), res.Problems[0].Instance)
+		assert.Equal(t, http.StatusNotFound, res.Problems[0].Status)
+		assert.NotEmpty(t, res.Problems[0].Detail)
 	}
 }
 
 func (s *suite) testEmptyCapabilities(t *testing.T) {
-	t.Setenv(anthropicKeyEnv, "")
-	t.Setenv("OPENAI_API_KEY", "")
-	h := s.newWorker(t, &worker.Config{}, s.protocol).Handler()
+	s.h.Credentials(t, false)
+	h := s.newWorker(&worker.Config{}).Handler()
 	req := httptest.NewRequest(http.MethodGet, builtins.AgentCapabilitiesPath, nil)
 	w := httptest.NewRecorder()
 	h.ServeHTTP(w, req)
@@ -925,7 +871,7 @@ func (s *suite) testEmptyCapabilities(t *testing.T) {
 }
 
 func (s *suite) testHealth(t *testing.T) {
-	srv := httptest.NewServer(s.newWorker(t, &worker.Config{}, s.protocol).Handler())
+	srv := httptest.NewServer(s.newWorker(&worker.Config{}).Handler())
 	defer srv.Close()
 	resp, err := http.Get(srv.URL + "/health")
 	assert.NoError(t, err)
@@ -935,23 +881,34 @@ func (s *suite) testHealth(t *testing.T) {
 
 func (s *suite) invoke(t *testing.T, cfg *worker.Config, req *api.AgentRequest) reported {
 	t.Helper()
-	protocol := providerOpenAI
-	if req.Step.Agent.Provider == providerAnthropic {
-		protocol = providerAnthropic
-	}
-	srv := httptest.NewServer(s.newWorker(t, cfg, protocol).Handler())
+	srv := httptest.NewServer(s.newWorker(cfg).Handler())
 	defer srv.Close()
 	return invokeWorker(t, srv.URL, req)
 }
 
-func (s *suite) newWorker(
-	t *testing.T, cfg *worker.Config, protocol api.ProviderID,
-) *worker.Worker {
-	t.Helper()
-	if protocol != s.protocol {
-		t.Skip("exercised by the other provider's test suite")
+func (s *suite) newWorker(cfg *worker.Config) *worker.Worker {
+	return worker.New(cfg, s.h.New(cfg))
+}
+
+func (s *suite) config(url string) *worker.Config {
+	return &worker.Config{
+		Providers: map[api.ProviderID]string{s.h.Provider: url},
 	}
-	return worker.New(cfg, s.provider(cfg))
+}
+
+func (s *suite) request(mcpServers ...api.MCPServer) *api.AgentRequest {
+	return agentRequest(s.h.Provider, mcpServers...)
+}
+
+// reply scripts a response with the usual token counts
+func (s *suite) reply(calls ...ToolCall) string {
+	return s.h.Reply(Reply{
+		Calls: calls,
+		Usage: Usage{
+			Input:  replyInput,
+			Output: replyOutput,
+		},
+	})
 }
 
 func (m *fakeModel) request(i int) map[string]any {
@@ -998,10 +955,6 @@ func postInvoke(t *testing.T, base string, body any, webhook string) *http.Respo
 }
 
 func agentRequest(provider api.ProviderID, mcpServers ...api.MCPServer) *api.AgentRequest {
-	model := "claude-sonnet-5-5"
-	if provider != providerAnthropic {
-		model = "llama-4"
-	}
 	return &api.AgentRequest{
 		Step: &api.Step{
 			ID:          "score",
@@ -1010,7 +963,7 @@ func agentRequest(provider api.ProviderID, mcpServers ...api.MCPServer) *api.Age
 			Type:        api.StepTypeAgent,
 			Agent: &api.AgentConfig{
 				Provider:  provider,
-				Model:     api.ModelID(model),
+				Model:     testModel,
 				Prologue:  "# Score",
 				MCP:       mcpServers,
 				MaxTurns:  2,
@@ -1049,21 +1002,31 @@ func crmServer(t *testing.T, extraTools ...string) *httptest.Server {
 		Name:    "crm",
 		Version: "1",
 	}, nil)
-	mcp.AddTool(server, &mcp.Tool{Name: "lookup", Description: "Look up an account"},
+	mcp.AddTool(
+		server, &mcp.Tool{
+			Name:        "lookup",
+			Description: "Look up an account",
+		},
 		func(_ context.Context, _ *mcp.CallToolRequest, in lookupInput) (
 			*mcp.CallToolResult, any, error,
 		) {
 			return &mcp.CallToolResult{
 				Content: []mcp.Content{&mcp.TextContent{Text: in.Name + " has 40 seats"}},
 			}, nil, nil
-		})
+		},
+	)
 	for _, name := range append([]string{"delete"}, extraTools...) {
-		mcp.AddTool(server, &mcp.Tool{Name: name, Description: "Auxiliary tool"},
+		mcp.AddTool(
+			server, &mcp.Tool{
+				Name:        name,
+				Description: "Auxiliary tool",
+			},
 			func(context.Context, *mcp.CallToolRequest, lookupInput) (
 				*mcp.CallToolResult, any, error,
 			) {
 				return &mcp.CallToolResult{}, nil, nil
-			})
+			},
+		)
 	}
 	handler := mcp.NewStreamableHTTPHandler(func(*http.Request) *mcp.Server {
 		return server
@@ -1075,56 +1038,6 @@ func crmServer(t *testing.T, extraTools ...string) *httptest.Server {
 		}
 		handler.ServeHTTP(w, r)
 	}))
-}
-
-func anthropicToolUse(call modelToolCall) string {
-	return `{"id": "msg", "type": "message", "role": "assistant", "model": "m",
-		"content": [{"type": "tool_use", "id": "` + call.id + `",
-		"name": "` + call.name + `",
-		"input": ` + call.arguments + `}], "stop_reason": "tool_use",
-		"usage": {"input_tokens": 10, "output_tokens": 5}}`
-}
-
-func anthropicText() string {
-	return `{"id": "msg", "type": "message", "role": "assistant", "model": "m",
-		"content": [{"type": "text", "text": "thinking"}], "stop_reason": "end_turn",
-		"usage": {"input_tokens": 10, "output_tokens": 5}}`
-}
-
-func openAIText() string {
-	return `{"id":"c","object":"chat.completion","created":0,"model":"m",
-		"choices":[{"index":0,"finish_reason":"stop",
-		"message":{"role":"assistant","content":"thinking"}}],
-		"usage":{"prompt_tokens":10,"completion_tokens":5,"total_tokens":15}}`
-}
-
-func openAIToolCall(call modelToolCall) string {
-	quoted, _ := json.Marshal(call.arguments)
-	return `{"id": "c", "object": "chat.completion", "created": 0, "model": "m",
-		"choices": [{"index": 0, "finish_reason": "tool_calls", "message": {
-		"role": "assistant", "content": null, "tool_calls": [{"id": "` + call.id + `",
-		"type": "function", "function": {"name": "` + call.name + `", "arguments": ` +
-		string(quoted) + `}}]}}],
-		"usage": {"prompt_tokens": 10, "completion_tokens": 5, "total_tokens": 15}}`
-}
-
-func withModelUsage(t *testing.T, response string, usage map[string]any) string {
-	t.Helper()
-	var body map[string]any
-	assert.NoError(t, json.Unmarshal([]byte(response), &body))
-	body["usage"] = usage
-	return mustJSON(t, body)
-}
-
-func toolNames(body map[string]any) []string {
-	tools, _ := body["tools"].([]any)
-	res := make([]string, 0, len(tools))
-	for _, t := range tools {
-		if m, ok := t.(map[string]any); ok {
-			res = append(res, m["name"].(string))
-		}
-	}
-	return res
 }
 
 func mustJSON(t *testing.T, v any) string {

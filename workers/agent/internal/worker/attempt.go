@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"log/slog"
 	"net/http"
 	"slices"
 	"strings"
@@ -48,7 +49,8 @@ const (
 )
 
 var (
-	ErrTurnLimit = errors.New("no outputs within the turn limit")
+	ErrTurnLimit    = errors.New("no outputs within the turn limit")
+	ErrModelStopped = errors.New("model stopped without completing the task")
 )
 
 func (w *Worker) attempt(ctx context.Context, req *api.AgentRequest) api.AgentOutcome {
@@ -132,6 +134,7 @@ func (w *Worker) converse(
 		}
 		results := make([]ToolResult, 0, len(t.Calls))
 		for _, call := range t.Calls {
+			slog.Info("Agent tool call", stepAttrs(req), slog.String("tool", call.Name))
 			result, reply, err := handle(ctx, box, call, schemas.outputs)
 			if err != nil || result != nil {
 				return result, err
@@ -192,7 +195,11 @@ func (w *Worker) recordCost(usage api.Usage, t *Turn, cfg *api.AgentConfig) {
 			usage[usageCostUnpriced] += float64(charge.tokens)
 			continue
 		}
-		addCharge(usage, usageCostCalculated, tokenCost(float64(charge.tokens), *charge.price))
+		cost := tokenCost(tokenCostArgs{
+			tokens:          float64(charge.tokens),
+			perMillionPrice: *charge.price,
+		})
+		addCharge(usage, usageCostCalculated, cost)
 	}
 }
 
@@ -278,8 +285,8 @@ func problemOf(err error) *api.ProblemDetails {
 	switch {
 	case errors.Is(err, context.DeadlineExceeded):
 		status = http.StatusGatewayTimeout
-	case errors.Is(err, ErrTurnLimit), errors.Is(err, ErrUnknownServer),
-		errors.Is(err, ErrDuplicateTool):
+	case errors.Is(err, ErrTurnLimit), errors.Is(err, ErrModelStopped),
+		errors.Is(err, ErrUnknownServer), errors.Is(err, ErrDuplicateTool):
 		status = http.StatusUnprocessableEntity
 	case errors.Is(err, ErrMissingAPIKey):
 		status = http.StatusUnauthorized
@@ -303,10 +310,15 @@ func addCharge(usage api.Usage, source string, cost float64) {
 }
 
 // tokenCost prices tokens with decimal arithmetic to avoid binary rounding artifacts
-func tokenCost(tokens, perMillionPrice float64) float64 {
-	product, ok := argex.Mul(tokens, perMillionPrice)
+type tokenCostArgs struct {
+	tokens          float64
+	perMillionPrice float64
+}
+
+func tokenCost(args tokenCostArgs) float64 {
+	product, ok := argex.Mul(args.tokens, args.perMillionPrice)
 	if !ok {
-		product = tokens * perMillionPrice
+		product = args.tokens * args.perMillionPrice
 	}
 	if res, ok := argex.Div(product, perMillion); ok {
 		return res

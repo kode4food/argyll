@@ -30,12 +30,24 @@ func TestLoadConfig(t *testing.T) {
 		t.Setenv("MODEL_PRICES", prices)
 		t.Setenv("PROVIDER_URLS", "groq=https://api.groq.com/openai/v1, ollama=http://ollama")
 
-		cfg, err := worker.LoadConfig(`{
-			"anthropic/claude-sonnet-5-5": {"input": 2},
-			"anthropic/claude-haiku-5-5": {"input": 0.1, "output": 0.5}
-		}`)
+		cfg, err := worker.LoadConfig(worker.Defaults{
+			Prices: `{
+				"anthropic/claude-sonnet-5-5": {"input": 2},
+				"anthropic/claude-haiku-5-5": {"input": 0.1, "output": 0.5}
+			}`,
+			Capabilities: `{
+				"anthropic/claude-haiku-5-5": {"efforts": ["low"]},
+				"groq/whisper": {"hidden": true}
+			}`,
+		})
 		assert.NoError(t, err)
 		want := &worker.Config{
+			Capabilities: map[worker.ModelKey]worker.Capabilities{
+				{
+					Provider: "anthropic",
+					Model:    "claude-haiku-5-5",
+				}: {Efforts: []api.Effort{"low"}},
+			},
 			Servers: map[string]worker.MCPServer{
 				"crm": {
 					URL:     "http://crm/mcp",
@@ -111,7 +123,7 @@ func TestLoadConfig(t *testing.T) {
 				t.Setenv("MCP_SERVERS", writeFile(t, tc.servers))
 				t.Setenv("MODEL_PRICES", "")
 				t.Setenv("PROVIDER_URLS", tc.providers)
-				_, err := worker.LoadConfig(`{}`)
+				_, err := worker.LoadConfig(worker.Defaults{Prices: `{}`})
 				assert.ErrorIs(t, err, tc.want)
 			})
 		}
@@ -120,21 +132,23 @@ func TestLoadConfig(t *testing.T) {
 	t.Run("price file cannot be read", func(t *testing.T) {
 		t.Setenv("MCP_SERVERS", "")
 		t.Setenv("MODEL_PRICES", filepath.Join(t.TempDir(), "missing.json"))
-		_, err := worker.LoadConfig(`{}`)
+		_, err := worker.LoadConfig(worker.Defaults{Prices: `{}`})
 		assert.ErrorIs(t, err, os.ErrNotExist)
 	})
 
 	t.Run("rejects a price key without a provider", func(t *testing.T) {
 		t.Setenv("MCP_SERVERS", "")
 		t.Setenv("MODEL_PRICES", writeFile(t, `{"claude": {"input": 1}}`))
-		_, err := worker.LoadConfig(`{}`)
+		_, err := worker.LoadConfig(worker.Defaults{Prices: `{}`})
 		assert.ErrorIs(t, err, worker.ErrInvalidModelKey)
 	})
 
 	t.Run("rejects duplicate price tiers", func(t *testing.T) {
 		t.Setenv("MCP_SERVERS", "")
 		t.Setenv("MODEL_PRICES", "")
-		_, err := worker.LoadConfig(`{"local/model":{"tiers":[{"input_over":4},{"input_over":4}]}}`)
+		_, err := worker.LoadConfig(worker.Defaults{
+			Prices: `{"local/model":{"tiers":[{"input_over":4},{"input_over":4}]}}`,
+		})
 		assert.ErrorIs(t, err, worker.ErrInvalidPriceTier)
 	})
 
@@ -143,7 +157,7 @@ func TestLoadConfig(t *testing.T) {
 		t.Setenv("MCP_SERVERS", writeFile(t, `{"tools":{"url":"http://tools/mcp"}}`))
 		t.Setenv("MODEL_PRICES", "")
 		t.Setenv("PROVIDER_URLS", "")
-		cfg, err := worker.LoadConfig(`{}`)
+		cfg, err := worker.LoadConfig(worker.Defaults{Prices: `{}`})
 		assert.NoError(t, err)
 		assert.Equal(t, "http://argyll-mcp:8071/mcp", cfg.Servers["argyll"].URL)
 		assert.Equal(t, "http://tools/mcp", cfg.Servers["tools"].URL)

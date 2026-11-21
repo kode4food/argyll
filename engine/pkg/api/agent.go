@@ -37,7 +37,8 @@ type (
 
 	// AgentCapabilities lists the providers available for Agent Steps
 	AgentCapabilities struct {
-		Providers []AgentProvider `json:"providers"`
+		Providers []AgentProvider  `json:"providers"`
+		Problems  []ProblemDetails `json:"problems,omitempty"`
 	}
 
 	// AgentProvider lists a provider's models and the MCP servers on its worker

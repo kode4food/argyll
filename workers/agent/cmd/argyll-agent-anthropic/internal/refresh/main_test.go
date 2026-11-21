@@ -40,7 +40,7 @@ func TestRefresh(t *testing.T) {
 	pricePath := filepath.Join(dir, "model-prices.json")
 	thresholdPath := filepath.Join(dir, "prefix-thresholds.json")
 	assert.NoError(t, os.WriteFile(pricePath, []byte("{}"), 0o600))
-	defaults := []byte(`{"claude-unlisted":1024}`)
+	defaults := []byte(`{"anthropic/claude-unlisted":1024}`)
 	assert.NoError(t, os.WriteFile(thresholdPath, defaults, 0o600))
 
 	err := refresh.Refresh(dir, fetchPages(map[string]string{
@@ -59,9 +59,21 @@ func TestRefresh(t *testing.T) {
 	assert.Equal(t, price, prices["anthropic/claude-haiku-5-5-20261119"])
 	thresholds, err := catalog.ReadTable[int](thresholdPath)
 	assert.NoError(t, err)
-	assert.Equal(t, 512, thresholds["claude-haiku-5-5"])
-	assert.Equal(t, 512, thresholds["claude-haiku-5-5-20261119"])
-	assert.Equal(t, 1024, thresholds["claude-unlisted"])
+	assert.Equal(t, 512, thresholds["anthropic/claude-haiku-5-5"])
+	assert.Equal(t, 512, thresholds["anthropic/claude-haiku-5-5-20261119"])
+	assert.Equal(t, 1024, thresholds["anthropic/claude-unlisted"])
+}
+
+func TestRefreshNewDir(t *testing.T) {
+	dir := t.TempDir()
+	err := refresh.Refresh(dir, fetchPages(map[string]string{
+		"pricing.md":        pricingPage,
+		"prompt-caching.md": cachingPage,
+	}))
+	assert.NoError(t, err)
+	thresholds, err := catalog.ReadTable[int](filepath.Join(dir, "prefix-thresholds.json"))
+	assert.NoError(t, err)
+	assert.Equal(t, 512, thresholds["anthropic/claude-haiku-5-5"])
 }
 
 func TestInvalidSource(t *testing.T) {
@@ -102,16 +114,29 @@ func TestInvalidSource(t *testing.T) {
 			pages: map[string]string{"pricing.md": pricingPage, "prompt-caching.md": "# Caching"},
 			want:  refresh.ErrIncompleteThresholds,
 		},
-		{
-			pages: map[string]string{"pricing.md": pricingPage, "prompt-caching.md": cachingPage},
-			want:  os.ErrNotExist,
-		},
 	} {
 		assert.ErrorIs(t, refresh.Refresh(dir, fetchPages(tc.pages)), tc.want)
 	}
 	data, err := os.ReadFile(pricePath)
 	assert.NoError(t, err)
 	assert.Equal(t, "{}", string(data))
+}
+
+func TestInvalidDefaults(t *testing.T) {
+	for _, name := range []string{"model-prices.json", "prefix-thresholds.json"} {
+		t.Run(name, func(t *testing.T) {
+			dir := t.TempDir()
+			path := filepath.Join(dir, name)
+			assert.NoError(t, os.WriteFile(path, []byte(`null`), 0o600))
+			assert.ErrorIs(t, refresh.Refresh(dir, fetchPages(map[string]string{
+				"pricing.md":        pricingPage,
+				"prompt-caching.md": cachingPage,
+			})), catalog.ErrInvalidTable)
+			data, err := os.ReadFile(path)
+			assert.NoError(t, err)
+			assert.Equal(t, "null", string(data))
+		})
+	}
 }
 
 func fetchPages(pages map[string]string) func(string) (string, error) {

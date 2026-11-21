@@ -13,7 +13,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/kode4food/argyll/engine/pkg/api"
-	"github.com/kode4food/argyll/workers/agent/cmd/argyll-agent-anthropic/internal/anthropic"
+	"github.com/kode4food/argyll/workers/agent/internal/anthropic"
 	"github.com/kode4food/argyll/workers/agent/internal/worker"
 )
 
@@ -43,7 +43,7 @@ func TestPromptPrefix(t *testing.T) {
 			compactBytes:  374,
 			expandedBytes: 703,
 			expectCompact: true,
-			overrides:     `{"claude-haiku-5-5":1024}`,
+			overrides:     `{"anthropic/claude-haiku-5-5":1024}`,
 		},
 		{
 			name:          "compact just above minimum",
@@ -91,7 +91,7 @@ func TestPromptPrefix(t *testing.T) {
 			}
 			srv := httptest.NewServer(http.HandlerFunc(handler))
 			defer srv.Close()
-			p, err := anthropic.New(map[api.ProviderID]string{
+			p, err := anthropic.NewProvider(map[api.ProviderID]string{
 				anthropic.Name: srv.URL,
 			})
 			if !assert.NoError(t, err) {
@@ -99,6 +99,7 @@ func TestPromptPrefix(t *testing.T) {
 			}
 			c, err := p.Open(&worker.Chat{
 				Config: &api.AgentConfig{
+					Provider:  anthropic.Name,
 					Model:     "claude-haiku-5-5",
 					MaxTokens: 5,
 				},

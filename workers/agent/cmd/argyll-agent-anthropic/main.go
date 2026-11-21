@@ -5,7 +5,7 @@ import (
 	"os"
 
 	"github.com/kode4food/argyll/engine/pkg/log"
-	"github.com/kode4food/argyll/workers/agent/cmd/argyll-agent-anthropic/internal/anthropic"
+	"github.com/kode4food/argyll/workers/agent/internal/anthropic"
 	"github.com/kode4food/argyll/workers/agent/internal/worker"
 )
 

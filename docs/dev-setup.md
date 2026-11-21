@@ -51,20 +51,60 @@ If you run the engine outside Docker, make sure these are set appropriately for 
 
 ## Running the reference Agent workers
 
-Docker Compose starts `argyll-agent-anthropic` and `argyll-agent-openai` automatically. Both offer the `argyll` MCP server for you to select in a Step. To enable a provider, add its API key to that worker's file at the repository root:
+Docker Compose starts `argyll-agent-anthropic`, `argyll-agent-bedrock`, and `argyll-agent-openai` automatically. Each offers the `argyll` MCP server for you to select in a Step. To enable a provider, add its credentials to that worker's file at the repository root:
 
 - Anthropic uses `ANTHROPIC_API_KEY` in `.env.d/agent-anthropic.env`.
+- Amazon Bedrock uses `AWS_REGION` and AWS credentials in `.env.d/agent-bedrock.env`.
 - OpenAI uses `OPENAI_API_KEY` in `.env.d/agent-openai.env`.
 
-Set custom `PROVIDER_URLS` in the file for the worker serving those endpoints. Use the optional `.env.d/agent.env` for settings both workers share. Worker-specific values take precedence. The `.env.d/` directory is excluded from Git and Docker builds.
+The Anthropic worker also accepts `ANTHROPIC_AUTH_TOKEN` in place of `ANTHROPIC_API_KEY` for gateways that expect a bearer token. The API key wins when both are set.
 
-Run `docker compose up -d argyll-agent-anthropic argyll-agent-openai` to apply the new environment.
+The Bedrock worker offers the region's text models that support tool calling as the `bedrock` provider. It lists on-demand models and active inference profiles, leaving out retired models. Models that accept image input are included. Models that produce images, audio, video, speech, or embeddings are left out. Its role needs `bedrock:InvokeModel`, `bedrock:ListFoundationModels`, and `bedrock:ListInferenceProfiles`. It reads credentials from the standard AWS sources: environment variables such as `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`, shared config files with `AWS_PROFILE`, or an attached role. Set `AWS_BEARER_TOKEN_BEDROCK` to use a Bedrock API key instead. Set `AWS_ENDPOINT_URL_BEDROCK_RUNTIME` and `AWS_ENDPOINT_URL_BEDROCK` to reach Bedrock through VPC endpoints.
 
-The workers share the Go module in `workers/agent`. From the repository root, run `go run ./workers/agent/cmd/argyll-agent-anthropic` or `go run ./workers/agent/cmd/argyll-agent-openai`. To run both locally, set a different `PORT` for each process and configure `AGENT_WORKERS` with their URLs. To build or test with the Go workspace disabled, run `GOWORK=off go build -mod=readonly ./cmd/...` or `make test` from `workers/agent`. The module uses the engine contract from the same checkout.
+Set custom `PROVIDER_URLS` in the file for the worker serving those endpoints. Use the optional `.env.d/agent.env` for settings all workers share. Worker-specific values take precedence. The `.env.d/` directory is excluded from Git and Docker builds.
 
-Run `make -C workers/agent refresh-anthropic-models` to refresh Anthropic prices and cache thresholds. Run `make -C workers/agent refresh-openai-models` to refresh OpenAI prices and model capabilities. Each command reads the provider's published documentation and updates that worker's bundled JSON.
+Run `docker compose up -d argyll-agent-anthropic argyll-agent-bedrock argyll-agent-openai` to apply the new environment.
 
-Each Agent worker includes rates for its default provider. To replace a model's rates or add a model, set `MODEL_PRICES` to a JSON file readable by the worker. Use `provider/model` keys and rates per million tokens for `input`, `output`, `cache_input`, and `cache_output`, with zero for free tokens. Optional `tiers` entries set an `input_over` cutoff and the rates for turns above it. A model override replaces its base rates and tiers. Provider-reported charges take precedence. See the [Agent Worker Contract](api/agent-worker.yaml) for the usage fields.
+The workers share the Go module in `workers/agent`. From the repository root, run `go run ./workers/agent/cmd/argyll-agent-anthropic`, `go run ./workers/agent/cmd/argyll-agent-bedrock`, or `go run ./workers/agent/cmd/argyll-agent-openai`. To run several locally, set a different `PORT` for each process and configure `AGENT_WORKERS` with their URLs. To build or test with the Go workspace disabled, run `GOWORK=off go build -mod=readonly ./cmd/...` or `make test` from `workers/agent`. The module uses the engine contract from the same checkout.
+
+Run `make -C workers/agent refresh-anthropic-models`, `refresh-bedrock-models`, or `refresh-openai-models` to refresh that worker's bundled JSON from the provider's published information. Each command writes `model-prices.json`. Anthropic also writes `prefix-thresholds.json`, and Bedrock and OpenAI also write `model-capabilities.json`. The bundled Bedrock prices are for `us-east-1`.
+
+The refresh commands are the only part of the workers that read public documentation. At runtime, workers use only provider APIs and local files. A refresh validates what it reads and replaces files only when every output is complete. The Bedrock refresh records supported and excluded models, effort levels, and long-context price tiers. It also reports the models it could not price. On Bedrock, Claude, Nova, and OpenAI models accept effort settings. An unsupported effort value fails the Step permanently.
+
+Bedrock and OpenAI list every text model their provider offers, leaving out the models their capability tables hide. New text models appear without a refresh. To change a model's listing, add it to `MODEL_CAPABILITIES` with a `provider/model` key. Set `hidden` to `true` to leave it out, or list its `efforts`. For the OpenAI worker, set `endpoint` to `responses` to use the Responses API instead of Chat Completions. Workers ask the model for text and tool calls, and prompt it until it returns one final result.
+
+Workers discover capabilities when they start. Bedrock keeps its last successful list of inference profiles, so profile IDs and ARNs keep resolving after a failed discovery. A request that arrives before any profile list is available fails and is retried.
+
+If Bedrock is missing from the Step editor's provider list, check that `.env.d/agent-bedrock.env` exists and sets `AWS_REGION`. The worker lists Bedrock once a region is set. Supply AWS credentials through that file or another standard AWS credential source inside the container, then recreate the worker with `docker compose up -d argyll-agent-bedrock`. Listing models also requires the permissions above.
+
+To use a host profile, set `AWS_PROFILE` in `.env.d/agent-bedrock.env` and mount its credentials file read-only in a local `docker-compose.override.yml`:
+
+```yaml
+services:
+  argyll-agent-bedrock:
+    volumes:
+      - "${HOME}/.aws/credentials:/root/.aws/credentials:ro"
+```
+
+For an `aws login` profile, mount the shared config read-only and the login cache writable instead of the credentials file. The SDK refreshes the session through that cache. Keep these mounts in the ignored local override:
+
+```yaml
+services:
+  argyll-agent-bedrock:
+    volumes:
+      - "${HOME}/.aws/config:/root/.aws/config:ro"
+      - "${HOME}/.aws/login/cache:/root/.aws/login/cache"
+```
+
+If Bedrock appears with no models, inspect the discovery error in the Step editor or `docker compose logs argyll-agent-bedrock`. `UnrecognizedClientException` means AWS rejected the credentials. Refresh the profile and recreate the worker. `AccessDeniedException` requires checking the role's model-listing permissions.
+
+To produce copies outside the checkout, run the refresh command directly with `-dir`, then point `MODEL_PRICES`, `MODEL_CAPABILITIES`, and `PREFIX_THRESHOLDS` at the files it writes. For example, from `workers/agent`, run `GOWORK=off go run ./cmd/argyll-agent-bedrock/internal/refresh -dir /path/to/defaults -region eu-north-1`.
+
+Each Agent worker includes rates for its provider. To replace a model's rates or add a model, set `MODEL_PRICES` to a JSON file readable by the worker. Use `provider/model` keys and rates per million tokens for `input`, `output`, `cache_input`, and `cache_output`, with zero for free tokens. Optional `tiers` entries set an `input_over` cutoff and the rates for turns above it. A model override replaces its base rates and tiers. Provider-reported charges take precedence. See the [Agent Worker Contract](api/agent-worker.yaml) for the usage fields.
+
+Automated tests, including `make test` and GitHub Actions, use local provider and MCP fixtures. They must not require live provider access or credentials. The `argyll-agent-check` command is a separate, explicitly invoked live check and must not be added to automated test targets.
+
+Capability responses include discovery `problems` alongside available providers. The Step editor shows these failures with their source and status instead of presenting an empty picker without an explanation. Worker logs retain the underlying error as well.
 
 ## UI dev loop
 

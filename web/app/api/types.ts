@@ -160,6 +160,19 @@ export interface FlowConfig {
   space_id?: string;
 }
 
+export interface AgentCapabilities {
+  providers: AgentProvider[];
+  problems?: ProblemDetails[];
+}
+
+export interface ProblemDetails {
+  type?: string;
+  title?: string;
+  detail?: string;
+  instance?: string;
+  status?: number;
+}
+
 export interface AgentProvider {
   provider: string;
   models: AgentModel[];

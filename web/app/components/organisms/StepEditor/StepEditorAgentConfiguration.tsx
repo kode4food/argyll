@@ -70,7 +70,7 @@ const StepEditorAgentConfiguration: React.FC<
   StepEditorAgentConfigurationProps
 > = ({ agent, setAgent }) => {
   const t = useT();
-  const providers = useAgentCapabilities();
+  const { providers, problems = [] } = useAgentCapabilities();
   const provider = providers.find((item) => item.provider === agent.provider);
   const models = provider?.models ?? [];
   const efforts = models.find(({ id }) => id === agent.model)?.efforts;
@@ -99,6 +99,19 @@ const StepEditorAgentConfiguration: React.FC<
           </span>
           {t("stepEditor.agentConfigLabel")}
         </label>
+        {problems.length > 0 && (
+          <div role="alert" className={formStyles.errorMessage}>
+            {problems.map((problem, idx) => (
+              <p key={`${problem.instance ?? "discovery"}-${idx}`}>
+                {problem.instance && <strong>{problem.instance}: </strong>}
+                {problem.status && <span>({problem.status}) </span>}
+                {problem.detail ||
+                  problem.title ||
+                  t("stepEditor.agentDiscoveryFailed")}
+              </p>
+            ))}
+          </div>
+        )}
         <div className={localStyles.settingsRow}>
           <div className={localStyles.providerField}>
             <label className={formStyles.label}>

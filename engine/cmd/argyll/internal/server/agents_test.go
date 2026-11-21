@@ -43,7 +43,11 @@ func TestAgentCapabilities(t *testing.T) {
 	}))
 	defer fallback.Close()
 	down := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", api.ProblemJSONContentType)
 		w.WriteHeader(http.StatusServiceUnavailable)
+		_ = json.NewEncoder(w).Encode(api.NewProblem(
+			http.StatusServiceUnavailable, "worker restarting",
+		))
 	}))
 	defer down.Close()
 
@@ -58,6 +62,11 @@ func TestAgentCapabilities(t *testing.T) {
 		var res api.AgentCapabilities
 		assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &res))
 		assert.Equal(t, []api.AgentProvider{anthropic, local}, res.Providers)
+		if assert.Len(t, res.Problems, 1) {
+			assert.Equal(t, "worker restarting", res.Problems[0].Detail)
+			assert.Equal(t, http.StatusServiceUnavailable, res.Problems[0].Status)
+			assert.Equal(t, down.URL+builtins.AgentCapabilitiesPath, res.Problems[0].Instance)
+		}
 		assert.EqualValues(t, 1, calls.Load())
 	})
 
@@ -69,7 +78,14 @@ func TestAgentCapabilities(t *testing.T) {
 
 	t.Run("all workers unavailable", func(t *testing.T) {
 		w := getAgentCapabilities(builtins.AgentWorkers{"*": down.URL})
-		assert.Equal(t, http.StatusBadGateway, w.Code)
+		assert.Equal(t, http.StatusOK, w.Code)
+		var res api.AgentCapabilities
+		assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &res))
+		assert.Empty(t, res.Providers)
+		if assert.Len(t, res.Problems, 1) {
+			assert.Equal(t, "worker restarting", res.Problems[0].Detail)
+			assert.Equal(t, http.StatusServiceUnavailable, res.Problems[0].Status)
+		}
 	})
 }
 

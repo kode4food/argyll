@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 
 	"github.com/openai/openai-go/v3"
@@ -16,7 +17,7 @@ import (
 )
 
 type responsesConvo struct {
-	client openai.Client
+	client *openai.Client
 	params responses.ResponseNewParams
 }
 
@@ -42,7 +43,21 @@ func (c *responsesConvo) Turn(ctx context.Context) (worker.Turn, error) {
 	if res.Status == responses.ResponseStatusFailed {
 		return turn, responseProblem(res.Error)
 	}
+	if res.Status == responses.ResponseStatusIncomplete {
+		return turn, fmt.Errorf(
+			"%w: openai: incomplete: %s", worker.ErrModelStopped, res.IncompleteDetails.Reason,
+		)
+	}
 	for _, item := range res.Output {
+		if item.Type == "message" {
+			for _, content := range item.AsMessage().Content {
+				if content.Type == "refusal" {
+					return turn, fmt.Errorf(
+						"%w: openai: refusal: %s", worker.ErrModelStopped, content.Refusal,
+					)
+				}
+			}
+		}
 		input := param.Override[responses.ResponseInputItemUnionParam](
 			json.RawMessage(item.RawJSON()),
 		)
@@ -74,7 +89,7 @@ func (c *responsesConvo) Nudge(text string) {
 	c.params.Input.OfInputItemList = append(c.params.Input.OfInputItemList, input)
 }
 
-func newResponsesConvo(client openai.Client, ch *worker.Chat) *responsesConvo {
+func newResponsesConvo(client *openai.Client, ch *worker.Chat) *responsesConvo {
 	tools := make([]responses.ToolUnionParam, 0, len(ch.Tools))
 	for _, t := range ch.Tools {
 		tool := responses.ToolParamOfFunction(t.Name, t.Schema, false)

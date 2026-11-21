@@ -1,9 +1,13 @@
 package api
 
 import (
+	"encoding/json"
 	"fmt"
+	"io"
 	"mime"
 	"net/http"
+	"net/url"
+	"strings"
 )
 
 // ProblemDetails describes an RFC 9457 problem details response body
@@ -55,6 +59,8 @@ const (
 	ProblemJSONContentType = "application/problem+json"
 )
 
+const maxProblemBody = 4 << 10
+
 // CallbackPath builds the path an async handler posts its outcome to
 func CallbackPath(flowID FlowID, stepID StepID, tkn Token, action CallbackAction) string {
 	return fmt.Sprintf("/callbacks/%s/%s/%s/%s", flowID, stepID, tkn, action)
@@ -70,18 +76,27 @@ func NewProblem(status int, detail string) *ProblemDetails {
 	}
 }
 
-// Error returns the most useful human-readable problem details message
-func (p *ProblemDetails) Error() string {
-	if p == nil {
-		return ""
+// ReadHTTPProblem preserves a bounded response body and its actual HTTP status
+func ReadHTTPProblem(res *http.Response) *ProblemDetails {
+	body, err := io.ReadAll(io.LimitReader(res.Body, maxProblemBody))
+	p := NewProblem(res.StatusCode, strings.TrimSpace(string(body)))
+	if err != nil {
+		p.Detail = fmt.Sprintf("%s: %s", p.Detail, err)
 	}
-	if p.Detail != "" {
-		return p.Detail
+	var remote ProblemDetails
+	if err == nil && json.Unmarshal(body, &remote) == nil && remote.Error() != "" {
+		p = &remote
+		p.Status = res.StatusCode
 	}
-	if p.Title != "" {
-		return p.Title
+	if p.Instance == "" && res.Request != nil && res.Request.URL != nil {
+		u := res.Request.URL
+		p.Instance = (&url.URL{
+			Scheme: u.Scheme,
+			Host:   u.Host,
+			Path:   u.Path,
+		}).String()
 	}
-	return http.StatusText(p.Status)
+	return p
 }
 
 // IsProblemJSON reports whether the content type is Problem Details JSON
@@ -118,6 +133,20 @@ func MetadataFromHeaders(header http.Header) Metadata {
 		value: header.Get(HeaderWebhookURL),
 	})
 	return meta
+}
+
+// Error returns the most useful human-readable problem details message
+func (p *ProblemDetails) Error() string {
+	if p == nil {
+		return ""
+	}
+	if p.Detail != "" {
+		return p.Detail
+	}
+	if p.Title != "" {
+		return p.Title
+	}
+	return http.StatusText(p.Status)
 }
 
 func setMetaHeader(header http.Header, name string, meta Metadata, key string) {

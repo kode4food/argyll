@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"os"
 
-	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/workers/agent/internal/worker"
 )
 
@@ -19,16 +18,18 @@ var (
 
 // LoadConfig loads the Anthropic worker and provider configuration
 func LoadConfig() (*worker.Config, *Provider, error) {
-	cfg, err := worker.LoadConfig(defaultPrices)
+	cfg, err := worker.LoadConfig(worker.Defaults{
+		Prices: defaultPrices,
+	})
 	if err != nil {
 		return nil, nil, err
 	}
-	p, err := New(cfg.Providers)
+	p, err := NewProvider(cfg.Providers)
 	return cfg, p, err
 }
 
-func loadPrefixThresholds() (map[api.ModelID]int, error) {
-	var thresholds map[api.ModelID]int
+func loadPrefixThresholds() (map[worker.ModelKey]int, error) {
+	var thresholds map[worker.ModelKey]int
 	if err := json.Unmarshal([]byte(defaultPrefixThresholds), &thresholds); err != nil {
 		return nil, err
 	}

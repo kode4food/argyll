@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"maps"
 	"net/http"
 	"slices"
@@ -13,6 +14,7 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
 	"github.com/kode4food/argyll/engine/pkg/api"
+	"github.com/kode4food/argyll/engine/pkg/log"
 )
 
 type (
@@ -141,33 +143,43 @@ func openToolbox(
 
 // listServers reports every configured MCP server with its tools, leaving out the tools of a
 // server that cannot be reached
-func listServers(ctx context.Context, servers map[string]MCPServer) []api.MCPServer {
+func listServers(
+	ctx context.Context, servers map[string]MCPServer,
+) ([]api.MCPServer, []api.ProblemDetails) {
 	res := make([]api.MCPServer, 0, len(servers))
+	var problems []api.ProblemDetails
 	for _, name := range slices.Sorted(maps.Keys(servers)) {
+		tools, err := toolNames(ctx, servers[name])
+		if err != nil {
+			slog.Warn("MCP discovery failed", slog.String("server", name), log.Error(err))
+			p := *problemOf(err)
+			p.Instance = "mcp/" + name
+			problems = append(problems, p)
+		}
 		res = append(res, api.MCPServer{
 			Server: name,
-			Tools:  toolNames(ctx, servers[name]),
+			Tools:  tools,
 		})
 	}
-	return res
+	return res, problems
 }
 
-func toolNames(ctx context.Context, s MCPServer) []string {
+func toolNames(ctx context.Context, s MCPServer) ([]string, error) {
 	cs, err := connect(ctx, s)
 	if err != nil {
-		return nil
+		return nil, err
 	}
 	defer func() { _ = cs.Close() }()
 	tools, err := listTools(ctx, cs)
 	if err != nil {
-		return nil
+		return nil, err
 	}
 	res := make([]string, 0, len(tools))
 	for _, t := range tools {
 		res = append(res, t.Name)
 	}
 	slices.Sort(res)
-	return res
+	return res, nil
 }
 
 func connect(ctx context.Context, s MCPServer) (*mcp.ClientSession, error) {

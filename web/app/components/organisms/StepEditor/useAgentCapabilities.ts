@@ -1,19 +1,28 @@
 import { useEffect, useState } from "react";
-import { api, type AgentProvider } from "@/app/api";
+import { api, type AgentCapabilities } from "@/app/api";
 
-export const useAgentCapabilities = (): AgentProvider[] => {
-  const [providers, setProviders] = useState<AgentProvider[]>([]);
+export const useAgentCapabilities = (): AgentCapabilities => {
+  const [capabilities, setCapabilities] = useState<AgentCapabilities>({
+    providers: [],
+  });
 
   useEffect(() => {
-    let active = true;
+    const controller = new AbortController();
     api
-      .listAgentCapabilities()
-      .then((list) => active && setProviders(list))
-      .catch(() => active && setProviders([]));
+      .listAgentCapabilities(controller.signal)
+      .then((list) => !controller.signal.aborted && setCapabilities(list))
+      .catch((error: unknown) => {
+        if (!controller.signal.aborted) {
+          setCapabilities({
+            providers: [],
+            problems: [{ detail: String(error) }],
+          });
+        }
+      });
     return () => {
-      active = false;
+      controller.abort();
     };
   }, []);
 
-  return providers;
+  return capabilities;
 };

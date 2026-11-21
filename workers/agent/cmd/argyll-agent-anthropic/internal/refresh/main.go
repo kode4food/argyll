@@ -2,8 +2,8 @@ package main
 
 import (
 	"errors"
+	"flag"
 	"fmt"
-	"maps"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -18,7 +18,7 @@ import (
 const (
 	pricingURL = "https://platform.claude.com/docs/en/about-claude/pricing.md"
 	cachingURL = "https://platform.claude.com/docs/en/build-with-claude/prompt-caching.md"
-	defaultDir = "cmd/argyll-agent-anthropic/internal/anthropic/"
+	defaultDir = "internal/anthropic/"
 	exitFailed = 1
 
 	inputColumn      = 1
@@ -47,7 +47,9 @@ var (
 )
 
 func main() {
-	if err := Refresh(defaultDir, catalog.Fetch); err != nil {
+	dir := flag.String("dir", defaultDir, "directory of the model defaults to update")
+	flag.Parse()
+	if err := Refresh(*dir, catalog.Fetch); err != nil {
 		_, _ = fmt.Fprintln(os.Stderr, err)
 		os.Exit(exitFailed)
 	}
@@ -83,20 +85,30 @@ func Refresh(dir string, fetch func(string) (string, error)) error {
 	}
 	for _, match := range publishedID.FindAllStringSubmatch(caching, -1) {
 		copySnapshot(prices, "anthropic/"+match[1])
-		copySnapshot(minimums, match[1])
+		copySnapshot(minimums, "anthropic/"+match[1])
 	}
-	updateDefaults(updateDefaultsArgs[worker.Price]{
-		existing:  oldPrices,
-		published: prices,
-	})
-	updateDefaults(updateDefaultsArgs[int]{
-		existing:  oldMinimums,
-		published: minimums,
-	})
-	if err := catalog.WriteTable(pricePath, oldPrices); err != nil {
-		return err
+	for key := range oldPrices {
+		copySnapshot(prices, key)
 	}
-	return catalog.WriteTable(thresholdPath, oldMinimums)
+	for key := range oldMinimums {
+		copySnapshot(minimums, key)
+	}
+	return catalog.WriteTables(
+		catalog.Table{
+			Path: pricePath,
+			Values: catalog.Merge(catalog.MergeArgs[worker.Price]{
+				Existing:  oldPrices,
+				Published: prices,
+			}),
+		},
+		catalog.Table{
+			Path: thresholdPath,
+			Values: catalog.Merge(catalog.MergeArgs[int]{
+				Existing:  oldMinimums,
+				Published: minimums,
+			}),
+		},
+	)
 }
 
 func readPrices(document string) (map[string]worker.Price, error) {
@@ -127,7 +139,12 @@ func readPrices(document string) (map[string]worker.Price, error) {
 		key := "anthropic/" + id
 		match := longPrompt.FindStringSubmatch(cells[0])
 		if match == nil {
-			prices[key] = worker.Price{Rates: rates}
+			prices[key] = worker.Price{
+				Input:       rates.Input,
+				Output:      rates.Output,
+				CacheInput:  rates.CacheInput,
+				CacheOutput: rates.CacheOutput,
+			}
 			continue
 		}
 		cutoff, err := strconv.ParseInt(strings.ReplaceAll(match[1], ",", ""), 10, 64)
@@ -136,8 +153,11 @@ func readPrices(document string) (map[string]worker.Price, error) {
 			return nil, fmt.Errorf("%w: %s", ErrIncompletePricing, id)
 		}
 		price.Tiers = append(price.Tiers, worker.PriceTier{
-			InputOver: cutoff,
-			Rates:     rates,
+			InputOver:   cutoff,
+			Input:       rates.Input,
+			Output:      rates.Output,
+			CacheInput:  rates.CacheInput,
+			CacheOutput: rates.CacheOutput,
 		})
 		prices[key] = price
 	}
@@ -179,7 +199,7 @@ func readMinimums(document string) (map[string]int, error) {
 			return nil, ErrIncompleteThresholds
 		}
 		for _, name := range names {
-			minimums[modelID(name)] = count
+			minimums["anthropic/"+modelID(name)] = count
 		}
 	}
 	return minimums, nil
@@ -194,19 +214,4 @@ func copySnapshot[T any](table map[string]T, key string) {
 	if value, ok := table[model]; ok {
 		table[key] = value
 	}
-}
-
-type updateDefaultsArgs[T any] struct {
-	existing  map[string]T
-	published map[string]T
-}
-
-func updateDefaults[T any](args updateDefaultsArgs[T]) {
-	for _, key := range slices.Sorted(maps.Keys(args.existing)) {
-		copySnapshot(args.published, key)
-		if _, ok := args.published[key]; !ok {
-			fmt.Printf("Retained %s without a published value\n", key)
-		}
-	}
-	maps.Copy(args.existing, args.published)
 }

@@ -78,8 +78,9 @@ paths:
         tools. The worker discovers models for providers in `PROVIDER_URLS` that
         its provider API supports, and its default provider when an API key is
         set. Models come from each provider's model listing API. If discovery
-        fails, the worker returns any models already retrieved. An unreachable
-        MCP server is listed without tools.
+        fails, the worker returns any models already retrieved and includes the
+        failure in `problems`. An unreachable MCP server is listed without tools
+        and with a discovery problem. Problems identify their source in `instance`.
       operationId: listCapabilities
       responses:
         "200":
@@ -96,7 +97,9 @@ paths:
         Posted to the `Argyll-Webhook-URL` from the invoke request
         (`/callbacks/{flow_id}/{step_id}/{token}/agent` on the engine). Both
         outcomes carry usage in the JSON body. The problem status decides whether
-        a failed attempt retries.
+        a failed attempt retries. Callback delivery accepts any 2xx response.
+        Transport errors, 408, 429, and 5xx responses are retried. Other non-2xx
+        responses reject delivery permanently.
       operationId: reportAgent
       requestBody:
         required: true
@@ -191,6 +194,11 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/AgentProvider"
+        problems:
+          type: array
+          description: Model or MCP discovery failures alongside available results
+          items:
+            $ref: "#/components/schemas/ProblemDetails"
 
     AgentProvider:
       type: object

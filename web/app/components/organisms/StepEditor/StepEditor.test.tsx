@@ -27,7 +27,7 @@ jest.mock("@/app/api", () => ({
   ...jest.requireActual("@/app/api"),
   ArgyllApi: jest.fn(),
   api: {
-    listAgentCapabilities: jest.fn().mockResolvedValue([]),
+    listAgentCapabilities: jest.fn().mockResolvedValue({ providers: [] }),
     getExecutionPlan: jest.fn().mockResolvedValue({
       steps: {},
       required: [],

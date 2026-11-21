@@ -3,7 +3,7 @@ import {
   ExecutionPlan,
   Feed,
   FeedResponse,
-  AgentProvider,
+  AgentCapabilities,
   QueryFlowsResponse,
   QueryFlowsRequest,
   Space,
@@ -114,11 +114,14 @@ export class ArgyllApi {
     await this.request(`/engine/spaces/${spaceId}`, { method: "DELETE" });
   }
 
-  async listAgentCapabilities(): Promise<AgentProvider[]> {
-    const response = await this.request<{ providers: AgentProvider[] }>(
-      "/engine/agents/capabilities"
+  async listAgentCapabilities(
+    signal?: AbortSignal
+  ): Promise<AgentCapabilities> {
+    const response = await this.request<AgentCapabilities>(
+      "/engine/agents/capabilities",
+      { signal }
     );
-    return response.providers ?? [];
+    return { ...response, providers: response.providers ?? [] };
   }
 
   async getFeed(feedId: string): Promise<FeedResponse> {

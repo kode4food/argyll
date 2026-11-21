@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
+	"net/http"
 	"os"
 	"regexp"
 	"slices"
@@ -22,11 +24,11 @@ type (
 	// Provider runs agent work through OpenAI-compatible APIs
 	Provider struct {
 		urls   map[api.ProviderID]string
-		models map[worker.ModelKey]modelCapabilities
+		models map[worker.ModelKey]worker.Capabilities
 	}
 
 	openAIConvo struct {
-		client openai.Client
+		client *openai.Client
 		params openai.ChatCompletionNewParams
 	}
 )
@@ -35,7 +37,9 @@ type (
 const Name api.ProviderID = "openai"
 
 var (
-	ErrNoChoices = errors.New("model returned no choices")
+	ErrNoChoices        = errors.New("model returned no choices")
+	ErrUnsupportedModel = errors.New("model does not support agent tool use")
+	ErrInvalidEffort    = errors.New("unsupported model effort")
 )
 
 var (
@@ -43,16 +47,50 @@ var (
 	_ worker.Convo    = (*openAIConvo)(nil)
 )
 
-// New returns an adapter serving the configured OpenAI-compatible providers
-func New(urls map[api.ProviderID]string) (*Provider, error) {
-	models, err := loadModelCapabilities(urls)
-	if err != nil {
-		return nil, err
+// NewProvider returns an adapter serving the configured OpenAI-compatible providers
+func NewProvider(cfg *worker.Config) (*Provider, error) {
+	for key, model := range cfg.Capabilities {
+		switch model.Endpoint {
+		case "", chatCompletionsEndpoint, responsesEndpoint:
+		default:
+			return nil, fmt.Errorf(
+				"%w: %s/%s: %q", ErrInvalidModelEndpoint, key.Provider, key.Model, model.Endpoint,
+			)
+		}
 	}
 	return &Provider{
-		urls:   urls,
-		models: models,
+		urls:   cfg.Providers,
+		models: cfg.Capabilities,
 	}, nil
+}
+
+// NewConvo starts an OpenAI-compatible conversation through the named API endpoint
+func NewConvo(client *openai.Client, ch *worker.Chat, endpoint string) worker.Convo {
+	cfg := ch.Config
+	if endpoint == responsesEndpoint {
+		return newResponsesConvo(client, ch)
+	}
+	tools := make([]openai.ChatCompletionToolUnionParam, 0, len(ch.Tools))
+	for _, t := range ch.Tools {
+		tools = append(tools, openai.ChatCompletionFunctionTool(shared.FunctionDefinitionParam{
+			Name:        t.Name,
+			Description: openai.String(t.Description),
+			Parameters:  t.Schema,
+		}))
+	}
+	return &openAIConvo{
+		client: client,
+		params: openai.ChatCompletionNewParams{
+			Model:               shared.ChatModel(ch.Config.Model),
+			MaxCompletionTokens: openai.Int(int64(ch.Config.MaxTokens)),
+			ReasoningEffort:     shared.ReasoningEffort(cfg.Effort),
+			Messages: []openai.ChatCompletionMessageParamUnion{
+				openai.SystemMessage(ch.System),
+				openai.UserMessage(ch.User),
+			},
+			Tools: tools,
+		},
+	}
 }
 
 // Supports reports whether this adapter serves the named provider
@@ -85,20 +123,14 @@ func (p *Provider) Models(ctx context.Context, name api.ProviderID) ([]api.Agent
 		if !m.ShutdownDate.IsZero() && !now.Before(m.ShutdownDate) {
 			continue
 		}
-		id := api.ModelID(m.ID)
-		caps := p.models[worker.ModelKey{
-			Provider: name,
-			Model:    id,
-		}]
-		if caps.Hidden {
-			continue
-		}
 		models = append(models, api.AgentModel{
-			ID:      id,
-			Efforts: caps.Efforts,
+			ID: api.ModelID(m.ID),
 		})
 	}
-	return models, pager.Err()
+	if err := pager.Err(); err != nil {
+		return models, openAIProblem(err)
+	}
+	return models, nil
 }
 
 // Open starts a conversation with the task's context and tools
@@ -108,30 +140,22 @@ func (p *Provider) Open(ch *worker.Chat) (worker.Convo, error) {
 		Provider: cfg.Provider,
 		Model:    cfg.Model,
 	}]
-	if caps.Endpoint == responsesEndpoint {
-		return newResponsesConvo(p.openAIClient(cfg.Provider), ch), nil
+	if caps.Hidden {
+		err := fmt.Errorf("%w: %s/%s", ErrUnsupportedModel, cfg.Provider, cfg.Model)
+		return nil, errors.Join(err, &api.ProblemDetails{
+			Status: http.StatusUnprocessableEntity,
+			Detail: err.Error(),
+		})
 	}
-	tools := make([]openai.ChatCompletionToolUnionParam, 0, len(ch.Tools))
-	for _, t := range ch.Tools {
-		tools = append(tools, openai.ChatCompletionFunctionTool(shared.FunctionDefinitionParam{
-			Name:        t.Name,
-			Description: openai.String(t.Description),
-			Parameters:  t.Schema,
-		}))
+	if cfg.Effort != "" && !slices.Contains(caps.Efforts, cfg.Effort) {
+		err := fmt.Errorf("%w: %s/%s: %s", ErrInvalidEffort, cfg.Provider, cfg.Model, cfg.Effort)
+		return nil, errors.Join(err, &api.ProblemDetails{
+			Status: http.StatusUnprocessableEntity,
+			Detail: err.Error(),
+		})
 	}
-	return &openAIConvo{
-		client: p.openAIClient(ch.Config.Provider),
-		params: openai.ChatCompletionNewParams{
-			Model:               shared.ChatModel(ch.Config.Model),
-			MaxCompletionTokens: openai.Int(int64(ch.Config.MaxTokens)),
-			ReasoningEffort:     shared.ReasoningEffort(cfg.Effort),
-			Messages: []openai.ChatCompletionMessageParamUnion{
-				openai.SystemMessage(ch.System),
-				openai.UserMessage(ch.User),
-			},
-			Tools: tools,
-		},
-	}, nil
+	client := p.openAIClient(cfg.Provider)
+	return NewConvo(&client, ch, caps.Endpoint), nil
 }
 
 // Turn runs one OpenAI-compatible model turn
@@ -151,6 +175,12 @@ func (o *openAIConvo) Turn(ctx context.Context) (worker.Turn, error) {
 		return res, ErrNoChoices
 	}
 	msg := comp.Choices[0].Message
+	if reason := comp.Choices[0].FinishReason; reason == "length" || reason == "content_filter" {
+		return res, fmt.Errorf("%w: openai: %s: %s", worker.ErrModelStopped, reason, msg.Refusal)
+	}
+	if msg.Refusal != "" {
+		return res, fmt.Errorf("%w: openai: refusal: %s", worker.ErrModelStopped, msg.Refusal)
+	}
 	o.params.Messages = append(o.params.Messages, msg.ToParam())
 	for _, c := range msg.ToolCalls {
 		res.Calls = append(res.Calls, worker.ToolCall{
@@ -184,10 +214,10 @@ func (p *Provider) openAIClient(provider api.ProviderID) openai.Client {
 
 func openAIProblem(err error) error {
 	if providerError, ok := errors.AsType[*openai.Error](err); ok {
-		return &api.ProblemDetails{
+		return errors.Join(err, &api.ProblemDetails{
 			Status: providerError.StatusCode,
 			Detail: err.Error(),
-		}
+		})
 	}
 	return err
 }

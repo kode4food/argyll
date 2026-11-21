@@ -46,7 +46,7 @@ jobs:
         run: |
           make test
           GOWORK=off go build -mod=readonly -o "$RUNNER_TEMP/" \
-            ./cmd/argyll-agent-anthropic ./cmd/argyll-agent-openai
+            ./cmd/argyll-agent-anthropic ./cmd/argyll-agent-bedrock ./cmd/argyll-agent-openai
 
   build-python-sdk:
     runs-on: ubuntu-latest

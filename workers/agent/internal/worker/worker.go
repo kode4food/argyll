@@ -46,6 +46,7 @@ var (
 	ErrMissingServerName = errors.New("MCP server name required")
 	ErrUnknownProvider   = errors.New("unknown provider")
 	ErrReportFailed      = errors.New("outcome report failed")
+	ErrReportRejected    = errors.New("outcome report rejected")
 )
 
 // New returns a worker offering what cfg configures
@@ -82,16 +83,28 @@ func (w *Worker) invoke(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := validate(&req); err != nil {
+		slog.Warn("Agent request rejected", log.Error(err))
 		writeProblem(rw, http.StatusBadRequest, err)
 		return
 	}
 	if err := w.offers(&req); err != nil {
+		slog.Warn("Agent request rejected", stepAttrs(&req), log.Error(err))
 		writeProblem(rw, http.StatusUnprocessableEntity, err)
 		return
 	}
 	rw.WriteHeader(http.StatusAccepted)
 	go func() {
-		w.report(webhook, w.attempt(context.Background(), &req))
+		slog.Info("Agent attempt started", stepAttrs(&req))
+		out := w.attempt(context.Background(), &req)
+		usage := slog.Any("usage", out.Usage)
+		if out.Problem != nil {
+			slog.Warn("Agent attempt failed", stepAttrs(&req), usage,
+				slog.Int("status", out.Problem.Status),
+				slog.String("detail", out.Problem.Detail))
+		} else {
+			slog.Info("Agent attempt completed", stepAttrs(&req), usage)
+		}
+		w.report(webhook, out)
 	}()
 }
 
@@ -114,9 +127,13 @@ func (w *Worker) report(webhook string, out api.AgentOutcome) {
 	for i := 0; ; i++ {
 		err := w.post(webhook, out)
 		if err == nil {
+			slog.Info("Outcome reported", slog.String("webhook", webhook))
 			return
 		}
 		slog.Warn("Outcome report failed", log.Error(err))
+		if errors.Is(err, ErrReportRejected) {
+			return
+		}
 		if i == maxReportRetries {
 			slog.Error("Gave up reporting outcome", slog.String("webhook", webhook))
 			return
@@ -135,13 +152,16 @@ func (w *Worker) post(webhook string, out api.AgentOutcome) error {
 		return err
 	}
 	defer func() { _ = resp.Body.Close() }()
-	if resp.StatusCode >= http.StatusInternalServerError {
-		return fmt.Errorf("%w: %s", ErrReportFailed, resp.Status)
+	if resp.StatusCode >= http.StatusOK && resp.StatusCode < http.StatusMultipleChoices {
+		return nil
 	}
-	if resp.StatusCode >= http.StatusBadRequest {
-		slog.Error("Outcome rejected", slog.Int("status", resp.StatusCode))
+	p := api.ReadHTTPProblem(resp)
+	if resp.StatusCode >= http.StatusInternalServerError ||
+		resp.StatusCode == http.StatusRequestTimeout ||
+		resp.StatusCode == http.StatusTooManyRequests {
+		return errors.Join(ErrReportFailed, p)
 	}
-	return nil
+	return errors.Join(ErrReportRejected, p)
 }
 
 func outcomeRequest(webhook string, out api.AgentOutcome) (*http.Request, error) {
@@ -188,4 +208,12 @@ func writeProblem(rw http.ResponseWriter, status int, err error) {
 		Status: status,
 		Detail: err.Error(),
 	})
+}
+
+func stepAttrs(req *api.AgentRequest) slog.Attr {
+	return slog.Group("step",
+		slog.String("id", string(req.Step.ID)),
+		slog.String("provider", string(req.Step.Agent.Provider)),
+		slog.String("model", string(req.Step.Agent.Model)),
+	)
 }

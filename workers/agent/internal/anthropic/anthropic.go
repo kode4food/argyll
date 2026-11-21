@@ -17,11 +17,11 @@ type (
 	// Provider runs agent work through the Anthropic API
 	Provider struct {
 		url       string
-		prefixMin map[api.ModelID]int
+		prefixMin map[worker.ModelKey]int
 	}
 
 	convo struct {
-		client anthropic.Client
+		client *anthropic.Client
 		params anthropic.MessageNewParams
 	}
 )
@@ -34,8 +34,8 @@ var (
 	_ worker.Convo    = (*convo)(nil)
 )
 
-// New returns an Anthropic provider using the configured base URL
-func New(urls map[api.ProviderID]string) (*Provider, error) {
+// NewProvider returns an Anthropic provider using the configured base URL
+func NewProvider(urls map[api.ProviderID]string) (*Provider, error) {
 	thresholds, err := loadPrefixThresholds()
 	if err != nil {
 		return nil, err
@@ -46,43 +46,8 @@ func New(urls map[api.ProviderID]string) (*Provider, error) {
 	}, nil
 }
 
-// Supports reports whether this adapter serves the named provider
-func (*Provider) Supports(name api.ProviderID) bool {
-	return name == Name
-}
-
-// Names lists Anthropic when a key or base URL is configured
-func (p *Provider) Names() []api.ProviderID {
-	if p.url != "" || os.Getenv("ANTHROPIC_API_KEY") != "" {
-		return []api.ProviderID{Name}
-	}
-	return nil
-}
-
-// Models lists available Anthropic models
-func (p *Provider) Models(ctx context.Context, _ api.ProviderID) ([]api.AgentModel, error) {
-	var models []api.AgentModel
-	client := p.client(os.Getenv("ANTHROPIC_API_KEY"))
-	pager := client.Models.ListAutoPaging(ctx, anthropic.ModelListParams{})
-	for pager.Next() {
-		m := pager.Current()
-		if m.Lifecycle == anthropic.ModelInfoLifecycleRetired {
-			continue
-		}
-		models = append(models, api.AgentModel{
-			ID:      api.ModelID(m.ID),
-			Efforts: effortLevels(m.Capabilities.Effort),
-		})
-	}
-	return models, pager.Err()
-}
-
-// Open starts an Anthropic conversation with the task's context and tools
-func (p *Provider) Open(ch *worker.Chat) (worker.Convo, error) {
-	key := os.Getenv("ANTHROPIC_API_KEY")
-	if key == "" {
-		return nil, fmt.Errorf("%w: %s", worker.ErrMissingAPIKey, "ANTHROPIC_API_KEY")
-	}
+// NewConvo starts a Messages conversation that caches its stable prefix once it reaches minTokens
+func NewConvo(client *anthropic.Client, ch *worker.Chat, minTokens int) worker.Convo {
 	tools := make([]anthropic.ToolUnionParam, 0, len(ch.Tools))
 	for _, t := range ch.Tools {
 		tools = append(tools, anthropic.ToolUnionParam{
@@ -94,13 +59,13 @@ func (p *Provider) Open(ch *worker.Chat) (worker.Convo, error) {
 		})
 	}
 	return &convo{
-		client: p.client(key),
+		client: client,
 		params: anthropic.MessageNewParams{
 			Model:     anthropic.Model(ch.Config.Model),
 			MaxTokens: int64(ch.Config.MaxTokens),
 			System: []anthropic.TextBlockParam{
 				{
-					Text:         p.selectSystem(ch, tools),
+					Text:         selectSystem(ch, tools, minTokens),
 					CacheControl: anthropic.NewCacheControlEphemeralParam(),
 				},
 			},
@@ -112,20 +77,60 @@ func (p *Provider) Open(ch *worker.Chat) (worker.Convo, error) {
 				Effort: anthropic.OutputConfigEffort(ch.Config.Effort),
 			},
 		},
-	}, nil
+	}
+}
+
+// Supports reports whether this adapter serves the named provider
+func (*Provider) Supports(name api.ProviderID) bool {
+	return name == Name
+}
+
+// Names lists Anthropic when a credential or base URL is configured
+func (p *Provider) Names() []api.ProviderID {
+	if p.url != "" || hasCredentials() {
+		return []api.ProviderID{Name}
+	}
+	return nil
+}
+
+// Models lists available Anthropic models
+func (p *Provider) Models(ctx context.Context, _ api.ProviderID) ([]api.AgentModel, error) {
+	var models []api.AgentModel
+	client := p.client()
+	pager := client.Models.ListAutoPaging(ctx, anthropic.ModelListParams{})
+	for pager.Next() {
+		m := pager.Current()
+		if m.Lifecycle == anthropic.ModelInfoLifecycleRetired {
+			continue
+		}
+		models = append(models, api.AgentModel{
+			ID:      api.ModelID(m.ID),
+			Efforts: effortLevels(m.Capabilities.Effort),
+		})
+	}
+	if err := pager.Err(); err != nil {
+		return models, problem(err)
+	}
+	return models, nil
+}
+
+// Open starts an Anthropic conversation with the task's context and tools
+func (p *Provider) Open(ch *worker.Chat) (worker.Convo, error) {
+	if !hasCredentials() {
+		return nil, fmt.Errorf("%w: %s", worker.ErrMissingAPIKey, "ANTHROPIC_API_KEY")
+	}
+	client := p.client()
+	return NewConvo(&client, ch, p.prefixMin[worker.ModelKey{
+		Provider: ch.Config.Provider,
+		Model:    ch.Config.Model,
+	}]), nil
 }
 
 // Turn runs one Anthropic model turn
 func (c *convo) Turn(ctx context.Context) (worker.Turn, error) {
 	msg, err := c.client.Messages.New(ctx, c.params)
 	if err != nil {
-		if providerError, ok := errors.AsType[*anthropic.Error](err); ok {
-			return worker.Turn{}, &api.ProblemDetails{
-				Status: providerError.StatusCode,
-				Detail: err.Error(),
-			}
-		}
-		return worker.Turn{}, err
+		return worker.Turn{}, problem(err)
 	}
 	c.params.Messages = append(c.params.Messages, msg.ToParam())
 	usage := msg.Usage
@@ -136,6 +141,14 @@ func (c *convo) Turn(ctx context.Context) (worker.Turn, error) {
 		OutputTokens:      usage.OutputTokens,
 		CacheInputTokens:  input,
 		CacheOutputTokens: output,
+	}
+	switch msg.StopReason {
+	case anthropic.StopReasonMaxTokens, anthropic.StopReasonRefusal,
+		anthropic.StopReasonModelContextWindowExceeded:
+		return res, fmt.Errorf(
+			"%w: anthropic: %s: %s", worker.ErrModelStopped, msg.StopReason,
+			msg.StopDetails.Explanation,
+		)
 	}
 	for _, block := range msg.Content {
 		use, ok := block.AsAny().(anthropic.ToolUseBlock)
@@ -167,8 +180,8 @@ func (c *convo) Nudge(text string) {
 	)
 }
 
-func (p *Provider) client(key string) anthropic.Client {
-	opts := []option.RequestOption{option.WithAPIKey(key)}
+func (p *Provider) client() anthropic.Client {
+	opts := []option.RequestOption{credentials()}
 	if p.url != "" {
 		opts = append(opts, option.WithBaseURL(p.url))
 	}
@@ -212,6 +225,29 @@ func toolSchema(schema map[string]any) anthropic.ToolInputSchemaParam {
 		}
 	}
 	return res
+}
+
+func hasCredentials() bool {
+	return os.Getenv("ANTHROPIC_API_KEY") != "" || os.Getenv("ANTHROPIC_AUTH_TOKEN") != ""
+}
+
+// credentials prefers the API key, so a gateway token applies only when no key is set
+func credentials() option.RequestOption {
+	key := os.Getenv("ANTHROPIC_API_KEY")
+	if token := os.Getenv("ANTHROPIC_AUTH_TOKEN"); key == "" && token != "" {
+		return option.WithAuthToken(token)
+	}
+	return option.WithAPIKey(key)
+}
+
+func problem(err error) error {
+	if res, ok := errors.AsType[*anthropic.Error](err); ok {
+		return errors.Join(err, &api.ProblemDetails{
+			Status: res.StatusCode,
+			Detail: err.Error(),
+		})
+	}
+	return err
 }
 
 func requiredNames(v any) []string {

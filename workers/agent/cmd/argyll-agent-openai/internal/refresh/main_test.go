@@ -64,11 +64,12 @@ func TestRefresh(t *testing.T) {
 	path := makeDefaults(t)
 	before := []byte(`{"openai/example":{"hidden":true},"openai/legacy-voice":{"hidden":true}}`)
 	assert.NoError(t, os.WriteFile(path, before, 0o600))
-	err := refresh.Refresh(path, fetchPages(map[string]string{
+	err := refresh.Refresh(filepath.Dir(path), fetchPages(map[string]string{
 		"all.md":     catalogPage,
 		"pricing.md": pricingPage,
 		"example.md": modelPage,
-		"long-context.md": "| Chat Completions | `v1/chat/completions` | Supported |\n" +
+		"long-context.md": "\n- Output modalities: text\n" +
+			"| Chat Completions | `v1/chat/completions` | Supported |\n" +
 			"Prompts with more than 512K input tokens have long-context rates.",
 	}))
 	assert.NoError(t, err)
@@ -103,6 +104,27 @@ func TestRefresh(t *testing.T) {
 	}
 	assert.NotContains(t, prices, "openai/unavailable")
 	assert.Equal(t, rate, prices["openai/example-2026-01-01"])
+}
+
+func TestOutputModalities(t *testing.T) {
+	for _, modality := range []string{"audio", "image", "video", "text, audio", "text, image"} {
+		t.Run(modality, func(t *testing.T) {
+			path := makeDefaults(t)
+			assert.NoError(t, os.WriteFile(path, []byte(`{"openai/example":{}}`), 0o600))
+			doc := strings.ReplaceAll(modelPage, "Output modalities: text",
+				"Output modalities: "+modality)
+			err := refresh.Refresh(filepath.Dir(path), fetchPages(map[string]string{
+				"all.md":     catalogPage,
+				"pricing.md": pricingPage,
+				"example.md": doc,
+			}))
+			assert.NoError(t, err)
+			models, err := catalog.ReadTable[worker.Capabilities](path)
+			assert.NoError(t, err)
+			assert.True(t, models["openai/example"].Hidden)
+			assert.True(t, models["openai/example-2026-01-01"].Hidden)
+		})
+	}
 }
 
 func TestInvalidSource(t *testing.T) {
@@ -145,7 +167,7 @@ func TestInvalidSource(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			path := makeDefaults(t)
-			err := refresh.Refresh(path, fetchPages(map[string]string{
+			err := refresh.Refresh(filepath.Dir(path), fetchPages(map[string]string{
 				"all.md":     tc.catalog,
 				"pricing.md": tc.pricing,
 			}))
@@ -159,8 +181,8 @@ func TestInvalidSource(t *testing.T) {
 
 func TestFetchFailure(t *testing.T) {
 	path := makeDefaults(t)
-	assert.ErrorIs(t, refresh.Refresh(path, fetchPages(nil)), errMissingFixture)
-	err := refresh.Refresh(path, fetchPages(map[string]string{"all.md": catalogPage}))
+	assert.ErrorIs(t, refresh.Refresh(filepath.Dir(path), fetchPages(nil)), errMissingFixture)
+	err := refresh.Refresh(filepath.Dir(path), fetchPages(map[string]string{"all.md": catalogPage}))
 	assert.ErrorIs(t, err, errMissingFixture)
 }
 

@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/util"
 	"github.com/kode4food/argyll/workers/agent/internal/worker"
 )
@@ -74,12 +75,23 @@ func withTiers(id string, rates *publishedPrice, doc modelDocument) (worker.Pric
 	if rates.base.Input == nil || rates.base.Output == nil {
 		return worker.Price{}, false
 	}
-	price := worker.Price{Rates: rates.base}
+	price := worker.Price{
+		Input:       rates.base.Input,
+		Output:      rates.base.Output,
+		CacheInput:  rates.base.CacheInput,
+		CacheOutput: rates.base.CacheOutput,
+	}
 	if rates.long.Input == nil && rates.long.Output == nil {
 		return price, true
 	}
 	if rates.inputOver > 0 && rates.long.Input != nil && rates.long.Output != nil {
-		price.Tiers = []worker.PriceTier{{InputOver: rates.inputOver, Rates: rates.long}}
+		price.Tiers = []worker.PriceTier{{
+			InputOver:   rates.inputOver,
+			Input:       rates.long.Input,
+			Output:      rates.long.Output,
+			CacheInput:  rates.long.CacheInput,
+			CacheOutput: rates.long.CacheOutput,
+		}}
 		return price, true
 	}
 	match := longContext.FindStringSubmatch(string(doc))
@@ -94,7 +106,13 @@ func withTiers(id string, rates *publishedPrice, doc modelDocument) (worker.Pric
 	if match[2] != "" {
 		cutoff *= tokensPerK
 	}
-	price.Tiers = []worker.PriceTier{{InputOver: cutoff, Rates: rates.long}}
+	price.Tiers = []worker.PriceTier{{
+		InputOver:   cutoff,
+		Input:       rates.long.Input,
+		Output:      rates.long.Output,
+		CacheInput:  rates.long.CacheInput,
+		CacheOutput: rates.long.CacheOutput,
+	}}
 	return price, true
 }
 
@@ -110,6 +128,11 @@ func updateModel(
 		string(doc), "| Chat Completions | `v1/chat/completions` | Supported |",
 	)
 	textOutput := strings.Contains(string(doc), "\n- Output modalities: text\n")
+	if !textOutput || !hasResponses && !hasChat {
+		caps.Hidden = true
+		models[key] = caps
+		return
+	}
 	eligible := recommended && textOutput && (hasResponses || hasChat)
 	hidden := caps.Hidden
 	if hidden && !eligible {
@@ -127,16 +150,19 @@ func updateModel(
 	} else if len(caps.Efforts) > 0 {
 		fmt.Printf("Retained %s effort options without a published list\n", key)
 	}
-	if caps.Endpoint != "" || len(caps.Efforts) > 0 || hidden {
-		models[key] = caps
-	}
+	models[key] = caps
 }
 
-func readEfforts(doc string) []string {
-	if match := effortList.FindStringSubmatch(doc); match != nil {
-		return effortLevel.FindAllString(strings.ToLower(match[1]), -1)
+func readEfforts(doc string) []api.Effort {
+	match := effortList.FindStringSubmatch(doc)
+	if match == nil {
+		return nil
 	}
-	return nil
+	var res []api.Effort
+	for _, level := range effortLevel.FindAllString(strings.ToLower(match[1]), -1) {
+		res = append(res, api.Effort(level))
+	}
+	return res
 }
 
 func snapshots(doc modelDocument, id string) []string {

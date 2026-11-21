@@ -1,6 +1,7 @@
 package worker
 
 import (
+	"context"
 	"log/slog"
 	"net"
 	"net/http"
@@ -20,11 +21,19 @@ func Serve(cfg *Config, provider Provider) error {
 		port = defaultPort
 	}
 	addr := net.JoinHostPort(os.Getenv("HOST"), port)
+	listener, err := net.Listen("tcp", addr)
+	if err != nil {
+		return err
+	}
+	w := New(cfg, provider)
+	if len(provider.Names()) > 0 {
+		w.loadCapabilities(context.Background())
+	}
 	srv := &http.Server{
 		Addr:              addr,
-		Handler:           New(cfg, provider).Handler(),
+		Handler:           w.Handler(),
 		ReadHeaderTimeout: readHeaderTimeout,
 	}
 	slog.Info("Agent worker listening", slog.String("addr", addr))
-	return srv.ListenAndServe()
+	return srv.Serve(listener)
 }

@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/kode4food/argyll/engine/pkg/api"
-	"github.com/kode4food/argyll/workers/agent/cmd/argyll-agent-openai/internal/openai"
+	"github.com/kode4food/argyll/workers/agent/internal/openai"
 	"github.com/kode4food/argyll/workers/agent/internal/worker"
 )
 
@@ -51,7 +51,7 @@ func TestResponsesEffort(t *testing.T) {
 	t.Setenv("OPENAI_BASE_URL", srv.URL+"/")
 	t.Setenv("OPENAI_API_KEY", "test")
 	t.Setenv("MODEL_CAPABILITIES", "")
-	p, err := openai.New(nil)
+	_, p, err := openai.LoadConfig()
 	if !assert.NoError(t, err) {
 		return
 	}
@@ -85,6 +85,108 @@ func TestResponsesEffort(t *testing.T) {
 	assert.Equal(t, int64(200), second.CacheOutputTokens)
 }
 
+func TestResponsesNudge(t *testing.T) {
+	calls := make(chan map[string]any, 2)
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var body map[string]any
+		assert.NoError(t, json.NewDecoder(r.Body).Decode(&body))
+		calls <- body
+		w.Header().Set("Content-Type", api.JSONContentType)
+		_, _ = io.WriteString(w, `{"output":[{"type":"message","role":"assistant",
+			"content":[{"type":"output_text","text":"continuing","annotations":[]}]}]}`)
+	}))
+	defer srv.Close()
+	t.Setenv("OPENAI_BASE_URL", srv.URL+"/")
+	t.Setenv("OPENAI_API_KEY", "test")
+	t.Setenv("MODEL_CAPABILITIES", "")
+	_, p, err := openai.LoadConfig()
+	if !assert.NoError(t, err) {
+		return
+	}
+	c, err := p.Open(&worker.Chat{
+		Config: &api.AgentConfig{
+			Provider: openai.Name,
+			Model:    "gpt-5.6-luna",
+		},
+		Tools: []worker.ToolSpec{{Name: "finish", Schema: map[string]any{"type": "object"}}},
+	})
+	if !assert.NoError(t, err) {
+		return
+	}
+	_, err = c.Turn(t.Context())
+	assert.NoError(t, err)
+	c.Nudge("finish the task")
+	_, err = c.Turn(t.Context())
+	assert.NoError(t, err)
+	if !assert.Len(t, calls, 2) {
+		return
+	}
+	first := <-calls
+	second := <-calls
+	assert.Len(t, first["tools"], 1)
+	input, ok := second["input"].([]any)
+	if assert.True(t, ok) && assert.Len(t, input, 4) {
+		message, ok := input[3].(map[string]any)
+		if assert.True(t, ok) {
+			assert.Equal(t, "user", message["role"])
+			assert.Equal(t, "finish the task", message["content"])
+		}
+	}
+}
+
+func TestStoppedResponse(t *testing.T) {
+	for _, tc := range []struct {
+		reason string
+		body   string
+	}{
+		{
+			reason: "max_output_tokens",
+			body: `{"status":"incomplete","incomplete_details":{"reason":"max_output_tokens"},
+				"output":[],"usage":{"input_tokens":23,"output_tokens":2}}`,
+		},
+		{
+			reason: "content_filter",
+			body: `{"status":"incomplete","incomplete_details":{"reason":"content_filter"},
+				"output":[],"usage":{"input_tokens":23,"output_tokens":2}}`,
+		},
+		{
+			reason: "refusal explanation",
+			body: `{"status":"completed","output":[{"type":"message","role":"assistant",
+				"content":[{"type":"refusal","refusal":"refusal explanation"}]}],
+				"usage":{"input_tokens":23,"output_tokens":2}}`,
+		},
+	} {
+		t.Run(tc.reason, func(t *testing.T) {
+			h := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+				w.Header().Set("Content-Type", api.JSONContentType)
+				_, _ = io.WriteString(w, tc.body)
+			})
+			srv := httptest.NewServer(h)
+			defer srv.Close()
+			t.Setenv("OPENAI_BASE_URL", srv.URL+"/")
+			t.Setenv("OPENAI_API_KEY", "test")
+			t.Setenv("MODEL_CAPABILITIES", "")
+			_, p, err := openai.LoadConfig()
+			if !assert.NoError(t, err) {
+				return
+			}
+			c, err := p.Open(&worker.Chat{Config: &api.AgentConfig{
+				Provider: openai.Name,
+				Model:    "gpt-5.6-luna",
+			}})
+			if !assert.NoError(t, err) {
+				return
+			}
+			turn, err := c.Turn(t.Context())
+			assert.ErrorIs(t, err, worker.ErrModelStopped)
+			assert.Contains(t, err.Error(), tc.reason)
+			assert.Equal(t, int64(23), turn.InputTokens)
+			assert.Equal(t, int64(2), turn.OutputTokens)
+			assert.Empty(t, turn.Calls)
+		})
+	}
+}
+
 func TestFailedResponse(t *testing.T) {
 	for _, tc := range []struct {
 		code   string
@@ -107,7 +209,7 @@ func TestFailedResponse(t *testing.T) {
 			t.Setenv("OPENAI_BASE_URL", srv.URL+"/")
 			t.Setenv("OPENAI_API_KEY", "test")
 			t.Setenv("MODEL_CAPABILITIES", "")
-			p, err := openai.New(nil)
+			_, p, err := openai.LoadConfig()
 			if !assert.NoError(t, err) {
 				return
 			}

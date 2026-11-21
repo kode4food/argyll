@@ -556,7 +556,9 @@ paths:
       summary: List Agent Capabilities
       description: |
         Lists providers routed to available workers, with their models and MCP
-        servers. Unavailable workers are omitted if other workers respond.
+        servers. The response includes discovery problems for unavailable workers,
+        providers, or MCP servers alongside any available results. An empty provider
+        list with problems reports discovery failure, not an empty configuration.
       operationId: listAgentCapabilities
       tags:
         - Agents
@@ -570,6 +572,10 @@ paths:
                 required:
                   - providers
                 properties:
+                  problems:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/ProblemDetails"
                   providers:
                     type: array
                     items:
@@ -595,13 +601,6 @@ paths:
                           type: array
                           items:
                             $ref: "#/components/schemas/MCPServer"
-        "502":
-          description: No configured worker returned capabilities
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-
   /engine/feeds:
     get:
       summary: List Feeds
@@ -3103,6 +3102,21 @@ components:
           type: integer
           description: HTTP status code
           example: 404
+
+    ProblemDetails:
+      type: object
+      description: RFC 9457 Problem Details
+      properties:
+        type:
+          type: string
+        title:
+          type: string
+        status:
+          type: integer
+        detail:
+          type: string
+        instance:
+          type: string
 
 security: []
 
