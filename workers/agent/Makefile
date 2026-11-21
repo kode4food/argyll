@@ -1,6 +1,6 @@
 GO ?= go
 
-.PHONY: format check test pre-commit refresh-openai-models refresh-anthropic-models refresh-bedrock-models
+.PHONY: format check test pre-commit refresh-openai-models refresh-anthropic-models refresh-bedrock-models refresh-gemini-models
 
 format:
 	$(GO) tool goimports -w .
@@ -23,3 +23,6 @@ refresh-anthropic-models:
 
 refresh-bedrock-models:
 	GOWORK=off $(GO) run -mod=readonly ./cmd/argyll-agent-bedrock/internal/refresh
+
+refresh-gemini-models:
+	GOWORK=off $(GO) run -mod=readonly ./cmd/argyll-agent-gemini/internal/refresh

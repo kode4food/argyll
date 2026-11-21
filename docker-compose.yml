@@ -34,7 +34,7 @@ services:
       API_PORT: "8080"
       API_HOST: "0.0.0.0"
       WEBHOOK_BASE_URL: http://argyll-engine-1:8080
-      AGENT_WORKERS: "anthropic=http://argyll-agent-anthropic:8070,bedrock=http://argyll-agent-bedrock:8070,*=http://argyll-agent-openai:8070"
+      AGENT_WORKERS: "anthropic=http://argyll-agent-anthropic:8070,bedrock=http://argyll-agent-bedrock:8070,gemini=http://argyll-agent-gemini:8070,*=http://argyll-agent-openai:8070"
       LOG_LEVEL: debug
       RAFT_NODE_ID: argyll-1
       RAFT_ADDRESS: argyll-engine-1:9701
@@ -63,7 +63,7 @@ services:
       API_PORT: "8080"
       API_HOST: "0.0.0.0"
       WEBHOOK_BASE_URL: http://argyll-engine-2:8080
-      AGENT_WORKERS: "anthropic=http://argyll-agent-anthropic:8070,bedrock=http://argyll-agent-bedrock:8070,*=http://argyll-agent-openai:8070"
+      AGENT_WORKERS: "anthropic=http://argyll-agent-anthropic:8070,bedrock=http://argyll-agent-bedrock:8070,gemini=http://argyll-agent-gemini:8070,*=http://argyll-agent-openai:8070"
       LOG_LEVEL: debug
       RAFT_NODE_ID: argyll-2
       RAFT_ADDRESS: argyll-engine-2:9701
@@ -92,7 +92,7 @@ services:
       API_PORT: "8080"
       API_HOST: "0.0.0.0"
       WEBHOOK_BASE_URL: http://argyll-engine-3:8080
-      AGENT_WORKERS: "anthropic=http://argyll-agent-anthropic:8070,bedrock=http://argyll-agent-bedrock:8070,*=http://argyll-agent-openai:8070"
+      AGENT_WORKERS: "anthropic=http://argyll-agent-anthropic:8070,bedrock=http://argyll-agent-bedrock:8070,gemini=http://argyll-agent-gemini:8070,*=http://argyll-agent-openai:8070"
       LOG_LEVEL: debug
       RAFT_NODE_ID: argyll-3
       RAFT_ADDRESS: argyll-engine-3:9701
@@ -151,6 +151,23 @@ services:
       - path: ./.env.d/agent.env
         required: false
       - path: ./.env.d/agent-bedrock.env
+        required: false
+    restart: unless-stopped
+
+  argyll-agent-gemini:
+    build:
+      context: .
+      dockerfile: workers/agent/Dockerfile
+      args:
+        WORKER: argyll-agent-gemini
+    depends_on:
+      - argyll-mcp
+    environment:
+      ARGYLL_MCP_URL: http://argyll-mcp:8071/mcp
+    env_file:
+      - path: ./.env.d/agent.env
+        required: false
+      - path: ./.env.d/agent-gemini.env
         required: false
     restart: unless-stopped
 

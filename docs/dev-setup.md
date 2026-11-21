@@ -12,7 +12,7 @@ This starts:
 
 - Argyll engine on http://localhost:8080
 - UI on http://localhost:3001
-- Anthropic and OpenAI Agent workers on the Compose network
+- Anthropic, Amazon Bedrock, Gemini, and OpenAI Agent workers on the Compose network
 - Example step services (ports 8081–8086)
 
 Docker Compose configures the services and their connections for local development.
@@ -51,27 +51,30 @@ If you run the engine outside Docker, make sure these are set appropriately for 
 
 ## Running the reference Agent workers
 
-Docker Compose starts `argyll-agent-anthropic`, `argyll-agent-bedrock`, and `argyll-agent-openai` automatically. Each offers the `argyll` MCP server for you to select in a Step. To enable a provider, add its credentials to that worker's file at the repository root:
+Docker Compose starts `argyll-agent-anthropic`, `argyll-agent-bedrock`, `argyll-agent-gemini`, and `argyll-agent-openai` automatically. Each offers the `argyll` MCP server for you to select in a Step. To enable a provider, add its credentials to that worker's file at the repository root:
 
 - Anthropic uses `ANTHROPIC_API_KEY` in `.env.d/agent-anthropic.env`.
 - Amazon Bedrock uses `AWS_REGION` and AWS credentials in `.env.d/agent-bedrock.env`.
+- Gemini uses `GEMINI_API_KEY` in `.env.d/agent-gemini.env`.
 - OpenAI uses `OPENAI_API_KEY` in `.env.d/agent-openai.env`.
 
 The Anthropic worker also accepts `ANTHROPIC_AUTH_TOKEN` in place of `ANTHROPIC_API_KEY` for gateways that expect a bearer token. The API key wins when both are set.
 
 The Bedrock worker offers the region's text models that support tool calling as the `bedrock` provider. It lists on-demand models and active inference profiles, leaving out retired models. Models that accept image input are included. Models that produce images, audio, video, speech, or embeddings are left out. Its role needs `bedrock:InvokeModel`, `bedrock:ListFoundationModels`, and `bedrock:ListInferenceProfiles`. It reads credentials from the standard AWS sources: environment variables such as `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`, shared config files with `AWS_PROFILE`, or an attached role. Set `AWS_BEARER_TOKEN_BEDROCK` to use a Bedrock API key instead. Set `AWS_ENDPOINT_URL_BEDROCK_RUNTIME` and `AWS_ENDPOINT_URL_BEDROCK` to reach Bedrock through VPC endpoints.
 
+The Gemini worker offers the Gemini API's text models as the `gemini` provider through the Interactions API. It lists every model that generates content and leaves out models that produce audio, images, video, or music. Each attempt keeps its conversation on the worker, so Google stores no interaction history. Effort settings map to Gemini thinking levels.
+
 Set custom `PROVIDER_URLS` in the file for the worker serving those endpoints. Use the optional `.env.d/agent.env` for settings all workers share. Worker-specific values take precedence. The `.env.d/` directory is excluded from Git and Docker builds.
 
-Run `docker compose up -d argyll-agent-anthropic argyll-agent-bedrock argyll-agent-openai` to apply the new environment.
+Run `docker compose up -d argyll-agent-anthropic argyll-agent-bedrock argyll-agent-gemini argyll-agent-openai` to apply the new environment.
 
-The workers share the Go module in `workers/agent`. From the repository root, run `go run ./workers/agent/cmd/argyll-agent-anthropic`, `go run ./workers/agent/cmd/argyll-agent-bedrock`, or `go run ./workers/agent/cmd/argyll-agent-openai`. To run several locally, set a different `PORT` for each process and configure `AGENT_WORKERS` with their URLs. To build or test with the Go workspace disabled, run `GOWORK=off go build -mod=readonly ./cmd/...` or `make test` from `workers/agent`. The module uses the engine contract from the same checkout.
+The workers share the Go module in `workers/agent`. From the repository root, run `go run ./workers/agent/cmd/argyll-agent-anthropic`, `go run ./workers/agent/cmd/argyll-agent-bedrock`, `go run ./workers/agent/cmd/argyll-agent-gemini`, or `go run ./workers/agent/cmd/argyll-agent-openai`. To run several locally, set a different `PORT` for each process and configure `AGENT_WORKERS` with their URLs. To build or test with the Go workspace disabled, run `GOWORK=off go build -mod=readonly ./cmd/...` or `make test` from `workers/agent`. The module uses the engine contract from the same checkout.
 
-Run `make -C workers/agent refresh-anthropic-models`, `refresh-bedrock-models`, or `refresh-openai-models` to refresh that worker's bundled JSON from the provider's published information. Each command writes `model-prices.json`. Anthropic also writes `prefix-thresholds.json`, and Bedrock and OpenAI also write `model-capabilities.json`. The bundled Bedrock prices are for `us-east-1`.
+Run `make -C workers/agent refresh-anthropic-models`, `refresh-bedrock-models`, `refresh-gemini-models`, or `refresh-openai-models` to refresh that worker's bundled JSON from the provider's published information. Each command writes `model-prices.json`. Anthropic also writes `prefix-thresholds.json`, and Bedrock, Gemini, and OpenAI also write `model-capabilities.json`. The bundled Bedrock prices are for `us-east-1`. Gemini prices change on published dates, and its refresh records the rates in effect on the day it runs.
 
-The refresh commands are the only part of the workers that read public documentation. At runtime, workers use only provider APIs and local files. A refresh validates what it reads and replaces files only when every output is complete. The Bedrock refresh records supported and excluded models, effort levels, and long-context price tiers. It also reports the models it could not price. On Bedrock, Claude, Nova, and OpenAI models accept effort settings. An unsupported effort value fails the Step permanently.
+The refresh commands are the only part of the workers that read public documentation. At runtime, workers use only provider APIs and local files. A refresh validates what it reads and replaces files only when every output is complete. The Bedrock refresh records supported and excluded models, effort levels, and long-context price tiers. It also reports the models it could not price. On Bedrock, Claude, Nova, and OpenAI models accept effort settings. The Gemini refresh records each model's thinking levels and leaves out media and deprecated models. An unsupported effort value fails the Step permanently.
 
-Bedrock and OpenAI list every text model their provider offers, leaving out the models their capability tables hide. New text models appear without a refresh. To change a model's listing, add it to `MODEL_CAPABILITIES` with a `provider/model` key. Set `hidden` to `true` to leave it out, or list its `efforts`. For the OpenAI worker, set `endpoint` to `responses` to use the Responses API instead of Chat Completions. Workers ask the model for text and tool calls, and prompt it until it returns one final result.
+Bedrock, Gemini, and OpenAI list every text model their provider offers, leaving out the models their capability tables hide. New text models appear without a refresh. To change a model's listing, add it to `MODEL_CAPABILITIES` with a `provider/model` key. Set `hidden` to `true` to leave it out, or list its `efforts`. For the OpenAI worker, set `endpoint` to `responses` to use the Responses API instead of Chat Completions. Workers ask the model for text and tool calls, and prompt it until it returns one final result.
 
 Workers discover capabilities when they start. Bedrock keeps its last successful list of inference profiles, so profile IDs and ARNs keep resolving after a failed discovery. A request that arrives before any profile list is available fails and is retried.
 

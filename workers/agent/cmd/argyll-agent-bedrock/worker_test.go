@@ -62,6 +62,7 @@ func TestWorker(t *testing.T) {
 		},
 		Credentials: credentials,
 		MissingKey:  "AWS_REGION",
+		CacheWrites: true,
 		Reply:       reply,
 		System: func(body map[string]any) any {
 			return body["system"]

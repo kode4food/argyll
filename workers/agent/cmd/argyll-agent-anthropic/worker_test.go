@@ -40,6 +40,7 @@ func TestWorker(t *testing.T) {
 		},
 		Credentials: credentials,
 		MissingKey:  "ANTHROPIC_API_KEY",
+		CacheWrites: true,
 		Reply:       reply,
 		System: func(body map[string]any) any {
 			return body["system"]

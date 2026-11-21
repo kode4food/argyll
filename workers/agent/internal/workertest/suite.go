@@ -30,6 +30,7 @@ type (
 		Credentials func(t *testing.T, set bool)
 		MissingKey  string
 		ReportsCost bool
+		CacheWrites bool
 		Reply       func(Reply) string
 		System      func(body map[string]any) any
 		Tools       func(body map[string]any) any
@@ -161,13 +162,20 @@ func (h *webhook) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 func (s *suite) testInvoke(t *testing.T) {
 	t.Run("with MCP tools", func(t *testing.T) {
+		// A provider without cache writes bills the written tokens as plain input
+		writes := int64(200)
+		cost := 0.00099
+		if !s.h.CacheWrites {
+			writes = 0
+			cost = 0.00084
+		}
 		firstReply := s.h.Reply(Reply{
 			Calls: []ToolCall{{ID: "t1", Name: "crm__lookup", Arguments: `{"name": "acme"}`}},
 			Usage: Usage{
 				Input:       310,
 				Output:      replyOutput,
 				CacheInput:  100,
-				CacheOutput: 200,
+				CacheOutput: writes,
 			},
 		})
 		finishReply := s.reply(ToolCall{
@@ -217,12 +225,14 @@ func (s *suite) testInvoke(t *testing.T) {
 		assert.Equal(t, api.JSONContentType, out.contentType)
 		assert.Equal(t, api.Args{"score": float64(80)}, out.body.Outputs)
 		usage := api.Usage{
-			"input_tokens":        320,
-			"output_tokens":       10,
-			"cache_input_tokens":  100,
-			"cache_output_tokens": 200,
-			"cost":                0.00099,
-			"cost_calculated":     0.00099,
+			"input_tokens":       320,
+			"output_tokens":      10,
+			"cache_input_tokens": 100,
+			"cost":               cost,
+			"cost_calculated":    cost,
+		}
+		if writes > 0 {
+			usage["cache_output_tokens"] = float64(writes)
 		}
 		assert.Equal(t, usage, out.body.Usage)
 
@@ -478,6 +488,9 @@ func (s *suite) testCost(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			if tc.cost != nil && !s.h.ReportsCost {
 				t.Skip("provider reports no cost")
+			}
+			if tc.cached && !s.h.CacheWrites {
+				t.Skip("provider reports no cache writes")
 			}
 			finish := ToolCall{
 				ID:        "finish",

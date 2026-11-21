@@ -1,0 +1,180 @@
+{
+  "gemini/gemini-2.0-flash": {
+    "hidden": true
+  },
+  "gemini/gemini-2.0-flash-lite": {
+    "hidden": true
+  },
+  "gemini/gemini-2.5-computer-use-preview-10-2025": {
+    "hidden": true
+  },
+  "gemini/gemini-2.5-flash": {
+    "hidden": true
+  },
+  "gemini/gemini-2.5-flash-image": {
+    "hidden": true
+  },
+  "gemini/gemini-2.5-flash-lite": {
+    "efforts": [
+      "low",
+      "medium",
+      "high"
+    ]
+  },
+  "gemini/gemini-2.5-flash-native-audio-preview-12-2025": {
+    "hidden": true
+  },
+  "gemini/gemini-2.5-flash-preview-tts": {
+    "hidden": true
+  },
+  "gemini/gemini-2.5-pro": {
+    "hidden": true
+  },
+  "gemini/gemini-2.5-pro-preview-tts": {
+    "hidden": true
+  },
+  "gemini/gemini-3-flash-preview": {
+    "efforts": [
+      "minimal",
+      "low",
+      "medium",
+      "high"
+    ]
+  },
+  "gemini/gemini-3-pro-image": {
+    "hidden": true
+  },
+  "gemini/gemini-3-pro-preview": {
+    "hidden": true
+  },
+  "gemini/gemini-3.1-flash-image": {
+    "hidden": true
+  },
+  "gemini/gemini-3.1-flash-lite": {
+    "efforts": [
+      "minimal",
+      "low",
+      "medium",
+      "high"
+    ]
+  },
+  "gemini/gemini-3.1-flash-lite-image": {
+    "hidden": true
+  },
+  "gemini/gemini-3.1-flash-lite-preview": {
+    "hidden": true
+  },
+  "gemini/gemini-3.1-flash-live-preview": {
+    "hidden": true
+  },
+  "gemini/gemini-3.1-flash-tts-preview": {
+    "hidden": true
+  },
+  "gemini/gemini-3.1-pro-preview": {
+    "efforts": [
+      "low",
+      "medium",
+      "high"
+    ]
+  },
+  "gemini/gemini-3.5-flash-lite": {
+    "efforts": [
+      "minimal",
+      "low",
+      "medium",
+      "high"
+    ]
+  },
+  "gemini/gemini-3.6-flash": {
+    "efforts": [
+      "minimal",
+      "low",
+      "medium",
+      "high"
+    ]
+  },
+  "gemini/gemini-3.8-flash": {
+    "efforts": [
+      "low",
+      "medium",
+      "high"
+    ]
+  },
+  "gemini/gemini-3.8-flash-lite-tts": {
+    "hidden": true
+  },
+  "gemini/gemini-3.8-flash-tts": {
+    "hidden": true
+  },
+  "gemini/gemini-3.8-live": {
+    "hidden": true
+  },
+  "gemini/gemini-3.8-live-extended-thinking": {
+    "hidden": true
+  },
+  "gemini/gemini-4-argon": {
+    "efforts": [
+      "low",
+      "medium",
+      "high"
+    ]
+  },
+  "gemini/gemini-4-carbon": {
+    "efforts": [
+      "low",
+      "medium",
+      "high"
+    ]
+  },
+  "gemini/gemini-4-hydrogen": {
+    "efforts": [
+      "low",
+      "medium",
+      "high",
+      "xhigh"
+    ]
+  },
+  "gemini/gemini-4-neon": {
+    "efforts": [
+      "low",
+      "medium",
+      "high",
+      "xhigh"
+    ]
+  },
+  "gemini/gemini-nano-banana-2.1": {
+    "hidden": true
+  },
+  "gemini/gemini-omni-1.2-flash": {
+    "hidden": true
+  },
+  "gemini/gemini-robotics-er-1.6-preview": {
+    "hidden": true
+  },
+  "gemini/gemini-robotics-er-2-preview": {
+    "efforts": [
+      "minimal",
+      "low",
+      "medium",
+      "high"
+    ]
+  },
+  "gemini/genie-4": {
+    "hidden": true
+  },
+  "gemini/imagen-4.0-generate": {
+    "hidden": true
+  },
+  "gemini/lyria-3-clip-preview": {
+    "hidden": true
+  },
+  "gemini/lyria-3-pro-preview": {
+    "hidden": true
+  },
+  "gemini/lyria-3.5": {
+    "hidden": true
+  },
+  "gemini/lyria-realtime-exp": {
+    "hidden": true
+  }
+}

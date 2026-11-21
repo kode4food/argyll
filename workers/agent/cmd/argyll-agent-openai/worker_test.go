@@ -50,6 +50,7 @@ func TestWorker(t *testing.T) {
 		},
 		Credentials: credentials,
 		ReportsCost: true,
+		CacheWrites: true,
 		Reply:       reply,
 		System: func(body map[string]any) any {
 			messages, _ := body["messages"].([]any)
