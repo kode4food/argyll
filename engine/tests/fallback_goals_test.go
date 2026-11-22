@@ -24,9 +24,13 @@ func TestFallbackGoals(t *testing.T) {
 			env.MockClient.SetResponse("and-a", api.Args{"ra": "a"})
 			env.MockClient.SetError("and-b", errors.New("boom"))
 
-			fl := startGoals(t, env, "fallback-and", api.Goals{
-				Steps: []api.StepID{"and-a", "and-b"},
-			}, api.InitArgs{})
+			fl := startGoals(t, startGoalsArgs{
+				env:    env,
+				flowID: "fallback-and",
+				goals: api.Goals{
+					Steps: []api.StepID{"and-a", "and-b"},
+				},
+			})
 
 			assert.Equal(t, api.FlowFailed, fl.Status)
 			assert.Equal(t, api.StepCompleted, fl.Executions["and-a"].Status)
@@ -41,10 +45,14 @@ func TestFallbackGoals(t *testing.T) {
 			env.MockClient.SetResponse("first", api.Args{"r1": "one"})
 			env.MockClient.SetResponse("second", api.Args{"r2": "two"})
 
-			fl := startGoals(t, env, "fallback-short", api.Goals{
-				Steps: []api.StepID{"first"},
-				Else:  &api.Goals{Steps: []api.StepID{"second"}},
-			}, api.InitArgs{})
+			fl := startGoals(t, startGoalsArgs{
+				env:    env,
+				flowID: "fallback-short",
+				goals: api.Goals{
+					Steps: []api.StepID{"first"},
+					Else:  &api.Goals{Steps: []api.StepID{"second"}},
+				},
+			})
 
 			assert.Equal(t, api.FlowCompleted, fl.Status)
 			assert.Equal(t, api.StepSkipped, fl.Executions["second"].Status)
@@ -59,10 +67,14 @@ func TestFallbackGoals(t *testing.T) {
 			env.MockClient.SetError("bad-1", errors.New("boom"))
 			env.MockClient.SetError("bad-2", errors.New("boom"))
 
-			fl := startGoals(t, env, "fallback-all-fail", api.Goals{
-				Steps: []api.StepID{"bad-1"},
-				Else:  &api.Goals{Steps: []api.StepID{"bad-2"}},
-			}, api.InitArgs{})
+			fl := startGoals(t, startGoalsArgs{
+				env:    env,
+				flowID: "fallback-all-fail",
+				goals: api.Goals{
+					Steps: []api.StepID{"bad-1"},
+					Else:  &api.Goals{Steps: []api.StepID{"bad-2"}},
+				},
+			})
 
 			assert.Equal(t, api.FlowFailed, fl.Status)
 			assert.Equal(t, []api.StepID{"bad-1", "bad-2"}, env.MockClient.GetInvocations())
@@ -85,13 +97,17 @@ func TestFallbackGoals(t *testing.T) {
 			env.MockClient.SetResponse("step3", api.Args{"r3": "three"})
 			env.MockClient.SetResponse("step4", api.Args{"r4": "four"})
 
-			fl := startGoals(t, env, "fallback-reuse", api.Goals{
-				Steps: []api.StepID{"step1", "step2"},
-				Else: &api.Goals{
-					Steps: []api.StepID{"step2", "step3"},
-					Else:  &api.Goals{Steps: []api.StepID{"step4"}},
+			fl := startGoals(t, startGoalsArgs{
+				env:    env,
+				flowID: "fallback-reuse",
+				goals: api.Goals{
+					Steps: []api.StepID{"step1", "step2"},
+					Else: &api.Goals{
+						Steps: []api.StepID{"step2", "step3"},
+						Else:  &api.Goals{Steps: []api.StepID{"step4"}},
+					},
 				},
-			}, api.InitArgs{})
+			})
 
 			assert.Equal(t, api.FlowCompleted, fl.Status)
 			assert.Equal(t, api.StepFailed, fl.Executions["step1"].Status)
@@ -190,24 +206,34 @@ func TestFallbackGoals(t *testing.T) {
 			}
 
 			env.MockClient.SetResponse("primary", api.Args{"p": "ok"})
-			fl := startGoals(t, env, "fallback-both", goals, api.InitArgs{
-				"primary-input":  {"x"},
-				"fallback-input": {"y"},
+			fl := startGoals(t, startGoalsArgs{
+				env:    env,
+				flowID: "fallback-both",
+				goals:  goals,
+				init: api.InitArgs{
+					"primary-input":  {"x"},
+					"fallback-input": {"y"},
+				},
 			})
 			assert.Equal(t, api.FlowCompleted, fl.Status)
 		})
 	})
 }
 
-func startGoals(
-	t *testing.T, env *helpers.TestEngineEnv, fid api.FlowID, goals api.Goals, init api.InitArgs,
-) api.FlowState {
+type startGoalsArgs struct {
+	env    *helpers.TestEngineEnv
+	flowID api.FlowID
+	goals  api.Goals
+	init   api.InitArgs
+}
+
+func startGoals(t *testing.T, args startGoalsArgs) api.FlowState {
 	t.Helper()
-	return env.WaitForFlowStatus(fid, func() {
-		err := env.Engine.StartFlow(api.CreateFlowRequest{
-			ID:    fid,
-			Goals: goals,
-			Init:  init,
+	return args.env.WaitForFlowStatus(args.flowID, func() {
+		err := args.env.Engine.StartFlow(api.CreateFlowRequest{
+			ID:    args.flowID,
+			Goals: args.goals,
+			Init:  args.init,
 		})
 		assert.NoError(t, err)
 	})

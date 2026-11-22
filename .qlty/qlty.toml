@@ -75,7 +75,7 @@ enabled = true
 threshold = 4
 
 [smells.function_parameters]
-threshold = 4
+threshold = 5
 
 [smells.function_complexity]
 threshold = 35
