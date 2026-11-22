@@ -6,7 +6,7 @@ import {
   isProducerRole,
   ScriptConfig,
 } from "@/app/api";
-import { stepTypeOrder } from "@/app/constants";
+import { STEP_TYPE_ORDER } from "@/app/constants";
 import {
   IconArrayMultiple,
   IconAttributeMatch,
@@ -23,7 +23,7 @@ export interface OrderedAttribute {
   spec: AttributeSpec;
 }
 
-export const roleArgType: Record<AttributeRole, ArgType> = {
+export const ROLE_ARG_TYPE: Record<AttributeRole, ArgType> = {
   required: "required",
   optional: "optional",
   const: "const",
@@ -129,7 +129,7 @@ export const getAttributeModifiers = (
   return modifiers;
 };
 
-const collectTitleKeyMap: Record<InputCollect, string> = {
+const COLLECT_TITLE_KEY_MAP: Record<InputCollect, string> = {
   first: "",
   last: "attribute.modifierCollectLast",
   all: "attribute.modifierCollectAll",
@@ -138,7 +138,8 @@ const collectTitleKeyMap: Record<InputCollect, string> = {
 };
 
 export const getModifierTitleKey = (modifier: AttributeModifier): string => {
-  if (modifier.kind === "collect") return collectTitleKeyMap[modifier.collect];
+  if (modifier.kind === "collect")
+    return COLLECT_TITLE_KEY_MAP[modifier.collect];
   if (modifier.kind === "match") return "attribute.modifierMatch";
   if (modifier.Icon === IconDuration) return "attribute.modifierDeadline";
   if (modifier.Icon === IconMapping) return "attribute.modifierMapping";
@@ -150,7 +151,7 @@ export const sortStepsByType = (steps: Step[]): Step[] => {
   return [...steps].sort((a, b) => {
     const aType = getStepType(a);
     const bType = getStepType(b);
-    const orderDiff = stepTypeOrder[aType] - stepTypeOrder[bType];
+    const orderDiff = STEP_TYPE_ORDER[aType] - STEP_TYPE_ORDER[bType];
     if (orderDiff !== 0) return orderDiff;
     return a.name.localeCompare(b.name);
   });

@@ -43,7 +43,7 @@ type PluralForms = {
 type MessageValue = string | PluralForms;
 type Messages = Record<string, MessageValue>;
 
-const messagesByLocale: Record<string, Messages> = {
+const MESSAGES_BY_LOCALE: Record<string, Messages> = {
   "en-US": enUS as Messages,
   "de-CH": deCH as Messages,
   "fr-CH": frCH as Messages,
@@ -54,7 +54,7 @@ const LocaleProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
   const locale = useLocale();
-  const messages = messagesByLocale[locale] ?? enUS;
+  const messages = MESSAGES_BY_LOCALE[locale] ?? enUS;
 
   return (
     <I18nProvider locale={locale} messages={messages}>

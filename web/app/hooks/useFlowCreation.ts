@@ -11,10 +11,10 @@ import {
   useLoadFlows,
   useAddFlow,
   useRemoveFlow,
-} from "../store/flowStore";
-import { useUI } from "../contexts/UIContext";
+} from "@/app/store/flowStore";
+import { useUI } from "@/app/contexts/UIContext";
 import { useThrottledValue } from "@/app/contexts/useThrottledValue";
-import { api, GoalSets } from "../api";
+import { api, GoalSets } from "@/app/api";
 import { nonEmptyGoalSets } from "@/utils/goalSets";
 import { parseState, filterDefaultValues } from "@/utils/stateUtils";
 import { snapshotFlowPositions } from "@/utils/nodePositioning";

@@ -52,8 +52,7 @@ const sessionMock = {
 jest.mock("@/app/store/flowStore", () => ({
   useSteps: () => sessionMock.steps,
   useLoadSteps: () => sessionMock.loadSteps,
-  useFlowStore: (selector: (state: { upsertStep: jest.Mock }) => unknown) =>
-    selector({ upsertStep: jest.fn() }),
+  useUpsertStep: () => jest.fn(),
 }));
 
 jest.mock("@/app/contexts/UIContext", () => {

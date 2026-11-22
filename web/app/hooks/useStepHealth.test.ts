@@ -1,9 +1,9 @@
 import { renderHook } from "@testing-library/react";
 import { useStepHealth } from "./useStepHealth";
-import { useFlowStore } from "../store/flowStore";
-import type { Step } from "../api";
+import { useFlowStore } from "@/app/store/flowStore";
+import type { Step } from "@/app/api";
 
-jest.mock("../store/flowStore");
+jest.mock("@/app/store/flowStore");
 
 describe("useStepHealth", () => {
   const mockUseFlowStore = useFlowStore as jest.MockedFunction<

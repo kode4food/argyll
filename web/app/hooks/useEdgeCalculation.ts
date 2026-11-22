@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { Edge } from "@xyflow/react";
 import { Step } from "@/app/api";
-import { stepLayout, edgeColors } from "@/constants/layout";
+import { STEP_LAYOUT, EDGE_COLORS } from "@/constants/layout";
 import {
   buildOutputProducerMap,
   listStepInputs,
@@ -33,14 +33,14 @@ const buildEdge = (
   const isFocusedAttribute = focusedAttributeName === input.name;
 
   const strokeColor = isOutOfPlan
-    ? edgeColors.GRAYED
+    ? EDGE_COLORS.GRAYED
     : input.isOptional
-      ? edgeColors.OPTIONAL
-      : edgeColors.REQUIRED;
+      ? EDGE_COLORS.OPTIONAL
+      : EDGE_COLORS.REQUIRED;
 
   const baseZIndex = isInPlan
-    ? stepLayout.EDGE_FOCUSED_Z_INDEX
-    : stepLayout.EDGE_Z_INDEX;
+    ? STEP_LAYOUT.EDGE_FOCUSED_Z_INDEX
+    : STEP_LAYOUT.EDGE_Z_INDEX;
 
   return {
     id: `${fromStepID}-${toStep.id}-${input.name}`,
@@ -51,13 +51,13 @@ const buildEdge = (
     type: "smoothstep",
     style: {
       stroke: strokeColor,
-      strokeWidth: stepLayout.EDGE_WIDTH,
-      strokeDasharray: input.isOptional ? stepLayout.DASH_PATTERN : undefined,
+      strokeWidth: STEP_LAYOUT.EDGE_WIDTH,
+      strokeDasharray: input.isOptional ? STEP_LAYOUT.DASH_PATTERN : undefined,
     },
     markerEnd: {
       type: "arrow" as const,
       color: strokeColor,
-      strokeWidth: stepLayout.EDGE_WIDTH - 0.5,
+      strokeWidth: STEP_LAYOUT.EDGE_WIDTH - 0.5,
     },
     data: { isInPlan },
     zIndex: input.isOptional ? baseZIndex : baseZIndex + 1,

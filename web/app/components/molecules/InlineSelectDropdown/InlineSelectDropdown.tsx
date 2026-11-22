@@ -3,7 +3,7 @@ import DropdownOption from "@/app/components/atoms/DropdownOption";
 import useDropdown from "@/app/hooks/useDropdown";
 import dropdownStyles from "@/app/styles/components/dropdown.module.css";
 import sharedFormStyles from "@/app/styles/components/form.module.css";
-import formStyles from "./StepEditorForm.module.css";
+import formStyles from "./InlineSelectDropdown.module.css";
 
 export interface InlineSelectOption {
   value: string;
@@ -41,6 +41,7 @@ const InlineSelectDropdown: React.FC<InlineSelectDropdownProps> = ({
     setHighlightedIndex,
     wrapperRef,
     handleKeyDown,
+    selectValue,
   } = useDropdown(options, value, onChange);
 
   const selected = options.find((o) => o.value === value);
@@ -98,10 +99,7 @@ const InlineSelectDropdown: React.FC<InlineSelectDropdownProps> = ({
               isEmphasized={opt.highlight}
               isHighlighted={index === highlightedIndex}
               onHover={() => setHighlightedIndex(index)}
-              onSelect={() => {
-                onChange(opt.value);
-                setOpen(false);
-              }}
+              onSelect={() => selectValue(opt.value)}
             >
               {opt.label}
             </DropdownOption>

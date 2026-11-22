@@ -6,7 +6,11 @@ import type { useWebSocketClient } from "@/app/hooks/useWebSocketClient";
 
 type SocketClient = ReturnType<typeof useWebSocketClient>;
 
-const flowSummaryEventTypes = ["flow_started", "flow_completed", "flow_failed"];
+const FLOW_SUMMARY_EVENT_TYPES = [
+  "flow_started",
+  "flow_completed",
+  "flow_failed",
+];
 
 const eventTimestamp = (timestamp?: number): string =>
   new Date(timestamp || Date.now()).toISOString();
@@ -63,7 +67,7 @@ export function useFlowSummarySubscription(
       {
         aggregate_ids: visibleFlowIDs.map((flowID) => ["flow", flowID]),
         include_state: false,
-        event_types: flowSummaryEventTypes,
+        event_types: FLOW_SUMMARY_EVENT_TYPES,
       },
       handleFlowSummaryEvent
     );

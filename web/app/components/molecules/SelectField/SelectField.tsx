@@ -1,11 +1,10 @@
 import React from "react";
 import { createPortal } from "react-dom";
 import DropdownOption from "@/app/components/atoms/DropdownOption";
-import { useAnchoredList } from "@/app/hooks/useAnchoredList";
-import useDropdown from "@/app/hooks/useDropdown";
 import { type LucideIcon } from "@/utils/iconRegistry";
 import dropdownStyles from "@/app/styles/components/dropdown.module.css";
 import styles from "./SelectField.module.css";
+import { useSelectField } from "./useSelectField";
 
 export interface SelectFieldOption {
   disabled?: boolean;
@@ -37,29 +36,18 @@ const SelectField: React.FC<SelectFieldProps> = ({
   value,
 }) => {
   const {
-    open,
     setOpen,
     highlightedIndex,
     setHighlightedIndex,
     wrapperRef,
     listRef,
     handleKeyDown,
-  } = useDropdown(options, value, onChange);
-  const selected = options.find((option) => option.value === value);
-  const SelectedIcon = selected?.Icon ?? Icon;
-  const disabled = options.length === 0;
-  const isOpen = open && !disabled;
-
-  React.useEffect(() => {
-    if (disabled) setOpen(false);
-  }, [disabled, setOpen]);
-
-  useAnchoredList({
+    selected,
+    disabled,
     isOpen,
-    anchorRef: wrapperRef,
-    listRef,
-    shouldMatchWidth: true,
-  });
+    selectValue,
+  } = useSelectField(options, value, onChange);
+  const SelectedIcon = selected?.Icon ?? Icon;
 
   return (
     <div className={[styles.field, className].filter(Boolean).join(" ")}>
@@ -98,10 +86,7 @@ const SelectField: React.FC<SelectFieldProps> = ({
                   isDisabled={option.disabled}
                   isHighlighted={index === highlightedIndex}
                   onHover={() => setHighlightedIndex(index)}
-                  onSelect={() => {
-                    onChange(option.value);
-                    setOpen(false);
-                  }}
+                  onSelect={() => selectValue(option.value)}
                 >
                   {option.label}
                 </DropdownOption>

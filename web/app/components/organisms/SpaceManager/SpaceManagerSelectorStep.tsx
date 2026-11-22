@@ -3,6 +3,7 @@ import TagInput from "@/app/components/molecules/TagInput";
 import { useT } from "@/app/i18n";
 import { IconAdd, IconAttributeLabel, IconRemove } from "@/utils/iconRegistry";
 import styles from "./SpaceManager.module.css";
+import { useSelectorTerms } from "./useSelectorTerms";
 
 interface SpaceManagerSelectorStepProps {
   isAddDisabled: boolean;
@@ -22,7 +23,8 @@ const SpaceManagerSelectorStep: React.FC<SpaceManagerSelectorStepProps> = ({
   terms,
 }) => {
   const t = useT();
-  const [focusTermIndex, setFocusTermIndex] = React.useState(-1);
+  const { handleAddTerm, handleTermChange, handleRemoveTerm, shouldFocusTerm } =
+    useSelectorTerms(terms, onTermsChange);
   const addAlternative = t("spaceManager.addAlternative");
   const removeAlternative = t("spaceManager.removeAlternative");
   return (
@@ -41,10 +43,7 @@ const SpaceManagerSelectorStep: React.FC<SpaceManagerSelectorStepProps> = ({
             title={addAlternative}
             aria-label={addAlternative}
             disabled={isAddDisabled}
-            onClick={() => {
-              setFocusTermIndex(terms.length);
-              onTermsChange([...terms, []]);
-            }}
+            onClick={handleAddTerm}
           >
             <IconAdd className={styles.iconSm} />
           </button>
@@ -55,15 +54,9 @@ const SpaceManagerSelectorStep: React.FC<SpaceManagerSelectorStepProps> = ({
               Icon={IconAttributeLabel}
               removeLabel={t("spaceManager.removeSelector")}
               placeholder={t("stepEditor.tagPlaceholder")}
-              shouldFocus={
-                index === focusTermIndex || (terms.length === 1 && !term.length)
-              }
+              shouldFocus={shouldFocusTerm(index)}
               tags={term}
-              onChange={(tags) =>
-                onTermsChange(
-                  terms.map((current, at) => (at === index ? tags : current))
-                )
-              }
+              onChange={(tags) => handleTermChange(index, tags)}
               suggestions={suggestions}
             />
             {index > 0 && (
@@ -75,9 +68,7 @@ const SpaceManagerSelectorStep: React.FC<SpaceManagerSelectorStepProps> = ({
                 className={styles.removeTerm}
                 title={removeAlternative}
                 aria-label={`${removeAlternative} ${index + 1}`}
-                onClick={() =>
-                  onTermsChange(terms.filter((_, at) => at !== index))
-                }
+                onClick={() => handleRemoveTerm(index)}
               >
                 <IconRemove className={styles.iconSm} />
               </button>

@@ -1,131 +1,34 @@
-import React, { useCallback, useEffect } from "react";
-import {
-  ReactFlow,
-  ReactFlowProvider,
-  useReactFlow,
-  useViewport,
-  NodeTypes,
-} from "@xyflow/react";
+import React from "react";
+import { ReactFlow, ReactFlowProvider, NodeTypes } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
-import { FlowContext, ExecutionResult, Step } from "@/app/api";
 import Node from "@/app/components/organisms/LiveStep/Node";
 import { IconDiagramLoading } from "@/utils/iconRegistry";
 import DiagramChrome from "@/app/components/molecules/DiagramChrome";
 import DiagramEmptyState from "@/app/components/molecules/DiagramEmptyState";
 import { useT } from "@/app/i18n";
-import { useNodeCalculation } from "./useNodeCalculation";
-import { useEdgeCalculation } from "@/app/hooks/useEdgeCalculation";
-import { useUI } from "@/app/contexts/UIContext";
-import { useDiagramViewport } from "@/app/hooks/useDiagramViewport";
-import { useFitView } from "@/app/hooks/useFitView";
-import { useFullDetailMinZoom } from "@/app/hooks/useFullDetailMinZoom";
-import { useStepVisibility } from "./useStepVisibility";
+import { MIN_DIAGRAM_ZOOM } from "@/utils/diagramDetail";
 import {
-  MIN_DIAGRAM_ZOOM,
-  diagramDetailForZoom,
-  edgesForDiagramDetail,
-} from "@/utils/diagramDetail";
+  LiveDiagramViewOptions,
+  useLiveDiagramView,
+} from "./useLiveDiagramView";
 
-interface LiveDiagramViewProps {
-  steps: Step[];
-  flowData: FlowContext | null;
-  executions?: ExecutionResult[];
-  resolvedAttributes?: string[];
-}
-
-const nodeTypes: NodeTypes = {
+const NODE_TYPES: NodeTypes = {
   stepNode: Node,
 };
 
-const LiveDiagramViewInner: React.FC<LiveDiagramViewProps> = ({
-  steps = [],
-  flowData,
-  executions = [],
-  resolvedAttributes = [],
-}) => {
+const LiveDiagramViewInner: React.FC<LiveDiagramViewOptions> = (props) => {
   const t = useT();
-  const reactFlowInstance = useReactFlow();
-  const { zoom } = useViewport();
-  const fullDetailMinZoom = useFullDetailMinZoom();
-  const diagramDetail = diagramDetailForZoom(zoom, fullDetailMinZoom);
-  const viewportKey = flowData?.id || "flow";
-  const { diagramContainerRef } = useUI();
-  const fitView = useFitView();
-
-  const { visibleSteps } = useStepVisibility(steps, flowData);
-  const hasPlan =
-    !!flowData?.plan?.steps && Object.keys(flowData.plan.steps).length > 0;
-  const stepsToRender = hasPlan ? visibleSteps : [];
-  const isLoadingPlan = !flowData || !hasPlan;
-
-  const nodes = useNodeCalculation(
-    stepsToRender,
-    flowData,
-    executions,
-    resolvedAttributes,
-    diagramContainerRef
-  );
-
-  const goalScopeIds = React.useMemo(
-    () =>
-      new Set(
-        nodes
-          .filter((node) => !node.data.isOutsideGoalScope)
-          .map((node) => node.id)
-      ),
-    [nodes]
-  );
-  const edges = useEdgeCalculation(stepsToRender, goalScopeIds);
-  const visibleEdges = React.useMemo(
-    () => edgesForDiagramDetail(edges, diagramDetail, zoom),
-    [edges, diagramDetail, zoom]
-  );
-
-  const handleNodeDragStart = useCallback(() => {
-    const event = new CustomEvent("hideTooltips");
-    document.dispatchEvent(event);
-  }, []);
   const {
+    diagramContainerRef,
+    diagramDetail,
+    nodes,
+    visibleEdges,
+    isEmpty,
+    handleNodeDragStart,
     handleViewportChange,
-    shouldFitView,
-    savedViewport,
-    markRestored,
-    markFitApplied,
-  } = useDiagramViewport(viewportKey);
+  } = useLiveDiagramView(props);
 
-  useEffect(() => {
-    if (savedViewport && reactFlowInstance) {
-      reactFlowInstance.setViewport(savedViewport);
-      requestAnimationFrame(() => markRestored());
-    }
-  }, [reactFlowInstance, savedViewport, markRestored]);
-
-  useEffect(() => {
-    if (!shouldFitView || !reactFlowInstance || nodes.length === 0) {
-      return;
-    }
-
-    let frameA = 0;
-    let frameB = 0;
-
-    frameA = requestAnimationFrame(() => {
-      frameB = requestAnimationFrame(() => {
-        fitView();
-        markFitApplied();
-      });
-    });
-
-    return () => {
-      if (frameA) {
-        cancelAnimationFrame(frameA);
-      }
-      if (frameB) {
-        cancelAnimationFrame(frameB);
-      }
-    };
-  }, [fitView, shouldFitView, nodes, markFitApplied]);
-
-  if (isLoadingPlan || stepsToRender.length === 0) {
+  if (isEmpty) {
     return (
       <DiagramEmptyState
         icon={<IconDiagramLoading />}
@@ -140,7 +43,7 @@ const LiveDiagramViewInner: React.FC<LiveDiagramViewProps> = ({
       ref={diagramContainerRef}
       nodes={nodes}
       edges={visibleEdges}
-      nodeTypes={nodeTypes}
+      nodeTypes={NODE_TYPES}
       onNodeDragStart={handleNodeDragStart}
       nodesConnectable={false}
       nodesDraggable={false}
@@ -159,7 +62,7 @@ const LiveDiagramViewInner: React.FC<LiveDiagramViewProps> = ({
   );
 };
 
-const LiveDiagramView: React.FC<LiveDiagramViewProps> = (props) => (
+const LiveDiagramView: React.FC<LiveDiagramViewOptions> = (props) => (
   <ReactFlowProvider>
     <LiveDiagramViewInner {...props} />
   </ReactFlowProvider>

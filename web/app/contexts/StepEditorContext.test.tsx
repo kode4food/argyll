@@ -1,6 +1,6 @@
 import { act, render, screen } from "@testing-library/react";
 import { StepEditorProvider, useStepEditorContext } from "./StepEditorContext";
-import { Step } from "../api";
+import { Step } from "@/app/api";
 
 const mockStep: Step = {
   id: "s1",
@@ -11,7 +11,7 @@ const mockStep: Step = {
 };
 
 const renderSpy = jest.fn();
-jest.mock("../components/organisms/StepEditor", () => {
+jest.mock("@/app/components/organisms/StepEditor", () => {
   const Mock = ({ onUpdate }: any) => {
     renderSpy(onUpdate);
     return (

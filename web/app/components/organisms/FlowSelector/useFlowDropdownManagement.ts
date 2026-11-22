@@ -4,6 +4,13 @@ import { FlowSummary } from "@/app/api";
 import { filterFlowsBySearch } from "./flowSelectorUtils";
 import { useEscapeKey } from "@/app/hooks/useEscapeKey";
 
+const KEY_DIRECTIONS: Record<string, 1 | -1> = { ArrowDown: 1, ArrowUp: -1 };
+
+const stepIndex = (prev: number, direction: 1 | -1, length: number) => {
+  if (direction === 1) return prev < length - 1 ? prev + 1 : 0;
+  return prev > 0 ? prev - 1 : length - 1;
+};
+
 export function useFlowDropdownManagement(
   flows: FlowSummary[],
   selectedFlow: string | null
@@ -46,35 +53,27 @@ export function useFlowDropdownManagement(
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (!showDropdown) return;
 
-    switch (e.key) {
-      case "ArrowDown":
-        e.preventDefault();
-        setSelectedIndex((prev) =>
-          prev < selectableItems.length - 1 ? prev + 1 : 0
-        );
-        break;
-      case "ArrowUp":
-        e.preventDefault();
-        setSelectedIndex((prev) =>
-          prev > 0 ? prev - 1 : selectableItems.length - 1
-        );
-        break;
-      case "Enter":
-        e.preventDefault();
-        if (selectedIndex >= 0 && selectedIndex < selectableItems.length) {
-          navigateToFlow(selectableItems[selectedIndex]);
-        } else if (selectableItems.length === 1) {
-          navigateToFlow(selectableItems[0]);
-        }
-        break;
-      case "Tab":
-        e.preventDefault();
-        if (selectedIndex >= 0 && selectedIndex < selectableItems.length) {
-          navigateToFlow(selectableItems[selectedIndex]);
-        } else {
-          setSelectedIndex(0);
-        }
-        break;
+    const direction = KEY_DIRECTIONS[e.key];
+    if (direction) {
+      e.preventDefault();
+      setSelectedIndex((prev) =>
+        stepIndex(prev, direction, selectableItems.length)
+      );
+    } else if (e.key === "Enter" || e.key === "Tab") {
+      e.preventDefault();
+      confirmSelection(e.key === "Tab");
+    }
+  };
+
+  const confirmSelection = (isTab: boolean) => {
+    const hasSelection =
+      selectedIndex >= 0 && selectedIndex < selectableItems.length;
+    if (hasSelection) {
+      navigateToFlow(selectableItems[selectedIndex]);
+    } else if (isTab) {
+      setSelectedIndex(0);
+    } else if (selectableItems.length === 1) {
+      navigateToFlow(selectableItems[0]);
     }
   };
 
@@ -85,17 +84,11 @@ export function useFlowDropdownManagement(
   }, [showDropdown, searchTerm, currentIndex]);
 
   useEffect(() => {
-    if (selectedIndex >= 0 && dropdownRef.current) {
-      const selectedElement = dropdownRef.current.children[
-        selectedIndex + 1
-      ] as HTMLElement;
-      if (selectedElement) {
-        selectedElement.scrollIntoView({
-          behavior: "smooth",
-          block: "nearest",
-        });
-      }
-    }
+    if (selectedIndex < 0) return;
+    dropdownRef.current?.children[selectedIndex + 1]?.scrollIntoView({
+      behavior: "smooth",
+      block: "nearest",
+    });
   }, [selectedIndex]);
 
   useEscapeKey(showDropdown, closeDropdown);

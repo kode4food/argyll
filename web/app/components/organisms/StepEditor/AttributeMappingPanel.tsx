@@ -10,13 +10,13 @@ import formStyles from "./StepEditorForm.module.css";
 import { Attribute } from "./stepEditorUtils";
 import { getMappingScriptPlaceholderKey } from "./stepEditorConstants";
 import InlineSelectDropdown, {
-  InlineSelectOption,
-} from "./InlineSelectDropdown";
+  type InlineSelectOption,
+} from "@/app/components/molecules/InlineSelectDropdown";
 
 interface AttributeMappingPanelProps {
   attr: Attribute;
   nameClass: string;
-  compensable: boolean;
+  isCompensable: boolean;
   stepType: StepType;
   flowInputOptions: FlowInputOption[];
   flowOutputOptions: string[];
@@ -28,7 +28,7 @@ interface AttributeMappingPanelProps {
 const AttributeMappingPanel: React.FC<AttributeMappingPanelProps> = ({
   attr,
   nameClass,
-  compensable,
+  isCompensable,
   stepType,
   flowInputOptions,
   flowOutputOptions,
@@ -49,7 +49,7 @@ const AttributeMappingPanel: React.FC<AttributeMappingPanelProps> = ({
     <div className={formStyles.attrMappingPanel}>
       <span
         className={`${formStyles.mappingIndicator} ${
-          compensable ? formStyles.mappingIndicatorWide : ""
+          isCompensable ? formStyles.mappingIndicatorWide : ""
         }`}
         aria-hidden
       >

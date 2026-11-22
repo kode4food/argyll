@@ -12,7 +12,7 @@ import {
   IconAttributeStatusWinner,
 } from "@/utils/iconRegistry";
 import { ArgType, StatusBadgeContext } from "./attributeUtils";
-import styles from "../StepShared/StepAttributesSection.module.css";
+import styles from "@/app/components/molecules/StepShared/StepAttributesSection.module.css";
 
 const badge = (
   statusClass: string,
@@ -37,6 +37,19 @@ const skippedBadge = (): React.ReactElement =>
 const failedBadge = (): React.ReactElement =>
   badge("failed", IconAttributeStatusFailed);
 
+const optionalResolvedBadge = (
+  context: StatusBadgeContext
+): React.ReactElement => {
+  if (context.isProvidedByUpstream)
+    return badge("satisfied", IconAttributeStatusProvided);
+  if (context.wasDefaulted)
+    return badge("defaulted", IconAttributeStatusDefaulted);
+  if (context.isSatisfied)
+    return badge("satisfied", IconAttributeStatusSatisfied);
+  if (context.isAvailable) return progressBadge();
+  return pendingBadge();
+};
+
 const optionalStatusBadge = (
   context: StatusBadgeContext
 ): React.ReactElement | null => {
@@ -46,14 +59,7 @@ const optionalStatusBadge = (
   if (context.isUnsatisfied) return failedBadge();
   if (context.executionStatus === "skipped" && !context.isSatisfied)
     return skippedBadge();
-  if (context.isProvidedByUpstream)
-    return badge("satisfied", IconAttributeStatusProvided);
-  if (context.wasDefaulted)
-    return badge("defaulted", IconAttributeStatusDefaulted);
-  if (context.isSatisfied)
-    return badge("satisfied", IconAttributeStatusSatisfied);
-  if (context.isAvailable) return progressBadge();
-  return pendingBadge();
+  return optionalResolvedBadge(context);
 };
 
 // The engine supplies these values, so nothing upstream is ever awaited

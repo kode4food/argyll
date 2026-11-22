@@ -3,7 +3,7 @@ import SegmentedControl from "@/app/components/atoms/SegmentedControl";
 import ScriptLanguageLogo from "@/app/components/atoms/ScriptLanguageLogo";
 import ScriptEditor from "@/app/components/molecules/ScriptEditor";
 import { type LucideIcon } from "@/utils/iconRegistry";
-import formStyles from "../StepEditorForm.module.css";
+import formStyles from "@/app/components/organisms/StepEditor/StepEditorForm.module.css";
 import { SCRIPT_LANGUAGE_OPTIONS } from "@/app/components/organisms/StepEditor/stepEditorConstants";
 import { useT } from "@/app/i18n";
 

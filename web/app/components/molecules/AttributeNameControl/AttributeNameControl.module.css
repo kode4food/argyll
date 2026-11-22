@@ -1,0 +1,21 @@
+.icon {
+  composes: iconBoxSm from "@/app/styles/components/icon.module.css";
+}
+
+.nameInputInline {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  padding: 0 0 0 10px;
+  border: 0;
+  background-color: transparent;
+  color: var(--panel-text);
+  font-size: var(--text-xs);
+  font-family: inherit;
+  box-sizing: border-box;
+}
+
+.collectIcon {
+  width: 20px;
+  height: 20px;
+}

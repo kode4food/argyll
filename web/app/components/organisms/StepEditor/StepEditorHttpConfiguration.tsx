@@ -17,7 +17,7 @@ import formStyles from "./StepEditorForm.module.css";
 import localStyles from "./StepEditorHttpConfiguration.module.css";
 import InlineSelectDropdown, {
   type InlineSelectOption,
-} from "./InlineSelectDropdown";
+} from "@/app/components/molecules/InlineSelectDropdown";
 
 const METHOD_OPTIONS: InlineSelectOption[] = [
   { value: "POST", label: "POST" },

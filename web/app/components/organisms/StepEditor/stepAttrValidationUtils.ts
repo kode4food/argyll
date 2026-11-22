@@ -1,6 +1,56 @@
 import { validateDefaultValue } from "@/utils/stepUtils";
 import { Attribute, ValidationError } from "./stepEditorTypes";
 
+function validateAttributeRole(attr: Attribute): ValidationError | null {
+  if (attr.role === "required" && attr.matchScript?.trim()) {
+    const matchLanguage = attr.matchLanguage?.trim();
+    if (!matchLanguage) {
+      return {
+        key: "stepEditor.matchLanguageRequired",
+        vars: { name: attr.name },
+      };
+    }
+  }
+
+  if (
+    (attr.role === "optional" || attr.role === "const") &&
+    attr.defaultValue
+  ) {
+    const validation = validateDefaultValue(attr.defaultValue);
+    if (!validation.valid) {
+      return {
+        key: "stepEditor.invalidDefaultValue",
+        vars: {
+          name: attr.name,
+          reason: validation.errorKey ?? "",
+        },
+      };
+    }
+  }
+
+  if (attr.role === "const" && !attr.defaultValue?.trim()) {
+    return {
+      key: "stepEditor.constDefaultRequired",
+      vars: { name: attr.name },
+    };
+  }
+
+  if (attr.role === "feed" && !attr.feedId?.trim()) {
+    return {
+      key: "stepEditor.feedIdRequired",
+      vars: { name: attr.name },
+    };
+  }
+
+  if (attr.role === "metric" && !attr.metricScript?.trim()) {
+    return {
+      key: "stepEditor.metricSelectorRequired",
+      vars: { name: attr.name },
+    };
+  }
+  return null;
+}
+
 export function validateAttributesList(
   attributes: Attribute[]
 ): ValidationError | null {
@@ -17,52 +67,8 @@ export function validateAttributesList(
     }
     names.add(attr.name);
 
-    if (attr.role === "required" && attr.matchScript?.trim()) {
-      const matchLanguage = attr.matchLanguage?.trim();
-      if (!matchLanguage) {
-        return {
-          key: "stepEditor.matchLanguageRequired",
-          vars: { name: attr.name },
-        };
-      }
-    }
-
-    if (
-      (attr.role === "optional" || attr.role === "const") &&
-      attr.defaultValue
-    ) {
-      const validation = validateDefaultValue(attr.defaultValue);
-      if (!validation.valid) {
-        return {
-          key: "stepEditor.invalidDefaultValue",
-          vars: {
-            name: attr.name,
-            reason: validation.errorKey ?? "",
-          },
-        };
-      }
-    }
-
-    if (attr.role === "const" && !attr.defaultValue?.trim()) {
-      return {
-        key: "stepEditor.constDefaultRequired",
-        vars: { name: attr.name },
-      };
-    }
-
-    if (attr.role === "feed" && !attr.feedId?.trim()) {
-      return {
-        key: "stepEditor.feedIdRequired",
-        vars: { name: attr.name },
-      };
-    }
-
-    if (attr.role === "metric" && !attr.metricScript?.trim()) {
-      return {
-        key: "stepEditor.metricSelectorRequired",
-        vars: { name: attr.name },
-      };
-    }
+    const roleError = validateAttributeRole(attr);
+    if (roleError) return roleError;
   }
   return null;
 }

@@ -196,7 +196,7 @@ const configuration = load();  // Just use config
 
 ### Parameter Objects
 
-qlty flags a function at **4 or more parameters** as a smell. Bundle them into a single request/options object instead. This also self-documents the call site, since positional args of the same type (two `string`s, two `boolean`s) are otherwise easy to swap silently.
+qlty flags a function at **5 or more parameters** as a smell. Bundle them into a single request/options object instead. This also self-documents the call site, since positional args of the same type (two `string`s, two `boolean`s) are otherwise easy to swap silently.
 
 ```typescript
 // Good
@@ -204,20 +204,22 @@ export interface StartFlowRequest {
   id: string;
   goalSteps: string[][];
   initialState: Record<string, unknown[]>;
+  spaceId?: string;
   compensate?: boolean;
 }
 
 async startFlow(request: StartFlowRequest): Promise<unknown> {
-  const { id, goalSteps, initialState, compensate = false } = request;
+  const { id, goalSteps, initialState, spaceId, compensate = false } = request;
   ...
 }
 
-// Bad: four positional params, two of them booleans/strings a caller
-// can transpose without a type error
+// Bad: five positional params, two of them strings a caller can transpose
+// without a type error
 async startFlow(
   id: string,
   goalSteps: string[][],
   initialState: Record<string, any[]>,
+  spaceId?: string,
   compensate = false
 ): Promise<any> { ... }
 ```

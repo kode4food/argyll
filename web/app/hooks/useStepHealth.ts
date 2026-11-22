@@ -1,6 +1,6 @@
 import { useMemo } from "react";
-import { Step, HealthStatus, NodeStepHealth, StepHealth } from "../api";
-import { useFlowStore } from "../store/flowStore";
+import { Step, HealthStatus, NodeStepHealth, StepHealth } from "@/app/api";
+import { useFlowStore } from "@/app/store/flowStore";
 
 const sortedNodes = (
   perNode: Record<string, { status: string; error?: string }>

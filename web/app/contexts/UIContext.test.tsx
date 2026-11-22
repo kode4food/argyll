@@ -1,10 +1,10 @@
 import React from "react";
 import { renderHook, act, waitFor } from "@testing-library/react";
 import { UIProvider, useUI } from "./UIContext";
-import { api, ExecutionPlan } from "../api";
+import { api, ExecutionPlan } from "@/app/api";
 
-jest.mock("../api", () => ({
-  ...jest.requireActual("../api"),
+jest.mock("@/app/api", () => ({
+  ...jest.requireActual("@/app/api"),
   api: {
     getExecutionPlan: jest.fn(),
   },
@@ -12,7 +12,7 @@ jest.mock("../api", () => ({
 
 let spacesInStore: { id: string; name: string; selector: object }[] = [];
 
-jest.mock("../store/flowStore", () => ({
+jest.mock("@/app/store/flowStore", () => ({
   useSpaces: () => spacesInStore,
 }));
 

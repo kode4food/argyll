@@ -4,6 +4,7 @@ import {
   saveViewportState,
   getViewportForKey,
 } from "@/utils/viewportPersistence";
+import { hideTooltips } from "@/utils/tooltips";
 
 export function useDiagramViewport(viewportKey: string) {
   const canPersistRef = useRef(true);
@@ -28,8 +29,7 @@ export function useDiagramViewport(viewportKey: string) {
 
   const handleViewportChange = useCallback(
     (viewport: Viewport) => {
-      const event = new CustomEvent("hideTooltips");
-      document.dispatchEvent(event);
+      hideTooltips();
       if (!canPersistRef.current) {
         return;
       }

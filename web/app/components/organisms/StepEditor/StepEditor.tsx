@@ -1,29 +1,18 @@
 import React from "react";
 import Modal from "@/app/components/molecules/Modal";
-import { Step, ExecutionPlan, GoalSets } from "@/app/api";
+import { Step } from "@/app/api";
 import ScriptConfigEditor from "./ScriptConfigEditor";
 import ScriptEditor from "@/app/components/molecules/ScriptEditor";
 import styles from "./StepEditor.module.css";
 import formStyles from "./StepEditorForm.module.css";
 import fadeStyles from "@/app/styles/components/scrollFade.module.css";
-import { useStepEditorForm } from "./useStepEditorForm";
-import { parseJsonStep } from "./useStepPersistence";
-import { useModalDimensions } from "./useModalDimensions";
 import { useT } from "@/app/i18n";
-import { useSpaces, useSteps } from "@/app/store/flowStore";
-import { useUI } from "@/app/contexts/UIContext";
-import { useTagVocabulary } from "@/app/hooks/useTagVocabulary";
-import { api } from "@/app/api";
-import { getFlowPlanAttributeOptions } from "@/utils/flowPlanAttributeOptions";
-import { IconPredicate, IconStepTypeScript } from "@/utils/iconRegistry";
+import { IconPredicate } from "@/utils/iconRegistry";
 import StepEditorBasicFields from "./StepEditorBasicFields";
 import StepEditorAttributesSection from "./StepEditorAttributesSection";
-import StepEditorAgentConfiguration from "./StepEditorAgentConfiguration";
-import StepEditorFlowConfiguration from "./StepEditorFlowConfiguration";
-import StepEditorHttpConfiguration from "./StepEditorHttpConfiguration";
+import StepEditorTypeConfiguration from "./StepEditorTypeConfiguration";
 import StepEditorFooter from "./StepEditorFooter";
-import { useScrollFade } from "@/app/hooks/useScrollFade";
-import { stepAttributeCompletions } from "@/utils/scriptCompletions";
+import { useStepEditor } from "./useStepEditor";
 
 interface StepEditorProps {
   step: Step | null;
@@ -41,151 +30,26 @@ const StepEditor: React.FC<StepEditorProps> = ({
   draft,
 }) => {
   const t = useT();
-  const steps = useSteps();
-  const spaces = useSpaces();
-  const { spaceId } = useUI();
-  const tagVocabulary = useTagVocabulary();
-  const defaultTags = React.useMemo(
-    // A new Step only has to satisfy one alternative, so the first is enough
-    () => spaces.find((space) => space.id === spaceId)?.qbe?.[0],
-    [spaces, spaceId]
-  );
   const {
-    predicate,
-    setPredicate,
-    predicateLanguage,
-    setPredicateLanguage,
-    script,
-    setScript,
-    scriptLanguage,
-    setScriptLanguage,
-    handling,
-    setHandling,
-    saving,
-    error,
-    setError,
-    handleSave,
-    handleJsonSave,
-    getSerializedStepData,
-    applyStepData,
-    isCreateMode,
-    stepId,
-    name,
-    description,
-    stepType: formStepType,
-    setStepId,
-    setName,
-    setDescription,
-    setStepType,
-    attributes,
-    addAttribute,
-    updateAttribute,
-    removeAttribute,
-    tags,
-    setTags,
-    endpoint,
-    setEndpoint,
-    httpMethod,
-    setHttpMethod,
-    httpMode,
-    setHttpMode,
-    healthCheck,
-    setHealthCheck,
-    compensate,
-    setCompensate,
-    compensateMethod,
-    setCompensateMethod,
-    compensateTimeout,
-    setCompensateTimeout,
-    compensateMode,
-    setCompensateMode,
-    httpTimeout,
-    setHttpTimeout,
-    flowGoals,
-    setFlowGoals,
-    flowSpaceId,
-    setFlowSpaceId,
-    agent,
-    setAgent,
-  } = useStepEditorForm({ step, onUpdate, onClose, defaultTags, draft });
-
-  const [editorMode, setEditorMode] = React.useState<"basic" | "json">("basic");
-  const [jsonDraft, setJsonDraft] = React.useState("");
-  const [flowPreviewPlan, setFlowPreviewPlan] =
-    React.useState<ExecutionPlan | null>(null);
-  const [flowInitialState, setFlowInitialState] = React.useState("{}");
-  const predicateCompletions = React.useMemo(
-    () => stepAttributeCompletions(attributes, false),
-    [attributes]
-  );
-  const scriptCompletions = React.useMemo(
-    () => stepAttributeCompletions(attributes, true),
-    [attributes]
-  );
-
-  const updateFlowPreviewPlan = React.useCallback(
-    async (
-      goalSteps: GoalSets,
-      initialState: Record<string, any>,
-      previewSpaceId?: string
-    ) => {
-      const plan = await api.getExecutionPlan({
-        goalSteps,
-        initialState,
-        spaceId: previewSpaceId,
-      });
-      setFlowPreviewPlan(plan);
-    },
-    []
-  );
-
-  const clearFlowPreviewPlan = React.useCallback(() => {
-    setFlowPreviewPlan(null);
-  }, []);
-
-  const { flowInputOptions, flowOutputOptions } = React.useMemo(
-    () => getFlowPlanAttributeOptions(flowPreviewPlan),
-    [flowPreviewPlan]
-  );
-
-  const { dimensions, mounted } = useModalDimensions(diagramContainerRef);
-  const { scrollRef, showTopFade, showBottomFade } = useScrollFade(
-    mounted && editorMode === "basic"
-  );
-
-  React.useEffect(() => {
-    setEditorMode("basic");
-    setJsonDraft(getSerializedStepData());
-  }, [getSerializedStepData, step]);
-
-  const handleEditorModeChange = (mode: "basic" | "json") => {
-    if (mode === editorMode) return;
-
-    if (mode === "json") {
-      setJsonDraft(getSerializedStepData());
-      setError(null);
-      setEditorMode("json");
-      return;
-    }
-
-    const result = parseJsonStep(jsonDraft, t);
-    if ("error" in result) {
-      setError(result.error);
-      return;
-    }
-
-    applyStepData(result.step);
-    setError(null);
-    setEditorMode("basic");
-  };
-
-  const handleSaveClick = () => {
-    if (editorMode === "json") {
-      void handleJsonSave(jsonDraft);
-      return;
-    }
-    void handleSave();
-  };
+    form,
+    steps,
+    tagVocabulary,
+    editorMode,
+    jsonDraft,
+    setJsonDraft,
+    predicateCompletions,
+    flowPreview,
+    flowInputOptions,
+    flowOutputOptions,
+    dimensions,
+    mounted,
+    scrollRef,
+    showTopFade,
+    showBottomFade,
+    handleEditorModeChange,
+    handleSaveClick,
+    title,
+  } = useStepEditor({ step, onClose, onUpdate, diagramContainerRef, draft });
 
   if (!mounted) return null;
 
@@ -195,19 +59,15 @@ const StepEditor: React.FC<StepEditorProps> = ({
       onClose={onClose}
       width={dimensions.width}
       height={dimensions.height}
-      title={
-        isCreateMode
-          ? t("stepEditor.modalCreateTitle")
-          : t("stepEditor.modalEditTitle", { id: stepId })
-      }
+      title={title}
       footer={
         <StepEditorFooter
           editorMode={editorMode}
           onEditorModeChange={handleEditorModeChange}
           onCancel={onClose}
           onSave={handleSaveClick}
-          saving={saving}
-          isCreateMode={isCreateMode}
+          saving={form.saving}
+          isCreateMode={form.isCreateMode}
         />
       }
     >
@@ -223,98 +83,49 @@ const StepEditor: React.FC<StepEditorProps> = ({
           {editorMode === "basic" ? (
             <>
               <StepEditorBasicFields
-                description={description}
-                handling={handling}
-                isCreateMode={isCreateMode}
-                name={name}
-                setDescription={setDescription}
-                setHandling={setHandling}
-                setName={setName}
-                setStepId={setStepId}
-                setStepType={setStepType}
-                setTags={setTags}
-                stepId={stepId}
-                stepType={formStepType}
-                tags={tags}
+                description={form.description}
+                handling={form.handling}
+                isCreateMode={form.isCreateMode}
+                name={form.name}
+                setDescription={form.setDescription}
+                setHandling={form.setHandling}
+                setName={form.setName}
+                setStepId={form.setStepId}
+                setStepType={form.setStepType}
+                setTags={form.setTags}
+                stepId={form.stepId}
+                stepType={form.stepType}
+                tags={form.tags}
                 tagVocabulary={tagVocabulary}
               />
 
               <StepEditorAttributesSection
-                addAttribute={addAttribute}
-                attributes={attributes}
+                addAttribute={form.addAttribute}
+                attributes={form.attributes}
                 flowInputOptions={flowInputOptions}
                 flowOutputOptions={flowOutputOptions}
-                removeAttribute={removeAttribute}
-                stepType={formStepType}
-                handling={handling}
-                updateAttribute={updateAttribute}
+                removeAttribute={form.removeAttribute}
+                stepType={form.stepType}
+                handling={form.handling}
+                updateAttribute={form.updateAttribute}
               />
 
               <ScriptConfigEditor
                 Icon={IconPredicate}
                 label={t("stepEditor.predicateLabel")}
                 completions={predicateCompletions}
-                value={predicate}
-                onChange={setPredicate}
-                language={predicateLanguage}
-                onLanguageChange={setPredicateLanguage}
+                value={form.predicate}
+                onChange={form.setPredicate}
+                language={form.predicateLanguage}
+                onLanguageChange={form.setPredicateLanguage}
                 containerClassName={formStyles.predicateEditorContainer}
               />
 
-              {formStepType === "script" ? (
-                <ScriptConfigEditor
-                  Icon={IconStepTypeScript}
-                  label={t("stepEditor.scriptLabel")}
-                  completions={scriptCompletions}
-                  value={script}
-                  onChange={setScript}
-                  language={scriptLanguage}
-                  onLanguageChange={setScriptLanguage}
-                  containerClassName={formStyles.scriptEditorContainer}
-                />
-              ) : formStepType === "agent" ? (
-                <StepEditorAgentConfiguration
-                  agent={agent}
-                  setAgent={setAgent}
-                />
-              ) : formStepType === "flow" ? (
-                <StepEditorFlowConfiguration
-                  clearPreviewPlan={clearFlowPreviewPlan}
-                  flowGoals={flowGoals}
-                  flowInitialState={flowInitialState}
-                  flowSpaceId={flowSpaceId}
-                  previewPlan={flowPreviewPlan}
-                  setFlowGoals={setFlowGoals}
-                  setFlowInitialState={setFlowInitialState}
-                  setFlowSpaceId={setFlowSpaceId}
-                  stepId={stepId}
-                  steps={steps}
-                  updatePreviewPlan={updateFlowPreviewPlan}
-                />
-              ) : (
-                <StepEditorHttpConfiguration
-                  endpoint={endpoint}
-                  httpMethod={httpMethod}
-                  httpMode={httpMode}
-                  healthCheck={healthCheck}
-                  compensate={compensate}
-                  compensateMethod={compensateMethod}
-                  compensateTimeout={compensateTimeout}
-                  compensateMode={compensateMode}
-                  setCompensateMode={setCompensateMode}
-                  httpTimeout={httpTimeout}
-                  handling={handling}
-                  stepType={formStepType}
-                  setEndpoint={setEndpoint}
-                  setHttpMethod={setHttpMethod}
-                  setHttpMode={setHttpMode}
-                  setHealthCheck={setHealthCheck}
-                  setCompensate={setCompensate}
-                  setCompensateMethod={setCompensateMethod}
-                  setCompensateTimeout={setCompensateTimeout}
-                  setHttpTimeout={setHttpTimeout}
-                />
-              )}
+              <StepEditorTypeConfiguration
+                form={form}
+                steps={steps}
+                flowPreview={flowPreview}
+              />
             </>
           ) : (
             <div className={formStyles.jsonSection}>
@@ -329,9 +140,9 @@ const StepEditor: React.FC<StepEditorProps> = ({
           )}
         </div>
 
-        {error && (
+        {form.error && (
           <div className={`${formStyles.errorMessage} ${styles.errorBanner}`}>
-            {error}
+            {form.error}
           </div>
         )}
       </>

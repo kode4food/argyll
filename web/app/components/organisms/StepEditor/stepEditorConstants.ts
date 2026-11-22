@@ -1,6 +1,5 @@
 import {
   AgentConfig,
-  InputCollect,
   SCRIPT_LANGUAGE_ARGYLL,
   SCRIPT_LANGUAGE_LUA,
 } from "@/app/api";
@@ -17,7 +16,7 @@ export const EMPTY_AGENT: AgentConfig = {
   max_tokens: DEFAULT_AGENT_MAX_TOKENS,
 };
 
-export const attributeRoleTypes: AttributeRoleType[] = [
+export const ATTRIBUTE_ROLE_TYPES: AttributeRoleType[] = [
   "required",
   "optional",
   "const",
@@ -27,47 +26,39 @@ export const attributeRoleTypes: AttributeRoleType[] = [
   "metric",
 ];
 
-export const inputCollectTypes: InputCollect[] = [
-  "first",
-  "last",
-  "some",
-  "all",
-  "none",
-];
-
 export const SCRIPT_LANGUAGE_OPTIONS = [
   { value: SCRIPT_LANGUAGE_ARGYLL, labelKey: "script.language.argyll" },
   { value: SCRIPT_LANGUAGE_LUA, labelKey: "script.language.lua" },
 ];
 
-const mappingScriptPlaceholderKeys: Record<string, string> = {
+const MAPPING_SCRIPT_PLACEHOLDER_KEYS: Record<string, string> = {
   [SCRIPT_LANGUAGE_ARGYLL]: "stepEditor.mappingScriptPlaceholderArgyll",
   [SCRIPT_LANGUAGE_LUA]: "stepEditor.mappingScriptPlaceholderLua",
 };
 
-const matchScriptPlaceholderKeys: Record<string, string> = {
+const MATCH_SCRIPT_PLACEHOLDER_KEYS: Record<string, string> = {
   [SCRIPT_LANGUAGE_ARGYLL]: "stepEditor.matchScriptPlaceholderArgyll",
   [SCRIPT_LANGUAGE_LUA]: "stepEditor.matchScriptPlaceholderLua",
 };
 
 export const getMappingScriptPlaceholderKey = (language?: string): string => {
   if (!language) {
-    return mappingScriptPlaceholderKeys[SCRIPT_LANGUAGE_ARGYLL];
+    return MAPPING_SCRIPT_PLACEHOLDER_KEYS[SCRIPT_LANGUAGE_ARGYLL];
   }
 
   return (
-    mappingScriptPlaceholderKeys[language] ||
-    mappingScriptPlaceholderKeys[SCRIPT_LANGUAGE_ARGYLL]
+    MAPPING_SCRIPT_PLACEHOLDER_KEYS[language] ||
+    MAPPING_SCRIPT_PLACEHOLDER_KEYS[SCRIPT_LANGUAGE_ARGYLL]
   );
 };
 
 export const getMatchScriptPlaceholderKey = (language?: string): string => {
   if (!language) {
-    return matchScriptPlaceholderKeys[SCRIPT_LANGUAGE_ARGYLL];
+    return MATCH_SCRIPT_PLACEHOLDER_KEYS[SCRIPT_LANGUAGE_ARGYLL];
   }
 
   return (
-    matchScriptPlaceholderKeys[language] ||
-    matchScriptPlaceholderKeys[SCRIPT_LANGUAGE_ARGYLL]
+    MATCH_SCRIPT_PLACEHOLDER_KEYS[language] ||
+    MATCH_SCRIPT_PLACEHOLDER_KEYS[SCRIPT_LANGUAGE_ARGYLL]
   );
 };

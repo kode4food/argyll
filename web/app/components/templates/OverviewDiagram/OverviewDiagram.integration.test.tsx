@@ -38,6 +38,7 @@ jest.mock("@/app/store/flowStore", () => {
     useFlowStore: jest.fn((selector?: (state: any) => unknown) => {
       return selector ? selector(flowStoreState) : flowStoreState;
     }),
+    useUpsertStep: jest.fn(() => flowStoreState.upsertStep),
     useLoadFlows: jest.fn(() => loadFlowsMock),
     useLoadSteps: jest.fn(() => loadStepsMock),
     useSteps: jest.fn(() => [

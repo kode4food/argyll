@@ -159,19 +159,16 @@ export function getValidationError({
   handling: Handling;
   compensateEndpoint: string;
 }): ValidationError | null {
-  if (isCreateMode && !stepId.trim()) {
-    return { key: "stepEditor.stepIdRequired" };
-  }
-  const attrError = validateAttributesList(attributes);
-  if (attrError) return attrError;
-  const mappingError = validateMappings(attributes);
-  if (mappingError) return mappingError;
-  const compensationError = validateCompensation(
-    attributes,
-    handling,
-    compensateEndpoint
-  );
-  if (compensationError) return compensationError;
+  const stepIdError: ValidationError | null =
+    isCreateMode && !stepId.trim()
+      ? { key: "stepEditor.stepIdRequired" }
+      : null;
+  const commonError =
+    stepIdError ??
+    validateAttributesList(attributes) ??
+    validateMappings(attributes) ??
+    validateCompensation(attributes, handling, compensateEndpoint);
+  if (commonError) return commonError;
 
   if (stepType === "flow") {
     return validateFlowStepConfig(flowGoals);

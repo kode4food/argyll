@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { Step, ExecutionPlan, isProducerRole } from "@/app/api";
-import { safeParseState } from "./flowFormUtils";
+import { parseState } from "@/utils/stateUtils";
 
 export function useFlowFormStepFiltering(
   steps: Step[],
@@ -9,10 +9,7 @@ export function useFlowFormStepFiltering(
 ) {
   const excluded = previewPlan?.excluded;
 
-  const parsedState = useMemo(
-    () => safeParseState(initialState),
-    [initialState]
-  );
+  const parsedState = useMemo(() => parseState(initialState), [initialState]);
 
   const { satisfied, blockedByStep, missingByStep } = useMemo(() => {
     const blocked = new Map<string, string[]>();

@@ -6,7 +6,7 @@ import {
   FlowSummary,
   QueryFlowsItem,
   Step,
-} from "../api";
+} from "@/app/api";
 
 export interface FlowStateUpdate {
   id: string;
@@ -34,9 +34,8 @@ export const compareFlows = (a: FlowSummary, b: FlowSummary): number => {
   return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
 };
 
-export const compareSteps = (a: Step, b: Step): number => {
-  return a.name.localeCompare(b.name);
-};
+export const compareByName = (a: { name: string }, b: { name: string }) =>
+  a.name.localeCompare(b.name);
 
 export const upsertFlowList = (
   flows: FlowSummary[],
@@ -60,7 +59,7 @@ export const upsertStepList = (steps: Step[], step: Step): Step[] => {
     return updatedSteps;
   }
 
-  return [...steps, step].sort(compareSteps);
+  return [...steps, step].sort(compareByName);
 };
 
 export const updateExistingStepList = (steps: Step[], step: Step): Step[] => {

@@ -1,13 +1,8 @@
-import React, { useMemo } from "react";
+import React from "react";
 import CodeMirror from "@uiw/react-codemirror";
-import { codemirrorBasicSetup } from "@/utils/codemirrorSetup";
-import { StreamLanguage } from "@codemirror/language";
-import { json as jsonLanguage } from "@codemirror/lang-json";
-import { markdown as markdownLanguage } from "@codemirror/lang-markdown";
-import { lua } from "@codemirror/legacy-modes/mode/lua";
-import { javascript } from "@codemirror/legacy-modes/mode/javascript";
-import { EditorView } from "@codemirror/view";
+import { CODEMIRROR_BASIC_SETUP } from "@/utils/codemirrorSetup";
 import styles from "./ScriptEditor.module.css";
+import { useScriptExtensions } from "./useScriptExtensions";
 
 interface ScriptEditorProps {
   value: string;
@@ -28,23 +23,7 @@ const ScriptEditor: React.FC<ScriptEditorProps> = ({
   height = "100%",
   theme = "dark",
 }) => {
-  const extensions = useMemo(() => {
-    if (language === "json") {
-      return [jsonLanguage(), EditorView.lineWrapping];
-    }
-    if (language === "markdown") {
-      return [markdownLanguage(), EditorView.lineWrapping];
-    }
-    const langMode = language === "lua" ? lua : javascript;
-    const langExt = StreamLanguage.define(langMode);
-    return [
-      langExt,
-      ...(completions?.length
-        ? [langExt.data.of({ autocomplete: completions })]
-        : []),
-      EditorView.lineWrapping,
-    ];
-  }, [completions, language]);
+  const extensions = useScriptExtensions(language, completions);
 
   return (
     <div className={styles.editor}>
@@ -56,7 +35,7 @@ const ScriptEditor: React.FC<ScriptEditorProps> = ({
         onChange={onChange}
         readOnly={readOnly}
         theme={theme}
-        basicSetup={codemirrorBasicSetup}
+        basicSetup={CODEMIRROR_BASIC_SETUP}
       />
     </div>
   );

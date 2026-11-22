@@ -17,17 +17,17 @@ import type {
   FlowContext,
   ExecutionResult,
   FlowSummary,
-} from "../api";
+} from "@/app/api";
 
-jest.mock("../api", () => ({
-  ...jest.requireActual("../api"),
+jest.mock("@/app/api", () => ({
+  ...jest.requireActual("@/app/api"),
   api: {
     getEngine: jest.fn(),
     listFlowsPage: jest.fn(),
   },
 }));
 
-import { api, AttributeRole } from "../api";
+import { api, AttributeRole } from "@/app/api";
 
 const mockApi = api as jest.Mocked<typeof api>;
 

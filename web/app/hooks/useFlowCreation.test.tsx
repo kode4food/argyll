@@ -1,6 +1,6 @@
 import { act, renderHook } from "@testing-library/react";
 import { useFlowCreation } from "./useFlowCreation";
-import { api, Step } from "../api";
+import { api, Step } from "@/app/api";
 import { snapshotFlowPositions } from "@/utils/nodePositioning";
 
 const mockNavigate = jest.fn();
@@ -24,7 +24,7 @@ const loadFlows = jest.fn().mockResolvedValue(undefined);
 const addFlow = jest.fn();
 const removeFlow = jest.fn();
 
-jest.mock("../store/flowStore", () => ({
+jest.mock("@/app/store/flowStore", () => ({
   useSteps: jest.fn(() => mockSteps),
   useLoadFlows: jest.fn(() => loadFlows),
   useAddFlow: jest.fn(() => addFlow),
@@ -44,12 +44,12 @@ const uiState = {
   }),
 };
 
-jest.mock("../contexts/UIContext", () => ({
+jest.mock("@/app/contexts/UIContext", () => ({
   useUI: () => uiState,
   UIProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }));
 
-jest.mock("../api", () => ({
+jest.mock("@/app/api", () => ({
   api: {
     getExecutionPlan: jest.fn().mockResolvedValue({
       steps: { goal: {} },

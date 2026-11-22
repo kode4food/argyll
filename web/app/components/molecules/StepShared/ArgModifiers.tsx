@@ -2,6 +2,7 @@ import React from "react";
 import { type ArgType } from "@/utils/iconRegistry";
 import { type AttributeModifier, getModifierTitleKey } from "@/utils/stepUtils";
 import { formatScriptForTooltip } from "@/utils/stepFooterUtils";
+import CollectIcon from "@/app/components/atoms/CollectIcon";
 import Tooltip from "@/app/components/atoms/Tooltip";
 import TooltipSection from "@/app/components/atoms/TooltipSection";
 import tooltipStyles from "@/app/components/atoms/TooltipSection/TooltipSection.module.css";
@@ -12,7 +13,7 @@ interface ArgModifiersProps {
   t: (key: string, vars?: Record<string, string | number>) => string;
 }
 
-export const argTypeTitleKey: Record<ArgType, string> = {
+export const ARG_TYPE_TITLE_KEY: Record<ArgType, string> = {
   required: "attribute.roleRequired",
   optional: "attribute.roleOptional",
   const: "attribute.roleConst",
@@ -58,14 +59,11 @@ const ArgModifiers: React.FC<ArgModifiersProps> = ({ modifiers, t }) => (
 
       if (mod.kind === "collect") {
         return (
-          <span
+          <CollectIcon
             key={i}
+            collect={mod.collect}
             className={styles.argModifierCollect}
             title={t(getModifierTitleKey(mod))}
-            style={{
-              maskImage: `url(/icons/collect-${mod.collect}.svg)`,
-              WebkitMaskImage: `url(/icons/collect-${mod.collect}.svg)`,
-            }}
           />
         );
       }

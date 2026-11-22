@@ -1,11 +1,10 @@
 import React from "react";
-import { SCRIPT_LANGUAGE_ARGYLL, ScriptConfig } from "@/app/api";
+import { ScriptConfig } from "@/app/api";
 import ScriptConfigEditor from "@/app/components/organisms/StepEditor/ScriptConfigEditor";
 import { useT } from "@/app/i18n";
 import { IconPredicate } from "@/utils/iconRegistry";
 import styles from "./SpaceManager.module.css";
-import { useSteps } from "@/app/store/flowStore";
-import { spaceSelectorCompletions } from "@/utils/scriptCompletions";
+import { useSelectorCompletions } from "./useSelectorCompletions";
 
 interface SpaceManagerReviewStepProps {
   isScriptMode: boolean;
@@ -23,12 +22,7 @@ const SpaceManagerReviewStep: React.FC<SpaceManagerReviewStepProps> = ({
   selector,
 }) => {
   const t = useT();
-  const steps = useSteps();
-  const language = selector?.language ?? SCRIPT_LANGUAGE_ARGYLL;
-  const completions = React.useMemo(
-    () => spaceSelectorCompletions(steps, language),
-    [language, steps]
-  );
+  const { language, completions } = useSelectorCompletions(selector);
   return (
     <div className={styles.detail}>
       <ScriptConfigEditor

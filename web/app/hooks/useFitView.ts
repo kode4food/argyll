@@ -1,7 +1,7 @@
 import { useCallback } from "react";
 import { useReactFlow, getViewportForBounds } from "@xyflow/react";
 import { useUI } from "@/app/contexts/UIContext";
-import { stepLayout } from "@/constants/layout";
+import { STEP_LAYOUT } from "@/constants/layout";
 import { MIN_DIAGRAM_ZOOM } from "@/utils/diagramDetail";
 
 const MAX_ZOOM = 2;
@@ -30,7 +30,7 @@ export const useFitView = () => {
       container.clientHeight,
       MIN_DIAGRAM_ZOOM,
       MAX_ZOOM,
-      stepLayout.FIT_VIEW_PADDING
+      STEP_LAYOUT.FIT_VIEW_PADDING
     );
 
     void setViewport({

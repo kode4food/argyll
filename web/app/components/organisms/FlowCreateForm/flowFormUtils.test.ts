@@ -9,7 +9,6 @@ import {
   isAtDefaultValue,
   parseInputValues,
   parseInputValue,
-  safeParseState,
   validateJsonString,
 } from "./flowFormUtils";
 
@@ -71,24 +70,6 @@ describe("flowFormUtils", () => {
         atTop: false,
         atBottom: true,
       });
-    });
-  });
-
-  describe("safeParseState", () => {
-    it("parses valid JSON strings", () => {
-      const parsed = safeParseState('{"foo": "bar"}');
-      expect(parsed).toEqual({ foo: "bar" });
-    });
-
-    it("returns empty object for non-object JSON", () => {
-      expect(safeParseState("null")).toEqual({});
-      expect(safeParseState("123")).toEqual({});
-      expect(safeParseState('["a"]')).toEqual({});
-    });
-
-    it("returns empty object for invalid JSON", () => {
-      const parsed = safeParseState("{not-valid");
-      expect(parsed).toEqual({});
     });
   });
 

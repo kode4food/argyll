@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React from "react";
 import LiveDiagramView from "@/app/components/templates/LiveDiagramView";
 import DiagramLayout from "@/app/components/templates/DiagramLayout";
 import EmptyState from "@/app/components/molecules/EmptyState";
@@ -9,37 +9,23 @@ import styles from "./LiveDiagram.module.css";
 import FlowStats from "@/app/components/organisms/FlowStats";
 import { IconFlowNotFound } from "@/utils/iconRegistry";
 import ErrorBoundary from "@/app/components/organisms/ErrorBoundary";
-import { isValidTimestamp } from "@/utils/dates";
-import { useUI } from "@/app/contexts/UIContext";
 import { StepEditorProvider } from "@/app/contexts/StepEditorContext";
 import { useT } from "@/app/i18n";
-import {
-  useExecutions,
-  useFlowData,
-  useFlowLoading,
-  useFlowNotFound,
-  useResolvedAttributes,
-  useSelectedFlow,
-  useSteps,
-} from "@/app/store/flowStore";
+import { useLiveDiagram } from "./useLiveDiagram";
 
 const LiveDiagramContent: React.FC = () => {
-  const selectedFlow = useSelectedFlow();
-  const flowData = useFlowData();
-  const executions = useExecutions();
-  const resolved = useResolvedAttributes();
-  const loading = useFlowLoading();
-  const flowNotFound = useFlowNotFound();
-  const steps = useSteps();
-  const { clearPreviewPlan, setGoalSteps } = useUI();
   const t = useT();
+  const {
+    flowData,
+    executions,
+    resolved,
+    steps,
+    notFoundId,
+    startedAt,
+    endedAt,
+  } = useLiveDiagram();
 
-  useEffect(() => {
-    clearPreviewPlan();
-    setGoalSteps([]);
-  }, [clearPreviewPlan, setGoalSteps]);
-
-  if (selectedFlow && flowNotFound && !loading) {
+  if (notFoundId) {
     return (
       <div className={styles.emptyStateContainer}>
         <EmptyState
@@ -47,7 +33,7 @@ const LiveDiagramContent: React.FC = () => {
           iconClassName={styles.notFoundIcon}
           title={t("live.flowNotFoundTitle")}
           description={t("live.flowNotFoundDescription", {
-            id: selectedFlow,
+            id: notFoundId,
           })}
         />
       </div>
@@ -81,20 +67,17 @@ const LiveDiagramContent: React.FC = () => {
                   )}
                 </>,
                 <>
-                  {isValidTimestamp(flowData.started_at) && (
+                  {startedAt && (
                     <DiagramHudText>
-                      {t("common.started")}:{" "}
-                      {new Date(flowData.started_at).toLocaleString()}
+                      {t("common.started")}: {startedAt}
                     </DiagramHudText>
                   )}
-                  {flowData.completed_at &&
-                    isValidTimestamp(flowData.completed_at) && (
-                      <DiagramHudText>
-                        {" · "}
-                        {t("common.ended")}:{" "}
-                        {new Date(flowData.completed_at).toLocaleString()}
-                      </DiagramHudText>
-                    )}
+                  {endedAt && (
+                    <DiagramHudText>
+                      {" · "}
+                      {t("common.ended")}: {endedAt}
+                    </DiagramHudText>
+                  )}
                 </>,
               ]}
             />

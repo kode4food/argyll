@@ -1,10 +1,9 @@
-import React, { useCallback } from "react";
+import React from "react";
 import {
   Background,
   BackgroundVariant,
   ControlButton,
   Controls,
-  useReactFlow,
 } from "@xyflow/react";
 import {
   IconFitView,
@@ -12,28 +11,19 @@ import {
   IconThemeLight,
 } from "@/utils/iconRegistry";
 import { useT } from "@/app/i18n";
-import { useFitView } from "@/app/hooks/useFitView";
-import { useTheme, useToggleTheme } from "@/app/store/themeStore";
 import glassChromeStyles from "@/app/styles/modules/GlassChrome.module.css";
+import { useDiagramChrome } from "./useDiagramChrome";
 
 const DiagramChrome: React.FC = () => {
   const t = useT();
-  const theme = useTheme();
-  const toggleTheme = useToggleTheme();
-  const fitView = useFitView();
-  const reactFlowInstance = useReactFlow();
-
-  const handleZoomIn = useCallback(() => {
-    void reactFlowInstance.zoomIn();
-  }, [reactFlowInstance]);
-  const handleZoomOut = useCallback(() => {
-    void reactFlowInstance.zoomOut();
-  }, [reactFlowInstance]);
-
-  const themeLabel =
-    theme === "dark"
-      ? t("controls.switchToLightMode")
-      : t("controls.switchToDarkMode");
+  const {
+    isDark,
+    toggleTheme,
+    fitView,
+    handleZoomIn,
+    handleZoomOut,
+    themeLabel,
+  } = useDiagramChrome();
 
   return (
     <>
@@ -68,7 +58,7 @@ const DiagramChrome: React.FC = () => {
           title={themeLabel}
           aria-label={themeLabel}
         >
-          {theme === "dark" ? <IconThemeLight /> : <IconThemeDark />}
+          {isDark ? <IconThemeLight /> : <IconThemeDark />}
         </ControlButton>
       </Controls>
     </>

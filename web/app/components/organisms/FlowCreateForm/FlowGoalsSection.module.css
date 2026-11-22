@@ -150,7 +150,7 @@
 }
 
 .goalSetSummary {
-  composes: flowGoalGroup from "../StepEditor/StepEditorControls.module.css";
+  composes: flowGoalGroup from "@/app/components/organisms/StepEditor/StepEditorControls.module.css";
   composes: hoverFill focusFill focusRing from "@/app/styles/components/interaction.module.css";
   --control-hover-bg: var(--panel-hover);
   align-items: stretch;
@@ -179,15 +179,15 @@
 }
 
 .goalPill {
-  composes: flowGoalLabel from "../StepEditor/StepEditorControls.module.css";
+  composes: flowGoalLabel from "@/app/components/organisms/StepEditor/StepEditorControls.module.css";
 }
 
 .goalSetRemove {
-  composes: flowGoalSetRemove from "../StepEditor/StepEditorControls.module.css";
+  composes: flowGoalSetRemove from "@/app/components/organisms/StepEditor/StepEditorControls.module.css";
 }
 
 .orDivider {
-  composes: flowGoalFallback from "../StepEditor/StepEditorControls.module.css";
+  composes: flowGoalFallback from "@/app/components/organisms/StepEditor/StepEditorControls.module.css";
   display: flex;
   align-items: center;
   justify-content: center;
@@ -216,7 +216,7 @@
 
 /* Floats outside the list so the list's bottom fade mask never hides it */
 .orButton {
-  composes: flowGoalChip from "../StepEditor/StepEditorControls.module.css";
+  composes: flowGoalChip from "@/app/components/organisms/StepEditor/StepEditorControls.module.css";
   position: absolute;
   right: var(--spacing-sm);
   bottom: var(--spacing-sm);

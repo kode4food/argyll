@@ -1,7 +1,7 @@
 import React, { useMemo } from "react";
 import { Node } from "@xyflow/react";
 import { toGoalSets, Step, ExecutionPlan } from "@/app/api";
-import { stepLayout } from "@/constants/layout";
+import { STEP_LAYOUT } from "@/constants/layout";
 import { loadNodePositions, NodePositionScope } from "@/utils/nodePositioning";
 import {
   buildOutputProducerMap,
@@ -62,10 +62,10 @@ export const useNodeCalculation = (
         const row = indexInLevel - (levelSize - 1) / 2;
 
         position = {
-          x: col * stepLayout.HORIZONTAL_SPACING,
+          x: col * STEP_LAYOUT.HORIZONTAL_SPACING,
           y:
-            row * (widgetHeight + stepLayout.VERTICAL_SPACING) +
-            stepLayout.VERTICAL_OFFSET,
+            row * (widgetHeight + STEP_LAYOUT.VERTICAL_SPACING) +
+            STEP_LAYOUT.VERTICAL_OFFSET,
         };
       }
 

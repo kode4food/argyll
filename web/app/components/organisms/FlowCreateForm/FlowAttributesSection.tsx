@@ -1,20 +1,13 @@
-import React, { useMemo } from "react";
-import {
-  IconAttributeStatusMissing,
-  IconAttributeStatusSatisfied,
-  IconAttributeOptional,
-  IconAttributeStatusSkipped,
-  IconAttributes,
-  LucideIcon,
-} from "@/utils/iconRegistry";
+import React from "react";
+import { IconAttributes } from "@/utils/iconRegistry";
 import ScriptEditor from "@/app/components/molecules/ScriptEditor";
 import EditorModeToggle from "@/app/components/atoms/EditorModeToggle";
 import useArrowFocus from "@/app/hooks/useArrowFocus";
 import { useT } from "@/app/i18n";
 import { useTheme } from "@/app/store/themeStore";
 import { FlowInputOption } from "@/utils/flowPlanAttributeOptions";
-import { FlowInputStatus, getFlowInputStatus } from "./flowFormUtils";
 import styles from "./FlowAttributesSection.module.css";
+import { useFlowInputRows } from "./useFlowInputRows";
 
 interface FlowAttributesSectionProps {
   editorMode: "basic" | "json";
@@ -30,12 +23,6 @@ interface FlowAttributesSectionProps {
   onEditorModeChange: (mode: "basic" | "json") => void;
   onFocusedPreviewAttributeChange: (name: string | null) => void;
   setInitialState: (value: string) => void;
-}
-
-interface StatusConfig {
-  Icon: LucideIcon;
-  className: string;
-  label: string;
 }
 
 const FlowAttributesSection: React.FC<FlowAttributesSectionProps> = ({
@@ -57,40 +44,10 @@ const FlowAttributesSection: React.FC<FlowAttributesSectionProps> = ({
   const theme = useTheme();
   const handleArrowFocus = useArrowFocus();
 
-  const statusConfig = useMemo(
-    (): Record<FlowInputStatus, StatusConfig> => ({
-      requiredMissing: {
-        Icon: IconAttributeStatusMissing,
-        className: styles.badgeRequired,
-        label: t("flowCreate.badgeRequiredMissing"),
-      },
-      requiredSatisfied: {
-        Icon: IconAttributeStatusSatisfied,
-        className: styles.badgeRequired,
-        label: t("flowCreate.badgeRequiredSatisfied"),
-      },
-      optionalMissing: {
-        Icon: IconAttributeOptional,
-        className: styles.badgeOptional,
-        label: t("flowCreate.badgeOptionalMissing"),
-      },
-      optionalSatisfied: {
-        Icon: IconAttributeStatusSatisfied,
-        className: styles.badgeOptional,
-        label: t("flowCreate.badgeOptionalSatisfied"),
-      },
-      outputSatisfied: {
-        Icon: IconAttributeStatusSatisfied,
-        className: styles.badgeOutput,
-        label: t("flowCreate.badgeOutputSatisfied"),
-      },
-      unreachable: {
-        Icon: IconAttributeStatusSkipped,
-        className: styles.badgeMuted,
-        label: t("flowCreate.badgeUnreachable"),
-      },
-    }),
-    [t]
+  const rows = useFlowInputRows(
+    flowInputOptions,
+    flowInputValues,
+    flowInputValuesRaw
   );
 
   return (
@@ -122,12 +79,7 @@ const FlowAttributesSection: React.FC<FlowAttributesSectionProps> = ({
                   className={styles.attributeList}
                   onKeyDown={handleArrowFocus}
                 >
-                  {flowInputOptions.map((option) => {
-                    const value = flowInputValues[option.name] || "";
-                    const rawValue = flowInputValuesRaw[option.name] || "";
-                    const status = getFlowInputStatus(option, rawValue);
-                    const { Icon, className, label } = statusConfig[status];
-
+                  {rows.map(({ option, value, Icon, className, label }) => {
                     return (
                       <div
                         key={option.name}

@@ -10,7 +10,7 @@ import {
 } from "./iconRegistry";
 import { StepProgressStatus } from "@/app/hooks/useStepProgress";
 
-const progressIconMap: Record<StepProgressStatus, LucideIcon> = {
+const PROGRESS_ICON_MAP: Record<StepProgressStatus, LucideIcon> = {
   pending: IconProgressPending,
   active: IconProgressActive,
   compensating: IconProgressActive,
@@ -22,5 +22,5 @@ const progressIconMap: Record<StepProgressStatus, LucideIcon> = {
 };
 
 export const getProgressIcon = (status: StepProgressStatus): LucideIcon => {
-  return progressIconMap[status] ?? IconProgressPending;
+  return PROGRESS_ICON_MAP[status] ?? IconProgressPending;
 };

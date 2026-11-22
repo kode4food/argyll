@@ -7,8 +7,8 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { api, ExecutionPlan, GoalSets } from "../api";
-import { useSpaces } from "../store/flowStore";
+import { api, ExecutionPlan, GoalSets } from "@/app/api";
+import { useSpaces } from "@/app/store/flowStore";
 import { nonEmptyGoalSets } from "@/utils/goalSets";
 
 interface UIContextType {

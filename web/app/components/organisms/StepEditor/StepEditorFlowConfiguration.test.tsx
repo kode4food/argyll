@@ -18,7 +18,7 @@ jest.mock("@/utils/flowGoalSelectionModel", () => ({
     mockApplyFlowGoalSelectionChange(...args),
 }));
 
-jest.mock("../FlowCreateForm/useFlowFormStepFiltering", () => ({
+jest.mock("@/app/hooks/useFlowFormStepFiltering", () => ({
   useFlowFormStepFiltering: (...args: any[]) =>
     mockUseFlowFormStepFiltering(...args),
 }));

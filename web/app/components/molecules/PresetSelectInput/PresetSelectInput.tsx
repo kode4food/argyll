@@ -1,14 +1,14 @@
 import React from "react";
 import SelectField from "@/app/components/molecules/SelectField";
 import { type LucideIcon } from "@/utils/iconRegistry";
-import styles from "./StepEditor.module.css";
-import formStyles from "./StepEditorForm.module.css";
 import InlineSelectDropdown, {
   type InlineSelectOption,
-} from "./InlineSelectDropdown";
+} from "@/app/components/molecules/InlineSelectDropdown";
+import styles from "./PresetSelectInput.module.css";
 
 export interface PresetSelectInputProps {
   ariaLabel: string;
+  className?: string;
   Icon: LucideIcon;
   onChange: (value: string) => void;
   presets: InlineSelectOption[];
@@ -23,6 +23,7 @@ export const PRESET_CUSTOM = "custom";
 
 const PresetSelectInput: React.FC<PresetSelectInputProps> = ({
   ariaLabel,
+  className,
   Icon,
   onChange,
   presets,
@@ -40,7 +41,7 @@ const PresetSelectInput: React.FC<PresetSelectInputProps> = ({
     return renderCustom(
       <InlineSelectDropdown
         ariaLabel={ariaLabel}
-        faceIcon={<Icon className={styles.iconMd} />}
+        faceIcon={<Icon className={styles.icon} />}
         onChange={onChange}
         options={[...presets, ...custom]}
         value={PRESET_CUSTOM}
@@ -61,7 +62,7 @@ const PresetSelectInput: React.FC<PresetSelectInputProps> = ({
   return (
     <SelectField
       ariaLabel={ariaLabel}
-      className={formStyles.argValueInput}
+      className={className}
       Icon={Icon}
       onChange={onChange}
       options={[...labeled, ...empty, ...custom]}

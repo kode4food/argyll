@@ -9,13 +9,13 @@ interface ThemeState {
   toggleTheme: () => void;
 }
 
-const defaultTheme: Theme = "light";
+const DEFAULT_THEME: Theme = "light";
 
 const useThemeStore = create<ThemeState>()(
   devtools(
     persist(
       (set) => ({
-        theme: defaultTheme,
+        theme: DEFAULT_THEME,
         setTheme: (theme) => set({ theme }, false, "theme/setTheme"),
         toggleTheme: () =>
           set(

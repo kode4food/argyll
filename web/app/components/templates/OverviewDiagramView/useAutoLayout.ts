@@ -20,7 +20,7 @@ interface StepNodeData {
   };
 }
 
-const defaultConfig = {
+const DEFAULT_CONFIG = {
   rankdir: "LR" as const,
   nodeWidth: 320,
   rankSep: 50,
@@ -50,7 +50,7 @@ export const useAutoLayout = (
       return nodes;
     }
 
-    const layoutConfig = { ...defaultConfig, ...config };
+    const layoutConfig = { ...DEFAULT_CONFIG, ...config };
 
     const graph = new dagre.graphlib.Graph();
     graph.setDefaultEdgeLabel(() => ({}));

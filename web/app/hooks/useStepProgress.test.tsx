@@ -1,10 +1,10 @@
 import { renderHook } from "@testing-library/react";
 import { useStepProgress } from "./useStepProgress";
-import { ExecutionResult } from "../api";
+import { ExecutionResult } from "@/app/api";
 
 const mockUseExecutions = jest.fn();
 
-jest.mock("../store/flowStore", () => ({
+jest.mock("@/app/store/flowStore", () => ({
   useExecutions: () => mockUseExecutions(),
 }));
 

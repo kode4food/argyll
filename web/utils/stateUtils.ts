@@ -15,7 +15,11 @@ export const isDefaultValue = (value: any): boolean => {
 
 export const parseState = (stateJson: string): Record<string, any> => {
   try {
-    return JSON.parse(stateJson);
+    const parsed = JSON.parse(stateJson);
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      return {};
+    }
+    return parsed;
   } catch {
     return {};
   }

@@ -1,6 +1,6 @@
 import type { BasicSetupOptions } from "@uiw/react-codemirror";
 
-export const codemirrorBasicSetup: BasicSetupOptions = {
+export const CODEMIRROR_BASIC_SETUP: BasicSetupOptions = {
   lineNumbers: true,
   highlightActiveLineGutter: true,
   highlightSpecialChars: true,

@@ -6,14 +6,12 @@ import FlowCreateForm from "@/app/components/organisms/FlowCreateForm";
 import styles from "./OverviewDiagram.module.css";
 import ErrorBoundary from "@/app/components/organisms/ErrorBoundary";
 import { DiagramSelectionProvider } from "@/app/contexts/DiagramSelectionContext";
-import { useUI } from "@/app/contexts/UIContext";
 import {
   StepEditorProvider,
   useStepEditorContext,
 } from "@/app/contexts/StepEditorContext";
 import { useT } from "@/app/i18n";
-import { useFlowStore, useSteps } from "@/app/store/flowStore";
-import { Step } from "@/app/api";
+import { useOverviewDiagram } from "./useOverviewDiagram";
 
 interface OverviewDiagramContentProps {
   openEditor: ReturnType<typeof useStepEditorContext>["openEditor"];
@@ -22,30 +20,9 @@ interface OverviewDiagramContentProps {
 const OverviewDiagramContent: React.FC<OverviewDiagramContentProps> = ({
   openEditor,
 }) => {
-  const steps = useSteps();
-  const upsertStep = useFlowStore((state) => state.upsertStep);
-  const diagramContainerRef = React.useRef<HTMLDivElement>(null);
-  const { goalSteps, setGoalSteps, panelRef } = useUI();
   const t = useT();
-
-  const applyStepUpdate = React.useCallback(
-    (updatedStep: Step) => {
-      upsertStep(updatedStep);
-    },
-    [upsertStep]
-  );
-
-  const handleCreateStep = React.useCallback(
-    (draft?: Step) => {
-      openEditor({
-        step: null,
-        diagramContainerRef,
-        onUpdate: applyStepUpdate,
-        draft,
-      });
-    },
-    [applyStepUpdate, openEditor]
-  );
+  const { steps, diagramContainerRef, panelRef, selection, handleCreateStep } =
+    useOverviewDiagram(openEditor);
 
   if (steps.length === 0) {
     return (
@@ -67,12 +44,7 @@ const OverviewDiagramContent: React.FC<OverviewDiagramContentProps> = ({
         title={t("diagram.errorTitle")}
         description={t("diagram.errorDescription")}
       >
-        <DiagramSelectionProvider
-          value={{
-            goalSteps,
-            setGoalSteps,
-          }}
-        >
+        <DiagramSelectionProvider value={selection}>
           <div className={styles.workspace}>
             <div className={styles.diagramPane}>
               <OverviewDiagramView steps={steps} />

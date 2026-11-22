@@ -28,9 +28,9 @@
 }
 
 .buttonCancel {
-  composes: buttonCancel from "../Shared/Button.module.css";
+  composes: buttonCancel from "@/app/components/organisms/Shared/Button.module.css";
 }
 
 .buttonSave {
-  composes: buttonPrimary from "../Shared/Button.module.css";
+  composes: buttonPrimary from "@/app/components/organisms/Shared/Button.module.css";
 }

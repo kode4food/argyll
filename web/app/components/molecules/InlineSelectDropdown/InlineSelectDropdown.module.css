@@ -1,0 +1,58 @@
+.iconDropdownWrapper {
+  position: relative;
+  height: 100%;
+  flex-shrink: 0;
+}
+
+.iconDropdownFace {
+  width: 32px;
+  height: 100%;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: transparent;
+  border: 0;
+  color: var(--panel-text);
+  cursor: pointer;
+  transition: var(--transition-fast);
+  box-sizing: border-box;
+}
+
+.iconDropdownFace:hover,
+.iconDropdownFace:focus-visible,
+.iconDropdownFaceOpen {
+  color: var(--color-info-light);
+}
+
+.inlineSelectWrapper {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+}
+
+.inlineSelectButton {
+  height: 100%;
+  width: 100%;
+  padding: 0 var(--spacing-2xl) 0 10px;
+  background-color: transparent;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23aaa' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  border: 0;
+  color: var(--panel-text);
+  font-size: var(--text-xs);
+  font-family: inherit;
+  cursor: pointer;
+  transition: var(--transition-fast);
+  box-sizing: border-box;
+  white-space: nowrap;
+  text-align: left;
+}
+
+.inlineSelectButton:hover,
+.inlineSelectButton:focus-visible,
+.inlineSelectButtonOpen {
+  color: var(--color-info-light);
+}

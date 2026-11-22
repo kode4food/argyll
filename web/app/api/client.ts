@@ -1,4 +1,4 @@
-import { apiConfig } from "@/constants/common";
+import { API_CONFIG } from "@/constants/common";
 import {
   ExecutionPlan,
   Feed,
@@ -31,7 +31,7 @@ export interface ExecutionPlanOptions {
 export class ArgyllApi {
   private readonly baseURL: string;
 
-  constructor(baseURL: string = apiConfig.BASE_URL) {
+  constructor(baseURL: string = API_CONFIG.BASE_URL) {
     this.baseURL = baseURL;
   }
 

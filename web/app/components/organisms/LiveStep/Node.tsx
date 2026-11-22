@@ -1,10 +1,10 @@
-import React, { useRef } from "react";
-import { Position, NodeProps, useUpdateNodeInternals } from "@xyflow/react";
+import React from "react";
+import { Position, NodeProps } from "@xyflow/react";
 import { Step, FlowContext, ExecutionResult } from "@/app/api";
 import Widget from "./Widget";
 import InvisibleHandle from "@/app/components/atoms/InvisibleHandle";
 import { useNodeData } from "./useNodeData";
-import { useHandlePositions } from "@/app/hooks/useHandlePositions";
+import { useNodeHandles } from "@/app/hooks/useNodeHandles";
 
 interface NodeData {
   step: Step;
@@ -20,23 +20,14 @@ interface NodeData {
 const Node: React.FC<NodeProps> = ({ id, data }) => {
   const nodeData = data as unknown as NodeData;
   const { step, flowData, executions = [], resolvedAttributes = [] } = nodeData;
-  const widgetRef = useRef<HTMLDivElement | null>(null);
-  const updateNodeInternals = useUpdateNodeInternals();
-
   const { execution, resolved, provenance, satisfied } = useNodeData(step, {
     flowData,
     executions,
     resolvedAttributes,
   });
 
-  const { allHandles, summaryInputTop, summaryOutputTop } = useHandlePositions(
-    step,
-    widgetRef
-  );
-
-  React.useEffect(() => {
-    updateNodeInternals(id);
-  }, [allHandles, id, updateNodeInternals]);
+  const { widgetRef, allHandles, summaryInputTop, summaryOutputTop } =
+    useNodeHandles(id, step);
 
   return (
     <div>

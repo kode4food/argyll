@@ -1,4 +1,4 @@
-import { Step } from "../api";
+import { Step } from "@/app/api";
 
 export interface NodeHealth {
   status: string;

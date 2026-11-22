@@ -1,337 +1,28 @@
-import React, { useState, lazy, Suspense } from "react";
+import React, { lazy, Suspense } from "react";
 import { createPortal } from "react-dom";
-import { IconNavigateOverview, IconSearch } from "@/utils/iconRegistry";
-import { useNavigate } from "react-router-dom";
-import { mapFlowStatusToProgressStatus } from "./flowSelectorUtils";
-import { useFlowDropdownManagement } from "./useFlowDropdownManagement";
+import { IconNavigateOverview } from "@/utils/iconRegistry";
 import { useT } from "@/app/i18n";
 import SegmentedGroup from "@/app/components/molecules/SegmentedGroup";
-import dropdownStyles from "@/app/styles/components/dropdown.module.css";
+import FlowSelectorDropdown from "./FlowSelectorDropdown";
+import { useFlowSelector } from "./useFlowSelector";
+import styles from "./FlowSelector.module.css";
 
 const KeyboardShortcutsModal = lazy(
   () => import("@/app/components/molecules/KeyboardShortcutsModal")
 );
 
-import { useFlowFromUrl } from "./useFlowFromUrl";
-import { getProgressIcon } from "@/utils/progressUtils";
-import { useKeyboardShortcuts } from "@/app/hooks/useKeyboardShortcuts";
-import styles from "./FlowSelector.module.css";
-import {
-  useFlowCompensating,
-  useFlows,
-  useFlowsHasMore,
-  useFlowsLoading,
-  useLoadFlows,
-  useLoadMoreFlows,
-  useSelectedFlow,
-  useSetVisibleFlowIDs,
-} from "@/app/store/flowStore";
-
-const visibleFlowIDsDelayMS = 150;
-const visibleFlowIDSelector = "[data-flow-id]";
-
-const visibleFlowIDs = (menu: HTMLDivElement): string[] => {
-  const top = menu.scrollTop;
-  const bottom = top + menu.clientHeight;
-  const items = Array.from(
-    menu.querySelectorAll<HTMLElement>(visibleFlowIDSelector)
-  );
-
-  return items
-    .filter((item) => {
-      if (item.offsetHeight === 0) {
-        return true;
-      }
-
-      const itemTop = item.offsetTop;
-      const itemBottom = itemTop + item.offsetHeight;
-      return itemBottom > top && itemTop < bottom;
-    })
-    .map((item) => item.dataset.flowId)
-    .filter((flowID): flowID is string => !!flowID);
-};
-
-type FlowSelectorDropdownProps = ReturnType<
-  typeof useFlowDropdownManagement
-> & {
-  flowsHasMore: boolean;
-  flowsLoading: boolean;
-  loadMoreFlows: () => Promise<void>;
-};
-
-const FlowSelectorDropdown: React.FC<FlowSelectorDropdownProps> = ({
-  showDropdown,
-  setShowDropdown,
-  searchTerm,
-  selectedIndex,
-  setSelectedIndex,
-  searchInputRef,
-  dropdownRef,
-  filteredFlows,
-  handleSearchChange,
-  handleKeyDown,
-  setScrollTop,
-  selectedFlow,
-  selectFlow,
-  flows,
-  closeDropdown,
-  flowsHasMore,
-  flowsLoading,
-  loadMoreFlows,
-}) => {
-  const t = useT();
-  const compensating = useFlowCompensating();
-
-  const handleDropdownScroll = (e: React.UIEvent<HTMLDivElement>) => {
-    setScrollTop(e.currentTarget.scrollTop);
-
-    if (!flowsHasMore || flowsLoading) {
-      return;
-    }
-    const target = e.currentTarget;
-    const nearBottom =
-      target.scrollTop + target.clientHeight >= target.scrollHeight - 40;
-    if (nearBottom) {
-      void loadMoreFlows();
-    }
-  };
-
-  const triggerRef = React.useRef<HTMLDivElement>(null);
-  const [dropdownStyle, setDropdownStyle] = React.useState<
-    React.CSSProperties | undefined
-  >(undefined);
-
-  const updateDropdownPosition = React.useCallback(() => {
-    const trigger = triggerRef.current;
-    if (!trigger) {
-      return;
-    }
-
-    const rect = trigger.getBoundingClientRect();
-    setDropdownStyle({
-      top: rect.bottom,
-      left: rect.left,
-      width: rect.width,
-    });
-  }, []);
-
-  React.useLayoutEffect(() => {
-    if (!showDropdown) {
-      return;
-    }
-
-    updateDropdownPosition();
-
-    const handleViewportChange = () => updateDropdownPosition();
-
-    window.addEventListener("resize", handleViewportChange);
-    window.addEventListener("scroll", handleViewportChange, true);
-
-    return () => {
-      window.removeEventListener("resize", handleViewportChange);
-      window.removeEventListener("scroll", handleViewportChange, true);
-    };
-  }, [showDropdown, updateDropdownPosition]);
-
-  const dropdownMenu = showDropdown ? (
-    <div
-      className={styles.dropdownMenuPortal}
-      style={dropdownStyle}
-      data-ui-overlay="dropdown"
-    >
-      <div
-        className={styles.dropdownMenu}
-        ref={dropdownRef}
-        onScroll={handleDropdownScroll}
-      >
-        <div className={styles.dropdownSearch}>
-          <IconSearch className={styles.dropdownSearchIcon} />
-          <input
-            ref={searchInputRef}
-            type="text"
-            placeholder={t("flowSelector.searchPlaceholder")}
-            value={searchTerm}
-            onChange={handleSearchChange}
-            onKeyDown={handleKeyDown}
-            onBlur={() => setTimeout(() => closeDropdown(), 100)}
-            className={styles.dropdownSearchInput}
-            autoFocus
-          />
-        </div>
-        {filteredFlows.map((flow, index) => {
-          const isHighlighted = selectedIndex === index;
-          const isSelected = selectedFlow === flow.id;
-          const progressStatus =
-            isSelected && compensating
-              ? "compensating"
-              : mapFlowStatusToProgressStatus(flow.status);
-          const StatusIcon = getProgressIcon(progressStatus);
-          const dropdownItemClassName = [
-            dropdownStyles.item,
-            styles.dropdownItem,
-            isHighlighted && styles.dropdownItemHighlighted,
-            isSelected && dropdownStyles.itemActive,
-            isSelected && styles.dropdownItemSelected,
-          ]
-            .filter(Boolean)
-            .join(" ");
-          return (
-            <button
-              type="button"
-              key={flow.id}
-              data-flow-id={flow.id}
-              className={dropdownItemClassName}
-              onMouseEnter={() => setSelectedIndex(index)}
-              onMouseDown={(e) => {
-                e.preventDefault();
-                selectFlow(flow.id);
-                closeDropdown();
-              }}
-            >
-              <StatusIcon
-                className={`progress-icon ${progressStatus || "pending"}`}
-              />
-              {flow.id}
-            </button>
-          );
-        })}
-        {filteredFlows.length === 0 && searchTerm && (
-          <div
-            className={`${dropdownStyles.item} ${styles.dropdownItem} ${styles.noResults}`}
-          >
-            {t("flowSelector.noFlowsFound")}
-          </div>
-        )}
-        {flowsLoading && (
-          <div
-            className={`${dropdownStyles.item} ${styles.dropdownItem} ${styles.noResults}`}
-          >
-            {t("flowSelector.loadingMore")}
-          </div>
-        )}
-        {!flowsLoading && flowsHasMore && (
-          <button
-            type="button"
-            className={`${dropdownStyles.item} ${styles.dropdownItem} ${styles.loadMore}`}
-            onMouseDown={(e) => {
-              e.preventDefault();
-              void loadMoreFlows();
-            }}
-          >
-            {t("flowSelector.loadMore")}
-          </button>
-        )}
-      </div>
-    </div>
-  ) : null;
-
-  return (
-    <div className={styles.dropdown} ref={triggerRef}>
-      <button
-        onClick={() => setShowDropdown(!showDropdown)}
-        className={styles.select}
-      >
-        {selectedFlow ? (
-          <>
-            {(() => {
-              const flow = flows.find((w) => w.id === selectedFlow);
-              const progressStatus = compensating
-                ? "compensating"
-                : mapFlowStatusToProgressStatus(flow?.status ?? "pending");
-              const StatusIcon = getProgressIcon(progressStatus);
-              return (
-                <StatusIcon
-                  className={`progress-icon ${progressStatus || "pending"}`}
-                />
-              );
-            })()}
-            {selectedFlow}
-          </>
-        ) : (
-          t("flowSelector.selectFlow")
-        )}
-      </button>
-      {dropdownMenu && createPortal(dropdownMenu, document.body)}
-    </div>
-  );
-};
-
 const FlowSelectorContent: React.FC = () => {
   const t = useT();
-  const navigate = useNavigate();
-  useFlowFromUrl();
-  const flows = useFlows();
-  const selectedFlow = useSelectedFlow();
-  const flowsHasMore = useFlowsHasMore();
-  const flowsLoading = useFlowsLoading();
-  const loadFlows = useLoadFlows();
-  const loadMoreFlows = useLoadMoreFlows();
-  const setVisibleFlowIDs = useSetVisibleFlowIDs();
-
-  const dropdown = useFlowDropdownManagement(flows, selectedFlow);
   const {
-    showDropdown,
-    setShowDropdown,
-    scrollTop,
-    searchInputRef,
-    dropdownRef,
-    filteredFlows,
-  } = dropdown;
-
-  const [showShortcutsModal, setShowShortcutsModal] = useState(false);
-
-  React.useEffect(() => {
-    if (!showDropdown) {
-      setVisibleFlowIDs([]);
-      return () => {
-        setVisibleFlowIDs([]);
-      };
-    }
-
-    const timeout = setTimeout(() => {
-      const menu = dropdownRef.current;
-      if (!menu) {
-        setVisibleFlowIDs([]);
-        return;
-      }
-
-      setVisibleFlowIDs(visibleFlowIDs(menu));
-    }, visibleFlowIDsDelayMS);
-
-    return () => {
-      clearTimeout(timeout);
-    };
-  }, [dropdownRef, filteredFlows, scrollTop, setVisibleFlowIDs, showDropdown]);
-
-  React.useEffect(() => {
-    if (!showDropdown) {
-      return;
-    }
-    void loadFlows();
-  }, [loadFlows, showDropdown]);
-
-  useKeyboardShortcuts(
-    [
-      {
-        key: "/",
-        description: t("flowSelector.focusSearch"),
-        handler: () => {
-          if (!showDropdown) {
-            setShowDropdown(true);
-            setTimeout(() => searchInputRef.current?.focus(), 100);
-          }
-        },
-      },
-      {
-        key: "?",
-        description: t("flowSelector.showShortcuts"),
-        handler: () => {
-          setShowShortcutsModal(true);
-        },
-      },
-    ],
-    !showShortcutsModal
-  );
+    dropdown,
+    selectedFlow,
+    flowsHasMore,
+    flowsLoading,
+    loadMoreFlows,
+    showShortcutsModal,
+    closeShortcutsModal,
+    navigateToOverview,
+  } = useFlowSelector();
 
   return (
     <div className={styles.selector}>
@@ -360,7 +51,7 @@ const FlowSelectorContent: React.FC = () => {
         />
         {selectedFlow && (
           <button
-            onClick={() => navigate("/")}
+            onClick={navigateToOverview}
             className={styles.navButtonSegment}
             title={t("flowSelector.backToOverview")}
             aria-label={t("flowSelector.backToOverview")}
@@ -377,7 +68,7 @@ const FlowSelectorContent: React.FC = () => {
           createPortal(
             <KeyboardShortcutsModal
               isOpen={showShortcutsModal}
-              onClose={() => setShowShortcutsModal(false)}
+              onClose={closeShortcutsModal}
             />,
             document.body
           )}

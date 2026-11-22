@@ -1,6 +1,6 @@
 import { useMemo } from "react";
-import { ExecutionResult, StepStatus } from "../api";
-import { useExecutions } from "../store/flowStore";
+import { ExecutionResult, StepStatus } from "@/app/api";
+import { useExecutions } from "@/app/store/flowStore";
 
 export type StepProgressStatus =
   StepStatus | "compensating" | "compensated" | "compensate_failed";

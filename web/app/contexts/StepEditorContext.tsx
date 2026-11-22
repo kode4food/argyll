@@ -5,8 +5,8 @@ import React, {
   useState,
   useMemo,
 } from "react";
-import StepEditor from "../components/organisms/StepEditor";
-import { Step } from "../api";
+import StepEditor from "@/app/components/organisms/StepEditor";
+import { Step } from "@/app/api";
 
 type DiagramRef = React.RefObject<HTMLDivElement | null> | undefined;
 

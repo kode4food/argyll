@@ -97,7 +97,7 @@
 }
 
 .buttonStart {
-  composes: buttonPrimary from "../Shared/Button.module.css";
+  composes: buttonPrimary from "@/app/components/organisms/Shared/Button.module.css";
   --control-hover-bg: color-mix(in srgb, var(--color-info) 82%, transparent);
   --control-hover-border: var(--color-info-light);
   --control-focus-bg: color-mix(in srgb, var(--color-info) 82%, transparent);

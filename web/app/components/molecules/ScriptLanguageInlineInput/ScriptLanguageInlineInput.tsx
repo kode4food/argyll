@@ -8,7 +8,7 @@ import ScriptLanguageLogo from "@/app/components/atoms/ScriptLanguageLogo";
 import SegmentedGroup from "@/app/components/molecules/SegmentedGroup";
 import styles from "./ScriptLanguageInlineInput.module.css";
 
-const scriptLanguageOptions = [
+const SCRIPT_LANGUAGE_OPTIONS = [
   { value: SCRIPT_LANGUAGE_ARGYLL, labelKey: "script.language.argyll" },
   { value: SCRIPT_LANGUAGE_LUA, labelKey: "script.language.lua" },
 ];
@@ -45,9 +45,10 @@ const ScriptLanguageInlineInput: React.FC<ScriptLanguageInlineInputProps> = ({
     setHighlightedIndex,
     wrapperRef,
     handleKeyDown,
-  } = useDropdown(scriptLanguageOptions, activeLanguage, onLanguageChange);
+    selectValue,
+  } = useDropdown(SCRIPT_LANGUAGE_OPTIONS, activeLanguage, onLanguageChange);
 
-  const activeOption = scriptLanguageOptions.find(
+  const activeOption = SCRIPT_LANGUAGE_OPTIONS.find(
     (o) => o.value === activeLanguage
   );
 
@@ -78,16 +79,13 @@ const ScriptLanguageInlineInput: React.FC<ScriptLanguageInlineInputProps> = ({
             role="listbox"
             data-ui-overlay="dropdown"
           >
-            {scriptLanguageOptions.map((opt, index) => (
+            {SCRIPT_LANGUAGE_OPTIONS.map((opt, index) => (
               <DropdownOption
                 key={opt.value}
                 isActive={opt.value === activeLanguage}
                 isHighlighted={index === highlightedIndex}
                 onHover={() => setHighlightedIndex(index)}
-                onSelect={() => {
-                  onLanguageChange(opt.value);
-                  setOpen(false);
-                }}
+                onSelect={() => selectValue(opt.value)}
               >
                 <ScriptLanguageLogo
                   language={opt.value}

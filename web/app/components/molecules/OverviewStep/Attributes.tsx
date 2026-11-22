@@ -6,10 +6,12 @@ import {
   getAttributeModifiers,
   getSortedAttributes,
   getSpecPreview,
-  roleArgType,
+  ROLE_ARG_TYPE,
 } from "@/utils/stepUtils";
-import ArgModifiers, { argTypeTitleKey } from "../StepShared/ArgModifiers";
-import styles from "../StepShared/StepAttributesSection.module.css";
+import ArgModifiers, {
+  ARG_TYPE_TITLE_KEY,
+} from "@/app/components/molecules/StepShared/ArgModifiers";
+import styles from "@/app/components/molecules/StepShared/StepAttributesSection.module.css";
 
 interface AttributesProps {
   step: Step;
@@ -24,7 +26,7 @@ const Attributes: React.FC<AttributesProps> = ({
   const unifiedArgs = getSortedAttributes(step.attributes || {}).map(
     ({ name, spec }) => ({
       name,
-      argType: roleArgType[spec.role],
+      argType: ROLE_ARG_TYPE[spec.role],
       modifiers: getAttributeModifiers(spec),
       preview: getSpecPreview(spec),
     })
@@ -59,7 +61,7 @@ const Attributes: React.FC<AttributesProps> = ({
             data-arg-name={arg.name}
           >
             <span className={styles.argName}>
-              <span title={t(argTypeTitleKey[arg.argType])}>
+              <span title={t(ARG_TYPE_TITLE_KEY[arg.argType])}>
                 <Icon className={className} />
               </span>
               {arg.name}

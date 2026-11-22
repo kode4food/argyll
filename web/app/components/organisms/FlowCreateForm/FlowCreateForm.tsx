@@ -1,32 +1,14 @@
 import React from "react";
-import { useUI } from "@/app/contexts/UIContext";
-import { fromGoalSets, Step } from "@/app/api";
-import { useFlowCreation } from "@/app/hooks/useFlowCreation";
-import { useScrollFade } from "@/app/hooks/useScrollFade";
-import { useFlowFormStepFiltering } from "./useFlowFormStepFiltering";
-import {
-  buildInitialStateFromInputValues,
-  buildInitialStateInputValues,
-  isAtDefaultValue,
-  validateJsonString,
-} from "./flowFormUtils";
+import { Step } from "@/app/api";
 import { useT } from "@/app/i18n";
-import {
-  FlowInputOption,
-  getFlowPlanAttributeOptions,
-} from "@/utils/flowPlanAttributeOptions";
-import { generateFlowId } from "@/utils/flowUtils";
-import { sortStepsByType } from "@/utils/stepUtils";
-import { nonEmptyGoalSets } from "@/utils/goalSets";
-import { IconSpace } from "@/utils/iconRegistry";
-import { formatJSON } from "@/utils/jsonUtils";
+import { FlowInputOption } from "@/utils/flowPlanAttributeOptions";
 import CatalogMenu from "./CatalogMenu";
-import { useSpaces, useSpaceSelection } from "@/app/store/flowStore";
 import FlowGoalsSection from "./FlowGoalsSection";
 import SelectField from "@/app/components/molecules/SelectField";
 import FlowAttributesSection from "./FlowAttributesSection";
 import FlowStartSection from "./FlowStartSection";
 import styles from "./FlowCreateForm.module.css";
+import { useFlowCreateForm } from "./useFlowCreateForm";
 
 interface FlowCreateFormProps {
   onCreateStep?: (draft?: Step) => void;
@@ -36,206 +18,34 @@ const getFlowInputPlaceholder = (option: FlowInputOption): string =>
   option.defaultValue ?? "";
 
 const FlowCreateForm: React.FC<FlowCreateFormProps> = ({ onCreateStep }) => {
+  const t = useT();
   const {
     newID,
-    setNewID,
-    setIDManuallyEdited,
     handleStepChange,
     initialState,
     setInitialState,
     creating,
     handleCreateFlow,
     steps,
-  } = useFlowCreation();
-  const {
-    previewPlan,
     goalSteps,
     setHoveredGoalSet,
-    focusedPreviewAttribute,
     setFocusedPreviewAttribute,
     spaceId,
-    setSpaceId,
-  } = useUI();
-  const spaces = useSpaces();
-  const t = useT();
-
-  const [jsonError, setJsonError] = React.useState<string | null>(null);
-  const [editorMode, setEditorMode] = React.useState<"basic" | "json">("basic");
-  const [flowInputDraftValues, setFlowInputDraftValues] = React.useState<
-    Record<string, string>
-  >({});
-
-  React.useEffect(() => {
-    setJsonError(validateJsonString(initialState));
-  }, [initialState]);
-
-  React.useEffect(() => {
-    if (editorMode !== "basic") {
-      setFocusedPreviewAttribute(null);
-      setFlowInputDraftValues({});
-    }
-  }, [editorMode, setFocusedPreviewAttribute]);
-
-  const spaceSelection = useSpaceSelection();
-  const spaceOptions = React.useMemo(
-    () => [
-      { value: "", label: t("flowCreate.spaceAll"), Icon: IconSpace },
-      ...spaces.map((s) => ({
-        value: s.id,
-        label: s.name,
-        title: s.description,
-        Icon: IconSpace,
-      })),
-    ],
-    [spaces, t]
-  );
-  // The engine plans within the Space, so a goal outside it could never run
-  const scopedSteps = React.useMemo(() => {
-    const selected = spaceId ? spaceSelection[spaceId] : null;
-    return selected ? steps.filter((s) => selected.has(s.id)) : steps;
-  }, [steps, spaceId, spaceSelection]);
-  const sortedSteps = React.useMemo(
-    () => sortStepsByType(scopedSteps),
-    [scopedSteps]
-  );
-
-  const {
-    scrollRef: sidebarListRef,
-    showTopFade,
-    showBottomFade,
-  } = useScrollFade();
-
-  const { satisfied, blockedByStep, missingByStep } = useFlowFormStepFiltering(
-    steps,
-    initialState,
-    previewPlan
-  );
-  const planGoals = React.useMemo(
-    () => nonEmptyGoalSets(goalSteps),
-    [goalSteps]
-  );
-  const { flowInputOptions } = React.useMemo(
-    () => getFlowPlanAttributeOptions(previewPlan, steps),
-    [previewPlan, steps]
-  );
-  const emptyAttributesLabel =
-    planGoals.length === 0
-      ? t("flowCreate.noGoalsSelected")
-      : t("flowCreate.noPotentialInputs");
-  const flowInputNames = React.useMemo(
-    () => flowInputOptions.map((option) => option.name),
-    [flowInputOptions]
-  );
-
-  React.useEffect(() => {
-    if (editorMode !== "basic") {
-      return;
-    }
-
-    setFlowInputDraftValues((current) => {
-      const nextValues: Record<string, string> = {};
-      flowInputNames.forEach((name) => {
-        if (current[name] !== undefined) {
-          nextValues[name] = current[name];
-        }
-      });
-      return nextValues;
-    });
-
-    if (
-      focusedPreviewAttribute &&
-      !flowInputNames.includes(focusedPreviewAttribute)
-    ) {
-      setFocusedPreviewAttribute(null);
-    }
-  }, [
-    editorMode,
-    flowInputNames,
-    focusedPreviewAttribute,
-    setFocusedPreviewAttribute,
-  ]);
-  const flowInputValuesRaw = React.useMemo(
-    () => buildInitialStateInputValues(initialState, flowInputNames),
-    [flowInputNames, initialState]
-  );
-  const flowInputValues = React.useMemo(() => {
-    const values: Record<string, string> = {};
-
-    flowInputOptions.forEach((option) => {
-      const rawValue = flowInputValuesRaw[option.name] || "";
-      const draftValue = flowInputDraftValues[option.name];
-      values[option.name] =
-        draftValue ?? (isAtDefaultValue(option, rawValue) ? "" : rawValue);
-    });
-
-    return values;
-  }, [flowInputDraftValues, flowInputOptions, flowInputValuesRaw]);
-
-  const commitBasicInputValues = React.useCallback(() => {
-    const nextValues = {
-      ...flowInputValuesRaw,
-      ...flowInputDraftValues,
-    };
-    const nextState = buildInitialStateFromInputValues(
-      nextValues,
-      flowInputNames
-    );
-
-    setInitialState(formatJSON(nextState));
-    setFlowInputDraftValues({});
-  }, [
-    flowInputDraftValues,
-    flowInputNames,
-    flowInputValuesRaw,
-    setInitialState,
-  ]);
-
-  const handleBasicInputChange = React.useCallback(
-    (name: string, value: string) => {
-      setFlowInputDraftValues((current) => ({
-        ...current,
-        [name]: value,
-      }));
-    },
-    []
-  );
-
-  // Excludes the flow ID: disabling its input on an empty ID would make the
-  // ID impossible to type
-  const isStartSectionDisabled =
-    creating ||
-    planGoals.length === 0 ||
-    (editorMode === "json" && jsonError !== null);
-
-  const handleCreateStep = React.useCallback(
-    (fromGoals: boolean) => {
-      onCreateStep?.(
-        fromGoals
-          ? {
-              id: "",
-              name: "",
-              type: "flow",
-              attributes: {},
-              flow: {
-                goals: fromGoalSets(planGoals),
-                ...(spaceId && { space_id: spaceId }),
-              },
-            }
-          : undefined
-      );
-    },
-    [planGoals, onCreateStep, spaceId]
-  );
-
-  const handleEditorModeChange = React.useCallback(
-    (mode: "basic" | "json") => {
-      if (editorMode === "basic" && mode === "json") {
-        commitBasicInputValues();
-      }
-      setEditorMode(mode);
-    },
-    [commitBasicInputValues, editorMode]
-  );
+    jsonError,
+    spaceOptions,
+    scopedSteps,
+    sortedSteps,
+    sidebarFade,
+    stepFiltering,
+    flowInputOptions,
+    emptyAttributesLabel,
+    inputDrafts,
+    isStartSectionDisabled,
+    handleCreateStep,
+    handleSpaceChange,
+    handleFlowIdChange,
+    handleGenerateId,
+  } = useFlowCreateForm(onCreateStep);
 
   return (
     <div className={styles.panel}>
@@ -246,7 +56,7 @@ const FlowCreateForm: React.FC<FlowCreateFormProps> = ({ onCreateStep }) => {
               <SelectField
                 className={styles.spaceSelect}
                 ariaLabel={t("flowCreate.spaceLabel")}
-                onChange={(value) => setSpaceId(value || null)}
+                onChange={handleSpaceChange}
                 options={spaceOptions}
                 value={spaceId ?? ""}
               />
@@ -256,31 +66,31 @@ const FlowCreateForm: React.FC<FlowCreateFormProps> = ({ onCreateStep }) => {
             <FlowGoalsSection
               goalSteps={goalSteps}
               onPreviewGoalSet={setHoveredGoalSet}
-              blockedByStep={blockedByStep}
-              missingByStep={missingByStep}
+              blockedByStep={stepFiltering.blockedByStep}
+              missingByStep={stepFiltering.missingByStep}
               onCreateStep={handleCreateStep}
               onGoalStepsChange={handleStepChange}
-              satisfied={satisfied}
-              showBottomFade={showBottomFade}
-              showTopFade={showTopFade}
-              sidebarListRef={sidebarListRef}
+              satisfied={stepFiltering.satisfied}
+              showBottomFade={sidebarFade.showBottomFade}
+              showTopFade={sidebarFade.showTopFade}
+              sidebarListRef={sidebarFade.scrollRef}
               sortedSteps={sortedSteps}
               spaceScoped={!!spaceId}
               stepsCount={scopedSteps.length}
             />
 
             <FlowAttributesSection
-              editorMode={editorMode}
+              editorMode={inputDrafts.editorMode}
               emptyAttributesLabel={emptyAttributesLabel}
               flowInputOptions={flowInputOptions}
-              flowInputValues={flowInputValues}
-              flowInputValuesRaw={flowInputValuesRaw}
+              flowInputValues={inputDrafts.flowInputValues}
+              flowInputValuesRaw={inputDrafts.flowInputValuesRaw}
               getFlowInputPlaceholder={getFlowInputPlaceholder}
-              handleBasicInputBlur={commitBasicInputValues}
-              handleBasicInputChange={handleBasicInputChange}
+              handleBasicInputBlur={inputDrafts.commitBasicInputValues}
+              handleBasicInputChange={inputDrafts.handleBasicInputChange}
               initialState={initialState}
               jsonError={jsonError}
-              onEditorModeChange={handleEditorModeChange}
+              onEditorModeChange={inputDrafts.handleEditorModeChange}
               onFocusedPreviewAttributeChange={setFocusedPreviewAttribute}
               setInitialState={setInitialState}
             />
@@ -292,14 +102,8 @@ const FlowCreateForm: React.FC<FlowCreateFormProps> = ({ onCreateStep }) => {
               disabled={isStartSectionDisabled}
               flowId={newID}
               onCreateFlow={handleCreateFlow}
-              onFlowIdChange={(value) => {
-                setNewID(value);
-                setIDManuallyEdited(true);
-              }}
-              onGenerateId={() => {
-                setNewID(generateFlowId());
-                setIDManuallyEdited(false);
-              }}
+              onFlowIdChange={handleFlowIdChange}
+              onGenerateId={handleGenerateId}
             />
           </div>
         </div>

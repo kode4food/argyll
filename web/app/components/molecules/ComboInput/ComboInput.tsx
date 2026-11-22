@@ -1,8 +1,8 @@
 import React from "react";
 import DropdownOption from "@/app/components/atoms/DropdownOption";
-import useDropdown from "@/app/hooks/useDropdown";
 import dropdownStyles from "@/app/styles/components/dropdown.module.css";
 import styles from "./ComboInput.module.css";
+import { useComboInput } from "./useComboInput";
 
 export interface ComboInputProps {
   ariaLabel?: string;
@@ -21,45 +21,18 @@ const ComboInput: React.FC<ComboInputProps> = ({
   suggestions,
   value,
 }) => {
-  // Typing narrows the list, while the trigger and arrow keys show all of it
-  const [isFiltering, setIsFiltering] = React.useState(false);
-  const needle = value.toLowerCase();
-  const shown = isFiltering
-    ? suggestions.filter((s) => s.toLowerCase().includes(needle))
-    : suggestions;
-  const options = shown.map((s) => ({ value: s }));
   const {
     open,
-    setOpen,
+    shown,
+    listRef,
     highlightedIndex,
     setHighlightedIndex,
     wrapperRef,
-    handleKeyDown,
-  } = useDropdown(options, value, onChange);
-
-  React.useEffect(() => {
-    if (!open) setIsFiltering(false);
-  }, [open]);
-
-  const handleInputChange = (next: string) => {
-    onChange(next);
-    setIsFiltering(true);
-    setOpen(true);
-    setHighlightedIndex(0);
-  };
-
-  const handleComboKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === " ") return;
-    handleKeyDown(e);
-  };
-
-  // Fixed against the viewport so a scrolling ancestor cannot clip it
-  const [anchor, setAnchor] = React.useState<DOMRect | null>(null);
-  React.useLayoutEffect(() => {
-    setAnchor(
-      open ? (wrapperRef.current?.getBoundingClientRect() ?? null) : null
-    );
-  }, [open, wrapperRef]);
+    handleInputChange,
+    handleComboKeyDown,
+    handleTriggerClick,
+    selectValue,
+  } = useComboInput(suggestions, value, onChange);
 
   return (
     <div
@@ -80,10 +53,7 @@ const ComboInput: React.FC<ComboInputProps> = ({
       <button
         type="button"
         tabIndex={-1}
-        onClick={() => {
-          setIsFiltering(false);
-          setOpen((o) => !o);
-        }}
+        onClick={handleTriggerClick}
         disabled={suggestions.length === 0}
         className={`${styles.trigger} ${open ? styles.triggerOpen : ""}`}
         aria-label="Show suggestions"
@@ -91,18 +61,9 @@ const ComboInput: React.FC<ComboInputProps> = ({
       {open && shown.length > 0 && (
         <div
           className={dropdownStyles.list}
+          ref={listRef}
           role="listbox"
           data-ui-overlay="dropdown"
-          style={
-            anchor
-              ? {
-                  position: "fixed",
-                  top: anchor.bottom + 4,
-                  left: anchor.left,
-                  minWidth: anchor.width,
-                }
-              : undefined
-          }
         >
           {shown.map((s, index) => (
             <DropdownOption
@@ -110,10 +71,7 @@ const ComboInput: React.FC<ComboInputProps> = ({
               isActive={s === value}
               isHighlighted={index === highlightedIndex}
               onHover={() => setHighlightedIndex(index)}
-              onSelect={() => {
-                onChange(s);
-                setOpen(false);
-              }}
+              onSelect={() => selectValue(s)}
             >
               {s}
             </DropdownOption>

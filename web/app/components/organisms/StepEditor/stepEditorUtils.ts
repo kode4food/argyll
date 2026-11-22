@@ -17,10 +17,8 @@ export type {
   Attribute,
   ValidationError,
 } from "./stepEditorTypes";
-export {
-  buildAttributesFromStep,
-  createStepAttributes,
-} from "./stepAttributeUtils";
+export { buildAttributesFromStep } from "./stepAttributeUtils";
+export { createStepAttributes } from "./stepAttrSpecUtils";
 export {
   getValidationError,
   validateAttributesList,

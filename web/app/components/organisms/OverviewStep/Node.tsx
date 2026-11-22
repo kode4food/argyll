@@ -1,10 +1,10 @@
-import React, { useRef, useCallback } from "react";
-import { Position, NodeProps, useUpdateNodeInternals } from "@xyflow/react";
+import React from "react";
+import { Position, NodeProps } from "@xyflow/react";
 import { Step } from "@/app/api";
 import Widget from "./Widget";
 import InvisibleHandle from "@/app/components/atoms/InvisibleHandle";
-import { useDiagramSelection } from "@/app/contexts/DiagramSelectionContext";
-import { useHandlePositions } from "@/app/hooks/useHandlePositions";
+import { useNodeHandles } from "@/app/hooks/useNodeHandles";
+import { useNodeClick } from "./useNodeClick";
 
 interface NodeData {
   step: Step;
@@ -20,31 +20,9 @@ interface NodeData {
 const Node: React.FC<NodeProps> = ({ id, data }) => {
   const nodeData = data as unknown as NodeData;
   const { step, onStepClick } = nodeData;
-  const { setGoalSteps } = useDiagramSelection();
-  const widgetRef = useRef<HTMLDivElement | null>(null);
-  const updateNodeInternals = useUpdateNodeInternals();
-
-  // Memoize the click handler to prevent unnecessary re-renders
-  const handleClick = useCallback(
-    (event: React.MouseEvent) => {
-      const additive = event.ctrlKey || event.metaKey;
-      if (onStepClick) {
-        onStepClick(step.id, { additive });
-      } else if (!additive) {
-        setGoalSteps([[step.id]]);
-      }
-    },
-    [onStepClick, setGoalSteps, step.id]
-  );
-
-  const { allHandles, summaryInputTop, summaryOutputTop } = useHandlePositions(
-    step,
-    widgetRef
-  );
-
-  React.useEffect(() => {
-    updateNodeInternals(id);
-  }, [allHandles, id, updateNodeInternals]);
+  const handleClick = useNodeClick(step.id, onStepClick);
+  const { widgetRef, allHandles, summaryInputTop, summaryOutputTop } =
+    useNodeHandles(id, step);
 
   return (
     <div>

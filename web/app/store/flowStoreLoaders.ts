@@ -1,4 +1,4 @@
-import { api, FlowSummary } from "../api";
+import { api, FlowSummary } from "@/app/api";
 import {
   compareFlows,
   mergeFlowLists,

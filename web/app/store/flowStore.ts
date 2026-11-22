@@ -10,15 +10,15 @@ import {
   Space,
   Step,
   WorkState,
-} from "../api";
-import { ConnectionStatus } from "../types/websocket";
+} from "@/app/api";
+import { ConnectionStatus } from "@/app/types/websocket";
 import { isValidTimestamp } from "@/utils/dates";
 import { isDevHost } from "@/utils/env";
 import {
   buildExecutionList,
   buildFlowContext,
+  compareByName,
   compareFlows,
-  compareSteps,
   computeResolvedAttributes,
   FlowStateUpdate,
   mergeResolvedAttributes,
@@ -35,20 +35,19 @@ import {
   StepHealthInfo,
   toStepHealthMap,
 } from "./flowStoreHealthHelpers";
+import {
+  assignStepSpaces,
+  CatalogSpaces,
+  toCatalogSpaceState,
+} from "./flowStoreSpaceHelpers";
+import { mergeWorkItem } from "./flowStoreWorkHelpers";
 
-export type { NodeHealth, StepHealthInfo };
+export type { CatalogSpaces, NodeHealth, StepHealthInfo };
 
 export interface StepRef {
   nodeId: string;
   stepId: string;
 }
-
-export interface CatalogSpaces {
-  defined?: Record<string, Space>;
-  selected?: Record<string, string[]>;
-}
-
-const compareFeeds = (a: Feed, b: Feed) => a.name.localeCompare(b.name);
 
 declare global {
   interface Window {
@@ -322,40 +321,14 @@ export const useFlowStore = create<FlowState>()(
       updateWorkItem: (
         stepId: string,
         token: string,
-        { usage, ...updates }: Partial<WorkState>
+        updates: Partial<WorkState>
       ) => {
         const { executions } = get();
         const index = executions.findIndex((e) => e.step_id === stepId);
         if (index < 0) return;
 
-        const execution = executions[index];
-        const workItems = execution.work_items || {};
-        const existingItem = workItems[token] || {
-          token,
-          status: "pending",
-          inputs: {},
-          retry_count: 0,
-        };
-        const work = { ...existingItem, ...updates };
-        if (usage) {
-          const total: Record<string, number> = Object.assign(
-            Object.create(null),
-            work.usage
-          );
-          for (const [name, value] of Object.entries(usage)) {
-            total[name] = (total[name] ?? 0) + value;
-          }
-          work.usage = total;
-        }
-
         const updated = [...executions];
-        updated[index] = {
-          ...execution,
-          work_items: {
-            ...workItems,
-            [token]: work,
-          },
-        };
+        updated[index] = mergeWorkItem(executions[index], token, updates);
 
         set({ executions: updated });
       },
@@ -381,7 +354,7 @@ export const useFlowStore = create<FlowState>()(
           spaces: [
             ...state.spaces.filter((s) => s.id !== space.id),
             space,
-          ].sort((a, b) => a.name.localeCompare(b.name)),
+          ].sort(compareByName),
           spaceSelection: {
             ...state.spaceSelection,
             [space.id]: new Set(stepIds),
@@ -403,7 +376,7 @@ export const useFlowStore = create<FlowState>()(
       setFeed: (feed: Feed) => {
         set((state) => ({
           feeds: [...state.feeds.filter((f) => f.id !== feed.id), feed].sort(
-            compareFeeds
+            compareByName
           ),
         }));
       },
@@ -425,26 +398,13 @@ export const useFlowStore = create<FlowState>()(
       },
 
       setStepSpaces: (stepId: string, spaces: string[]) => {
-        set((state) => {
-          const next: Record<string, Set<string>> = {};
-          Object.entries(state.spaceSelection).forEach(([spaceId, steps]) => {
-            if (spaces.includes(spaceId) === steps.has(stepId)) {
-              next[spaceId] = steps;
-              return;
-            }
-            const updated = new Set(steps);
-            if (spaces.includes(spaceId)) {
-              updated.add(stepId);
-            } else {
-              updated.delete(stepId);
-            }
-            next[spaceId] = updated;
-          });
-          spaces.forEach((spaceId) => {
-            if (!next[spaceId]) next[spaceId] = new Set([stepId]);
-          });
-          return { spaceSelection: next };
-        });
+        set((state) => ({
+          spaceSelection: assignStepSpaces(
+            state.spaceSelection,
+            stepId,
+            spaces
+          ),
+        }));
       },
 
       setVisibleFlowIDs: (flowIDs: string[]) => {
@@ -452,21 +412,11 @@ export const useFlowStore = create<FlowState>()(
       },
 
       setCatalogState: (steps, spaces, feeds) => {
-        const nextSteps = Object.values(steps).sort(compareSteps);
+        const nextSteps = Object.values(steps).sort(compareByName);
         set({
           steps: nextSteps,
-          ...(feeds && { feeds: Object.values(feeds).sort(compareFeeds) }),
-          ...(spaces && {
-            spaces: Object.values(spaces.defined ?? {}).sort((a, b) =>
-              a.name.localeCompare(b.name)
-            ),
-            spaceSelection: Object.fromEntries(
-              Object.entries(spaces.selected ?? {}).map(([id, ids]) => [
-                id,
-                new Set(ids),
-              ])
-            ),
-          }),
+          ...(feeds && { feeds: Object.values(feeds).sort(compareByName) }),
+          ...(spaces && toCatalogSpaceState(spaces)),
           stepHealth: toStepHealthMap(get().healthByNode, toStepMap(nextSteps)),
         });
       },
@@ -552,7 +502,8 @@ type ActionKeys =
   | "addFlow"
   | "removeFlow"
   | "selectFlow"
-  | "setVisibleFlowIDs";
+  | "setVisibleFlowIDs"
+  | "upsertStep";
 
 const createActionHook =
   <K extends ActionKeys>(key: K) =>
@@ -565,3 +516,4 @@ export const useAddFlow = createActionHook("addFlow");
 export const useRemoveFlow = createActionHook("removeFlow");
 export const useSelectFlow = createActionHook("selectFlow");
 export const useSetVisibleFlowIDs = createActionHook("setVisibleFlowIDs");
+export const useUpsertStep = createActionHook("upsertStep");

@@ -1,5 +1,6 @@
 import React from "react";
 import styles from "./Modal.module.css";
+import { useModalDialog } from "./useModalDialog";
 
 export interface ModalProps {
   children: React.ReactNode;
@@ -20,14 +21,7 @@ const Modal: React.FC<ModalProps> = ({
   title,
   width,
 }) => {
-  const dialogRef = React.useRef<HTMLDialogElement>(null);
-
-  React.useEffect(() => {
-    const dialog = dialogRef.current;
-    if (!dialog) return;
-    if (isOpen && !dialog.open) dialog.showModal();
-    if (!isOpen && dialog.open) dialog.close();
-  }, [isOpen]);
+  const { dialogRef, handleClick } = useModalDialog(isOpen, onClose);
 
   if (!isOpen) return null;
 
@@ -37,9 +31,7 @@ const Modal: React.FC<ModalProps> = ({
       className={styles.dialog}
       data-ui-overlay="modal"
       onClose={onClose}
-      onClick={(e) => {
-        if (e.target === dialogRef.current) onClose();
-      }}
+      onClick={handleClick}
       style={{
         ...(width && { width: `${width}px` }),
         ...(height && { height: `${height}px` }),

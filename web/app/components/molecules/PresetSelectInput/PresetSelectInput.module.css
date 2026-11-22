@@ -1,0 +1,3 @@
+.icon {
+  composes: iconBox from "@/app/styles/components/icon.module.css";
+}

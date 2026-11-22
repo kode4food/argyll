@@ -19,21 +19,36 @@ export interface DurationInputState {
   };
 }
 
-const durationLanguages = { de, en, fr, it } as const;
-type DurationLanguage = keyof typeof durationLanguages;
+const DURATION_LANGUAGES = { de, en, fr, it } as const;
+type DurationLanguage = keyof typeof DURATION_LANGUAGES;
 
 const getLanguageKey = (locale: string): DurationLanguage => {
   const base = locale.split("-")[0]?.toLowerCase();
-  if (base && Object.prototype.hasOwnProperty.call(durationLanguages, base)) {
+  if (base && Object.prototype.hasOwnProperty.call(DURATION_LANGUAGES, base)) {
     return base as DurationLanguage;
   }
   const fallback = Object.prototype.hasOwnProperty.call(
-    durationLanguages,
+    DURATION_LANGUAGES,
     defaultLanguage
   )
     ? defaultLanguage
     : "en";
   return fallback as DurationLanguage;
+};
+
+type DurationMs = ReturnType<typeof createMs>;
+
+const formatDuration = (ms: DurationMs, value: number): string =>
+  value ? (ms(value) ?? "") : "";
+
+const reformatInput = (ms: DurationMs, input: string): string | null => {
+  try {
+    const parsed = ms(input);
+    if (parsed !== null && parsed >= 0) {
+      return ms(parsed) || null;
+    }
+  } catch (err) {}
+  return null;
 };
 
 /**
@@ -51,7 +66,7 @@ export const useDurationInput = (
 ): DurationInputState => {
   const locale = useLocale();
   const languageKey = useMemo(() => getLanguageKey(locale), [locale]);
-  const languageDefinition = durationLanguages[languageKey];
+  const languageDefinition = DURATION_LANGUAGES[languageKey];
   const language = useMemo(
     () => compileLanguage(languageDefinition),
     [languageDefinition]
@@ -71,12 +86,7 @@ export const useDurationInput = (
 
   useEffect(() => {
     if (!isFocused || !hasLocalEditRef.current) {
-      if (value) {
-        const formatted = ms(value);
-        setInputValue(formatted ?? "");
-      } else {
-        setInputValue("");
-      }
+      setInputValue(formatDuration(ms, value));
       setIsValid(true);
       hasLocalEditRef.current = false;
     }
@@ -104,24 +114,13 @@ export const useDurationInput = (
   const handleBlur = useCallback(() => {
     setIsFocused(false);
     hasLocalEditRef.current = false;
-    if (isValid && inputValue.trim()) {
-      try {
-        const parsed = ms(inputValue.trim());
-        if (parsed !== null && parsed >= 0) {
-          const formatted = ms(parsed);
-          if (formatted) {
-            setInputValue(formatted);
-            return;
-          }
-        }
-      } catch (err) {}
+    const trimmed = inputValue.trim();
+    const reformatted = isValid && trimmed ? reformatInput(ms, trimmed) : null;
+    if (reformatted) {
+      setInputValue(reformatted);
+      return;
     }
-    if (value) {
-      const formatted = ms(value);
-      setInputValue(formatted ?? "");
-    } else {
-      setInputValue("");
-    }
+    setInputValue(formatDuration(ms, value));
     setIsValid(true);
   }, [inputValue, isValid, ms, value]);
 

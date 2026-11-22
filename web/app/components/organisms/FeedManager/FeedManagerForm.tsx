@@ -3,13 +3,12 @@ import SelectField from "@/app/components/molecules/SelectField";
 import TagInput from "@/app/components/molecules/TagInput";
 import ScriptConfigEditor from "@/app/components/organisms/StepEditor/ScriptConfigEditor";
 import { useT } from "@/app/i18n";
-import { useSpaces, useSteps, useWatchedFeeds } from "@/app/store/flowStore";
 import formStyles from "@/app/styles/components/form.module.css";
 import styles from "@/app/styles/components/manager.module.css";
-import { IconAttributeOutput, IconFeed, IconSpace } from "@/utils/iconRegistry";
+import { IconAttributeOutput, IconFeed } from "@/utils/iconRegistry";
 import { formatJSON } from "@/utils/jsonUtils";
-import { foldCompletions, outputNames } from "./feedManagerUtils";
 import { FeedEditor } from "./useFeedEditor";
+import { useFeedManagerForm } from "./useFeedManagerForm";
 import feedStyles from "./FeedManager.module.css";
 
 interface FeedManagerFormProps {
@@ -18,26 +17,9 @@ interface FeedManagerFormProps {
 
 const FeedManagerForm: React.FC<FeedManagerFormProps> = ({ editor }) => {
   const t = useT();
-  const watchedFeeds = useWatchedFeeds();
-  const steps = useSteps();
-  const spaces = useSpaces();
-  const { draft, editingId, patchDraft } = editor;
-  const watchedFeed = editingId ? watchedFeeds[editingId] : undefined;
-  const isIdLocked = editingId !== null;
-  const outputs = React.useMemo(() => outputNames(steps), [steps]);
-  const completions = React.useMemo(() => foldCompletions(draft), [draft]);
-  const spaceOptions = React.useMemo(
-    () => [
-      { value: "", label: t("feedManager.spaceAny"), Icon: IconSpace },
-      ...spaces.map((s) => ({
-        value: s.id,
-        label: s.name,
-        title: s.description,
-        Icon: IconSpace,
-      })),
-    ],
-    [spaces, t]
-  );
+  const { draft, patchDraft } = editor;
+  const { watchedFeed, isIdLocked, outputs, completions, spaceOptions } =
+    useFeedManagerForm(editor);
 
   return (
     <div className={styles.detail}>

@@ -1,44 +1,22 @@
 import React from "react";
-import { META_KEYS, SCRIPT_LANGUAGE_ARGYLL } from "@/app/api";
 import type { Handling, StepType } from "@/app/api";
-import DurationInput from "@/app/components/molecules/DurationInput";
-import ScriptLanguageInlineInput from "@/app/components/molecules/ScriptLanguageInlineInput";
 import SegmentedGroup from "@/app/components/molecules/SegmentedGroup";
 import { useT } from "@/app/i18n";
-import { useFeeds } from "@/app/store/flowStore";
 import {
-  IconArrayMultiple,
-  IconArraySingle,
-  IconAttributeFeed,
-  IconAttributeMeta,
   IconCompensate,
   IconExpandDown,
   IconExpandUp,
   IconRemove,
-  getArgIcon,
 } from "@/utils/iconRegistry";
 import type { FlowInputOption } from "@/utils/flowPlanAttributeOptions";
 import styles from "./StepEditor.module.css";
 import formStyles from "./StepEditorForm.module.css";
 import type { Attribute } from "./stepEditorUtils";
-import {
-  attributeRoleTypes,
-  getMatchScriptPlaceholderKey,
-  inputCollectTypes,
-} from "./stepEditorConstants";
+import AttributeNameControl from "@/app/components/molecules/AttributeNameControl";
+import InlineSelectDropdown from "@/app/components/molecules/InlineSelectDropdown";
 import AttributeMappingPanel from "./AttributeMappingPanel";
-import MetricSelectorInput from "./MetricSelectorInput";
-import PresetSelectInput from "./PresetSelectInput";
-import InlineSelectDropdown, {
-  type InlineSelectOption,
-} from "./InlineSelectDropdown";
-
-const NO_MAPPING_ROLES = new Set<Attribute["role"]>([
-  "const",
-  "meta",
-  "feed",
-  "metric",
-]);
+import AttributeValueControls from "./AttributeValueControls";
+import { useAttributeRow } from "./useAttributeRow";
 
 interface AttributeRowProps {
   attr: Attribute;
@@ -53,12 +31,6 @@ interface AttributeRowProps {
   removeAttribute: (id: string) => void;
 }
 
-const metaKeyOptions = (t: (key: string) => string): InlineSelectOption[] =>
-  META_KEYS.map((key) => ({
-    value: key,
-    label: t(`stepEditor.metaKey.${key}`),
-  }));
-
 const AttributeRow: React.FC<AttributeRowProps> = ({
   attr,
   stepType,
@@ -72,116 +44,21 @@ const AttributeRow: React.FC<AttributeRowProps> = ({
   removeAttribute,
 }) => {
   const t = useT();
-  const feeds = useFeeds();
-  const feedOptions = feeds.map((f) => ({ value: f.id, label: f.name }));
-  const [isMappingExpanded, setIsMappingExpanded] = React.useState(false);
-
-  const collect =
-    attr.collect && inputCollectTypes.includes(attr.collect)
-      ? attr.collect
-      : "first";
-  const canCollect = attr.role === "required" || attr.role === "optional";
-  const hasMapping = !NO_MAPPING_ROLES.has(attr.role);
-  const hasMappingConfigured = Boolean(
-    attr.mappingName?.trim() || attr.mappingScript?.trim()
-  );
-  const compensable = handling === "compensated" && attr.role !== "metric";
-  const innerName = attr.mappingName?.trim() || attr.name.trim();
-  const hasCompensationConflict =
-    !attr.compensated && compensatedInnerNames.has(innerName);
-
-  const roleOptions: InlineSelectOption[] = attributeRoleTypes.map((type) => {
-    const { Icon, className } = getArgIcon(type);
-    return {
-      value: type,
-      label: t(`stepEditor.attrRole.${type}`),
-      icon: <Icon className={`${styles.iconSm} ${className}`} />,
-    };
-  });
-
-  const collectOptions: InlineSelectOption[] = inputCollectTypes.map((c) => ({
-    value: c,
-    label: t(`stepEditor.collect.${c}`),
-    icon: (
-      <span
-        className={formStyles.collectIcon}
-        style={{
-          maskImage: `url(/icons/collect-${c}.svg)`,
-          WebkitMaskImage: `url(/icons/collect-${c}.svg)`,
-        }}
-      />
-    ),
-  }));
-
-  const { Icon: RoleIcon, className: roleClassName } = getArgIcon(attr.role);
-
-  const showForEach = canCollect && (collect === "all" || collect === "some");
-
-  const hasValueControl = attr.role !== "output";
-  const nameClass = hasValueControl
-    ? formStyles.argNameInputFixed
-    : formStyles.argNameInput;
-
-  const nameControl = canCollect ? (
-    <SegmentedGroup className={nameClass}>
-      <input
-        type="text"
-        value={attr.name}
-        onChange={(e) => updateAttribute(attr.id, "name", e.target.value)}
-        placeholder={t("stepEditor.attributeNamePlaceholder")}
-        className={formStyles.argNameInputInline}
-      />
-      {showForEach && (
-        <InlineSelectDropdown
-          ariaLabel={t("stepEditor.forEachSelect")}
-          faceIcon={
-            attr.forEach ? (
-              <IconArrayMultiple className={styles.iconSm} />
-            ) : (
-              <IconArraySingle className={styles.iconSm} />
-            )
-          }
-          onChange={(v) => updateAttribute(attr.id, "forEach", v === "multi")}
-          options={[
-            {
-              value: "single",
-              label: t("stepEditor.arraySingleLabel"),
-              icon: <IconArraySingle className={styles.iconSm} />,
-            },
-            {
-              value: "multi",
-              label: t("stepEditor.arrayMultiLabel"),
-              icon: <IconArrayMultiple className={styles.iconSm} />,
-            },
-          ]}
-          value={attr.forEach ? "multi" : "single"}
-        />
-      )}
-      <InlineSelectDropdown
-        ariaLabel={t("stepEditor.collectSelect")}
-        faceIcon={
-          <span
-            className={formStyles.collectIcon}
-            style={{
-              maskImage: `url(/icons/collect-${collect}.svg)`,
-              WebkitMaskImage: `url(/icons/collect-${collect}.svg)`,
-            }}
-          />
-        }
-        onChange={(v) => updateAttribute(attr.id, "collect", v)}
-        options={collectOptions}
-        value={collect}
-      />
-    </SegmentedGroup>
-  ) : (
-    <input
-      type="text"
-      value={attr.name}
-      onChange={(e) => updateAttribute(attr.id, "name", e.target.value)}
-      placeholder={t("stepEditor.attributeNamePlaceholder")}
-      className={`${formStyles.argInput} ${nameClass}`}
-    />
-  );
+  const {
+    isMappingExpanded,
+    toggleMappingExpanded,
+    hasMapping,
+    hasMappingConfigured,
+    isCompensable,
+    innerName,
+    hasCompensationConflict,
+    roleOptions,
+    RoleIcon,
+    roleClassName,
+    canCollect,
+    nameClass,
+    nameControlClass,
+  } = useAttributeRow({ attr, handling, compensatedInnerNames });
 
   return (
     <div className={formStyles.attrRow}>
@@ -196,7 +73,7 @@ const AttributeRow: React.FC<AttributeRowProps> = ({
             options={roleOptions}
             value={attr.role}
           />
-          {compensable && (
+          {isCompensable && (
             <button
               type="button"
               onClick={() =>
@@ -222,72 +99,25 @@ const AttributeRow: React.FC<AttributeRowProps> = ({
             </button>
           )}
         </SegmentedGroup>
-        {nameControl}
-        {attr.role === "meta" && (
-          <PresetSelectInput
-            ariaLabel={t("stepEditor.metaKeySelect")}
-            Icon={IconAttributeMeta}
-            onChange={(v) => updateAttribute(attr.id, "metaKey", v)}
-            presets={metaKeyOptions(t)}
-            placeholder={t("stepEditor.metaKeyPlaceholder")}
-            value={attr.metaKey || ""}
-          />
-        )}
-        {attr.role === "feed" && (
-          <PresetSelectInput
-            ariaLabel={t("stepEditor.feedSelect")}
-            Icon={IconAttributeFeed}
-            onChange={(v) => updateAttribute(attr.id, "feedId", v)}
-            presets={feedOptions}
-            placeholder={t("stepEditor.feedIdPlaceholder")}
-            emptyLabel={t("stepEditor.feedNoneRegistered")}
-            value={attr.feedId || ""}
-          />
-        )}
-        {attr.role === "metric" && (
-          <MetricSelectorInput attr={attr} updateAttribute={updateAttribute} />
-        )}
-        {(attr.role === "required" || attr.role === "optional") && (
-          <ScriptLanguageInlineInput
-            ariaLabel={t("stepEditor.matchLanguageLabel")}
-            className={formStyles.argValueInput}
-            language={attr.matchLanguage || SCRIPT_LANGUAGE_ARGYLL}
-            onLanguageChange={(language) =>
-              updateAttribute(attr.id, "matchLanguage", language)
-            }
-            onScriptChange={(script) =>
-              updateAttribute(attr.id, "matchScript", script)
-            }
-            placeholder={t(getMatchScriptPlaceholderKey(attr.matchLanguage))}
-            script={attr.matchScript || ""}
-            title={t("stepEditor.attributeMatchTitle")}
-          />
-        )}
-        {(attr.role === "optional" || attr.role === "const") && (
-          <input
-            type="text"
-            value={attr.defaultValue || ""}
-            onChange={(e) =>
-              updateAttribute(attr.id, "defaultValue", e.target.value)
-            }
-            placeholder={t("stepEditor.attributeDefaultPlaceholder")}
-            className={`${formStyles.argInput} ${formStyles.argValueInput}`}
-            title={t("stepEditor.attributeDefaultTitle")}
-          />
-        )}
-        {attr.role === "optional" && (
-          <DurationInput
-            value={attr.deadline || 0}
-            onChange={(ms) =>
-              updateAttribute(attr.id, "deadline", ms || undefined)
-            }
-            className={`${formStyles.argInput} ${formStyles.argValueInput}`}
-          />
-        )}
+        <AttributeNameControl
+          name={attr.name}
+          className={nameControlClass}
+          canCollect={canCollect}
+          collect={attr.collect}
+          forEach={attr.forEach}
+          onNameChange={(name) => updateAttribute(attr.id, "name", name)}
+          onCollectChange={(collect) =>
+            updateAttribute(attr.id, "collect", collect)
+          }
+          onForEachChange={(forEach) =>
+            updateAttribute(attr.id, "forEach", forEach)
+          }
+        />
+        <AttributeValueControls attr={attr} updateAttribute={updateAttribute} />
         {hasMapping && (
           <button
             type="button"
-            onClick={() => setIsMappingExpanded((current) => !current)}
+            onClick={toggleMappingExpanded}
             className={`${formStyles.iconButton} ${formStyles.mappingExpandButton} ${
               hasMappingConfigured ? formStyles.mappingExpandButtonActive : ""
             }`}
@@ -315,7 +145,7 @@ const AttributeRow: React.FC<AttributeRowProps> = ({
         <AttributeMappingPanel
           attr={attr}
           nameClass={nameClass}
-          compensable={compensable}
+          isCompensable={isCompensable}
           stepType={stepType}
           flowInputOptions={flowInputOptions}
           flowOutputOptions={flowOutputOptions}

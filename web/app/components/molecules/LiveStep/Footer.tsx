@@ -1,14 +1,9 @@
-import React, { useEffect, useMemo, useState } from "react";
-import { Step, ExecutionResult, WorkState } from "@/app/api";
-import { getProgressIcon } from "@/utils/progressUtils";
-import { useStepProgress } from "@/app/hooks/useStepProgress";
-import TooltipSection from "@/app/components/atoms/TooltipSection";
+import React from "react";
+import { Step, ExecutionResult } from "@/app/api";
 import Tooltip from "@/app/components/atoms/Tooltip";
-import styles from "../StepShared/StepFooter.module.css";
-import StepInfoDisplay from "../StepShared/StepInfoDisplay";
-import { flowGoalsText, stepDisplayInfo } from "../StepShared/stepDisplayInfo";
-import { useT } from "@/app/i18n";
-import { useLocale } from "@/app/store/i18nStore";
+import styles from "@/app/components/molecules/StepShared/StepFooter.module.css";
+import StepInfoDisplay from "@/app/components/molecules/StepShared/StepInfoDisplay";
+import { useFooter } from "./useFooter";
 
 interface FooterProps {
   step: Step;
@@ -16,264 +11,14 @@ interface FooterProps {
   execution?: ExecutionResult;
 }
 
-const MS_PER_SECOND = 1000;
-const SECONDS_PER_MINUTE = 60;
-const COMPLETE_PERCENT = 100;
-const USAGE_SIGNIFICANT_DIGITS = 10;
-
-const formatRemaining = (ms: number): string => {
-  const totalSeconds = Math.max(0, Math.ceil(ms / MS_PER_SECOND));
-  const minutes = Math.floor(totalSeconds / SECONDS_PER_MINUTE);
-  const seconds = totalSeconds % SECONDS_PER_MINUTE;
-  if (minutes === 0) return `${seconds}s`;
-  return `${minutes}m ${seconds.toString().padStart(2, "0")}s`;
-};
-
-const parseTime = (value?: string): number | undefined => {
-  if (!value) return undefined;
-  const parsed = Date.parse(value);
-  return Number.isNaN(parsed) ? undefined : parsed;
-};
-
-interface WorkTimerProps {
-  start: number;
-  end: number;
-}
-
-const WorkTimer: React.FC<WorkTimerProps> = ({ start, end }) => {
-  const [now, setNow] = useState(() => Date.now());
-
-  useEffect(() => {
-    const interval = window.setInterval(
-      () => setNow(Date.now()),
-      MS_PER_SECOND
-    );
-    return () => window.clearInterval(interval);
-  }, []);
-
-  const duration = Math.max(1, end - start);
-  const elapsed = Math.max(0, Math.min(duration, now - start));
-  const remaining = Math.max(0, end - now);
-  const value = Math.round((elapsed / duration) * COMPLETE_PERCENT);
-
-  return (
-    <div className={styles.workTimer}>
-      <progress className={styles.workTimerProgress} max={100} value={value} />
-      <span className={styles.workTimerRemaining}>
-        {formatRemaining(remaining)}
-      </span>
-    </div>
-  );
-};
-
-const workTimerTiming = (work: WorkState, step: Step) => {
-  if (
-    work.status === "active" &&
-    step.http?.invoke?.timeout &&
-    work.started_at
-  ) {
-    const start = parseTime(work.started_at);
-    if (!start) return undefined;
-    return {
-      titleKey: "liveStep.activeTimeoutTitle",
-      start,
-      end: start + step.http.invoke.timeout,
-    };
-  }
-
-  if (work.status === "pending" && work.next_retry_at) {
-    const end = parseTime(work.next_retry_at);
-    const start = parseTime(work.completed_at) ?? parseTime(work.started_at);
-    if (!start || !end) return undefined;
-    return { titleKey: "liveStep.retryCountdownTitle", start, end };
-  }
-
-  return undefined;
-};
-
-const skippedReason = (
-  execution: ExecutionResult,
-  step: Step,
-  t: (key: string, vars?: Record<string, string | number>) => string
-): string => {
-  switch (execution.error_message) {
-    case "predicate returned false":
-      return t("liveStep.skipPredicate");
-    case "required match did not match":
-      return t("liveStep.skipRequiredMatch");
-    case "outputs not needed":
-      return t("liveStep.skipOutputsNotNeeded");
-    case undefined:
-    case "":
-      return t("liveStep.skipUnknown");
-    default:
-      return execution.error_message;
-  }
-};
-
-interface ExecutionContext {
-  execution: ExecutionResult | undefined;
-  flowId: string | undefined;
-  locale: string;
-  progressState: ReturnType<typeof useStepProgress>;
-}
-
-const agentUsageTable = (
-  items: ExecutionResult["work_items"],
-  locale: string,
-  t: (key: string) => string
-) => {
-  const total = new Map<string, number>();
-  for (const work of Object.values(items ?? {})) {
-    for (const [name, value] of Object.entries(work.usage ?? {})) {
-      total.set(name, (total.get(name) ?? 0) + value);
-    }
-  }
-  if (total.size === 0) return null;
-  const rows = [...total].sort(
-    ([left], [right]) => Number(right === "cost") - Number(left === "cost")
-  );
-  return (
-    <TooltipSection key="usage" title={t("liveStep.usageTitle")}>
-      <table
-        className={styles.usageTable}
-        aria-label={t("liveStep.usageTitle")}
-      >
-        <tbody>
-          {rows.map(([name, value]) => {
-            const key = `liveStep.usage.${name}`;
-            const label = t(key);
-            return (
-              <tr key={name}>
-                <th scope="row">{label === key ? name : label}</th>
-                <td>
-                  {value.toLocaleString(
-                    locale,
-                    Number.isInteger(value)
-                      ? undefined
-                      : { maximumSignificantDigits: USAGE_SIGNIFICANT_DIGITS }
-                  )}
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </TooltipSection>
-  );
-};
-
-const buildTooltipSections = (
-  step: Step,
-  ctx: ExecutionContext,
-  t: (key: string, vars?: Record<string, string | number>) => string
-): React.ReactElement[] => {
-  const { execution, flowId, locale, progressState } = ctx;
-  const sections: React.ReactElement[] = [];
-  const goals = flowGoalsText(step);
-
-  if (goals) {
-    sections.push(
-      <TooltipSection key="goals" title={t("stepFooter.flowGoals")}>
-        {goals}
-      </TooltipSection>
-    );
-  }
-
-  if (!execution || !flowId) {
-    return sections;
-  }
-
-  const StatusIcon = getProgressIcon(progressState.status);
-  const workItemSuffix = progressState.workItems
-    ? (() => {
-        const done = progressState.workItems.completed;
-        const failed = progressState.workItems.failed;
-        const total = progressState.workItems.total;
-        const base =
-          failed > 0
-            ? t("liveStep.workItemsSummaryFailed", { done, total, failed })
-            : t("liveStep.workItemsSummary", { done, total });
-        return ` (${base})`;
-      })()
-    : "";
-
-  sections.push(
-    <TooltipSection
-      key="execution-status"
-      title={t("liveStep.executionStatus")}
-      icon={
-        <StatusIcon
-          className={`progress-icon ${progressState.status || "pending"}`}
-        />
-      }
-      bold
-    >
-      {progressState.status.toUpperCase()}
-      {workItemSuffix}
-    </TooltipSection>
-  );
-
-  if (execution.status === "failed" && execution.error_message) {
-    sections.push(
-      <TooltipSection key="error" title={t("liveStep.errorTitle")} monospace>
-        {execution.error_message}
-      </TooltipSection>
-    );
-  }
-
-  if (execution.status === "skipped") {
-    sections.push(
-      <TooltipSection key="reason" title={t("liveStep.reasonTitle")}>
-        {skippedReason(execution, step, t)}
-      </TooltipSection>
-    );
-  }
-
-  if (execution.status === "completed" && execution.duration_ms) {
-    sections.push(
-      <TooltipSection key="duration" title={t("liveStep.durationTitle")}>
-        {t("common.durationMs", { duration: execution.duration_ms })}
-      </TooltipSection>
-    );
-  }
-
-  if (step.type === "agent") {
-    const usage = agentUsageTable(execution.work_items, locale, t);
-    if (usage) sections.push(usage);
-  }
-
-  Object.entries(execution.work_items ?? {}).forEach(([token, work]) => {
-    const timing = workTimerTiming(work, step);
-    if (!timing) return;
-    sections.push(
-      <TooltipSection key={`work-timer-${token}`} title={t(timing.titleKey)}>
-        <WorkTimer start={timing.start} end={timing.end} />
-      </TooltipSection>
-    );
-  });
-
-  return sections;
-};
-
 const Footer: React.FC<FooterProps> = ({ step, flowId, execution }) => {
-  const t = useT();
-  const locale = useLocale();
-  const progressState = useStepProgress(step.id, flowId, execution);
-
-  const displayInfo = useMemo(() => stepDisplayInfo(step), [step]);
-  const tooltipSections = useMemo(
-    () =>
-      buildTooltipSections(
-        step,
-        { execution, flowId, locale, progressState },
-        t
-      ),
-    [execution, flowId, locale, progressState, step, t]
-  );
-
-  const useProgress = flowId && progressState.flowId === flowId;
-  const ProgressIcon = getProgressIcon(progressState.status);
+  const {
+    displayInfo,
+    tooltipSections,
+    hasFlowProgress,
+    ProgressIcon,
+    progressStatus,
+  } = useFooter(step, flowId, execution);
 
   return (
     <Tooltip
@@ -282,10 +27,10 @@ const Footer: React.FC<FooterProps> = ({ step, flowId, execution }) => {
           <StepInfoDisplay displayInfo={displayInfo} />
           <div className={styles.actions}>
             <div className={styles.healthStatus}>
-              {useProgress ? (
+              {hasFlowProgress ? (
                 <div className={styles.progressContainer}>
                   <ProgressIcon
-                    className={`progress-icon ${progressState.status || "pending"}`}
+                    className={`progress-icon ${progressStatus || "pending"}`}
                   />
                 </div>
               ) : null}

@@ -1,5 +1,6 @@
 import { formatInputValues } from "@/utils/inputFormatUtils";
 import { parseInputValues } from "@/utils/inputParseUtils";
+import { parseState } from "@/utils/stateUtils";
 
 export { parseInputValue, parseInputValues } from "@/utils/inputParseUtils";
 export {
@@ -24,18 +25,6 @@ export function hasScrollOverflow(element: HTMLElement): {
   const atBottom = scrollTop >= scrollHeight - clientHeight - 1;
 
   return { hasOverflow, atTop, atBottom };
-}
-
-export function safeParseState(stateString: string): Record<string, any> {
-  try {
-    const parsed = JSON.parse(stateString);
-    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-      return {};
-    }
-    return parsed;
-  } catch {
-    return {};
-  }
 }
 
 export type FlowInputStatus =
@@ -71,7 +60,7 @@ export function buildInitialStateInputValues(
   initialState: string,
   inputNames: string[]
 ): Record<string, string> {
-  const parsed = safeParseState(initialState);
+  const parsed = parseState(initialState);
   const values: Record<string, string> = {};
 
   inputNames.forEach((name) => {

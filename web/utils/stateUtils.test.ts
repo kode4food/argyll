@@ -53,6 +53,12 @@ describe("stateUtils", () => {
     it("returns empty object for empty string", () => {
       expect(parseState("")).toEqual({});
     });
+
+    it("returns empty object for non-object JSON", () => {
+      expect(parseState("null")).toEqual({});
+      expect(parseState("123")).toEqual({});
+      expect(parseState('["a"]')).toEqual({});
+    });
   });
 
   describe("filterDefaultValues", () => {
