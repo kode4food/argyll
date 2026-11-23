@@ -51,10 +51,10 @@ func TestRefresh(t *testing.T) {
 	prices, err := catalog.ReadTable[worker.Price](pricePath)
 	assert.NoError(t, err)
 	price := prices["anthropic/claude-haiku-5-5"]
-	assert.Equal(t, new(float64(0.125)), price.CacheOutput)
+	assert.Equal(t, new(0.125), price.CacheOutput)
 	if assert.Len(t, price.Tiers, 1) {
 		assert.Equal(t, int64(100000), price.Tiers[0].InputOver)
-		assert.Equal(t, new(float64(0.625)), price.Tiers[0].CacheOutput)
+		assert.Equal(t, new(0.625), price.Tiers[0].CacheOutput)
 	}
 	assert.Equal(t, price, prices["anthropic/claude-haiku-5-5-20261119"])
 	thresholds, err := catalog.ReadTable[int](thresholdPath)

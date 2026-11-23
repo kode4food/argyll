@@ -54,7 +54,7 @@ func Fetch(url string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	defer res.Body.Close()
+	defer func() { _ = res.Body.Close() }()
 	if res.StatusCode != http.StatusOK {
 		return "", errors.Join(ErrHTTPStatus, &HTTPError{
 			URL:    url,

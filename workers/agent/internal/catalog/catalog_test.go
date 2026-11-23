@@ -56,7 +56,7 @@ func TestInvalidOutputs(t *testing.T) {
 
 func TestRate(t *testing.T) {
 	for cell, want := range map[string]*float64{
-		"$0.125": new(float64(0.125)),
+		"$0.125": new(0.125),
 		"$1,000": new(float64(1000)),
 		"Free":   new(float64),
 		"-":      nil,

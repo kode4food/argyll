@@ -93,8 +93,8 @@ func TestRefresh(t *testing.T) {
 	rate := prices["openai/example"]
 	assert.Equal(t, new(float64(2)), rate.Input)
 	assert.Equal(t, new(float64(10)), rate.Output)
-	assert.Equal(t, new(float64(0.1)), rate.CacheInput)
-	assert.Equal(t, new(float64(2.5)), rate.CacheOutput)
+	assert.Equal(t, new(0.1), rate.CacheInput)
+	assert.Equal(t, new(2.5), rate.CacheOutput)
 	if assert.Len(t, rate.Tiers, 1) {
 		assert.Equal(t, int64(272000), rate.Tiers[0].InputOver)
 	}

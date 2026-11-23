@@ -51,7 +51,7 @@ func (e *Engine) QueryFlows(req *api.QueryFlowsRequest) (*api.QueryFlowsResponse
 	}
 
 	next := maps.Clone(cursor)
-	flows := []*api.QueryFlowsItem{}
+	var flows []*api.QueryFlowsItem
 	more := false
 	for _, status := range queryStatuses(req.Statuses) {
 		entries, err := e.flowStore.ListAggregatesByStatus(timebox.StatusQuery{

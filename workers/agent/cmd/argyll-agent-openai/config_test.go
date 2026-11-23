@@ -5,9 +5,10 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/kode4food/argyll/workers/agent/internal/openai"
 	"github.com/kode4food/argyll/workers/agent/internal/worker"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestConfig(t *testing.T) {
