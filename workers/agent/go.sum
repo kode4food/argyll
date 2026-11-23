@@ -91,8 +91,8 @@ github.com/kode4food/caravan v0.0.0-20261110162553-22d42e0829c8 h1:Q2JSXKYvvC3Ne
 github.com/kode4food/caravan v0.0.0-20261110162553-22d42e0829c8/go.mod h1:Tp+5ZCngBCAdnC25fcjuTCSiYYe5hyOQcuXM0NNUQdE=
 github.com/kode4food/lru v0.0.0-20261011080515-d1c90c62daee h1:VCagisdenZ3Q0iSL0Ku5AOLr4g/GSYP7CwQJNm2G/mY=
 github.com/kode4food/lru v0.0.0-20261011080515-d1c90c62daee/go.mod h1:ImaqGCdrewxDfqKE71F6OPo08LTCNeOubcf93W6VWAY=
-github.com/kode4food/timebox v0.4.1-0.20261123061759-42a8f517abd9 h1:efjKMb48rxtwhv48oN0kRTDPTkddxHmmMhz2EK0Gy2I=
-github.com/kode4food/timebox v0.4.1-0.20261123061759-42a8f517abd9/go.mod h1:2wJf0lhceRCDpjJkMEAaXxeWS2N9NEemtcYKeujApxk=
+github.com/kode4food/timebox v0.5.0 h1:0cmfF47h4YyfLgBLzhsEzZJ5bTkrCPoHXiikBrtCTxA=
+github.com/kode4food/timebox v0.5.0/go.mod h1:2wJf0lhceRCDpjJkMEAaXxeWS2N9NEemtcYKeujApxk=
 github.com/modelcontextprotocol/go-sdk v1.8.0 h1:KIvahhYqwtbeniWVPs3TcXEA7b8jEtwfBpOTAI+Urx4=
 github.com/modelcontextprotocol/go-sdk v1.8.0/go.mod h1:dL7u98E/zjJTGzEq+j30jQ8K2k1mb6LeAH4inEcSGts=
 github.com/openai/openai-go/v3 v3.102.0 h1:1W4k1e6JguC/evhpL8gCR0g+GGIxcNpDUOhjQwjxrWs=

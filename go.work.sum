@@ -840,6 +840,7 @@ github.com/kode4food/timebox v0.3.1-0.20261019122948-0029e3bffff8/go.mod h1:2wJf
 github.com/kode4food/timebox v0.3.1-0.20261022102108-98b194636912/go.mod h1:2wJf0lhceRCDpjJkMEAaXxeWS2N9NEemtcYKeujApxk=
 github.com/kode4food/timebox v0.3.1-0.20261108193203-9ac6a7687dde/go.mod h1:2wJf0lhceRCDpjJkMEAaXxeWS2N9NEemtcYKeujApxk=
 github.com/kode4food/timebox v0.4.0/go.mod h1:2wJf0lhceRCDpjJkMEAaXxeWS2N9NEemtcYKeujApxk=
+github.com/kode4food/timebox v0.4.1-0.20261123061759-42a8f517abd9/go.mod h1:2wJf0lhceRCDpjJkMEAaXxeWS2N9NEemtcYKeujApxk=
 github.com/kr/pretty v0.3.1 h1:flRD4NNwYAUpkphVc1HcthR4KEIFJ65n8Mw5qdRn3LE=
 github.com/kr/pretty v0.3.1/go.mod h1:hoEshYVHaxMs3cyo3Yncou5ZscifuDolrwPKZanG3xk=
 github.com/kr/pty v1.1.1 h1:VkoXIwSboBpnk99O/KFauAEILuNHv5DVFKZMBN/gUgw=
