@@ -10,7 +10,7 @@ require (
 	github.com/kode4food/argex v0.1.11
 	github.com/kode4food/caravan v0.0.0-20261110162553-22d42e0829c8
 	github.com/kode4food/lru v0.0.0-20261011080515-d1c90c62daee
-	github.com/kode4food/timebox v0.4.1-0.20261117103344-496eeef3071e
+	github.com/kode4food/timebox v0.4.1-0.20261123061759-42a8f517abd9
 	github.com/stretchr/testify v1.12.1
 )
 

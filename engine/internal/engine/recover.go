@@ -10,7 +10,6 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/events"
 	"github.com/kode4food/argyll/engine/pkg/policy"
-	"github.com/kode4food/argyll/engine/pkg/util"
 )
 
 var (
@@ -19,21 +18,55 @@ var (
 	ErrInvalidFlowStatusEntry = errors.New("invalid flow status entry")
 )
 
-// RecoverFlows initiates recovery for all active flows during engine startup
+// recoverPageSize bounds each read of the active flow index during recovery
+const recoverPageSize = 500
+
+// RecoverFlows initiates recovery for all active root and child flows during engine startup,
+// reading each active index a page at a time
 func (e *Engine) RecoverFlows() error {
-	ids, err := e.listIndexedFlows(events.FlowStatusActive)
-	if err != nil {
-		return errors.Join(ErrListActiveFlows, err)
+	now := e.Now()
+	count := 0
+	for _, status := range []string{
+		events.FlowStatusActive,
+		events.ChildStatusPrefix + events.FlowStatusActive,
+	} {
+		q := timebox.StatusQuery{
+			Status: status,
+			Type:   events.FlowPrefix,
+			Limit:  recoverPageSize,
+		}
+		for {
+			entries, err := e.flowStore.ListAggregatesByStatus(q)
+			if err != nil {
+				return errors.Join(ErrListActiveFlows, err)
+			}
+			for _, entry := range entries {
+				fid, ok := events.ParseFlowID(entry.ID)
+				if !ok {
+					return errors.Join(ErrListActiveFlows,
+						fmt.Errorf("%w: %s", ErrInvalidFlowStatusEntry, entry.ID.String()),
+					)
+				}
+				// Reconcile through the same task committed-event wake-ups use, so a transient
+				// failure is retried
+				if err := e.scheduleFlowReconcile(fid, now); err != nil {
+					return err
+				}
+			}
+			count += len(entries)
+			if len(entries) < q.Limit {
+				break
+			}
+			q.After = &entries[len(entries)-1]
+		}
 	}
 
-	if len(ids) == 0 {
+	if count == 0 {
 		slog.Info("No flows to recover")
 		return nil
 	}
-
-	slog.Info("Recovering flows", slog.Int("candidate_count", len(ids)))
-
-	return e.recoverFlows(ids)
+	slog.Info("Recovering flows", slog.Int("candidate_count", count))
+	return nil
 }
 
 func (tx *flowTx) recoverRetries(fl api.FlowState) error {
@@ -45,46 +78,6 @@ func (tx *flowTx) recoverRetries(fl api.FlowState) error {
 					return err
 				}
 			}
-		}
-	}
-	return nil
-}
-
-func (e *Engine) listIndexedFlows(status string) ([]api.FlowID, error) {
-	entries, err := e.flowStore.ListAggregatesByStatus(timebox.StatusQuery{
-		Status: status,
-		Type:   events.FlowPrefix,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	seen := util.Set[api.FlowID]{}
-	res := make([]api.FlowID, 0, len(entries))
-	for _, entry := range entries {
-		fid, ok := events.ParseFlowID(entry.ID)
-		if !ok {
-			return nil, errors.Join(
-				ErrListActiveFlows,
-				fmt.Errorf("%w: %s", ErrInvalidFlowStatusEntry, entry.ID.String()),
-			)
-		}
-		if seen.Contains(fid) {
-			continue
-		}
-		seen.Add(fid)
-		res = append(res, fid)
-	}
-	return res, nil
-}
-
-// recoverFlows reconciles the indexed flows through the same tasks the committed-event wake-ups
-// use, so a transient failure is retried
-func (e *Engine) recoverFlows(ids []api.FlowID) error {
-	now := e.Now()
-	for _, id := range ids {
-		if err := e.scheduleFlowReconcile(id, now); err != nil {
-			return err
 		}
 	}
 	return nil

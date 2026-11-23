@@ -174,7 +174,7 @@ describe("ArgyllApi", () => {
     expect(fetchMock).toHaveBeenCalledWith(
       "http://localhost:8080/engine/flows/query",
       expect.objectContaining({
-        body: JSON.stringify({ sort: "recent_desc" }),
+        body: JSON.stringify({}),
       })
     );
   });

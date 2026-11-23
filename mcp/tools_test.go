@@ -44,6 +44,31 @@ func TestPreviewPlanTool(t *testing.T) {
 	assert.JSONEq(t, previewPlan, text)
 }
 
+func TestListFlowsTool(t *testing.T) {
+	want := `{"flows":[{"id":"wf-1","status":"active"}],"count":1}`
+
+	hc := &http.Client{
+		Transport: roundTripperFunc(
+			func(r *http.Request) (*http.Response, error) {
+				if r.Method != http.MethodGet || r.URL.Path != "/engine/flows" {
+					return jsonResponse(
+						http.StatusNotFound, []byte(`{"error":"not found"}`),
+					), nil
+				}
+				assert.Equal(t, "25", r.URL.Query().Get("limit"))
+				assert.Equal(t, "next", r.URL.Query().Get("cursor"))
+				return jsonResponse(http.StatusOK, []byte(want)), nil
+			},
+		),
+	}
+	c := newClient(t, mcp.NewServer("http://example", hc))
+	text := callToolText(t, c, "list_flows", map[string]any{
+		"limit":  25,
+		"cursor": "next",
+	})
+	assert.JSONEq(t, want, text)
+}
+
 func TestQueryFlowsTool(t *testing.T) {
 	want := `{"flows":[{"id":"wf-1","status":"active"}],"count":1}`
 
@@ -65,7 +90,6 @@ func TestQueryFlowsTool(t *testing.T) {
 				assert.NoError(t, err)
 				assert.Equal(t, "wf-", req["id_prefix"])
 				assert.Equal(t, float64(25), req["limit"])
-				assert.Equal(t, "recent_desc", req["sort"])
 				assert.Equal(t, []any{"active", "failed"}, req["statuses"])
 
 				return jsonResponse(http.StatusOK, []byte(want)), nil
@@ -77,7 +101,6 @@ func TestQueryFlowsTool(t *testing.T) {
 		"id_prefix": "wf-",
 		"statuses":  []string{"active", "failed"},
 		"limit":     25,
-		"sort":      "recent_desc",
 	})
 	assert.JSONEq(t, want, text)
 }

@@ -3,6 +3,7 @@ package events
 import (
 	"maps"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/kode4food/timebox"
@@ -15,6 +16,10 @@ const (
 	FlowStatusActive    = "active"
 	FlowStatusCompleted = "completed"
 	FlowStatusFailed    = "failed"
+
+	// ChildStatusPrefix marks the status a child flow is indexed under, so the root flow
+	// indexes hold only root flows
+	ChildStatusPrefix = "child-"
 )
 
 // FlowAppliers contains the event applier functions for flow events
@@ -50,14 +55,14 @@ func FlowIndexer(evs []*timebox.Event) []*timebox.Index {
 			tags[tag] = true
 		}
 		res = append(res, &timebox.Index{
-			Status: new(FlowStatusActive),
+			Status: new(flowIndexStatus(data.FlowID, FlowStatusActive)),
 			Tags:   tags,
 		})
 	}
 
 	handleDeactivated := func(data api.FlowDeactivatedEvent) {
 		res = append(res, &timebox.Index{
-			Status: new(string(data.Status)),
+			Status: new(flowIndexStatus(data.FlowID, string(data.Status))),
 		})
 	}
 
@@ -81,6 +86,15 @@ func FlowIndexer(evs []*timebox.Event) []*timebox.Index {
 		}
 	}
 	return res
+}
+
+// flowIndexStatus is the status a flow is indexed under. Child flow IDs join their parent's ID,
+// step, and token with ':'
+func flowIndexStatus(fid api.FlowID, status string) string {
+	if strings.ContainsRune(string(fid), ':') {
+		return ChildStatusPrefix + status
+	}
+	return status
 }
 
 // IsFlowEvent returns true if the event belongs to a flow aggregate

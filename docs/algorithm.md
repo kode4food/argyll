@@ -1165,8 +1165,8 @@ Sources: [engine-start.go](../engine/internal/engine/engine-start.go), [recover.
 START_ENGINE():
     load this node's health state
     start durable scheduler processing
-    list flows in the active store index, including terminal retained flows
-    schedule immediate reconciliation for each indexed flow
+    FOR each page of the active root and child flow indexes, including terminal retained flows:
+        schedule immediate reconciliation for each indexed flow
 
 RECOVER_FLOW(flowID):
     TRANSACT:

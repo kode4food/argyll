@@ -96,7 +96,7 @@ func newMessage() *timebox.Message {
 
 func activeScheduleCount(t *testing.T, store *timebox.Store) int {
 	t.Helper()
-	schedules, err := store.LoadSchedules(time.Time{})
+	schedules, err := store.LoadSchedules(time.Time{}, nil, 100)
 	if !assert.NoError(t, err) {
 		return 0
 	}

@@ -98,8 +98,9 @@ type (
 		// StartPlan begins a flow execution from a plan the caller built
 		StartPlan(api.FlowID, *api.ExecutionPlan, ...flow.Applier) error
 
-		// ListFlows returns a summary of the most recent flows
-		ListFlows() ([]*api.QueryFlowsItem, error)
+		// ListFlows returns one page of all root flow summaries, resuming at a cursor from a prior
+		// page
+		ListFlows(cursor string, limit int) (*api.QueryFlowsResponse, error)
 
 		// QueryFlows returns flow summaries matching the request's filters
 		QueryFlows(*api.QueryFlowsRequest) (*api.QueryFlowsResponse, error)

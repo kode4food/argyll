@@ -41,7 +41,6 @@ export type {
   StepHealth,
   AttributeValue,
   WorkState,
-  FlowSort,
   QueryFlowsRequest,
   NodeStepHealth,
 } from "./types";

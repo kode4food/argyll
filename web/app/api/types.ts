@@ -358,12 +358,9 @@ export interface QueryFlowsItem extends FlowSummary {
 export interface QueryFlowsResponse {
   flows: QueryFlowsItem[];
   count: number;
-  total?: number;
   has_more?: boolean;
   next_cursor?: string;
 }
-
-export type FlowSort = "recent_desc" | "recent_asc";
 
 export interface QueryFlowsRequest {
   id_prefix?: string;
@@ -371,5 +368,4 @@ export interface QueryFlowsRequest {
   statuses?: FlowStatus[];
   limit?: number;
   cursor?: string;
-  sort?: FlowSort;
 }

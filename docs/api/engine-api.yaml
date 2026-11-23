@@ -915,25 +915,38 @@ paths:
     get:
       summary: List Flows
       description: |
-        Retrieve non-child flows in the system (`active`, `completed`, and
-        `failed`), sorted by most-recent activity within each status group.
-
-        This endpoint uses the same query engine as `/engine/flows/query`.
-        Supports filtering by status, ID prefix, and labels. A terminal flow
-        remains indexed as `active` until `flow_deactivated` records that all
-        work capable of producing external side effects has settled.
+        List one page of all root flows, newest first. Pass
+        `next_cursor` from a page to read the next one.
       operationId: listFlows
       tags:
         - Flows
+      parameters:
+        - name: limit
+          in: query
+          description: Maximum number of flows to return
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 1000
+            default: 100
+        - name: cursor
+          in: query
+          description: Cursor token from previous page
+          schema:
+            type: string
       responses:
         "200":
-          description: List of flows
+          description: One page of flows
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/QueryFlowsItem"
+                $ref: "#/components/schemas/QueryFlowsResponse"
+        "400":
+          description: Invalid limit or cursor
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
         "500":
           description: Failed to list flows
           content:
@@ -1012,10 +1025,9 @@ paths:
       summary: Query Flows
       description: |
         Query non-child flows using ID prefix, labels, deactivation-based status
-        filters, and pagination.
+        filters, and pagination. Results come newest first.
 
-        The engine resolves status, ID-prefix, and label filtering directly from
-        flow-store indexes. A terminal flow remains indexed as `active` until
+        A terminal flow remains indexed as `active` until
         `flow_deactivated` records that no remaining work can produce external
         side effects (changes outside flow state).
       operationId: queryFlows
@@ -1357,8 +1369,9 @@ paths:
         `["catalog", "_"]`.
 
         Each ID selects one aggregate. `["flow"]` is not a wildcard. Omitted or
-        empty `aggregate_ids` selects all aggregates. Malformed IDs and empty
-        components prevent the subscription from being registered.
+        empty `aggregate_ids` selects all aggregates. A subscription names up
+        to 1000 aggregate IDs. Malformed IDs and empty components prevent the
+        subscription from being registered.
 
         ## Event Filtering
 
@@ -2734,10 +2747,6 @@ components:
           type: integer
           description: Number of flows returned in this response
           example: 3
-        total:
-          type: integer
-          description: Total number of flows available
-          example: 120
         has_more:
           type: boolean
           description: True when more flows are available after this page
@@ -2807,18 +2816,13 @@ components:
         limit:
           type: integer
           description: Maximum number of flows to return
-          minimum: 0
-          example: 1000
+          minimum: 1
+          maximum: 1000
+          default: 100
+          example: 100
         cursor:
           type: string
           description: Cursor token from previous page
-        sort:
-          type: string
-          enum: [recent_desc, recent_asc]
-          description: |
-            Sort order by recency within status grouping (defaults to
-            `recent_asc` when omitted)
-          example: "recent_desc"
 
     FlowStatusResponse:
       type: object

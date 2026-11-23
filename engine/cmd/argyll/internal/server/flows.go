@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"slices"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 
@@ -49,20 +50,7 @@ func (s *Server) queryFlows(c *gin.Context) {
 		return
 	}
 
-	if req.Limit < 0 || req.Limit > MaxQueryLimit {
-		c.JSON(http.StatusBadRequest, api.ErrorResponse{
-			Error:  fmt.Sprintf(errLimitTooHigh, MaxQueryLimit),
-			Status: http.StatusBadRequest,
-		})
-		return
-	}
-
-	if req.Sort != "" && req.Sort != api.FlowSortRecentDesc &&
-		req.Sort != api.FlowSortRecentAsc {
-		c.JSON(http.StatusBadRequest, api.ErrorResponse{
-			Error:  "Invalid sort",
-			Status: http.StatusBadRequest,
-		})
+	if !validQueryLimit(c, req.Limit) {
 		return
 	}
 
@@ -83,27 +71,48 @@ func (s *Server) queryFlows(c *gin.Context) {
 	}
 
 	resp, err := s.engine.QueryFlows(&req)
+	writeFlowPage(c, resp, err)
+}
+
+func (s *Server) listFlows(c *gin.Context) {
+	limit, err := strconv.Atoi(c.DefaultQuery("limit", "0"))
 	if err != nil {
-		if errors.Is(err, engine.ErrInvalidFlowCursor) {
-			c.JSON(http.StatusBadRequest, api.ErrorResponse{
-				Error:  err.Error(),
-				Status: http.StatusBadRequest,
-			})
-			return
-		}
+		limit = -1
+	}
+	if !validQueryLimit(c, limit) {
+		return
+	}
+	resp, err := s.engine.ListFlows(c.Query("cursor"), limit)
+	writeFlowPage(c, resp, err)
+}
+
+func validQueryLimit(c *gin.Context, limit int) bool {
+	if limit >= 0 && limit <= MaxQueryLimit {
+		return true
+	}
+	c.JSON(http.StatusBadRequest, api.ErrorResponse{
+		Error:  fmt.Sprintf(errLimitTooHigh, MaxQueryLimit),
+		Status: http.StatusBadRequest,
+	})
+	return false
+}
+
+func writeFlowPage(c *gin.Context, resp *api.QueryFlowsResponse, err error) {
+	if errors.Is(err, engine.ErrInvalidFlowCursor) {
+		c.JSON(http.StatusBadRequest, api.ErrorResponse{
+			Error:  err.Error(),
+			Status: http.StatusBadRequest,
+		})
+		return
+	}
+	if err != nil {
 		c.JSON(http.StatusInternalServerError, api.ErrorResponse{
 			Error:  fmt.Sprintf("%s: %v", ErrQueryFlows, err),
 			Status: http.StatusInternalServerError,
 		})
 		return
 	}
-
 	c.JSON(http.StatusOK, resp)
-}
-
-func (s *Server) listFlows(c *gin.Context) {
-	resp, err := s.engine.ListFlows()
-	writeValue(c, ErrQueryFlows, resp, err)
 }
 
 func (s *Server) startFlow(c *gin.Context) {

@@ -75,8 +75,12 @@ const (
 	incomingBufferSize = 16
 )
 
+// MaxSubscriptionIDs caps how many aggregates one subscription may name
+const MaxSubscriptionIDs = 1000
+
 var (
 	ErrMissingSubscriptionID = errors.New("missing sub_id")
+	ErrTooManyAggregateIDs   = errors.New("too many aggregate ids")
 )
 
 var (
@@ -397,6 +401,9 @@ func newClientSubscription(
 ) (*clientSubscription, error) {
 	if sub.SubscriptionID == "" {
 		return nil, ErrMissingSubscriptionID
+	}
+	if len(sub.AggregateIDs) > MaxSubscriptionIDs {
+		return nil, ErrTooManyAggregateIDs
 	}
 	ids, err := stringsToIDs(sub.AggregateIDs)
 	if err != nil {

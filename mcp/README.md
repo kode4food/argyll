@@ -16,8 +16,8 @@ This MCP server exposes both the Argyll runtime surface and an OpenAPI-driven de
 - `update_step` - update a step by ID.
 - `unregister_step` - remove a step by ID.
 - `preview_plan` - preview an execution plan from ordered fallback goal sets and init state.
-- `list_flows` - list flows.
-- `query_flows` - query flows by status, labels, ID prefix, sort, and pagination.
+- `list_flows` - list one page of flows, newest first.
+- `query_flows` - query flows by status, labels, ID prefix, and pagination, newest first.
 - `get_flow` - fetch a single flow by ID.
 - `get_flow_status` - fetch the lightweight status payload for a single flow.
 - `start_flow` - start a new flow.

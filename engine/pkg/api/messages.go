@@ -52,7 +52,6 @@ type (
 		Tags     Tags         `json:"tags,omitempty"`
 		IDPrefix string       `json:"id_prefix,omitempty"`
 		Cursor   string       `json:"cursor,omitempty"`
-		Sort     FlowSort     `json:"sort,omitempty"`
 		Statuses []FlowStatus `json:"statuses,omitempty"`
 		Limit    int          `json:"limit,omitempty"`
 	}
@@ -62,7 +61,6 @@ type (
 		NextCursor string            `json:"next_cursor,omitempty"`
 		Flows      []*QueryFlowsItem `json:"flows"`
 		Count      int               `json:"count"`
-		Total      int               `json:"total,omitempty"`
 		HasMore    bool              `json:"has_more,omitempty"`
 	}
 
@@ -146,14 +144,6 @@ type (
 		Error  string `json:"error"`
 		Status int    `json:"status,omitempty"`
 	}
-
-	// FlowSort determines flow query ordering
-	FlowSort string
-)
-
-const (
-	FlowSortRecentDesc FlowSort = "recent_desc"
-	FlowSortRecentAsc  FlowSort = "recent_asc"
 )
 
 // Sanitized returns the request, or a copy with its flow ID and every ID it references sanitized

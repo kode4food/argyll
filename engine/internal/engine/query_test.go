@@ -28,17 +28,22 @@ func TestQueryFlows(t *testing.T) {
 	})
 }
 
-func TestListFlows(t *testing.T) {
+func TestQueryFlowsDefaultLimit(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		assert.NoError(t, env.SeedFlow("wf-listflows", api.FlowActive, nil))
+		for i := range engine.DefaultFlowQueryLimit + 1 {
+			fid := api.FlowID(fmt.Sprintf("wf-default-%03d", i))
+			assert.NoError(t, env.SeedFlow(fid, api.FlowActive, nil))
+		}
 
-		flows, err := env.Engine.ListFlows()
+		resp, err := env.Engine.QueryFlows(&api.QueryFlowsRequest{})
 		assert.NoError(t, err)
-		assert.NotEmpty(t, flows)
+		assert.Len(t, resp.Flows, engine.DefaultFlowQueryLimit)
+		assert.True(t, resp.HasMore)
+		assert.NotEmpty(t, resp.NextCursor)
 	})
 }
 
-func TestListFlowsIgnoresBadStatusEntry(t *testing.T) {
+func TestQueryFlowsRejectsBadStatusEntry(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		addStatusEntry(t, addStatusEntryArgs{
 			env:    env,
@@ -48,9 +53,9 @@ func TestListFlowsIgnoresBadStatusEntry(t *testing.T) {
 			at:     scheduler.Now(),
 		})
 
-		flows, err := env.Engine.ListFlows()
+		resp, err := env.Engine.QueryFlows(&api.QueryFlowsRequest{})
 		assert.Error(t, err)
-		assert.Nil(t, flows)
+		assert.Nil(t, resp)
 		assert.True(t, errors.Is(err, engine.ErrInvalidFlowStatusEntry))
 	})
 }
@@ -115,21 +120,13 @@ func TestTagIndex(t *testing.T) {
 		tags := api.Tags{"tier:gold", "env:prod"}
 		assert.NoError(t, env.SeedFlow("flow-tagged", api.FlowCompleted, tags))
 
-		ids, err := env.ListFlowsByTag("tier:gold")
+		got, err := env.FlowTags("flow-tagged")
 		assert.NoError(t, err)
-		assert.Contains(t, ids, events.FlowKey("flow-tagged"))
-
-		ids, err = env.ListFlowsByTag("env:prod")
-		assert.NoError(t, err)
-		assert.Contains(t, ids, events.FlowKey("flow-tagged"))
-
-		ids, err = env.ListFlowsByTag("tier:silver")
-		assert.NoError(t, err)
-		assert.NotContains(t, ids, events.FlowKey("flow-tagged"))
+		assert.Equal(t, []string{"env:prod", "tier:gold"}, got)
 	})
 }
 
-func TestQueryFlowsSortAsc(t *testing.T) {
+func TestQueryFlowsNewestFirst(t *testing.T) {
 	now := time.Date(2026, 2, 27, 12, 0, 0, 0, time.UTC)
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		addStatusEntry(t, addStatusEntryArgs{
@@ -149,17 +146,16 @@ func TestQueryFlowsSortAsc(t *testing.T) {
 
 		resp, err := env.Engine.QueryFlows(&api.QueryFlowsRequest{
 			Statuses: []api.FlowStatus{api.FlowCompleted},
-			Sort:     api.FlowSortRecentAsc,
 		})
 		assert.NoError(t, err)
-		assert.Len(t, resp.Flows, 2)
-		recent0 := resp.Flows[0].Timestamp
-		recent1 := resp.Flows[1].Timestamp
-		assert.False(t, recent0.After(recent1))
+		if assert.Len(t, resp.Flows, 2) {
+			assert.Equal(t, api.FlowID("flow-b"), resp.Flows[0].ID)
+			assert.Equal(t, api.FlowID("flow-a"), resp.Flows[1].ID)
+		}
 	})
 }
 
-func TestQueryFlowsPaginationAsc(t *testing.T) {
+func TestQueryFlowsPagination(t *testing.T) {
 	now := time.Date(2026, 2, 27, 12, 0, 0, 0, time.UTC)
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		addStatusEntry(t, addStatusEntryArgs{
@@ -185,7 +181,6 @@ func TestQueryFlowsPaginationAsc(t *testing.T) {
 
 		first, err := env.Engine.QueryFlows(&api.QueryFlowsRequest{
 			Statuses: []api.FlowStatus{api.FlowCompleted},
-			Sort:     api.FlowSortRecentAsc,
 			Limit:    1,
 		})
 		assert.NoError(t, err)
@@ -195,7 +190,6 @@ func TestQueryFlowsPaginationAsc(t *testing.T) {
 
 		second, err := env.Engine.QueryFlows(&api.QueryFlowsRequest{
 			Statuses: []api.FlowStatus{api.FlowCompleted},
-			Sort:     api.FlowSortRecentAsc,
 			Limit:    1,
 			Cursor:   first.NextCursor,
 		})
@@ -292,26 +286,6 @@ func TestLabelIntersection(t *testing.T) {
 	})
 }
 
-func TestBadIndexedFlowEntry(t *testing.T) {
-	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		addTagEntry(t, addTagEntryArgs{
-			env:    env,
-			tag:    "tier:gold",
-			prefix: "bad",
-			id:     "flow-id",
-		})
-
-		_, err := env.Engine.QueryFlows(&api.QueryFlowsRequest{
-			Tags: api.Tags{"tier:gold"},
-		})
-		assert.Error(t, err)
-		assert.True(t,
-			errors.Is(err, engine.ErrInvalidFlowStatusEntry) ||
-				errors.Is(err, engine.ErrInvalidFlowTagEntry),
-		)
-	})
-}
-
 func TestSkipChildFlows(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		assert.NoError(t, env.Engine.Start())
@@ -400,52 +374,6 @@ func TestQueryFlowsBadStatuses(t *testing.T) {
 	})
 }
 
-func TestQueryFlowsPageDesc(t *testing.T) {
-	now := time.Date(2026, 2, 27, 12, 0, 0, 0, time.UTC)
-	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		addStatusEntry(t, addStatusEntryArgs{
-			env:    env,
-			status: events.FlowStatusCompleted,
-			prefix: "flow",
-			id:     "page-desc-a",
-			at:     now,
-		})
-		addStatusEntry(t, addStatusEntryArgs{
-			env:    env,
-			status: events.FlowStatusCompleted,
-			prefix: "flow",
-			id:     "page-desc-b",
-			at:     now.Add(10 * time.Millisecond),
-		})
-
-		resp, err := env.Engine.QueryFlows(&api.QueryFlowsRequest{
-			Statuses: []api.FlowStatus{api.FlowCompleted},
-		})
-		assert.NoError(t, err)
-		assert.Len(t, resp.Flows, 2)
-
-		first, err := env.Engine.QueryFlows(&api.QueryFlowsRequest{
-			Statuses: []api.FlowStatus{api.FlowCompleted},
-			Sort:     api.FlowSortRecentDesc,
-			Limit:    1,
-		})
-		assert.NoError(t, err)
-		assert.Equal(t, 1, first.Count)
-		assert.True(t, first.HasMore)
-		assert.NotEmpty(t, first.NextCursor)
-
-		second, err := env.Engine.QueryFlows(&api.QueryFlowsRequest{
-			Statuses: []api.FlowStatus{api.FlowCompleted},
-			Sort:     api.FlowSortRecentDesc,
-			Limit:    1,
-			Cursor:   first.NextCursor,
-		})
-		assert.NoError(t, err)
-		assert.Equal(t, 1, second.Count)
-		assert.NotEqual(t, first.Flows[0].ID, second.Flows[0].ID)
-	})
-}
-
 func TestSortTieBreak(t *testing.T) {
 	at := time.Date(2026, 2, 27, 12, 0, 0, 0, time.UTC)
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
@@ -466,13 +394,12 @@ func TestSortTieBreak(t *testing.T) {
 
 		resp, err := env.Engine.QueryFlows(&api.QueryFlowsRequest{
 			Statuses: []api.FlowStatus{api.FlowCompleted},
-			Sort:     api.FlowSortRecentAsc,
 		})
 		assert.NoError(t, err)
 
 		if assert.Len(t, resp.Flows, 2) {
-			assert.Equal(t, api.FlowID("flow-a"), resp.Flows[0].ID)
-			assert.Equal(t, api.FlowID("flow-b"), resp.Flows[1].ID)
+			assert.Equal(t, api.FlowID("flow-b"), resp.Flows[0].ID)
+			assert.Equal(t, api.FlowID("flow-a"), resp.Flows[1].ID)
 			assert.True(t, resp.Flows[0].Timestamp.Equal(resp.Flows[1].Timestamp))
 		}
 	})
@@ -498,23 +425,94 @@ func TestPageTieBreak(t *testing.T) {
 
 		first, err := env.Engine.QueryFlows(&api.QueryFlowsRequest{
 			Statuses: []api.FlowStatus{api.FlowCompleted},
-			Sort:     api.FlowSortRecentAsc,
 			Limit:    1,
 		})
 		assert.NoError(t, err)
 		assert.True(t, first.HasMore)
 		assert.NotEmpty(t, first.NextCursor)
-		assert.Equal(t, api.FlowID("page-tie-a"), first.Flows[0].ID)
+		assert.Equal(t, api.FlowID("page-tie-b"), first.Flows[0].ID)
 
 		second, err := env.Engine.QueryFlows(&api.QueryFlowsRequest{
 			Statuses: []api.FlowStatus{api.FlowCompleted},
-			Sort:     api.FlowSortRecentAsc,
 			Limit:    1,
 			Cursor:   first.NextCursor,
 		})
 		assert.NoError(t, err)
 		assert.Len(t, second.Flows, 1)
-		assert.Equal(t, api.FlowID("page-tie-b"), second.Flows[0].ID)
+		assert.Equal(t, api.FlowID("page-tie-a"), second.Flows[0].ID)
+	})
+}
+
+func TestQueryFlowsPagesAcrossStatuses(t *testing.T) {
+	base := time.Date(2026, 2, 27, 12, 0, 0, 0, time.UTC)
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		for _, e := range []struct {
+			status string
+			id     string
+			sec    int
+		}{
+			{events.FlowStatusFailed, "f-1", 1},
+			{events.FlowStatusActive, "a-2", 2},
+			{events.FlowStatusCompleted, "c-3", 3},
+			{events.FlowStatusActive, "a-1", 1},
+			{events.FlowStatusCompleted, "c-1:child", 1},
+			{events.FlowStatusFailed, "f-4", 4},
+			{events.FlowStatusCompleted, "c-2", 2},
+		} {
+			addStatusEntry(t, addStatusEntryArgs{
+				env:    env,
+				status: e.status,
+				prefix: events.FlowPrefix,
+				id:     e.id,
+				at:     base.Add(time.Duration(e.sec) * time.Second),
+			})
+		}
+
+		var ids []api.FlowID
+		req := &api.QueryFlowsRequest{Limit: 2}
+		for {
+			resp, err := env.Engine.QueryFlows(req)
+			assert.NoError(t, err)
+			for _, fl := range resp.Flows {
+				ids = append(ids, fl.ID)
+			}
+			if !resp.HasMore {
+				break
+			}
+			req.Cursor = resp.NextCursor
+		}
+		assert.Equal(t, []api.FlowID{"f-4", "c-3", "a-2", "c-2", "a-1", "f-1"}, ids)
+	})
+}
+
+func TestQueryFlowsBoundedScan(t *testing.T) {
+	base := time.Date(2026, 2, 27, 12, 0, 0, 0, time.UTC)
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		for i, id := range []string{"hit-1", "miss-2", "miss-3", "miss-4"} {
+			addStatusEntry(t, addStatusEntryArgs{
+				env:    env,
+				status: events.FlowStatusCompleted,
+				prefix: events.FlowPrefix,
+				id:     id,
+				at:     base.Add(time.Duration(i) * time.Second),
+			})
+		}
+
+		req := &api.QueryFlowsRequest{
+			IDPrefix: "hit-",
+			Limit:    2,
+		}
+		first, err := env.Engine.QueryFlows(req)
+		assert.NoError(t, err)
+		assert.Empty(t, first.Flows)
+		assert.True(t, first.HasMore)
+
+		req.Cursor = first.NextCursor
+		second, err := env.Engine.QueryFlows(req)
+		assert.NoError(t, err)
+		if assert.Len(t, second.Flows, 1) {
+			assert.Equal(t, api.FlowID("hit-1"), second.Flows[0].ID)
+		}
 	})
 }
 
@@ -530,7 +528,7 @@ func addStatusEntry(t *testing.T, args addStatusEntryArgs) {
 	t.Helper()
 
 	aggID := timebox.NewAggregateID(timebox.ID(args.prefix), timebox.ID(args.id))
-	raw, err := marshalIndexedFlowEvent(args.status, nil)
+	raw, err := marshalIndexedFlowEvent(args.status, args.id)
 	assert.NoError(t, err)
 	err = args.env.AppendEvents(aggID, 0, &timebox.Event{
 		AggregateID: aggID,
@@ -541,37 +539,12 @@ func addStatusEntry(t *testing.T, args addStatusEntryArgs) {
 	assert.NoError(t, err)
 }
 
-type addTagEntryArgs struct {
-	env    *helpers.TestEngineEnv
-	tag    string
-	prefix string
-	id     string
-}
-
-func addTagEntry(t *testing.T, args addTagEntryArgs) {
-	t.Helper()
-
-	aggID := timebox.NewAggregateID(timebox.ID(args.prefix), timebox.ID(args.id))
-	raw, err := marshalIndexedFlowEvent(events.FlowStatusActive, api.Tags{args.tag})
-	assert.NoError(t, err)
-	err = args.env.AppendEvents(aggID, 0, &timebox.Event{
-		AggregateID: aggID,
-		Timestamp:   scheduler.Now().UTC(),
-		Type:        timebox.EventType(api.EventTypeFlowStarted),
-		Data:        raw,
-	})
-	assert.NoError(t, err)
-}
-
-func marshalIndexedFlowEvent(status string, tags api.Tags) ([]byte, error) {
+func marshalIndexedFlowEvent(status, id string) ([]byte, error) {
 	if status == events.FlowStatusActive {
-		return json.Marshal(api.FlowStartedEvent{
-			FlowID: "fixture",
-			Tags:   tags,
-		})
+		return json.Marshal(api.FlowStartedEvent{FlowID: api.FlowID(id)})
 	}
 	return json.Marshal(api.FlowDeactivatedEvent{
-		FlowID: "fixture",
+		FlowID: api.FlowID(id),
 		Status: api.FlowStatus(status),
 	})
 }

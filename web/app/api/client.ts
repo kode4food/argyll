@@ -178,7 +178,6 @@ export class ArgyllApi {
     return this.queryFlows({
       limit: opts?.limit,
       cursor: opts?.cursor,
-      sort: "recent_desc",
     });
   }
 

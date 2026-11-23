@@ -50,7 +50,7 @@ require (
 	github.com/googleapis/gax-go/v2 v2.17.0 // indirect
 	github.com/gorilla/websocket v1.5.3 // indirect
 	github.com/invopop/jsonschema v0.14.0 // indirect
-	github.com/kode4food/timebox v0.4.1-0.20261117103344-496eeef3071e // indirect
+	github.com/kode4food/timebox v0.4.1-0.20261123061759-42a8f517abd9 // indirect
 	github.com/pb33f/ordered-map/v2 v2.3.1 // indirect
 	github.com/segmentio/asm v1.1.3 // indirect
 	github.com/segmentio/encoding v0.5.4 // indirect

@@ -2,6 +2,7 @@ package helpers
 
 import (
 	"errors"
+	"slices"
 	"sync"
 	"testing"
 	"time"
@@ -311,22 +312,31 @@ func (e *TestEngineEnv) AppendEvents(
 	return e.flowStore.AppendEvents(id, atSeq, evs)
 }
 
-// ScheduleKeys loads the keys of every active schedule
+// ScheduleKeys loads the keys of every active schedule, a page at a time
 func (e *TestEngineEnv) ScheduleKeys() (util.Set[timebox.ScheduleKey], error) {
-	schedules, err := e.flowStore.LoadSchedules(time.Time{})
-	if err != nil {
-		return nil, err
+	const pageSize = 100
+	res := util.Set[timebox.ScheduleKey]{}
+	var after *timebox.Schedule
+	for {
+		schedules, err := e.flowStore.LoadSchedules(time.Time{}, after, pageSize)
+		if err != nil {
+			return nil, err
+		}
+		for _, schedule := range schedules {
+			res.Add(schedule.Key)
+		}
+		if len(schedules) < pageSize {
+			return res, nil
+		}
+		after = schedules[len(schedules)-1]
 	}
-	res := make(util.Set[timebox.ScheduleKey], len(schedules))
-	for _, schedule := range schedules {
-		res.Add(schedule.Key)
-	}
-	return res, nil
 }
 
-// ListFlowsByTag returns the flow aggregate IDs currently indexed for the tag
-func (e *TestEngineEnv) ListFlowsByTag(tag string) ([]timebox.AggregateID, error) {
-	return e.flowStore.ListAggregatesByTag(tag)
+// FlowTags returns the tags currently indexed for a flow, sorted
+func (e *TestEngineEnv) FlowTags(fid api.FlowID) ([]string, error) {
+	key := events.FlowKey(fid)
+	tags, err := e.flowStore.GetAggregateTags(key)
+	return slices.Sorted(slices.Values(tags[key])), err
 }
 
 func (e *TestEngineEnv) trackUnsubscribe(fn func()) {

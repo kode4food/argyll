@@ -5,7 +5,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"sort"
+	"maps"
+	"slices"
 	"strings"
 	"time"
 
@@ -13,322 +14,213 @@ import (
 
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/events"
-	"github.com/kode4food/argyll/engine/pkg/util"
 )
 
 type (
-	flowItem struct {
-		summary api.QueryFlowsItem
-		group   int
-		recent  int64
-	}
+	// flowQueryCursor records, per status, the last flow a prior page took from that status
+	flowQueryCursor map[api.FlowStatus]flowPosition
 
-	flowStatusEntry struct {
-		id        api.FlowID
-		status    api.FlowStatus
-		timestamp int64
-	}
-
-	queryStatus struct {
-		indexStatus string
-		flowStatus  api.FlowStatus
-	}
-
-	flowQueryCursor struct {
+	flowPosition struct {
 		ID     api.FlowID `json:"id"`
-		Group  int        `json:"group"`
 		Recent int64      `json:"recent"`
 	}
 )
 
-var (
-	ErrInvalidFlowCursor   = errors.New("invalid flow cursor")
-	ErrQueryFlows          = errors.New("failed to query flows")
-	ErrInvalidFlowTagEntry = errors.New("invalid flow tag entry")
-)
+// DefaultFlowQueryLimit is the page size a query uses by default
+const DefaultFlowQueryLimit = 100
 
 var (
-	allQueryStatuses = []queryStatus{
-		{indexStatus: events.FlowStatusActive, flowStatus: api.FlowActive},
-		{indexStatus: events.FlowStatusCompleted, flowStatus: api.FlowCompleted},
-		{indexStatus: events.FlowStatusFailed, flowStatus: api.FlowFailed},
-	}
-
-	queryStatusByFlow = map[api.FlowStatus]queryStatus{
-		api.FlowActive:    allQueryStatuses[0],
-		api.FlowCompleted: allQueryStatuses[1],
-		api.FlowFailed:    allQueryStatuses[2],
-	}
+	ErrInvalidFlowCursor = errors.New("invalid flow cursor")
+	ErrQueryFlows        = errors.New("failed to query flows")
 )
 
-// ListFlows returns summary information for flows using the query path
-func (e *Engine) ListFlows() ([]*api.QueryFlowsItem, error) {
-	resp, err := e.QueryFlows(&api.QueryFlowsRequest{
-		Sort: api.FlowSortRecentDesc,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return resp.Flows, nil
-}
+var allQueryStatuses = []api.FlowStatus{api.FlowActive, api.FlowCompleted, api.FlowFailed}
 
-// QueryFlows returns summary information for flows with filtering and paging
+// QueryFlows returns one page of root flow summaries, newest first across the requested statuses.
+// Each status gets one index read of up to limit entries, resuming from its own cursor position,
+// so a request's cost stays bounded for any filter. HasMore reports more to read, even when
+// filtering shortens a page
 func (e *Engine) QueryFlows(req *api.QueryFlowsRequest) (*api.QueryFlowsResponse, error) {
-	sortOrder := querySortOrder(req)
-	items, err := e.buildFlowQueryItems(req)
+	cursor, err := decodeFlowQueryCursor(req.Cursor)
 	if err != nil {
 		return nil, err
 	}
-	sortFlowItems(items, sortOrder)
-
-	start, err := flowStart(items, req.Cursor, sortOrder)
-	if err != nil {
-		return nil, err
+	limit := req.Limit
+	if limit == 0 {
+		limit = DefaultFlowQueryLimit
 	}
 
-	page := paginateFlowItems(paginateFlowItemsArgs{
-		items: items,
-		start: start,
-		limit: req.Limit,
-	})
-
-	return buildFlowQueryResponse(page.items, len(items), page.hasMore, page.nextCursor), nil
-}
-
-// collectRootFlowEntries returns indexed root flow entries
-func (e *Engine) collectRootFlowEntries(
-	statuses []api.FlowStatus, idPrefix string,
-) ([]flowStatusEntry, error) {
-	var entries []flowStatusEntry
-	seen := util.Set[api.FlowID]{}
-
-	for _, item := range queryStatuses(statuses) {
-		group, err := e.listIndexedEntries(item.indexStatus, item.flowStatus, idPrefix)
+	next := maps.Clone(cursor)
+	flows := []*api.QueryFlowsItem{}
+	more := false
+	for _, status := range queryStatuses(req.Statuses) {
+		entries, err := e.flowStore.ListAggregatesByStatus(timebox.StatusQuery{
+			Status: string(status),
+			Type:   events.FlowPrefix,
+			After:  cursor.after(status),
+			Limit:  limit,
+		})
 		if err != nil {
 			return nil, err
 		}
-		for _, entry := range group {
-			if isChildFlowID(entry.id) || seen.Contains(entry.id) {
-				continue
-			}
-			seen.Add(entry.id)
-			entries = append(entries, entry)
+		if len(entries) == 0 {
+			continue
 		}
+		more = more || len(entries) == limit
+		// The cursor moves past every entry read, filtered or kept
+		last := entries[len(entries)-1]
+		next[status] = flowPosition{
+			ID:     api.FlowID(last.ID.Key),
+			Recent: last.Timestamp.UnixNano(),
+		}
+		page, err := e.admitFlows(req, status, entries)
+		if err != nil {
+			return nil, err
+		}
+		flows = append(flows, page...)
 	}
-	return entries, nil
+
+	// A stable sort keeps each status's own order, so a page takes a prefix of every status
+	slices.SortStableFunc(flows, func(l, r *api.QueryFlowsItem) int {
+		return r.Timestamp.Compare(l.Timestamp)
+	})
+	if len(flows) > limit {
+		more = true
+		flows = cursor.trim(next, flows, limit)
+	}
+
+	res := &api.QueryFlowsResponse{
+		Flows:   flows,
+		Count:   len(flows),
+		HasMore: more,
+	}
+	if more {
+		res.NextCursor = encodeFlowQueryCursor(next)
+	}
+	return res, nil
 }
 
-func (e *Engine) listIndexedEntries(
-	status string, flowStatus api.FlowStatus, idPrefix string,
-) ([]flowStatusEntry, error) {
-	entries, err := e.flowStore.ListAggregatesByStatus(timebox.StatusQuery{
-		Status:    status,
-		Type:      events.FlowPrefix,
-		KeyPrefix: timebox.ID(idPrefix),
+// ListFlows returns one page of all root flow summaries, in QueryFlows order
+func (e *Engine) ListFlows(cursor string, limit int) (*api.QueryFlowsResponse, error) {
+	return e.QueryFlows(&api.QueryFlowsRequest{
+		Cursor: cursor,
+		Limit:  limit,
 	})
-	if err != nil {
-		return nil, err
+}
+
+// admitFlows keeps the entries matching the request's ID prefix and tags, reading every entry's
+// tags in one batch when the request filters by tag
+func (e *Engine) admitFlows(
+	req *api.QueryFlowsRequest, status api.FlowStatus, entries []timebox.StatusEntry,
+) ([]*api.QueryFlowsItem, error) {
+	var tags map[timebox.AggregateID][]string
+	if len(req.Tags) > 0 {
+		ids := make([]timebox.AggregateID, len(entries))
+		for i, entry := range entries {
+			ids[i] = entry.ID
+		}
+		var err error
+		if tags, err = e.flowStore.GetAggregateTags(ids...); err != nil {
+			return nil, err
+		}
 	}
 
-	res := make([]flowStatusEntry, 0, len(entries))
+	var res []*api.QueryFlowsItem
 	for _, entry := range entries {
 		fid, ok := events.ParseFlowID(entry.ID)
 		if !ok {
-			return nil, errors.Join(
-				ErrQueryFlows, fmt.Errorf("%w: %s", ErrInvalidFlowStatusEntry, entry.ID.String()),
+			return nil, errors.Join(ErrQueryFlows,
+				fmt.Errorf("%w: %s", ErrInvalidFlowStatusEntry, entry.ID.String()),
 			)
 		}
-		res = append(res, flowStatusEntry{
-			id:        fid,
-			status:    flowStatus,
-			timestamp: entry.Timestamp.UnixNano(),
+		if !strings.HasPrefix(string(fid), req.IDPrefix) || !hasTags(tags[entry.ID], req.Tags) {
+			continue
+		}
+		res = append(res, &api.QueryFlowsItem{
+			ID:        fid,
+			Status:    status,
+			Timestamp: entry.Timestamp.UTC(),
 		})
 	}
 	return res, nil
 }
 
-// buildFlowQueryItems converts indexed flow entries into sortable query items
-func (e *Engine) buildFlowQueryItems(req *api.QueryFlowsRequest) ([]flowItem, error) {
-	entries, err := e.collectRootFlowEntries(req.Statuses, req.IDPrefix)
-	if err != nil {
-		return nil, err
+// after is where a status's next read resumes, or nil to start from the newest
+func (c flowQueryCursor) after(status api.FlowStatus) *timebox.StatusEntry {
+	pos, ok := c[status]
+	if !ok {
+		return nil
 	}
-
-	tagIDs, err := e.collectTagFlowIDs(req.Tags)
-	if err != nil {
-		return nil, err
+	return &timebox.StatusEntry{
+		Timestamp: time.Unix(0, pos.Recent).UTC(),
+		ID:        events.FlowKey(pos.ID),
 	}
-
-	items := make([]flowItem, 0, len(entries))
-	for _, entry := range entries {
-		if tagIDs != nil && !tagIDs.Contains(entry.id) {
-			continue
-		}
-		items = append(items, flowItemFromEntry(entry))
-	}
-	return items, nil
 }
 
-func (e *Engine) collectTagFlowIDs(tags api.Tags) (util.Set[api.FlowID], error) {
-	if len(tags) == 0 {
-		return nil, nil
+// trim cuts merged flows to the page. A status with flows past the page resumes after its last
+// flow in the page, or from its prior position
+func (c flowQueryCursor) trim(
+	next flowQueryCursor, flows []*api.QueryFlowsItem, limit int,
+) []*api.QueryFlowsItem {
+	cut := map[api.FlowStatus]bool{}
+	for _, fl := range flows[limit:] {
+		cut[fl.Status] = true
 	}
-
-	var res util.Set[api.FlowID]
-	for _, tag := range tags {
-		ids, err := e.flowStore.ListAggregatesByTag(tag)
-		if err != nil {
-			return nil, err
+	for status := range cut {
+		if pos, ok := c[status]; ok {
+			next[status] = pos
+		} else {
+			delete(next, status)
 		}
-
-		curr := util.Set[api.FlowID]{}
-		for _, id := range ids {
-			fid, ok := events.ParseFlowID(id)
-			if !ok {
-				return nil, errors.Join(
-					ErrQueryFlows, fmt.Errorf("%w: %s", ErrInvalidFlowTagEntry, id.String()),
-				)
+	}
+	flows = flows[:limit]
+	for _, fl := range flows {
+		if cut[fl.Status] {
+			next[fl.Status] = flowPosition{
+				ID:     fl.ID,
+				Recent: fl.Timestamp.UnixNano(),
 			}
-			if isChildFlowID(fid) {
-				continue
-			}
-			curr.Add(fid)
-		}
-
-		if res == nil {
-			res = curr
-			continue
-		}
-
-		for fid := range res {
-			if curr.Contains(fid) {
-				continue
-			}
-			res.Remove(fid)
-		}
-		if res.IsEmpty() {
-			return res, nil
 		}
 	}
-
-	return res, nil
+	return flows
 }
 
-func querySortOrder(req *api.QueryFlowsRequest) api.FlowSort {
-	if req.Sort == "" {
-		return api.FlowSortRecentAsc
+func hasTags(have, want []string) bool {
+	for _, tag := range want {
+		if !slices.Contains(have, tag) {
+			return false
+		}
 	}
-	return req.Sort
+	return true
 }
 
-// flowQueryOrdering returns the grouping and recent timestamp for a flow
-func flowQueryOrdering(status api.FlowStatus, recent int64) (int, int64) {
-	if status == api.FlowActive {
-		return 0, recent
-	}
-	return 1, recent
-}
-
-func isChildFlowID(id api.FlowID) bool {
-	return strings.ContainsRune(string(id), ':')
-}
-
-func flowSummaryFromEntry(entry flowStatusEntry) api.QueryFlowsItem {
-	return api.QueryFlowsItem{
-		ID:        entry.id,
-		Status:    entry.status,
-		Timestamp: time.Unix(0, entry.timestamp).UTC(),
-	}
-}
-
-func flowItemFromEntry(entry flowStatusEntry) flowItem {
-	summary := flowSummaryFromEntry(entry)
-	group, recent := flowQueryOrdering(summary.Status, entry.timestamp)
-	return flowItem{
-		summary: summary,
-		group:   group,
-		recent:  recent,
-	}
-}
-
-func queryStatuses(statuses []api.FlowStatus) []queryStatus {
+func queryStatuses(statuses []api.FlowStatus) []api.FlowStatus {
 	if len(statuses) == 0 {
 		return allQueryStatuses
 	}
-
-	res := make([]queryStatus, 0, len(statuses))
-	seen := util.Set[api.FlowStatus]{}
-	for _, status := range statuses {
-		if seen.Contains(status) {
-			continue
-		}
-		seen.Add(status)
-		if qs, ok := queryStatusByFlow[status]; ok {
-			res = append(res, qs)
+	var res []api.FlowStatus
+	for _, status := range allQueryStatuses {
+		if slices.Contains(statuses, status) {
+			res = append(res, status)
 		}
 	}
 	return res
 }
 
-func flowLess(left, right flowItem, sortOrder api.FlowSort) bool {
-	if left.group != right.group {
-		return left.group < right.group
-	}
-	if left.recent != right.recent {
-		if sortOrder == api.FlowSortRecentAsc {
-			return left.recent < right.recent
-		}
-		return left.recent > right.recent
-	}
-	return left.summary.ID < right.summary.ID
-}
-
-func sortFlowItems(items []flowItem, sortOrder api.FlowSort) {
-	sort.Slice(items, func(i, j int) bool {
-		return flowLess(items[i], items[j], sortOrder)
-	})
-}
-
-func flowLessKey(cursor flowQueryCursor, item flowItem, sortOrder api.FlowSort) bool {
-	if cursor.Group != item.group {
-		return cursor.Group < item.group
-	}
-	if cursor.Recent != item.recent {
-		if sortOrder == api.FlowSortRecentAsc {
-			return cursor.Recent < item.recent
-		}
-		return cursor.Recent > item.recent
-	}
-	return cursor.ID < item.summary.ID
-}
-
-// decodeFlowQueryCursor parses a cursor string into a cursor key
+// decodeFlowQueryCursor parses a cursor string, where an empty one starts from the newest flows
 func decodeFlowQueryCursor(value string) (flowQueryCursor, error) {
+	if value == "" {
+		return flowQueryCursor{}, nil
+	}
 	b, err := base64.RawURLEncoding.DecodeString(value)
 	if err != nil {
-		return flowQueryCursor{}, errors.Join(ErrInvalidFlowCursor, err)
+		return nil, errors.Join(ErrInvalidFlowCursor, err)
 	}
 	var cursor flowQueryCursor
 	if err := json.Unmarshal(b, &cursor); err != nil {
-		return flowQueryCursor{}, errors.Join(ErrInvalidFlowCursor, err)
+		return nil, errors.Join(ErrInvalidFlowCursor, err)
 	}
 	return cursor, nil
-}
-
-func flowStart(items []flowItem, cursorValue string, sortOrder api.FlowSort) (int, error) {
-	if cursorValue == "" {
-		return 0, nil
-	}
-	cursor, err := decodeFlowQueryCursor(cursorValue)
-	if err != nil {
-		return 0, err
-	}
-	for i, item := range items {
-		if flowLessKey(cursor, item, sortOrder) {
-			return i, nil
-		}
-	}
-	return len(items), nil
 }
 
 func encodeFlowQueryCursor(cursor flowQueryCursor) string {
@@ -337,68 +229,4 @@ func encodeFlowQueryCursor(cursor flowQueryCursor) string {
 		return ""
 	}
 	return base64.RawURLEncoding.EncodeToString(b)
-}
-
-type (
-	paginateFlowItemsArgs struct {
-		items []flowItem
-		start int
-		limit int
-	}
-
-	paginateFlowItemsRes struct {
-		items      []flowItem
-		hasMore    bool
-		nextCursor string
-	}
-)
-
-func paginateFlowItems(args paginateFlowItemsArgs) paginateFlowItemsRes {
-	items := args.items
-	end := len(items)
-	if args.limit > 0 && args.start+args.limit < end {
-		end = args.start + args.limit
-	}
-
-	var page []flowItem
-	if args.start < len(items) {
-		page = items[args.start:end]
-	}
-
-	hasMore := end < len(items)
-	if !hasMore || len(page) == 0 {
-		return paginateFlowItemsRes{
-			items:   page,
-			hasMore: hasMore,
-		}
-	}
-
-	last := page[len(page)-1]
-	nextCursor := encodeFlowQueryCursor(flowQueryCursor{
-		Group:  last.group,
-		Recent: last.recent,
-		ID:     last.summary.ID,
-	})
-	return paginateFlowItemsRes{
-		items:      page,
-		hasMore:    hasMore,
-		nextCursor: nextCursor,
-	}
-}
-
-// buildFlowQueryResponse converts items into the response payload
-func buildFlowQueryResponse(
-	page []flowItem, total int, hasMore bool, nextCursor string,
-) *api.QueryFlowsResponse {
-	flows := make([]*api.QueryFlowsItem, 0, len(page))
-	for _, item := range page {
-		flows = append(flows, new(item.summary))
-	}
-	return &api.QueryFlowsResponse{
-		Flows:      flows,
-		Count:      len(flows),
-		Total:      total,
-		HasMore:    hasMore,
-		NextCursor: nextCursor,
-	}
 }

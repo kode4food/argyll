@@ -511,6 +511,45 @@ func TestSubscribeNoID(t *testing.T) {
 	assert.False(t, getStateCalled)
 }
 
+func TestSubscribeTooManyIDs(t *testing.T) {
+	getState := func(id timebox.AggregateID) (any, int64, error) {
+		assert.Equal(t, events.FlowKey("wf-valid"), id)
+		return api.FlowState{ID: "wf-valid"}, 1, nil
+	}
+
+	env := testWebSocket(t, getState)
+	defer env.Cleanup()
+
+	ids := make([][]string, server.MaxSubscriptionIDs+1)
+	for i := range ids {
+		ids[i] = []string{events.FlowPrefix, fmt.Sprintf("wf-%d", i)}
+	}
+	err := env.Conn.WriteJSON(api.SubscribeRequest{
+		Type: "subscribe",
+		Data: api.ClientSubscription{
+			SubscriptionID: "sub-big",
+			AggregateIDs:   ids,
+			IncludeState:   true,
+		},
+	})
+	assert.NoError(t, err)
+
+	err = env.Conn.WriteJSON(api.SubscribeRequest{
+		Type: "subscribe",
+		Data: api.ClientSubscription{
+			SubscriptionID: "sub-ok",
+			AggregateIDs:   [][]string{{events.FlowPrefix, "wf-valid"}},
+			IncludeState:   true,
+		},
+	})
+	assert.NoError(t, err)
+
+	_ = env.Conn.SetReadDeadline(scheduler.Now().Add(500 * time.Millisecond))
+	var msg api.SubscribedResult
+	assert.NoError(t, env.Conn.ReadJSON(&msg))
+	assert.Equal(t, "sub-ok", msg.SubscriptionID)
+}
+
 func TestClientPongHandler(t *testing.T) {
 	getState := func(id timebox.AggregateID) (any, int64, error) {
 		return api.FlowState{ID: "wf-123"}, 0, nil

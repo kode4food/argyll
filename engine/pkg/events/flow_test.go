@@ -143,6 +143,24 @@ func TestFlowDeactivatedIndex(t *testing.T) {
 	}
 }
 
+func TestChildFlowIndex(t *testing.T) {
+	data, err := json.Marshal(api.FlowDeactivatedEvent{
+		FlowID: "parent:step:token",
+		Status: api.FlowFailed,
+	})
+	assert.NoError(t, err)
+
+	indexes := events.FlowIndexer([]*timebox.Event{{
+		AggregateID: events.FlowKey("parent:step:token"),
+		Type:        timebox.EventType(api.EventTypeFlowDeactivated),
+		Data:        data,
+	}})
+
+	if assert.Len(t, indexes, 1) {
+		assert.Equal(t, events.ChildStatusPrefix+string(api.FlowFailed), *indexes[0].Status)
+	}
+}
+
 func TestParseFlowID(t *testing.T) {
 	tests := []struct {
 		name string

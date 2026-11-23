@@ -246,21 +246,6 @@ func TestQueryFlows(t *testing.T) {
 	})
 }
 
-func TestListFlows(t *testing.T) {
-	withTestServerEnv(t, func(testEnv *testServerEnv) {
-		assert.NoError(t, testEnv.Engine.Start())
-		defer func() { _ = testEnv.Engine.Stop() }()
-
-		req := httptest.NewRequest("GET", "/engine/flows", nil)
-		w := httptest.NewRecorder()
-
-		router := testEnv.Server.SetupRoutes()
-		router.ServeHTTP(w, req)
-
-		assert.Equal(t, http.StatusOK, w.Code)
-	})
-}
-
 func TestSuccess(t *testing.T) {
 	withTestServerEnv(t, func(testEnv *testServerEnv) {
 		assert.NoError(t, testEnv.Engine.Start())
@@ -1097,40 +1082,6 @@ func TestQueryFlowsEmpty(t *testing.T) {
 	})
 }
 
-func TestListFlowsEndpoint(t *testing.T) {
-	withTestServerEnv(t, func(testEnv *testServerEnv) {
-		assert.NoError(t, testEnv.Engine.Start())
-		defer func() { _ = testEnv.Engine.Stop() }()
-
-		st := helpers.NewSimpleStep("list-step")
-		err := testEnv.Engine.RegisterStep(st)
-		assert.NoError(t, err)
-
-		pl := &api.ExecutionPlan{
-			Goals: api.Goals{Steps: []api.StepID{st.ID}},
-			Steps: api.Steps{st.ID: st},
-		}
-
-		testEnv.WaitFor(wait.FlowActivated("wf-list"), func() {
-			err = testEnv.Engine.StartPlan("wf-list", pl)
-			assert.NoError(t, err)
-		})
-
-		req := httptest.NewRequest("GET", "/engine/flows", nil)
-		w := httptest.NewRecorder()
-
-		router := testEnv.Server.SetupRoutes()
-		router.ServeHTTP(w, req)
-
-		assert.Equal(t, http.StatusOK, w.Code)
-
-		var response []*api.QueryFlowsItem
-		err = json.Unmarshal(w.Body.Bytes(), &response)
-		assert.NoError(t, err)
-		assert.NotEmpty(t, response)
-	})
-}
-
 func TestQueryFlowsInvalidStatuses(t *testing.T) {
 	withTestServerEnv(t, func(testEnv *testServerEnv) {
 		reqBody := map[string]any{
@@ -1656,6 +1607,37 @@ func TestQueryFlowsLimitTooHigh(t *testing.T) {
 	})
 }
 
+func TestListFlows(t *testing.T) {
+	withTestServerEnv(t, func(testEnv *testServerEnv) {
+		assert.NoError(t, testEnv.SeedFlow("wf-list-1", api.FlowActive, nil))
+		assert.NoError(t, testEnv.SeedFlow("wf-list-2", api.FlowActive, nil))
+		router := testEnv.Server.SetupRoutes()
+
+		get := func(path string) *httptest.ResponseRecorder {
+			w := httptest.NewRecorder()
+			router.ServeHTTP(w, httptest.NewRequest("GET", path, nil))
+			return w
+		}
+
+		w := get("/engine/flows?limit=1")
+		assert.Equal(t, http.StatusOK, w.Code)
+		var page api.QueryFlowsResponse
+		assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &page))
+		assert.Equal(t, 1, page.Count)
+		assert.True(t, page.HasMore)
+
+		w = get("/engine/flows?limit=1&cursor=" + page.NextCursor)
+		assert.Equal(t, http.StatusOK, w.Code)
+		var next api.QueryFlowsResponse
+		assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &next))
+		assert.Equal(t, 1, next.Count)
+		assert.NotEqual(t, page.Flows[0].ID, next.Flows[0].ID)
+
+		assert.Equal(t, http.StatusBadRequest, get("/engine/flows?limit=x").Code)
+		assert.Equal(t, http.StatusBadRequest, get("/engine/flows?cursor=%25%25").Code)
+	})
+}
+
 func TestQueryFlowsNegativeLimit(t *testing.T) {
 	withTestServerEnv(t, func(testEnv *testServerEnv) {
 		reqBody := map[string]any{"limit": -1}
@@ -1669,22 +1651,6 @@ func TestQueryFlowsNegativeLimit(t *testing.T) {
 
 		assert.Equal(t, http.StatusBadRequest, w.Code)
 		assert.Contains(t, w.Body.String(), "Limit must be between")
-	})
-}
-
-func TestQueryFlowsInvalidSort(t *testing.T) {
-	withTestServerEnv(t, func(testEnv *testServerEnv) {
-		reqBody := map[string]any{"sort": "invalid-sort-value"}
-		body, _ := json.Marshal(reqBody)
-		req := httptest.NewRequest("POST", "/engine/flows/query", bytes.NewReader(body))
-		req.Header.Set("Content-Type", api.JSONContentType)
-		w := httptest.NewRecorder()
-
-		router := testEnv.Server.SetupRoutes()
-		router.ServeHTTP(w, req)
-
-		assert.Equal(t, http.StatusBadRequest, w.Code)
-		assert.Contains(t, w.Body.String(), "Invalid sort")
 	})
 }
 

@@ -2,6 +2,8 @@ package mcp
 
 import (
 	"errors"
+	"net/url"
+	"strconv"
 
 	"github.com/localrivet/gomcp/server"
 
@@ -18,13 +20,17 @@ type (
 		ID string `json:"id"`
 	}
 
+	listFlowsArgs struct {
+		Limit  *int    `json:"limit,omitempty"`
+		Cursor *string `json:"cursor,omitempty"`
+	}
+
 	queryFlowsArgs struct {
 		IDPrefix *string            `json:"id_prefix,omitempty"`
 		Labels   *map[string]string `json:"labels,omitempty"`
 		Statuses *[]string          `json:"statuses,omitempty"`
 		Limit    *int               `json:"limit,omitempty"`
 		Cursor   *string            `json:"cursor,omitempty"`
-		Sort     *string            `json:"sort,omitempty"`
 	}
 
 	registerStepInput struct {
@@ -195,9 +201,16 @@ func (s *Server) registerStepWriteTools(srv server.Server) {
 func (s *Server) registerFlowReadTools(srv server.Server) {
 	srv.Tool(
 		"list_flows",
-		"List all flows in the engine",
-		func(*server.Context, any) (any, error) {
-			payload, err := s.httpGet("/engine/flows")
+		"List one page of flows, newest first",
+		func(_ *server.Context, args listFlowsArgs) (any, error) {
+			q := url.Values{}
+			if args.Limit != nil {
+				q.Set("limit", strconv.Itoa(*args.Limit))
+			}
+			if args.Cursor != nil {
+				q.Set("cursor", *args.Cursor)
+			}
+			payload, err := s.httpGet("/engine/flows?" + q.Encode())
 			return toolResult(payload, err)
 		},
 	)
