@@ -86,12 +86,14 @@ func buildStepDiffs(
 func diffStepFields(steps stepFieldDiff) ([]string, map[string]any) {
 	keys := []string{
 		"name",
+		"description",
 		"type",
-		"labels",
+		"tags",
 		"attributes",
 		"http",
 		"flow",
 		"script",
+		"agent",
 		"predicate",
 		"work_config",
 		"handling",

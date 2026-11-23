@@ -15,12 +15,18 @@ This MCP server exposes both the Argyll runtime surface and an OpenAPI-driven de
 - `get_step` - fetch a single step by ID.
 - `update_step` - update a step by ID.
 - `unregister_step` - remove a step by ID.
-- `preview_plan` - preview an execution plan from ordered fallback goal sets and init state.
+- `preview_plan` - preview an execution plan from ordered fallback goal sets and init state. Any step can be a goal, including one without outputs.
 - `list_flows` - list one page of flows, newest first.
-- `query_flows` - query flows by status, labels, ID prefix, and pagination, newest first.
+- `query_flows` - query flows by status, tags, ID prefix, and pagination, newest first.
 - `get_flow` - fetch a single flow by ID.
 - `get_flow_status` - fetch the lightweight status payload for a single flow.
-- `start_flow` - start a new flow.
+- `get_flow_events` - fetch a flow's event history in order.
+- `start_flow` - start a new flow from goal sets, optional init state, tags, and space. Without an ID, it generates one from the first goal set's step IDs and a hash of the current time.
+- `list_spaces`, `get_space`, `list_space_steps` - read spaces and the steps they select.
+- `preview_space` - show which steps a space would select without saving it.
+- `register_space`, `update_space`, `unregister_space` - manage spaces.
+- `list_feeds`, `get_feed` - read feeds and their current values.
+- `register_feed`, `update_feed`, `unregister_feed` - manage feeds.
 - `engine_state` - fetch the current engine state.
 - `list_step_health` - list health for all steps.
 - `get_step_health` - fetch health for a single step.

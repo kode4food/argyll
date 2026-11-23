@@ -12,25 +12,17 @@ import (
 )
 
 type (
-	getStepArgs struct {
-		ID string `json:"id"`
-	}
-
-	getFlowArgs struct {
-		ID string `json:"id"`
-	}
-
 	listFlowsArgs struct {
-		Limit  *int    `json:"limit,omitempty"`
-		Cursor *string `json:"cursor,omitempty"`
+		Limit  *int    `json:"limit,omitempty" description:"Maximum Flows to return"`
+		Cursor *string `json:"cursor,omitempty" description:"next_cursor from the previous page"`
 	}
 
 	queryFlowsArgs struct {
-		IDPrefix *string            `json:"id_prefix,omitempty"`
-		Labels   *map[string]string `json:"labels,omitempty"`
-		Statuses *[]string          `json:"statuses,omitempty"`
-		Limit    *int               `json:"limit,omitempty"`
-		Cursor   *string            `json:"cursor,omitempty"`
+		IDPrefix *string   `json:"id_prefix,omitempty" description:"Flow ID prefix"`
+		Tags     *[]string `json:"tags,omitempty" description:"Tags a Flow must all carry"`
+		Statuses *[]string `json:"statuses,omitempty" description:"active, completed, or failed"`
+		Limit    *int      `json:"limit,omitempty" description:"Maximum Flows to return"`
+		Cursor   *string   `json:"cursor,omitempty" description:"next_cursor from the prior page"`
 	}
 
 	registerStepInput struct {
@@ -39,7 +31,7 @@ type (
 
 	updateStepArgs struct {
 		Step map[string]any `json:"step"`
-		ID   string         `json:"id"`
+		ID   string         `json:"id" description:"Step ID"`
 	}
 
 	diffProposedStepsArgs struct {
@@ -62,8 +54,26 @@ type (
 	}
 
 	startFlowInput struct {
-		Flow map[string]any `json:"flow"`
+		Init    *map[string]any `json:"init,omitempty"`
+		Tags    *[]string       `json:"tags,omitempty"`
+		SpaceID *string         `json:"space_id,omitempty" description:"Space to plan in"`
+		Goals   api.Goals       `json:"goals"`
+		ID      *string         `json:"id,omitempty" description:"Leave out for a fresh ID"`
 	}
+)
+
+// Argument shapes the schema cannot express, spelled out in tool descriptions
+const (
+	goalsShape = `goals is {"steps": ["step-id"]}, with an optional "else" goal set tried ` +
+		"when the first becomes impossible. Any Step can be a Goal, including one " +
+		"without outputs"
+	initShape = `init maps each Attribute name to an array of values, such as ` +
+		`{"user_id": ["user-123"]}. Inputs left out use their defaults or come from ` +
+		"other Steps"
+	stepShape = "A Step has id, name, description, type (service, script, flow, or " +
+		"agent), attributes, and the config object named by its type. attributes maps " +
+		`each Attribute name to {"role": ...}, where role is required, optional, const, ` +
+		"meta, feed, output, or metric. Copy the shape from get_step"
 )
 
 var (
@@ -73,21 +83,20 @@ var (
 func (s *Server) registerTools(srv server.Server) {
 	s.registerEngineTools(srv)
 	s.registerAnalysisTools(srv)
-	s.registerStepReadTools(srv)
-	s.registerStepWriteTools(srv)
+	s.registerStepTools(srv)
 	s.registerFlowReadTools(srv)
 	s.registerFlowWriteTools(srv)
 	s.registerHealthTools(srv)
+	s.registerSpaceTools(srv)
+	s.registerFeedTools(srv)
 }
 
 func (s *Server) registerEngineTools(srv server.Server) {
 	srv.Tool(
 		"engine_state",
-		"Fetch the current engine state",
-		func(*server.Context, any) (any, error) {
-			payload, err := s.httpGet("/engine")
-			return toolResult(payload, err)
-		},
+		"Fetch the engine overview: registered Steps, Attributes, Step health, "+
+			"and active Flows",
+		pathTool(s.httpGet, "/engine"),
 	)
 }
 
@@ -122,63 +131,42 @@ func (s *Server) registerAnalysisTools(srv server.Server) {
 	)
 }
 
-func (s *Server) registerStepReadTools(srv server.Server) {
+func (s *Server) registerStepTools(srv server.Server) {
 	srv.Tool(
 		"list_steps",
-		"List registered steps in the engine",
-		func(*server.Context, any) (any, error) {
-			payload, err := s.httpGet("/engine/steps")
-			return toolResult(payload, err)
-		},
+		"List every registered Step with its Attributes and configuration",
+		pathTool(s.httpGet, "/engine/steps"),
 	)
 	srv.Tool(
 		"get_step",
-		"Fetch a single step by ID",
-		func(_ *server.Context, args getStepArgs) (any, error) {
-			if args.ID == "" {
-				return nil, errInvalidParams("id is required")
-			}
-			payload, err := s.httpGet("/engine/steps/" + args.ID)
-			return toolResult(payload, err)
-		},
+		"Fetch one Step's registration: Attributes with roles, predicate, and "+
+			"type configuration",
+		idTool(s.httpGet, "/engine/steps/", ""),
 	)
-}
-
-func (s *Server) registerStepWriteTools(srv server.Server) {
 	srv.Tool(
 		"unregister_step",
-		"Remove a step from the engine",
-		func(_ *server.Context, args getStepArgs) (any, error) {
-			if args.ID == "" {
-				return nil, errInvalidParams("id is required")
-			}
-			payload, err := s.httpDelete("/engine/steps/" + args.ID)
-			return toolResult(payload, err)
-		},
+		"Remove a Step from the catalog",
+		idTool(s.httpDelete, "/engine/steps/", ""),
 	)
 	srv.Tool(
 		"register_step",
-		"Register a new step with the engine",
+		"Register a new Step in the catalog. "+stepShape,
 		func(_ *server.Context, args registerStepInput) (any, error) {
 			if len(args.Step) == 0 {
 				return nil, errInvalidParams("step body is required")
 			}
-			payload, err := s.httpPost("/engine/steps", args.Step)
-			return toolResult(payload, err)
+			return toolResult(s.httpPost("/engine/steps", args.Step))
 		},
 	)
 	srv.Tool(
 		"update_step",
-		"Update an existing step registration",
+		"Replace an existing Step registration. Fetch it with get_step, change "+
+			"it, and send the whole Step",
 		func(_ *server.Context, args updateStepArgs) (any, error) {
-			if args.ID == "" {
-				return nil, errInvalidParams("id is required")
+			if args.ID == "" || len(args.Step) == 0 {
+				return nil, errInvalidParams("id and step body are required")
 			}
-			if len(args.Step) == 0 {
-				return nil, errInvalidParams("step body is required")
-			}
-			payload, err := s.httpPut("/engine/steps/"+args.ID, args.Step)
-			return toolResult(payload, err)
+			return toolResult(s.httpPut("/engine/steps/"+args.ID, args.Step))
 		},
 	)
 	srv.Tool(
@@ -201,7 +189,8 @@ func (s *Server) registerStepWriteTools(srv server.Server) {
 func (s *Server) registerFlowReadTools(srv server.Server) {
 	srv.Tool(
 		"list_flows",
-		"List one page of flows, newest first",
+		"List one page of Flows, newest first. Pass next_cursor as cursor for "+
+			"the next page",
 		func(_ *server.Context, args listFlowsArgs) (any, error) {
 			q := url.Values{}
 			if args.Limit != nil {
@@ -210,38 +199,32 @@ func (s *Server) registerFlowReadTools(srv server.Server) {
 			if args.Cursor != nil {
 				q.Set("cursor", *args.Cursor)
 			}
-			payload, err := s.httpGet("/engine/flows?" + q.Encode())
-			return toolResult(payload, err)
+			return toolResult(s.httpGet("/engine/flows?" + q.Encode()))
 		},
 	)
 	srv.Tool(
 		"get_flow",
-		"Fetch a single flow by ID",
-		func(_ *server.Context, args getFlowArgs) (any, error) {
-			if args.ID == "" {
-				return nil, errInvalidParams("id is required")
-			}
-			payload, err := s.httpGet("/engine/flows/" + args.ID)
-			return toolResult(payload, err)
-		},
+		"Fetch a Flow's full state: plan, Attribute values, and each Step's "+
+			"executions with inputs, outputs, and errors. Use it to see why a "+
+			"Flow stalled or failed",
+		idTool(s.httpGet, "/engine/flows/", ""),
 	)
 	srv.Tool(
 		"get_flow_status",
-		"Fetch the current status for a single flow",
-		func(_ *server.Context, args getFlowArgs) (any, error) {
-			if args.ID == "" {
-				return nil, errInvalidParams("id is required")
-			}
-			payload, err := s.httpGet("/engine/flows/" + args.ID + "/status")
-			return toolResult(payload, err)
-		},
+		"Fetch a Flow's status: active, completed, or failed",
+		idTool(s.httpGet, "/engine/flows/", "/status"),
+	)
+	srv.Tool(
+		"get_flow_events",
+		"Fetch a Flow's event history in order, including Step starts, "+
+			"skips, retries, completions, and failures",
+		idTool(s.httpGet, "/engine/flows/", "/events"),
 	)
 	srv.Tool(
 		"query_flows",
-		"Query flows by status, ID prefix, labels, and pagination",
+		"Query Flows by status, ID prefix, and tags, newest first",
 		func(_ *server.Context, args queryFlowsArgs) (any, error) {
-			payload, err := s.httpPost("/engine/flows/query", args)
-			return toolResult(payload, err)
+			return toolResult(s.httpPost("/engine/flows/query", args))
 		},
 	)
 }
@@ -249,18 +232,39 @@ func (s *Server) registerFlowReadTools(srv server.Server) {
 func (s *Server) registerFlowWriteTools(srv server.Server) {
 	srv.Tool(
 		"start_flow",
-		"Start a new flow execution",
+		"Start a Flow that runs its Goal Steps. The plan includes every Step "+
+			"needed to produce the Goals' inputs. The response names the Flow ID. "+
+			"Never reuse an earlier ID. "+goalsShape+". "+initShape,
 		func(_ *server.Context, args startFlowInput) (any, error) {
-			if len(args.Flow) == 0 {
-				return nil, errInvalidParams("flow body is required")
+			if !args.Goals.Valid() {
+				return nil, errInvalidParams("goals requires at least one non-empty goal set")
 			}
-			payload, err := s.httpPost("/engine/flows", args.Flow)
-			return toolResult(payload, err)
+			id := newFlowID(args.Goals)
+			if args.ID != nil && *args.ID != "" {
+				id = api.FlowID(*args.ID)
+			}
+			body := map[string]any{
+				"id":    id,
+				"goals": args.Goals,
+				"init":  map[string]any{},
+			}
+			if args.Init != nil {
+				body["init"] = *args.Init
+			}
+			if args.Tags != nil {
+				body["tags"] = *args.Tags
+			}
+			if args.SpaceID != nil {
+				body["space_id"] = *args.SpaceID
+			}
+			return toolResult(s.httpPost("/engine/flows", body))
 		},
 	)
 	srv.Tool(
 		"preview_plan",
-		"Preview execution plan for ordered fallback goal sets and init state",
+		"Preview the plan for Goal Steps and initial Attribute values. Shows "+
+			"the Steps that would run and the inputs still missing. "+goalsShape+". "+
+			initShape,
 		func(_ *server.Context, args previewPlanInput) (any, error) {
 			if !args.Goals.Valid() {
 				return nil, errInvalidParams("goals requires at least one non-empty goal set")
@@ -269,14 +273,10 @@ func (s *Server) registerFlowWriteTools(srv server.Server) {
 			if args.Init != nil {
 				init = *args.Init
 			}
-			payload, err := s.httpPost(
-				"/engine/plan",
-				previewPlanArgs{
-					Goals: args.Goals,
-					Init:  init,
-				},
-			)
-			return toolResult(payload, err)
+			return toolResult(s.httpPost("/engine/plan", previewPlanArgs{
+				Goals: args.Goals,
+				Init:  init,
+			}))
 		},
 	)
 }
@@ -284,21 +284,12 @@ func (s *Server) registerFlowWriteTools(srv server.Server) {
 func (s *Server) registerHealthTools(srv server.Server) {
 	srv.Tool(
 		"list_step_health",
-		"List health status for all registered steps",
-		func(*server.Context, any) (any, error) {
-			payload, err := s.httpGet("/engine/health")
-			return toolResult(payload, err)
-		},
+		"List health for every registered Step",
+		pathTool(s.httpGet, "/engine/health"),
 	)
 	srv.Tool(
 		"get_step_health",
-		"Fetch health status for a single step",
-		func(_ *server.Context, args getStepArgs) (any, error) {
-			if args.ID == "" {
-				return nil, errInvalidParams("id is required")
-			}
-			payload, err := s.httpGet("/engine/health/" + args.ID)
-			return toolResult(payload, err)
-		},
+		"Fetch one Step's health",
+		idTool(s.httpGet, "/engine/health/", ""),
 	)
 }

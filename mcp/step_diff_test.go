@@ -98,6 +98,47 @@ func TestDiffProposedStepsTool(t *testing.T) {
 	assert.Len(t, items, 3)
 }
 
+func TestDiffProposedStepsDetectsTagsAndAgent(t *testing.T) {
+	hc := &http.Client{
+		Transport: roundTripperFunc(
+			func(*http.Request) (*http.Response, error) {
+				return jsonResponse(http.StatusOK, []byte(`{
+					"steps": [{
+						"id": "assess",
+						"name": "Assess",
+						"description": "old",
+						"type": "agent",
+						"tags": ["team:core"],
+						"agent": {"provider": "anthropic", "model": "a"},
+						"attributes": {}
+					}],
+					"count": 1
+				}`)), nil
+			},
+		),
+	}
+	c := newClient(t, mcp.NewServer("http://example", hc))
+	text := callToolText(t, c, "diff_proposed_steps", map[string]any{
+		"steps": []map[string]any{{
+			"id":          "assess",
+			"name":        "Assess",
+			"description": "new",
+			"type":        "agent",
+			"tags":        []string{"team:risk"},
+			"agent":       map[string]any{"provider": "anthropic", "model": "b"},
+			"attributes":  map[string]any{},
+		}},
+	})
+
+	var payload map[string]any
+	assert.NoError(t, json.Unmarshal([]byte(text), &payload))
+	summary := payload["summary"].(map[string]any)
+	assert.Equal(t, float64(1), summary["update"])
+	assert.Contains(t, text, `"tags"`)
+	assert.Contains(t, text, `"agent"`)
+	assert.Contains(t, text, `"description"`)
+}
+
 func TestApplyProposedStepsTool(t *testing.T) {
 	var posts []map[string]any
 	var puts []map[string]any
