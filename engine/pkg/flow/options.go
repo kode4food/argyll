@@ -44,9 +44,9 @@ func WithMetadata(meta api.Metadata) Applier {
 func WithParent(parent api.FlowStep, tkn api.Token) Applier {
 	return func(opt *Options) {
 		opt.Metadata = opt.Metadata.Apply(api.Metadata{
-			api.MetaParentFlowID:        parent.FlowID,
-			api.MetaParentStepID:        parent.StepID,
-			api.MetaParentWorkItemToken: tkn,
+			api.MetaParentFlowID:    parent.FlowID,
+			api.MetaParentStepID:    parent.StepID,
+			api.MetaParentWorkToken: tkn,
 		})
 	}
 }

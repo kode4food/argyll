@@ -29,7 +29,7 @@ func TestDefaultOptions(t *testing.T) {
 	assert.Equal(t, meta["k"], opts.Metadata["k"])
 	assert.Equal(t, parent.FlowID, opts.Metadata[api.MetaParentFlowID])
 	assert.Equal(t, parent.StepID, opts.Metadata[api.MetaParentStepID])
-	assert.Equal(t, tkn, opts.Metadata[api.MetaParentWorkItemToken])
+	assert.Equal(t, tkn, opts.Metadata[api.MetaParentWorkToken])
 	assert.Equal(t, tags, opts.Tags)
 }
 
@@ -52,6 +52,6 @@ func TestApply(t *testing.T) {
 	assert.Equal(t, "n", opts.Metadata["m"])
 	assert.Equal(t, parent.FlowID, opts.Metadata[api.MetaParentFlowID])
 	assert.Equal(t, parent.StepID, opts.Metadata[api.MetaParentStepID])
-	assert.Equal(t, tkn, opts.Metadata[api.MetaParentWorkItemToken])
+	assert.Equal(t, tkn, opts.Metadata[api.MetaParentWorkToken])
 	assert.Equal(t, api.Tags{"l:z"}, opts.Tags)
 }

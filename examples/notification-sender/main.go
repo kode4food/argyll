@@ -52,9 +52,9 @@ var notifications sync.Map
 //argyll:description send order confirmation notifications
 //argyll:tags domain:notifications; capability:send; example; demo:checkout
 func NotificationSender(ctx argyll.StepContext, args NotificationArgs) error {
-	tkn, ok := ctx.Metadata().GetString[api.Token](api.MetaReceiptToken)
+	tkn, ok := ctx.Metadata().GetString[api.Token](api.MetaWorkToken)
 	if !ok {
-		return argyll.BadRequest("receipt token required")
+		return argyll.BadRequest("work token required")
 	}
 	call := notificationCall(sync.OnceValue(func() error {
 		return sendNotifications(args)

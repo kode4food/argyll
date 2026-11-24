@@ -18,7 +18,7 @@ docker compose up
 | `notification-sender` | `//argyll:step` sink over several upstream results |
 | `simple-step` | Inline Lua Steps |
 
-Order creation, stock reservation, payment processing, and notification sending keep successful results in memory and replay them when the same receipt token is retried.
+Order creation, stock reservation, payment processing, and notification sending keep successful results in memory and replay them when the same work token is retried.
 
 ## Run the Complete Flow
 

@@ -74,7 +74,7 @@ func TestAgentInvoke(t *testing.T) {
 		Timeout: agentTimeout.Milliseconds(),
 	}
 	assert.Equal(t, want, got)
-	assert.Equal(t, "token-1", header.Get(api.HeaderReceiptToken))
+	assert.Equal(t, "token-1", header.Get(api.HeaderWorkToken))
 	assert.Equal(t, "flow-1", header.Get(api.HeaderFlowID))
 	assert.Equal(t,
 		"http://engine/callbacks/flow-1/step-1/token-1/agent/"+callbackKey,

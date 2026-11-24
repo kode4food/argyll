@@ -75,4 +75,4 @@ client.new_flow("order-flow-123") \
 - Uses Python's `threading` module for background processing
 - Simulates payment gateway delays with `time.sleep()`
 - Returns immediately from handler, completes via webhook
-- Refunds synchronously by receipt token, and refunding an unknown or already refunded payment is a no-op
+- Refunds synchronously by work token, and refunding an unknown or already refunded payment is a no-op

@@ -81,7 +81,7 @@ func TestCompensationSucceeds(t *testing.T) {
 		meta := <-invoked
 		assert.Equal(t, id, meta[api.MetaFlowID])
 		assert.Equal(t, st.ID, meta[api.MetaStepID])
-		assert.Equal(t, tkn, meta[api.MetaReceiptToken])
+		assert.Equal(t, tkn, meta[api.MetaWorkToken])
 		assert.NotContains(t, meta, api.MetaWebhookURL)
 	})
 }
@@ -195,7 +195,7 @@ func TestCompensationAsyncAwaitsCallback(t *testing.T) {
 		assert.Contains(t, meta, api.MetaWebhookURL)
 		assert.Equal(t, id, meta[api.MetaFlowID])
 		assert.Equal(t, st.ID, meta[api.MetaStepID])
-		assert.Equal(t, tkn, meta[api.MetaReceiptToken])
+		assert.Equal(t, tkn, meta[api.MetaWorkToken])
 		webhook, _ := meta[api.MetaWebhookURL].(string)
 		secret, ok := strings.CutPrefix(webhook,
 			"http://localhost:8080/callbacks/wf-comp-async/comp-async-step/work-a/compensate/")

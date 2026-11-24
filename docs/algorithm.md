@@ -593,7 +593,7 @@ PREPARE_STEP(step):
             ADVANCE_FLOW()
             RETURN
         IF predicate is FALSE: exclude item
-        ELSE: assign a fresh receipt token
+        ELSE: assign a fresh work token
     IF items had candidates and every candidate was excluded:
         EMIT step_skipped(predicate-false reason, inputs)
         DELIVER_METRICS(step, SKIPPED)
@@ -669,7 +669,7 @@ INVOKE_WORK_ITEM(step, token):
     IF handler returns an error: SETTLE_HANDLER_ERROR(error)
 
 HTTP_INVOKE(step, token, inputs):
-    construct metadata, receipt token, and callback URL (carrying the attempt's secret) for
+    construct metadata, work token, and callback URL (carrying the attempt's secret) for
         async invocation
     inject declared meta attributes into handler arguments
     resolve endpoint placeholders
@@ -708,7 +708,7 @@ ON_DISPATCH_WAKEUP(step):
         start eligible pending work and invoke it after commit
 ```
 
-The engine uses the Flow ID, Step ID, and receipt token to locate the work item. It checks the callback secret against the hashes recorded for the requested phase, invocation or compensation. A late callback from an earlier attempt in the same phase can still settle the work item.
+The engine uses the Flow ID, Step ID, and work token to locate the work item. It checks the callback secret against the hashes recorded for the requested phase, invocation or compensation. A late callback from an earlier attempt in the same phase can still settle the work item.
 
 An invocation callback completes the work item with its outputs. A problem with a retryable status schedules a retry. A permanent problem fails the work item. Agent callbacks send a JSON envelope with either `outputs` or `problem` and the attempt's `usage`. The engine acknowledges stale invocation transitions as duplicates.
 

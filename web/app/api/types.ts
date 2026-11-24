@@ -70,20 +70,20 @@ export interface ConstConfig {
 
 const META_KEY_FLOW_ID = "flow_id";
 const META_KEY_STEP_ID = "step_id";
-const META_KEY_RECEIPT_TOKEN = "receipt_token";
+const META_KEY_WORK_TOKEN = "work_token";
 const META_KEY_WEBHOOK_URL = "webhook_url";
 export const META_KEY_PARENT_FLOW_ID = "parent_flow_id";
 const META_KEY_PARENT_STEP_ID = "parent_step_id";
-const META_KEY_PARENT_WORK_ITEM_TOKEN = "parent_work_item_token";
+const META_KEY_PARENT_WORK_TOKEN = "parent_work_token";
 
 export const META_KEYS = [
   META_KEY_FLOW_ID,
   META_KEY_STEP_ID,
-  META_KEY_RECEIPT_TOKEN,
+  META_KEY_WORK_TOKEN,
   META_KEY_WEBHOOK_URL,
   META_KEY_PARENT_FLOW_ID,
   META_KEY_PARENT_STEP_ID,
-  META_KEY_PARENT_WORK_ITEM_TOKEN,
+  META_KEY_PARENT_WORK_TOKEN,
 ] as const;
 
 export interface MetaConfig {

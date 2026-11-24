@@ -73,9 +73,9 @@ func main() {
 }
 
 func handle(ctx argyll.StepContext, args api.Args) (api.Args, error) {
-	tkn, ok := ctx.Metadata().GetString[api.Token](api.MetaReceiptToken)
+	tkn, ok := ctx.Metadata().GetString[api.Token](api.MetaWorkToken)
 	if !ok {
-		return nil, argyll.BadRequest("receipt token required")
+		return nil, argyll.BadRequest("work token required")
 	}
 	call := orderCall(sync.OnceValues(func() (api.Args, error) {
 		return createOrder(ctx, args)

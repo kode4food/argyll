@@ -257,7 +257,7 @@ func parentMeta(fl *api.FlowState, target *parentWork) (bool, error) {
 	meta := fl.Metadata
 	fid, hasFlowID := meta.GetString[api.FlowID](api.MetaParentFlowID)
 	sid, hasStepID := meta.GetString[api.StepID](api.MetaParentStepID)
-	tkn, hasToken := meta.GetString[api.Token](api.MetaParentWorkItemToken)
+	tkn, hasToken := meta.GetString[api.Token](api.MetaParentWorkToken)
 
 	if !hasFlowID && !hasStepID && !hasToken {
 		return false, nil
@@ -292,7 +292,7 @@ func validateFlowOutputs(st *api.Step, outputs api.Args) error {
 func validateParentMetadata(meta api.Metadata) error {
 	_, hasFlowID := meta.GetString[api.FlowID](api.MetaParentFlowID)
 	_, hasStepID := meta.GetString[api.StepID](api.MetaParentStepID)
-	_, hasToken := meta.GetString[api.Token](api.MetaParentWorkItemToken)
+	_, hasToken := meta.GetString[api.Token](api.MetaParentWorkToken)
 	if !hasFlowID && !hasStepID && !hasToken {
 		return nil
 	}

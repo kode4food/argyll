@@ -103,7 +103,7 @@ func TestNonMemoStepReusesToken(t *testing.T) {
 	})
 }
 
-// TestRetriesReuseToken verifies that retries preserve the work item token
+// TestRetriesReuseToken verifies that retries preserve the work token
 func TestRetriesReuseToken(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		assert.NoError(t, env.Engine.Start())

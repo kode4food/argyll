@@ -49,7 +49,7 @@ paths:
         compensation also receives `Argyll-Webhook-URL`. POST an empty success
         response or Problem Details to that URL when rollback finishes.
 
-        Use `Argyll-Flow-ID`, `Argyll-Step-ID`, and `Argyll-Receipt-Token` as
+        Use `Argyll-Flow-ID`, `Argyll-Step-ID`, and `Argyll-Work-Token` as
         the idempotency key for side effects.
 
         - 2xx: a sync action succeeded, or an async action was accepted.
@@ -68,7 +68,7 @@ paths:
           example: process-text
         - $ref: "#/components/parameters/ArgyllFlowID"
         - $ref: "#/components/parameters/ArgyllStepID"
-        - $ref: "#/components/parameters/ArgyllReceiptToken"
+        - $ref: "#/components/parameters/ArgyllWorkToken"
         - $ref: "#/components/parameters/ArgyllWebhookURL"
       requestBody:
         required: true
@@ -133,13 +133,13 @@ components:
         type: string
       description: Step ID being invoked.
       example: text-processor
-    ArgyllReceiptToken:
-      name: Argyll-Receipt-Token
+    ArgyllWorkToken:
+      name: Argyll-Work-Token
       in: header
       required: true
       schema:
         type: string
-      description: Unique work-item token for idempotency.
+      description: Unique work token for idempotency.
       example: tok_abc123xyz
     ArgyllWebhookURL:
       name: Argyll-Webhook-URL
@@ -218,7 +218,7 @@ x-implementation-notes: |
   Compensation: when handling is `compensated`, the engine sends only
   attributes marked `compensated` as one flattened object using
   invocation-mapped names. The same names resolve URL placeholders. Duplicate
-  selected inner names are invalid. Use the receipt token as the idempotency
+  selected inner names are invalid. Use the work token as the idempotency
   key. A sync compensation returns 2xx on success, 5xx or 429 for a retryable
   failure, or 422 for a permanent failure. An async compensation first returns 2xx to
   accept the work, then POSTs an empty success response or problem details to

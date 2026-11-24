@@ -263,9 +263,9 @@ func TestChildFlowReleaseRecovery(t *testing.T) {
 					Plan:   pl,
 					Init:   api.InitArgs{},
 					Metadata: api.Metadata{
-						api.MetaParentFlowID:        string(parentID),
-						api.MetaParentStepID:        "sub",
-						api.MetaParentWorkItemToken: "work-a",
+						api.MetaParentFlowID:    string(parentID),
+						api.MetaParentStepID:    "sub",
+						api.MetaParentWorkToken: "work-a",
 					},
 				},
 			},
@@ -530,9 +530,9 @@ func TestParentNotificationRetries(t *testing.T) {
 							FlowID: childID,
 							Plan:   &api.ExecutionPlan{},
 							Metadata: api.Metadata{
-								api.MetaParentFlowID:        string(parentID),
-								api.MetaParentStepID:        "sub",
-								api.MetaParentWorkItemToken: "token",
+								api.MetaParentFlowID:    string(parentID),
+								api.MetaParentStepID:    "sub",
+								api.MetaParentWorkToken: "token",
 							},
 						},
 					},
@@ -591,7 +591,7 @@ func metaStepID(meta api.Metadata) api.StepID {
 }
 
 func metaToken(meta api.Metadata) api.Token {
-	switch val := meta[api.MetaParentWorkItemToken].(type) {
+	switch val := meta[api.MetaParentWorkToken].(type) {
 	case api.Token:
 		return val
 	case string:
@@ -650,9 +650,9 @@ func TestParentSettledAtomically(t *testing.T) {
 						},
 						Init: api.InitArgs{},
 						Metadata: api.Metadata{
-							api.MetaParentFlowID:        string(parentID),
-							api.MetaParentStepID:        "sub",
-							api.MetaParentWorkItemToken: "token",
+							api.MetaParentFlowID:    string(parentID),
+							api.MetaParentStepID:    "sub",
+							api.MetaParentWorkToken: "token",
 						},
 					},
 				},

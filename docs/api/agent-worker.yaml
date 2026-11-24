@@ -46,7 +46,7 @@ paths:
       parameters:
         - $ref: "#/components/parameters/FlowID"
         - $ref: "#/components/parameters/StepID"
-        - $ref: "#/components/parameters/ReceiptToken"
+        - $ref: "#/components/parameters/WorkToken"
         - $ref: "#/components/parameters/WebhookURL"
       requestBody:
         required: true
@@ -145,8 +145,8 @@ components:
       required: true
       schema:
         type: string
-    ReceiptToken:
-      name: Argyll-Receipt-Token
+    WorkToken:
+      name: Argyll-Work-Token
       in: header
       required: true
       schema:

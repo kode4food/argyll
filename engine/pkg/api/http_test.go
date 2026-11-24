@@ -94,17 +94,17 @@ func TestSetMetadataHeaders(t *testing.T) {
 
 	header := make(http.Header)
 	meta := api.Metadata{
-		api.MetaFlowID:       "flow-123",
-		api.MetaStepID:       "step-456",
-		api.MetaReceiptToken: "token-789",
-		api.MetaWebhookURL:   "https://example.com/hook",
+		api.MetaFlowID:     "flow-123",
+		api.MetaStepID:     "step-456",
+		api.MetaWorkToken:  "token-789",
+		api.MetaWebhookURL: "https://example.com/hook",
 	}
 
 	api.SetMetadataHeaders(header, meta)
 
 	as.Equal("flow-123", header.Get(api.HeaderFlowID))
 	as.Equal("step-456", header.Get(api.HeaderStepID))
-	as.Equal("token-789", header.Get(api.HeaderReceiptToken))
+	as.Equal("token-789", header.Get(api.HeaderWorkToken))
 	as.Equal("https://example.com/hook", header.Get(api.HeaderWebhookURL))
 }
 
@@ -120,7 +120,7 @@ func TestSetMetadataHeadersPartial(t *testing.T) {
 
 	as.Equal("flow-123", header.Get(api.HeaderFlowID))
 	as.Empty(header.Get(api.HeaderStepID))
-	as.Empty(header.Get(api.HeaderReceiptToken))
+	as.Empty(header.Get(api.HeaderWorkToken))
 	as.Empty(header.Get(api.HeaderWebhookURL))
 }
 
@@ -130,14 +130,14 @@ func TestMetadataFromHeaders(t *testing.T) {
 	header := make(http.Header)
 	header.Set(api.HeaderFlowID, "flow-123")
 	header.Set(api.HeaderStepID, "step-456")
-	header.Set(api.HeaderReceiptToken, "token-789")
+	header.Set(api.HeaderWorkToken, "token-789")
 	header.Set(api.HeaderWebhookURL, "https://example.com/hook")
 
 	meta := api.MetadataFromHeaders(header)
 
 	as.Equal("flow-123", meta[api.MetaFlowID])
 	as.Equal("step-456", meta[api.MetaStepID])
-	as.Equal("token-789", meta[api.MetaReceiptToken])
+	as.Equal("token-789", meta[api.MetaWorkToken])
 	as.Equal("https://example.com/hook", meta[api.MetaWebhookURL])
 }
 

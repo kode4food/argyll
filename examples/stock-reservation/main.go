@@ -63,9 +63,9 @@ func newInventory() *inventory {
 //argyll:description reserve inventory for an order
 //argyll:tags domain:inventory; capability:reserve; example; demo:checkout
 func reserveStock(ctx argyll.StepContext, order Order) (reservation StockReservation, err error) {
-	tkn, ok := ctx.Metadata().GetString[api.Token](api.MetaReceiptToken)
+	tkn, ok := ctx.Metadata().GetString[api.Token](api.MetaWorkToken)
 	if !ok {
-		return StockReservation{}, argyll.BadRequest("receipt token required")
+		return StockReservation{}, argyll.BadRequest("work token required")
 	}
 	inv.mu.Lock()
 	out, ok := inv.completed[tkn]

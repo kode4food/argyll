@@ -336,7 +336,7 @@ func TestStartChildFlowUsesPlan(t *testing.T) {
 			assert.Equal(t, "test", child.Metadata["source"])
 			assert.Equal(t, api.FlowID("parent"), child.Metadata[api.MetaParentFlowID])
 			assert.Equal(t, parent.ID, child.Metadata[api.MetaParentStepID])
-			assert.Equal(t, tkn, child.Metadata[api.MetaParentWorkItemToken])
+			assert.Equal(t, tkn, child.Metadata[api.MetaParentWorkToken])
 		}
 	})
 }
@@ -494,7 +494,7 @@ func TestAtomicFlowLifecycle(t *testing.T) {
 						func(
 							_ *api.Step, _ api.Args, meta api.Metadata,
 						) (api.Args, error) {
-							token, _ := meta.GetString[api.Token](api.MetaReceiptToken)
+							token, _ := meta.GetString[api.Token](api.MetaWorkToken)
 							leafStarted <- token
 							return api.Args{}, nil
 						},
@@ -503,7 +503,7 @@ func TestAtomicFlowLifecycle(t *testing.T) {
 						func(
 							_ *api.Step, _ api.Args, meta api.Metadata,
 						) (api.Args, error) {
-							token, _ := meta.GetString[api.Token](api.MetaReceiptToken)
+							token, _ := meta.GetString[api.Token](api.MetaWorkToken)
 							siblingStarted <- token
 							return api.Args{}, nil
 						},

@@ -99,9 +99,9 @@ func embedCtx(meta api.Metadata) argyll.StepContext {
 
 func embedMetadata(rt step.Runtime, tkn api.Token) api.Metadata {
 	return rt.Metadata().Apply(api.Metadata{
-		api.MetaFlowID:       rt.FlowID(),
-		api.MetaStepID:       rt.StepID(),
-		api.MetaReceiptToken: tkn,
+		api.MetaFlowID:    rt.FlowID(),
+		api.MetaStepID:    rt.StepID(),
+		api.MetaWorkToken: tkn,
 	})
 }
 

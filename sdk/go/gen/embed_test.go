@@ -63,7 +63,7 @@ func TestEmbeddedInvokeMeta(t *testing.T) {
 		})
 	st := &api.Step{
 		Attributes: api.AttributeSpecs{
-			"token": metaAttr(api.MetaReceiptToken),
+			"token": metaAttr(api.MetaWorkToken),
 			"flow":  metaAttr(api.MetaFlowID),
 			"tier":  metaAttr("tier"),
 			"extra": {Role: api.RoleRequired},
@@ -124,7 +124,7 @@ func TestEmbeddedContext(t *testing.T) {
 		assert.NoError(t, ctx.Err())
 		assert.Equal(t, rt.StepID(), ctx.StepID())
 		assert.Equal(t, rt.FlowID(), ctx.Metadata()[api.MetaFlowID])
-		assert.Equal(t, api.Token("tkn"), ctx.Metadata()[api.MetaReceiptToken])
+		assert.Equal(t, api.Token("tkn"), ctx.Metadata()[api.MetaWorkToken])
 		assert.Equal(t, "gold", ctx.Metadata()["tier"])
 		assert.Equal(t, rt.FlowID(), ctx.FlowID())
 		assert.Equal(t, 2, in.Left)

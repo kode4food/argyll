@@ -33,7 +33,7 @@ func TestHTTPHandlerPropagatesMetadata(t *testing.T) {
 	assert.Equal(t, "value", cl.inputs[api.Name("input")])
 	assert.Equal(t, api.FlowID("flow-1"), cl.meta[api.MetaFlowID])
 	assert.Equal(t, api.StepID("step-1"), cl.meta[api.MetaStepID])
-	assert.Equal(t, api.Token("token-1"), cl.meta[api.MetaReceiptToken])
+	assert.Equal(t, api.Token("token-1"), cl.meta[api.MetaWorkToken])
 	assert.Equal(t, 0, calls.healthCalls)
 	assert.Equal(t, 1, calls.completeCalls)
 	assert.Equal(t, api.Token("token-1"), calls.completeToken)
@@ -66,7 +66,7 @@ func TestHTTPHandlerAsyncAddsWebhookURL(t *testing.T) {
 	assert.Equal(t,
 		testCallbackBase+"/callbacks/flow-1/step-1/token-1/invoke/"+callbackKey,
 		cl.meta[api.MetaWebhookURL])
-	assert.Equal(t, api.Token("token-1"), cl.meta[api.MetaReceiptToken])
+	assert.Equal(t, api.Token("token-1"), cl.meta[api.MetaWorkToken])
 	assert.Equal(t, 0, calls.completeCalls)
 }
 
@@ -107,7 +107,7 @@ func TestHTTPCompensatorInvokes(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, 1, cl.compens)
 	assert.Equal(t, api.Args{"out": "v"}, cl.inputs)
-	assert.Equal(t, api.Token("token"), cl.meta[api.MetaReceiptToken])
+	assert.Equal(t, api.Token("token"), cl.meta[api.MetaWorkToken])
 	assert.Equal(t, 1, rt.completeCalls)
 	assert.Equal(t, api.Token("token"), rt.completeToken)
 }
@@ -174,7 +174,7 @@ func TestMetaInputs(t *testing.T) {
 		Attributes: api.AttributeSpecs{
 			"token": {
 				Role: api.RoleMeta,
-				Meta: &api.MetaConfig{Key: api.MetaReceiptToken},
+				Meta: &api.MetaConfig{Key: api.MetaWorkToken},
 			},
 		},
 	}

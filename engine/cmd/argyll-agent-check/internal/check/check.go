@@ -123,7 +123,7 @@ func (c *checker) accepts(body api.AgentRequest, webhook string) error {
 	req.Header.Set("Content-Type", api.JSONContentType)
 	req.Header.Set(api.HeaderFlowID, checkID)
 	req.Header.Set(api.HeaderStepID, checkID)
-	req.Header.Set(api.HeaderReceiptToken, checkID)
+	req.Header.Set(api.HeaderWorkToken, checkID)
 	req.Header.Set(api.HeaderWebhookURL, webhook)
 	resp, err := c.client.Do(req)
 	if err != nil {

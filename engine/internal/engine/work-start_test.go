@@ -225,7 +225,7 @@ func TestHTTPMetadata(t *testing.T) {
 			assert.Equal(t, "cid-123", md["correlation_id"])
 			assert.Equal(t, api.FlowID("wf-meta"), md[api.MetaFlowID])
 			assert.Equal(t, api.StepID("meta-step"), md[api.MetaStepID])
-			assert.NotEmpty(t, md[api.MetaReceiptToken])
+			assert.NotEmpty(t, md[api.MetaWorkToken])
 			_, hasWebhook := md[api.MetaWebhookURL]
 			assert.False(t, hasWebhook)
 		}

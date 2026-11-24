@@ -400,13 +400,13 @@ func TestAttributeProps(t *testing.T) {
 
 func TestMetaKey(t *testing.T) {
 	src := "type In struct {\n" +
-		"ReceiptToken string `argyll:\"role:meta\"`\n" +
+		"WorkToken string `argyll:\"role:meta\"`\n" +
 		"Step string `argyll:\"step_id;role:meta\"`\n" +
 		"Flow string `argyll:\"role:meta;key:flow_id\"`\n" +
 		"}\n" +
 		"//argyll:step\nfunc Run(in In) {}\n"
 	attrs := sourceSteps(t, src)["run"].Attributes
-	assert.Equal(t, "receipt_token", attrs["receipt_token"].MetaKey())
+	assert.Equal(t, "work_token", attrs["work_token"].MetaKey())
 	assert.Equal(t, "step_id", attrs["step_id"].MetaKey())
 	assert.Equal(t, "flow_id", attrs["flow"].MetaKey())
 }

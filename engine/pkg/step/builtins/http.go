@@ -104,9 +104,9 @@ func callbackURL(
 
 func metadata(rt step.Runtime, token api.Token) api.Metadata {
 	return rt.Metadata().Apply(api.Metadata{
-		api.MetaFlowID:       rt.FlowID(),
-		api.MetaStepID:       rt.StepID(),
-		api.MetaReceiptToken: token,
+		api.MetaFlowID:    rt.FlowID(),
+		api.MetaStepID:    rt.StepID(),
+		api.MetaWorkToken: token,
 	})
 }
 

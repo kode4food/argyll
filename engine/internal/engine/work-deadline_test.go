@@ -246,9 +246,9 @@ func TestLiveChildFlowSurvivesDeadline(t *testing.T) {
 				Plan:   pl,
 				Init:   api.InitArgs{},
 				Metadata: api.Metadata{
-					api.MetaParentFlowID:        string(id),
-					api.MetaParentStepID:        string(parent.ID),
-					api.MetaParentWorkItemToken: string(tkn),
+					api.MetaParentFlowID:    string(id),
+					api.MetaParentStepID:    string(parent.ID),
+					api.MetaParentWorkToken: string(tkn),
 				},
 			},
 		}))

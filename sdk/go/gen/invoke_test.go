@@ -159,7 +159,7 @@ func TestHTTPContext(t *testing.T) {
 		)
 		r.Header.Set(api.HeaderFlowID, "flow-1")
 		r.Header.Set(api.HeaderStepID, "sum")
-		r.Header.Set(api.HeaderReceiptToken, "tkn")
+		r.Header.Set(api.HeaderWorkToken, "tkn")
 		return r
 	}
 
@@ -168,7 +168,7 @@ func TestHTTPContext(t *testing.T) {
 		assert.Equal(t, r.Context().Done(), ctx.Done())
 		assert.Equal(t, api.StepID("sum"), ctx.StepID())
 		assert.Equal(t, api.FlowID("flow-1"), ctx.FlowID())
-		assert.Equal(t, "tkn", ctx.Metadata()[api.MetaReceiptToken])
+		assert.Equal(t, "tkn", ctx.Metadata()[api.MetaWorkToken])
 		assert.Equal(t, 2, in.Left)
 		return nil
 	}

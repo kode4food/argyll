@@ -50,8 +50,8 @@ const (
 	// HeaderStepID carries the executing step ID on HTTP step requests
 	HeaderStepID = "Argyll-Step-ID"
 
-	// HeaderReceiptToken carries the work-item token for idempotency
-	HeaderReceiptToken = "Argyll-Receipt-Token"
+	// HeaderWorkToken carries the work token for idempotency
+	HeaderWorkToken = "Argyll-Work-Token"
 
 	// HeaderWebhookURL carries the async completion URL for async HTTP steps
 	HeaderWebhookURL = "Argyll-Webhook-URL"
@@ -156,7 +156,7 @@ func IsProblemJSON(contentType string) bool {
 func SetMetadataHeaders(header http.Header, meta Metadata) {
 	setMetaHeader(header, HeaderFlowID, meta, MetaFlowID)
 	setMetaHeader(header, HeaderStepID, meta, MetaStepID)
-	setMetaHeader(header, HeaderReceiptToken, meta, MetaReceiptToken)
+	setMetaHeader(header, HeaderWorkToken, meta, MetaWorkToken)
 	setMetaHeader(header, HeaderWebhookURL, meta, MetaWebhookURL)
 }
 
@@ -172,8 +172,8 @@ func MetadataFromHeaders(header http.Header) Metadata {
 		value: header.Get(HeaderStepID),
 	})
 	addHeaderMeta(meta, headerMetaArgs{
-		key:   MetaReceiptToken,
-		value: header.Get(HeaderReceiptToken),
+		key:   MetaWorkToken,
+		value: header.Get(HeaderWorkToken),
 	})
 	addHeaderMeta(meta, headerMetaArgs{
 		key:   MetaWebhookURL,

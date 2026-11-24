@@ -21,9 +21,9 @@ payments_lock = threading.Lock()
 
 def handle_payment(ctx: StepContext, args: dict) -> dict:
     """Process payment asynchronously."""
-    token = ctx.metadata.get("receipt_token")
+    token = ctx.metadata.get("work_token")
     if not token:
-        raise HTTPError(400, "receipt token required")
+        raise HTTPError(400, "work token required")
 
     order = args.get("order")
     if not isinstance(order, dict):
@@ -120,9 +120,9 @@ def handle_payment(ctx: StepContext, args: dict) -> dict:
 
 def refund_payment(ctx: StepContext, args: dict) -> None:
     """Refund a completed payment."""
-    token = ctx.metadata.get("receipt_token")
+    token = ctx.metadata.get("work_token")
     if not token:
-        raise HTTPError(400, "receipt token required")
+        raise HTTPError(400, "work token required")
 
     print(f"Attempting refund: token={token}")
 

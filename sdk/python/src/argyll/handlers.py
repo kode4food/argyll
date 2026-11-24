@@ -219,7 +219,7 @@ def _metadata_from_headers() -> Metadata:
     header_map = {
         "Argyll-Flow-ID": "flow_id",
         "Argyll-Step-ID": "step_id",
-        "Argyll-Receipt-Token": "receipt_token",
+        "Argyll-Work-Token": "work_token",
         "Argyll-Webhook-URL": "webhook_url",
     }
     for header, key in header_map.items():
