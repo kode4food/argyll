@@ -16,7 +16,7 @@ docker compose up
 
 Open the UI at `http://localhost:3001` and sign in as `admin` with password `admin`.
 
-The engine API listens at `http://localhost:8080`. To get a Keycloak token for a script, follow the [Quick Start](https://www.argyll.app/docs/getting-started/quickstart/).
+The engine API listens at `http://localhost:8080`. See [Authentication](https://www.argyll.app/docs/guides/configuration/#authentication) for scripts that use a Keycloak token.
 
 ## Documentation
 

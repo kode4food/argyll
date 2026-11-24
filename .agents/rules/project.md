@@ -49,6 +49,7 @@ examples/        # Sample step implementations
 - Engine API: `/docs/api/engine-api.yaml`
 - Step Interface: `/docs/api/step-interface.yaml`
 - Agent Worker Contract: `/docs/api/agent-worker.yaml`
+- Web UI Chat Contract: `/docs/api/chat.yaml`
 - Base path: `/engine`
 - API design must follow the [Zalando RESTful API and Event Scheme Guidelines](https://opensource.zalando.com/restful-api-guidelines/)
 

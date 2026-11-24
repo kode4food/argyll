@@ -125,7 +125,7 @@ npm install
 npm run dev
 ```
 
-The UI uses `VITE_API_URL` for the engine (default `http://localhost:8080`) and `VITE_CHAT_URL` for the standalone chat service (default `http://localhost:8072`). The chat service forwards requests to Agent workers.
+The UI uses `VITE_API_URL` for the engine (default `http://localhost:8080`) and `VITE_CHAT_URL` for the standalone chat service (default `http://localhost:8072`). The chat service forwards requests to Agent workers. See the [Web UI chat contract](api/chat.yaml) for the interface between the UI and chat app.
 
 ## Step service dev loop
 
