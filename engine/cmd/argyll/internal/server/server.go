@@ -3,6 +3,8 @@ package server
 import (
 	"log/slog"
 	"net/http"
+	"runtime/debug"
+	"strings"
 	"sync"
 
 	glog "github.com/gin-contrib/slog"
@@ -11,16 +13,19 @@ import (
 	"github.com/kode4food/argyll/engine/internal/engine"
 	"github.com/kode4food/argyll/engine/internal/event"
 	"github.com/kode4food/argyll/engine/pkg/api"
+	"github.com/kode4food/argyll/engine/pkg/auth"
 	"github.com/kode4food/argyll/engine/pkg/util"
 )
 
 // Server implements the HTTP API server for the orchestrator
 type Server struct {
-	engine   *engine.Engine
-	eventHub *event.Hub
-	sockets  util.Set[*Client]
-	status   []StatusProvider
-	mu       sync.Mutex
+	engine        *engine.Engine
+	eventHub      *event.Hub
+	sockets       util.Set[*Client]
+	status        []StatusProvider
+	callbackLimit int64
+	authenticator auth.Authenticator
+	mu            sync.Mutex
 }
 
 // NewServer creates a new HTTP API server
@@ -34,29 +39,29 @@ func NewServer(eng *engine.Engine, hub *event.Hub, status ...StatusProvider) *Se
 	return s
 }
 
+// WithAuthenticator protects engine routes with the configured authenticator
+func (s *Server) WithAuthenticator(a auth.Authenticator) *Server {
+	s.authenticator = a
+	return s
+}
+
 // SetupRoutes configures and returns the HTTP router with all API endpoints
 func (s *Server) SetupRoutes() *gin.Engine {
 	router := gin.New()
-	router.Use(gin.Recovery())
+	// Gin's request dump leaves callback paths and WebSocket credentials intact
+	router.Use(gin.CustomRecoveryWithWriter(nil, func(c *gin.Context, _ any) {
+		slog.Error("HTTP handler panic", slog.String("stack", string(debug.Stack())))
+		c.AbortWithStatus(http.StatusInternalServerError)
+	}))
 	router.Use(glog.SetLogger(
 		glog.WithLogger(func(c *gin.Context, l *slog.Logger) *slog.Logger {
 			return slog.Default()
 		}),
+		// Callback paths carry a secret, and the callback handler logs its own failures
+		glog.WithSkipper(func(c *gin.Context) bool {
+			return strings.HasPrefix(c.Request.URL.Path, "/callbacks/")
+		}),
 	))
-
-	// CORS middleware
-	router.Use(func(c *gin.Context) {
-		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
-		c.Writer.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
-
-		if c.Request.Method == "OPTIONS" {
-			c.AbortWithStatus(http.StatusOK)
-			return
-		}
-
-		c.Next()
-	})
 
 	// Health check
 	router.GET("/health", s.handleHealth)
@@ -65,58 +70,60 @@ func (s *Server) SetupRoutes() *gin.Engine {
 	router.POST(api.CallbackRoute, s.handleWebhook)
 
 	// Engine endpoints
-	eng := router.Group("/engine")
+	reader := router.Group("/engine", requireRole(auth.RoleReader, s.authenticator))
+	operator := router.Group("/engine", requireRole(auth.RoleOperator, s.authenticator))
+	admin := router.Group("/engine", requireRole(auth.RoleAdmin, s.authenticator))
 	{
-		eng.GET("", s.handleEngine)
+		reader.GET("", s.handleEngine)
 
 		// Step endpoints
-		eng.GET("/steps", s.listSteps)
-		eng.POST("/steps", s.createStep)
-		eng.GET("/steps/:step_id", s.getStep)
-		eng.PUT("/steps/:step_id", s.updateStep)
-		eng.DELETE("/steps/:step_id", s.deleteStep)
+		reader.GET("/steps", s.listSteps)
+		admin.POST("/steps", s.createStep)
+		reader.GET("/steps/:step_id", s.getStep)
+		admin.PUT("/steps/:step_id", s.updateStep)
+		admin.DELETE("/steps/:step_id", s.deleteStep)
 
 		// Space endpoints
-		eng.GET("/spaces", s.listSpaces)
-		eng.POST("/spaces", s.createSpace)
-		eng.POST("/spaces/preview", s.previewSpace)
-		eng.GET("/spaces/:space_id", s.getSpace)
-		eng.GET("/spaces/:space_id/steps", s.listSpaceSteps)
-		eng.PUT("/spaces/:space_id", s.updateSpace)
-		eng.DELETE("/spaces/:space_id", s.deleteSpace)
+		reader.GET("/spaces", s.listSpaces)
+		admin.POST("/spaces", s.createSpace)
+		reader.POST("/spaces/preview", s.previewSpace)
+		reader.GET("/spaces/:space_id", s.getSpace)
+		reader.GET("/spaces/:space_id/steps", s.listSpaceSteps)
+		admin.PUT("/spaces/:space_id", s.updateSpace)
+		admin.DELETE("/spaces/:space_id", s.deleteSpace)
 
 		// Feed endpoints
-		eng.GET("/feeds", s.listFeeds)
-		eng.POST("/feeds", s.createFeed)
-		eng.GET("/feeds/:feed_id", s.getFeed)
-		eng.PUT("/feeds/:feed_id", s.updateFeed)
-		eng.DELETE("/feeds/:feed_id", s.deleteFeed)
+		reader.GET("/feeds", s.listFeeds)
+		admin.POST("/feeds", s.createFeed)
+		reader.GET("/feeds/:feed_id", s.getFeed)
+		admin.PUT("/feeds/:feed_id", s.updateFeed)
+		admin.DELETE("/feeds/:feed_id", s.deleteFeed)
 
 		// Health endpoints
-		eng.GET("/health", s.handleEngineHealth)
-		eng.GET("/health/:step_id", s.handleEngineHealthByID)
+		reader.GET("/health", s.handleEngineHealth)
+		reader.GET("/health/:step_id", s.handleEngineHealthByID)
 
 		// Plan preview
-		eng.POST("/plan", s.handlePlanPreview)
+		reader.POST("/plan", s.handlePlanPreview)
 
 		// Catalog endpoints
-		eng.GET("/catalog", s.getCatalog)
-		eng.GET("/catalog/events", s.getCatalogEvents)
+		reader.GET("/catalog", s.getCatalog)
+		reader.GET("/catalog/events", s.getCatalogEvents)
 
 		// Cluster endpoints
-		eng.GET("/cluster", s.getCluster)
-		eng.GET("/cluster/events", s.getClusterEvents)
+		reader.GET("/cluster", s.getCluster)
+		reader.GET("/cluster/events", s.getClusterEvents)
 
 		// Flow endpoints
-		eng.GET("/flows", s.listFlows)
-		eng.POST("/flows", s.startFlow)
-		eng.POST("/flows/query", s.queryFlows)
-		eng.GET("/flows/:flow_id/status", s.getFlowStatus)
-		eng.GET("/flows/:flow_id/events", s.getFlowEvents)
-		eng.GET("/flows/:flow_id", s.getFlow)
+		reader.GET("/flows", s.listFlows)
+		operator.POST("/flows", s.startFlow)
+		reader.POST("/flows/query", s.queryFlows)
+		reader.GET("/flows/:flow_id/status", s.getFlowStatus)
+		reader.GET("/flows/:flow_id/events", s.getFlowEvents)
+		reader.GET("/flows/:flow_id", s.getFlow)
 
 		// WebSocket
-		eng.GET("/ws", s.handleWebSocket)
+		reader.GET("/ws", s.handleWebSocket)
 	}
 
 	return router
@@ -156,4 +163,17 @@ func (s *Server) webSockets() []*Client {
 		res = append(res, c)
 	}
 	return res
+}
+func requireRole(role auth.Role, a auth.Authenticator) gin.HandlerFunc {
+	if a == nil {
+		return func(*gin.Context) {}
+	}
+	return func(c *gin.Context) {
+		next := http.HandlerFunc(func(_ http.ResponseWriter, r *http.Request) {
+			c.Request = r
+			c.Next()
+		})
+		auth.Handler(next, a, role).ServeHTTP(c.Writer, c.Request)
+		c.Abort()
+	}
 }

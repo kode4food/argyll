@@ -124,6 +124,7 @@ type (
 		Usage       Usage      `json:"usage,omitempty"`
 		Status      WorkStatus `json:"status"`
 		Error       string     `json:"error,omitempty"`
+		Callbacks   []string   `json:"callbacks,omitempty"`
 		RetryCount  int        `json:"retry_count,omitempty"`
 	}
 
@@ -537,6 +538,14 @@ func (w WorkState) SetRetryCount(count int) WorkState {
 // SetNextRetryAt returns a new WorkState with the next retry time set
 func (w WorkState) SetNextRetryAt(t time.Time) WorkState {
 	w.NextRetryAt = t
+	return w
+}
+
+// AddCallback preserves earlier attempts' credentials for late callbacks
+func (w WorkState) AddCallback(hash string) WorkState {
+	if hash != "" {
+		w.Callbacks = append(slices.Clip(w.Callbacks), hash)
+	}
 	return w
 }
 

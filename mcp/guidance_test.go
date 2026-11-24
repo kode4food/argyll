@@ -29,16 +29,11 @@ func TestSDKGuidance(t *testing.T) {
 func TestStepPrompt(t *testing.T) {
 	c := newClient(t, mcp.NewServer("http://example", nil))
 
-	prompt, err := c.GetPrompt("implement_step", map[string]any{
+	text := getPromptText(t, c, "implement_step", map[string]string{
 		"language":     "Go",
 		"step_name":    "Lookup User",
 		"requirements": "Fetch a user by id.",
 	})
-	assert.NoError(t, err)
-	if !assert.Len(t, prompt.Messages, 1) {
-		return
-	}
-	text := prompt.Messages[0].Content.Text
 	assert.Contains(t, text, "Lookup User")
 	assert.Contains(t, text, "Fetch a user by id.")
 	assert.Contains(t, text, "WithMethod/with_method")
@@ -47,14 +42,9 @@ func TestStepPrompt(t *testing.T) {
 func TestOpenAPIIngestionPrompt(t *testing.T) {
 	c := newClient(t, mcp.NewServer("http://example", nil))
 
-	prompt, err := c.GetPrompt("ingest_openapi_services", map[string]any{
+	text := getPromptText(t, c, "ingest_openapi_services", map[string]string{
 		"payload": "{}",
 	})
-	assert.NoError(t, err)
-	if !assert.Len(t, prompt.Messages, 1) {
-		return
-	}
-	text := prompt.Messages[0].Content.Text
 	assert.Contains(t, text, "schema facts")
 	assert.Contains(t, text, "{}")
 }
@@ -78,7 +68,7 @@ func TestStepTemplate(t *testing.T) {
 
 func TestStepTemplateRejectsExternalStepType(t *testing.T) {
 	c := newClient(t, mcp.NewServer("http://example", nil))
-	text := callToolText(t, c, "sdk_step_template", map[string]any{
+	text := callToolErrorText(t, c, "sdk_step_template", map[string]any{
 		"language":  "go",
 		"step_name": "Lookup User",
 		"step_type": "external",
@@ -92,7 +82,7 @@ func TestStepTemplateRejectsExternalStepType(t *testing.T) {
 
 func TestStepTemplateRejectsExternalScript(t *testing.T) {
 	c := newClient(t, mcp.NewServer("http://example", nil))
-	text := callToolText(t, c, "sdk_step_template", map[string]any{
+	text := callToolErrorText(t, c, "sdk_step_template", map[string]any{
 		"language":  "go",
 		"step_name": "Calculate",
 		"step_type": "script",

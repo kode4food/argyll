@@ -19,6 +19,7 @@ import (
 	"github.com/kode4food/argyll/engine/internal/engine/script"
 	"github.com/kode4food/argyll/engine/internal/event"
 	"github.com/kode4food/argyll/engine/pkg/api"
+	"github.com/kode4food/argyll/engine/pkg/auth"
 	"github.com/kode4food/argyll/engine/pkg/log"
 	"github.com/kode4food/argyll/engine/pkg/step"
 	"github.com/kode4food/argyll/engine/pkg/step/builtins"
@@ -122,7 +123,9 @@ func (a *App) startEngine() error {
 	callback := builtins.BaseCallbackURL(a.cfg.WebhookBaseURL)
 	steps := step.NewRegistry(builtins.All(builtins.NewHTTPClient(timeout), callback).With(
 		step.Handlers{
-			api.StepTypeAgent: builtins.Agent(a.cfg.AgentWorkers, callback, timeout),
+			api.StepTypeAgent: builtins.AgentWithClient(
+				a.cfg.AgentWorkers, callback, workerClient(), timeout,
+			),
 		},
 	))
 
@@ -163,13 +166,13 @@ func (a *App) startServer() error {
 
 	a.apiServer = server.NewServer(
 		a.engine, a.engine.GetEventHub(), NewRaftStatusProvider(a.backend),
-	)
-	mux := a.apiServer.SetupRoutes()
-	server.RegisterAgentRoutes(mux, a.cfg.AgentWorkers)
+	).WithCallbackLimit(a.cfg.CallbackLimit)
+	mux := a.apiServer.WithAuthenticator(a.cfg.Auth).SetupRoutes()
+	server.RegisterAgentRoutes(mux, a.cfg.AgentWorkers, a.cfg.Auth)
 
 	a.httpServer = &http.Server{
 		Addr:    addr,
-		Handler: mux,
+		Handler: auth.CORS(mux),
 	}
 
 	a.serveErr = make(chan error, 1)

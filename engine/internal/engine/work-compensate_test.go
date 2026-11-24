@@ -2,6 +2,7 @@ package engine_test
 
 import (
 	"errors"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -195,15 +196,16 @@ func TestCompensationAsyncAwaitsCallback(t *testing.T) {
 		assert.Equal(t, id, meta[api.MetaFlowID])
 		assert.Equal(t, st.ID, meta[api.MetaStepID])
 		assert.Equal(t, tkn, meta[api.MetaReceiptToken])
-		assert.Equal(t,
-			"http://localhost:8080/callbacks/wf-comp-async/"+
-				"comp-async-step/work-a/compensate",
-			meta[api.MetaWebhookURL],
-		)
+		webhook, _ := meta[api.MetaWebhookURL].(string)
+		secret, ok := strings.CutPrefix(webhook,
+			"http://localhost:8080/callbacks/wf-comp-async/comp-async-step/work-a/compensate/")
+		assert.True(t, ok)
 
 		fl, err := env.Engine.GetFlowState(id)
 		assert.NoError(t, err)
-		assert.Equal(t, api.WorkCompensating, fl.Executions[st.ID].WorkItems[tkn].Status)
+		work := fl.Executions[st.ID].WorkItems[tkn]
+		assert.Equal(t, api.WorkCompensating, work.Status)
+		assert.Contains(t, work.Callbacks, api.CallbackHash(api.ActionCompensate, secret))
 
 		env.WithConsumer(func(consumer *event.Consumer) {
 			w := wait.On(t, consumer)

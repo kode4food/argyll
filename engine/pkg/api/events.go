@@ -144,10 +144,11 @@ type (
 
 	// WorkStartedEvent is emitted when a work item begins execution
 	WorkStartedEvent struct {
-		Inputs Args   `json:"inputs"`
-		FlowID FlowID `json:"flow_id"`
-		StepID StepID `json:"step_id"`
-		Token  Token  `json:"token"`
+		Inputs   Args   `json:"inputs"`
+		FlowID   FlowID `json:"flow_id"`
+		StepID   StepID `json:"step_id"`
+		Token    Token  `json:"token"`
+		Callback string `json:"callback,omitempty"`
 	}
 
 	// WorkSucceededEvent is emitted when a work item succeeds
@@ -211,9 +212,10 @@ type (
 
 	// CompStartedEvent is emitted when compensation begins for a work item
 	CompStartedEvent struct {
-		FlowID FlowID `json:"flow_id"`
-		StepID StepID `json:"step_id"`
-		Token  Token  `json:"token"`
+		FlowID   FlowID `json:"flow_id"`
+		StepID   StepID `json:"step_id"`
+		Token    Token  `json:"token"`
+		Callback string `json:"callback,omitempty"`
 	}
 
 	// CompRetryScheduledEvent is emitted when compensation awaits a retry

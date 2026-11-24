@@ -3,7 +3,7 @@ import type { AgentConfig, MCPServer } from "@/app/api";
 import DurationInput from "@/app/components/molecules/DurationInput";
 import ScriptEditor from "@/app/components/molecules/ScriptEditor";
 import SelectField, {
-  type SelectFieldOption,
+  textOptions,
 } from "@/app/components/molecules/SelectField";
 import TagInput from "@/app/components/molecules/TagInput";
 import { useT } from "@/app/i18n";
@@ -17,7 +17,7 @@ import {
 import styles from "./StepEditor.module.css";
 import formStyles from "./StepEditorForm.module.css";
 import localStyles from "./StepEditorAgentConfiguration.module.css";
-import { useAgentCapabilities } from "./useAgentCapabilities";
+import { useAgentCapabilities } from "@/app/hooks/useAgentCapabilities";
 
 interface StepEditorAgentConfigurationProps {
   agent: AgentConfig;
@@ -31,9 +31,6 @@ interface AgentNumberFieldProps {
 }
 
 const NO_TOOLS: readonly string[] = [];
-
-const options = (names: string[]): SelectFieldOption[] =>
-  names.map((name) => ({ label: name, value: name }));
 
 const effortLabel = (effort: string): string => {
   if (effort === "xhigh") return "Extra High";
@@ -130,7 +127,7 @@ const StepEditorAgentConfiguration: React.FC<
                   });
                 }
               }}
-              options={options(providers.map((item) => item.provider))}
+              options={textOptions(providers.map((item) => item.provider))}
               placeholder={t("stepEditor.agentProviderPlaceholder")}
             />
           </div>
@@ -144,7 +141,7 @@ const StepEditorAgentConfiguration: React.FC<
               onChange={(model) => {
                 if (model !== agent.model) update({ model, effort: undefined });
               }}
-              options={options(models.map(({ id }) => id))}
+              options={textOptions(models.map(({ id }) => id))}
               placeholder={t("stepEditor.agentModelPlaceholder")}
             />
           </div>
@@ -224,7 +221,7 @@ const StepEditorAgentConfiguration: React.FC<
                     updateServer(idx, { server, tools: undefined });
                   }
                 }}
-                options={options(
+                options={textOptions(
                   offered
                     .filter(
                       (item) =>

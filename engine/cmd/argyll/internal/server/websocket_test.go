@@ -18,6 +18,7 @@ import (
 	"github.com/kode4food/argyll/engine/internal/assert/helpers"
 	"github.com/kode4food/argyll/engine/internal/engine/scheduler"
 	"github.com/kode4food/argyll/engine/pkg/api"
+	"github.com/kode4food/argyll/engine/pkg/auth"
 	"github.com/kode4food/argyll/engine/pkg/events"
 )
 
@@ -31,6 +32,11 @@ type (
 	serverWebSocketEnv struct {
 		Server *httptest.Server
 		Conn   *websocket.Conn
+	}
+
+	// expiringAuth authenticates every request as a reader whose token expires at a set time
+	expiringAuth struct {
+		expires time.Time
 	}
 )
 
@@ -781,6 +787,42 @@ func TestSocketBadCallbackTarget(t *testing.T) {
 			assert.Equal(t, json.RawMessage("null"), item.Data)
 		}
 	})
+}
+
+func TestSocketClosesAtTokenExpiry(t *testing.T) {
+	if testing.Short() {
+		t.Skip("waits on a real timer")
+	}
+	env := helpers.NewTestEngine(t)
+	defer env.Cleanup()
+
+	ws := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		server.HandleWebSocket(&server.WebSocketRequest{
+			Hub:     env.EventHub,
+			Writer:  w,
+			Request: r,
+		})
+	})
+	authn := expiringAuth{expires: time.Now().Add(wsCloseTimeout)}
+	srv := httptest.NewServer(auth.Handler(ws, authn, auth.RoleReader))
+	defer srv.Close()
+
+	conn, _, err := websocket.DefaultDialer.Dial("ws"+strings.TrimPrefix(srv.URL, "http"), nil)
+	if !assert.NoError(t, err) {
+		return
+	}
+	defer func() { _ = conn.Close() }()
+
+	_ = conn.SetReadDeadline(time.Now().Add(wsReadTimeout + wsCloseTimeout))
+	_, _, err = conn.ReadMessage()
+	assert.True(t, websocket.IsCloseError(err, websocket.ClosePolicyViolation))
+}
+
+func (a expiringAuth) Authenticate(*http.Request) (*auth.Principal, error) {
+	return &auth.Principal{
+		Expires: a.expires,
+		Roles:   []auth.Role{auth.RoleReader},
+	}, nil
 }
 
 func testWebSocket(t *testing.T, getState server.StateFunc) *testWebSocketEnv {

@@ -8,7 +8,11 @@ import React, {
   useState,
 } from "react";
 import { api, ExecutionPlan, GoalSets } from "@/app/api";
-import { useSpaces } from "@/app/store/flowStore";
+import {
+  useSelectedSpaceId,
+  useSetSelectedSpaceId,
+  useSpaces,
+} from "@/app/store/flowStore";
 import { nonEmptyGoalSets } from "@/utils/goalSets";
 
 interface UIContextType {
@@ -44,14 +48,21 @@ export const UIProvider: React.FC<{ children: React.ReactNode }> = ({
   >(null);
   const [goalSteps, setGoalStepsState] = useState<GoalSets>([]);
   const [hoveredGoalSet, setHoveredGoalSet] = useState<number | null>(null);
-  const [spaceId, setSpaceIdState] = useState<string | null>(null);
+  // The store keeps the selection across remounts and reloads
+  const spaceId = useSelectedSpaceId();
+  const selectSpace = useSetSelectedSpaceId();
   const spaces = useSpaces();
   const diagramContainerRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
   const previousSpaceIdsRef = useRef(new Set(spaces.map((space) => space.id)));
   // Read by updatePreviewPlan so its identity stays stable across space changes
-  const spaceIdRef = useRef<string | null>(null);
+  const spaceIdRef = useRef<string | null>(spaceId);
+
+  // The store also clears a remembered Space the catalog no longer has
+  useEffect(() => {
+    spaceIdRef.current = spaceId;
+  }, [spaceId]);
 
   const setPreviewPlan = useCallback((plan: ExecutionPlan | null) => {
     setPreviewPlanState(plan);
@@ -109,18 +120,21 @@ export const UIProvider: React.FC<{ children: React.ReactNode }> = ({
   );
 
   // A scope change invalidates any preview built against the previous scope
-  const setSpaceId = useCallback((nextSpaceId: string | null) => {
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-      abortControllerRef.current = null;
-    }
-    spaceIdRef.current = nextSpaceId;
-    setSpaceIdState(nextSpaceId);
-    setGoalStepsState([]);
-    setHoveredGoalSet(null);
-    setPreviewPlanState(null);
-    setFocusedPreviewAttributeState(null);
-  }, []);
+  const setSpaceId = useCallback(
+    (nextSpaceId: string | null) => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+        abortControllerRef.current = null;
+      }
+      spaceIdRef.current = nextSpaceId;
+      selectSpace(nextSpaceId);
+      setGoalStepsState([]);
+      setHoveredGoalSet(null);
+      setPreviewPlanState(null);
+      setFocusedPreviewAttributeState(null);
+    },
+    [selectSpace]
+  );
 
   // Clear a selected Space when it disappears, but allow a new selection to
   // arrive before its catalog event.

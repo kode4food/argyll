@@ -8,7 +8,10 @@ import (
 	"net/http"
 	"time"
 
+	"golang.org/x/oauth2"
+
 	"github.com/kode4food/argyll/engine/pkg/api"
+	"github.com/kode4food/argyll/engine/pkg/auth"
 	"github.com/kode4food/argyll/engine/pkg/step/builtins"
 )
 
@@ -72,8 +75,15 @@ func Run(cfg *Config) ([]Result, error) {
 	defer cb.close()
 
 	c := &checker{
-		cfg:    cfg,
-		client: &http.Client{Timeout: DefaultRequestTimeout},
+		cfg: cfg,
+		client: &http.Client{
+			Timeout:       DefaultRequestTimeout,
+			CheckRedirect: api.SameOriginRedirect,
+		},
+	}
+	// A worker that checks tokens accepts the engine's service account, which the check borrows
+	if ts := auth.ServiceTokens(); ts != nil {
+		c.client.Transport = &oauth2.Transport{Source: ts}
 	}
 	res := []Result{result("health", c.health())}
 

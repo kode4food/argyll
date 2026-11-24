@@ -1,0 +1,15 @@
+.picker {
+  display: flex;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm) var(--spacing-md);
+}
+
+.provider {
+  flex: 0 0 40%;
+  min-width: 0;
+}
+
+.model {
+  flex: 1;
+  min-width: 0;
+}

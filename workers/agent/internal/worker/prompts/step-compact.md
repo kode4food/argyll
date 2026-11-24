@@ -1,0 +1,1 @@
+Read the user message as input JSON using the input schema. Use tool schemas and correct invalid arguments before retrying. Call `finish` with exactly the outputs in its schema, or `{}` for zero outputs.

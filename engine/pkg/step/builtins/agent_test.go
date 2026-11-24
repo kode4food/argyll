@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"golang.org/x/oauth2"
 
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/step/builtins"
@@ -76,7 +77,7 @@ func TestAgentInvoke(t *testing.T) {
 	assert.Equal(t, "token-1", header.Get(api.HeaderReceiptToken))
 	assert.Equal(t, "flow-1", header.Get(api.HeaderFlowID))
 	assert.Equal(t,
-		"http://engine/callbacks/flow-1/step-1/token-1/agent",
+		"http://engine/callbacks/flow-1/step-1/token-1/agent/"+callbackKey,
 		header.Get(api.HeaderWebhookURL))
 }
 
@@ -99,6 +100,26 @@ func TestAgentInvokeStepTimeout(t *testing.T) {
 	rt, _ := newRuntime("flow-1", "step-1", api.Metadata{})
 	assert.NoError(t, h.Invoke(rt, st, api.Args{}, "token-1"))
 	assert.Equal(t, int64(60_000), got.Timeout)
+}
+
+func TestAgentInvokeSendsEngineCredentials(t *testing.T) {
+	var auth string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		auth = r.Header.Get("Authorization")
+		w.WriteHeader(http.StatusAccepted)
+	}))
+	defer srv.Close()
+
+	client := &http.Client{Transport: &oauth2.Transport{
+		Source: oauth2.StaticTokenSource(&oauth2.Token{AccessToken: "engine"}),
+	}}
+	h := builtins.AgentWithClient(
+		builtins.AgentWorkers{builtins.AnyProvider: srv.URL},
+		builtins.BaseCallbackURL("http://engine"), client, agentTimeout,
+	)
+	rt, _ := newRuntime("flow-1", "step-1", api.Metadata{})
+	assert.NoError(t, h.Invoke(rt, newAgentStep(), api.Args{}, "token-1"))
+	assert.Equal(t, "Bearer engine", auth)
 }
 
 func TestAgentInvokeErrors(t *testing.T) {

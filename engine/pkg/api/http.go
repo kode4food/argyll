@@ -1,7 +1,10 @@
 package api
 
 import (
+	"crypto/sha256"
+	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"mime"
@@ -34,11 +37,12 @@ const (
 
 	// CallbackRoute is the router pattern serving step callbacks. Its parameters and CallbackPath
 	// describe the same URL
-	CallbackRoute = "/callbacks/:flow_id/:step_id/:token/:action"
+	CallbackRoute = "/callbacks/:flow_id/:step_id/:token/:action/:secret"
 	ParamFlowID   = "flow_id"
 	ParamStepID   = "step_id"
 	ParamToken    = "token"
 	ParamAction   = "action"
+	ParamSecret   = "secret"
 
 	// HeaderFlowID carries the executing flow ID on HTTP step requests
 	HeaderFlowID = "Argyll-Flow-ID"
@@ -59,11 +63,54 @@ const (
 	ProblemJSONContentType = "application/problem+json"
 )
 
-const maxProblemBody = 4 << 10
+const (
+	maxProblemBody = 4 * 1024 // 4 KB
 
-// CallbackPath builds the path an async handler posts its outcome to
-func CallbackPath(flowID FlowID, stepID StepID, tkn Token, action CallbackAction) string {
-	return fmt.Sprintf("/callbacks/%s/%s/%s/%s", flowID, stepID, tkn, action)
+	// MaxHTTPRedirects matches the limit http.Client applies by default
+	MaxHTTPRedirects = 10
+)
+
+var (
+	ErrCrossOriginRedirect = errors.New("redirect to another origin refused")
+	ErrTooManyRedirects    = errors.New("too many redirects")
+)
+
+// CallbackPath builds the secret-bearing path for an async Step callback
+func CallbackPath(fs FlowStep, tkn Token, action CallbackAction, secret string) string {
+	return fmt.Sprintf("/callbacks/%s/%s/%s/%s/%s", fs.FlowID, fs.StepID, tkn, action, secret)
+}
+
+// RedactCallback drops the secret from a callback URL so it can be logged
+func RedactCallback(callback string) string {
+	return callback[:strings.LastIndexByte(callback, '/')+1]
+}
+
+// SameOriginRedirect limits an HTTP redirect chain to the original origin
+func SameOriginRedirect(req *http.Request, via []*http.Request) error {
+	if len(via) >= MaxHTTPRedirects {
+		return ErrTooManyRedirects
+	}
+	if req.URL.Scheme != via[0].URL.Scheme || req.URL.Host != via[0].URL.Host {
+		return fmt.Errorf("%w: %s", ErrCrossOriginRedirect, req.URL.Host)
+	}
+	return nil
+}
+
+// WithoutURL unwraps an HTTP client error to omit the request URL
+func WithoutURL(err error) error {
+	if ue, ok := errors.AsType[*url.Error](err); ok {
+		return ue.Err
+	}
+	return err
+}
+
+// CallbackHash hashes a callback secret for its invocation or compensation phase
+func CallbackHash(action CallbackAction, secret string) string {
+	if action == ActionAgent {
+		action = ActionInvoke
+	}
+	sum := sha256.Sum256([]byte(string(action) + "/" + secret))
+	return base64.RawURLEncoding.EncodeToString(sum[:])
 }
 
 // NewProblem creates a problem details response with standard title text

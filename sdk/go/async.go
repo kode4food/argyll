@@ -22,6 +22,8 @@ var (
 	ErrMetadataNotFound   = errors.New("metadata not found in step context")
 	ErrWebhookURLNotFound = errors.New("webhook_url not found in metadata")
 	ErrWebhookError       = errors.New("webhook returned error status")
+	ErrWebhookBody        = errors.New("could not encode webhook body")
+	ErrWebhookDelivery    = errors.New("could not deliver webhook")
 )
 
 // NewAsyncContext creates a new async context from a StepContext and extracts webhook_url from the
@@ -77,12 +79,13 @@ func (c *AsyncContext) WebhookURL() string {
 func (c *AsyncContext) sendWebhook(contentType string, body any) error {
 	jsonData, err := json.Marshal(body)
 	if err != nil {
-		return fmt.Errorf("failed to marshal webhook body: %w", err)
+		return fmt.Errorf("%w: %w", ErrWebhookBody, err)
 	}
 
-	resp, err := http.Post(c.webhookURL, contentType, bytes.NewBuffer(jsonData))
+	cl := &http.Client{CheckRedirect: api.SameOriginRedirect}
+	resp, err := cl.Post(c.webhookURL, contentType, bytes.NewReader(jsonData))
 	if err != nil {
-		return fmt.Errorf("failed to send webhook: %w", err)
+		return fmt.Errorf("%w: %w", ErrWebhookDelivery, api.WithoutURL(err))
 	}
 	defer func() { _ = resp.Body.Close() }()
 

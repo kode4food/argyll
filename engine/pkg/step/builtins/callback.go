@@ -1,11 +1,14 @@
 package builtins
 
 import (
+	"crypto/subtle"
 	"errors"
 	"fmt"
+	"slices"
 
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/policy"
+	"github.com/kode4food/argyll/engine/pkg/util"
 )
 
 type (
@@ -25,6 +28,7 @@ type (
 		FlowStep api.FlowStep
 		Token    api.Token
 		Action   api.CallbackAction
+		Secret   string
 		Outputs  api.Args
 		Problem  *api.ProblemDetails
 		Usage    api.Usage
@@ -36,23 +40,25 @@ var (
 	ErrInvalidCallbackAction     = errors.New("unsupported action")
 	ErrCallbackExecutionNotFound = errors.New("execution not found")
 	ErrCallbackNotCompensating   = errors.New("work item is not compensating")
+	ErrCallbackSecret            = errors.New("callback secret does not match")
 )
+
+var callbackActions = util.SetOf(api.ActionInvoke, api.ActionAgent, api.ActionCompensate)
 
 // Callback records the outcome an async step reported. An outcome its work item already settled is
 // accepted as a duplicate
 func Callback(eng CallbackEngine, req *CallbackRequest) error {
+	if !callbackActions.Contains(req.Action) {
+		return fmt.Errorf("%w: %s", ErrInvalidCallbackAction, req.Action)
+	}
 	work, err := lookupWork(eng, req)
 	if err != nil {
 		return err
 	}
-	switch req.Action {
-	case api.ActionInvoke, api.ActionAgent:
-		return ignoreDuplicate(invokeCallback(eng, req))
-	case api.ActionCompensate:
+	if req.Action == api.ActionCompensate {
 		return compensateCallback(eng, req, work.Status)
-	default:
-		return fmt.Errorf("%w: %s", ErrInvalidCallbackAction, req.Action)
 	}
+	return ignoreDuplicate(invokeCallback(eng, req))
 }
 
 func lookupWork(eng CallbackEngine, req *CallbackRequest) (api.WorkState, error) {
@@ -70,7 +76,16 @@ func lookupWork(eng CallbackEngine, req *CallbackRequest) (api.WorkState, error)
 	if !ok {
 		return api.WorkState{}, fmt.Errorf("%w: %s", api.ErrWorkItemNotFound, req.Token)
 	}
+	if !hasCallbackHash(&work, api.CallbackHash(req.Action, req.Secret)) {
+		return api.WorkState{}, fmt.Errorf("%w: %s", ErrCallbackSecret, req.Token)
+	}
 	return work, nil
+}
+
+func hasCallbackHash(work *api.WorkState, hash string) bool {
+	return slices.ContainsFunc(work.Callbacks, func(h string) bool {
+		return subtle.ConstantTimeCompare([]byte(h), []byte(hash)) == 1
+	})
 }
 
 // invokeCallback settles the work item: a problem retries when its status is retryable and fails

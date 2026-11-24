@@ -260,7 +260,8 @@ func workStarted(fl api.FlowState, ev *timebox.Event, data api.WorkStartedEvent)
 		SetStatus(api.WorkActive).
 		SetStartedAt(ev.Timestamp).
 		SetCompletedAt(time.Time{}).
-		SetNextRetryAt(time.Time{})
+		SetNextRetryAt(time.Time{}).
+		AddCallback(data.Callback)
 
 	return fl.
 		SetExecution(data.StepID, ex.SetWorkItem(data.Token, work)).
@@ -369,7 +370,8 @@ func compStarted(fl api.FlowState, ev *timebox.Event, data api.CompStartedEvent)
 	item = item.
 		SetStatus(api.WorkCompensating).
 		SetStartedAt(ev.Timestamp).
-		SetNextRetryAt(time.Time{})
+		SetNextRetryAt(time.Time{}).
+		AddCallback(data.Callback)
 	return fl.SetExecution(data.StepID, ex.SetWorkItem(data.Token, item))
 }
 

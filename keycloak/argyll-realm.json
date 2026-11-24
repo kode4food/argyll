@@ -1,0 +1,167 @@
+{
+  "realm": "argyll",
+  "enabled": true,
+  "displayName": "Argyll",
+  "displayNameHtml": "<div class=\"kc-logo-text\"><span>Argyll</span></div>",
+  "loginTheme": "argyll",
+  "roles": {
+    "realm": [
+      { "name": "reader", "description": "Read engine state" },
+      { "name": "operator", "description": "Start Flows" },
+      { "name": "admin", "description": "Change the catalog" }
+    ]
+  },
+  "clientScopes": [
+    {
+      "name": "argyll-access",
+      "protocol": "openid-connect",
+      "protocolMappers": [
+        {
+          "name": "subject",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-sub-mapper",
+          "config": {
+            "id.token.claim": "true",
+            "access.token.claim": "true"
+          }
+        },
+        {
+          "name": "username",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-property-mapper",
+          "config": {
+            "user.attribute": "username",
+            "claim.name": "preferred_username",
+            "jsonType.label": "String",
+            "id.token.claim": "true",
+            "access.token.claim": "true"
+          }
+        },
+        {
+          "name": "roles",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-realm-role-mapper",
+          "config": {
+            "claim.name": "roles",
+            "jsonType.label": "String",
+            "multivalued": "true",
+            "access.token.claim": "true"
+          }
+        },
+        {
+          "name": "audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "config": {
+            "included.custom.audience": "argyll",
+            "access.token.claim": "true"
+          }
+        }
+      ]
+    }
+  ],
+  "clients": [
+    {
+      "clientId": "argyll-web",
+      "name": "Argyll Web UI",
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "redirectUris": ["http://localhost:3001/*"],
+      "webOrigins": ["http://localhost:3001"],
+      "attributes": { "pkce.code.challenge.method": "S256" },
+      "defaultClientScopes": ["argyll-access"]
+    },
+    {
+      "clientId": "argyll-cli",
+      "name": "Argyll CLI and scripts",
+      "publicClient": true,
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": true,
+      "defaultClientScopes": ["argyll-access"]
+    },
+    {
+      "clientId": "argyll-engine",
+      "name": "Argyll engine",
+      "description": "Service account the engine uses to call agent workers",
+      "publicClient": false,
+      "secret": "argyll-demo-engine-secret",
+      "serviceAccountsEnabled": true,
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "defaultClientScopes": ["argyll-access"]
+    },
+    {
+      "clientId": "agent-workers",
+      "name": "Argyll agent workers",
+      "description": "Service account agent workers use to call the Argyll MCP server",
+      "publicClient": false,
+      "secret": "argyll-demo-agent-secret",
+      "serviceAccountsEnabled": true,
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "defaultClientScopes": ["argyll-access"]
+    },
+    {
+      "clientId": "demo-services",
+      "name": "Argyll demo Step services",
+      "description": "Service account the example services use to register their Steps",
+      "publicClient": false,
+      "secret": "argyll-demo-services-secret",
+      "serviceAccountsEnabled": true,
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "defaultClientScopes": ["argyll-access"]
+    }
+  ],
+  "users": [
+    {
+      "username": "service-account-argyll-engine",
+      "enabled": true,
+      "serviceAccountClientId": "argyll-engine",
+      "realmRoles": ["admin"]
+    },
+    {
+      "username": "service-account-agent-workers",
+      "enabled": true,
+      "serviceAccountClientId": "agent-workers",
+      "realmRoles": ["operator"]
+    },
+    {
+      "username": "service-account-demo-services",
+      "enabled": true,
+      "serviceAccountClientId": "demo-services",
+      "realmRoles": ["admin"]
+    },
+    {
+      "username": "reader",
+      "enabled": true,
+      "email": "reader@argyll.test",
+      "emailVerified": true,
+      "firstName": "Demo",
+      "lastName": "Reader",
+      "credentials": [{ "type": "password", "value": "reader", "temporary": false }],
+      "realmRoles": ["reader"]
+    },
+    {
+      "username": "operator",
+      "enabled": true,
+      "email": "operator@argyll.test",
+      "emailVerified": true,
+      "firstName": "Demo",
+      "lastName": "Operator",
+      "credentials": [{ "type": "password", "value": "operator", "temporary": false }],
+      "realmRoles": ["operator"]
+    },
+    {
+      "username": "admin",
+      "enabled": true,
+      "email": "admin@argyll.test",
+      "emailVerified": true,
+      "firstName": "Demo",
+      "lastName": "Admin",
+      "credentials": [{ "type": "password", "value": "admin", "temporary": false }],
+      "realmRoles": ["admin"]
+    }
+  ]
+}

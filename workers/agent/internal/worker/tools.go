@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
+	"golang.org/x/oauth2"
 
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/log"
@@ -138,6 +139,10 @@ func openToolbox(
 			return nil, err
 		}
 	}
+	// A stable tool order keeps prompts identical across attempts, so providers can cache them
+	slices.SortFunc(box.specs, func(a, b ToolSpec) int {
+		return strings.Compare(a.Name, b.Name)
+	})
 	return box, nil
 }
 
@@ -187,12 +192,20 @@ func connect(ctx context.Context, s MCPServer) (*mcp.ClientSession, error) {
 		Name:    clientName,
 		Version: clientVersion,
 	}, nil)
+	var rt http.RoundTripper = &headerTransport{
+		headers: s.Headers,
+	}
+	if s.Tokens != nil {
+		rt = &oauth2.Transport{
+			Source: s.Tokens,
+			Base:   rt,
+		}
+	}
 	transport := &mcp.StreamableClientTransport{
 		Endpoint: s.URL,
 		HTTPClient: &http.Client{
-			Transport: &headerTransport{
-				headers: s.Headers,
-			},
+			Transport:     rt,
+			CheckRedirect: api.SameOriginRedirect,
 		},
 		DisableStandaloneSSE: true,
 	}

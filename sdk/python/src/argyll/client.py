@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 import requests
 
+from .auth import BearerAuth, ServiceAccountAuth
 from .errors import ClientError, FlowError
 from .types import FlowID, Step
 
@@ -31,7 +32,7 @@ class FlowClient:
         """Get the current flow state."""
         url = f"{self._client.base_url}/engine/flows/{self._flow_id}"
         try:
-            resp = self._client.session.get(url, timeout=self._client.timeout)
+            resp = self._client._request("GET", url)
             resp.raise_for_status()
             data: Dict[str, Any] = resp.json()
             return data
@@ -47,6 +48,7 @@ class Client:
         base_url: str = "http://localhost:8080",
         timeout: int = 30,
         session: Optional[requests.Session] = None,
+        token: Optional[str] = None,
     ) -> None:
         trimmed = base_url.rstrip("/")
         if trimmed.endswith("/engine"):
@@ -54,12 +56,22 @@ class Client:
         self.base_url = trimmed
         self.timeout = timeout
         self.session = session or requests.Session()
+        self._auth = (
+            BearerAuth(token) if token else ServiceAccountAuth.from_env(timeout)
+        )
+
+    def _request(
+        self, method: str, url: str, **kwargs: Any
+    ) -> requests.Response:
+        return self.session.request(
+            method, url, auth=self._auth, timeout=self.timeout, **kwargs
+        )
 
     def list_steps(self) -> List[Step]:
         """List all registered steps."""
         url = f"{self.base_url}/engine/steps"
         try:
-            resp = self.session.get(url, timeout=self.timeout)
+            resp = self._request("GET", url)
             resp.raise_for_status()
             data = resp.json()
             if isinstance(data, dict):
@@ -101,9 +113,7 @@ class Client:
         """Create a step registration."""
         url = f"{self.base_url}/engine/steps"
         try:
-            resp = self.session.post(
-                url, json=step.to_dict(), timeout=self.timeout
-            )
+            resp = self._request("POST", url, json=step.to_dict())
             resp.raise_for_status()
         except requests.RequestException as e:
             status = getattr(e.response, "status_code", None)
@@ -114,9 +124,7 @@ class Client:
         """Update an existing step registration."""
         url = f"{self.base_url}/engine/steps/{step.id}"
         try:
-            resp = self.session.put(
-                url, json=step.to_dict(), timeout=self.timeout
-            )
+            resp = self._request("PUT", url, json=step.to_dict())
             resp.raise_for_status()
         except requests.RequestException as e:
             status = getattr(e.response, "status_code", None)

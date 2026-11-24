@@ -17,6 +17,13 @@ info:
       outcome, failures included
     - Keep no conversation state between attempts
 
+    When authentication is enabled, the engine calls `/invoke` with a
+    service-account bearer token. The route requires the `admin` role because
+    each attempt carries its own Step definition.
+
+    The route returns 401 for a missing or invalid token and 403 for a valid
+    token without the `admin` role. Health and capabilities stay public.
+
 servers:
   - url: "{protocol}://{host}:{port}"
     variables:
@@ -33,6 +40,9 @@ paths:
     post:
       summary: Start an Agent Attempt
       operationId: invokeAgent
+      security:
+        - bearerAuth: []
+        - {}
       parameters:
         - $ref: "#/components/parameters/FlowID"
         - $ref: "#/components/parameters/StepID"
@@ -94,12 +104,15 @@ paths:
     post:
       summary: Report an Attempt (Engine Endpoint)
       description: |
-        Posted to the `Argyll-Webhook-URL` from the invoke request
-        (`/callbacks/{flow_id}/{step_id}/{token}/agent` on the engine). Both
-        outcomes carry usage in the JSON body. The problem status decides whether
-        a failed attempt retries. Callback delivery accepts any 2xx response.
-        Transport errors, 408, 429, and 5xx responses are retried. Other non-2xx
-        responses reject delivery permanently.
+        The worker posts the outcome to the `Argyll-Webhook-URL` from the invoke
+        request (`/callbacks/{flow_id}/{step_id}/{token}/agent/{secret}` on the
+        engine). Both success and failure carry usage in the JSON body. For a
+        failed attempt, the problem status determines whether the engine
+        retries the attempt.
+
+        The worker accepts any 2xx callback response and retries delivery on
+        transient transport errors, 408, 429, or 5xx. Other non-2xx responses
+        end delivery.
       operationId: reportAgent
       requestBody:
         required: true
@@ -114,6 +127,11 @@ paths:
           description: Outcome rejected
 
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: Required when authentication is enabled
   parameters:
     FlowID:
       name: Argyll-Flow-ID

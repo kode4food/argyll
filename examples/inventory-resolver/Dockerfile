@@ -21,6 +21,7 @@ COPY examples/inventory-resolver/main.go ./examples/inventory-resolver/
 WORKDIR /build/examples/inventory-resolver
 RUN go mod edit -replace github.com/kode4food/argyll/engine=../../engine
 RUN go mod edit -replace github.com/kode4food/argyll/sdk/go=../../sdk/go
+ENV GOFLAGS=-mod=mod
 RUN go mod download
 
 # Build the executable

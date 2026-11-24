@@ -1,0 +1,25 @@
+.transcript {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  min-height: 0;
+  padding: var(--spacing-md);
+  overflow-y: auto;
+}
+
+.empty {
+  margin: auto;
+  font-size: var(--text-sm);
+  color: var(--panel-text-muted);
+  text-align: center;
+}
+
+.pending {
+  align-self: flex-start;
+  padding: var(--spacing-sm);
+}
+
+.errorRow {
+  display: flex;
+}

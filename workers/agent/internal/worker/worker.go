@@ -12,7 +12,9 @@ import (
 
 	"github.com/kode4food/lru"
 
+	"github.com/kode4food/argyll/chat/contract"
 	"github.com/kode4food/argyll/engine/pkg/api"
+	"github.com/kode4food/argyll/engine/pkg/auth"
 	"github.com/kode4food/argyll/engine/pkg/log"
 	"github.com/kode4food/argyll/engine/pkg/step/builtins"
 )
@@ -52,8 +54,11 @@ var (
 // New returns a worker offering what cfg configures
 func New(cfg *Config, provider Provider) *Worker {
 	return &Worker{
-		cfg:      cfg,
-		client:   &http.Client{Timeout: DefaultReportTimeout},
+		cfg: cfg,
+		client: &http.Client{
+			Timeout:       DefaultReportTimeout,
+			CheckRedirect: api.SameOriginRedirect,
+		},
 		schemas:  lru.NewCache[stepSchemas](schemaCacheSize),
 		provider: provider,
 	}
@@ -62,7 +67,11 @@ func New(cfg *Config, provider Provider) *Worker {
 // Handler serves the worker's endpoints
 func (w *Worker) Handler() http.Handler {
 	mux := http.NewServeMux()
-	mux.HandleFunc("POST "+builtins.AgentInvokePath, w.invoke)
+	// Invocation carries a Step definition, so it requires the same role as registration
+	mux.Handle("POST "+builtins.AgentInvokePath,
+		auth.Handler(http.HandlerFunc(w.invoke), w.cfg.Auth, auth.RoleAdmin))
+	mux.Handle("POST "+contract.Path,
+		auth.Handler(http.HandlerFunc(w.chat), w.cfg.Auth, auth.RoleOperator))
 	mux.HandleFunc("GET "+builtins.AgentHealthPath, func(rw http.ResponseWriter, _ *http.Request) {
 		rw.WriteHeader(http.StatusNoContent)
 	})
@@ -127,7 +136,7 @@ func (w *Worker) report(webhook string, out api.AgentOutcome) {
 	for i := 0; ; i++ {
 		err := w.post(webhook, out)
 		if err == nil {
-			slog.Info("Outcome reported", slog.String("webhook", webhook))
+			slog.Info("Outcome reported", slog.String("webhook", api.RedactCallback(webhook)))
 			return
 		}
 		slog.Warn("Outcome report failed", log.Error(err))
@@ -135,7 +144,8 @@ func (w *Worker) report(webhook string, out api.AgentOutcome) {
 			return
 		}
 		if i == maxReportRetries {
-			slog.Error("Gave up reporting outcome", slog.String("webhook", webhook))
+			slog.Error("Gave up reporting outcome",
+				slog.String("webhook", api.RedactCallback(webhook)))
 			return
 		}
 		time.Sleep(initialReportBackoff << i)
@@ -149,7 +159,10 @@ func (w *Worker) post(webhook string, out api.AgentOutcome) error {
 	}
 	resp, err := w.client.Do(req)
 	if err != nil {
-		return err
+		if errors.Is(err, api.ErrCrossOriginRedirect) {
+			return errors.Join(ErrReportRejected, api.WithoutURL(err))
+		}
+		return api.WithoutURL(err)
 	}
 	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode >= http.StatusOK && resp.StatusCode < http.StatusMultipleChoices {

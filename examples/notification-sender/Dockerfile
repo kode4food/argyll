@@ -21,6 +21,7 @@ COPY examples/notification-sender/*.go ./examples/notification-sender/
 WORKDIR /build/examples/notification-sender
 RUN go mod edit -replace github.com/kode4food/argyll/engine=../../engine
 RUN go mod edit -replace github.com/kode4food/argyll/sdk/go=../../sdk/go
+ENV GOFLAGS=-mod=mod
 RUN go mod download
 
 # Generate the step adapters

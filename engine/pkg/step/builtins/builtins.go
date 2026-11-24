@@ -14,15 +14,17 @@ type (
 	}
 
 	// CallbackURL returns the callback endpoint for asynchronous HTTP work
-	CallbackURL func(api.FlowStep, api.Token, api.CallbackAction) string
+	CallbackURL func(
+		fs api.FlowStep, tkn api.Token, action api.CallbackAction, secret string,
+	) string
 )
 
 // BaseCallbackURL constructs callback URLs below a fixed base URL
 func BaseCallbackURL(base string) CallbackURL {
 	return func(
-		fs api.FlowStep, token api.Token, action api.CallbackAction,
+		fs api.FlowStep, token api.Token, action api.CallbackAction, secret string,
 	) string {
-		return base + api.CallbackPath(fs.FlowID, fs.StepID, token, action)
+		return base + api.CallbackPath(fs, token, action, secret)
 	}
 }
 

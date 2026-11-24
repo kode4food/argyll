@@ -1,6 +1,7 @@
 go 1.27.0
 
 use (
+	./chat
 	./engine
 	./examples/inventory-resolver
 	./examples/notification-sender

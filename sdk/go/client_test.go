@@ -21,6 +21,27 @@ func TestNewClient(t *testing.T) {
 	assert.NotNil(t, client)
 }
 
+func TestClientSendsToken(t *testing.T) {
+	var seen []string
+	server := httptest.NewServer(http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			seen = append(seen, r.Header.Get("Authorization"))
+			_ = json.NewEncoder(w).Encode(api.StepsListResponse{})
+		},
+	))
+	defer server.Close()
+
+	t.Setenv(argyll.TokenURLEnv, "")
+	explicit := argyll.NewClient(server.URL, time.Second).WithToken("explicit")
+	_, err := explicit.ListSteps(context.Background())
+	assert.NoError(t, err)
+
+	_, err = argyll.NewClient(server.URL, time.Second).ListSteps(context.Background())
+	assert.NoError(t, err)
+
+	assert.Equal(t, []string{"Bearer explicit", ""}, seen)
+}
+
 func TestRegisterStepSuccess(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {

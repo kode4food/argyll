@@ -33,6 +33,7 @@ import {
   Layers,
   Link2,
   Loader2,
+  LogOut,
   Lock,
   Maximize,
   MinusCircle,
@@ -44,6 +45,7 @@ import {
   Rss,
   ScrollText,
   Search,
+  SendHorizontal,
   Server,
   Split,
   Square,
@@ -86,6 +88,9 @@ export const IconDiagramLoading = Server;
 export const IconInfo = Info;
 export const IconDuration = Clock;
 export const IconClose = X;
+export const IconChat = Bot;
+export const IconSignOut = LogOut;
+export const IconChatSend = SendHorizontal;
 export const IconCommandKey = Command;
 export const IconPageNotFound = AlertTriangle;
 export const IconError = AlertCircle;

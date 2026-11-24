@@ -20,6 +20,8 @@ let mockFlowError: string | null = null;
 jest.mock("@/app/store/flowStore", () => ({
   useFlowError: () => mockFlowError,
   useSpaces: () => [],
+  useSelectedSpaceId: () => null,
+  useSetSelectedSpaceId: () => jest.fn(),
 }));
 
 describe("LivePage", () => {

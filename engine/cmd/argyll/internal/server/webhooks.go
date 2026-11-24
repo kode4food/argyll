@@ -1,6 +1,7 @@
 package server
 
 import (
+	"cmp"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -15,11 +16,22 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/step/builtins"
 )
 
+// DefaultCallbackMaxBytes limits callback bodies before credential verification
+const DefaultCallbackMaxBytes = 10 * 1024 * 1024 // 10 MB
+
 var (
 	ErrInvalidAgentOutcome = errors.New("agent outcome requires either outputs or a problem")
 )
 
+// WithCallbackLimit caps the body of each Step callback, in bytes
+func (s *Server) WithCallbackLimit(n int64) *Server {
+	s.callbackLimit = n
+	return s
+}
+
 func (s *Server) handleWebhook(c *gin.Context) {
+	limit := cmp.Or(s.callbackLimit, DefaultCallbackMaxBytes)
+	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, limit)
 	req, err := callbackRequest(c)
 	if err == nil {
 		err = builtins.Callback(s.engine, &req)
@@ -50,6 +62,7 @@ func callbackRequest(c *gin.Context) (builtins.CallbackRequest, error) {
 		},
 		Token:  api.Token(c.Param(api.ParamToken)),
 		Action: api.CallbackAction(c.Param(api.ParamAction)),
+		Secret: c.Param(api.ParamSecret),
 	}
 	body, err := io.ReadAll(c.Request.Body)
 	if err != nil {
@@ -91,10 +104,13 @@ func decodeAgentCallback(req *builtins.CallbackRequest, body []byte) error {
 }
 
 func invalidCallback(err error) error {
-	return fmt.Errorf("%w: %v", builtins.ErrInvalidCallback, err)
+	return fmt.Errorf("%w: %w", builtins.ErrInvalidCallback, err)
 }
 
 func callbackStatus(err error) int {
+	if _, ok := errors.AsType[*http.MaxBytesError](err); ok {
+		return http.StatusRequestEntityTooLarge
+	}
 	switch {
 	case errors.Is(err, builtins.ErrInvalidCallback),
 		errors.Is(err, ErrInvalidAgentOutcome),
@@ -103,6 +119,8 @@ func callbackStatus(err error) int {
 		errors.Is(err, api.ErrWorkItemNotFound),
 		errors.Is(err, builtins.ErrCallbackNotCompensating):
 		return http.StatusBadRequest
+	case errors.Is(err, builtins.ErrCallbackSecret):
+		return http.StatusForbidden
 	default:
 		return http.StatusInternalServerError
 	}

@@ -2,6 +2,7 @@ package mcp_test
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"go/format"
 	"io"
@@ -12,8 +13,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/localrivet/gomcp/client"
-	"github.com/localrivet/gomcp/transport/embedded"
+	sdk "github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/kode4food/argyll/engine/pkg/api"
@@ -26,72 +26,117 @@ func (f roundTripperFunc) RoundTrip(r *http.Request) (*http.Response, error) {
 	return f(r)
 }
 
-func newClient(t *testing.T, s *mcp.Server) client.Client {
+func newClient(t *testing.T, s *mcp.Server) *sdk.ClientSession {
 	t.Helper()
 
-	serverTr, clientTr := embedded.NewTransportPair()
-	srv := s.MCPServer().AsEmbedded(serverTr)
-	go func() {
-		_ = srv.Run()
-	}()
-
-	c, err := client.NewClient("embedded://", client.WithEmbedded(clientTr))
-	assert.NoError(t, err)
-	t.Cleanup(func() { _ = c.Close() })
-	return c
-}
-
-func callToolText(t *testing.T, c client.Client, name string, args map[string]any) string {
-	t.Helper()
-
-	res, err := c.CallTool(name, args)
+	ctx := context.Background()
+	serverTr, clientTr := sdk.NewInMemoryTransports()
+	srv, err := s.MCPServer()
 	if !assert.NoError(t, err) {
-		return ""
+		return nil
 	}
+	ss, err := srv.Connect(ctx, serverTr, nil)
+	if !assert.NoError(t, err) {
+		t.FailNow()
+	}
+	t.Cleanup(func() { _ = ss.Close() })
 
-	m, ok := res.(map[string]any)
-	if !assert.True(t, ok) {
-		return ""
+	client := sdk.NewClient(&sdk.Implementation{
+		Name:    "test",
+		Version: "1",
+	}, nil)
+	cs, err := client.Connect(ctx, clientTr, nil)
+	if !assert.NoError(t, err) {
+		t.FailNow()
 	}
-
-	content, ok := m["content"].([]any)
-	if !assert.True(t, ok) {
-		return ""
-	}
-	if !assert.Len(t, content, 1) {
-		return ""
-	}
-
-	item, ok := content[0].(map[string]any)
-	if !assert.True(t, ok) {
-		return ""
-	}
-	assert.Equal(t, "text", item["type"])
-
-	text, ok := item["text"].(string)
-	if !assert.True(t, ok) {
-		return ""
-	}
-	return text
+	t.Cleanup(func() { _ = cs.Close() })
+	return cs
 }
 
-func getResourceText(t *testing.T, c client.Client, uri string) string {
+func callTool(
+	t *testing.T, c *sdk.ClientSession, name string, args map[string]any,
+) *sdk.CallToolResult {
 	t.Helper()
 
-	res, err := c.GetResource(uri)
+	res, err := c.CallTool(context.Background(), &sdk.CallToolParams{
+		Name:      name,
+		Arguments: args,
+	})
 	if !assert.NoError(t, err) {
-		return ""
+		t.FailNow()
 	}
-	if len(res.Content) > 0 {
-		return strings.TrimSpace(res.Content[0].Text)
-	}
-	if len(res.Contents) > 0 {
-		return strings.TrimSpace(res.Contents[0].Text)
-	}
-	return ""
+	return res
 }
 
-func templateCode(t *testing.T, c client.Client, args map[string]any) string {
+func callToolText(t *testing.T, c *sdk.ClientSession, name string, args map[string]any) string {
+	t.Helper()
+
+	res := callTool(t, c, name, args)
+	if !assert.False(t, res.IsError) {
+		return ""
+	}
+	if !assert.Len(t, res.Content, 1) {
+		return ""
+	}
+	text, ok := res.Content[0].(*sdk.TextContent)
+	if !assert.True(t, ok) {
+		return ""
+	}
+	return text.Text
+}
+
+func callToolFails(t *testing.T, c *sdk.ClientSession, name string, args map[string]any) bool {
+	t.Helper()
+
+	return callTool(t, c, name, args).IsError
+}
+
+func callToolErrorText(
+	t *testing.T, c *sdk.ClientSession, name string, args map[string]any,
+) string {
+	t.Helper()
+
+	res := callTool(t, c, name, args)
+	if !assert.True(t, res.IsError) || !assert.NotEmpty(t, res.Content) {
+		return ""
+	}
+	text, _ := res.Content[0].(*sdk.TextContent)
+	if text == nil {
+		return ""
+	}
+	return text.Text
+}
+
+func getResourceText(t *testing.T, c *sdk.ClientSession, uri string) string {
+	t.Helper()
+
+	res, err := c.ReadResource(context.Background(), &sdk.ReadResourceParams{URI: uri})
+	if !assert.NoError(t, err) || !assert.NotEmpty(t, res.Contents) {
+		return ""
+	}
+	return strings.TrimSpace(res.Contents[0].Text)
+}
+
+func getPromptText(
+	t *testing.T, c *sdk.ClientSession, name string, args map[string]string,
+) string {
+	t.Helper()
+
+	res, err := c.GetPrompt(context.Background(), &sdk.GetPromptParams{
+		Name:      name,
+		Arguments: args,
+	})
+	if !assert.NoError(t, err) || !assert.Len(t, res.Messages, 1) {
+		return ""
+	}
+	text, ok := res.Messages[0].Content.(*sdk.TextContent)
+	if !assert.True(t, ok) {
+		return ""
+	}
+	return text.Text
+}
+
+func templateCode(t *testing.T, c *sdk.ClientSession, args map[string]any) string {
 	t.Helper()
 
 	text := callToolText(t, c, "sdk_step_template", args)

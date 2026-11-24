@@ -2,12 +2,15 @@ import { useCallback, useEffect } from "react";
 import { useFlowStore } from "@/app/store/flowStore";
 import { WebSocketEvent, WebSocketSubscribed } from "@/app/types/websocket";
 import { useT } from "@/app/i18n";
+import { META_KEY_PARENT_FLOW_ID } from "@/app/api";
 import type { useWebSocketClient } from "@/app/hooks/useWebSocketClient";
 
 type SocketClient = ReturnType<typeof useWebSocketClient>;
 
+const FLOW_STARTED_EVENT = "flow_started";
+
 const FLOW_SUMMARY_EVENT_TYPES = [
-  "flow_started",
+  FLOW_STARTED_EVENT,
   "flow_completed",
   "flow_failed",
 ];
@@ -38,6 +41,8 @@ export function useFlowSummarySubscription(
 
       switch (wsEvent.type) {
         case "flow_started":
+          // Child Flows stay out of the list, as they do in flow queries
+          if (wsEvent.data?.metadata?.[META_KEY_PARENT_FLOW_ID]) break;
           addFlow({ id: flowId, status: "active", timestamp });
           break;
         case "flow_completed":
@@ -57,6 +62,22 @@ export function useFlowSummarySubscription(
     },
     [addFlow, t]
   );
+
+  // Flows started anywhere join the list. Once listed, the visible Flow
+  // subscription below follows them to completion
+  useEffect(() => {
+    const subscriptionId = socketClient.subscribe(
+      { event_types: [FLOW_STARTED_EVENT] },
+      handleFlowSummaryEvent
+    );
+    return () => {
+      socketClient.unsubscribe(subscriptionId);
+    };
+  }, [
+    handleFlowSummaryEvent,
+    socketClient.subscribe,
+    socketClient.unsubscribe,
+  ]);
 
   useEffect(() => {
     if (visibleFlowIDs.length === 0) {

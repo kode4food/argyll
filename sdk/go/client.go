@@ -20,6 +20,7 @@ type (
 	Client struct {
 		httpClient *http.Client
 		baseURL    string
+		token      string
 	}
 
 	// FlowClient provides access to a specific flow
@@ -54,14 +55,19 @@ var (
 	ErrGetFlowStatus = errors.New("failed to get flow status")
 )
 
-// NewClient creates a new orchestrator client with the specified base URL and timeout
+// NewClient creates an engine client using service credentials from the environment
 func NewClient(baseURL string, timeout time.Duration) *Client {
 	return &Client{
-		baseURL: baseURL,
-		httpClient: &http.Client{
-			Timeout: timeout,
-		},
+		baseURL:    baseURL,
+		httpClient: engineHTTPClient(timeout),
 	}
+}
+
+// WithToken replaces the configured credentials with an explicit bearer token
+func (c *Client) WithToken(token string) *Client {
+	c.httpClient = &http.Client{Timeout: c.httpClient.Timeout}
+	c.token = token
+	return c
 }
 
 // ListSteps retrieves all registered steps from the orchestrator
@@ -206,6 +212,9 @@ func (c *Client) doHTTPRequest(ctx context.Context, req httpRequest) error {
 
 	if req.Body != nil {
 		httpReq.Header.Set("Content-Type", api.JSONContentType)
+	}
+	if c.token != "" {
+		httpReq.Header.Set("Authorization", "Bearer "+c.token)
 	}
 
 	resp, err := c.httpClient.Do(httpReq)

@@ -1,0 +1,51 @@
+.block {
+  margin: 0;
+  padding: var(--spacing-sm) var(--spacing-md);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  line-height: 1.5;
+  color: var(--panel-text);
+  background-color: var(--panel-hover);
+  border: 1px solid var(--glass-chrome-border-color);
+  border-radius: var(--radius-md);
+  overflow-x: auto;
+  white-space: pre;
+  user-select: text;
+}
+
+/* Token classes come from Lezer's classHighlighter */
+.block :global(.tok-keyword),
+.block :global(.tok-operator) {
+  color: var(--arg-icon-meta);
+}
+
+.block :global(.tok-string),
+.block :global(.tok-string2) {
+  color: var(--arg-icon-output);
+}
+
+.block :global(.tok-number),
+.block :global(.tok-bool),
+.block :global(.tok-atom) {
+  color: var(--arg-icon-optional);
+}
+
+.block :global(.tok-propertyName),
+.block :global(.tok-typeName),
+.block :global(.tok-className) {
+  color: var(--arg-icon-required);
+}
+
+.block :global(.tok-variableName.tok-definition),
+.block :global(.tok-meta) {
+  color: var(--color-primary);
+}
+
+.block :global(.tok-comment) {
+  color: var(--panel-text-muted);
+  font-style: italic;
+}
+
+.block :global(.tok-invalid) {
+  color: var(--color-error);
+}

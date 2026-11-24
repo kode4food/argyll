@@ -4,14 +4,17 @@ go 1.27.0
 
 require (
 	github.com/Shopify/go-lua v0.0.0-20261007132305-3f823f845ff9
+	github.com/coreos/go-oidc/v3 v3.21.0
 	github.com/gin-contrib/slog v1.2.5
 	github.com/gin-gonic/gin v1.12.0
+	github.com/go-jose/go-jose/v4 v4.1.4
 	github.com/gorilla/websocket v1.5.3
 	github.com/kode4food/argex v0.1.11
 	github.com/kode4food/caravan v0.0.0-20261110162553-22d42e0829c8
 	github.com/kode4food/lru v0.0.0-20261011080515-d1c90c62daee
 	github.com/kode4food/timebox v0.5.0
 	github.com/stretchr/testify v1.12.1
+	golang.org/x/oauth2 v0.36.0
 )
 
 require (

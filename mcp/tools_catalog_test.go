@@ -1,6 +1,7 @@
 package mcp_test
 
 import (
+	"context"
 	"io"
 	"net/http"
 	"testing"
@@ -186,26 +187,28 @@ func TestToolsRejectMissingArgs(t *testing.T) {
 		{tool: "update_feed", args: map[string]any{"id": "x", "feed": empty}},
 		{tool: "unregister_feed", args: map[string]any{"id": ""}},
 	} {
-		res, err := c.CallTool(tc.tool, tc.args)
-		assert.NoError(t, err, tc.tool)
-		m, _ := res.(map[string]any)
-		assert.Equal(t, true, m["isError"], tc.tool)
+		assert.True(t, callToolFails(t, c, tc.tool, tc.args), tc.tool)
 	}
 }
 
 func TestToolDescriptionsExplainArgs(t *testing.T) {
 	c := newClient(t, mcp.NewServer("http://example", http.DefaultClient))
-	tools, err := c.ListTools()
+	tools, err := c.ListTools(context.Background(), nil)
 	assert.NoError(t, err)
 
 	desc := map[string]string{}
 	props := map[string]map[string]any{}
-	for _, tool := range tools {
+	for _, tool := range tools.Tools {
 		desc[tool.Name] = tool.Description
-		if p, ok := tool.InputSchema["properties"].(map[string]any); ok {
+		schema, _ := tool.InputSchema.(map[string]any)
+		if p, ok := schema["properties"].(map[string]any); ok {
 			props[tool.Name] = p
 		}
 	}
+	goals, _ := props["start_flow"]["goals"].(map[string]any)
+	goalProps, _ := goals["properties"].(map[string]any)
+	assert.Contains(t, goalProps, "steps")
+	assert.Contains(t, goalProps, "else")
 	for _, tool := range []string{"start_flow", "preview_plan"} {
 		assert.Contains(t, desc[tool], `{"steps"`)
 		assert.Contains(t, desc[tool], "without outputs")

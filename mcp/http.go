@@ -2,6 +2,7 @@ package mcp
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -11,70 +12,65 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
+// authorizationKey holds the Authorization header of the MCP request being served
+type authorizationKey struct{}
+
 var (
 	ErrHTTPStatus        = errors.New("http request failed")
 	ErrEmptyResponseBody = errors.New("empty response body")
 )
 
-func (s *Server) httpGet(path string) (any, error) {
-	req, err := http.NewRequest(http.MethodGet, s.baseURL+path, nil)
-	if err != nil {
-		return nil, err
-	}
-	return s.httpDo(req)
+func (s *Server) httpGet(ctx context.Context, path string) (any, error) {
+	return s.httpRequest(ctx, http.MethodGet, path, nil)
 }
 
-func (s *Server) httpPost(path string, payload any) (any, error) {
-	req, err := s.httpJSONRequest(http.MethodPost, path, payload)
-	if err != nil {
-		return nil, err
-	}
-	return s.httpDo(req)
+func (s *Server) httpPost(ctx context.Context, path string, payload any) (any, error) {
+	return s.httpRequest(ctx, http.MethodPost, path, payload)
 }
 
-func (s *Server) httpPut(path string, payload any) (any, error) {
-	req, err := s.httpJSONRequest(http.MethodPut, path, payload)
-	if err != nil {
-		return nil, err
-	}
-	return s.httpDo(req)
+func (s *Server) httpPut(ctx context.Context, path string, payload any) (any, error) {
+	return s.httpRequest(ctx, http.MethodPut, path, payload)
 }
 
-func (s *Server) httpDelete(path string) (any, error) {
-	req, err := http.NewRequest(http.MethodDelete, s.baseURL+path, nil)
-	if err != nil {
-		return nil, err
-	}
-	return s.httpDo(req)
+func (s *Server) httpDelete(ctx context.Context, path string) (any, error) {
+	return s.httpRequest(ctx, http.MethodDelete, path, nil)
 }
 
-func (s *Server) httpJSONRequest(method, path string, payload any) (*http.Request, error) {
-	data, err := json.Marshal(payload)
+// httpRequest forwards the caller's Authorization when present
+func (s *Server) httpRequest(
+	ctx context.Context, method, path string, payload any,
+) (any, error) {
+	var body io.Reader
+	if payload != nil {
+		data, err := json.Marshal(payload)
+		if err != nil {
+			return nil, err
+		}
+		body = bytes.NewReader(data)
+	}
+	req, err := http.NewRequestWithContext(ctx, method, s.baseURL+path, body)
 	if err != nil {
 		return nil, err
 	}
-	req, err := http.NewRequest(method, s.baseURL+path, bytes.NewReader(data))
-	if err != nil {
-		return nil, err
+	if body != nil {
+		req.Header.Set("Content-Type", api.JSONContentType)
 	}
-	req.Header.Set("Content-Type", api.JSONContentType)
-	return req, nil
-}
-
-func (s *Server) httpDo(req *http.Request) (any, error) {
+	if header, ok := ctx.Value(authorizationKey{}).(string); ok && header != "" {
+		req.Header.Set("Authorization", header)
+	}
 	resp, err := s.client.Do(req)
 	if err != nil {
 		return nil, err
 	}
 	defer func() { _ = resp.Body.Close() }()
-	body, err := io.ReadAll(resp.Body)
+	data, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
 	}
-	if resp.StatusCode/100 != 2 { // not a 2xx success response
-		return nil, fmt.Errorf("%w: %s", ErrHTTPStatus, string(body))
+	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
+		return nil, fmt.Errorf("%w: %s", ErrHTTPStatus, string(data))
 	}
-	return decodeJSON(body)
+	return decodeJSON(data)
 }
 
 func decodeJSON(body []byte) (any, error) {

@@ -1,28 +1,28 @@
 package mcp
 
 import (
+	"context"
 	"errors"
 	"net/url"
 	"strconv"
 
-	"github.com/localrivet/gomcp/server"
+	"github.com/modelcontextprotocol/go-sdk/mcp"
 
 	"github.com/kode4food/argyll/engine/pkg/api"
-	"github.com/kode4food/argyll/mcp/openapi"
 )
 
 type (
 	listFlowsArgs struct {
-		Limit  *int    `json:"limit,omitempty" description:"Maximum Flows to return"`
-		Cursor *string `json:"cursor,omitempty" description:"next_cursor from the previous page"`
+		Limit  *int    `json:"limit,omitempty" jsonschema:"Maximum Flows to return"`
+		Cursor *string `json:"cursor,omitempty" jsonschema:"next_cursor from the previous page"`
 	}
 
 	queryFlowsArgs struct {
-		IDPrefix *string   `json:"id_prefix,omitempty" description:"Flow ID prefix"`
-		Tags     *[]string `json:"tags,omitempty" description:"Tags a Flow must all carry"`
-		Statuses *[]string `json:"statuses,omitempty" description:"active, completed, or failed"`
-		Limit    *int      `json:"limit,omitempty" description:"Maximum Flows to return"`
-		Cursor   *string   `json:"cursor,omitempty" description:"next_cursor from the prior page"`
+		IDPrefix *string   `json:"id_prefix,omitempty" jsonschema:"Flow ID prefix"`
+		Tags     *[]string `json:"tags,omitempty" jsonschema:"Tags a Flow must all carry"`
+		Statuses *[]string `json:"statuses,omitempty" jsonschema:"active, completed, or failed"`
+		Limit    *int      `json:"limit,omitempty" jsonschema:"Maximum Flows to return"`
+		Cursor   *string   `json:"cursor,omitempty" jsonschema:"next_cursor from the prior page"`
 	}
 
 	registerStepInput struct {
@@ -31,7 +31,7 @@ type (
 
 	updateStepArgs struct {
 		Step map[string]any `json:"step"`
-		ID   string         `json:"id" description:"Step ID"`
+		ID   string         `json:"id" jsonschema:"Step ID"`
 	}
 
 	diffProposedStepsArgs struct {
@@ -56,9 +56,9 @@ type (
 	startFlowInput struct {
 		Init    *map[string]any `json:"init,omitempty"`
 		Tags    *[]string       `json:"tags,omitempty"`
-		SpaceID *string         `json:"space_id,omitempty" description:"Space to plan in"`
+		SpaceID *string         `json:"space_id,omitempty" jsonschema:"Space to plan in"`
 		Goals   api.Goals       `json:"goals"`
-		ID      *string         `json:"id,omitempty" description:"Leave out for a fresh ID"`
+		ID      *string         `json:"id,omitempty" jsonschema:"Leave out for a fresh ID"`
 	}
 )
 
@@ -78,120 +78,122 @@ const (
 
 var (
 	ErrInvalidParams = errors.New("invalid params")
+	ErrToolSchema    = errors.New("could not build tool schema")
 )
 
-func (s *Server) registerTools(srv server.Server) {
-	s.registerEngineTools(srv)
-	s.registerAnalysisTools(srv)
-	s.registerStepTools(srv)
-	s.registerFlowReadTools(srv)
-	s.registerFlowWriteTools(srv)
-	s.registerHealthTools(srv)
-	s.registerSpaceTools(srv)
-	s.registerFeedTools(srv)
+func (s *Server) registerTools(reg *toolRegistry) {
+	s.registerEngineTools(reg)
+	s.registerAnalysisTools(reg)
+	s.registerStepTools(reg)
+	s.registerFlowReadTools(reg)
+	s.registerFlowWriteTools(reg)
+	s.registerHealthTools(reg)
+	s.registerSpaceTools(reg)
+	s.registerFeedTools(reg)
 }
 
-func (s *Server) registerEngineTools(srv server.Server) {
-	srv.Tool(
-		"engine_state",
-		"Fetch the engine overview: registered Steps, Attributes, Step health, "+
+func (s *Server) registerEngineTools(reg *toolRegistry) {
+	addTool(reg, &mcp.Tool{
+		Name: "engine_state",
+		Description: "Fetch the engine overview: registered Steps, Attributes, Step health, " +
 			"and active Flows",
+	},
 		pathTool(s.httpGet, "/engine"),
 	)
 }
 
-func (s *Server) registerAnalysisTools(srv server.Server) {
-	srv.Tool(
-		"analyze_openapi_contract",
-		"Extract neutral REST contract facts from an OpenAPI spec",
-		func(_ *server.Context, args openapi.Args) (any, error) {
-			return s.analyzeOpenAPIContract(args)
-		},
+func (s *Server) registerAnalysisTools(reg *toolRegistry) {
+	addTool(reg, &mcp.Tool{
+		Name:        "analyze_openapi_contract",
+		Description: "Extract neutral REST contract facts from an OpenAPI spec",
+	},
+		s.analyzeOpenAPIContract,
 	)
-	srv.Tool(
-		"analyze_service_spec",
-		"Analyze one external REST/JSON service spec for planner-oriented use",
-		func(_ *server.Context, args analyzeServiceSpecArgs) (any, error) {
-			return s.analyzeServiceSpec(args)
-		},
+	addTool(reg, &mcp.Tool{
+		Name:        "analyze_service_spec",
+		Description: "Analyze one external REST/JSON service spec for planner-oriented use",
+	},
+		s.analyzeServiceSpec,
 	)
-	srv.Tool(
-		"analyze_service_landscape",
-		"Analyze multiple service specs and describe cross-service links",
-		func(_ *server.Context, args analyzeServiceLandscapeArgs) (any, error) {
-			return s.analyzeServiceLandscape(args)
-		},
+	addTool(reg, &mcp.Tool{
+		Name:        "analyze_service_landscape",
+		Description: "Analyze multiple service specs and describe cross-service links",
+	},
+		s.analyzeServiceLandscape,
 	)
-	srv.Tool(
-		"generate_step_impl",
-		"Generate an SDK implementation draft for a proposed step",
-		func(_ *server.Context, args generateStepImplArgs) (any, error) {
-			return s.generateStepImpl(args)
-		},
+	addTool(reg, &mcp.Tool{
+		Name:        "generate_step_impl",
+		Description: "Generate an SDK implementation draft for a proposed step",
+	},
+		s.generateStepImpl,
 	)
 }
 
-func (s *Server) registerStepTools(srv server.Server) {
-	srv.Tool(
-		"list_steps",
-		"List every registered Step with its Attributes and configuration",
+func (s *Server) registerStepTools(reg *toolRegistry) {
+	addTool(reg, &mcp.Tool{
+		Name:        "list_steps",
+		Description: "List every registered Step with its Attributes and configuration",
+	},
 		pathTool(s.httpGet, "/engine/steps"),
 	)
-	srv.Tool(
-		"get_step",
-		"Fetch one Step's registration: Attributes with roles, predicate, and "+
+	addTool(reg, &mcp.Tool{
+		Name: "get_step",
+		Description: "Fetch one Step's registration: Attributes with roles, predicate, and " +
 			"type configuration",
-		idTool(s.httpGet, "/engine/steps/", ""),
+	},
+		idTool(s.httpGet, "/engine/steps/%s"),
 	)
-	srv.Tool(
-		"unregister_step",
-		"Remove a Step from the catalog",
-		idTool(s.httpDelete, "/engine/steps/", ""),
+	addTool(reg, &mcp.Tool{
+		Name:        "unregister_step",
+		Description: "Remove a Step from the catalog",
+	},
+		idTool(s.httpDelete, "/engine/steps/%s"),
 	)
-	srv.Tool(
-		"register_step",
-		"Register a new Step in the catalog. "+stepShape,
-		func(_ *server.Context, args registerStepInput) (any, error) {
+	addTool(reg, &mcp.Tool{
+		Name:        "register_step",
+		Description: "Register a new Step in the catalog. " + stepShape,
+	},
+		func(ctx context.Context, args registerStepInput) (any, error) {
 			if len(args.Step) == 0 {
 				return nil, errInvalidParams("step body is required")
 			}
-			return toolResult(s.httpPost("/engine/steps", args.Step))
+			return s.httpPost(ctx, "/engine/steps", args.Step)
 		},
 	)
-	srv.Tool(
-		"update_step",
-		"Replace an existing Step registration. Fetch it with get_step, change "+
+	addTool(reg, &mcp.Tool{
+		Name: "update_step",
+		Description: "Replace an existing Step registration. Fetch it with get_step, change " +
 			"it, and send the whole Step",
-		func(_ *server.Context, args updateStepArgs) (any, error) {
+	},
+		func(ctx context.Context, args updateStepArgs) (any, error) {
 			if args.ID == "" || len(args.Step) == 0 {
 				return nil, errInvalidParams("id and step body are required")
 			}
-			return toolResult(s.httpPut("/engine/steps/"+args.ID, args.Step))
+			return s.httpPut(ctx, "/engine/steps/"+args.ID, args.Step)
 		},
 	)
-	srv.Tool(
-		"diff_proposed_steps",
-		"Dry-run proposed step registrations against the live catalog",
-		func(_ *server.Context, args diffProposedStepsArgs) (any, error) {
-			return s.diffProposedSteps(args)
-		},
+	addTool(reg, &mcp.Tool{
+		Name:        "diff_proposed_steps",
+		Description: "Dry-run proposed step registrations against the live catalog",
+	},
+		s.diffProposedSteps,
 	)
-	srv.Tool(
-		"apply_proposed_steps",
-		"Apply proposed step registrations using existing register/update "+
+	addTool(reg, &mcp.Tool{
+		Name: "apply_proposed_steps",
+		Description: "Apply proposed step registrations using existing register/update " +
 			"operations",
-		func(_ *server.Context, args applyProposedStepsArgs) (any, error) {
-			return s.applyProposedSteps(args)
-		},
+	},
+		s.applyProposedSteps,
 	)
 }
 
-func (s *Server) registerFlowReadTools(srv server.Server) {
-	srv.Tool(
-		"list_flows",
-		"List one page of Flows, newest first. Pass next_cursor as cursor for "+
+func (s *Server) registerFlowReadTools(reg *toolRegistry) {
+	addTool(reg, &mcp.Tool{
+		Name: "list_flows",
+		Description: "List one page of Flows, newest first. Pass next_cursor as cursor for " +
 			"the next page",
-		func(_ *server.Context, args listFlowsArgs) (any, error) {
+	},
+		func(ctx context.Context, args listFlowsArgs) (any, error) {
 			q := url.Values{}
 			if args.Limit != nil {
 				q.Set("limit", strconv.Itoa(*args.Limit))
@@ -199,43 +201,48 @@ func (s *Server) registerFlowReadTools(srv server.Server) {
 			if args.Cursor != nil {
 				q.Set("cursor", *args.Cursor)
 			}
-			return toolResult(s.httpGet("/engine/flows?" + q.Encode()))
+			return s.httpGet(ctx, "/engine/flows?"+q.Encode())
 		},
 	)
-	srv.Tool(
-		"get_flow",
-		"Fetch a Flow's full state: plan, Attribute values, and each Step's "+
-			"executions with inputs, outputs, and errors. Use it to see why a "+
+	addTool(reg, &mcp.Tool{
+		Name: "get_flow",
+		Description: "Fetch a Flow's full state: plan, Attribute values, and each Step's " +
+			"executions with inputs, outputs, and errors. Use it to see why a " +
 			"Flow stalled or failed",
-		idTool(s.httpGet, "/engine/flows/", ""),
+	},
+		idTool(s.httpGet, "/engine/flows/%s"),
 	)
-	srv.Tool(
-		"get_flow_status",
-		"Fetch a Flow's status: active, completed, or failed",
-		idTool(s.httpGet, "/engine/flows/", "/status"),
+	addTool(reg, &mcp.Tool{
+		Name:        "get_flow_status",
+		Description: "Fetch a Flow's status: active, completed, or failed",
+	},
+		idTool(s.httpGet, "/engine/flows/%s/status"),
 	)
-	srv.Tool(
-		"get_flow_events",
-		"Fetch a Flow's event history in order, including Step starts, "+
+	addTool(reg, &mcp.Tool{
+		Name: "get_flow_events",
+		Description: "Fetch a Flow's event history in order, including Step starts, " +
 			"skips, retries, completions, and failures",
-		idTool(s.httpGet, "/engine/flows/", "/events"),
+	},
+		idTool(s.httpGet, "/engine/flows/%s/events"),
 	)
-	srv.Tool(
-		"query_flows",
-		"Query Flows by status, ID prefix, and tags, newest first",
-		func(_ *server.Context, args queryFlowsArgs) (any, error) {
-			return toolResult(s.httpPost("/engine/flows/query", args))
+	addTool(reg, &mcp.Tool{
+		Name:        "query_flows",
+		Description: "Query Flows by status, ID prefix, and tags, newest first",
+	},
+		func(ctx context.Context, args queryFlowsArgs) (any, error) {
+			return s.httpPost(ctx, "/engine/flows/query", args)
 		},
 	)
 }
 
-func (s *Server) registerFlowWriteTools(srv server.Server) {
-	srv.Tool(
-		"start_flow",
-		"Start a Flow that runs its Goal Steps. The plan includes every Step "+
-			"needed to produce the Goals' inputs. The response names the Flow ID. "+
-			"Never reuse an earlier ID. "+goalsShape+". "+initShape,
-		func(_ *server.Context, args startFlowInput) (any, error) {
+func (s *Server) registerFlowWriteTools(reg *toolRegistry) {
+	addTool(reg, &mcp.Tool{
+		Name: "start_flow",
+		Description: "Start a Flow that runs its Goal Steps. The plan includes every Step " +
+			"needed to produce the Goals' inputs. The response names the Flow ID. " +
+			"Never reuse an earlier ID. " + goalsShape + ". " + initShape,
+	},
+		func(ctx context.Context, args startFlowInput) (any, error) {
 			if !args.Goals.Valid() {
 				return nil, errInvalidParams("goals requires at least one non-empty goal set")
 			}
@@ -257,15 +264,16 @@ func (s *Server) registerFlowWriteTools(srv server.Server) {
 			if args.SpaceID != nil {
 				body["space_id"] = *args.SpaceID
 			}
-			return toolResult(s.httpPost("/engine/flows", body))
+			return s.httpPost(ctx, "/engine/flows", body)
 		},
 	)
-	srv.Tool(
-		"preview_plan",
-		"Preview the plan for Goal Steps and initial Attribute values. Shows "+
-			"the Steps that would run and the inputs still missing. "+goalsShape+". "+
+	addTool(reg, &mcp.Tool{
+		Name: "preview_plan",
+		Description: "Preview the plan for Goal Steps and initial Attribute values. Shows " +
+			"the Steps that would run and the inputs still missing. " + goalsShape + ". " +
 			initShape,
-		func(_ *server.Context, args previewPlanInput) (any, error) {
+	},
+		func(ctx context.Context, args previewPlanInput) (any, error) {
 			if !args.Goals.Valid() {
 				return nil, errInvalidParams("goals requires at least one non-empty goal set")
 			}
@@ -273,23 +281,25 @@ func (s *Server) registerFlowWriteTools(srv server.Server) {
 			if args.Init != nil {
 				init = *args.Init
 			}
-			return toolResult(s.httpPost("/engine/plan", previewPlanArgs{
+			return s.httpPost(ctx, "/engine/plan", previewPlanArgs{
 				Goals: args.Goals,
 				Init:  init,
-			}))
+			})
 		},
 	)
 }
 
-func (s *Server) registerHealthTools(srv server.Server) {
-	srv.Tool(
-		"list_step_health",
-		"List health for every registered Step",
+func (s *Server) registerHealthTools(reg *toolRegistry) {
+	addTool(reg, &mcp.Tool{
+		Name:        "list_step_health",
+		Description: "List health for every registered Step",
+	},
 		pathTool(s.httpGet, "/engine/health"),
 	)
-	srv.Tool(
-		"get_step_health",
-		"Fetch one Step's health",
-		idTool(s.httpGet, "/engine/health/", ""),
+	addTool(reg, &mcp.Tool{
+		Name:        "get_step_health",
+		Description: "Fetch one Step's health",
+	},
+		idTool(s.httpGet, "/engine/health/%s"),
 	)
 }

@@ -79,6 +79,9 @@ const (
 	// CallbackBaseURL is the base of the webhook URLs test engines hand to async HTTP steps
 	CallbackBaseURL = "http://localhost:8080"
 
+	// CallbackSecret is the callback secret of work that SeedStartedWork stores
+	CallbackSecret = "test-secret"
+
 	// AgentWorkerURL is the worker test engines dispatch every agent provider to
 	AgentWorkerURL = "http://localhost:1"
 )
@@ -284,10 +287,11 @@ func (e *TestEngineEnv) SeedStartedWork(
 		FlowEvent{
 			Type: api.EventTypeWorkStarted,
 			Data: api.WorkStartedEvent{
-				FlowID: fs.FlowID,
-				StepID: fs.StepID,
-				Token:  tkn,
-				Inputs: api.Args{},
+				FlowID:   fs.FlowID,
+				StepID:   fs.StepID,
+				Token:    tkn,
+				Inputs:   api.Args{},
+				Callback: api.CallbackHash(api.ActionInvoke, CallbackSecret),
 			},
 		},
 	)
@@ -361,7 +365,8 @@ func (e *TestEngineEnv) engineDeps(clock scheduler.Clock) engine.Dependencies {
 	callback := builtins.BaseCallbackURL(CallbackBaseURL)
 	steps := step.NewRegistry(builtins.All(e.MockClient, callback).With(step.Handlers{
 		api.StepTypeAgent: builtins.Agent(
-			builtins.AgentWorkers{builtins.AnyProvider: AgentWorkerURL}, callback, time.Second,
+			builtins.AgentWorkers{builtins.AnyProvider: AgentWorkerURL}, callback,
+			time.Second,
 		),
 	}))
 

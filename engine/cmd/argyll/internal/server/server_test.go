@@ -18,6 +18,7 @@ import (
 	"github.com/kode4food/argyll/engine/internal/assert/wait"
 	"github.com/kode4food/argyll/engine/internal/engine"
 	"github.com/kode4food/argyll/engine/pkg/api"
+	"github.com/kode4food/argyll/engine/pkg/auth"
 	"github.com/kode4food/argyll/engine/pkg/config"
 	"github.com/kode4food/argyll/engine/pkg/util"
 )
@@ -305,7 +306,8 @@ func TestSuccess(t *testing.T) {
 		// Now call webhook with the real token
 		body, _ := json.Marshal(api.Args{"result": "completed"})
 		req := httptest.NewRequest("POST",
-			"/callbacks/webhook-wf/async-step/"+string(tkn)+"/invoke",
+			"/callbacks/webhook-wf/async-step/"+string(tkn)+"/invoke/"+
+				dispatchedSecret(t, testEnv, "async-step"),
 			bytes.NewReader(body))
 		req.Header.Set("Content-Type", api.JSONContentType)
 		w := httptest.NewRecorder()
@@ -321,7 +323,7 @@ func TestHookFlowNotFound(t *testing.T) {
 	withTestServerEnv(t, func(testEnv *testServerEnv) {
 		body, _ := json.Marshal(api.Args{"result": "completed"})
 		req := httptest.NewRequest("POST",
-			"/callbacks/nonexistent-wf/step-id/token/invoke",
+			"/callbacks/nonexistent-wf/step-id/token/invoke/secret",
 			bytes.NewReader(body))
 		req.Header.Set("Content-Type", api.JSONContentType)
 		w := httptest.NewRecorder()
@@ -365,7 +367,7 @@ func TestHookStepNotFound(t *testing.T) {
 
 		body, _ := json.Marshal(api.Args{})
 		req := httptest.NewRequest("POST",
-			"/callbacks/webhook-wf/nonexistent-step/token/invoke",
+			"/callbacks/webhook-wf/nonexistent-step/token/invoke/secret",
 			bytes.NewReader(body))
 		req.Header.Set("Content-Type", api.JSONContentType)
 		w := httptest.NewRecorder()
@@ -421,7 +423,7 @@ func TestHookInvalidToken(t *testing.T) {
 		// Try with wrong token
 		body, _ := json.Marshal(api.Args{})
 		req := httptest.NewRequest("POST",
-			"/callbacks/webhook-wf/async-step/wrong-token/invoke",
+			"/callbacks/webhook-wf/async-step/wrong-token/invoke/secret",
 			bytes.NewReader(body))
 		req.Header.Set("Content-Type", api.JSONContentType)
 		w := httptest.NewRecorder()
@@ -487,7 +489,8 @@ func TestHookInvalidJSONRoute(t *testing.T) {
 
 		// Send invalid JSON with real token
 		req := httptest.NewRequest("POST",
-			"/callbacks/webhook-wf/async-step/"+string(tkn)+"/invoke",
+			"/callbacks/webhook-wf/async-step/"+string(tkn)+"/invoke/"+
+				dispatchedSecret(t, testEnv, "async-step"),
 			bytes.NewReader([]byte("invalid json")))
 		req.Header.Set("Content-Type", api.JSONContentType)
 		w := httptest.NewRecorder()
@@ -551,7 +554,8 @@ func TestHookFailurePath(t *testing.T) {
 
 		body, _ := json.Marshal(api.NewProblem(http.StatusUnprocessableEntity, "boom"))
 		req := httptest.NewRequest("POST",
-			"/callbacks/wf-fail-path/async-step/"+string(tkn)+"/invoke",
+			"/callbacks/wf-fail-path/async-step/"+string(tkn)+"/invoke/"+
+				dispatchedSecret(t, testEnv, "async-step"),
 			bytes.NewReader(body))
 		req.Header.Set("Content-Type", api.ProblemJSONContentType)
 		w := httptest.NewRecorder()
@@ -1335,7 +1339,7 @@ func TestCORSOptions(t *testing.T) {
 		req := httptest.NewRequest("OPTIONS", "/engine/steps", nil)
 		w := httptest.NewRecorder()
 
-		router := testEnv.Server.SetupRoutes()
+		router := auth.CORS(testEnv.Server.SetupRoutes())
 		router.ServeHTTP(w, req)
 
 		assert.Equal(t, http.StatusOK, w.Code)
@@ -1552,7 +1556,7 @@ func TestHookSuccessRoute(t *testing.T) {
 		body, _ := json.Marshal(api.Args{"output": "value"})
 		req := httptest.NewRequest("POST",
 			"/callbacks/webhook-flow/"+string(st.ID)+"/"+
-				string(tkn)+"/invoke",
+				string(tkn)+"/invoke/"+dispatchedSecret(t, testEnv, st.ID),
 			bytes.NewReader(body))
 		req.Header.Set("Content-Type", api.JSONContentType)
 		w := httptest.NewRecorder()
@@ -1763,7 +1767,7 @@ func TestStartFlowTooManyInitKeys(t *testing.T) {
 
 func TestStartFlowTooManyTags(t *testing.T) {
 	withTestServerEnv(t, func(testEnv *testServerEnv) {
-		st := helpers.NewSimpleStep("test-step-labels")
+		st := helpers.NewSimpleStep("test-step-tags")
 		err := testEnv.Engine.RegisterStep(st)
 		assert.NoError(t, err)
 
@@ -1773,7 +1777,7 @@ func TestStartFlowTooManyTags(t *testing.T) {
 		}
 		reqBody := api.CreateFlowRequest{
 			ID:    "too-many-tags",
-			Goals: api.Goals{Steps: []api.StepID{"test-step-labels"}},
+			Goals: api.Goals{Steps: []api.StepID{"test-step-tags"}},
 			Tags:  tags,
 		}
 		body, _ := json.Marshal(reqBody)

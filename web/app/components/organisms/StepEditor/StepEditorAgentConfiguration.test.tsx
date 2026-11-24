@@ -40,7 +40,7 @@ jest.mock("@/app/components/molecules/TagInput", () => ({
   ),
 }));
 
-jest.mock("./useAgentCapabilities", () => ({
+jest.mock("@/app/hooks/useAgentCapabilities", () => ({
   useAgentCapabilities: () => ({
     problems: [
       {

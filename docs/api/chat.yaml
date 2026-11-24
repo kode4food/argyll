@@ -1,0 +1,164 @@
+openapi: 3.0.3
+info:
+  title: Argyll Web UI Chat Contract
+  version: "1"
+  description: |
+    The Argyll web UI sends conversations to the standalone chat app.
+    The app forwards the request to the selected Agent worker and returns
+    its reply. Worker routing is an internal detail of the chat app.
+
+servers:
+  - url: http://localhost:8072
+    description: Local chat service
+
+paths:
+  /chat:
+    post:
+      summary: Answer a Chat
+      description: |
+        Answer the last user message in the conversation. When authentication
+        is enabled, the caller needs the `operator` role. The chat app forwards
+        the caller's bearer token so tools run with the caller's permissions.
+      operationId: answerChat
+      security:
+        - bearerAuth: []
+        - {}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AgentChatRequest"
+      responses:
+        "200":
+          description: The agent's reply
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AgentChatReply"
+        "400":
+          description: Invalid JSON or conversation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Missing or invalid bearer token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: The caller lacks the required role
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: The requested provider or chat tools are unavailable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetails"
+        "502":
+          description: The chat app could not reach the worker
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        default:
+          $ref: "#/components/responses/ChatError"
+
+  /health:
+    get:
+      summary: Check Chat Service Health
+      operationId: checkChatHealth
+      responses:
+        "204":
+          description: The chat service is running
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: Required when authentication is enabled
+  responses:
+    ChatError:
+      description: The chat request failed
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/ProblemDetails"
+  schemas:
+    AgentChatRequest:
+      type: object
+      required: [provider, model, messages]
+      properties:
+        provider:
+          type: string
+          minLength: 1
+          example: "anthropic"
+        model:
+          type: string
+          minLength: 1
+        messages:
+          type: array
+          description: The conversation, ending with a user message
+          minItems: 1
+          items:
+            type: object
+            required: [role, content]
+            properties:
+              role:
+                type: string
+                enum: [user, assistant]
+              content:
+                type: string
+                minLength: 1
+
+    AgentChatReply:
+      type: object
+      required: [reply, usage]
+      properties:
+        reply:
+          type: string
+          description: Markdown text
+        usage:
+          $ref: "#/components/schemas/Usage"
+
+    Usage:
+      type: object
+      description: Token counts and costs reported for this reply
+      additionalProperties:
+        type: number
+
+    ErrorResponse:
+      type: object
+      required: [error, status]
+      properties:
+        error:
+          type: string
+        status:
+          type: integer
+
+    ProblemDetails:
+      type: object
+      description: RFC 9457 Problem Details returned by a worker
+      properties:
+        type:
+          type: string
+        title:
+          type: string
+        status:
+          type: integer
+        detail:
+          type: string
+        instance:
+          type: string

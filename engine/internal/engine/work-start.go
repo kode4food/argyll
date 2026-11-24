@@ -1,6 +1,7 @@
 package engine
 
 import (
+	"crypto/rand"
 	"errors"
 	"fmt"
 	"maps"
@@ -16,12 +17,13 @@ import (
 type (
 	// ExecContext holds the context for a single step execution
 	ExecContext struct {
-		engine *Engine
-		step   *api.Step
-		inputs api.Args
-		meta   api.Metadata
-		flowID api.FlowID
-		stepID api.StepID
+		engine  *Engine
+		step    *api.Step
+		inputs  api.Args
+		meta    api.Metadata
+		secrets map[api.Token]string
+		flowID  api.FlowID
+		stepID  api.StepID
 	}
 
 	// MultiArgs maps attribute names to value arrays for parallel execution
@@ -53,16 +55,21 @@ func (e *ExecContext) UpdateHealth(s api.HealthStatus, cause error) error {
 	return e.engine.UpdateStepHealth(e.stepID, s, errorText(cause))
 }
 
+func (e *ExecContext) CallbackSecret(tkn api.Token) string {
+	return e.secrets[tkn]
+}
+
 func (tx *flowTx) executeStartedWork(
 	st *api.Step, inputs api.Args, meta api.Metadata, items api.WorkItems,
 ) {
 	execCtx := &ExecContext{
-		engine: tx.Engine,
-		flowID: tx.flowID,
-		stepID: st.ID,
-		step:   st,
-		inputs: inputs,
-		meta:   meta,
+		engine:  tx.Engine,
+		flowID:  tx.flowID,
+		stepID:  st.ID,
+		step:    st,
+		inputs:  inputs,
+		meta:    meta,
+		secrets: tx.secrets,
 	}
 	execCtx.executeWorkItems(items)
 }
@@ -202,17 +209,22 @@ func (tx *flowTx) raiseWorkStarted(sid api.StepID, tkn api.Token, inputs api.Arg
 	if err := tx.checkWorkTransition(sid, tkn, api.WorkActive); err != nil {
 		return err
 	}
+	st := tx.Value().Plan.Steps[sid]
+	var hash string
+	if st.Type == api.StepTypeAgent || st.HTTP != nil && st.HTTP.Invoke.Async() {
+		hash = tx.newCallbackHash(tkn, api.ActionInvoke)
+	}
 	if err := events.Raise(tx.FlowAggregator, api.EventTypeWorkStarted,
 		api.WorkStartedEvent{
-			FlowID: tx.flowID,
-			StepID: sid,
-			Token:  tkn,
-			Inputs: inputs,
+			FlowID:   tx.flowID,
+			StepID:   sid,
+			Token:    tkn,
+			Inputs:   inputs,
+			Callback: hash,
 		},
 	); err != nil {
 		return err
 	}
-	st := tx.Value().Plan.Steps[sid]
 	if h, err := tx.steps.Lookup(st.Type); err == nil && h.Inline {
 		return tx.invokeInline(h, st, tkn, inputs)
 	}
@@ -226,6 +238,16 @@ func (tx *flowTx) raiseWorkStarted(sid api.StepID, tkn api.Token, inputs api.Arg
 		return tx.startChildFlow(sid, tkn, inputs)
 	}
 	return nil
+}
+
+// newCallbackHash keeps the raw secret local to the transaction that dispatches the attempt
+func (tx *flowTx) newCallbackHash(tkn api.Token, action api.CallbackAction) string {
+	secret := rand.Text()
+	if tx.secrets == nil {
+		tx.secrets = map[api.Token]string{}
+	}
+	tx.secrets[tkn] = secret
+	return api.CallbackHash(action, secret)
 }
 
 func (tx *flowTx) invokeInline(

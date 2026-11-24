@@ -23,6 +23,10 @@ export type {
   AgentCapabilities,
   ProblemDetails,
   AgentProvider,
+  AgentChatRequest,
+  AgentChatReply,
+  ChatMessage,
+  ChatRole,
   MCPServer,
   Goals,
   WorkConfig,
@@ -52,6 +56,7 @@ export {
   AttributeRole,
   isProducerRole,
   META_KEYS,
+  META_KEY_PARENT_FLOW_ID,
   METRIC_SELECTORS,
 } from "./types";
 

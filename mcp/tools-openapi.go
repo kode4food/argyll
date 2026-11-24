@@ -1,6 +1,7 @@
 package mcp
 
 import (
+	"context"
 	"slices"
 	"strings"
 
@@ -8,16 +9,20 @@ import (
 	"github.com/kode4food/argyll/mcp/openapi"
 )
 
-func (s *Server) analyzeOpenAPIContract(args openapi.Args) (any, error) {
-	existing, warnings := s.collectExistingSteps(args)
+func (s *Server) analyzeOpenAPIContract(
+	ctx context.Context, args openapi.Args,
+) (any, error) {
+	existing, warnings := s.collectExistingSteps(ctx, args)
 	payload, err := openapi.AnalyzeContract(args, existing, warnings)
 	if err != nil {
 		return nil, err
 	}
-	return toolResult(payload, nil)
+	return payload, nil
 }
 
-func (s *Server) collectExistingSteps(args openapi.Args) ([]openapi.Step, []string) {
+func (s *Server) collectExistingSteps(
+	ctx context.Context, args openapi.Args,
+) ([]openapi.Step, []string) {
 	var existing any
 	if args.ExistingSteps != nil {
 		existing = *args.ExistingSteps
@@ -31,7 +36,7 @@ func (s *Server) collectExistingSteps(args openapi.Args) ([]openapi.Step, []stri
 		return res, warnings
 	}
 
-	payload, err := s.httpGet("/engine/steps")
+	payload, err := s.httpGet(ctx, "/engine/steps")
 	if err != nil {
 		warnings = append(
 			warnings,

@@ -101,14 +101,14 @@ REDUCE(flow, event):
         set terminal step status and event-specific outputs/error/inputs
         set completion = { At: event.timestamp, Seq: event.sequence }
     work_started:
-        set work ACTIVE and startedAt
+        set work ACTIVE and startedAt, add callback to callbacks
         clear completedAt and nextRetryAt
     work_succeeded | work_failed | work_not_completed:
         record work outcome, outputs/error, and completion timestamp
     work_retry_scheduled:
         set work PENDING, increment retryCount, record nextRetryAt
     comp_started:
-        set work COMPENSATING and startedAt
+        set work COMPENSATING and startedAt, add callback to callbacks
         clear nextRetryAt
     comp_retry_scheduled:
         set work COMP_PENDING, increment retryCount, record nextRetryAt/error
@@ -653,7 +653,8 @@ START_PENDING_WORK(step):
 
 START_WORK_ITEM(step, token, inputs):
     validate work transition to ACTIVE
-    EMIT work_started(token, inputs)
+    for an Agent or async HTTP invocation, generate a command-local secret and compute its hash
+    EMIT work_started(token, inputs, optional callback hash)
     IF handler is inline:
         invoke handler inside this transaction
         handler completion/failure joins this transaction
@@ -668,7 +669,8 @@ INVOKE_WORK_ITEM(step, token):
     IF handler returns an error: SETTLE_HANDLER_ERROR(error)
 
 HTTP_INVOKE(step, token, inputs):
-    construct metadata, receipt token, and callback URL for async invocation
+    construct metadata, receipt token, and callback URL (carrying the attempt's secret) for
+        async invocation
     inject declared meta attributes into handler arguments
     resolve endpoint placeholders
     encode arguments and metadata
@@ -706,7 +708,9 @@ ON_DISPATCH_WAKEUP(step):
         start eligible pending work and invoke it after commit
 ```
 
-The callback validates the flow, execution, receipt token, and action. An invocation callback completes the work item with its outputs, or on a problem fails it when the status is permanent and retries it otherwise. Agent callbacks send a JSON envelope with either `outputs` or `problem` and the attempt's `usage`. Stale invocation transitions are acknowledged as duplicates. Compensation callbacks settle only the compensation phase.
+The engine uses the Flow ID, Step ID, and receipt token to locate the work item. It checks the callback secret against the hashes recorded for the requested phase, invocation or compensation. A late callback from an earlier attempt in the same phase can still settle the work item.
+
+An invocation callback completes the work item with its outputs. A problem with a retryable status schedules a retry. A permanent problem fails the work item. Agent callbacks send a JSON envelope with either `outputs` or `problem` and the attempt's `usage`. The engine acknowledges stale invocation transitions as duplicates.
 
 Each settlement carries the usage its attempt reported. `work_succeeded`, `work_failed`, and `work_not_completed` record it, and applying each adds it to the work item's usage, so failed attempts count. A duplicate report fails the transition check and is never counted twice.
 
@@ -1117,7 +1121,9 @@ START_STEP_COMPENSATIONS(step):
             input attributes read from frozen inputs overlaid with item inputs
             output attributes read from the item's raw outputs
             use the handler's mapped argument names
-        validate transition and EMIT comp_started(token)
+        validate transition
+        for async HTTP compensation, generate a command-local secret and compute its hash
+        EMIT comp_started(token, optional callback hash)
         schedule compensation attempt deadline when applicable
         AFTER_COMMIT invoke compensator(token, args)
 
@@ -1150,7 +1156,8 @@ ON_COMPENSATION_RETRY(step, token):
     IF local dispatch unavailable:
         request scheduler retry
         RETURN
-    EMIT comp_started(token)
+    for async HTTP compensation, generate a command-local secret and compute its hash
+    EMIT comp_started(token, optional callback hash)
     schedule compensation attempt deadline when applicable
     AFTER_COMMIT invoke compensator using reconstructed compensation arguments
 ```

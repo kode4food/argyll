@@ -64,7 +64,7 @@ func TestHTTPHandlerAsyncAddsWebhookURL(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, 1, cl.invoked)
 	assert.Equal(t,
-		testCallbackBase+"/callbacks/flow-1/step-1/token-1/invoke",
+		testCallbackBase+"/callbacks/flow-1/step-1/token-1/invoke/"+callbackKey,
 		cl.meta[api.MetaWebhookURL])
 	assert.Equal(t, api.Token("token-1"), cl.meta[api.MetaReceiptToken])
 	assert.Equal(t, 0, calls.completeCalls)
@@ -132,11 +132,12 @@ func TestCompensationCallback(t *testing.T) {
 	}
 	token := api.Token("token")
 	callback := func(
-		got api.FlowStep, tkn api.Token, action api.CallbackAction,
+		got api.FlowStep, tkn api.Token, action api.CallbackAction, secret string,
 	) string {
 		assert.Equal(t, fs, got)
 		assert.Equal(t, token, tkn)
 		assert.Equal(t, api.ActionCompensate, action)
+		assert.Equal(t, callbackKey, secret)
 		return "https://host.test/custom/undo"
 	}
 	h := builtins.HTTP(cl, callback)

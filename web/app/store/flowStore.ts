@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { devtools } from "zustand/middleware";
+import { devtools, persist, createJSONStorage } from "zustand/middleware";
 import {
   ExecutionPlan,
   ExecutionResult,
@@ -72,6 +72,7 @@ interface FlowState {
   flowsHasMore: boolean;
   flowsLoading: boolean;
   selectedFlow: string | null;
+  selectedSpaceId: string | null;
   flowData: FlowContext | null;
   executions: ExecutionResult[];
   resolvedAttributes: string[];
@@ -90,6 +91,7 @@ interface FlowState {
   addFlow: (flow: FlowSummary) => void;
   removeFlow: (flowId: string) => void;
   selectFlow: (flowId: string | null) => void;
+  setSelectedSpaceId: (spaceId: string | null) => void;
   setFlowNotFound: (flowId: string) => void;
   updateFlowData: (update: Partial<FlowContext>) => void;
   updateStepHealth: (ref: StepRef, health: string, error?: string) => void;
@@ -126,332 +128,354 @@ interface FlowState {
 
 export const useFlowStore = create<FlowState>()(
   devtools(
-    (set, get) => ({
-      steps: [],
-      spaces: [],
-      spaceSelection: {},
-      feeds: [],
-      watchedFeeds: {},
-      healthByNode: {},
-      stepHealth: {},
-      healthNodeIds: [],
-      flows: [],
-      visibleFlowIDs: [],
-      flowsCursor: null,
-      flowsHasMore: false,
-      flowsLoading: false,
-      selectedFlow: null,
-      flowData: null,
-      executions: [],
-      resolvedAttributes: [],
-      loading: false,
-      error: null,
-      flowNotFound: false,
-      engineConnectionStatus: "connecting",
-      engineReconnectAttempt: 0,
-      engineReconnectRequest: 0,
+    persist(
+      (set, get) => ({
+        steps: [],
+        spaces: [],
+        spaceSelection: {},
+        feeds: [],
+        watchedFeeds: {},
+        healthByNode: {},
+        stepHealth: {},
+        healthNodeIds: [],
+        flows: [],
+        visibleFlowIDs: [],
+        flowsCursor: null,
+        flowsHasMore: false,
+        flowsLoading: false,
+        selectedFlow: null,
+        selectedSpaceId: null,
+        flowData: null,
+        executions: [],
+        resolvedAttributes: [],
+        loading: false,
+        error: null,
+        flowNotFound: false,
+        engineConnectionStatus: "connecting",
+        engineReconnectAttempt: 0,
+        engineReconnectRequest: 0,
 
-      loadFlows: async () => {
-        if (get().flowsLoading) return;
-        await loadFlowsImpl((update) => set(update));
-      },
+        loadFlows: async () => {
+          if (get().flowsLoading) return;
+          await loadFlowsImpl((update) => set(update));
+        },
 
-      loadMoreFlows: async () => {
-        const { flowsLoading, flowsHasMore, flowsCursor, flows } = get();
-        if (flowsLoading || !flowsHasMore) return;
-        await loadMoreFlowsImpl((update) => set(update), flowsCursor, flows);
-      },
+        loadMoreFlows: async () => {
+          const { flowsLoading, flowsHasMore, flowsCursor, flows } = get();
+          if (flowsLoading || !flowsHasMore) return;
+          await loadMoreFlowsImpl((update) => set(update), flowsCursor, flows);
+        },
 
-      selectFlow: (flowId: string | null) => {
-        const { selectedFlow: currentSelected, flowData: currentFlowData } =
-          get();
+        setSelectedSpaceId: (spaceId: string | null) => {
+          set({ selectedSpaceId: spaceId });
+        },
 
-        if (
-          flowId &&
-          flowId === currentSelected &&
-          currentFlowData?.id === flowId
-        ) {
-          return;
-        }
+        selectFlow: (flowId: string | null) => {
+          const { selectedFlow: currentSelected, flowData: currentFlowData } =
+            get();
 
-        set({
-          selectedFlow: flowId,
-          flowNotFound: false,
-          error: null,
-          flowData: null,
-          executions: [],
-          resolvedAttributes: [],
-          loading: !!flowId,
-        });
-      },
-
-      setFlowNotFound: (flowId: string) => {
-        if (get().selectedFlow !== flowId) {
-          return;
-        }
-
-        set({
-          flowData: null,
-          executions: [],
-          resolvedAttributes: [],
-          loading: false,
-          flowNotFound: true,
-        });
-      },
-
-      addStep: (step: Step) => {
-        set((state) => ({
-          steps: upsertStepList(state.steps, step),
-        }));
-      },
-
-      upsertStep: (step: Step) => {
-        set((state) => ({
-          steps: upsertStepList(state.steps, step),
-        }));
-      },
-
-      updateStep: (step: Step) => {
-        set((state) => {
-          const updatedSteps = updateExistingStepList(state.steps, step);
-          if (updatedSteps === state.steps) {
-            return state;
+          if (
+            flowId &&
+            flowId === currentSelected &&
+            currentFlowData?.id === flowId
+          ) {
+            return;
           }
-          return { steps: updatedSteps };
-        });
-      },
 
-      removeStep: (stepId: string) => {
-        const { steps, stepHealth } = get();
-        const { [stepId]: removed, ...newHealthRecord } = stepHealth;
-        set({
-          steps: steps.filter((s) => s.id !== stepId),
-          stepHealth: newHealthRecord,
-        });
-      },
+          set({
+            selectedFlow: flowId,
+            flowNotFound: false,
+            error: null,
+            flowData: null,
+            executions: [],
+            resolvedAttributes: [],
+            loading: !!flowId,
+          });
+        },
 
-      addFlow: (flow: FlowSummary) => {
-        set({
-          flows: upsertFlowList(get().flows, flow).sort(compareFlows),
-        });
-      },
+        setFlowNotFound: (flowId: string) => {
+          if (get().selectedFlow !== flowId) {
+            return;
+          }
 
-      removeFlow: (flowId: string) => {
-        const { flows } = get();
-        set({ flows: flows.filter((w) => w.id !== flowId) });
-      },
+          set({
+            flowData: null,
+            executions: [],
+            resolvedAttributes: [],
+            loading: false,
+            flowNotFound: true,
+          });
+        },
 
-      updateFlowData: (update: Partial<FlowContext>) => {
-        const { flowData, resolvedAttributes } = get();
-        if (!flowData) {
-          return;
-        }
+        addStep: (step: Step) => {
+          set((state) => ({
+            steps: upsertStepList(state.steps, step),
+          }));
+        },
 
-        const updatedFlow = { ...flowData, ...update };
-        const newResolvedAttrs = mergeResolvedAttributes(
-          resolvedAttributes,
-          update.state
-        );
+        upsertStep: (step: Step) => {
+          set((state) => ({
+            steps: upsertStepList(state.steps, step),
+          }));
+        },
 
-        set({
-          flowData: updatedFlow,
-          resolvedAttributes: newResolvedAttrs,
-        });
-      },
+        updateStep: (step: Step) => {
+          set((state) => {
+            const updatedSteps = updateExistingStepList(state.steps, step);
+            if (updatedSteps === state.steps) {
+              return state;
+            }
+            return { steps: updatedSteps };
+          });
+        },
 
-      updateStepHealth: (ref: StepRef, health: string, error?: string) => {
-        const { nodeId, stepId } = ref;
-        const { healthByNode, healthNodeIds, steps } = get();
-        const stepsById = toStepMap(steps);
-        const nextNodeIds = healthNodeIds.includes(nodeId)
-          ? healthNodeIds
-          : sortNodeIds([...healthNodeIds, nodeId]);
-        const nextHealthByNode = {
-          ...healthByNode,
-          [nodeId]: {
-            ...(healthByNode[nodeId] || {}),
-            [stepId]: {
-              status: health,
-              ...(error && { error }),
-            },
-          },
-        };
-        set({
-          healthByNode: nextHealthByNode,
-          healthNodeIds: nextNodeIds,
-          stepHealth: toStepHealthMap(nextHealthByNode, stepsById),
-        });
-      },
+        removeStep: (stepId: string) => {
+          const { steps, stepHealth } = get();
+          const { [stepId]: removed, ...newHealthRecord } = stepHealth;
+          set({
+            steps: steps.filter((s) => s.id !== stepId),
+            stepHealth: newHealthRecord,
+          });
+        },
 
-      initializeExecutions: (flowId: string, plan: ExecutionPlan) => {
-        if (!plan?.steps) {
-          set({ executions: [] });
-          return;
-        }
+        addFlow: (flow: FlowSummary) => {
+          set({
+            flows: upsertFlowList(get().flows, flow).sort(compareFlows),
+          });
+        },
 
-        const executions: ExecutionResult[] = Object.keys(plan.steps).map(
-          (stepId) => ({
-            step_id: stepId,
-            flow_id: flowId,
-            status: "pending",
-            inputs: {},
-            started_at: "",
-          })
-        );
+        removeFlow: (flowId: string) => {
+          const { flows } = get();
+          set({ flows: flows.filter((w) => w.id !== flowId) });
+        },
 
-        set({ executions });
-      },
+        updateFlowData: (update: Partial<FlowContext>) => {
+          const { flowData, resolvedAttributes } = get();
+          if (!flowData) {
+            return;
+          }
 
-      updateExecution: (stepId: string, updates: Partial<ExecutionResult>) => {
-        const { executions, resolvedAttributes } = get();
-        const index = executions.findIndex((e) => e.step_id === stepId);
-        if (index >= 0) {
-          const updated = [...executions];
-          updated[index] = { ...updated[index], ...updates };
-
+          const updatedFlow = { ...flowData, ...update };
           const newResolvedAttrs = mergeResolvedAttributes(
             resolvedAttributes,
-            updates.outputs
+            update.state
           );
 
-          set({ executions: updated, resolvedAttributes: newResolvedAttrs });
-        }
-      },
+          set({
+            flowData: updatedFlow,
+            resolvedAttributes: newResolvedAttrs,
+          });
+        },
 
-      updateWorkItem: (
-        stepId: string,
-        token: string,
-        updates: Partial<WorkState>
-      ) => {
-        const { executions } = get();
-        const index = executions.findIndex((e) => e.step_id === stepId);
-        if (index < 0) return;
-
-        const updated = [...executions];
-        updated[index] = mergeWorkItem(executions[index], token, updates);
-
-        set({ executions: updated });
-      },
-
-      setEngineSocketStatus: (
-        status: ConnectionStatus,
-        reconnectAttempt: number
-      ) => {
-        set({
-          engineConnectionStatus: status,
-          engineReconnectAttempt: reconnectAttempt,
-        });
-      },
-
-      requestEngineReconnect: () => {
-        set((state) => ({
-          engineReconnectRequest: state.engineReconnectRequest + 1,
-        }));
-      },
-
-      setSpace: (space: Space, stepIds: string[]) => {
-        set((state) => ({
-          spaces: [
-            ...state.spaces.filter((s) => s.id !== space.id),
-            space,
-          ].sort(compareByName),
-          spaceSelection: {
-            ...state.spaceSelection,
-            [space.id]: new Set(stepIds),
-          },
-        }));
-      },
-
-      removeSpace: (spaceId: string) => {
-        set((state) => {
-          const selection = { ...state.spaceSelection };
-          delete selection[spaceId];
-          return {
-            spaces: state.spaces.filter((s) => s.id !== spaceId),
-            spaceSelection: selection,
+        updateStepHealth: (ref: StepRef, health: string, error?: string) => {
+          const { nodeId, stepId } = ref;
+          const { healthByNode, healthNodeIds, steps } = get();
+          const stepsById = toStepMap(steps);
+          const nextNodeIds = healthNodeIds.includes(nodeId)
+            ? healthNodeIds
+            : sortNodeIds([...healthNodeIds, nodeId]);
+          const nextHealthByNode = {
+            ...healthByNode,
+            [nodeId]: {
+              ...(healthByNode[nodeId] || {}),
+              [stepId]: {
+                status: health,
+                ...(error && { error }),
+              },
+            },
           };
-        });
-      },
+          set({
+            healthByNode: nextHealthByNode,
+            healthNodeIds: nextNodeIds,
+            stepHealth: toStepHealthMap(nextHealthByNode, stepsById),
+          });
+        },
 
-      setFeed: (feed: Feed) => {
-        set((state) => ({
-          feeds: [...state.feeds.filter((f) => f.id !== feed.id), feed].sort(
-            compareByName
-          ),
-        }));
-      },
+        initializeExecutions: (flowId: string, plan: ExecutionPlan) => {
+          if (!plan?.steps) {
+            set({ executions: [] });
+            return;
+          }
 
-      removeFeed: (feedId: string) => {
-        set((state) => ({
-          feeds: state.feeds.filter((f) => f.id !== feedId),
-        }));
-      },
+          const executions: ExecutionResult[] = Object.keys(plan.steps).map(
+            (stepId) => ({
+              step_id: stepId,
+              flow_id: flowId,
+              status: "pending",
+              inputs: {},
+              started_at: "",
+            })
+          );
 
-      setWatchedFeeds: (watchedFeeds: Record<string, FeedState>) => {
-        set({ watchedFeeds });
-      },
+          set({ executions });
+        },
 
-      setWatchedFeed: (feed: FeedState) => {
-        set((state) => ({
-          watchedFeeds: { ...state.watchedFeeds, [feed.id]: feed },
-        }));
-      },
+        updateExecution: (
+          stepId: string,
+          updates: Partial<ExecutionResult>
+        ) => {
+          const { executions, resolvedAttributes } = get();
+          const index = executions.findIndex((e) => e.step_id === stepId);
+          if (index >= 0) {
+            const updated = [...executions];
+            updated[index] = { ...updated[index], ...updates };
 
-      setStepSpaces: (stepId: string, spaces: string[]) => {
-        set((state) => ({
-          spaceSelection: assignStepSpaces(
-            state.spaceSelection,
-            stepId,
-            spaces
-          ),
-        }));
-      },
+            const newResolvedAttrs = mergeResolvedAttributes(
+              resolvedAttributes,
+              updates.outputs
+            );
 
-      setVisibleFlowIDs: (flowIDs: string[]) => {
-        set({ visibleFlowIDs: flowIDs });
-      },
+            set({ executions: updated, resolvedAttributes: newResolvedAttrs });
+          }
+        },
 
-      setCatalogState: (steps, spaces, feeds) => {
-        const nextSteps = Object.values(steps).sort(compareByName);
-        set({
-          steps: nextSteps,
-          ...(feeds && { feeds: Object.values(feeds).sort(compareByName) }),
-          ...(spaces && toCatalogSpaceState(spaces)),
-          stepHealth: toStepHealthMap(get().healthByNode, toStepMap(nextSteps)),
-        });
-      },
+        updateWorkItem: (
+          stepId: string,
+          token: string,
+          updates: Partial<WorkState>
+        ) => {
+          const { executions } = get();
+          const index = executions.findIndex((e) => e.step_id === stepId);
+          if (index < 0) return;
 
-      setHealthState: (healthByNode) => {
-        const stepsById = toStepMap(get().steps);
-        set({
-          healthByNode,
-          healthNodeIds: sortNodeIds(Object.keys(healthByNode)),
-          stepHealth: toStepHealthMap(healthByNode, stepsById),
-        });
-      },
+          const updated = [...executions];
+          updated[index] = mergeWorkItem(executions[index], token, updates);
 
-      setFlowState: (state) => {
-        const { selectedFlow, flows } = get();
-        if (!selectedFlow || state.id !== selectedFlow) {
-          return;
-        }
-        const flowData = buildFlowContext(state);
-        const executions = buildExecutionList(state);
-        set({
-          flowData,
-          flows: upsertFlowList(flows, toFlowSummaryFromState(state)).sort(
-            compareFlows
-          ),
-          executions,
-          resolvedAttributes: computeResolvedAttributes(
-            flowData.state ?? {},
-            executions
-          ),
-          loading: false,
-          flowNotFound: false,
-        });
-      },
-    }),
+          set({ executions: updated });
+        },
+
+        setEngineSocketStatus: (
+          status: ConnectionStatus,
+          reconnectAttempt: number
+        ) => {
+          set({
+            engineConnectionStatus: status,
+            engineReconnectAttempt: reconnectAttempt,
+          });
+        },
+
+        requestEngineReconnect: () => {
+          set((state) => ({
+            engineReconnectRequest: state.engineReconnectRequest + 1,
+          }));
+        },
+
+        setSpace: (space: Space, stepIds: string[]) => {
+          set((state) => ({
+            spaces: [
+              ...state.spaces.filter((s) => s.id !== space.id),
+              space,
+            ].sort(compareByName),
+            spaceSelection: {
+              ...state.spaceSelection,
+              [space.id]: new Set(stepIds),
+            },
+          }));
+        },
+
+        removeSpace: (spaceId: string) => {
+          set((state) => {
+            const selection = { ...state.spaceSelection };
+            delete selection[spaceId];
+            return {
+              spaces: state.spaces.filter((s) => s.id !== spaceId),
+              spaceSelection: selection,
+            };
+          });
+        },
+
+        setFeed: (feed: Feed) => {
+          set((state) => ({
+            feeds: [...state.feeds.filter((f) => f.id !== feed.id), feed].sort(
+              compareByName
+            ),
+          }));
+        },
+
+        removeFeed: (feedId: string) => {
+          set((state) => ({
+            feeds: state.feeds.filter((f) => f.id !== feedId),
+          }));
+        },
+
+        setWatchedFeeds: (watchedFeeds: Record<string, FeedState>) => {
+          set({ watchedFeeds });
+        },
+
+        setWatchedFeed: (feed: FeedState) => {
+          set((state) => ({
+            watchedFeeds: { ...state.watchedFeeds, [feed.id]: feed },
+          }));
+        },
+
+        setStepSpaces: (stepId: string, spaces: string[]) => {
+          set((state) => ({
+            spaceSelection: assignStepSpaces(
+              state.spaceSelection,
+              stepId,
+              spaces
+            ),
+          }));
+        },
+
+        setVisibleFlowIDs: (flowIDs: string[]) => {
+          set({ visibleFlowIDs: flowIDs });
+        },
+
+        setCatalogState: (steps, spaces, feeds) => {
+          const nextSteps = Object.values(steps).sort(compareByName);
+          const selected = get().selectedSpaceId;
+          // A remembered Space may have been deleted since it was chosen
+          const stale = spaces && selected && !spaces.defined?.[selected];
+          set({
+            steps: nextSteps,
+            ...(feeds && { feeds: Object.values(feeds).sort(compareByName) }),
+            ...(spaces && toCatalogSpaceState(spaces)),
+            ...(stale && { selectedSpaceId: null }),
+            stepHealth: toStepHealthMap(
+              get().healthByNode,
+              toStepMap(nextSteps)
+            ),
+          });
+        },
+
+        setHealthState: (healthByNode) => {
+          const stepsById = toStepMap(get().steps);
+          set({
+            healthByNode,
+            healthNodeIds: sortNodeIds(Object.keys(healthByNode)),
+            stepHealth: toStepHealthMap(healthByNode, stepsById),
+          });
+        },
+
+        setFlowState: (state) => {
+          const { selectedFlow, flows } = get();
+          if (!selectedFlow || state.id !== selectedFlow) {
+            return;
+          }
+          const flowData = buildFlowContext(state);
+          const executions = buildExecutionList(state);
+          set({
+            flowData,
+            flows: upsertFlowList(flows, toFlowSummaryFromState(state)).sort(
+              compareFlows
+            ),
+            executions,
+            resolvedAttributes: computeResolvedAttributes(
+              flowData.state ?? {},
+              executions
+            ),
+            loading: false,
+            flowNotFound: false,
+          });
+        },
+      }),
+      {
+        name: "flowStore",
+        storage: createJSONStorage(() => localStorage),
+        partialize: ({ selectedSpaceId }) => ({ selectedSpaceId }),
+      }
+    ),
     { name: "FlowStore" }
   )
 );
@@ -478,6 +502,10 @@ export const useFlowsLoading = () =>
   useFlowStore((state) => state.flowsLoading);
 export const useSelectedFlow = () =>
   useFlowStore((state) => state.selectedFlow);
+export const useSelectedSpaceId = () =>
+  useFlowStore((state) => state.selectedSpaceId);
+export const useSetSelectedSpaceId = () =>
+  useFlowStore((state) => state.setSelectedSpaceId);
 export const useFlowData = () => useFlowStore((state) => state.flowData);
 export const useExecutions = () => useFlowStore((state) => state.executions);
 export const useFlowCompensating = () =>

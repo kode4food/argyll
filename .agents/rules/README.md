@@ -3,5 +3,5 @@
 - `project.md` - Project description, building, structure, and status
 - `event-sourcing.md` - Event sourcing architecture and mutation patterns
 - `go-style.md` - Go coding style and testing rules
-- `markdown-style.md` - Markdown formatting rules
+- `markdown-style.md` - Markdown and OpenAPI description formatting rules
 - `typescript-style.md` - TypeScript/React coding style and testing rules

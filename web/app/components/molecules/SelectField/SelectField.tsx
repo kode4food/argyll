@@ -14,6 +14,9 @@ export interface SelectFieldOption {
   value: string;
 }
 
+export const textOptions = (names: string[]): SelectFieldOption[] =>
+  names.map((name) => ({ label: name, value: name }));
+
 export interface SelectFieldProps {
   ariaLabel?: string;
   className?: string;

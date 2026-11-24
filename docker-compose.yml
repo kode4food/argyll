@@ -1,7 +1,70 @@
+# Example services sign in to the engine with the demo-services service account
 x-step-env: &step-env
   ARGYLL_ENGINE_URL: http://argyll-engine-1:8080
+  ARGYLL_TOKEN_URL: http://keycloak:8080/realms/argyll/protocol/openid-connect/token
+  ARGYLL_CLIENT_ID: demo-services
+  ARGYLL_CLIENT_SECRET: argyll-demo-services-secret
+
+# Agent workers call the Argyll MCP server as the agent-workers service account
+x-agent-env: &agent-env
+  ARGYLL_MCP_URL: http://argyll-mcp:8071/mcp
+  ARGYLL_TOKEN_URL: http://keycloak:8080/realms/argyll/protocol/openid-connect/token
+  ARGYLL_CLIENT_ID: agent-workers
+  ARGYLL_CLIENT_SECRET: argyll-demo-agent-secret
+
+x-step-depends: &step-depends
+  keycloak:
+    condition: service_healthy
+  argyll-engine-1:
+    condition: service_healthy
+  argyll-engine-2:
+    condition: service_healthy
+  argyll-engine-3:
+    condition: service_healthy
+
+# People and services sign in through Keycloak. Turn authentication off with
+# AUTH_PROVIDER=none docker compose up
+x-auth-env: &auth-env
+  AUTH_PROVIDER: ${AUTH_PROVIDER:-oidc}
+  AUTH_ISSUER: http://localhost:8180/realms/argyll
+  AUTH_JWKS_URL: http://keycloak:8080/realms/argyll/protocol/openid-connect/certs
+  AUTH_AUDIENCE: argyll
+
+# The engine signs in to agent workers as the argyll-engine service account
+x-engine-account: &engine-account
+  ARGYLL_TOKEN_URL: http://keycloak:8080/realms/argyll/protocol/openid-connect/token
+  ARGYLL_CLIENT_ID: argyll-engine
+  ARGYLL_CLIENT_SECRET: argyll-demo-engine-secret
 
 services:
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.8.1
+    command: ["start-dev", "--import-realm"]
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: admin
+      KC_HOSTNAME: http://localhost:8180
+      KC_HOSTNAME_BACKCHANNEL_DYNAMIC: "true"
+      KC_HEALTH_ENABLED: "true"
+    ports:
+      - "127.0.0.1:8180:8080"
+    volumes:
+      - ./keycloak/argyll-realm.json:/opt/keycloak/data/import/argyll-realm.json:ro
+      - ./keycloak/themes/argyll:/opt/keycloak/themes/argyll:ro
+    restart: unless-stopped
+    healthcheck:
+      # The image has no curl, so the shell asks the management port directly
+      test:
+        - CMD-SHELL
+        - >-
+          exec 3<>/dev/tcp/127.0.0.1/9000 &&
+          printf 'GET /health/ready HTTP/1.0\r\n\r\n' >&3 &&
+          grep -q UP <&3
+      interval: 5s
+      timeout: 3s
+      retries: 30
+      start_period: 15s
+
   argyll-proxy:
     image: haproxy:3.1-alpine
     depends_on:
@@ -12,7 +75,7 @@ services:
       argyll-engine-3:
         condition: service_healthy
     ports:
-      - "8080:8080"
+      - "127.0.0.1:8080:8080"
     volumes:
       - ./haproxy/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
     restart: unless-stopped
@@ -31,6 +94,7 @@ services:
       context: .
       dockerfile: engine/Dockerfile
     environment:
+      <<: [*auth-env, *engine-account]
       API_PORT: "8080"
       API_HOST: "0.0.0.0"
       WEBHOOK_BASE_URL: http://argyll-engine-1:8080
@@ -60,6 +124,7 @@ services:
       context: .
       dockerfile: engine/Dockerfile
     environment:
+      <<: [*auth-env, *engine-account]
       API_PORT: "8080"
       API_HOST: "0.0.0.0"
       WEBHOOK_BASE_URL: http://argyll-engine-2:8080
@@ -89,6 +154,7 @@ services:
       context: .
       dockerfile: engine/Dockerfile
     environment:
+      <<: [*auth-env, *engine-account]
       API_PORT: "8080"
       API_HOST: "0.0.0.0"
       WEBHOOK_BASE_URL: http://argyll-engine-3:8080
@@ -120,6 +186,23 @@ services:
     command: ["-engine", "http://argyll-proxy:8080", "-listen", ":8071"]
     restart: unless-stopped
 
+  # Chat reaches only the agent workers, never the engine
+  argyll-chat:
+    build:
+      context: .
+      dockerfile: chat/Dockerfile
+    depends_on:
+      - argyll-agent-anthropic
+      - argyll-agent-bedrock
+      - argyll-agent-gemini
+      - argyll-agent-openai
+    ports:
+      - "127.0.0.1:8072:8072"
+    environment:
+      <<: *auth-env
+      AGENT_WORKERS: "anthropic=http://argyll-agent-anthropic:8070,bedrock=http://argyll-agent-bedrock:8070,gemini=http://argyll-agent-gemini:8070,*=http://argyll-agent-openai:8070"
+    restart: unless-stopped
+
   argyll-agent-anthropic:
     build:
       context: .
@@ -129,7 +212,7 @@ services:
     depends_on:
       - argyll-mcp
     environment:
-      ARGYLL_MCP_URL: http://argyll-mcp:8071/mcp
+      <<: [*auth-env, *agent-env]
     env_file:
       - path: ./.env.d/agent.env
         required: false
@@ -146,7 +229,7 @@ services:
     depends_on:
       - argyll-mcp
     environment:
-      ARGYLL_MCP_URL: http://argyll-mcp:8071/mcp
+      <<: [*auth-env, *agent-env]
     env_file:
       - path: ./.env.d/agent.env
         required: false
@@ -163,7 +246,7 @@ services:
     depends_on:
       - argyll-mcp
     environment:
-      ARGYLL_MCP_URL: http://argyll-mcp:8071/mcp
+      <<: [*auth-env, *agent-env]
     env_file:
       - path: ./.env.d/agent.env
         required: false
@@ -180,7 +263,7 @@ services:
     depends_on:
       - argyll-mcp
     environment:
-      ARGYLL_MCP_URL: http://argyll-mcp:8071/mcp
+      <<: [*auth-env, *agent-env]
     env_file:
       - path: ./.env.d/agent.env
         required: false
@@ -201,6 +284,10 @@ services:
     environment:
       - VITE_API_URL=http://localhost:8080
       - VITE_WS_URL=ws://localhost:8080/engine/ws
+      - VITE_CHAT_URL=http://localhost:8072
+      - VITE_AUTH_PROVIDER=${AUTH_PROVIDER:-oidc}
+      - VITE_AUTH_AUTHORITY=http://localhost:8180/realms/argyll
+      - VITE_AUTH_CLIENT_ID=argyll-web
       - CHOKIDAR_USEPOLLING=true # For better file watching in Docker
       - NODE_ENV=development
     depends_on:
@@ -234,13 +321,7 @@ services:
       <<: *step-env
       STEP_PORT: "8090"
       STEP_HOSTNAME: text-processor
-    depends_on:
-      argyll-engine-1:
-        condition: service_healthy
-      argyll-engine-2:
-        condition: service_healthy
-      argyll-engine-3:
-        condition: service_healthy
+    depends_on: *step-depends
     ports:
       - "8090:8090"
     restart: on-failure
@@ -262,13 +343,7 @@ services:
       <<: *step-env
       STEP_PORT: "8091"
       STEP_HOSTNAME: user-resolver
-    depends_on:
-      argyll-engine-1:
-        condition: service_healthy
-      argyll-engine-2:
-        condition: service_healthy
-      argyll-engine-3:
-        condition: service_healthy
+    depends_on: *step-depends
     ports:
       - "8091:8091"
     restart: unless-stopped
@@ -290,13 +365,7 @@ services:
       <<: *step-env
       STEP_PORT: "8092"
       STEP_HOSTNAME: inventory-resolver
-    depends_on:
-      argyll-engine-1:
-        condition: service_healthy
-      argyll-engine-2:
-        condition: service_healthy
-      argyll-engine-3:
-        condition: service_healthy
+    depends_on: *step-depends
     ports:
       - "8092:8092"
     restart: unless-stopped
@@ -318,13 +387,7 @@ services:
       <<: *step-env
       STEP_PORT: "8093"
       STEP_HOSTNAME: order-creator
-    depends_on:
-      argyll-engine-1:
-        condition: service_healthy
-      argyll-engine-2:
-        condition: service_healthy
-      argyll-engine-3:
-        condition: service_healthy
+    depends_on: *step-depends
     ports:
       - "8093:8093"
     restart: unless-stopped
@@ -346,13 +409,7 @@ services:
       <<: *step-env
       STEP_PORT: "8094"
       STEP_HOSTNAME: payment-processor
-    depends_on:
-      argyll-engine-1:
-        condition: service_healthy
-      argyll-engine-2:
-        condition: service_healthy
-      argyll-engine-3:
-        condition: service_healthy
+    depends_on: *step-depends
     ports:
       - "8094:8094"
     restart: unless-stopped
@@ -374,13 +431,7 @@ services:
       <<: *step-env
       STEP_PORT: "8095"
       STEP_HOSTNAME: stock-reservation
-    depends_on:
-      argyll-engine-1:
-        condition: service_healthy
-      argyll-engine-2:
-        condition: service_healthy
-      argyll-engine-3:
-        condition: service_healthy
+    depends_on: *step-depends
     ports:
       - "8095:8095"
     restart: unless-stopped
@@ -402,13 +453,7 @@ services:
       <<: *step-env
       STEP_PORT: "8096"
       STEP_HOSTNAME: notification-sender
-    depends_on:
-      argyll-engine-1:
-        condition: service_healthy
-      argyll-engine-2:
-        condition: service_healthy
-      argyll-engine-3:
-        condition: service_healthy
+    depends_on: *step-depends
     ports:
       - "8096:8096"
     restart: unless-stopped

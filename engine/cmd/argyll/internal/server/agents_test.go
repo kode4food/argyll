@@ -91,7 +91,7 @@ func TestAgentCapabilities(t *testing.T) {
 
 func getAgentCapabilities(workers builtins.AgentWorkers) *httptest.ResponseRecorder {
 	router := gin.New()
-	server.RegisterAgentRoutes(router, workers)
+	server.RegisterAgentRoutes(router, workers, nil)
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/engine/agents/capabilities", nil)
 	router.ServeHTTP(w, req)

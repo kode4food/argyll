@@ -1,9 +1,12 @@
 import { API_CONFIG } from "@/constants/common";
+import { useAuthStore } from "@/app/store/authStore";
 import {
   ExecutionPlan,
   Feed,
   FeedResponse,
   AgentCapabilities,
+  AgentChatReply,
+  AgentChatRequest,
   QueryFlowsResponse,
   QueryFlowsRequest,
   Space,
@@ -13,6 +16,8 @@ import {
 import { fromGoalSets, GoalSets } from "./goals";
 
 const REQUEST_TIMEOUT_MS = 30000;
+const HTTP_UNAUTHORIZED = 401;
+const CHAT_TIMEOUT_MS = 180000;
 
 export interface StartFlowRequest {
   id: string;
@@ -35,25 +40,40 @@ export class ArgyllApi {
     this.baseURL = baseURL;
   }
 
-  private async request<T>(path: string, init: RequestInit = {}): Promise<T> {
-    const timeout = AbortSignal.timeout(REQUEST_TIMEOUT_MS);
+  private async request<T>(
+    path: string,
+    init: RequestInit = {},
+    timeoutMs = REQUEST_TIMEOUT_MS,
+    baseURL = this.baseURL
+  ): Promise<T> {
+    const timeout = AbortSignal.timeout(timeoutMs);
     const signal = init.signal
       ? AbortSignal.any([init.signal, timeout])
       : timeout;
-    const response = await fetch(this.baseURL + path, {
+    const { token, isEnabled, login } = useAuthStore.getState();
+    const response = await fetch(baseURL + path, {
       ...init,
       signal,
       headers: {
         "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
         ...init.headers,
       },
     });
     const data = await response.json().catch(() => null);
 
+    if (response.status === HTTP_UNAUTHORIZED && isEnabled) {
+      void login().catch((error: unknown) =>
+        console.error("Sign-in failed", error)
+      );
+    }
     if (!response.ok) {
-      const message =
-        data && typeof data === "object" && "error" in data
-          ? String(data.error)
+      const hasError = data && typeof data === "object" && "error" in data;
+      const hasDetail = data && typeof data === "object" && "detail" in data;
+      const message = hasError
+        ? String(data.error)
+        : hasDetail
+          ? String(data.detail)
           : `${response.status} ${response.statusText}`;
       throw new Error(message);
     }
@@ -122,6 +142,19 @@ export class ArgyllApi {
       { signal }
     );
     return { ...response, providers: response.providers ?? [] };
+  }
+
+  async chatWithAgent(
+    request: AgentChatRequest,
+    signal?: AbortSignal
+  ): Promise<AgentChatReply> {
+    // Chat is its own service, so the engine has no part in it
+    return this.request<AgentChatReply>(
+      "/chat",
+      { method: "POST", body: JSON.stringify(request), signal },
+      CHAT_TIMEOUT_MS,
+      API_CONFIG.CHAT_URL
+    );
   }
 
   async getFeed(feedId: string): Promise<FeedResponse> {

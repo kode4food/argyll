@@ -24,6 +24,8 @@ const (
 	callbackFlow  api.FlowID = "flow"
 	callbackStep  api.StepID = "step"
 	callbackToken api.Token  = "token"
+	callbackKey              = "secret"
+	compensateKey            = "undo-secret"
 )
 
 var errEngineDown = errors.New("engine down")
@@ -52,6 +54,34 @@ func TestCallbackLookup(t *testing.T) {
 	assert.Empty(t, eng.called)
 }
 
+func TestCallbackSecret(t *testing.T) {
+	for _, secret := range []string{"", "wrong"} {
+		eng := newCallbackEngine(api.WorkActive)
+		req := invokeRequest(api.Args{})
+		req.Secret = secret
+		err := builtins.Callback(eng, req)
+		assert.ErrorIs(t, err, builtins.ErrCallbackSecret)
+		assert.Empty(t, eng.called)
+	}
+
+	// A late callback from an earlier attempt still settles the work
+	eng := newCallbackEngine(api.WorkActive)
+	req := invokeRequest(api.Args{})
+	req.Secret = "earlier attempt"
+	assert.NoError(t, builtins.Callback(eng, req))
+	assert.Equal(t, "CompleteWork", eng.called)
+
+	// Each phase's secret settles only that phase
+	eng = newCallbackEngine(api.WorkCompensating)
+	comp := compensateRequest(nil)
+	comp.Secret = callbackKey
+	assert.ErrorIs(t, builtins.Callback(eng, comp), builtins.ErrCallbackSecret)
+	req = invokeRequest(api.Args{})
+	req.Secret = compensateKey
+	assert.ErrorIs(t, builtins.Callback(eng, req), builtins.ErrCallbackSecret)
+	assert.Empty(t, eng.called)
+}
+
 func TestCallbackInvoke(t *testing.T) {
 	for _, action := range []api.CallbackAction{api.ActionInvoke, api.ActionAgent} {
 		t.Run(string(action), func(t *testing.T) {
@@ -61,6 +91,7 @@ func TestCallbackInvoke(t *testing.T) {
 				FlowStep: callbackFlowStep(),
 				Token:    callbackToken,
 				Action:   action,
+				Secret:   callbackKey,
 				Outputs:  api.Args{"result": "ok"},
 				Usage:    usage,
 			})
@@ -89,6 +120,7 @@ func TestCallbackInvokeProblem(t *testing.T) {
 				FlowStep: callbackFlowStep(),
 				Token:    callbackToken,
 				Action:   api.ActionInvoke,
+				Secret:   callbackKey,
 				Problem: &api.ProblemDetails{
 					Status: tc.status,
 					Detail: "boom",
@@ -187,7 +219,14 @@ func newCallbackEngine(status api.WorkStatus) *callbackEngine {
 			Executions: api.Executions{
 				callbackStep: {
 					WorkItems: api.WorkItems{
-						callbackToken: {Status: status},
+						callbackToken: {
+							Status: status,
+							Callbacks: []string{
+								api.CallbackHash(api.ActionInvoke, "earlier attempt"),
+								api.CallbackHash(api.ActionInvoke, callbackKey),
+								api.CallbackHash(api.ActionCompensate, compensateKey),
+							},
+						},
 					},
 				},
 			},
@@ -207,6 +246,7 @@ func invokeRequest(outputs api.Args) *builtins.CallbackRequest {
 		FlowStep: callbackFlowStep(),
 		Token:    callbackToken,
 		Action:   api.ActionInvoke,
+		Secret:   callbackKey,
 		Outputs:  outputs,
 	}
 }
@@ -216,6 +256,7 @@ func compensateRequest(problem *api.ProblemDetails) *builtins.CallbackRequest {
 		FlowStep: callbackFlowStep(),
 		Token:    callbackToken,
 		Action:   api.ActionCompensate,
+		Secret:   compensateKey,
 		Problem:  problem,
 	}
 }

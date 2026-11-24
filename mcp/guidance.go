@@ -1,9 +1,10 @@
 package mcp
 
 import (
+	"context"
 	"strings"
 
-	"github.com/localrivet/gomcp/server"
+	"github.com/modelcontextprotocol/go-sdk/mcp"
 
 	guide "github.com/kode4food/argyll/mcp/internal/guidance"
 )
@@ -36,63 +37,91 @@ type (
 	}
 )
 
-func (s *Server) registerGuidance(srv server.Server) {
-	srv.Resource(
-		"/sdk/steps",
-		"Guidance for implementing Argyll steps with the Go and Python SDKs",
-		func(*server.Context, any) (any, error) {
-			return guide.Read("sdk-steps.md")
-		},
-	)
+const markdownType = "text/markdown"
 
-	srv.Resource(
-		"/sdk/go/steps",
-		"Go SDK patterns for implementing Argyll steps",
-		func(*server.Context, any) (any, error) {
-			return guide.Read("go-steps.md")
-		},
-	)
+func (s *Server) registerGuidance(reg *toolRegistry) {
+	srv := reg.server
+	addGuide(srv, &mcp.Resource{
+		URI:         "/sdk/steps",
+		Description: "Guidance for implementing Argyll steps with the Go and Python SDKs",
+	}, "sdk-steps.md")
+	addGuide(srv, &mcp.Resource{
+		URI:         "/sdk/go/steps",
+		Description: "Go SDK patterns for implementing Argyll steps",
+	}, "go-steps.md")
+	addGuide(srv, &mcp.Resource{
+		URI:         "/sdk/python/steps",
+		Description: "Python SDK patterns for implementing Argyll steps",
+	}, "python-steps.md")
+	addGuide(srv, &mcp.Resource{
+		URI:         "/openapi/ingestion",
+		Description: "Guidance for ingesting OpenAPI services into Argyll",
+	}, "openapi-ingestion.md")
 
-	srv.Resource(
-		"/sdk/python/steps",
-		"Python SDK patterns for implementing Argyll steps",
-		func(*server.Context, any) (any, error) {
-			return guide.Read("python-steps.md")
-		},
-	)
+	addPrompt(srv, &mcp.Prompt{
+		Name:        "implement_step",
+		Description: "Guide an agent through implementing an Argyll step with the SDKs",
+	}, "implement-step-prompt.md", "language", "step_name", "requirements")
+	addPrompt(srv, &mcp.Prompt{
+		Name:        "ingest_openapi_services",
+		Description: "Guide an agent through ingesting bespoke OpenAPI services",
+	}, "openapi-ingestion.md", "payload")
 
-	srv.Resource(
-		"/openapi/ingestion",
-		"Guidance for ingesting OpenAPI services into Argyll",
-		func(*server.Context, any) (any, error) {
-			return guide.Read("openapi-ingestion.md")
-		},
-	)
-
-	srv.Prompt(
-		"implement_step", "Guide an agent through implementing an Argyll step with the SDKs",
-		server.User(guide.MustRead("implement-step-prompt.md")),
-	)
-
-	srv.Prompt(
-		"ingest_openapi_services", "Guide an agent through ingesting bespoke OpenAPI services",
-		server.User(guide.MustRead("openapi-ingestion.md")),
-	)
-
-	srv.Tool(
-		"sdk_step_template",
-		"Return a minimal Go or Python Argyll SDK step implementation template",
-		func(_ *server.Context, args sdkStepTemplateInput) (any, error) {
+	addTool(reg, &mcp.Tool{
+		Name:        "sdk_step_template",
+		Description: "Return a minimal Go or Python Argyll SDK step implementation template",
+	},
+		func(_ context.Context, args sdkStepTemplateInput) (any, error) {
 			code, err := sdkStepTemplate(args)
 			if err != nil {
 				return nil, err
 			}
-			return toolResult(map[string]any{
+			return map[string]any{
 				"language": args.Language,
 				"code":     code,
-			}, nil)
+			}, nil
 		},
 	)
+}
+
+func addGuide(srv *mcp.Server, res *mcp.Resource, file string) {
+	res.Name = res.URI
+	res.MIMEType = markdownType
+	read := func(context.Context, *mcp.ReadResourceRequest) (*mcp.ReadResourceResult, error) {
+		text, err := guide.Read(file)
+		if err != nil {
+			return nil, err
+		}
+		return &mcp.ReadResourceResult{Contents: []*mcp.ResourceContents{{
+			URI:      res.URI,
+			MIMEType: markdownType,
+			Text:     text,
+		}}}, nil
+	}
+	srv.AddResource(res, read)
+}
+
+// addPrompt serves a guidance file as a user prompt, filling each {{argument}} placeholder
+func addPrompt(srv *mcp.Server, p *mcp.Prompt, file string, argNames ...string) {
+	args := make([]*mcp.PromptArgument, 0, len(argNames))
+	for _, n := range argNames {
+		args = append(args, &mcp.PromptArgument{Name: n})
+	}
+	p.Arguments = args
+	read := func(_ context.Context, req *mcp.GetPromptRequest) (*mcp.GetPromptResult, error) {
+		text, err := guide.Read(file)
+		if err != nil {
+			return nil, err
+		}
+		for k, v := range req.Params.Arguments {
+			text = strings.ReplaceAll(text, "{{"+k+"}}", v)
+		}
+		return &mcp.GetPromptResult{Messages: []*mcp.PromptMessage{{
+			Role:    "user",
+			Content: &mcp.TextContent{Text: text},
+		}}}, nil
+	}
+	srv.AddPrompt(p, read)
 }
 
 func sdkStepTemplate(args sdkStepTemplateInput) (string, error) {

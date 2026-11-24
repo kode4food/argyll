@@ -9,7 +9,8 @@ import (
 )
 
 var (
-	ErrNoCallbackURL = errors.New("callback URL required")
+	ErrNoCallbackURL    = errors.New("callback URL required")
+	ErrNoCallbackSecret = errors.New("callback secret required")
 )
 
 // HTTP returns the standard HTTP-backed step handler
@@ -42,10 +43,11 @@ func compensateHTTP(client Client, callback CallbackURL) step.WorkFunc {
 		async := st.HTTP.Compensate.Async()
 		meta := metadata(rt, token)
 		if async && callback != nil {
-			meta[api.MetaWebhookURL] = callback(api.FlowStep{
-				FlowID: rt.FlowID(),
-				StepID: rt.StepID(),
-			}, token, api.ActionCompensate)
+			url, err := callbackURL(rt, callback, token, api.ActionCompensate)
+			if err != nil {
+				return err
+			}
+			meta[api.MetaWebhookURL] = url
 		}
 		if err := client.Compensate(st, args, meta); err != nil {
 			return err
@@ -64,10 +66,11 @@ func invokeHTTP(client Client, callback CallbackURL) step.WorkFunc {
 		async := st.HTTP.Invoke.Async()
 		meta := metadata(rt, token)
 		if async && callback != nil {
-			meta[api.MetaWebhookURL] = callback(api.FlowStep{
-				FlowID: rt.FlowID(),
-				StepID: rt.StepID(),
-			}, token, api.ActionInvoke)
+			url, err := callbackURL(rt, callback, token, api.ActionInvoke)
+			if err != nil {
+				return err
+			}
+			meta[api.MetaWebhookURL] = url
 		}
 		inputs = applyMetaInputs(st, inputs, meta)
 		outputs, err := client.Invoke(st, inputs, meta)
@@ -79,6 +82,24 @@ func invokeHTTP(client Client, callback CallbackURL) step.WorkFunc {
 		}
 		return rt.CompleteWork(token, outputs)
 	}
+}
+
+func callbackURL(
+	rt step.Runtime, callback CallbackURL, tkn api.Token, action api.CallbackAction,
+) (string, error) {
+	c, ok := rt.(interface{ CallbackSecret(api.Token) string })
+	if !ok {
+		return "", ErrNoCallbackSecret
+	}
+	secret := c.CallbackSecret(tkn)
+	if secret == "" {
+		return "", ErrNoCallbackSecret
+	}
+	fs := api.FlowStep{
+		FlowID: rt.FlowID(),
+		StepID: rt.StepID(),
+	}
+	return callback(fs, tkn, action, secret), nil
 }
 
 func metadata(rt step.Runtime, token api.Token) api.Metadata {

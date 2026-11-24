@@ -1,5 +1,6 @@
 """Argyll SDK for Python."""
 
+from .auth import ServiceAccountAuth
 from .builder import FlowBuilder, StepBuilder
 from .client import Client, FlowClient
 from .errors import (
@@ -55,6 +56,7 @@ __all__ = [
     # Client
     "Client",
     "FlowClient",
+    "ServiceAccountAuth",
     # Builders
     "StepBuilder",
     "FlowBuilder",

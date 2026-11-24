@@ -148,8 +148,10 @@ components:
       schema:
         type: string
         format: uri
-      description: Async actions POST their outcome to this action-specific URL.
-      example: http://localhost:8080/callbacks/wf-123/text-processor/tok_abc123xyz/invoke
+      description: >-
+        Async actions POST their outcome to this action-specific URL. Keep the
+        URL out of logs because it carries a secret.
+      example: http://localhost:8080/callbacks/wf-123/text-processor/tok_abc123xyz/invoke/Q7RJ3Z5W2KXN6HVA4MPDYTGB2E
 
   schemas:
     Args:

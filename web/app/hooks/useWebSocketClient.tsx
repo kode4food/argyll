@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { API_CONFIG } from "@/constants/common";
+import { API_CONFIG, WEBSOCKET } from "@/constants/common";
+import { useAuthStore } from "@/app/store/authStore";
 import {
   ConnectionStatus,
   WebSocketEvent,
@@ -79,7 +80,14 @@ export const useWebSocketClient = ({
       onmessage: (e: MessageEvent) => void;
     }) => {
       try {
-        const ws = new WebSocket(API_CONFIG.WS_URL);
+        // Browsers cannot set headers here, so a token rides as a subprotocol
+        const { token } = useAuthStore.getState();
+        const ws = token
+          ? new WebSocket(API_CONFIG.WS_URL, [
+              WEBSOCKET.PROTOCOL,
+              WEBSOCKET.TOKEN_PREFIX + token,
+            ])
+          : new WebSocket(API_CONFIG.WS_URL);
         wsRef.current = ws;
         ws.onopen = handlers.onopen;
         ws.onclose = handlers.onclose;

@@ -3,6 +3,7 @@
 import os
 import traceback
 from dataclasses import dataclass
+from http import HTTPStatus
 from typing import TYPE_CHECKING, Any, Callable, Optional
 
 import requests
@@ -77,12 +78,24 @@ class AsyncContext:
                 json=body,
                 headers={"Content-Type": content_type},
                 timeout=30,
+                allow_redirects=False,
             )
             resp.raise_for_status()
+            status = resp.status_code
+            if not HTTPStatus.OK <= status < HTTPStatus.MULTIPLE_CHOICES:
+                raise WebhookError(f"Failed to send webhook: status {status}")
         except requests.RequestException as e:
-            raise WebhookError(
-                f"Failed to send webhook to {self.webhook_url}: {e}"
-            ) from e
+            # The URL carries the callback secret, so neither it nor an
+            # exception quoting it goes into the error
+            response_status = (
+                e.response.status_code if e.response is not None else None
+            )
+            detail = (
+                f"status {response_status}"
+                if response_status
+                else type(e).__name__
+            )
+            raise WebhookError(f"Failed to send webhook: {detail}") from None
 
 
 InvokeHandler = Callable[[StepContext, Args], Args]

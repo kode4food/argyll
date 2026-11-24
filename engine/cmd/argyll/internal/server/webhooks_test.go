@@ -3,10 +3,10 @@ package server_test
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -20,10 +20,11 @@ func TestCompensationCallbackIsPhaseSpecific(t *testing.T) {
 	withTestServerEnv(t, func(env *testServerEnv) {
 		fs, tkn := seedCompensatingWebhook(t, env, "comp-fail")
 		router := env.Server.SetupRoutes()
-		base := fmt.Sprintf("/callbacks/%s/%s/%s", fs.FlowID, fs.StepID, tkn)
+		invoke := api.CallbackPath(fs, tkn, api.ActionInvoke, helpers.CallbackSecret)
+		compensate := api.CallbackPath(fs, tkn, api.ActionCompensate, helpers.CallbackSecret)
 
 		// A delayed invocation callback must not complete compensation
-		req := httptest.NewRequest("POST", base+"/invoke",
+		req := httptest.NewRequest("POST", invoke,
 			bytes.NewReader([]byte(`{}`)))
 		req.Header.Set("Content-Type", api.JSONContentType)
 		w := httptest.NewRecorder()
@@ -37,7 +38,7 @@ func TestCompensationCallbackIsPhaseSpecific(t *testing.T) {
 			http.StatusUnprocessableEntity, "rollback failed",
 		))
 		assert.NoError(t, err)
-		req = httptest.NewRequest("POST", base+"/compensate", bytes.NewReader(problem))
+		req = httptest.NewRequest("POST", compensate, bytes.NewReader(problem))
 		req.Header.Set("Content-Type", api.ProblemJSONContentType)
 		w = httptest.NewRecorder()
 		router.ServeHTTP(w, req)
@@ -52,7 +53,7 @@ func TestCompensationCallbackIsPhaseSpecific(t *testing.T) {
 func TestCompensationCallbackSucceedsWithoutBody(t *testing.T) {
 	withTestServerEnv(t, func(env *testServerEnv) {
 		fs, tkn := seedCompensatingWebhook(t, env, "comp-ok")
-		path := fmt.Sprintf("/callbacks/%s/%s/%s/compensate", fs.FlowID, fs.StepID, tkn)
+		path := api.CallbackPath(fs, tkn, api.ActionCompensate, helpers.CallbackSecret)
 		req := httptest.NewRequest("POST", path, nil)
 		w := httptest.NewRecorder()
 
@@ -68,7 +69,7 @@ func TestCompensationCallbackSucceedsWithoutBody(t *testing.T) {
 func TestCallbackRejectsMalformedProblem(t *testing.T) {
 	withTestServerEnv(t, func(env *testServerEnv) {
 		fs, tkn := seedCompensatingWebhook(t, env, "comp-bad")
-		path := fmt.Sprintf("/callbacks/%s/%s/%s/compensate", fs.FlowID, fs.StepID, tkn)
+		path := api.CallbackPath(fs, tkn, api.ActionCompensate, helpers.CallbackSecret)
 		req := httptest.NewRequest("POST", path, bytes.NewReader([]byte(`{`)))
 		req.Header.Set("Content-Type", api.ProblemJSONContentType)
 		w := httptest.NewRecorder()
@@ -107,7 +108,7 @@ func TestAgentCallbackUsage(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			withTestServerEnv(t, func(env *testServerEnv) {
 				fs, tkn := seedActiveWebhook(t, env, api.StepTypeAgent)
-				path := api.CallbackPath(fs.FlowID, fs.StepID, tkn, api.ActionAgent)
+				path := api.CallbackPath(fs, tkn, api.ActionAgent, helpers.CallbackSecret)
 				w := postCallback(env, path, bytes.NewBufferString(tc.body))
 
 				assert.Equal(t, http.StatusOK, w.Code)
@@ -135,7 +136,7 @@ func TestAgentCallbackRejects(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			withTestServerEnv(t, func(env *testServerEnv) {
 				fs, tkn := seedActiveWebhook(t, env, api.StepTypeAgent)
-				path := api.CallbackPath(fs.FlowID, fs.StepID, tkn, api.ActionAgent)
+				path := api.CallbackPath(fs, tkn, api.ActionAgent, helpers.CallbackSecret)
 				w := postCallback(env, path, bytes.NewBufferString(tc.body))
 
 				assert.Equal(t, http.StatusBadRequest, w.Code)
@@ -150,9 +151,38 @@ func TestAgentCallbackRejects(t *testing.T) {
 func TestCallbackMissingExecution(t *testing.T) {
 	withTestServerEnv(t, func(env *testServerEnv) {
 		fs, tkn := seedActiveWebhook(t, env, api.StepTypeService)
-		path := api.CallbackPath(fs.FlowID, "missing", tkn, api.ActionInvoke)
+		fs.StepID = "missing"
+		path := api.CallbackPath(fs, tkn, api.ActionInvoke, helpers.CallbackSecret)
 		w := postCallback(env, path, bytes.NewBufferString(`{}`))
 		assert.Equal(t, http.StatusBadRequest, w.Code)
+	})
+}
+
+func TestCallbackBodyLimit(t *testing.T) {
+	withTestServerEnv(t, func(env *testServerEnv) {
+		fs, tkn := seedActiveWebhook(t, env, api.StepTypeService)
+		env.Server.WithCallbackLimit(16)
+		path := api.CallbackPath(fs, tkn, api.ActionInvoke, helpers.CallbackSecret)
+		body := `{"outputs":{"result":"far more than sixteen bytes"}}`
+		w := postCallback(env, path, bytes.NewBufferString(body))
+		assert.Equal(t, http.StatusRequestEntityTooLarge, w.Code)
+
+		fl, err := env.Engine.GetFlowState(fs.FlowID)
+		assert.NoError(t, err)
+		assert.Equal(t, api.WorkActive, fl.Executions[fs.StepID].WorkItems[tkn].Status)
+	})
+}
+
+func TestCallbackRejectsWrongSecret(t *testing.T) {
+	withTestServerEnv(t, func(env *testServerEnv) {
+		fs, tkn := seedActiveWebhook(t, env, api.StepTypeService)
+		path := api.CallbackPath(fs, tkn, api.ActionInvoke, "guessed")
+		w := postCallback(env, path, bytes.NewBufferString(`{"outputs":{}}`))
+		assert.Equal(t, http.StatusForbidden, w.Code)
+
+		fl, err := env.Engine.GetFlowState(fs.FlowID)
+		assert.NoError(t, err)
+		assert.Equal(t, api.WorkActive, fl.Executions[fs.StepID].WorkItems[tkn].Status)
 	})
 }
 
@@ -160,7 +190,7 @@ func TestServiceCallbackKeepsRawOutputs(t *testing.T) {
 	withTestServerEnv(t, func(env *testServerEnv) {
 		fs, tkn := seedActiveWebhook(t, env, api.StepTypeService)
 		body := `{"outputs":{"result":"ok"},"usage":{"cost":1}}`
-		path := api.CallbackPath(fs.FlowID, fs.StepID, tkn, api.ActionInvoke)
+		path := api.CallbackPath(fs, tkn, api.ActionInvoke, helpers.CallbackSecret)
 		w := postCallback(env, path, bytes.NewBufferString(body))
 		assert.Equal(t, http.StatusOK, w.Code)
 		fl, err := env.Engine.GetFlowState(fs.FlowID)
@@ -170,6 +200,14 @@ func TestServiceCallbackKeepsRawOutputs(t *testing.T) {
 		assert.Nil(t, work.Usage)
 		assert.Contains(t, work.Outputs, api.Name("usage"))
 	})
+}
+
+// dispatchedSecret returns the callback secret the engine handed the step's last invocation
+func dispatchedSecret(t *testing.T, env *testServerEnv, sid api.StepID) string {
+	t.Helper()
+	assert.True(t, env.MockClient.WaitForInvocation(sid, time.Second))
+	url, _ := env.MockClient.LastMetadata(sid)[api.MetaWebhookURL].(string)
+	return url[strings.LastIndexByte(url, '/')+1:]
 }
 
 func postCallback(env *testServerEnv, path string, body io.Reader) *httptest.ResponseRecorder {
@@ -235,10 +273,11 @@ func seedCompensatingWebhook(
 		{
 			Type: api.EventTypeWorkStarted,
 			Data: api.WorkStartedEvent{
-				FlowID: id,
-				StepID: st.ID,
-				Token:  tkn,
-				Inputs: api.Args{},
+				FlowID:   id,
+				StepID:   st.ID,
+				Token:    tkn,
+				Inputs:   api.Args{},
+				Callback: api.CallbackHash(api.ActionInvoke, helpers.CallbackSecret),
 			},
 		},
 		{
@@ -268,9 +307,10 @@ func seedCompensatingWebhook(
 		{
 			Type: api.EventTypeCompStarted,
 			Data: api.CompStartedEvent{
-				FlowID: id,
-				StepID: st.ID,
-				Token:  tkn,
+				FlowID:   id,
+				StepID:   st.ID,
+				Token:    tkn,
+				Callback: api.CallbackHash(api.ActionCompensate, helpers.CallbackSecret),
 			},
 		},
 	}
@@ -311,7 +351,7 @@ func TestHookInvalidWorkItem(t *testing.T) {
 
 		body, _ := json.Marshal(api.Args{})
 		req := httptest.NewRequest("POST",
-			"/callbacks/invalid-work-flow/"+string(st.ID)+"/fake-token/invoke",
+			"/callbacks/invalid-work-flow/"+string(st.ID)+"/fake-token/invoke/secret",
 			bytes.NewReader(body))
 		req.Header.Set("Content-Type", api.JSONContentType)
 		w := httptest.NewRecorder()
@@ -326,7 +366,7 @@ func TestHookInvalidWorkItem(t *testing.T) {
 func TestHookFlowMissing(t *testing.T) {
 	withTestServerEnv(t, func(env *testServerEnv) {
 		req := httptest.NewRequest("POST",
-			"/callbacks/missing-flow/step/token/invoke",
+			"/callbacks/missing-flow/step/token/invoke/secret",
 			bytes.NewReader([]byte(`{"success":true}`)))
 		req.Header.Set("Content-Type", api.JSONContentType)
 		w := httptest.NewRecorder()
@@ -364,7 +404,7 @@ func TestHookExecutionMissing(t *testing.T) {
 		assert.NoError(t, err)
 
 		req := httptest.NewRequest("POST",
-			"/callbacks/missing-exec-flow/unknown-step/token/invoke",
+			"/callbacks/missing-exec-flow/unknown-step/token/invoke/secret",
 			bytes.NewReader([]byte(`{"success":true}`)))
 		req.Header.Set("Content-Type", api.JSONContentType)
 		w := httptest.NewRecorder()
@@ -429,7 +469,7 @@ func TestHookCompleteTwice(t *testing.T) {
 		body, _ := json.Marshal(api.Args{"output": "value1"})
 		req := httptest.NewRequest("POST",
 			"/callbacks/double-complete-flow/"+string(st.ID)+"/"+
-				string(tkn)+"/invoke",
+				string(tkn)+"/invoke/"+dispatchedSecret(t, env, st.ID),
 			bytes.NewReader(body))
 		req.Header.Set("Content-Type", api.JSONContentType)
 
@@ -447,7 +487,7 @@ func TestHookCompleteTwice(t *testing.T) {
 		body, _ = json.Marshal(api.Args{"output": "value2"})
 		req = httptest.NewRequest("POST",
 			"/callbacks/double-complete-flow/"+string(st.ID)+"/"+
-				string(tkn)+"/invoke",
+				string(tkn)+"/invoke/"+dispatchedSecret(t, env, st.ID),
 			bytes.NewReader(body))
 		req.Header.Set("Content-Type", api.JSONContentType)
 		w = httptest.NewRecorder()
@@ -510,7 +550,7 @@ func TestHookFailTwice(t *testing.T) {
 		body, _ := json.Marshal(api.NewProblem(http.StatusUnprocessableEntity, "error1"))
 		req := httptest.NewRequest("POST",
 			"/callbacks/double-fail-flow/"+string(st.ID)+"/"+
-				string(tkn)+"/invoke",
+				string(tkn)+"/invoke/"+dispatchedSecret(t, env, st.ID),
 			bytes.NewReader(body))
 		req.Header.Set("Content-Type", api.ProblemJSONContentType)
 		w := httptest.NewRecorder()
@@ -524,7 +564,7 @@ func TestHookFailTwice(t *testing.T) {
 		body, _ = json.Marshal(api.NewProblem(http.StatusUnprocessableEntity, "error2"))
 		req = httptest.NewRequest("POST",
 			"/callbacks/double-fail-flow/"+string(st.ID)+"/"+
-				string(tkn)+"/invoke",
+				string(tkn)+"/invoke/"+dispatchedSecret(t, env, st.ID),
 			bytes.NewReader(body))
 		req.Header.Set("Content-Type", api.ProblemJSONContentType)
 		w = httptest.NewRecorder()
@@ -587,6 +627,7 @@ func TestHookSuccess(t *testing.T) {
 		}
 		path := "/callbacks/webhook-success-flow/" + string(st.ID) + "/" +
 			string(tkn)
+		secret := "/" + dispatchedSecret(t, env, st.ID)
 
 		settled := helpers.WaitForFlowState(t, env.Engine,
 			helpers.FlowStateQuery{
@@ -599,18 +640,18 @@ func TestHookSuccess(t *testing.T) {
 			})
 		before := settled.Executions[st.ID].WorkItems[tkn].Status
 
-		wrong := httptest.NewRequest("POST", path+"/compensate", nil)
+		wrong := httptest.NewRequest("POST", path+"/compensate"+secret, nil)
 		w := httptest.NewRecorder()
 		router := env.Server.SetupRoutes()
 		router.ServeHTTP(w, wrong)
-		assert.Equal(t, http.StatusBadRequest, w.Code)
+		assert.Equal(t, http.StatusForbidden, w.Code)
 
 		after, err := env.Engine.GetFlowState("webhook-success-flow")
 		assert.NoError(t, err)
 		assert.Equal(t, before, after.Executions[st.ID].WorkItems[tkn].Status)
 
 		body, _ := json.Marshal(api.Args{"result": "success"})
-		req := httptest.NewRequest("POST", path+"/invoke", bytes.NewReader(body))
+		req := httptest.NewRequest("POST", path+"/invoke"+secret, bytes.NewReader(body))
 		req.Header.Set("Content-Type", api.JSONContentType)
 		w = httptest.NewRecorder()
 
@@ -670,7 +711,7 @@ func TestHookWorkFailure(t *testing.T) {
 		body, _ := json.Marshal(api.NewProblem(http.StatusUnprocessableEntity, "step failed"))
 		req := httptest.NewRequest("POST",
 			"/callbacks/webhook-fail-flow/"+string(st.ID)+"/"+
-				string(tkn)+"/invoke",
+				string(tkn)+"/invoke/"+dispatchedSecret(t, env, st.ID),
 			bytes.NewReader(body))
 		req.Header.Set("Content-Type", api.ProblemJSONContentType)
 		w := httptest.NewRecorder()
@@ -731,7 +772,7 @@ func TestHookInvalidJSON(t *testing.T) {
 
 		req := httptest.NewRequest("POST",
 			"/callbacks/webhook-badjson-flow/"+string(st.ID)+"/"+
-				string(tkn)+"/invoke",
+				string(tkn)+"/invoke/"+dispatchedSecret(t, env, st.ID),
 			bytes.NewReader([]byte("invalid json")))
 		req.Header.Set("Content-Type", api.JSONContentType)
 		w := httptest.NewRecorder()

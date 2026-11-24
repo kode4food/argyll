@@ -21,6 +21,7 @@ COPY examples/user-resolver/main.go ./examples/user-resolver/
 WORKDIR /build/examples/user-resolver
 RUN go mod edit -replace github.com/kode4food/argyll/engine=../../engine
 RUN go mod edit -replace github.com/kode4food/argyll/sdk/go=../../sdk/go
+ENV GOFLAGS=-mod=mod
 RUN go mod download
 
 # Build the executable

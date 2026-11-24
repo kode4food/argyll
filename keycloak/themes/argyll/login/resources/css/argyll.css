@@ -1,0 +1,64 @@
+/* Argyll colors from web/app/styles/base/variables.css */
+:root {
+  --argyll-primary: #e4751e;
+  --argyll-primary-dark: #da8c4b;
+  --argyll-bg: #f9fafb;
+  --argyll-surface: #ffffff;
+  --argyll-border: #6b7280;
+  --argyll-text: #374151;
+
+  --keycloak-logo-url: url("../img/argyll-logo.png");
+  --keycloak-logo-height: 120px;
+  --keycloak-logo-width: 160px;
+  --keycloak-card-top-color: var(--argyll-primary);
+
+  --pf-v5-global--FontFamily--text:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu",
+    "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
+  --pf-v5-global--FontFamily--heading: var(--pf-v5-global--FontFamily--text);
+  --pf-v5-global--primary-color--100: var(--argyll-primary);
+  --pf-v5-global--primary-color--200: var(--argyll-primary-dark);
+  --pf-v5-global--link--Color: var(--argyll-primary);
+  --pf-v5-global--link--Color--hover: var(--argyll-primary-dark);
+  --pf-v5-global--active-color--100: var(--argyll-primary);
+  --pf-v5-global--BackgroundColor--100: var(--argyll-surface);
+  --pf-v5-global--Color--100: var(--argyll-text);
+  --pf-v5-global--BorderRadius--sm: 6px;
+}
+
+:root.pf-v5-theme-dark {
+  --argyll-bg: #1e1e1e;
+  --argyll-surface: #2d2d2d;
+  --argyll-border: #4e4e4e;
+  --argyll-text: #e5e7eb;
+}
+
+.login-pf body {
+  background: var(--argyll-bg);
+}
+
+.pf-v5-c-login__main {
+  background-color: var(--argyll-surface);
+  border: 1px solid var(--argyll-border);
+  border-radius: 8px;
+  box-shadow:
+    0 10px 15px -3px rgb(0 0 0 / 0.1),
+    0 4px 6px -4px rgb(0 0 0 / 0.1);
+  overflow: hidden;
+}
+
+.pf-v5-c-login__main-header {
+  border-top-width: 3px;
+}
+
+.pf-v5-c-button.pf-m-primary {
+  --pf-v5-c-button--m-primary--BackgroundColor: var(--argyll-primary);
+  --pf-v5-c-button--m-primary--hover--BackgroundColor: var(--argyll-primary-dark);
+  --pf-v5-c-button--m-primary--focus--BackgroundColor: var(--argyll-primary-dark);
+  --pf-v5-c-button--m-primary--active--BackgroundColor: var(--argyll-primary-dark);
+}
+
+.pf-v5-c-form-control {
+  --pf-v5-c-form-control--focus--after--BorderBottomColor: var(--argyll-primary);
+  --pf-v5-c-form-control--hover--after--BorderBottomColor: var(--argyll-primary);
+}

@@ -5,12 +5,14 @@ WORKDIR /build
 ENV GOWORK=off
 
 COPY engine/go.mod engine/go.sum ./engine/
+COPY chat/go.mod chat/go.sum ./chat/
 COPY workers/agent/go.mod workers/agent/go.sum ./workers/agent/
 
 WORKDIR /build/workers/agent
 RUN go mod download
 
 COPY engine /build/engine
+COPY chat/contract /build/chat/contract
 COPY workers/agent ./
 RUN CGO_ENABLED=0 go build -mod=readonly -o /agent-worker ./cmd/${WORKER}
 

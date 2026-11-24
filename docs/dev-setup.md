@@ -12,10 +12,16 @@ This starts:
 
 - Argyll engine on http://localhost:8080
 - UI on http://localhost:3001
+- Chat service on http://localhost:8072
+- Keycloak on http://localhost:8180, with demo users `reader`, `operator`, and `admin` whose passwords match their names
 - Anthropic, Gemini, Amazon Bedrock, and OpenAI Agent workers on the Compose network
 - Example step services (ports 8081–8086)
 
-Docker Compose configures the services and their connections for local development.
+Docker Compose enables Keycloak authentication by default. Sign in through Keycloak to use the UI. Run `AUTH_PROVIDER=none docker compose up` to disable authentication for local development.
+
+The examples use the `demo-services` service account. The engine uses `argyll-engine` to dispatch work, and the Agent workers use `agent-workers` to call MCP. The MCP server forwards the caller's token to the engine.
+
+Before upgrading a deployment that issued callback URLs without secrets, stop starting new Flows and let outstanding async work settle. Previously issued URLs lack the secret required by the upgraded callback route.
 
 ## Running the engine binary
 
@@ -42,6 +48,8 @@ Local defaults are defined in `docker-compose.yml`. The most important settings 
 
 - `API_HOST` and `API_PORT` (engine HTTP server)
 - `WEBHOOK_BASE_URL` (used for async step callbacks)
+- `CALLBACK_MAX_BYTES` (largest Step callback body, 10 MiB by default)
+- `ARGYLL_TOKEN_URL`, `ARGYLL_CLIENT_ID`, `ARGYLL_CLIENT_SECRET` (the engine's service account for agent workers)
 - `AGENT_WORKERS` (agent worker for each provider, as comma-separated `provider=url` pairs, with `*` serving every provider not listed)
 - `RAFT_NODE_ID`, `RAFT_ADDRESS`, and `RAFT_DATA_DIR` (single-node or cluster identity)
 - `RAFT_LOG_TAIL_SIZE` (number of recent write-ahead log entries retained in memory, default `20480`)
@@ -117,7 +125,7 @@ npm install
 npm run dev
 ```
 
-The UI expects `VITE_API_URL` to point at the engine (default: http://localhost:8080).
+The UI uses `VITE_API_URL` for the engine (default `http://localhost:8080`) and `VITE_CHAT_URL` for the standalone chat service (default `http://localhost:8072`). The chat service forwards requests to Agent workers.
 
 ## Step service dev loop
 

@@ -4,6 +4,7 @@ import { getEnv } from "@/utils/env";
 export const API_CONFIG = {
   BASE_URL: getEnv("API_URL", "http://localhost:8080"),
   WS_URL: getEnv("WS_URL", "ws://localhost:8080/engine/ws"),
+  CHAT_URL: getEnv("CHAT_URL", "http://localhost:8072"),
 } as const;
 
 // Common constants
@@ -21,6 +22,8 @@ export const WEBSOCKET = {
   MAX_RECONNECT_ATTEMPTS: 10,
   BUFFER_SIZE: 256,
   HEARTBEAT_INTERVAL: 30000,
+  PROTOCOL: "argyll",
+  TOKEN_PREFIX: "bearer.",
 } as const;
 
 // UI Constants

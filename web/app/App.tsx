@@ -6,6 +6,7 @@ import ConnectionStatusIndicator from "./components/atoms/ConnectionStatusIndica
 import OverviewPage from "./components/templates/OverviewPage";
 import LivePage from "./components/templates/LivePage";
 import NotFoundPage from "./components/organisms/NotFoundPage";
+import AuthGate from "@/app/components/templates/AuthGate";
 import { I18nProvider } from "./i18n";
 import enUS from "./i18n/en-US.json";
 import deCH from "./i18n/de-CH.json";
@@ -98,18 +99,20 @@ const App: React.FC = () => {
   return (
     <Router>
       <LocaleProvider>
-        <WebSocketProvider>
-          <Routes>
-            <Route path="/" element={<OverviewPage />} />
-            <Route path="/flow/:flowId" element={<LivePage />} />
-            <Route path="*" element={<NotFoundPage />} />
-          </Routes>
-          <ConnectionStatusIndicator
-            status={connectionStatus}
-            reconnectAttempt={reconnectAttempt}
-            onReconnect={reconnect}
-          />
-        </WebSocketProvider>
+        <AuthGate>
+          <WebSocketProvider>
+            <Routes>
+              <Route path="/" element={<OverviewPage />} />
+              <Route path="/flow/:flowId" element={<LivePage />} />
+              <Route path="*" element={<NotFoundPage />} />
+            </Routes>
+            <ConnectionStatusIndicator
+              status={connectionStatus}
+              reconnectAttempt={reconnectAttempt}
+              onReconnect={reconnect}
+            />
+          </WebSocketProvider>
+        </AuthGate>
       </LocaleProvider>
       <Toaster position="top-right" />
     </Router>

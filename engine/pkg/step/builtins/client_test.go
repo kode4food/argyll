@@ -50,6 +50,25 @@ func TestNewHTTPClient(t *testing.T) {
 	assert.NotNil(t, c)
 }
 
+func TestCallbackDispatchRefusesCrossOriginRedirect(t *testing.T) {
+	dst := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	defer dst.Close()
+	src := httptest.NewServer(http.RedirectHandler(dst.URL, http.StatusTemporaryRedirect))
+	defer src.Close()
+
+	st := &api.Step{
+		ID: "redirecting-step",
+		HTTP: &api.HTTPConfig{
+			Invoke: api.HTTPAction{Endpoint: src.URL},
+		},
+	}
+	cl := builtins.NewHTTPClient(time.Second)
+	_, err := cl.Invoke(st, nil, api.Metadata{api.MetaWebhookURL: "http://engine/callback"})
+	assert.ErrorIs(t, err, api.ErrCrossOriginRedirect)
+}
+
 func TestSuccess(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {

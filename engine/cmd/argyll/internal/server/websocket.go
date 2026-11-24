@@ -16,6 +16,7 @@ import (
 	"github.com/kode4food/argyll/engine/internal/engine/scheduler"
 	"github.com/kode4food/argyll/engine/internal/event"
 	"github.com/kode4food/argyll/engine/pkg/api"
+	"github.com/kode4food/argyll/engine/pkg/auth"
 	"github.com/kode4food/argyll/engine/pkg/events"
 	"github.com/kode4food/argyll/engine/pkg/log"
 )
@@ -37,6 +38,7 @@ type (
 		getState      StateFunc
 		subscriptions map[string]*clientSubscription
 		onClose       func(*Client)
+		expires       time.Time
 		done          chan struct{}
 		closeOnce     sync.Once
 		subMu         sync.Mutex
@@ -81,12 +83,15 @@ const MaxSubscriptionIDs = 1000
 var (
 	ErrMissingSubscriptionID = errors.New("missing sub_id")
 	ErrTooManyAggregateIDs   = errors.New("too many aggregate ids")
+	ErrTokenExpired          = errors.New("token expired")
 )
 
 var (
 	upgrader = websocket.Upgrader{
 		ReadBufferSize:  wsBufferSize,
 		WriteBufferSize: wsBufferSize,
+		// Browsers that send a token subprotocol need one the server selects
+		Subprotocols: []string{api.WebSocketProtocol},
 		CheckOrigin: func(r *http.Request) bool {
 			return true
 		},
@@ -108,6 +113,9 @@ func HandleWebSocket(req *WebSocketRequest) {
 		getState:      req.State,
 		subscriptions: map[string]*clientSubscription{},
 		done:          make(chan struct{}),
+	}
+	if p, ok := auth.PrincipalFrom(req.Request.Context()); ok {
+		client.expires = p.Expires
 	}
 
 	if req.Register != nil {
@@ -165,8 +173,20 @@ func (c *Client) run() {
 	incoming := make(chan []byte, incomingBufferSize)
 	go c.readMessages(incoming)
 
+	// A connection lives no longer than its token, and the client reconnects with a fresh one
+	var expired <-chan time.Time
+	if !c.expires.IsZero() {
+		timer := time.NewTimer(time.Until(c.expires))
+		defer timer.Stop()
+		expired = timer.C
+	}
+
 	for {
 		select {
+		case <-expired:
+			c.sendClose(websocket.ClosePolicyViolation, ErrTokenExpired.Error())
+			return
+
 		case message, ok := <-incoming:
 			if !ok {
 				return
@@ -381,6 +401,13 @@ func (c *Client) sendUnsubscribeAck(subscriptionID string) bool {
 		return false
 	}
 	return true
+}
+
+func (c *Client) sendClose(code int, reason string) {
+	c.writeMu.Lock()
+	defer c.writeMu.Unlock()
+	msg := websocket.FormatCloseMessage(code, reason)
+	_ = c.conn.WriteControl(websocket.CloseMessage, msg, scheduler.Now().Add(writeWait))
 }
 
 func (c *Client) sendPing() bool {

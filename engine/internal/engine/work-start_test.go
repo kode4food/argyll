@@ -1,6 +1,7 @@
 package engine_test
 
 import (
+	"encoding/json"
 	"strings"
 	"testing"
 	"time"
@@ -217,6 +218,9 @@ func TestHTTPMetadata(t *testing.T) {
 		assert.Equal(t, api.FlowCompleted, fl.Status)
 
 		md := env.MockClient.LastMetadata(st.ID)
+		for _, work := range fl.Executions[st.ID].WorkItems {
+			assert.Empty(t, work.Callbacks)
+		}
 		if assert.NotNil(t, md) {
 			assert.Equal(t, "cid-123", md["correlation_id"])
 			assert.Equal(t, api.FlowID("wf-meta"), md[api.MetaFlowID])
@@ -340,7 +344,19 @@ func TestAsyncMetadata(t *testing.T) {
 		webhook, ok := md[api.MetaWebhookURL].(string)
 		assert.True(t, ok)
 		assert.Contains(t, webhook, "/callbacks/wf-async-meta/async-meta/")
-		assert.True(t, strings.HasSuffix(webhook, "/invoke"))
+		path, secret, ok := strings.Cut(webhook, "/invoke/")
+		assert.True(t, ok)
+		assert.NotEmpty(t, secret)
+
+		// Work state keeps only the secret's hash, so its holder alone can call back
+		tkn := api.Token(path[strings.LastIndexByte(path, '/')+1:])
+		fl, err := env.Engine.GetFlowState("wf-async-meta")
+		assert.NoError(t, err)
+		work := fl.Executions[st.ID].WorkItems[tkn]
+		assert.Equal(t, []string{api.CallbackHash(api.ActionInvoke, secret)}, work.Callbacks)
+		state, err := json.Marshal(fl)
+		assert.NoError(t, err)
+		assert.NotContains(t, string(state), secret)
 	})
 }
 

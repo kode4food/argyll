@@ -62,15 +62,17 @@ type (
 )
 
 var (
+	ErrUnexpectedToken = errors.New("unexpected JSON token")
+	ErrUnexpectedEnd   = errors.New("unexpected end of JSON input")
+	ErrCyclicValue     = errors.New("cyclic value")
+)
+
+var (
 	String  = Text[string]()
 	Bool    = Boolean[bool]()
 	Int     = Number[int]()
 	Int64   = Number[int64]()
 	Float64 = Number[float64]()
-
-	ErrUnexpectedToken = errors.New("unexpected JSON token")
-	ErrUnexpectedEnd   = errors.New("unexpected end of JSON input")
-	ErrCyclicValue     = errors.New("cyclic value")
 )
 
 // Text returns a codec for any string-like type

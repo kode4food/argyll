@@ -2,6 +2,9 @@ package api
 
 import "encoding/json"
 
+// WebSocketProtocol is the engine's WebSocket subprotocol
+const WebSocketProtocol = "argyll"
+
 type (
 	// WebSocketEvent is an event sent to WebSocket clients
 	WebSocketEvent struct {

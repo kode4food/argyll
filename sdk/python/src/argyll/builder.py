@@ -361,9 +361,7 @@ class FlowBuilder:
         }
 
         try:
-            resp = self._client.session.post(
-                url, json=payload, timeout=self._client.timeout
-            )
+            resp = self._client._request("POST", url, json=payload)
             resp.raise_for_status()
         except Exception as e:
             raise FlowError(f"Failed to start flow {self._flow_id}: {e}") from e

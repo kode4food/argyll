@@ -1,6 +1,10 @@
 package mcp
 
-import "github.com/localrivet/gomcp/server"
+import (
+	"context"
+
+	"github.com/modelcontextprotocol/go-sdk/mcp"
+)
 
 type (
 	spaceInput struct {
@@ -34,81 +38,98 @@ const (
 		"returns the next value"
 )
 
-func (s *Server) registerSpaceTools(srv server.Server) {
-	srv.Tool(
-		"list_spaces",
-		"List Spaces. A Space is a named selection of Steps a Flow can plan with",
+func (s *Server) registerSpaceTools(reg *toolRegistry) {
+	addTool(reg, &mcp.Tool{
+		Name:        "list_spaces",
+		Description: "List Spaces. A Space is a named selection of Steps a Flow can plan with",
+	},
 		pathTool(s.httpGet, "/engine/spaces"),
 	)
-	srv.Tool("get_space", "Fetch one Space with its selector",
-		idTool(s.httpGet, "/engine/spaces/", ""))
-	srv.Tool("list_space_steps", "List the Steps a Space selects",
-		idTool(s.httpGet, "/engine/spaces/", "/steps"))
-	srv.Tool("unregister_space", "Remove a Space",
-		idTool(s.httpDelete, "/engine/spaces/", ""))
-	srv.Tool(
-		"preview_space",
-		"Show which Steps a Space would select without saving it. "+spaceShape,
-		func(_ *server.Context, args spaceInput) (any, error) {
+	addTool(reg, &mcp.Tool{
+		Name:        "get_space",
+		Description: "Fetch one Space with its selector",
+	}, idTool(s.httpGet, "/engine/spaces/%s"))
+	addTool(reg, &mcp.Tool{
+		Name:        "list_space_steps",
+		Description: "List the Steps a Space selects",
+	}, idTool(s.httpGet, "/engine/spaces/%s/steps"))
+	addTool(reg, &mcp.Tool{
+		Name:        "unregister_space",
+		Description: "Remove a Space",
+	}, idTool(s.httpDelete, "/engine/spaces/%s"))
+	addTool(reg, &mcp.Tool{
+		Name:        "preview_space",
+		Description: "Show which Steps a Space would select without saving it. " + spaceShape,
+	},
+		func(ctx context.Context, args spaceInput) (any, error) {
 			if len(args.Space) == 0 {
 				return nil, errInvalidParams("space body is required")
 			}
-			return toolResult(s.httpPost("/engine/spaces/preview", args.Space))
+			return s.httpPost(ctx, "/engine/spaces/preview", args.Space)
 		},
 	)
-	srv.Tool(
-		"register_space",
-		"Register a new Space. "+spaceShape,
-		func(_ *server.Context, args spaceInput) (any, error) {
+	addTool(reg, &mcp.Tool{
+		Name:        "register_space",
+		Description: "Register a new Space. " + spaceShape,
+	},
+		func(ctx context.Context, args spaceInput) (any, error) {
 			if len(args.Space) == 0 {
 				return nil, errInvalidParams("space body is required")
 			}
-			return toolResult(s.httpPost("/engine/spaces", args.Space))
+			return s.httpPost(ctx, "/engine/spaces", args.Space)
 		},
 	)
-	srv.Tool(
-		"update_space",
-		"Replace an existing Space. Fetch it with get_space, change it, and "+
+	addTool(reg, &mcp.Tool{
+		Name: "update_space",
+		Description: "Replace an existing Space. Fetch it with get_space, change it, and " +
 			"send the whole Space",
-		func(_ *server.Context, args updateSpaceInput) (any, error) {
+	},
+		func(ctx context.Context, args updateSpaceInput) (any, error) {
 			if args.ID == "" || len(args.Space) == 0 {
 				return nil, errInvalidParams("id and space body are required")
 			}
-			return toolResult(s.httpPut("/engine/spaces/"+args.ID, args.Space))
+			return s.httpPut(ctx, "/engine/spaces/"+args.ID, args.Space)
 		},
 	)
 }
 
-func (s *Server) registerFeedTools(srv server.Server) {
-	srv.Tool(
-		"list_feeds",
-		"List Feeds. A Feed is a catalog-wide value folded from settled Step "+
+func (s *Server) registerFeedTools(reg *toolRegistry) {
+	addTool(reg, &mcp.Tool{
+		Name: "list_feeds",
+		Description: "List Feeds. A Feed is a catalog-wide value folded from settled Step " +
 			"outputs",
+	},
 		pathTool(s.httpGet, "/engine/feeds"),
 	)
-	srv.Tool("get_feed", "Fetch one Feed with its current value",
-		idTool(s.httpGet, "/engine/feeds/", ""))
-	srv.Tool("unregister_feed", "Remove a Feed",
-		idTool(s.httpDelete, "/engine/feeds/", ""))
-	srv.Tool(
-		"register_feed",
-		"Register a new Feed. "+feedShape,
-		func(_ *server.Context, args feedInput) (any, error) {
+	addTool(reg, &mcp.Tool{
+		Name:        "get_feed",
+		Description: "Fetch one Feed with its current value",
+	}, idTool(s.httpGet, "/engine/feeds/%s"))
+	addTool(reg, &mcp.Tool{
+		Name:        "unregister_feed",
+		Description: "Remove a Feed",
+	}, idTool(s.httpDelete, "/engine/feeds/%s"))
+	addTool(reg, &mcp.Tool{
+		Name:        "register_feed",
+		Description: "Register a new Feed. " + feedShape,
+	},
+		func(ctx context.Context, args feedInput) (any, error) {
 			if len(args.Feed) == 0 {
 				return nil, errInvalidParams("feed body is required")
 			}
-			return toolResult(s.httpPost("/engine/feeds", args.Feed))
+			return s.httpPost(ctx, "/engine/feeds", args.Feed)
 		},
 	)
-	srv.Tool(
-		"update_feed",
-		"Replace an existing Feed. Fetch it with get_feed, change it, and "+
+	addTool(reg, &mcp.Tool{
+		Name: "update_feed",
+		Description: "Replace an existing Feed. Fetch it with get_feed, change it, and " +
 			"send the whole Feed",
-		func(_ *server.Context, args updateFeedInput) (any, error) {
+	},
+		func(ctx context.Context, args updateFeedInput) (any, error) {
 			if args.ID == "" || len(args.Feed) == 0 {
 				return nil, errInvalidParams("id and feed body are required")
 			}
-			return toolResult(s.httpPut("/engine/feeds/"+args.ID, args.Feed))
+			return s.httpPut(ctx, "/engine/feeds/"+args.ID, args.Feed)
 		},
 	)
 }

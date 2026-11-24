@@ -9,7 +9,9 @@ import (
 
 	"github.com/kode4food/timebox/raft"
 
+	"github.com/kode4food/argyll/engine/cmd/argyll/internal/server"
 	"github.com/kode4food/argyll/engine/pkg/api"
+	"github.com/kode4food/argyll/engine/pkg/auth"
 	"github.com/kode4food/argyll/engine/pkg/config"
 	"github.com/kode4food/argyll/engine/pkg/step/builtins"
 )
@@ -19,6 +21,8 @@ import (
 type Config struct {
 	Engine          *config.Config
 	AgentWorkers    builtins.AgentWorkers
+	Auth            auth.Authenticator
+	CallbackLimit   int64
 	Raft            raft.Config
 	APIHost         string
 	WebhookBaseURL  string
@@ -41,6 +45,7 @@ const (
 	MaxRetryInitBackoff = api.Day
 	MaxRetryMaxBackoff  = MaxRetryInitBackoff
 	MaxMemoTTL          = MaxStepTimeout
+	MaxCallbackMaxBytes = 1024 * 1024 * 1024 // 1 GB
 )
 
 var (
@@ -62,10 +67,16 @@ func LoadConfig() (Config, error) {
 	if err != nil {
 		return Config{}, err
 	}
+	authn, err := auth.LoadAuthenticator()
+	if err != nil {
+		return Config{}, err
+	}
 
 	cfg := Config{
 		Engine:          eng,
 		AgentWorkers:    workers,
+		Auth:            authn,
+		CallbackLimit:   server.DefaultCallbackMaxBytes,
 		Raft:            rc,
 		APIHost:         DefaultAPIHost,
 		WebhookBaseURL:  DefaultWebhookBaseURL,
@@ -87,6 +98,14 @@ func LoadConfig() (Config, error) {
 		dst: &cfg.APIPort,
 		min: 0,
 		max: MaxTCPPort,
+	}); err != nil {
+		return Config{}, err
+	}
+	if err := loadEnvInt(loadEnvIntArgs[int64]{
+		key: "CALLBACK_MAX_BYTES",
+		dst: &cfg.CallbackLimit,
+		min: 0,
+		max: MaxCallbackMaxBytes,
 	}); err != nil {
 		return Config{}, err
 	}

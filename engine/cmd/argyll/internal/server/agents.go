@@ -15,6 +15,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"github.com/kode4food/argyll/engine/pkg/api"
+	"github.com/kode4food/argyll/engine/pkg/auth"
 	"github.com/kode4food/argyll/engine/pkg/log"
 	"github.com/kode4food/argyll/engine/pkg/step/builtins"
 	"github.com/kode4food/argyll/engine/pkg/util"
@@ -28,11 +29,16 @@ var (
 )
 
 // RegisterAgentRoutes serves the Agent capabilities available through the configured workers
-func RegisterAgentRoutes(router *gin.Engine, workers builtins.AgentWorkers) {
+func RegisterAgentRoutes(
+	router *gin.Engine, workers builtins.AgentWorkers, a auth.Authenticator,
+) {
 	client := &http.Client{Timeout: DefaultAgentListTimeout}
-	router.GET("/engine/agents/capabilities", func(c *gin.Context) {
-		c.JSON(http.StatusOK, listAgentCapabilities(c.Request.Context(), client, workers))
-	})
+	router.GET("/engine/agents/capabilities",
+		requireRole(auth.RoleReader, a),
+		func(c *gin.Context) {
+			c.JSON(http.StatusOK, listAgentCapabilities(c.Request.Context(), client, workers))
+		},
+	)
 }
 
 func listAgentCapabilities(

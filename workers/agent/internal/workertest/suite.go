@@ -15,6 +15,7 @@ import (
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/stretchr/testify/assert"
+	"golang.org/x/oauth2"
 
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/step/builtins"
@@ -122,6 +123,7 @@ func Run(t *testing.T, h *Harness) {
 		{name: "model discovery failure", run: s.testModelDiscoveryFailure},
 		{name: "empty capabilities", run: s.testEmptyCapabilities},
 		{name: "health", run: s.testHealth},
+		{name: "chat", run: s.testChat},
 	} {
 		t.Run(tc.name, tc.run)
 	}
@@ -577,6 +579,28 @@ func (s *suite) testInvokeFailures(t *testing.T) {
 		out := s.invoke(t, cfg, s.request(crmSelection()))
 		assert.Equal(t, http.StatusBadGateway, out.body.Problem.Status)
 		assert.Nil(t, out.body.Outputs)
+	})
+
+	t.Run("service account authenticates to MCP", func(t *testing.T) {
+		model := &fakeModel{responses: []string{s.reply(ToolCall{
+			ID:        "t1",
+			Name:      "finish",
+			Arguments: `{"score": 85}`,
+		})}}
+		modelSrv := httptest.NewServer(model)
+		defer modelSrv.Close()
+		crm := crmServer(t)
+		defer crm.Close()
+		cfg := s.config(modelSrv.URL)
+		cfg.Servers = map[string]worker.MCPServer{
+			"crm": {
+				URL:    crm.URL,
+				Tokens: oauth2.StaticTokenSource(&oauth2.Token{AccessToken: crmToken}),
+			},
+		}
+		out := s.invoke(t, cfg, s.request(crmSelection()))
+		assert.Nil(t, out.body.Problem)
+		assert.Equal(t, api.Args{"score": float64(85)}, out.body.Outputs)
 	})
 
 	t.Run("rejects duplicate model tool names", func(t *testing.T) {

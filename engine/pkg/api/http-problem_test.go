@@ -13,7 +13,7 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
-const problemBodyLimit = 4 << 10
+const problemBodyLimit = 4 * 1024 // 4 KB
 
 func TestReadHTTPProblem(t *testing.T) {
 	for _, tc := range []struct {

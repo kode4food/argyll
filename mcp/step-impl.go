@@ -1,6 +1,7 @@
 package mcp
 
 import (
+	"context"
 	"slices"
 	"strings"
 )
@@ -16,7 +17,9 @@ type stepImplResult struct {
 	ImplementationNotes []string `json:"implementation_notes"`
 }
 
-func (s *Server) generateStepImpl(args generateStepImplArgs) (any, error) {
+func (s *Server) generateStepImpl(
+	_ context.Context, args generateStepImplArgs,
+) (any, error) {
 	if len(args.Step) == 0 {
 		return nil, errInvalidParams("step is required")
 	}
@@ -78,7 +81,7 @@ func (s *Server) generateStepImpl(args generateStepImplArgs) (any, error) {
 		return nil, err
 	}
 
-	return toolResult(stepImplResult{
+	return stepImplResult{
 		StepName:            name,
 		StepType:            stepType,
 		ActionMode:          actionMode,
@@ -87,7 +90,7 @@ func (s *Server) generateStepImpl(args generateStepImplArgs) (any, error) {
 		Outputs:             outputs,
 		ImplementationNotes: stepImplNotes(isExternal, method, inputs, outputs),
 		Code:                code,
-	}, nil)
+	}, nil
 }
 
 func stepIO(st map[string]any) ([]string, []string) {

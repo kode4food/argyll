@@ -46,7 +46,6 @@ def handle_payment(ctx: StepContext, args: dict) -> dict:
         print(f"Metadata: {ctx.metadata}")
         raise HTTPError(400, "Argyll-Webhook-URL header not found")
 
-    print(f"Webhook URL: {webhook_url}")
     async_ctx = AsyncContext(context=ctx, webhook_url=webhook_url)
 
     with payments_lock:

@@ -136,6 +136,12 @@ describe("WebSocketProvider", () => {
 
     expect(client.subscribe).toHaveBeenNthCalledWith(
       3,
+      { event_types: ["flow_started"] },
+      expect.any(Function)
+    );
+
+    expect(client.subscribe).toHaveBeenNthCalledWith(
+      4,
       {
         aggregate_ids: [["flow", "flow-1"]],
         include_state: true,
@@ -182,7 +188,7 @@ describe("WebSocketProvider", () => {
     );
 
     expect(client.subscribe).toHaveBeenNthCalledWith(
-      3,
+      4,
       {
         aggregate_ids: [["flow", "flow-1"]],
         include_state: false,
@@ -209,7 +215,7 @@ describe("WebSocketProvider", () => {
       </WebSocketProvider>
     );
 
-    expect(client.subscribe).toHaveBeenCalledTimes(2);
+    expect(client.subscribe).toHaveBeenCalledTimes(3);
   });
 
   test("dispatches catalog events to step handlers", () => {
@@ -408,7 +414,7 @@ describe("WebSocketProvider", () => {
       </WebSocketProvider>
     );
 
-    const summaryHandler = client.subscribe.mock.calls[2][1];
+    const summaryHandler = client.subscribe.mock.calls[3][1];
     const startedAt = Date.parse("2024-01-02T00:00:00Z");
     const completedAt = Date.parse("2024-01-03T00:00:00Z");
     const failedAt = Date.parse("2024-01-04T00:00:00Z");
@@ -457,7 +463,7 @@ describe("WebSocketProvider", () => {
       </WebSocketProvider>
     );
 
-    const flowHandler = client.subscribe.mock.calls[2][1];
+    const flowHandler = client.subscribe.mock.calls[3][1];
 
     flowHandler({
       type: "flow_started",
@@ -595,7 +601,7 @@ describe("WebSocketProvider", () => {
       </WebSocketProvider>
     );
 
-    const flowHandler = client.subscribe.mock.calls[2][1];
+    const flowHandler = client.subscribe.mock.calls[3][1];
     flowHandler({
       type: "work_started",
       timestamp: Date.parse("2024-01-01T00:00:00Z"),
@@ -715,7 +721,7 @@ describe("WebSocketProvider", () => {
       </WebSocketProvider>
     );
 
-    const flowHandler = client.subscribe.mock.calls[2][1];
+    const flowHandler = client.subscribe.mock.calls[3][1];
     flowHandler({
       type: "subscribed",
       sub_id: "2",

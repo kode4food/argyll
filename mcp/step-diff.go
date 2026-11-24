@@ -1,5 +1,9 @@
 package mcp
 
+import (
+	"context"
+)
+
 type stepDiff struct {
 	Current  map[string]any `json:"current,omitempty"`
 	Proposed map[string]any `json:"proposed,omitempty"`
@@ -10,18 +14,20 @@ type stepDiff struct {
 	Fields   []string       `json:"fields,omitempty"`
 }
 
-func (s *Server) diffProposedSteps(args diffProposedStepsArgs) (any, error) {
+func (s *Server) diffProposedSteps(
+	ctx context.Context, args diffProposedStepsArgs,
+) (any, error) {
 	steps, err := proposedSteps(args.Steps)
 	if err != nil {
 		return nil, err
 	}
-	current, err := s.currentSteps()
+	current, err := s.currentSteps(ctx)
 	if err != nil {
 		return nil, err
 	}
 	diffs, counts := buildStepDiffs(current, steps)
 
-	return toolResult(map[string]any{
+	return map[string]any{
 		"summary": map[string]any{
 			"create": counts["create"],
 			"update": counts["update"],
@@ -29,15 +35,17 @@ func (s *Server) diffProposedSteps(args diffProposedStepsArgs) (any, error) {
 			"total":  len(diffs),
 		},
 		"steps": diffs,
-	}, nil)
+	}, nil
 }
 
-func (s *Server) applyProposedSteps(args applyProposedStepsArgs) (any, error) {
+func (s *Server) applyProposedSteps(
+	ctx context.Context, args applyProposedStepsArgs,
+) (any, error) {
 	steps, err := proposedSteps(args.Steps)
 	if err != nil {
 		return nil, err
 	}
-	current, err := s.currentSteps()
+	current, err := s.currentSteps(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -54,7 +62,7 @@ func (s *Server) applyProposedSteps(args applyProposedStepsArgs) (any, error) {
 	for _, d := range diffs {
 		switch d.Action {
 		case "create":
-			res, err := s.httpPost("/engine/steps", d.Proposed)
+			res, err := s.httpPost(ctx, "/engine/steps", d.Proposed)
 			if err != nil {
 				return nil, err
 			}
@@ -74,7 +82,7 @@ func (s *Server) applyProposedSteps(args applyProposedStepsArgs) (any, error) {
 				})
 				continue
 			}
-			res, err := s.httpPut("/engine/steps/"+d.ID, d.Proposed)
+			res, err := s.httpPut(ctx, "/engine/steps/"+d.ID, d.Proposed)
 			if err != nil {
 				return nil, err
 			}
@@ -94,12 +102,12 @@ func (s *Server) applyProposedSteps(args applyProposedStepsArgs) (any, error) {
 		}
 	}
 
-	verification, err := s.verifyAppliedSteps(appliedProposed)
+	verification, err := s.verifyAppliedSteps(ctx, appliedProposed)
 	if err != nil {
 		return nil, err
 	}
 
-	return toolResult(map[string]any{
+	return map[string]any{
 		"summary": map[string]any{
 			"requested":           len(steps),
 			"create":              counts["create"],
@@ -113,10 +121,12 @@ func (s *Server) applyProposedSteps(args applyProposedStepsArgs) (any, error) {
 		"applied_steps": applied,
 		"skipped_steps": skipped,
 		"verification":  verification,
-	}, nil)
+	}, nil
 }
 
-func (s *Server) verifyAppliedSteps(proposed []map[string]any) (semanticVerification, error) {
+func (s *Server) verifyAppliedSteps(
+	ctx context.Context, proposed []map[string]any,
+) (semanticVerification, error) {
 	var semantic []map[string]any
 	for _, st := range proposed {
 		if len(semanticConfigs(st)) != 0 {
@@ -126,15 +136,15 @@ func (s *Server) verifyAppliedSteps(proposed []map[string]any) (semanticVerifica
 	if len(semantic) == 0 {
 		return semanticVerification{Status: "skipped"}, nil
 	}
-	current, err := s.currentSteps()
+	current, err := s.currentSteps(ctx)
 	if err != nil {
 		return semanticVerification{}, err
 	}
 	return verifyAppliedSemantics(semantic, current), nil
 }
 
-func (s *Server) currentSteps() (map[string]map[string]any, error) {
-	payload, err := s.httpGet("/engine/steps")
+func (s *Server) currentSteps(ctx context.Context) (map[string]map[string]any, error) {
+	payload, err := s.httpGet(ctx, "/engine/steps")
 	if err != nil {
 		return nil, err
 	}

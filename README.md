@@ -14,7 +14,9 @@ Argyll is a goal-driven orchestrator. It builds the minimum execution plan neede
 docker compose up
 ```
 
-The engine is available at `http://localhost:8080` and the UI at `http://localhost:3001`.
+Open the UI at `http://localhost:3001` and sign in as `admin` with password `admin`.
+
+The engine API listens at `http://localhost:8080`. To get a Keycloak token for a script, follow the [Quick Start](https://www.argyll.app/docs/getting-started/quickstart/).
 
 ## Documentation
 

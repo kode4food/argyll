@@ -1,6 +1,7 @@
 package mcp
 
 import (
+	"context"
 	"strings"
 
 	"github.com/kode4food/argyll/mcp/openapi"
@@ -59,33 +60,37 @@ type (
 	}
 )
 
-func (s *Server) analyzeServiceSpec(args analyzeServiceSpecArgs) (any, error) {
+func (s *Server) analyzeServiceSpec(
+	ctx context.Context, args analyzeServiceSpecArgs,
+) (any, error) {
 	specArgs := openapi.Args{
 		SpecText:          args.SpecText,
 		Spec:              args.Spec,
 		ExistingSteps:     args.ExistingSteps,
 		IncludeRegistered: args.IncludeReg,
 	}
-	existing, warnings := s.collectExistingSteps(specArgs)
+	existing, warnings := s.collectExistingSteps(ctx, specArgs)
 	spec, err := openapi.AnalyzeContract(specArgs, existing, warnings)
 	if err != nil {
 		return nil, err
 	}
 
 	name := serviceName(args.Name, spec)
-	return toolResult(specResult{
+	return specResult{
 		ServiceName: name,
 		Summary:     summaryPayload(name, spec),
 		Analysis:    spec,
-	}, nil)
+	}, nil
 }
 
-func (s *Server) analyzeServiceLandscape(args analyzeServiceLandscapeArgs) (any, error) {
+func (s *Server) analyzeServiceLandscape(
+	ctx context.Context, args analyzeServiceLandscapeArgs,
+) (any, error) {
 	if len(args.Services) == 0 {
 		return nil, errInvalidParams("services is required")
 	}
 
-	existing, warnings := s.collectExistingSteps(openapi.Args{
+	existing, warnings := s.collectExistingSteps(ctx, openapi.Args{
 		ExistingSteps:     args.ExistingSteps,
 		IncludeRegistered: args.IncludeReg,
 	})
@@ -116,14 +121,14 @@ func (s *Server) analyzeServiceLandscape(args analyzeServiceLandscapeArgs) (any,
 	}
 
 	missing := missingAttributes(nodes)
-	return toolResult(landscapeResult{
+	return landscapeResult{
 		Services:        services,
 		RegisteredSteps: existingCatalogPayload(existing),
 		Relationships:   relationships(nodes),
 		MissingAttrs:    missing,
 		Warnings:        uniqueStrings(allWarnings),
 		Ambiguities:     uniqueStrings(ambiguities),
-	}, nil)
+	}, nil
 }
 
 func serviceName(name *string, spec openapi.Result) string {

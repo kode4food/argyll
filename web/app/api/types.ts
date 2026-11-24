@@ -72,7 +72,7 @@ const META_KEY_FLOW_ID = "flow_id";
 const META_KEY_STEP_ID = "step_id";
 const META_KEY_RECEIPT_TOKEN = "receipt_token";
 const META_KEY_WEBHOOK_URL = "webhook_url";
-const META_KEY_PARENT_FLOW_ID = "parent_flow_id";
+export const META_KEY_PARENT_FLOW_ID = "parent_flow_id";
 const META_KEY_PARENT_STEP_ID = "parent_step_id";
 const META_KEY_PARENT_WORK_ITEM_TOKEN = "parent_work_item_token";
 
@@ -182,6 +182,24 @@ export interface AgentProvider {
 export interface AgentModel {
   id: string;
   efforts?: string[];
+}
+
+export type ChatRole = "user" | "assistant";
+
+export interface ChatMessage {
+  role: ChatRole;
+  content: string;
+}
+
+export interface AgentChatRequest {
+  provider: string;
+  model: string;
+  messages: ChatMessage[];
+}
+
+export interface AgentChatReply {
+  reply: string;
+  usage: Record<string, number>;
 }
 
 // An MCP server an Agent may use, limited to `tools` when they are listed
@@ -352,7 +370,7 @@ export interface FlowSummary {
 }
 
 export interface QueryFlowsItem extends FlowSummary {
-  labels?: Record<string, string>;
+  tags?: string[];
 }
 
 export interface QueryFlowsResponse {
@@ -364,7 +382,7 @@ export interface QueryFlowsResponse {
 
 export interface QueryFlowsRequest {
   id_prefix?: string;
-  labels?: Record<string, string>;
+  tags?: string[];
   statuses?: FlowStatus[];
   limit?: number;
   cursor?: string;

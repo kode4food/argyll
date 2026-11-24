@@ -42,8 +42,16 @@ var retryableHTTPStatuses = util.SetOf(http.StatusRequestTimeout, http.StatusToo
 // NewHTTPClient creates a new HTTP client with the specified request timeout
 func NewHTTPClient(timeout time.Duration) Client {
 	return &httpClient{
-		httpClient: &http.Client{},
-		timeout:    timeout,
+		httpClient: &http.Client{
+			CheckRedirect: func(r *http.Request, via []*http.Request) error {
+				callback := via[0].Header.Get(api.HeaderWebhookURL) != ""
+				if callback || len(via) >= api.MaxHTTPRedirects {
+					return api.SameOriginRedirect(r, via)
+				}
+				return nil
+			},
+		},
+		timeout: timeout,
 	}
 }
 

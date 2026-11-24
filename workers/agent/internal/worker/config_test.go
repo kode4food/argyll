@@ -161,6 +161,13 @@ func TestLoadConfig(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, "http://argyll-mcp:8071/mcp", cfg.Servers["argyll"].URL)
 		assert.Equal(t, "http://tools/mcp", cfg.Servers["tools"].URL)
+		assert.Nil(t, cfg.Servers["argyll"].Tokens)
+
+		t.Setenv("ARGYLL_TOKEN_URL", "http://idp/token")
+		cfg, err = worker.LoadConfig(worker.Defaults{Prices: `{}`})
+		assert.NoError(t, err)
+		assert.NotNil(t, cfg.Servers["argyll"].Tokens)
+		assert.Nil(t, cfg.Servers["tools"].Tokens)
 	})
 }
 

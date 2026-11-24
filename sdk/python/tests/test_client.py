@@ -1,5 +1,6 @@
 """Tests for Client and FlowClient."""
 
+import requests
 import responses
 
 from argyll import Client
@@ -21,6 +22,24 @@ def test_client_custom_url():
 def test_client_strips_engine_suffix():
     client = Client(base_url="http://localhost:8080/engine")
     assert client.base_url == "http://localhost:8080"
+
+
+@responses.activate
+def test_client_sends_token(monkeypatch):
+    monkeypatch.delenv("ARGYLL_TOKEN_URL", raising=False)
+    responses.add(
+        responses.GET,
+        "http://localhost:8080/engine/steps",
+        json={"steps": []},
+    )
+    with requests.Session() as session:
+        session.auth = requests.auth.HTTPBasicAuth("legacy", "password")
+        Client(token="explicit", session=session).list_steps()
+        Client(session=session).list_steps()
+
+    first, second = responses.calls
+    assert first.request.headers["Authorization"] == "Bearer explicit"
+    assert second.request.headers["Authorization"].startswith("Basic ")
 
 
 @responses.activate

@@ -159,6 +159,28 @@ describe("flowStore", () => {
       expect(spaceSelection.trading.has("step-1")).toBe(false);
     });
 
+    test("remembers the selected Space in local storage", () => {
+      useFlowStore.getState().setSelectedSpaceId("risk");
+
+      const saved = JSON.parse(localStorage.getItem("flowStore") ?? "{}");
+      expect(saved.state).toEqual({ selectedSpaceId: "risk" });
+    });
+
+    test("a catalog without the remembered Space clears it", () => {
+      const risk = {
+        id: "risk",
+        name: "Risk",
+        selector: { language: "lua", source: "return true" },
+      };
+      useFlowStore.getState().setSelectedSpaceId("risk");
+
+      useFlowStore.getState().setCatalogState({}, { defined: { risk } });
+      expect(useFlowStore.getState().selectedSpaceId).toBe("risk");
+
+      useFlowStore.getState().setCatalogState({}, { defined: {} });
+      expect(useFlowStore.getState().selectedSpaceId).toBeNull();
+    });
+
     test("setStepSpaces adds a space it has not seen", () => {
       const store = useFlowStore.getState();
       store.setCatalogState({}, {});

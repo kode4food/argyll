@@ -148,6 +148,10 @@ func (r *testRuntime) Metadata() api.Metadata {
 	return r.meta
 }
 
+func (r *testRuntime) CallbackSecret(api.Token) string {
+	return callbackKey
+}
+
 func (r *testRuntime) CompleteWork(tkn api.Token, outputs api.Args) error {
 	r.completeToken = tkn
 	r.completeOut = outputs

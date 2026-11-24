@@ -10,7 +10,10 @@ import (
 	"regexp"
 	"strings"
 
+	"golang.org/x/oauth2"
+
 	"github.com/kode4food/argyll/engine/pkg/api"
+	"github.com/kode4food/argyll/engine/pkg/auth"
 	"github.com/kode4food/argyll/engine/pkg/util"
 )
 
@@ -18,6 +21,7 @@ type (
 	// Config is what a worker offers: the MCP servers an Agent may use, the base URLs of the
 	// providers it reaches, the model prices behind the cost it reports, and how it lists models
 	Config struct {
+		Auth         auth.Authenticator
 		Servers      map[string]MCPServer
 		Providers    map[api.ProviderID]string
 		Prices       map[ModelKey]Price
@@ -32,8 +36,9 @@ type (
 
 	// MCPServer is an MCP server reached over streamable HTTP
 	MCPServer struct {
-		Headers map[string]string `json:"headers"`
-		URL     string            `json:"url"`
+		Headers map[string]string  `json:"headers"`
+		Tokens  oauth2.TokenSource `json:"-"`
+		URL     string             `json:"url"`
 	}
 
 	// Capabilities describes a model's availability, effort options, and API endpoint
@@ -88,7 +93,10 @@ func LoadConfig(defaults Defaults) (*Config, error) {
 	}
 	url := os.Getenv("ARGYLL_MCP_URL")
 	if _, ok := servers["argyll"]; !ok && url != "" {
-		servers["argyll"] = MCPServer{URL: url}
+		servers["argyll"] = MCPServer{
+			URL:    url,
+			Tokens: auth.ServiceTokens(),
+		}
 	}
 	prices, err := loadPrices(loadPricesArgs{
 		defaults: defaults.Prices,
@@ -105,7 +113,12 @@ func LoadConfig(defaults Defaults) (*Config, error) {
 	if err != nil {
 		return nil, err
 	}
+	authn, err := auth.LoadAuthenticator()
+	if err != nil {
+		return nil, err
+	}
 	return &Config{
+		Auth:         authn,
 		Servers:      servers,
 		Providers:    providers,
 		Prices:       prices,

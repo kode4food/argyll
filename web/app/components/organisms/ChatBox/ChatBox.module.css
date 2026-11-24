@@ -1,0 +1,50 @@
+/* Sits left of the diagram controls in the bottom-right corner */
+.box {
+  composes: overlayStrong from "@/app/styles/modules/GlassChrome.module.css";
+  position: absolute;
+  right: calc(var(--spacing-md) * 2 + var(--form-icon-button-size));
+  bottom: var(--spacing-md);
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  width: 24rem;
+  max-width: calc(100% - 4 * var(--spacing-md) - var(--form-icon-button-size));
+  height: 32rem;
+  max-height: calc(100% - 2 * var(--spacing-md));
+  border-radius: calc(var(--radius-lg) * 1.5);
+  overflow: hidden;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-bottom: 1px solid var(--glass-chrome-border-color);
+}
+
+.title {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  color: var(--panel-text);
+}
+
+.title svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+.close {
+  composes: iconButton from "@/app/styles/components/form.module.css";
+  composes: hoverFill focusFill from "@/app/styles/components/interaction.module.css";
+  border-color: transparent;
+  color: var(--panel-text);
+}
+
+.close svg {
+  width: 1rem;
+  height: 1rem;
+}

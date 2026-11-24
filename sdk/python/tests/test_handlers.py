@@ -161,13 +161,15 @@ def test_async_context_complete():
     assert req_body["data"] == "value"
 
 
+@pytest.mark.parametrize("status", [307, 500])
 @responses.activate
-def test_async_context_webhook_error():
+def test_async_context_webhook_error(status):
     responses.add(
         responses.POST,
         "http://localhost:8080/callbacks/flow-123/step-1/token",
         json={"error": "fail"},
-        status=500,
+        headers={"Location": "http://elsewhere.test/"},
+        status=status,
     )
 
     client = Client()
@@ -184,8 +186,9 @@ def test_async_context_webhook_error():
         webhook_url="http://localhost:8080/callbacks/flow-123/step-1/token",
     )
 
-    with pytest.raises(WebhookError):
+    with pytest.raises(WebhookError) as exc:
         async_ctx.success({"result": "done"})
+    assert "/callbacks/" not in str(exc.value)
 
 
 def test_invoke_with_recovery_success():

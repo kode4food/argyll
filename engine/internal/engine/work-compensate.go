@@ -226,11 +226,12 @@ func (e *ExecContext) performCompensation(args api.Args, tkn api.Token) {
 
 func (tx *flowTx) compensationContext(st *api.Step) *ExecContext {
 	return &ExecContext{
-		engine: tx.Engine,
-		step:   st,
-		meta:   tx.Value().Metadata,
-		flowID: tx.flowID,
-		stepID: st.ID,
+		engine:  tx.Engine,
+		step:    st,
+		meta:    tx.Value().Metadata,
+		secrets: tx.secrets,
+		flowID:  tx.flowID,
+		stepID:  st.ID,
 	}
 }
 
@@ -329,11 +330,17 @@ func (tx *flowTx) raiseCompStarted(sid api.StepID, tkn api.Token) error {
 	if err := tx.checkWorkTransition(sid, tkn, api.WorkCompensating); err != nil {
 		return err
 	}
+	st := tx.Value().Plan.Steps[sid]
+	var hash string
+	if st.HTTP != nil && st.HTTP.Compensate.Async() {
+		hash = tx.newCallbackHash(tkn, api.ActionCompensate)
+	}
 	if err := events.Raise(tx.FlowAggregator, api.EventTypeCompStarted,
 		api.CompStartedEvent{
-			FlowID: tx.flowID,
-			StepID: sid,
-			Token:  tkn,
+			FlowID:   tx.flowID,
+			StepID:   sid,
+			Token:    tkn,
+			Callback: hash,
 		},
 	); err != nil {
 		return err

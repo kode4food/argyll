@@ -2,6 +2,7 @@ import React from "react";
 import { renderHook, act, waitFor } from "@testing-library/react";
 import { UIProvider, useUI } from "./UIContext";
 import { api, ExecutionPlan } from "@/app/api";
+import { useFlowStore } from "@/app/store/flowStore";
 
 jest.mock("@/app/api", () => ({
   ...jest.requireActual("@/app/api"),
@@ -12,15 +13,34 @@ jest.mock("@/app/api", () => ({
 
 let spacesInStore: { id: string; name: string; selector: object }[] = [];
 
-jest.mock("@/app/store/flowStore", () => ({
-  useSpaces: () => spacesInStore,
-}));
+jest.mock("@/app/store/flowStore", () => {
+  const { create } = jest.requireActual("zustand");
+  const useFlowStore = create((set: (state: object) => void) => ({
+    selectedSpaceId: null,
+    setSelectedSpaceId: (spaceId: string | null) =>
+      set({ selectedSpaceId: spaceId }),
+  }));
+  return {
+    useFlowStore,
+    useSpaces: () => spacesInStore,
+    useSelectedSpaceId: () =>
+      useFlowStore(
+        (s: { selectedSpaceId: string | null }) => s.selectedSpaceId
+      ),
+    useSetSelectedSpaceId: () =>
+      useFlowStore(
+        (s: { setSelectedSpaceId: (id: string | null) => void }) =>
+          s.setSelectedSpaceId
+      ),
+  };
+});
 
 const mockApi = api as jest.Mocked<typeof api>;
 
 describe("UIContext", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    useFlowStore.setState({ selectedSpaceId: null });
     spacesInStore = [
       {
         id: "risk",
@@ -288,6 +308,16 @@ describe("UIContext", () => {
     const { result } = renderHook(() => useUI(), { wrapper });
 
     act(() => result.current.setSpaceId("risk"));
+
+    expect(result.current.spaceId).toBe("risk");
+  });
+
+  test("remembers the selected Space when the page remounts", () => {
+    const first = renderHook(() => useUI(), { wrapper });
+    act(() => first.result.current.setSpaceId("risk"));
+    first.unmount();
+
+    const { result } = renderHook(() => useUI(), { wrapper });
 
     expect(result.current.spaceId).toBe("risk");
   });

@@ -50,6 +50,10 @@ func (r *txRuntime) Metadata() api.Metadata {
 	return r.tx.Value().Metadata
 }
 
+func (r *txRuntime) CallbackSecret(tkn api.Token) string {
+	return r.tx.secrets[tkn]
+}
+
 func (r *txRuntime) UpdateHealth(s api.HealthStatus, cause error) error {
 	msg := errorText(cause)
 	r.tx.OnSuccess(func(api.FlowState, []*timebox.Event) {

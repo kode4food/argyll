@@ -1,3 +1,4 @@
+import { useAuthStore } from "@/app/store/authStore";
 import { ArgyllApi } from "./client";
 import { AttributeRole, Feed, Space, Step } from "./types";
 
@@ -228,5 +229,61 @@ describe("ArgyllApi", () => {
     await expect(
       api.getExecutionPlan({ goalSteps: [["step-1"]] })
     ).rejects.toThrow("Server error");
+  });
+
+  test("sends the sign-in token", async () => {
+    useAuthStore.setState({ token: "jwt" });
+    respond({ providers: [] });
+
+    await api.listAgentCapabilities();
+    useAuthStore.setState({ token: null });
+
+    const init = fetchMock.mock.calls[0][1] as RequestInit;
+    expect(init.headers).toMatchObject({ Authorization: "Bearer jwt" });
+  });
+
+  test("signs in again when the token is rejected", async () => {
+    const login = jest.fn().mockResolvedValue(undefined);
+    useAuthStore.setState({ isEnabled: true, login });
+    respond(
+      { error: "authentication required" },
+      { ok: false, status: 401, statusText: "Unauthorized" }
+    );
+
+    await expect(api.listAgentCapabilities()).rejects.toThrow(
+      "authentication required"
+    );
+    useAuthStore.setState({ isEnabled: false });
+    expect(login).toHaveBeenCalled();
+  });
+
+  test("throws the problem detail", async () => {
+    respond(
+      { status: 401, detail: "API key missing" },
+      { ok: false, status: 401, statusText: "Unauthorized" }
+    );
+
+    await expect(api.listAgentCapabilities()).rejects.toThrow(
+      "API key missing"
+    );
+  });
+
+  test("chats with an Agent", async () => {
+    const request = {
+      provider: "anthropic",
+      model: "claude",
+      messages: [{ role: "user" as const, content: "hi" }],
+    };
+    const reply = { reply: "hello", usage: { input_tokens: 3 } };
+    respond(reply);
+
+    await expect(api.chatWithAgent(request)).resolves.toEqual(reply);
+    expect(fetchMock).toHaveBeenCalledWith(
+      "http://localhost:8072/chat",
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify(request),
+      })
+    );
   });
 });

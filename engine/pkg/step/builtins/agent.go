@@ -1,6 +1,7 @@
 package builtins
 
 import (
+	"cmp"
 	"errors"
 	"fmt"
 	"net/http"
@@ -40,14 +41,20 @@ var (
 	ErrNoAgentWorker = errors.New("no worker serves agent provider")
 )
 
-// Agent returns the standard agent handler. Each attempt is dispatched to the worker serving the
-// step's provider, which reports the outcome through the callback URL
+// Agent creates an agent handler with the default HTTP client
 func Agent(workers AgentWorkers, callback CallbackURL, timeout time.Duration) *step.Handler {
+	return AgentWithClient(workers, callback, nil, timeout)
+}
+
+// AgentWithClient creates an agent handler that uses the supplied HTTP client
+func AgentWithClient(
+	workers AgentWorkers, callback CallbackURL, client *http.Client, timeout time.Duration,
+) *step.Handler {
 	a := &agentHandler{
 		workers:  workers,
 		callback: callback,
 		client: &httpClient{
-			httpClient: &http.Client{},
+			httpClient: cmp.Or(client, &http.Client{CheckRedirect: api.SameOriginRedirect}),
 			timeout:    timeout,
 		},
 	}
@@ -87,10 +94,11 @@ func (a *agentHandler) invoke(
 		return fmt.Errorf("%w: %s", ErrNoAgentWorker, st.Agent.Provider)
 	}
 	meta := metadata(rt, token)
-	meta[api.MetaWebhookURL] = a.callback(api.FlowStep{
-		FlowID: rt.FlowID(),
-		StepID: rt.StepID(),
-	}, token, api.ActionAgent)
+	url, err := callbackURL(rt, a.callback, token, api.ActionAgent)
+	if err != nil {
+		return err
+	}
+	meta[api.MetaWebhookURL] = url
 
 	req := a.request(st, applyMetaInputs(st, inputs, meta))
 	return a.client.postJSON(st, base+AgentInvokePath, req, meta)

@@ -6,7 +6,9 @@ import {
   Controls,
 } from "@xyflow/react";
 import {
+  IconChat,
   IconFitView,
+  IconSignOut,
   IconThemeDark,
   IconThemeLight,
 } from "@/utils/iconRegistry";
@@ -23,6 +25,12 @@ const DiagramChrome: React.FC = () => {
     handleZoomIn,
     handleZoomOut,
     themeLabel,
+    isChatOpen,
+    toggleChat,
+    chatLabel,
+    canSignOut,
+    signOut,
+    signOutLabel,
   } = useDiagramChrome();
 
   return (
@@ -60,6 +68,23 @@ const DiagramChrome: React.FC = () => {
         >
           {isDark ? <IconThemeLight /> : <IconThemeDark />}
         </ControlButton>
+        <ControlButton
+          onClick={toggleChat}
+          title={chatLabel}
+          aria-label={chatLabel}
+          aria-pressed={isChatOpen}
+        >
+          <IconChat />
+        </ControlButton>
+        {canSignOut && (
+          <ControlButton
+            onClick={() => void signOut()}
+            title={signOutLabel}
+            aria-label={signOutLabel}
+          >
+            <IconSignOut />
+          </ControlButton>
+        )}
       </Controls>
     </>
   );

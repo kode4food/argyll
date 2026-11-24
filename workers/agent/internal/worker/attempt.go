@@ -22,20 +22,7 @@ type stepSchemas struct {
 }
 
 const (
-	finishTool   = "finish"
-	finishPrompt = "Read inputs from the JSON object in the user message. " +
-		"The input schema lists the fields this Step can receive. Optional fields may be absent. " +
-		"Use the field names exactly as shown in the schemas. " +
-		"When the task needs a tool, use its schema to form the call " +
-		"and use its result to continue. " +
-		"If a tool reports invalid arguments, correct them before retrying. " +
-		"Return the Step's results by calling `" + finishTool +
-		"` with exactly the fields in its schema. Include a value for every declared output. " +
-		"If the schema lists zero output fields, pass `{}`."
-	compactFinishPrompt = "Read the user message as input JSON using the input schema. " +
-		"Use tool schemas and correct invalid arguments before retrying. Call `" + finishTool +
-		"` with exactly the outputs in its schema, or `{}` for zero outputs."
-	finishNudge = "Call the `" + finishTool + "` tool with the outputs."
+	finishTool = "finish"
 
 	usageInput          = "input_tokens"
 	usageOutput         = "output_tokens"
@@ -101,43 +88,57 @@ func (w *Worker) converse(
 		stepContext += "\n\nStep description: " + req.Step.Description
 	}
 	stepContext += "\n\nPossible input fields (JSON Schema):\n" + schemas.input
-	slices.SortFunc(box.specs, func(a, b ToolSpec) int {
-		return strings.Compare(a.Name, b.Name)
-	})
 	conv, err := w.provider.Open(&Chat{
 		Config:        cfg,
-		System:        cfg.Prologue + "\n\n" + finishPrompt + stepContext,
-		CompactSystem: cfg.Prologue + "\n\n" + compactFinishPrompt + stepContext,
+		System:        cfg.Prologue + "\n\n" + strings.TrimSpace(finishPrompt) + stepContext,
+		CompactSystem: cfg.Prologue + "\n\n" + strings.TrimSpace(compactFinishPrompt) + stepContext,
 		User:          string(user),
 		Tools:         append(box.specs, schemas.finish),
 	})
 	if err != nil {
 		return nil, err
 	}
-	for range cfg.MaxTurns {
+	return runTurns(ctx, w, conv, runTurnsArgs[api.Args]{
+		cfg:   cfg,
+		usage: usage,
+		nudge: strings.TrimSpace(finishNudge),
+		handle: func(call ToolCall) (string, api.Args, bool, error) {
+			slog.Info("Agent tool call", stepAttrs(req), slog.String("tool", call.Name))
+			result, reply, err := handle(ctx, box, call, schemas.outputs)
+			return reply, result, result != nil, err
+		},
+	})
+}
+
+// runTurnsArgs drives one conversation. handle answers a tool call with a reply, or reports done
+// with the conversation's result
+type runTurnsArgs[T any] struct {
+	cfg    *api.AgentConfig
+	usage  api.Usage
+	nudge  string
+	handle func(ToolCall) (reply string, res T, done bool, err error)
+}
+
+// runTurns takes model turns until handle finishes, nudging any turn that calls no tool
+func runTurns[T any](
+	ctx context.Context, w *Worker, conv Convo, args runTurnsArgs[T],
+) (T, error) {
+	var zero T
+	for range args.cfg.MaxTurns {
 		t, err := conv.Turn(ctx)
-		usage[usageInput] += float64(t.InputTokens)
-		usage[usageOutput] += float64(t.OutputTokens)
-		if t.CacheInputTokens > 0 {
-			usage[usageCacheInput] += float64(t.CacheInputTokens)
-		}
-		if t.CacheOutputTokens > 0 {
-			usage[usageCacheOutput] += float64(t.CacheOutputTokens)
-		}
-		w.recordCost(usage, &t, cfg)
+		w.recordTurn(args.usage, &t, args.cfg)
 		if err != nil {
-			return nil, err
+			return zero, err
 		}
 		if len(t.Calls) == 0 {
-			conv.Nudge(finishNudge)
+			conv.Nudge(args.nudge)
 			continue
 		}
 		results := make([]ToolResult, 0, len(t.Calls))
 		for _, call := range t.Calls {
-			slog.Info("Agent tool call", stepAttrs(req), slog.String("tool", call.Name))
-			result, reply, err := handle(ctx, box, call, schemas.outputs)
-			if err != nil || result != nil {
-				return result, err
+			reply, res, done, err := args.handle(call)
+			if err != nil || done {
+				return res, err
 			}
 			results = append(results, ToolResult{
 				CallID:  call.ID,
@@ -146,7 +147,7 @@ func (w *Worker) converse(
 		}
 		conv.Answer(results)
 	}
-	return nil, ErrTurnLimit
+	return zero, ErrTurnLimit
 }
 
 func (w *Worker) stepSchemas(st *api.Step) (stepSchemas, error) {
@@ -166,6 +167,18 @@ func (w *Worker) stepSchemas(st *api.Step) (stepSchemas, error) {
 			finish:  finishSpec(outputs),
 		}, nil
 	})
+}
+
+func (w *Worker) recordTurn(usage api.Usage, t *Turn, cfg *api.AgentConfig) {
+	usage[usageInput] += float64(t.InputTokens)
+	usage[usageOutput] += float64(t.OutputTokens)
+	if t.CacheInputTokens > 0 {
+		usage[usageCacheInput] += float64(t.CacheInputTokens)
+	}
+	if t.CacheOutputTokens > 0 {
+		usage[usageCacheOutput] += float64(t.CacheOutputTokens)
+	}
+	w.recordCost(usage, t, cfg)
 }
 
 func (w *Worker) recordCost(usage api.Usage, t *Turn, cfg *api.AgentConfig) {

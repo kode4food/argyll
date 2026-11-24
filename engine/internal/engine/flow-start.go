@@ -17,7 +17,8 @@ import (
 type flowTx struct {
 	storeTx
 	*FlowAggregator
-	flowID api.FlowID
+	flowID  api.FlowID
+	secrets map[api.Token]string
 }
 
 var (

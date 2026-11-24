@@ -18,14 +18,6 @@ func Read(name string) (string, error) {
 	return string(raw), nil
 }
 
-func MustRead(name string) string {
-	text, err := Read(name)
-	if err != nil {
-		panic(err)
-	}
-	return text
-}
-
 func RenderTemplate(name string, data any) (string, error) {
 	raw, err := Read(name)
 	if err != nil {

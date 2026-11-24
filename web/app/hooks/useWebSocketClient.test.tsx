@@ -1,9 +1,11 @@
 import { renderHook, act } from "@testing-library/react";
 import { useWebSocketClient } from "./useWebSocketClient";
 import { WEBSOCKET } from "@/constants/common";
+import { useAuthStore } from "@/app/store/authStore";
 
 type MockWebSocketInstance = {
   url: string;
+  protocols?: string[];
   readyState: number;
   send: jest.Mock;
   close: jest.Mock;
@@ -37,8 +39,11 @@ class MockWebSocket {
   onmessage: ((event: { data: string }) => void) | null = null;
   onerror: (() => void) | null = null;
 
-  constructor(url: string) {
+  protocols?: string[];
+
+  constructor(url: string, protocols?: string[]) {
     this.url = url;
+    this.protocols = protocols;
     instances.push(this as unknown as MockWebSocketInstance);
   }
 
@@ -72,6 +77,17 @@ describe("useWebSocketClient", () => {
   afterEach(() => {
     jest.clearAllMocks();
     jest.useRealTimers();
+  });
+
+  test("offers the sign-in token as a subprotocol", () => {
+    useAuthStore.setState({ token: "jwt" });
+    renderHook(() => useWebSocketClient({ enabled: true }));
+    useAuthStore.setState({ token: null });
+
+    expect(instances[0].protocols).toEqual([
+      WEBSOCKET.PROTOCOL,
+      WEBSOCKET.TOKEN_PREFIX + "jwt",
+    ]);
   });
 
   test("connects when enabled and sends pending subscriptions on open", () => {

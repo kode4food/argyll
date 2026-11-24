@@ -1,4 +1,6 @@
 import React from "react";
+import ChatBox from "@/app/components/organisms/ChatBox";
+import { useChatOpen } from "@/app/store/chatStore";
 import styles from "./DiagramLayout.module.css";
 
 interface DiagramLayoutProps {
@@ -12,6 +14,7 @@ const DiagramLayout: React.FC<DiagramLayoutProps> = ({
   className,
   containerRef,
 }) => {
+  const isChatOpen = useChatOpen();
   const containerClassName = [styles.container, className]
     .filter(Boolean)
     .join(" ");
@@ -20,6 +23,7 @@ const DiagramLayout: React.FC<DiagramLayoutProps> = ({
     <div className={containerClassName}>
       <div className={styles.diagramContainer} ref={containerRef}>
         {children}
+        {isChatOpen && <ChatBox />}
       </div>
     </div>
   );

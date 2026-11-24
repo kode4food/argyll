@@ -1,12 +1,61 @@
 package api_test
 
 import (
+	"errors"
 	"net/http"
+	"net/http/httptest"
+	"net/url"
 	"testing"
 
 	"github.com/kode4food/argyll/engine/internal/assert"
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
+
+func TestCallbackSecret(t *testing.T) {
+	as := assert.New(t)
+	fs := api.FlowStep{
+		FlowID: "flow",
+		StepID: "step",
+	}
+	path := api.CallbackPath(fs, "tkn", api.ActionInvoke, "key")
+	as.Equal("/callbacks/flow/step/tkn/invoke/key", path)
+	as.Equal("/callbacks/flow/step/tkn/invoke/", api.RedactCallback(path))
+
+	invoke := api.CallbackHash(api.ActionInvoke, "key")
+	as.Equal(invoke, api.CallbackHash(api.ActionAgent, "key"))
+	as.NotEqual(invoke, api.CallbackHash(api.ActionCompensate, "key"))
+	as.NotEqual(invoke, api.CallbackHash(api.ActionInvoke, "other"))
+	as.NotContains(invoke, "key")
+
+	refused := errors.New("connection refused")
+	err := &url.Error{
+		Op:  http.MethodPost,
+		URL: "http://engine" + path,
+		Err: refused,
+	}
+	as.Equal(refused, api.WithoutURL(err))
+	as.Equal(refused, api.WithoutURL(refused))
+}
+
+func TestSameOriginRedirect(t *testing.T) {
+	as := assert.New(t)
+	first := httptest.NewRequest(http.MethodGet, "https://mcp.test/mcp", nil)
+	via := []*http.Request{first}
+
+	same := httptest.NewRequest(http.MethodGet, "https://mcp.test/other", nil)
+	as.NoError(api.SameOriginRedirect(same, via))
+
+	for _, target := range []string{"https://evil.test/mcp", "http://mcp.test/mcp"} {
+		next := httptest.NewRequest(http.MethodGet, target, nil)
+		as.ErrorIs(api.SameOriginRedirect(next, via), api.ErrCrossOriginRedirect)
+	}
+
+	many := make([]*http.Request, api.MaxHTTPRedirects)
+	for i := range many {
+		many[i] = first
+	}
+	as.ErrorIs(api.SameOriginRedirect(same, many), api.ErrTooManyRedirects)
+}
 
 func TestNewProblem(t *testing.T) {
 	p := api.NewProblem(404, "flow not found")

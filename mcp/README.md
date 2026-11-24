@@ -86,6 +86,16 @@ Override the engine URL:
 ./dist/argyll-mcp -engine http://localhost:8080
 ```
 
+Serve Streamable HTTP at `/mcp` instead of stdio:
+
+```bash
+./dist/argyll-mcp -engine http://localhost:8080 -listen :8071
+```
+
+HTTP tools call the engine with the caller's `Authorization` header when present. When the engine requires authentication, callers must supply their own bearer token for tools that access protected routes.
+
+For stdio, configure the service account with `ARGYLL_TOKEN_URL`, `ARGYLL_CLIENT_ID`, and `ARGYLL_CLIENT_SECRET`. The executable renews the service account token before it expires.
+
 ## Build
 
 ```bash
