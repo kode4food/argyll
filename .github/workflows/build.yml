@@ -49,6 +49,35 @@ jobs:
             ./cmd/argyll-agent-anthropic ./cmd/argyll-agent-bedrock ./cmd/argyll-agent-gemini \
             ./cmd/argyll-agent-openai
 
+  build-mcp:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version-file: mcp/go.mod
+          cache-dependency-path: mcp/go.sum
+      - name: Build and Test MCP Server
+        run: cd mcp && make test build
+
+  build-chat:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version-file: chat/go.mod
+          cache-dependency-path: chat/go.sum
+      - name: Build and Test Chat Service
+        working-directory: chat
+        run: |
+          make check test
+          GOWORK=off go build -mod=readonly -o "$RUNNER_TEMP/" ./cmd/argyll-chat
+
   build-python-sdk:
     runs-on: ubuntu-latest
     steps:
@@ -83,7 +112,16 @@ jobs:
 
   coverage:
     runs-on: ubuntu-latest
-    needs: [build-engine, build-go-sdk, build-agent-worker, build-python-sdk, build-web]
+    needs:
+      [
+        build-engine,
+        build-go-sdk,
+        build-agent-worker,
+        build-mcp,
+        build-chat,
+        build-python-sdk,
+        build-web,
+      ]
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
@@ -109,11 +147,15 @@ jobs:
       - name: Install web dependencies
         run: cd web && npm ci
 
+      - name: Sync MCP specs
+        run: cd mcp && make sync-specs
+
       - name: Run Engine tests with coverage
         run: |
           cd engine
-          go test ./... ../workers/agent/... \
-            -coverpkg=./...,../workers/agent/... -coverprofile=cover.out
+          go test ./... ../workers/agent/... ../mcp/... ../chat/... \
+            -coverpkg=./...,../workers/agent/...,../mcp/...,../chat/... \
+            -coverprofile=cover.out
 
       - name: Run Go SDK tests with coverage
         run: |
