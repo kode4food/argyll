@@ -35,6 +35,7 @@ const OverviewDiagramViewInner: React.FC<OverviewDiagramViewProps> = ({
     isEmpty,
     handleNodesChange,
     handleNodeDragStart,
+    handlePaneClick,
     handleViewportChange,
     showPreviewHud,
     previewGoalIndex,
@@ -60,6 +61,7 @@ const OverviewDiagramViewInner: React.FC<OverviewDiagramViewProps> = ({
       nodeTypes={NODE_TYPES}
       onNodesChange={handleNodesChange}
       onNodeDragStart={handleNodeDragStart}
+      onPaneClick={handlePaneClick}
       nodesConnectable={false}
       nodesDraggable={true}
       elementsSelectable={false}

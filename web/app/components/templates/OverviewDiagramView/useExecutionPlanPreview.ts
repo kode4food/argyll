@@ -15,6 +15,7 @@ export interface UseExecutionPlanPreviewReturn {
     stepId: string,
     options?: { additive?: boolean }
   ) => Promise<void>;
+  clearActiveSet: () => Promise<void>;
 }
 
 export function useExecutionPlanPreview(
@@ -62,8 +63,14 @@ export function useExecutionPlanPreview(
     [goalSteps, applyActiveSet, steps]
   );
 
+  const clearActiveSet = useCallback(async () => {
+    if (activeGoalSet(goalSteps).length === 0) return;
+    await applyActiveSet([]);
+  }, [goalSteps, applyActiveSet]);
+
   return {
     previewPlan,
     handleStepClick,
+    clearActiveSet,
   };
 }

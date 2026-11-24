@@ -62,11 +62,8 @@ export const useOverviewDiagramView = (steps: Step[]) => {
   );
   const activeGoalStepId = activeGoalSet(goalSteps).at(-1) ?? null;
   const { selected, viewportKey, positionScope } = useDiagramScope();
-  const { previewPlan, handleStepClick } = useExecutionPlanPreview(
-    steps,
-    goalSteps,
-    setGoalSteps
-  );
+  const { previewPlan, handleStepClick, clearActiveSet } =
+    useExecutionPlanPreview(steps, goalSteps, setGoalSteps);
 
   usePreviewRefresh(steps, goalSteps, previewPlan);
 
@@ -130,6 +127,7 @@ export const useOverviewDiagramView = (steps: Step[]) => {
     isEmpty: !visibleSteps || visibleSteps.length === 0,
     handleNodesChange,
     handleNodeDragStart: hideTooltips,
+    handlePaneClick: clearActiveSet,
     handleViewportChange,
     showPreviewHud,
     previewGoalIndex,

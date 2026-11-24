@@ -12,6 +12,7 @@ const reactFlowMock = jest.fn(({ children }: any) => (
 const previewHookState = {
   previewPlan: null as any,
   hoveredGoalSet: null as number | null,
+  clearActiveSet: jest.fn(),
 };
 let viewportZoom = 1;
 
@@ -106,6 +107,7 @@ jest.mock("./useExecutionPlanPreview", () => ({
   useExecutionPlanPreview: () => ({
     previewPlan: previewHookState.previewPlan,
     handleStepClick: jest.fn(),
+    clearActiveSet: previewHookState.clearActiveSet,
   }),
 }));
 
@@ -314,8 +316,25 @@ describe("OverviewDiagramView", () => {
       new Set(["fallback"]),
       null
     );
-    expect(reactFlowMock.mock.calls.at(-1)![0].onPaneClick).toBeUndefined();
     expect(selection.setGoalSteps).not.toHaveBeenCalled();
+  });
+
+  it("clears the current else branch on a pane click", () => {
+    render(
+      <DiagramSelectionProvider
+        value={{ goalSteps: [["primary"]], setGoalSteps: jest.fn() }}
+      >
+        <OverviewDiagramView
+          steps={[
+            { id: "primary", name: "Primary", type: "service", attributes: {} },
+          ]}
+        />
+      </DiagramSelectionProvider>
+    );
+
+    expect(reactFlowMock.mock.calls.at(-1)![0].onPaneClick).toBe(
+      previewHookState.clearActiveSet
+    );
   });
 
   it("uses macOS-style trackpad gestures", () => {

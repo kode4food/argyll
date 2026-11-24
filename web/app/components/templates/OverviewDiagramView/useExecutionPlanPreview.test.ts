@@ -96,6 +96,33 @@ describe("useExecutionPlanPreview", () => {
     expect(mockUpdatePreviewPlan).not.toHaveBeenCalled();
   });
 
+  test("clearActiveSet empties only the active set", async () => {
+    const setGoalSteps = jest.fn();
+    const { result } = renderHook(() =>
+      useExecutionPlanPreview(catalog, [["step-1"], ["step-2"]], setGoalSteps)
+    );
+
+    await act(async () => {
+      await result.current.clearActiveSet();
+    });
+
+    expect(setGoalSteps).toHaveBeenCalledWith([["step-1"], []]);
+    expect(mockUpdatePreviewPlan).toHaveBeenCalledWith([["step-1"], []], {});
+  });
+
+  test("clearActiveSet ignores an already empty active set", async () => {
+    const setGoalSteps = jest.fn();
+    const { result } = renderHook(() =>
+      useExecutionPlanPreview(catalog, [["step-1"], []], setGoalSteps)
+    );
+
+    await act(async () => {
+      await result.current.clearActiveSet();
+    });
+
+    expect(setGoalSteps).not.toHaveBeenCalled();
+  });
+
   test("additive click toggles selection in the active set", async () => {
     const setGoalSteps = jest.fn();
     const { result } = renderHook(() =>
