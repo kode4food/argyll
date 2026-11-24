@@ -90,7 +90,7 @@ func TestInteraction(t *testing.T) {
 		return
 	}
 	first := seen[0]
-	assert.Equal(t, "/v1beta/interactions", first.path)
+	assert.Equal(t, "/v1/interactions", first.path)
 	assert.Equal(t, "test", first.key)
 	assert.Equal(t, false, first.body["store"])
 	assert.Equal(t, "gemini-first", first.body["model"])

@@ -3,16 +3,17 @@ module github.com/kode4food/argyll/examples/notification-sender
 go 1.27.0
 
 require (
-	github.com/kode4food/argyll/engine v0.0.0-20261119145642-29fc26fe4e96
-	github.com/kode4food/argyll/sdk/go v0.0.0-20261119145642-29fc26fe4e96
+	github.com/kode4food/argyll/engine v0.0.0-20261124113524-00b2ef03c42f
+	github.com/kode4food/argyll/sdk/go v0.0.0-20261124113524-00b2ef03c42f
 )
 
 require (
 	github.com/BurntSushi/toml v1.6.0 // indirect
 	github.com/kode4food/argex v0.1.11 // indirect
-	github.com/kode4food/timebox v0.5.0 // indirect
+	go.yaml.in/yaml/v3 v3.0.6 // indirect
 	golang.org/x/exp/typeparams v0.0.0-20260824195058-e88cd73687aa // indirect
 	golang.org/x/mod v0.43.0 // indirect
+	golang.org/x/oauth2 v0.38.0 // indirect
 	golang.org/x/sync v0.25.0 // indirect
 	golang.org/x/sys v0.50.0 // indirect
 	golang.org/x/telemetry v0.0.0-20261116191925-e77a43154acb // indirect

@@ -3,10 +3,10 @@ module github.com/kode4food/argyll/sdk/go
 go 1.27.0
 
 require (
-	github.com/kode4food/argyll/engine v0.0.0-20261119145642-29fc26fe4e96
+	github.com/kode4food/argyll/engine v0.0.0-20261124113524-00b2ef03c42f
 	github.com/kode4food/timebox v0.5.0
 	github.com/stretchr/testify v1.12.1
-	golang.org/x/oauth2 v0.36.0
+	golang.org/x/oauth2 v0.38.0
 	golang.org/x/tools v0.53.0
 )
 
@@ -16,7 +16,7 @@ require (
 	github.com/kode4food/argex v0.1.11 // indirect
 	github.com/kode4food/caravan v0.0.0-20261110162553-22d42e0829c8 // indirect
 	github.com/kode4food/lru v0.0.0-20261011080515-d1c90c62daee // indirect
-	go.yaml.in/yaml/v3 v3.0.5 // indirect
+	go.yaml.in/yaml/v3 v3.0.6 // indirect
 	golang.org/x/exp/typeparams v0.0.0-20260824195058-e88cd73687aa // indirect
 	golang.org/x/mod v0.43.0 // indirect
 	golang.org/x/sync v0.25.0 // indirect
