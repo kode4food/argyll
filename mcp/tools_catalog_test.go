@@ -168,11 +168,20 @@ func TestToolsRejectMissingArgs(t *testing.T) {
 	}
 	c := newClient(t, mcp.NewServer("http://example", hc))
 	empty := map[string]any{}
+	noSteps := map[string]any{"steps": []string{}}
 	for _, tc := range []struct {
 		tool string
 		args map[string]any
 	}{
 		{tool: "start_flow", args: map[string]any{"goals": empty}},
+		{tool: "start_flow", args: map[string]any{"goals": noSteps}},
+		{tool: "preview_plan", args: map[string]any{"goals": noSteps}},
+		{tool: "register_step", args: map[string]any{"step": empty}},
+		{tool: "update_step", args: map[string]any{"step": map[string]any{"id": "x"}}},
+		{tool: "analyze_openapi_contract", args: map[string]any{
+			"spec_text":          "openapi: [",
+			"include_registered": false,
+		}},
 		{tool: "get_flow_events", args: map[string]any{"id": ""}},
 		{tool: "get_space", args: map[string]any{"id": ""}},
 		{tool: "list_space_steps", args: map[string]any{"id": ""}},
@@ -188,6 +197,64 @@ func TestToolsRejectMissingArgs(t *testing.T) {
 		{tool: "unregister_feed", args: map[string]any{"id": ""}},
 	} {
 		assert.True(t, callToolFails(t, c, tc.tool, tc.args), tc.tool)
+	}
+}
+
+func TestToolsReportEngineFailures(t *testing.T) {
+	hc := &http.Client{
+		Transport: roundTripperFunc(func(*http.Request) (*http.Response, error) {
+			return jsonResponse(http.StatusInternalServerError, []byte(`{"error":"down"}`)), nil
+		}),
+	}
+	c := newClient(t, mcp.NewServer("http://example", hc))
+	step := map[string]any{
+		"id":   "s",
+		"name": "S",
+		"type": "sync",
+		"http": map[string]any{"endpoint": "http://svc/s"},
+	}
+	goals := map[string]any{"steps": []string{"s"}}
+	space := map[string]any{
+		"id":       "risk",
+		"name":     "Risk",
+		"selector": map[string]any{"language": "lua", "source": "return true"},
+	}
+	feed := map[string]any{"id": "total", "name": "Total"}
+	for name, args := range map[string]map[string]any{
+		"engine_state":              {},
+		"analyze_service_landscape": {},
+		"list_steps":                {},
+		"get_step":                  {"id": "s"},
+		"unregister_step":           {"id": "s"},
+		"register_step":             {"step": step},
+		"update_step":               {"id": "s", "step": step},
+		"diff_proposed_steps":       {"steps": []any{step}},
+		"apply_proposed_steps":      {"steps": []any{step}},
+		"list_flows":                {},
+		"get_flow":                  {"id": "f"},
+		"get_flow_status":           {"id": "f"},
+		"get_flow_events":           {"id": "f"},
+		"query_flows":               {},
+		"start_flow":                {"goals": goals},
+		"preview_plan":              {"goals": goals},
+		"list_step_health":          {},
+		"get_step_health":           {"id": "s"},
+		"list_spaces":               {},
+		"get_space":                 {"id": "risk"},
+		"list_space_steps":          {"id": "risk"},
+		"unregister_space":          {"id": "risk"},
+		"preview_space":             {"space": space},
+		"register_space":            {"space": space},
+		"update_space":              {"id": "risk", "space": space},
+		"list_feeds":                {},
+		"get_feed":                  {"id": "total"},
+		"unregister_feed":           {"id": "total"},
+		"register_feed":             {"feed": feed},
+		"update_feed":               {"id": "total", "feed": feed},
+	} {
+		t.Run(name, func(t *testing.T) {
+			assert.True(t, callToolFails(t, c, name, args))
+		})
 	}
 }
 

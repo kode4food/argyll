@@ -160,8 +160,7 @@ jobs:
       - name: Run Go SDK tests with coverage
         run: |
           cd sdk/go && go generate ./... &&
-          go test ./... -coverpkg=./... -coverprofile=cover.all &&
-          grep -v '_gen\.go:' cover.all > cover.out
+          go test ./... -coverpkg=./... -coverprofile=cover.out
 
       - name: Run Python SDK tests with coverage
         run: cd sdk/python && make test-cov

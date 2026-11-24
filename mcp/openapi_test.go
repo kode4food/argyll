@@ -2,11 +2,13 @@ package mcp_test
 
 import (
 	"encoding/json"
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 
 	"github.com/kode4food/argyll/mcp"
+	"github.com/kode4food/argyll/mcp/openapi"
 )
 
 func TestAnalyzeOpenAPIReturnsFacts(t *testing.T) {
@@ -308,6 +310,100 @@ paths:
 	outputs := argNames(op["outputs"].([]any))
 	assert.Contains(t, outputs, "receipt_id")
 	assert.Contains(t, outputs, "channel")
+}
+
+func TestAnalyzeOpenAPIExistingSteps(t *testing.T) {
+	spec := `
+openapi: 3.0.3
+info: {title: Empty, version: "1"}
+paths: {}
+`
+	provided := map[string]any{"steps": map[string]any{
+		"lookup": map[string]any{
+			"name": "Lookup",
+			"http": map[string]any{"invoke": map[string]any{
+				"method":   "get",
+				"endpoint": "http://svc/lookup",
+			}},
+			"attributes": map[string]any{
+				"customer_id": map[string]any{"role": "required"},
+				"region":      map[string]any{"role": "optional"},
+				"customer":    map[string]any{"role": "output"},
+				"ignored":     "not an attribute",
+			},
+		},
+		"broken": "not a step",
+	}}
+
+	for _, tc := range []struct {
+		name    string
+		engine  func() *http.Response
+		ids     []string
+		warning string
+	}{
+		{
+			name: "merges registered steps without duplicates",
+			engine: func() *http.Response {
+				return jsonResponse(http.StatusOK, []byte(
+					`{"lookup":{"name":"Stale"},"notify":{"id":"notify"}}`,
+				))
+			},
+			ids: []string{"lookup", "notify"},
+		},
+		{
+			name: "ignores a registry that is not an object",
+			engine: func() *http.Response {
+				return jsonResponse(http.StatusOK, []byte(`[]`))
+			},
+			ids:     []string{"lookup"},
+			warning: "existing_steps payload was not an object and was ignored",
+		},
+		{
+			name: "falls back to provided steps when the engine fails",
+			engine: func() *http.Response {
+				return jsonResponse(http.StatusInternalServerError, []byte(`{}`))
+			},
+			ids: []string{"lookup"},
+			warning: "could not load registered steps from engine; analysis uses " +
+				"provided steps only",
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			hc := &http.Client{
+				Transport: roundTripperFunc(func(*http.Request) (*http.Response, error) {
+					return tc.engine(), nil
+				}),
+			}
+			c := newClient(t, mcp.NewServer("http://example", hc))
+			text := callToolText(t, c, "analyze_openapi_contract", map[string]any{
+				"spec_text":      spec,
+				"existing_steps": provided,
+			})
+
+			var payload struct {
+				Existing []openapi.RegisteredStep `json:"existing_steps"`
+				Warnings []string                 `json:"warnings"`
+			}
+			assert.NoError(t, json.Unmarshal([]byte(text), &payload))
+			ids := make([]string, len(payload.Existing))
+			for i, st := range payload.Existing {
+				ids[i] = st.ID
+			}
+			assert.Equal(t, tc.ids, ids)
+			assert.Equal(t, openapi.RegisteredStep{
+				ID:       "lookup",
+				Name:     "Lookup",
+				Source:   "existing",
+				Path:     "http://svc/lookup",
+				Required: []string{"customer_id"},
+				Optional: []string{"region"},
+				Outputs:  []string{"customer"},
+			}, payload.Existing[0])
+			if tc.warning != "" {
+				assert.Contains(t, payload.Warnings, tc.warning)
+			}
+		})
+	}
 }
 
 func argNames(args []any) []string {

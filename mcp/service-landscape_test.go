@@ -212,3 +212,61 @@ func TestAnalyzeServiceLandscapeWithRegisteredSteps(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotEmpty(t, payload["registered_steps"])
 }
+
+func TestServiceAnalysisRejects(t *testing.T) {
+	c := newClient(t, mcp.NewServer("http://example", nil))
+	for tool, args := range map[string]map[string]any{
+		"analyze_service_spec":      {"spec_text": "openapi: ["},
+		"analyze_service_landscape": {"services": []map[string]any{}},
+		"generate_step_impl":        {"language": "go"},
+	} {
+		assert.True(t, callToolFails(t, c, tool, args))
+	}
+	assert.True(t, callToolFails(t, c, "analyze_service_landscape", map[string]any{
+		"services":           []map[string]any{{"spec_text": "openapi: ["}},
+		"include_registered": false,
+	}))
+	assert.True(t, callToolFails(t, c, "generate_step_impl", map[string]any{
+		"language": "rust",
+		"step":     map[string]any{"id": "s"},
+	}))
+}
+
+func TestAnalyzeServiceLandscapeNamesUntitledService(t *testing.T) {
+	c := newClient(t, mcp.NewServer("http://example", nil))
+	text := callToolText(t, c, "analyze_service_landscape", map[string]any{
+		"services": []map[string]any{{
+			"spec_text": "openapi: 3.0.3\ninfo: {title: \" \", version: \"1\"}\npaths: {}\n",
+		}},
+		"include_registered": false,
+	})
+
+	var payload struct {
+		Services []struct {
+			Name string `json:"name"`
+		} `json:"services"`
+	}
+	assert.NoError(t, json.Unmarshal([]byte(text), &payload))
+	assert.Equal(t, "service", payload.Services[0].Name)
+}
+
+func TestGenerateStepImplDefaults(t *testing.T) {
+	c := newClient(t, mcp.NewServer("http://example", nil))
+	text := callToolText(t, c, "generate_step_impl", map[string]any{
+		"language": "go",
+		"step": map[string]any{
+			"id":     "tally",
+			"script": map[string]any{"source": "return {}"},
+			"attributes": map[string]any{
+				"count": map[string]any{"role": "output"},
+				"junk":  "not an attribute",
+			},
+		},
+	})
+
+	var payload map[string]any
+	assert.NoError(t, json.Unmarshal([]byte(text), &payload))
+	assert.Equal(t, "tally", payload["step_name"])
+	assert.Equal(t, "script", payload["step_type"])
+	assert.Contains(t, payload["code"], "lua")
+}

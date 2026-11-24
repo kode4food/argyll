@@ -173,3 +173,48 @@ func TestStepTemplateFormat(t *testing.T) {
 		})
 	}
 }
+
+func TestStepTemplateRejects(t *testing.T) {
+	c := newClient(t, mcp.NewServer("http://example", nil))
+	for _, tc := range []struct {
+		args map[string]any
+		want string
+	}{
+		{
+			args: map[string]any{"language": "rust", "step_name": "S"},
+			want: "language must be go or python",
+		},
+		{
+			args: map[string]any{"language": "go", "step_name": " "},
+			want: "step_name is required",
+		},
+		{
+			args: map[string]any{"language": "go", "step_name": "S", "step_type": "flow"},
+			want: "flow steps do not have SDK handler implementations",
+		},
+		{
+			args: map[string]any{"language": "go", "step_name": "S", "action_mode": "later"},
+			want: "action_mode must be sync or async",
+		},
+		{
+			args: map[string]any{"language": "go", "step_name": "S", "method": "PATCH"},
+			want: "method must be GET, POST, PUT, or DELETE",
+		},
+		{
+			args: map[string]any{
+				"language":    "go",
+				"step_name":   "S",
+				"step_type":   "script",
+				"action_mode": "sync",
+			},
+			want: "action_mode is only valid for service steps",
+		},
+		{
+			args: map[string]any{"language": "go", "step_name": "S", "method": "GET"},
+			want: "SDK-hosted service templates require method POST",
+		},
+	} {
+		text := callToolErrorText(t, c, "sdk_step_template", tc.args)
+		assert.Contains(t, text, tc.want)
+	}
+}

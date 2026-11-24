@@ -346,3 +346,126 @@ func TestApplyProposedStepsVerifiesSemanticReadback(t *testing.T) {
 		"attributes.took.metric.selector",
 	}, paths)
 }
+
+func TestApplyProposedStepsEngineEdges(t *testing.T) {
+	semantic := map[string]any{
+		"id":   "send",
+		"name": "Send",
+		"attributes": map[string]any{
+			"body": map[string]any{
+				"role":   "output",
+				"output": map[string]any{"mapping": map[string]any{"name": "text"}},
+			},
+			"junk": "not an attribute",
+		},
+	}
+	existing := `{"steps":[{"id":"send","name":"Old"}]}`
+
+	for _, tc := range []struct {
+		name    string
+		gets    []string
+		write   int
+		updates bool
+		fails   bool
+		check   func(*testing.T, map[string]any)
+	}{
+		{
+			name:  "rejects a registry that is not an object",
+			gets:  []string{`[]`},
+			fails: true,
+		},
+		{
+			name:  "reports a failed create",
+			gets:  []string{`{"steps":[]}`},
+			write: http.StatusInternalServerError,
+			fails: true,
+		},
+		{
+			name:    "reports a failed update",
+			gets:    []string{existing},
+			write:   http.StatusInternalServerError,
+			updates: true,
+			fails:   true,
+		},
+		{
+			name:  "reports a failed readback",
+			gets:  []string{`{"steps":[]}`, ``},
+			write: http.StatusCreated,
+			fails: true,
+		},
+		{
+			name:  "flags a step missing from readback",
+			gets:  []string{`{"steps":[]}`, `{"steps":["junk",{"name":"no id"}]}`},
+			write: http.StatusCreated,
+			check: func(t *testing.T, payload map[string]any) {
+				verification := payload["verification"].(map[string]any)
+				assert.Equal(t, "failed", verification["status"])
+				issue := verification["issues"].([]any)[0].(map[string]any)
+				assert.Equal(t, "missing_step", issue["kind"])
+			},
+		},
+		{
+			name: "skips updates when disabled",
+			gets: []string{existing},
+			check: func(t *testing.T, payload map[string]any) {
+				skipped := payload["skipped_steps"].([]any)[0].(map[string]any)
+				assert.Equal(t, "updates disabled for this apply call", skipped["reason"])
+				assert.Equal(t, "skipped", payload["verification"].(map[string]any)["status"])
+			},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			gets := 0
+			hc := &http.Client{
+				Transport: roundTripperFunc(func(r *http.Request) (*http.Response, error) {
+					if r.Method != http.MethodGet {
+						return jsonResponse(tc.write, []byte(`{}`)), nil
+					}
+					body := tc.gets[gets]
+					gets++
+					if body == "" {
+						return jsonResponse(http.StatusInternalServerError, []byte(`{}`)), nil
+					}
+					return jsonResponse(http.StatusOK, []byte(body)), nil
+				}),
+			}
+			c := newClient(t, mcp.NewServer("http://example", hc))
+			args := map[string]any{
+				"steps":         []map[string]any{semantic},
+				"apply_updates": tc.updates,
+			}
+			if tc.fails {
+				assert.True(t, callToolFails(t, c, "apply_proposed_steps", args))
+				return
+			}
+			var payload map[string]any
+			text := callToolText(t, c, "apply_proposed_steps", args)
+			assert.NoError(t, json.Unmarshal([]byte(text), &payload))
+			tc.check(t, payload)
+		})
+	}
+}
+
+func TestProposedStepsTools(t *testing.T) {
+	hc := &http.Client{
+		Transport: roundTripperFunc(func(*http.Request) (*http.Response, error) {
+			return jsonResponse(http.StatusOK, []byte(`{"steps":[]}`)), nil
+		}),
+	}
+	c := newClient(t, mcp.NewServer("http://example", hc))
+	for _, tool := range []string{"diff_proposed_steps", "apply_proposed_steps"} {
+		assert.True(t, callToolFails(t, c, tool, map[string]any{}))
+	}
+
+	text := callToolText(t, c, "diff_proposed_steps", map[string]any{
+		"steps": []map[string]any{{"name": "no id"}, {"id": "b"}, {"id": "a"}},
+	})
+	var payload struct {
+		Steps []struct {
+			ID string `json:"id"`
+		} `json:"steps"`
+	}
+	assert.NoError(t, json.Unmarshal([]byte(text), &payload))
+	assert.Len(t, payload.Steps, 2)
+	assert.Equal(t, "a", payload.Steps[0].ID)
+}

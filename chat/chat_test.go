@@ -94,6 +94,12 @@ func TestChat(t *testing.T) {
 				body:    mustJSON(t, req),
 				status:  http.StatusBadGateway,
 			},
+			{
+				name:    "invalid worker URL",
+				workers: builtins.AgentWorkers{"*": "http://bad host"},
+				body:    mustJSON(t, req),
+				status:  http.StatusInternalServerError,
+			},
 		} {
 			t.Run(tc.name, func(t *testing.T) {
 				w := postChat(tc.workers, tc.body)
