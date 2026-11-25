@@ -4,11 +4,11 @@ import (
 	"encoding/json"
 	"strings"
 
-	guide "github.com/kode4food/argyll/mcp/internal/guidance"
+	"github.com/kode4food/argyll/mcp/internal/guidance"
 )
 
 func Guidance() string {
-	text, err := guide.Read("openapi-ingestion.md")
+	text, err := guidance.Read("openapi-ingestion.md")
 	if err != nil {
 		return ""
 	}

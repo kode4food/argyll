@@ -36,7 +36,8 @@ const (
 )
 
 var (
-	ErrBadProp = errors.New("invalid argyll property")
+	ErrBadProp        = errors.New("invalid argyll property")
+	ErrScriptExpected = errors.New("expected a script with a lua: or argyll: prefix")
 )
 
 var stepSetters = map[string]setter[api.Step]{
@@ -174,9 +175,9 @@ var attrSetters = map[string]setter[api.AttributeSpec]{
 		if s.Required == nil {
 			return roleError(matchTag, api.RoleRequired)
 		}
-		cfg := &api.ScriptConfig{Language: api.ScriptLangArgyll}
+		cfg := &api.ScriptConfig{}
 		if !parseScript(cfg, v) {
-			return fmt.Errorf("%w: %q needs a script", ErrBadProp, matchTag)
+			return fmt.Errorf("%w: %w: %q", ErrBadProp, ErrScriptExpected, matchTag)
 		}
 		s.Required.Match = cfg
 		return nil
@@ -194,9 +195,9 @@ var attrSetters = map[string]setter[api.AttributeSpec]{
 		if err != nil {
 			return err
 		}
-		cfg := &api.ScriptConfig{Language: api.ScriptLangArgyll}
+		cfg := &api.ScriptConfig{}
 		if !parseScript(cfg, v) {
-			return fmt.Errorf("%w: %q needs a script", ErrBadProp, mappingTag)
+			return fmt.Errorf("%w: %w: %q", ErrBadProp, ErrScriptExpected, mappingTag)
 		}
 		mapping.Selector = cfg
 		return nil
@@ -239,9 +240,9 @@ func withMetrics(attrs api.AttributeSpecs, metrics Options) (api.AttributeSpecs,
 		if _, ok := res[name]; ok {
 			return nil, fmt.Errorf("%w: metric %q is already an attribute", ErrBadProp, name)
 		}
-		sel := &api.ScriptConfig{Language: api.ScriptLangArgyll}
+		sel := &api.ScriptConfig{}
 		if !parseScript(sel, o.Value) {
-			return nil, fmt.Errorf("%w: metric %q needs a script", ErrBadProp, name)
+			return nil, fmt.Errorf("%w: %w: metric %q", ErrBadProp, ErrScriptExpected, name)
 		}
 		res = api.Set(res, name, &api.AttributeSpec{
 			Role:   api.RoleMetric,
@@ -306,12 +307,11 @@ func initMapping(s *api.AttributeSpec, prop string) (*api.MappingConfig, error) 
 }
 
 func parseScript(cfg *api.ScriptConfig, value string) bool {
-	cfg.Source = strings.TrimSpace(value)
-	language, script, prefixed := strings.Cut(cfg.Source, optionAssign)
+	language, script, prefixed := strings.Cut(value, optionAssign)
 	language = strings.TrimSpace(language)
 	known := language == api.ScriptLangLua || language == api.ScriptLangArgyll
 	if !prefixed || !known {
-		return cfg.Source != ""
+		return false
 	}
 	cfg.Language = language
 	cfg.Source = strings.TrimSpace(script)

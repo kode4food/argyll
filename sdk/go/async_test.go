@@ -14,10 +14,9 @@ import (
 
 func TestNewAsyncContext(t *testing.T) {
 	meta := api.Metadata{
-		api.MetaFlowID: "test-flow",
-		api.MetaStepID: "test-step",
-		api.MetaWebhookURL: "http://localhost:8080/callbacks/" +
-			"test-flow/test-step/t123",
+		api.MetaFlowID:     "test-flow",
+		api.MetaStepID:     "test-step",
+		api.MetaWebhookURL: "http://localhost:8080/callbacks/test-flow/test-step/t123",
 	}
 
 	ctx := argyll.NewStepContext(t.Context(), "test-flow", "test-step", meta)

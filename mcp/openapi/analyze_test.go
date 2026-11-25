@@ -411,7 +411,7 @@ func TestAnalyzeContractSpecMap(t *testing.T) {
 		},
 		"paths": map[string]any{},
 	}
-	res, err := openapi.AnalyzeContract(openapi.Args{Spec: &spec}, nil, nil)
+	res, err := openapi.AnalyzeContract(openapi.Args{Spec: spec}, nil, nil)
 	assert.NoError(t, err)
 	assert.Equal(t, "Mapped", res.Info.Title)
 	assert.Empty(t, res.BaseURL)
@@ -428,7 +428,7 @@ func TestAnalyzeContractRejects(t *testing.T) {
 	}
 
 	spec := map[string]any{"openapi": math.Inf(1)}
-	_, err := openapi.AnalyzeContract(openapi.Args{Spec: &spec}, nil, nil)
+	_, err := openapi.AnalyzeContract(openapi.Args{Spec: spec}, nil, nil)
 	assert.ErrorIs(t, err, openapi.ErrInvalidParams)
 }
 

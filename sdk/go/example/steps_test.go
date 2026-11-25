@@ -160,8 +160,7 @@ func TestForEachStep(t *testing.T) {
 	srv := stepServer(t)
 
 	res := invoke(t, srv, "charge-card-v2",
-		`{"order_id":"ord-1","note":"","currency":"EUR",`+
-			`"gateway":"stripe","flow":"wf-1"}`)
+		`{"order_id":"ord-1","note":"","currency":"EUR","gateway":"stripe","flow":"wf-1"}`)
 	assert.Equal(t, http.StatusOK, res.StatusCode)
 	assert.JSONEq(t, `{"charge_id":"stripe:ord-1:EUR"}`, bodyOf(t, res))
 }

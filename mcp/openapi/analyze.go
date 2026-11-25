@@ -1,13 +1,13 @@
 package openapi
 
-import argyllfacts "github.com/kode4food/argyll/mcp/openapi/argyll"
+import "github.com/kode4food/argyll/mcp/openapi/argyll"
 
 type (
 	Args struct {
-		Spec              *map[string]any `json:"spec,omitempty"`
-		ExistingSteps     *map[string]any `json:"existing_steps,omitempty"`
-		IncludeRegistered *bool           `json:"include_registered,omitempty"`
-		SpecText          string          `json:"spec_text,omitempty"`
+		Spec              map[string]any `json:"spec,omitempty" jsonschema:"OpenAPI object"`
+		ExistingSteps     map[string]any `json:"existing_steps,omitempty" jsonschema:"Steps by ID"`
+		IncludeRegistered *bool          `json:"include_registered,omitempty"`
+		SpecText          string         `json:"spec_text,omitempty" jsonschema:"OpenAPI text"`
 	}
 
 	Step struct {
@@ -45,10 +45,10 @@ type (
 		Enum       []any                  `json:"enum,omitempty"`
 	}
 
-	Capabilities       = argyllfacts.Capabilities
-	MappingCapability  = argyllfacts.MappingCapability
-	MatchCapability    = argyllfacts.MatchCapability
-	EndpointCapability = argyllfacts.EndpointCapability
+	Capabilities       = argyll.Capabilities
+	MappingCapability  = argyll.MappingCapability
+	MatchCapability    = argyll.MatchCapability
+	EndpointCapability = argyll.EndpointCapability
 
 	Operation struct {
 		ID          string   `json:"id"`
@@ -101,7 +101,7 @@ func AnalyzeContract(args Args, existing []Step, warnings []string) (Result, err
 	info := infoPayload(doc)
 	existingPayload := existingStepsPayload(existing)
 	operations := operationsPayload(ops)
-	capabilities := argyllfacts.Defaults()
+	capabilities := argyll.Defaults()
 
 	return Result{
 		Capabilities:  capabilities,

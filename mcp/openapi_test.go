@@ -192,8 +192,7 @@ paths:
 	ops := payload["operations"].([]any)
 	op := ops[0].(map[string]any)
 	assert.Equal(t,
-		"http://example.com/customers/{customerId}/messages"+
-			"?messageType={messageType}",
+		"http://example.com/customers/{customerId}/messages?messageType={messageType}",
 		op["endpoint"],
 	)
 	inputs := op["inputs"].([]any)
@@ -318,7 +317,7 @@ openapi: 3.0.3
 info: {title: Empty, version: "1"}
 paths: {}
 `
-	provided := map[string]any{"steps": map[string]any{
+	provided := map[string]any{
 		"lookup": map[string]any{
 			"name": "Lookup",
 			"http": map[string]any{"invoke": map[string]any{
@@ -333,7 +332,7 @@ paths: {}
 			},
 		},
 		"broken": "not a step",
-	}}
+	}
 
 	for _, tc := range []struct {
 		name    string
@@ -345,7 +344,7 @@ paths: {}
 			name: "merges registered steps without duplicates",
 			engine: func() *http.Response {
 				return jsonResponse(http.StatusOK, []byte(
-					`{"lookup":{"name":"Stale"},"notify":{"id":"notify"}}`,
+					`{"steps":[{"id":"lookup","name":"Stale"},{"id":"notify"}],"count":2}`,
 				))
 			},
 			ids: []string{"lookup", "notify"},
@@ -355,8 +354,9 @@ paths: {}
 			engine: func() *http.Response {
 				return jsonResponse(http.StatusOK, []byte(`[]`))
 			},
-			ids:     []string{"lookup"},
-			warning: "existing_steps payload was not an object and was ignored",
+			ids: []string{"lookup"},
+			warning: "could not load registered steps from engine; analysis uses provided steps " +
+				"only",
 		},
 		{
 			name: "falls back to provided steps when the engine fails",
@@ -364,8 +364,8 @@ paths: {}
 				return jsonResponse(http.StatusInternalServerError, []byte(`{}`))
 			},
 			ids: []string{"lookup"},
-			warning: "could not load registered steps from engine; analysis uses " +
-				"provided steps only",
+			warning: "could not load registered steps from engine; analysis uses provided steps " +
+				"only",
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {

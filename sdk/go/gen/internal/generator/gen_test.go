@@ -337,8 +337,7 @@ func TestFieldTags(t *testing.T) {
 }
 
 func TestMappingName(t *testing.T) {
-	src := "type In struct { " +
-		"Value string `argyll:\"outer;mapping:inner\"` }\n" +
+	src := "type In struct { Value string `argyll:\"outer;mapping:inner\"` }\n" +
 		"//argyll:step\nfunc Run(in In) {}\n"
 	out, err := renderSource(t, src)
 	assert.NoError(t, err)
@@ -347,12 +346,10 @@ func TestMappingName(t *testing.T) {
 
 func TestAttributeScripts(t *testing.T) {
 	src := "type In struct {\n" +
-		"Default string `argyll-match:\"value.ready\" " +
-		"argyll-mapping:\"value\"`\n" +
+		"Argyll string `argyll-match:\"argyll:value.ready\" argyll-mapping:\"argyll:value\"`\n" +
 		"Lua string `argyll-match:\"lua:value = true; return value\"`\n" +
 		"}\n" +
-		"type Out struct { Value string " +
-		"`argyll-mapping:\"argyll:value\"` }\n" +
+		"type Out struct { Value string `argyll-mapping:\"argyll:value\"` }\n" +
 		"//argyll:step\nfunc Run(in In) Out { return Out{} }\n"
 	attrs := sourceSteps(t, src)["run"].Attributes
 	assert.Equal(t,
@@ -360,13 +357,13 @@ func TestAttributeScripts(t *testing.T) {
 			Language: "argyll",
 			Source:   "value.ready",
 		},
-		attrs["default"].Required.Match)
+		attrs["argyll"].Required.Match)
 	assert.Equal(t,
 		&api.ScriptConfig{
 			Language: "argyll",
 			Source:   "value",
 		},
-		attrs["default"].Required.Mapping.Selector)
+		attrs["argyll"].Required.Mapping.Selector)
 	assert.Equal(t,
 		&api.ScriptConfig{
 			Language: "lua",
@@ -449,7 +446,7 @@ func TestPredicate(t *testing.T) {
 		"//argyll:predicate lua:ready = true; return ready\n" +
 		"func Two() {}\n" +
 		"//argyll:step three\n" +
-		"//argyll:predicate custom:ready()\n" +
+		"//argyll:predicate lua:custom:ready()\n" +
 		"func Three() {}\n"
 	byID := sourceSteps(t, src)
 	assert.Equal(t,
@@ -490,7 +487,7 @@ func TestWorkConfig(t *testing.T) {
 
 func TestMetricsDirective(t *testing.T) {
 	src := "//argyll:step\n" +
-		"//argyll:metrics took:elapsed;tries:lua:return work.attempts.max\n" +
+		"//argyll:metrics took:argyll:elapsed;tries:lua:return work.attempts.max\n" +
 		"//argyll:metrics ok:argyll:succeeded\n" +
 		"func Run() {}\n"
 	metric := func(sel *api.ScriptConfig) *api.AttributeSpec {
@@ -637,8 +634,9 @@ func TestDiagnostics(t *testing.T) {
 
 func TestAdditionalDiagnostics(t *testing.T) {
 	tests := map[string]struct {
-		src  string
-		want string
+		src     string
+		want    string
+		wantErr error
 	}{
 		"step input is a struct": {
 			src:  "//argyll:step\nfunc Bad(in int) {}",
@@ -703,8 +701,7 @@ func TestAdditionalDiagnostics(t *testing.T) {
 			want: "field value is not compensated",
 		},
 		"compensator field types match": {
-			src: "type In struct { Value string " +
-				"`argyll:\"compensated:true\"` }\n" +
+			src: "type In struct { Value string `argyll:\"compensated:true\"` }\n" +
 				"type UndoArgs struct { Value int }\n" +
 				"//argyll:step\n//argyll:compensate Undo\n" +
 				"func Run(In) {}\nfunc Undo(UndoArgs) {}",
@@ -780,8 +777,8 @@ func TestAdditionalDiagnostics(t *testing.T) {
 			want: "takes key:value options",
 		},
 		"metrics need a script": {
-			src:  "//argyll:step\n//argyll:metrics took:lua:\nfunc Bad() {}",
-			want: `metric "took" needs a script`,
+			src:     "//argyll:step\n//argyll:metrics took:lua:\nfunc Bad() {}",
+			wantErr: generator.ErrScriptExpected,
 		},
 		"metrics need their own names": {
 			src: "//argyll:step\n//argyll:metrics took:elapsed\n" +
@@ -798,13 +795,17 @@ func TestAdditionalDiagnostics(t *testing.T) {
 			want: `unknown property "parallelism"`,
 		},
 		"predicate needs a script": {
-			src:  "//argyll:step\n//argyll:predicate\nfunc Bad() {}",
-			want: "predicate needs a script",
+			src:     "//argyll:step\n//argyll:predicate\nfunc Bad() {}",
+			wantErr: generator.ErrScriptExpected,
 		},
 		"predicate does not repeat": {
-			src: "//argyll:step\n//argyll:predicate return true\n" +
-				"//argyll:predicate return false\nfunc Bad() {}",
+			src: "//argyll:step\n//argyll:predicate lua:return true\n" +
+				"//argyll:predicate lua:return false\nfunc Bad() {}",
 			want: "predicate repeats",
+		},
+		"predicate requires a language": {
+			src:     "//argyll:step\n//argyll:predicate return true\nfunc Bad() {}",
+			wantErr: generator.ErrScriptExpected,
 		},
 		"predicate property needs directive": {
 			src: "//argyll:step\n" +
@@ -821,37 +822,28 @@ func TestAdditionalDiagnostics(t *testing.T) {
 				"func Bad(in struct{}) {}",
 			want: "takes key:value options",
 		},
-		"props are not supported": {
-			src: "//argyll:step\n//argyll:props timeout:2\n" +
-				"func Bad(in struct{}) {}",
-			want: "//argyll:props is not supported",
-		},
 		"roles are known": {
 			src: "type In struct { Value string `argyll:\";role:weird\"` }\n" +
 				"//argyll:step\nfunc Bad(in In) {}",
 			want: "unknown role",
 		},
 		"collect needs an input": {
-			src: "type In struct { Value string " +
-				"`argyll:\";role:const;collect:all\"` }\n" +
+			src: "type In struct { Value string `argyll:\";role:const;collect:all\"` }\n" +
 				"//argyll:step\nfunc Bad(in In) {}",
 			want: "collect\" needs role",
 		},
 		"for each must be true": {
-			src: "type In struct { Value string " +
-				"`argyll:\";for_each:sometimes\"` }\n" +
+			src: "type In struct { Value string `argyll:\";for_each:sometimes\"` }\n" +
 				"//argyll:step\nfunc Bad(in In) {}",
 			want: "for_each\" needs true or false",
 		},
 		"match needs a required input": {
-			src: "type In struct { Value *string " +
-				"`argyll-match:\"return true\"` }\n" +
+			src: "type In struct { Value *string `argyll-match:\"return true\"` }\n" +
 				"//argyll:step\nfunc Bad(in In) {}",
 			want: "argyll-match\" needs role",
 		},
 		"mapping needs an input or output": {
-			src: "type In struct { Value string " +
-				"`argyll:\";role:const;mapping:x\"` }\n" +
+			src: "type In struct { Value string `argyll:\";role:const;mapping:x\"` }\n" +
 				"//argyll:step\nfunc Bad(in In) {}",
 			want: "mapping\" needs role",
 		},
@@ -908,6 +900,10 @@ func TestAdditionalDiagnostics(t *testing.T) {
 	for name, tt := range tests {
 		t.Run(name, func(t *testing.T) {
 			_, err := renderSource(t, tt.src)
+			if tt.wantErr != nil {
+				assert.ErrorIs(t, err, tt.wantErr)
+				return
+			}
 			assert.ErrorContains(t, err, tt.want)
 		})
 	}
@@ -917,22 +913,17 @@ func TestStepShapesAndProps(t *testing.T) {
 	src := "import \"errors\"\n" +
 		"type In struct {\n" +
 		"Required string `argyll:\";mapping:source\"`\n" +
-		"Optional *string " +
-		"`argyll:\";collect:all;for_each:true;mapping:fallback\"`\n" +
+		"Optional *string `argyll:\";collect:all;for_each:true;mapping:fallback\"`\n" +
 		"}\n" +
 		"type Out struct { Result string `argyll:\";mapping:result\"` }\n" +
 		"//argyll:step\nfunc Empty() {}\n" +
-		"//argyll:step\nfunc EmptyError() error { " +
-		"return errors.New(\"bad\") }\n" +
+		"//argyll:step\nfunc EmptyError() error { return errors.New(\"bad\") }\n" +
 		"//argyll:step\nfunc Source() Out { return Out{} }\n" +
-		"//argyll:step\nfunc SourceError() (Out, error) { " +
-		"return Out{}, nil }\n" +
+		"//argyll:step\nfunc SourceError() (Out, error) { return Out{}, nil }\n" +
 		"//argyll:step\nfunc NoResult(in In) {}\n" +
-		"//argyll:step\nfunc ErrorOnly(in In) error { " +
-		"return errors.New(\"bad\") }\n" +
+		"//argyll:step\nfunc ErrorOnly(in In) error { return errors.New(\"bad\") }\n" +
 		"//argyll:step\nfunc ResultOnly(in In) Out { return Out{} }\n" +
-		"//argyll:step\nfunc ResultError(in In) (Out, error) { " +
-		"return Out{}, nil }\n"
+		"//argyll:step\nfunc ResultError(in In) (Out, error) { return Out{}, nil }\n"
 
 	out, err := renderSource(t, src)
 	assert.NoError(t, err)

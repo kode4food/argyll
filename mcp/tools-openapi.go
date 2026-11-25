@@ -23,67 +23,36 @@ func (s *Server) analyzeOpenAPIContract(
 func (s *Server) collectExistingSteps(
 	ctx context.Context, args openapi.Args,
 ) ([]openapi.Step, []string) {
-	var existing any
-	if args.ExistingSteps != nil {
-		existing = *args.ExistingSteps
-	}
-	res, warnings := normalizeExisting(existing)
-	include := true
-	if args.IncludeRegistered != nil {
-		include = *args.IncludeRegistered
-	}
-	if !include {
-		return res, warnings
+	res := normalizeExisting(args.ExistingSteps)
+	if args.IncludeRegistered != nil && !*args.IncludeRegistered {
+		return res, nil
 	}
 
-	payload, err := s.httpGet(ctx, "/engine/steps")
+	loaded, err := s.currentSteps(ctx)
 	if err != nil {
-		warnings = append(
-			warnings,
-			"could not load registered steps from engine; analysis uses "+
-				"provided steps only",
-		)
-		return res, warnings
-	}
-	loaded, moreWarnings := normalizeExisting(payload)
-	warnings = append(warnings, moreWarnings...)
-	if len(loaded) == 0 {
-		return res, warnings
+		return res, []string{
+			"could not load registered steps from engine; analysis uses provided steps only",
+		}
 	}
 
 	seen := util.Set[string]{}
 	for _, st := range res {
 		seen.Add(st.ID)
 	}
-	for _, st := range loaded {
-		if seen.Contains(st.ID) {
-			continue
+	for id, st := range loaded {
+		if !seen.Contains(id) {
+			res = append(res, normalizeExistingStep(id, st))
 		}
-		res = append(res, st)
 	}
 	slices.SortFunc(res, func(a, b openapi.Step) int {
 		return strings.Compare(a.ID, b.ID)
 	})
-	return res, warnings
+	return res, nil
 }
 
-func normalizeExisting(raw any) ([]openapi.Step, []string) {
-	if raw == nil {
-		return nil, nil
-	}
-
-	root, ok := asMap(raw)
-	if !ok {
-		return nil, []string{"existing_steps payload was not an object and was ignored"}
-	}
-
-	stepsRaw := root
-	if nested, ok := asMap(root["steps"]); ok {
-		stepsRaw = nested
-	}
-
+func normalizeExisting(steps map[string]any) []openapi.Step {
 	var res []openapi.Step
-	for id, item := range stepsRaw {
+	for id, item := range steps {
 		st, ok := asMap(item)
 		if !ok {
 			continue
@@ -98,7 +67,7 @@ func normalizeExisting(raw any) ([]openapi.Step, []string) {
 	slices.SortFunc(res, func(a, b openapi.Step) int {
 		return strings.Compare(a.ID, b.ID)
 	})
-	return res, nil
+	return res
 }
 
 func normalizeExistingStep(id string, st map[string]any) openapi.Step {

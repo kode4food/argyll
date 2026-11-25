@@ -77,9 +77,8 @@ func TestRegisterNonBooleanPredicates(t *testing.T) {
 			message: "invalid step: predicate: must return boolean, not number",
 		},
 		{
-			kind: "match",
-			message: `invalid step: attribute "input" match: ` +
-				"must return boolean, not number",
+			kind:    "match",
+			message: "invalid step: attribute \"input\" match: must return boolean, not number",
 		},
 	}
 	for _, tt := range tests {

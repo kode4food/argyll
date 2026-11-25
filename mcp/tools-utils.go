@@ -28,7 +28,7 @@ type (
 	noInput struct{}
 
 	idInput struct {
-		ID string `json:"id"`
+		ID string `json:"id" jsonschema:"Step, Flow, Space, or Feed ID"`
 	}
 )
 

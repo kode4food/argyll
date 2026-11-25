@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/kode4food/argyll/engine/pkg/api"
-	argyll "github.com/kode4food/argyll/sdk/go"
+	"github.com/kode4food/argyll/sdk/go"
 )
 
 func main() {
@@ -34,13 +34,12 @@ func main() {
 		Output({{ quote . }}){{ end }}{{ if .IsAsync }}.
 		WithAsyncInvoke(){{ end }}{{ if .IsExternal }}.
 {{ if .HasNonPostMethod }}		WithMethod({{ quote .Method }}).
-{{ end }}		WithEndpoint("http://localhost:8081/step"){{ end }}
-{{ if .IsScript }}.
+{{ end }}		WithEndpoint("http://localhost:8081/step"){{ end }}{{ if .IsScript }}.
 		WithScript(api.ScriptConfig{
 			Language: {{ quote .ScriptLanguage }},
 			Source:   {{ quote .ScriptBody }},
 		}){{ end }}
-{{- if or .IsExternal .IsScript }}	if err := step.Register(
+{{ if or .IsExternal .IsScript }}	if err := step.Register(
 		context.Background(),
 	); err != nil {
 {{ else }}	if err := step.Start(handler); err != nil {

@@ -35,28 +35,28 @@ type (
 	}
 
 	serviceSpecInput struct {
-		Name     *string         `json:"name,omitempty"`
-		Spec     *map[string]any `json:"spec,omitempty"`
-		SpecText string          `json:"spec_text,omitempty"`
+		Name     string         `json:"name,omitempty" jsonschema:"Service name"`
+		Spec     map[string]any `json:"spec,omitempty" jsonschema:"OpenAPI object"`
+		SpecText string         `json:"spec_text,omitempty" jsonschema:"OpenAPI text"`
 	}
 
 	analyzeServiceSpecArgs struct {
-		Name          *string         `json:"name,omitempty"`
-		Spec          *map[string]any `json:"spec,omitempty"`
-		ExistingSteps *map[string]any `json:"existing_steps,omitempty"`
-		IncludeReg    *bool           `json:"include_registered,omitempty"`
-		SpecText      string          `json:"spec_text,omitempty"`
+		Name          string         `json:"name,omitempty" jsonschema:"Service name"`
+		Spec          map[string]any `json:"spec,omitempty" jsonschema:"OpenAPI object"`
+		ExistingSteps map[string]any `json:"existing_steps,omitempty" jsonschema:"Steps by ID"`
+		IncludeReg    *bool          `json:"include_registered,omitempty"`
+		SpecText      string         `json:"spec_text,omitempty" jsonschema:"OpenAPI text"`
 	}
 
 	analyzeServiceLandscapeArgs struct {
-		ExistingSteps *map[string]any    `json:"existing_steps,omitempty"`
+		ExistingSteps map[string]any     `json:"existing_steps,omitempty" jsonschema:"Steps by ID"`
 		IncludeReg    *bool              `json:"include_registered,omitempty"`
-		Services      []serviceSpecInput `json:"services"`
+		Services      []serviceSpecInput `json:"services" jsonschema:"Service specs"`
 	}
 
 	generateStepImplArgs struct {
-		Step     map[string]any `json:"step"`
-		Language string         `json:"language"`
+		Step     map[string]any `json:"step" jsonschema:"Step registration"`
+		Language string         `json:"language" jsonschema:"go or python"`
 	}
 )
 
@@ -131,9 +131,9 @@ func (s *Server) analyzeServiceLandscape(
 	}, nil
 }
 
-func serviceName(name *string, spec openapi.Result) string {
-	if name != nil && strings.TrimSpace(*name) != "" {
-		return strings.TrimSpace(*name)
+func serviceName(name string, spec openapi.Result) string {
+	if name = strings.TrimSpace(name); name != "" {
+		return name
 	}
 	title := strings.TrimSpace(spec.Info.Title)
 	if title == "" {

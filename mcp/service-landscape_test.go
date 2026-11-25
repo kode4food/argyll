@@ -141,6 +141,7 @@ func TestGenerateStepImplScript(t *testing.T) {
 
 	code := payload["code"].(string)
 	assert.Contains(t, code, "WithScript(api.ScriptConfig{")
+	assertFormattedGo(t, code)
 	assert.Contains(t, code, "Register")
 }
 
@@ -184,8 +185,8 @@ func TestAnalyzeServiceLandscapeWithRegisteredSteps(t *testing.T) {
 					), nil
 				}
 				return jsonResponse(http.StatusOK, []byte(`{
-					"steps": {
-						"lookup-customer-by-email": {
+					"steps": [
+						{
 							"id": "lookup-customer-by-email",
 							"name": "Lookup Customer By Email",
 							"attributes": {
@@ -197,7 +198,8 @@ func TestAnalyzeServiceLandscapeWithRegisteredSteps(t *testing.T) {
 								}
 							}
 						}
-					}
+					],
+					"count": 1
 				}`)), nil
 			},
 		),
@@ -253,10 +255,10 @@ func TestAnalyzeServiceLandscapeNamesUntitledService(t *testing.T) {
 func TestGenerateStepImplDefaults(t *testing.T) {
 	c := newClient(t, mcp.NewServer("http://example", nil))
 	text := callToolText(t, c, "generate_step_impl", map[string]any{
-		"language": "go",
+		"language": "python",
 		"step": map[string]any{
 			"id":     "tally",
-			"script": map[string]any{"source": "return {}"},
+			"script": map[string]any{"language": "argyll", "source": "{}"},
 			"attributes": map[string]any{
 				"count": map[string]any{"role": "output"},
 				"junk":  "not an attribute",
@@ -268,5 +270,16 @@ func TestGenerateStepImplDefaults(t *testing.T) {
 	assert.NoError(t, json.Unmarshal([]byte(text), &payload))
 	assert.Equal(t, "tally", payload["step_name"])
 	assert.Equal(t, "script", payload["step_type"])
-	assert.Contains(t, payload["code"], "lua")
+	assert.Contains(t, payload["code"], `language=ScriptLanguage("argyll")`)
+}
+
+func TestGenerateStepImplRequiresScriptLanguage(t *testing.T) {
+	c := newClient(t, mcp.NewServer("http://example", nil))
+	text := callToolErrorText(t, c, "generate_step_impl", map[string]any{
+		"language": "python",
+		"step": map[string]any{
+			"id": "tally", "script": map[string]any{"source": "elapsed"},
+		},
+	})
+	assert.Contains(t, text, "script_language must be lua or argyll")
 }

@@ -64,27 +64,21 @@ var matchCases = []benchCase{
 	},
 	{
 		name: "TagAnd",
-		lua: `return has(value.tags, "domain:payments") and ` +
-			`has(value.tags, "environment:production")`,
-		argEx: `"domain:payments" in value.tags && ` +
-			`"environment:production" in value.tags`,
+		lua: `return has(value.tags, "domain:payments") and has(value.tags, ` +
+			`"environment:production")`,
+		argEx: `"domain:payments" in value.tags && "environment:production" in value.tags`,
 	},
 	{
-		name: "TagOr",
-		lua: `return has(value.tags, "market:europe") or ` +
-			`has(value.tags, "market:all")`,
+		name:  "TagOr",
+		lua:   `return has(value.tags, "market:europe") or has(value.tags, "market:all")`,
 		argEx: `"market:europe" in value.tags || "market:all" in value.tags`,
 	},
 	{
 		name: "QBETwoTerms",
-		lua: `return (has(value.tags, "domain:payments") and ` +
-			`has(value.tags, "tier:gold")) or ` +
-			`(has(value.tags, "domain:risk") and ` +
-			`has(value.tags, "environment:production"))`,
-		argEx: `("domain:payments" in value.tags && ` +
-			`"tier:gold" in value.tags) || ` +
-			`("domain:risk" in value.tags && ` +
-			`"environment:production" in value.tags)`,
+		lua: `return (has(value.tags, "domain:payments") and has(value.tags, "tier:gold")) or ` +
+			`(has(value.tags, "domain:risk") and has(value.tags, "environment:production"))`,
+		argEx: `("domain:payments" in value.tags && "tier:gold" in value.tags) || ("domain:risk" ` +
+			`in value.tags && "environment:production" in value.tags)`,
 	},
 	{
 		name: "TagMiss",
@@ -98,17 +92,16 @@ var matchCases = []benchCase{
 return has(value.tags, "domain:payments") and score and
     value.type == "service" and value.handling == "standard" and
     score.role == "output" and score.compensated == false`,
-		argEx: `"domain:payments" in value.tags && ` +
-			`value.type=="service" && value.handling=="standard" && ` +
-			`value.attributes.score.role=="output" && ` +
+		argEx: `"domain:payments" in value.tags && value.type=="service" && ` +
+			`value.handling=="standard" && value.attributes.score.role=="output" && ` +
 			`value.attributes.score.compensated==false`,
 	},
 	{
 		name: "AttributeRoles",
-		lua: `return value.attributes.score.role == "output" or ` +
-			`value.attributes.amount.role == "required"`,
-		argEx: `value.attributes.score.role == "output" || ` +
-			`value.attributes.amount.role == "required"`,
+		lua: `return value.attributes.score.role == "output" or value.attributes.amount.role == ` +
+			`"required"`,
+		argEx: `value.attributes.score.role == "output" || value.attributes.amount.role == ` +
+			`"required"`,
 	},
 }
 
@@ -120,17 +113,15 @@ var predicateCases = []benchCase{
 		argEx: `product_info.name=="Professional Laptop"`,
 	},
 	{
-		name: "NumericCompare",
-		lua: `return quantity > 1 and ` +
-			`user_info.credit_limit >= product_info.price`,
+		name:  "NumericCompare",
+		lua:   `return quantity > 1 and user_info.credit_limit >= product_info.price`,
 		argEx: `quantity>1 && user_info.credit_limit>=product_info.price`,
 	},
 	{
 		name: "MultiField",
-		lua: `return user_info.account_type == "business" and ` +
-			`product_info.in_stock and quantity <= 10`,
-		argEx: `user_info.account_type=="business" && ` +
-			`product_info.in_stock==true && quantity<=10`,
+		lua: `return user_info.account_type == "business" and product_info.in_stock and quantity ` +
+			`<= 10`,
+		argEx: `user_info.account_type=="business" && product_info.in_stock==true && quantity<=10`,
 	},
 }
 

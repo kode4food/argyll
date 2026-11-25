@@ -122,7 +122,7 @@ class StepBuilder:
         self,
         name: str,
         source: str,
-        language: ScriptLanguage = ScriptLanguage.ARGYLL,
+        language: ScriptLanguage,
     ) -> "StepBuilder":
         """Add metric attribute selecting a value from the measured work."""
         new_attrs = dict(self._attributes)

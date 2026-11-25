@@ -6,21 +6,21 @@ import (
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
-	guide "github.com/kode4food/argyll/mcp/internal/guidance"
+	"github.com/kode4food/argyll/mcp/internal/guidance"
 )
 
 type (
 	sdkStepTemplateInput struct {
-		Language       string   `json:"language"`
-		StepName       string   `json:"step_name"`
-		StepType       string   `json:"step_type,omitempty"`
-		ActionMode     *string  `json:"action_mode,omitempty"`
-		External       *bool    `json:"external,omitempty"`
-		Method         string   `json:"method,omitempty"`
-		ScriptLanguage *string  `json:"script_language,omitempty"`
-		ScriptBody     *string  `json:"script_body,omitempty"`
-		Inputs         []string `json:"inputs,omitempty"`
-		Outputs        []string `json:"outputs,omitempty"`
+		Language       string   `json:"language" jsonschema:"go or python"`
+		StepName       string   `json:"step_name" jsonschema:"Step name"`
+		StepType       string   `json:"step_type,omitempty" jsonschema:"service or script"`
+		ActionMode     *string  `json:"action_mode,omitempty" jsonschema:"sync or async"`
+		External       bool     `json:"external,omitempty" jsonschema:"Existing endpoint"`
+		Method         string   `json:"method,omitempty" jsonschema:"GET, POST, PUT, or DELETE"`
+		ScriptLanguage string   `json:"script_language,omitempty" jsonschema:"lua or argyll"`
+		ScriptBody     string   `json:"script_body,omitempty" jsonschema:"Script source"`
+		Inputs         []string `json:"inputs,omitempty" jsonschema:"Required input names"`
+		Outputs        []string `json:"outputs,omitempty" jsonschema:"Output names"`
 	}
 
 	stepTemplateData struct {
@@ -88,7 +88,7 @@ func addGuide(srv *mcp.Server, res *mcp.Resource, file string) {
 	res.Name = res.URI
 	res.MIMEType = markdownType
 	read := func(context.Context, *mcp.ReadResourceRequest) (*mcp.ReadResourceResult, error) {
-		text, err := guide.Read(file)
+		text, err := guidance.Read(file)
 		if err != nil {
 			return nil, err
 		}
@@ -109,7 +109,7 @@ func addPrompt(srv *mcp.Server, p *mcp.Prompt, file string, argNames ...string) 
 	}
 	p.Arguments = args
 	read := func(_ context.Context, req *mcp.GetPromptRequest) (*mcp.GetPromptResult, error) {
-		text, err := guide.Read(file)
+		text, err := guidance.Read(file)
 		if err != nil {
 			return nil, err
 		}
@@ -125,8 +125,7 @@ func addPrompt(srv *mcp.Server, p *mcp.Prompt, file string, argNames ...string) 
 }
 
 func sdkStepTemplate(args sdkStepTemplateInput) (string, error) {
-	isExternal := args.External != nil && *args.External
-	return renderStepTemplate(args, isExternal)
+	return renderStepTemplate(args, args.External)
 }
 
 func renderStepTemplate(args sdkStepTemplateInput, isExternal bool) (string, error) {
@@ -176,6 +175,9 @@ func renderStepTemplate(args sdkStepTemplateInput, isExternal bool) (string, err
 		if args.ActionMode != nil {
 			return "", errInvalidParams("action_mode is only valid for service steps")
 		}
+		if args.ScriptLanguage != "lua" && args.ScriptLanguage != "argyll" {
+			return "", errInvalidParams("script_language must be lua or argyll for script steps")
+		}
 		method = ""
 	}
 	if !isExternal && stepType != "script" && method != "POST" {
@@ -183,6 +185,8 @@ func renderStepTemplate(args sdkStepTemplateInput, isExternal bool) (string, err
 	}
 	data := stepTemplateData{
 		StepName:         args.StepName,
+		ScriptLanguage:   args.ScriptLanguage,
+		ScriptBody:       args.ScriptBody,
 		Method:           method,
 		Inputs:           args.Inputs,
 		Outputs:          args.Outputs,
@@ -191,14 +195,8 @@ func renderStepTemplate(args sdkStepTemplateInput, isExternal bool) (string, err
 		IsScript:         stepType == "script",
 		HasNonPostMethod: method != "POST" && isExternal,
 	}
-	if args.ScriptLanguage != nil {
-		data.ScriptLanguage = *args.ScriptLanguage
-	}
-	if args.ScriptBody != nil {
-		data.ScriptBody = *args.ScriptBody
-	}
 	if lang == "go" {
-		return guide.RenderTemplate("go-step.tmpl", data)
+		return guidance.RenderTemplate("go-step.tmpl", data)
 	}
-	return guide.RenderTemplate("python-step.tmpl", data)
+	return guidance.RenderTemplate("python-step.tmpl", data)
 }

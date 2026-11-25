@@ -46,6 +46,8 @@ examples/        # Sample step implementations
 
 ## API
 
+Require an explicit language for every caller-supplied script. Only the web UI may preselect a scripting language.
+
 - Engine API: `/docs/api/engine-api.yaml`
 - Step Interface: `/docs/api/step-interface.yaml`
 - Agent Worker Contract: `/docs/api/agent-worker.yaml`

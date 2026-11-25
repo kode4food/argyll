@@ -150,8 +150,7 @@ func TestOutputMappingDescendants(t *testing.T) {
 						Mapping: &api.MappingConfig{
 							Selector: &api.ScriptConfig{
 								Language: api.ScriptLangArgyll,
-								Source: "books.payload.sections | map " +
-									"item: item.book",
+								Source:   "books.payload.sections | map item: item.book",
 							},
 						},
 					},

@@ -51,11 +51,6 @@ func (s *Server) applyProposedSteps(
 	}
 	diffs, counts := buildStepDiffs(current, steps)
 
-	applyUpdates := true
-	if args.ApplyUpdates != nil {
-		applyUpdates = *args.ApplyUpdates
-	}
-
 	var applied []map[string]any
 	var skipped []map[string]any
 	var appliedProposed []map[string]any
@@ -73,7 +68,7 @@ func (s *Server) applyProposedSteps(
 			})
 			appliedProposed = append(appliedProposed, d.Proposed)
 		case "update":
-			if !applyUpdates {
+			if args.SkipUpdates {
 				skipped = append(skipped, map[string]any{
 					"id":     d.ID,
 					"action": "update",
@@ -170,9 +165,9 @@ func (s *Server) currentSteps(ctx context.Context) (map[string]map[string]any, e
 	return current, nil
 }
 
-func proposedSteps(steps *[]map[string]any) ([]map[string]any, error) {
-	if steps != nil && len(*steps) != 0 {
-		return *steps, nil
+func proposedSteps(steps []map[string]any) ([]map[string]any, error) {
+	if len(steps) != 0 {
+		return steps, nil
 	}
 	return nil, errInvalidParams("steps is required")
 }

@@ -56,10 +56,9 @@ func buildStepDiffs(
 			})
 			if len(fields) == 0 {
 				diffs = append(diffs, stepDiff{
-					ID:     id,
-					Action: "skip",
-					Reason: "proposed step is identical to the current " +
-						"registration",
+					ID:       id,
+					Action:   "skip",
+					Reason:   "proposed step is identical to the current registration",
 					Current:  curr,
 					Proposed: proposed,
 				})

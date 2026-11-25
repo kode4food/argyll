@@ -39,8 +39,7 @@ func TestLoadRaftConfig(t *testing.T) {
 				"RAFT_ADDRESS":       "10.0.0.2:9702",
 				"RAFT_DATA_DIR":      "/tmp/argyll-node-2",
 				"RAFT_LOG_TAIL_SIZE": "4096",
-				"RAFT_SERVERS": "node-1=10.0.0.1:9701," +
-					"node-2=10.0.0.2:9702",
+				"RAFT_SERVERS":       "node-1=10.0.0.1:9701,node-2=10.0.0.2:9702",
 			},
 			check: func(t *testing.T, c app.Config) {
 				assert.Equal(t, "node-2", c.Raft.LocalID)

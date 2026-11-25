@@ -270,8 +270,12 @@ func (s *AttributeSpec) validateOutput(name Name) error {
 }
 
 func (s *AttributeSpec) validateMetric(name Name) error {
-	if sel := s.MetricSelector(); sel == nil || sel.Source == "" {
+	sel := s.MetricSelector()
+	if sel == nil || sel.Source == "" {
 		return fmt.Errorf("%w: %q", ErrMetricSelectorRequired, name)
+	}
+	if sel.Language == "" {
+		return fmt.Errorf("%w: %q", ErrScriptLanguageEmpty, name)
 	}
 	if s.Compensated {
 		return fmt.Errorf("%w: %q", ErrMetricCompensated, name)

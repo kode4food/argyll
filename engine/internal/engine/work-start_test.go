@@ -524,8 +524,7 @@ func TestWorkPredicate(t *testing.T) {
 		st.ID = "predicate-items"
 		st.Predicate = &api.ScriptConfig{
 			Language: api.ScriptLangLua,
-			Source: "if type(items) ~= 'table' then error('boom') end; " +
-				"return true",
+			Source:   "if type(items) ~= 'table' then error('boom') end; return true",
 		}
 		st.Attributes["items"].Required = &api.RequiredConfig{
 			ForEach: true,

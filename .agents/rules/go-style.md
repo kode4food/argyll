@@ -422,6 +422,8 @@ err := env.Engine.RegisterStep(
 
 Run `goimports` on all files. It handles grouping and sorting automatically.
 
+Use the package's declared name. Alias an import only when necessary to resolve a naming conflict or when the declared name is just a version such as `v4`.
+
 ### No Function-Scoped Type or Const Declarations
 
 All `type` and `const` declarations live at package level, in the appropriate block alongside the rest of the package's types and constants.

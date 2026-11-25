@@ -99,7 +99,6 @@ const (
 	directivePrefix    = "//argyll:"
 	stepDirective      = "step"
 	wrapDirective      = "wrap"
-	propsDirective     = "props"
 	httpDirective      = "http"
 	workDirective      = "work"
 	predicateDirective = "predicate"
@@ -231,9 +230,6 @@ func (g *pkgGen) claimEmbedType(fn *ast.FuncDecl, id string) (string, error) {
 }
 
 func (g *pkgGen) directivesOf(fn *ast.FuncDecl) (stepDirectives, error) {
-	if err := g.rejectProps(fn); err != nil {
-		return stepDirectives{}, err
-	}
 	http, err := optionsIn(fn, httpDirective)
 	if err != nil {
 		return stepDirectives{}, g.errorAt(fn, "%w", err)
@@ -266,18 +262,6 @@ func (g *pkgGen) directivesOf(fn *ast.FuncDecl) (stepDirectives, error) {
 		work:        work,
 		metrics:     metrics,
 	}, nil
-}
-
-func (g *pkgGen) rejectProps(fn *ast.FuncDecl) error {
-	legacy, err := optionsIn(fn, propsDirective)
-	if err != nil {
-		return g.errorAt(fn, "%w", err)
-	}
-	if len(legacy) > 0 {
-		return g.errorAt(fn, "%w: %s is not supported",
-			ErrBadDirective, directivePrefix+propsDirective)
-	}
-	return nil
 }
 
 func (g *pkgGen) model(config *stepModelConfig) (stepModel, error) {

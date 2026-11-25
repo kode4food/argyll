@@ -160,7 +160,7 @@ func TestMetricArg(t *testing.T) {
 	st, err := testClient().NewStep().
 		WithName("Test").
 		WithEndpoint("http://example.com").
-		Metric("took", api.ScriptConfig{Source: "elapsed"}).
+		Metric("took", api.ScriptConfig{Language: api.ScriptLangArgyll, Source: "elapsed"}).
 		Metric("tries", api.ScriptConfig{
 			Language: api.ScriptLangLua,
 			Source:   "return work.attempts.total",
@@ -175,6 +175,15 @@ func TestMetricArg(t *testing.T) {
 		Source:   "elapsed",
 	}, st.Attributes["took"].MetricSelector())
 	assert.Equal(t, api.ScriptLangLua, st.Attributes["tries"].MetricSelector().Language)
+}
+
+func TestMetricRequiresLanguage(t *testing.T) {
+	_, err := testClient().NewStep().
+		WithName("Test").
+		WithEndpoint("http://example.com").
+		Metric("took", api.ScriptConfig{Source: "elapsed"}).
+		Build()
+	assert.ErrorIs(t, err, api.ErrScriptLanguageEmpty)
 }
 
 func TestOutputArg(t *testing.T) {

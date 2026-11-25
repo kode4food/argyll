@@ -122,9 +122,8 @@ func TestSpaceMetadataSelectors(t *testing.T) {
 			expected []api.StepID
 		}{
 			{
-				name: "handling",
-				script: `value.type == "service" && ` +
-					`value.handling == "compensated"`,
+				name:     "handling",
+				script:   `value.type == "service" && value.handling == "compensated"`,
 				expected: []api.StepID{reversible.ID},
 			},
 			{

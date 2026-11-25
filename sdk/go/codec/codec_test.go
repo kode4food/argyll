@@ -44,8 +44,7 @@ type (
 	scalarCount int32
 )
 
-const nodeJSON = `{"name":"a","children":[` +
-	`{"name":"b","children":[{"name":"c","children":[]}]}]}`
+const nodeJSON = `{"name":"a","children":[{"name":"b","children":[{"name":"c","children":[]}]}]}`
 
 var errCodec = errors.New("codec failed")
 

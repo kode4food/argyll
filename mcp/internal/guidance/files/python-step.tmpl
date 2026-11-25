@@ -30,7 +30,7 @@ step = (
 {{ if .HasNonPostMethod }}    .with_method({{ quote .Method }}){{ end }}
     .with_endpoint("http://localhost:8081/step"){{ end }}{{ if .IsScript }}
     .with_script(ScriptConfig(
-        language=ScriptLanguage.LUA,
+        language=ScriptLanguage({{ quote .ScriptLanguage }}),
         source={{ quote .ScriptBody }},
     )){{ end }}
 )

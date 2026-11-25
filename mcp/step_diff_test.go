@@ -362,12 +362,12 @@ func TestApplyProposedStepsEngineEdges(t *testing.T) {
 	existing := `{"steps":[{"id":"send","name":"Old"}]}`
 
 	for _, tc := range []struct {
-		name    string
-		gets    []string
-		write   int
-		updates bool
-		fails   bool
-		check   func(*testing.T, map[string]any)
+		name        string
+		gets        []string
+		write       int
+		skipUpdates bool
+		fails       bool
+		check       func(*testing.T, map[string]any)
 	}{
 		{
 			name:  "rejects a registry that is not an object",
@@ -381,11 +381,10 @@ func TestApplyProposedStepsEngineEdges(t *testing.T) {
 			fails: true,
 		},
 		{
-			name:    "reports a failed update",
-			gets:    []string{existing},
-			write:   http.StatusInternalServerError,
-			updates: true,
-			fails:   true,
+			name:  "reports a failed update",
+			gets:  []string{existing},
+			write: http.StatusInternalServerError,
+			fails: true,
 		},
 		{
 			name:  "reports a failed readback",
@@ -405,8 +404,9 @@ func TestApplyProposedStepsEngineEdges(t *testing.T) {
 			},
 		},
 		{
-			name: "skips updates when disabled",
-			gets: []string{existing},
+			name:        "skips updates when requested",
+			gets:        []string{existing},
+			skipUpdates: true,
 			check: func(t *testing.T, payload map[string]any) {
 				skipped := payload["skipped_steps"].([]any)[0].(map[string]any)
 				assert.Equal(t, "updates disabled for this apply call", skipped["reason"])
@@ -431,8 +431,10 @@ func TestApplyProposedStepsEngineEdges(t *testing.T) {
 			}
 			c := newClient(t, mcp.NewServer("http://example", hc))
 			args := map[string]any{
-				"steps":         []map[string]any{semantic},
-				"apply_updates": tc.updates,
+				"steps": []map[string]any{semantic},
+			}
+			if tc.skipUpdates {
+				args["skip_updates"] = true
 			}
 			if tc.fails {
 				assert.True(t, callToolFails(t, c, "apply_proposed_steps", args))

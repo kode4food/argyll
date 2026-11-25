@@ -845,7 +845,7 @@ def test_step_builder_metric():
         client.new_step()
         .with_name("Test")
         .with_endpoint("http://localhost:8081/test")
-        .metric("took", "elapsed")
+        .metric("took", "elapsed", ScriptLanguage.ARGYLL)
         .metric("tries", "return work.attempts.max", ScriptLanguage.LUA)
         .build()
     )

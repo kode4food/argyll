@@ -31,19 +31,15 @@ func (s *Server) generateStepImpl(
 	}
 	actionMode := "sync"
 	method := "POST"
-	var scriptLang *string
-	var scriptBody *string
+	var scriptLang string
+	var scriptBody string
 	isExternal := false
 	if scriptCfg, ok := asMap(args.Step["script"]); ok {
 		stepType = "script"
 		actionMode = ""
 		method = ""
-		lang := strings.ToLower(stringValue(scriptCfg["language"]))
-		if lang == "" {
-			lang = "lua"
-		}
-		scriptLang = &lang
-		scriptBody = new(stringValue(scriptCfg["source"]))
+		scriptLang = strings.ToLower(stringValue(scriptCfg["language"]))
+		scriptBody = stringValue(scriptCfg["source"])
 	}
 	if httpCfg, ok := asMap(args.Step["http"]); ok {
 		isExternal = true
@@ -63,7 +59,7 @@ func (s *Server) generateStepImpl(
 		name = stringValue(args.Step["id"])
 	}
 	var templateMode *string
-	if actionMode != "" {
+	if stepType != "script" && actionMode != "" {
 		templateMode = &actionMode
 	}
 	code, err := renderStepTemplate(sdkStepTemplateInput{
@@ -121,14 +117,14 @@ func stepImplNotes(isExternal bool, method string, inputs, outputs []string) []s
 	var res []string
 	if isExternal {
 		res = append(res,
-			"Use the service contract already embedded in the proposed step "+
-				"instead of inventing a new transport.",
+			"Use the service contract already embedded in the proposed step instead of inventing "+
+				"a new transport.",
 		)
 	}
 	if method != "" && method != "POST" {
 		res = append(res,
-			"This step uses a non-POST HTTP method; map arguments to path "+
-				"or query fields carefully.",
+			"This step uses a non-POST HTTP method; map arguments to path or query fields "+
+				"carefully.",
 		)
 	}
 	if len(inputs) == 0 {

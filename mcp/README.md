@@ -9,7 +9,7 @@ This MCP server exposes both the Argyll runtime surface and an OpenAPI-driven de
 - `analyze_service_landscape` - analyze multiple service specs together and describe cross-service planning links and missing attributes.
 - `generate_step_impl` - generate a Go or Python SDK implementation draft for a proposed step.
 - `diff_proposed_steps` - compare proposed step registrations with the live catalog without applying them, and classify each as create, update, or skip.
-- `apply_proposed_steps` - apply only the required creates and updates for a proposed step set using the existing registration endpoints.
+- `apply_proposed_steps` - apply only the required creates and updates for a proposed step set. Use `skip_updates: true` to register new Steps only. This replaces `apply_updates: false`.
 - `list_steps` - list all registered steps.
 - `register_step` - register a new step.
 - `get_step` - fetch a single step by ID.
@@ -55,6 +55,8 @@ The same capability block also advertises endpoint arguments. Argyll replaces `{
 Example user request to the LLM:
 
 > We have a customer service and an order service. Analyze both OpenAPI specs, figure out what Argyll steps we should register, apply the non-redundant registrations, and preview whether Argyll can plan an order flow from the initial customer email and items.
+
+The analysis tools accept `existing_steps` as an object keyed by Step ID, such as `{"lookup":{"name":"Look up customer"}}`.
 
 One reasonable tool sequence is:
 

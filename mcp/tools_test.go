@@ -44,6 +44,25 @@ func TestPreviewPlanTool(t *testing.T) {
 	assert.JSONEq(t, previewPlan, text)
 }
 
+func TestStartFlowEmptyInputs(t *testing.T) {
+	hc := &http.Client{Transport: roundTripperFunc(func(r *http.Request) (*http.Response, error) {
+		var body map[string]any
+		assert.NoError(t, json.NewDecoder(r.Body).Decode(&body))
+		assert.Regexp(t, "^goal-[0-9a-f]{8}$", body["id"])
+		assert.Equal(t, map[string]any{}, body["init"])
+		assert.NotContains(t, body, "tags")
+		return jsonResponse(http.StatusOK, []byte(`{}`)), nil
+	})}
+	c := newClient(t, mcp.NewServer("http://example", hc))
+	for _, args := range []map[string]any{
+		{},
+		{"id": "", "tags": []string{}, "init": map[string]any{}},
+	} {
+		args["goals"] = api.Goals{Steps: []api.StepID{"goal"}}
+		callToolText(t, c, "start_flow", args)
+	}
+}
+
 func TestListFlowsTool(t *testing.T) {
 	want := `{"flows":[{"id":"wf-1","status":"active"}],"count":1}`
 

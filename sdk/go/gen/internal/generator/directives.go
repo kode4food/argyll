@@ -183,10 +183,10 @@ func parsePredicate(fn *ast.FuncDecl) (*api.ScriptConfig, error) {
 			return nil, fmt.Errorf("%w: %s repeats",
 				ErrBadDirective, directivePrefix+predicateDirective)
 		}
-		cfg := &api.ScriptConfig{Language: api.ScriptLangLua}
+		cfg := &api.ScriptConfig{}
 		if !parseScript(cfg, ref.args) {
-			return nil, fmt.Errorf("%w: %s needs a script",
-				ErrBadDirective, directivePrefix+predicateDirective)
+			return nil, fmt.Errorf("%w: %w: %s",
+				ErrBadDirective, ErrScriptExpected, directivePrefix+predicateDirective)
 		}
 		res = cfg
 	}
