@@ -26,7 +26,6 @@ const FlowCreateForm: React.FC<FlowCreateFormProps> = ({ onCreateStep }) => {
     setInitialState,
     creating,
     handleCreateFlow,
-    steps,
     goalSteps,
     setHoveredGoalSet,
     setFocusedPreviewAttribute,
@@ -108,10 +107,6 @@ const FlowCreateForm: React.FC<FlowCreateFormProps> = ({ onCreateStep }) => {
           </div>
         </div>
       </div>
-
-      {steps.length === 0 && (
-        <div className={styles.warning}>{t("flowCreate.warningNoSteps")}</div>
-      )}
     </div>
   );
 };

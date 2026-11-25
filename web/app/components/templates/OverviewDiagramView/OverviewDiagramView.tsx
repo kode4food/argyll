@@ -43,7 +43,7 @@ const OverviewDiagramViewInner: React.FC<OverviewDiagramViewProps> = ({
     previewStepCount,
   } = useOverviewDiagramView(steps);
 
-  if (isEmpty) {
+  if (isEmpty && steps.length > 0) {
     return (
       <DiagramEmptyState
         icon={<IconDiagramEmptyState />}
@@ -74,6 +74,17 @@ const OverviewDiagramViewInner: React.FC<OverviewDiagramViewProps> = ({
       className={`overview-mode-bg diagram-detail-${diagramDetail}`}
       proOptions={{ hideAttribution: true }}
     >
+      {steps.length === 0 && (
+        <div className={styles.watermark}>
+          <IconDiagramEmptyState
+            className={styles.watermarkIcon}
+            aria-hidden="true"
+          />
+          <span className={styles.watermarkText}>
+            {t("overview.noStepsWatermark")}
+          </span>
+        </div>
+      )}
       {showPreviewHud && (
         <DiagramHud
           className={styles.previewHud}

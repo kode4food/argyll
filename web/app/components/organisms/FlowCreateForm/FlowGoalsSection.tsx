@@ -157,6 +157,25 @@ const FlowGoalsSection: React.FC<FlowGoalsSectionProps> = ({
             showTopFade ? fadeStyles.fadeTop : ""
           } ${showBottomFade ? fadeStyles.fadeBottom : ""}`}
         >
+          {stepRows.length === 0 && (
+            <div className={styles.emptySteps}>
+              {t("flowCreate.noSteps")
+                .split("{button}")
+                .flatMap((part, i) => [
+                  i > 0 && (
+                    <span
+                      key={`button-${i}`}
+                      className={styles.emptyStepsAction}
+                      role="img"
+                      aria-label={t("overview.addStep")}
+                    >
+                      <IconAddStep className={styles.sectionActionIcon} />
+                    </span>
+                  ),
+                  part && <span key={`text-${i}`}>{part}</span>,
+                ])}
+            </div>
+          )}
           {stepRows.map(
             ({ step, className, tooltipText, isDisabled, handleSelect }) => (
               <div

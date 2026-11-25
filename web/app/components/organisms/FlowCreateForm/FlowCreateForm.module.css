@@ -16,15 +16,6 @@
   background-color: transparent;
 }
 
-.warning {
-  margin: var(--spacing-md);
-  padding: var(--spacing-md);
-  background-color: var(--color-warning-bg);
-  border: 1px solid var(--color-warning);
-  border-radius: var(--spacing-xs);
-  color: var(--color-warning-dark);
-}
-
 .container {
   display: block;
   height: 100%;

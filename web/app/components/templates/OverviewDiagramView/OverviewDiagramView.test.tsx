@@ -18,9 +18,6 @@ let viewportZoom = 1;
 
 jest.mock("@xyflow/react", () => ({
   ReactFlow: (props: any) => reactFlowMock(props),
-  Controls: ({ children }: { children?: React.ReactNode }) => (
-    <div data-testid="controls">{children}</div>
-  ),
   ControlButton: ({
     children,
     ...props
@@ -28,6 +25,9 @@ jest.mock("@xyflow/react", () => ({
     <button type="button" {...props}>
       {children}
     </button>
+  ),
+  Panel: ({ children }: { children?: React.ReactNode }) => (
+    <div data-testid="panel">{children}</div>
   ),
   PanelPosition: {
     BottomRight: "bottom-right",
@@ -111,9 +111,11 @@ jest.mock("./useExecutionPlanPreview", () => ({
   }),
 }));
 
+const mockVisibility = { hideAll: false };
+
 jest.mock("./useStepVisibility", () => ({
   useStepVisibility: (steps: Step[]) => ({
-    visibleSteps: steps,
+    visibleSteps: mockVisibility.hideAll ? [] : steps,
     previewStepIds: new Set(steps.map((step) => step.id)),
   }),
 }));
@@ -164,8 +166,8 @@ describe("OverviewDiagramView", () => {
     expect(getByTestId("react-flow")).toBeInTheDocument();
   });
 
-  it("renders empty state when no steps", () => {
-    const { getByText } = render(
+  it("renders an empty canvas when no steps", () => {
+    const { getByTestId } = render(
       <DiagramSelectionProvider
         value={{
           goalSteps: [],
@@ -175,6 +177,32 @@ describe("OverviewDiagramView", () => {
         <OverviewDiagramView steps={[]} />
       </DiagramSelectionProvider>
     );
+
+    expect(getByTestId("react-flow")).toBeInTheDocument();
+    expect(
+      getByTestId("react-flow").textContent?.includes(
+        t("overview.noStepsWatermark")
+      )
+    ).toBe(true);
+  });
+
+  it("renders the hidden state when no steps are visible", () => {
+    mockVisibility.hideAll = true;
+    const { getByText } = render(
+      <DiagramSelectionProvider
+        value={{
+          goalSteps: [],
+          setGoalSteps: jest.fn(),
+        }}
+      >
+        <OverviewDiagramView
+          steps={[
+            { id: "s", name: "S", type: "service", attributes: {} } as Step,
+          ]}
+        />
+      </DiagramSelectionProvider>
+    );
+    mockVisibility.hideAll = false;
 
     expect(getByText(t("overview.noVisibleTitle"))).toBeInTheDocument();
   });

@@ -30,6 +30,8 @@
   "controls.fitView": "Fit to view",
   "controls.switchToDarkMode": "Switch to dark mode",
   "controls.switchToLightMode": "Switch to light mode",
+  "controls.zoomIn": "Zoom in",
+  "controls.zoomOut": "Zoom out",
   "diagram.diagramErrorDescription": "An error occurred while rendering the diagram. Try selecting a different Flow",
   "diagram.diagramErrorTitle": "Diagram Error",
   "diagram.errorDescription": "An error occurred while rendering the Step diagram",
@@ -58,6 +60,7 @@
   "flowCreate.badgeUnreachable": "Unreachable",
   "flowCreate.noGoalsSelected": "No Goal Steps selected",
   "flowCreate.noPotentialInputs": "No potential inputs for selected Goal Steps",
+  "flowCreate.noSteps": "Add a Step with {button} above",
   "flowCreate.requiredAttributesLabel": "Attributes",
   "flowCreate.spaceAll": "All Steps",
   "flowCreate.spaceLabel": "Space",
@@ -67,7 +70,6 @@
   "flowCreate.tooltipMissingRequired": "Missing required: {attrs}",
   "flowCreate.tooltipSatisfiedByState": "Outputs satisfied by initial state",
   "flowCreate.unknownError": "Unknown error",
-  "flowCreate.warningNoSteps": "⚠️ No Steps are registered. Flows need registered Steps to function",
   "flowSelector.backToOverview": "Back to Overview",
   "flowSelector.focusSearch": "Focus search",
   "flowSelector.loadMore": "Load more Flows",
@@ -144,8 +146,6 @@
   "overview.addFlowStepFromGoals": "New Flow Step from Goal Steps",
   "overview.addStep": "Create New Step",
   "overview.addStepShiftHint": "Create New Step (Shift: from Goal Steps)",
-  "overview.noStepsDescription": "Register Steps with the Argyll engine to see the Flow diagram",
-  "overview.noStepsTitle": "No Steps Registered",
   "overview.previewLabel": "Preview",
   "overview.previewGoals": {
     "zero": "No Goals",
@@ -157,6 +157,7 @@
     "one": "1 Step in plan",
     "other": "{count} Steps in plan"
   },
+  "overview.noStepsWatermark": "No Steps Registered",
   "overview.noVisibleDescription": "Register Steps to see their dependency relationships in diagram form",
   "overview.noVisibleTitle": "No Steps to Visualize",
   "overview.stepsRegistered": {

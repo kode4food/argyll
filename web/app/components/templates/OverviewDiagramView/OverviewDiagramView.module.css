@@ -6,6 +6,31 @@
   transform: translateX(-50%);
 }
 
+.watermark {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-lg);
+  color: var(--color-neutral-text);
+  opacity: var(--opacity-disabled);
+  pointer-events: none;
+  user-select: none;
+}
+
+.watermarkIcon {
+  width: 4rem;
+  height: 4rem;
+}
+
+.watermarkText {
+  font-size: var(--text-3xl);
+  font-weight: var(--font-semibold);
+}
+
 @media (max-width: 70rem) {
   .previewHud {
     max-width: calc(

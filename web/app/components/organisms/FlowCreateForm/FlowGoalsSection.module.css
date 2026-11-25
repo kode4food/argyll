@@ -32,12 +32,8 @@
   white-space: nowrap;
 }
 
-.sectionActionButton {
-  composes: interactive hoverFill focusFill focusRing from "@/app/styles/components/interaction.module.css";
-  --control-hover-bg: var(--panel-hover-strong);
-  --control-hover-border: var(--panel-border);
-  --control-focus-bg: var(--panel-hover-strong);
-  --control-focus-border: var(--color-info);
+/* The add action's face, shared by the button and its mention in the empty list */
+.actionFace {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -48,6 +44,15 @@
   border-radius: var(--radius-md);
   background-color: transparent;
   color: var(--panel-text);
+}
+
+.sectionActionButton {
+  composes: actionFace;
+  composes: interactive hoverFill focusFill focusRing from "@/app/styles/components/interaction.module.css";
+  --control-hover-bg: var(--panel-hover-strong);
+  --control-hover-border: var(--panel-border);
+  --control-focus-bg: var(--panel-hover-strong);
+  --control-focus-border: var(--color-info);
 }
 
 .sectionActionIcon {
@@ -82,6 +87,22 @@
 
 .sidebarList::-webkit-scrollbar {
   display: none;
+}
+
+.emptySteps {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-xs);
+  height: 100%;
+  text-align: center;
+  color: var(--panel-text-muted);
+  padding: var(--spacing-md);
+}
+
+.emptyStepsAction {
+  composes: actionFace;
+  flex-shrink: 0;
 }
 
 .dropdownItem {

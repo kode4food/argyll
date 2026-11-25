@@ -36,6 +36,7 @@ import {
   LogOut,
   Lock,
   Maximize,
+  Minus,
   MinusCircle,
   Moon,
   Play,
@@ -76,6 +77,8 @@ export interface ArgIconConfig {
 export const IconAdd = Plus;
 export const IconAddStep = Plus;
 export const IconFitView = Maximize;
+export const IconZoomIn = Plus;
+export const IconZoomOut = Minus;
 export const IconRemove = Trash2;
 export const IconSearch = Search;
 export const IconStartFlow = Play;

@@ -8,9 +8,6 @@ let viewportZoom = 1;
 
 jest.mock("@xyflow/react", () => ({
   ReactFlow: (props: any) => reactFlowMock(props),
-  Controls: ({ children }: { children?: React.ReactNode }) => (
-    <div data-testid="controls">{children}</div>
-  ),
   ControlButton: ({
     children,
     ...props

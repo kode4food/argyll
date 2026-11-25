@@ -30,6 +30,8 @@
   "controls.fitView": "Ajuster à la vue",
   "controls.switchToDarkMode": "Passer en mode sombre",
   "controls.switchToLightMode": "Passer en mode clair",
+  "controls.zoomIn": "Zoom avant",
+  "controls.zoomOut": "Zoom arrière",
   "diagram.diagramErrorDescription": "Une erreur est survenue lors du rendu du diagramme. Essayez de sélectionner un autre Flow",
   "diagram.diagramErrorTitle": "Erreur du diagramme",
   "diagram.errorDescription": "Une erreur est survenue lors du rendu du diagramme Step",
@@ -58,6 +60,7 @@
   "flowCreate.badgeUnreachable": "Inaccessible",
   "flowCreate.noGoalsSelected": "Aucun Goal Step sélectionné",
   "flowCreate.noPotentialInputs": "Aucun Input potentiel pour les Goal Steps sélectionnés",
+  "flowCreate.noSteps": "Ajoutez un Step avec {button} ci-dessus",
   "flowCreate.requiredAttributesLabel": "Attributes",
   "flowCreate.spaceAll": "Tous les Steps",
   "flowCreate.spaceLabel": "Space",
@@ -67,7 +70,6 @@
   "flowCreate.tooltipMissingRequired": "Requis manquants: {attrs}",
   "flowCreate.tooltipSatisfiedByState": "Outputs satisfaits par l'état initial",
   "flowCreate.unknownError": "Erreur inconnue",
-  "flowCreate.warningNoSteps": "⚠️ Aucun Step enregistré. Les Flows nécessitent des Steps enregistrés pour fonctionner",
   "flowSelector.backToOverview": "Retour à la vue d'ensemble",
   "flowSelector.focusSearch": "Mettre le focus sur la recherche",
   "flowSelector.loadMore": "Charger plus de Flows",
@@ -143,8 +145,6 @@
   "overview.addFlowStepFromGoals": "Nouveau Flow Step depuis Goal Steps",
   "overview.addStep": "Créer un nouveau Step",
   "overview.addStepShiftHint": "Créer un nouveau Step (Shift : depuis Goal Steps)",
-  "overview.noStepsDescription": "Enregistrez des Steps de Flow dans Argyll Engine pour voir le diagramme du Flow",
-  "overview.noStepsTitle": "Aucun Step enregistré",
   "overview.previewLabel": "Aperçu",
   "overview.previewGoals": {
     "zero": "Aucun Goal",
@@ -156,6 +156,7 @@
     "one": "1 Step dans le plan",
     "other": "{count} Steps dans le plan"
   },
+  "overview.noStepsWatermark": "Aucun Step enregistré",
   "overview.noVisibleDescription": "Enregistrez des Steps pour voir leurs dépendances dans le diagramme",
   "overview.noVisibleTitle": "Aucun Step à visualiser",
   "overview.stepsRegistered": {

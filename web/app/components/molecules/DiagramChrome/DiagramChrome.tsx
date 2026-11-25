@@ -3,7 +3,7 @@ import {
   Background,
   BackgroundVariant,
   ControlButton,
-  Controls,
+  Panel,
 } from "@xyflow/react";
 import {
   IconChat,
@@ -11,6 +11,8 @@ import {
   IconSignOut,
   IconThemeDark,
   IconThemeLight,
+  IconZoomIn,
+  IconZoomOut,
 } from "@/utils/iconRegistry";
 import { useT } from "@/app/i18n";
 import glassChromeStyles from "@/app/styles/modules/GlassChrome.module.css";
@@ -41,51 +43,67 @@ const DiagramChrome: React.FC = () => {
         size={1}
         className="diagram-background"
       />
-      <Controls
-        className={glassChromeStyles.controls}
-        orientation="vertical"
+      <Panel
         position="bottom-right"
-        showInteractive={false}
-        showFitView={false}
-        onZoomIn={handleZoomIn}
-        onZoomOut={handleZoomOut}
+        className={glassChromeStyles.controlGroups}
         style={{
           right: "var(--spacing-md)",
           bottom: "var(--spacing-md)",
+          margin: 0,
         }}
       >
-        <ControlButton
-          onClick={fitView}
-          title={t("controls.fitView")}
-          aria-label={t("controls.fitView")}
-        >
-          <IconFitView />
-        </ControlButton>
-        <ControlButton
-          onClick={toggleTheme}
-          title={themeLabel}
-          aria-label={themeLabel}
-        >
-          {isDark ? <IconThemeLight /> : <IconThemeDark />}
-        </ControlButton>
-        <ControlButton
-          onClick={toggleChat}
-          title={chatLabel}
-          aria-label={chatLabel}
-          aria-pressed={isChatOpen}
-        >
-          <IconChat />
-        </ControlButton>
-        {canSignOut && (
+        <div className={glassChromeStyles.controls}>
           <ControlButton
-            onClick={() => void signOut()}
-            title={signOutLabel}
-            aria-label={signOutLabel}
+            onClick={toggleChat}
+            title={chatLabel}
+            aria-label={chatLabel}
+            aria-pressed={isChatOpen}
           >
-            <IconSignOut />
+            <IconChat />
           </ControlButton>
+        </div>
+        <div className={glassChromeStyles.controls}>
+          <ControlButton
+            onClick={handleZoomIn}
+            title={t("controls.zoomIn")}
+            aria-label={t("controls.zoomIn")}
+          >
+            <IconZoomIn />
+          </ControlButton>
+          <ControlButton
+            onClick={handleZoomOut}
+            title={t("controls.zoomOut")}
+            aria-label={t("controls.zoomOut")}
+          >
+            <IconZoomOut />
+          </ControlButton>
+          <ControlButton
+            onClick={fitView}
+            title={t("controls.fitView")}
+            aria-label={t("controls.fitView")}
+          >
+            <IconFitView />
+          </ControlButton>
+          <ControlButton
+            onClick={toggleTheme}
+            title={themeLabel}
+            aria-label={themeLabel}
+          >
+            {isDark ? <IconThemeLight /> : <IconThemeDark />}
+          </ControlButton>
+        </div>
+        {canSignOut && (
+          <div className={glassChromeStyles.controls}>
+            <ControlButton
+              onClick={() => void signOut()}
+              title={signOutLabel}
+              aria-label={signOutLabel}
+            >
+              <IconSignOut />
+            </ControlButton>
+          </div>
         )}
-      </Controls>
+      </Panel>
     </>
   );
 };

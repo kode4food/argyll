@@ -99,10 +99,10 @@ describe("OverviewDiagram", () => {
     });
   });
 
-  it("shows empty state when no steps", () => {
+  it("keeps the panel when no steps", () => {
     setSession({ steps: [] });
     render(<OverviewDiagram />);
-    expect(screen.getByText(t("overview.noStepsTitle"))).toBeInTheDocument();
+    expect(screen.getByText(t("overview.addStep"))).toBeInTheDocument();
   });
 
   it("shows not found state when flow missing", () => {

@@ -134,7 +134,6 @@ export const useFlowCreateForm = (onCreateStep?: (draft?: Step) => void) => {
     setInitialState,
     creating,
     handleCreateFlow,
-    steps,
     goalSteps,
     setHoveredGoalSet,
     setFocusedPreviewAttribute,

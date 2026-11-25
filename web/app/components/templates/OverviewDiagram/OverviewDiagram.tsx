@@ -1,7 +1,6 @@
 import React from "react";
 import OverviewDiagramView from "@/app/components/templates/OverviewDiagramView";
 import DiagramLayout from "@/app/components/templates/DiagramLayout";
-import EmptyState from "@/app/components/molecules/EmptyState";
 import FlowCreateForm from "@/app/components/organisms/FlowCreateForm";
 import styles from "./OverviewDiagram.module.css";
 import ErrorBoundary from "@/app/components/organisms/ErrorBoundary";
@@ -23,17 +22,6 @@ const OverviewDiagramContent: React.FC<OverviewDiagramContentProps> = ({
   const t = useT();
   const { steps, diagramContainerRef, panelRef, selection, handleCreateStep } =
     useOverviewDiagram(openEditor);
-
-  if (steps.length === 0) {
-    return (
-      <div className={styles.emptyStateContainer}>
-        <EmptyState
-          title={t("overview.noStepsTitle")}
-          description={t("overview.noStepsDescription")}
-        />
-      </div>
-    );
-  }
 
   return (
     <DiagramLayout

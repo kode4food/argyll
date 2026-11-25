@@ -30,6 +30,8 @@
   "controls.fitView": "An Ansicht anpassen",
   "controls.switchToDarkMode": "Zu Dunkelmodus wechseln",
   "controls.switchToLightMode": "Zu Hellmodus wechseln",
+  "controls.zoomIn": "Vergrössern",
+  "controls.zoomOut": "Verkleinern",
   "diagram.diagramErrorDescription": "Beim Rendern des Diagramms ist ein Fehler aufgetreten. Bitte einen anderen Flow wählen",
   "diagram.diagramErrorTitle": "Diagrammfehler",
   "diagram.errorDescription": "Beim Rendern des Step-Diagramms ist ein Fehler aufgetreten",
@@ -58,6 +60,7 @@
   "flowCreate.badgeUnreachable": "Unerreichbar",
   "flowCreate.noGoalsSelected": "Keine Goal Steps ausgewählt",
   "flowCreate.noPotentialInputs": "Keine potenziellen Inputs für ausgewählte Goal Steps",
+  "flowCreate.noSteps": "Fügen Sie oben mit {button} einen Step hinzu",
   "flowCreate.requiredAttributesLabel": "Attributes",
   "flowCreate.spaceAll": "Alle Steps",
   "flowCreate.spaceLabel": "Space",
@@ -67,7 +70,6 @@
   "flowCreate.tooltipMissingRequired": "Fehlend (erforderlich): {attrs}",
   "flowCreate.tooltipSatisfiedByState": "Outputs durch Initialzustand erfüllt",
   "flowCreate.unknownError": "Unbekannter Fehler",
-  "flowCreate.warningNoSteps": "⚠️ Keine Steps registriert. Flows benötigen registrierte Steps, um zu funktionieren",
   "flowSelector.backToOverview": "Zur Übersicht",
   "flowSelector.focusSearch": "Suche fokussieren",
   "flowSelector.loadMore": "Weitere Flows laden",
@@ -143,8 +145,6 @@
   "overview.addFlowStepFromGoals": "Neuer Flow Step aus Goal Steps",
   "overview.addStep": "Neuen Step erstellen",
   "overview.addStepShiftHint": "Neuen Step erstellen (Shift: aus Goal Steps)",
-  "overview.noStepsDescription": "Registrieren Sie Flow-Steps im Argyll Engine, um das Flow-Diagramm zu sehen",
-  "overview.noStepsTitle": "Keine Steps registriert",
   "overview.previewLabel": "Vorschau",
   "overview.previewGoals": {
     "zero": "Keine Goals",
@@ -156,6 +156,7 @@
     "one": "1 Step im Plan",
     "other": "{count} Steps im Plan"
   },
+  "overview.noStepsWatermark": "Keine Steps registriert",
   "overview.noVisibleDescription": "Registrieren Sie Steps, um ihre Abhängigkeitsbeziehungen im Diagramm zu sehen",
   "overview.noVisibleTitle": "Keine Steps zu visualisieren",
   "overview.stepsRegistered": {

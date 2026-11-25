@@ -310,22 +310,6 @@ describe("FlowCreateForm", () => {
     expect(startButton.querySelector(".lucide-play")).not.toBeInTheDocument();
   });
 
-  test("shows warning when no steps are registered", () => {
-    renderWithProvider({ steps: [] });
-
-    expect(
-      screen.getByText(t("flowCreate.warningNoSteps"))
-    ).toBeInTheDocument();
-  });
-
-  test("does not show warning when steps are registered", () => {
-    renderWithProvider({ steps: [mockStep] });
-
-    expect(
-      screen.queryByText(t("flowCreate.warningNoSteps"))
-    ).not.toBeInTheDocument();
-  });
-
   test("shows required attributes section header in both modes", () => {
     renderWithProvider();
 

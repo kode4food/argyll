@@ -61,6 +61,31 @@ describe("FlowGoalsSection", () => {
     expect(onCreateStep).toHaveBeenCalled();
   });
 
+  test("shows how to add a step when there are none", () => {
+    render(
+      <FlowGoalsSection
+        goalSteps={[]}
+        blockedByStep={new Map()}
+        missingByStep={new Map()}
+        onCreateStep={jest.fn()}
+        onGoalStepsChange={jest.fn()}
+        satisfied={new Set()}
+        showBottomFade={false}
+        showTopFade={false}
+        sidebarListRef={{ current: null }}
+        sortedSteps={[]}
+        spaceScoped={false}
+        stepsCount={0}
+      />
+    );
+
+    const [before] = t("flowCreate.noSteps", { button: "|" }).split("|");
+    expect(screen.getByText(before.trim())).toBeInTheDocument();
+    expect(
+      screen.getByRole("img", { name: t("overview.addStep") })
+    ).toBeInTheDocument();
+  });
+
   test("seeds from goal steps when the create action is shift-clicked", () => {
     const onCreateStep = jest.fn();
 
