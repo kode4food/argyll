@@ -83,4 +83,12 @@ const useT = () => {
   return ctx.t;
 };
 
-export { I18nProvider, useT };
+const useLocale = () => {
+  const ctx = useContext(I18nContext);
+  if (!ctx) {
+    throw new Error("useLocale must be used within an I18nProvider");
+  }
+  return ctx.locale;
+};
+
+export { I18nProvider, useT, useLocale };

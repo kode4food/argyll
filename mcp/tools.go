@@ -43,20 +43,16 @@ type (
 		ApplyUpdates *bool             `json:"apply_updates,omitempty"`
 	}
 
-	previewPlanArgs struct {
-		Init  map[string]any `json:"init,omitempty"`
-		Goals api.Goals      `json:"goals"`
-	}
-
 	previewPlanInput struct {
-		Init  *map[string]any `json:"init,omitempty"`
-		Goals api.Goals       `json:"goals"`
+		Init    api.InitArgs `json:"init,omitempty"`
+		SpaceID api.SpaceID  `json:"space_id,omitempty" jsonschema:"Space to plan in"`
+		Goals   api.Goals    `json:"goals"`
 	}
 
 	startFlowInput struct {
 		Init    *map[string]any `json:"init,omitempty"`
 		Tags    *[]string       `json:"tags,omitempty"`
-		SpaceID *string         `json:"space_id,omitempty" jsonschema:"Space to plan in"`
+		SpaceID api.SpaceID     `json:"space_id,omitempty" jsonschema:"Space to plan in"`
 		Goals   api.Goals       `json:"goals"`
 		ID      *string         `json:"id,omitempty" jsonschema:"Leave out for a fresh ID"`
 	}
@@ -240,7 +236,8 @@ func (s *Server) registerFlowWriteTools(reg *toolRegistry) {
 		Name: "start_flow",
 		Description: "Start a Flow that runs its Goal Steps. The plan includes every Step " +
 			"needed to produce the Goals' inputs. The response names the Flow ID. " +
-			"Never reuse an earlier ID. " + goalsShape + ". " + initShape,
+			"Never reuse an earlier ID. A started Flow has every input it needs. " +
+			goalsShape + ". " + initShape,
 	},
 		func(ctx context.Context, args startFlowInput) (any, error) {
 			if !args.Goals.Valid() {
@@ -261,8 +258,8 @@ func (s *Server) registerFlowWriteTools(reg *toolRegistry) {
 			if args.Tags != nil {
 				body["tags"] = *args.Tags
 			}
-			if args.SpaceID != nil {
-				body["space_id"] = *args.SpaceID
+			if args.SpaceID != "" {
+				body["space_id"] = args.SpaceID
 			}
 			return s.httpPost(ctx, "/engine/flows", body)
 		},
@@ -270,20 +267,22 @@ func (s *Server) registerFlowWriteTools(reg *toolRegistry) {
 	addTool(reg, &mcp.Tool{
 		Name: "preview_plan",
 		Description: "Preview the plan for Goal Steps and initial Attribute values. Shows " +
-			"the Steps that would run and the inputs still missing. " + goalsShape + ". " +
-			initShape,
+			"the Steps that would run. The plan's required lists the only init values " +
+			"the Flow needs. An optional input with no provider runs on its default, or " +
+			"without the value. " + goalsShape + ". " + initShape,
 	},
 		func(ctx context.Context, args previewPlanInput) (any, error) {
 			if !args.Goals.Valid() {
 				return nil, errInvalidParams("goals requires at least one non-empty goal set")
 			}
-			init := map[string]any{}
-			if args.Init != nil {
-				init = *args.Init
+			init := args.Init
+			if init == nil {
+				init = api.InitArgs{}
 			}
-			return s.httpPost(ctx, "/engine/plan", previewPlanArgs{
-				Goals: args.Goals,
-				Init:  init,
+			return s.httpPost(ctx, "/engine/plan", api.ExecutionPlanRequest{
+				Goals:   args.Goals,
+				Init:    init,
+				SpaceID: args.SpaceID,
 			})
 		},
 	)

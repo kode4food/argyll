@@ -191,10 +191,20 @@ export interface ChatMessage {
   content: string;
 }
 
+// What the web UI shows while the user chats
+export interface ChatView {
+  space_id?: string;
+  flow_id?: string;
+  goals?: Goals;
+  init?: Record<string, unknown[]>;
+  locale?: string;
+}
+
 export interface AgentChatRequest {
   provider: string;
   model: string;
   messages: ChatMessage[];
+  view?: ChatView;
 }
 
 export interface AgentChatReply {

@@ -28,6 +28,8 @@ interface UIContextType {
   setGoalSteps: (goals: GoalSets) => void;
   spaceId: string | null;
   setSpaceId: (spaceId: string | null) => void;
+  flowInit: Record<string, any>;
+  setFlowInit: (init: Record<string, any>) => void;
   updatePreviewPlan: (
     goalSteps: GoalSets,
     initialState: Record<string, any>
@@ -48,6 +50,7 @@ export const UIProvider: React.FC<{ children: React.ReactNode }> = ({
   >(null);
   const [goalSteps, setGoalStepsState] = useState<GoalSets>([]);
   const [hoveredGoalSet, setHoveredGoalSet] = useState<number | null>(null);
+  const [flowInit, setFlowInit] = useState<Record<string, any>>({});
   // The store keeps the selection across remounts and reloads
   const spaceId = useSelectedSpaceId();
   const selectSpace = useSetSelectedSpaceId();
@@ -182,6 +185,8 @@ export const UIProvider: React.FC<{ children: React.ReactNode }> = ({
       setGoalSteps,
       spaceId,
       setSpaceId,
+      flowInit,
+      setFlowInit,
     }),
     [
       focusedPreviewAttribute,
@@ -195,6 +200,7 @@ export const UIProvider: React.FC<{ children: React.ReactNode }> = ({
       setGoalSteps,
       spaceId,
       setSpaceId,
+      flowInit,
     ]
   );
 

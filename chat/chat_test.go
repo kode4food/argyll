@@ -25,6 +25,7 @@ func TestChat(t *testing.T) {
 		Provider: "anthropic",
 		Model:    "claude",
 		Messages: []contract.ChatMessage{{Role: contract.ChatRoleUser, Content: "hi"}},
+		View:     &contract.ChatView{SpaceID: "risk", Locale: "de-CH"},
 	}
 	worker := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, contract.Path, r.URL.Path)

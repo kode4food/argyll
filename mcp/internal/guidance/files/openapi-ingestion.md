@@ -11,17 +11,18 @@ The schema used to validate registrations is in `engine-api.yaml` (embedded alon
 Registration structure:
 
 - Every step **must** have `id`. Steps missing `id` are silently skipped by `diff_proposed_steps` and `apply_proposed_steps` with no error.
-- Valid `type` values: `service`, `script`, `flow`.
+- Valid `type` values: `service`, `script`, `flow`, `agent`.
 - The `http` object nests the call under `invoke`, which uses the key `endpoint`.
 - Both `http.invoke` and `http.compensate` accept `mode: sync` or `mode: async`. Each defaults to sync independently.
 - If the service exposes a health check endpoint, set `http.health` to that URL. The engine uses it to track step availability, and always polls it with `GET`.
-- If the service can undo the call, add `http.compensate` with its own `endpoint` and optional `method`. Its presence is what makes the step compensatable.
+- If the service can undo the call, set `handling: "compensated"` and add `http.compensate` with its own `endpoint` and optional `method`. The engine rejects either one without the other. The compensation call receives only the Attributes marked `"compensated": true`, and its endpoint placeholders must name those Attributes.
 
 ```json
 {
   "id": "my-step",
   "name": "My Step",
   "type": "service",
+  "handling": "compensated",
   "http": {
     "invoke": {
       "endpoint": "http://host/path",
@@ -35,19 +36,21 @@ Registration structure:
     },
     "health": "http://host/health"
   },
-  "attributes": { }
+  "attributes": {
+    "id": { "role": "required", "compensated": true }
+  }
 }
 ```
 
 ## Attribute spec
 
-`attributes` is a JSON **object** keyed by Attribute name. Valid roles: `required`, `optional`, `const`, `output`.
+`attributes` is a JSON **object** keyed by Attribute name. Valid roles: `required`, `optional`, `const`, `meta`, `feed`, `output`, `metric`. An `optional` input may set `optional.default`, a JSON literal the Step uses when no value arrives. A plan's `required` lists only unresolved `required` inputs.
 
 Mapping and match configuration nest **inside a sub-object keyed by the role name** on the Attribute. Both `mapping` and `match` are objects:
 
-- `mapping` → `{ "name": "service_field_name" }` (or add `"script"` for a transform)
+- `mapping` → `{ "name": "service_field_name" }` (or add a `"selector"` `ScriptConfig` for a transform)
 - `match` → `{ "language": "argyll", "source": "value == \"email\"" }` - a `ScriptConfig` object
-- `argyll` is the language identifier for Argyll Expressions in mappings, predicates, matches, and Space selectors. Script Steps use Lua. Predicates receive named Step inputs. Matches and selectors receive `value`. Predicates using Argyll Expressions must return a boolean
+- `argyll` is the language identifier for Argyll Expressions in mappings, predicates, matches, and Space selectors. Script Steps accept `argyll` or `lua`. Predicates receive named Step inputs. Matches and selectors receive `value`. Predicates using Argyll Expressions must return a boolean
 
 The spec's own example (from `StepRegistration.attributes`):
 
@@ -63,14 +66,14 @@ user_data:
   role: output
   output:
     mapping:
-      script:
+      selector:
         language: argyll
         source: "user_data.user"
 ```
 
 For service outputs `{"user": {"id": "u-123", "name": "Ada"}}`, this output mapping stores `{"id": "u-123", "name": "Ada"}` as `user_data`. Output mappings receive the complete outputs object under the output Attribute's name.
 
-For an input conversion, an Attribute `price_dollars` with value `12.5` can use `mapping: {name: amount, script: {language: argyll, source: "amount * 100"}}` to send `amount: 1250` to the service. Input mappings receive the individual value under the mapped parameter name.
+For an input conversion, an Attribute `price_dollars` with value `12.5` can use `mapping: {name: amount, selector: {language: argyll, source: "amount * 100"}}` to send `amount: 1250` to the service. Input mappings receive the individual value under the mapped parameter name.
 
 In JSON, an attribute with both a match discriminator and a field rename looks like:
 

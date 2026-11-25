@@ -6,9 +6,6 @@ var (
 	//go:embed prompts/chat.md
 	chatPrompt string
 
-	//go:embed prompts/chat-compact.md
-	compactChatPrompt string
-
 	//go:embed prompts/chat-style.md
 	chatStyle string
 

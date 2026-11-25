@@ -14,7 +14,7 @@ import (
 
 const (
 	previewGoals   = `{"steps":["goal"],"else":{"steps":["backup"]}}`
-	previewRequest = `{"goals":` + previewGoals + `}`
+	previewRequest = `{"goals":` + previewGoals + `,"init":{}}`
 	previewPlan    = `{"goals":` + previewGoals + `,"required":["input"]}`
 )
 

@@ -5,7 +5,20 @@ import { t } from "@/app/testUtils/i18n";
 import ChatBox from "./ChatBox";
 
 jest.mock("@/app/api", () => ({
+  ...jest.requireActual("@/app/api"),
   api: { chatWithAgent: jest.fn() },
+}));
+
+jest.mock("@/app/contexts/UIContext", () => ({
+  useUI: () => ({
+    spaceId: "risk",
+    goalSteps: [["notify"], []],
+    flowInit: { order_id: ["o-1"] },
+  }),
+}));
+
+jest.mock("@/app/store/flowStore", () => ({
+  useSelectedFlow: () => "flow-1",
 }));
 
 jest.mock("@/app/hooks/useAgentCapabilities", () => ({
@@ -65,6 +78,13 @@ describe("ChatBox", () => {
       provider: "anthropic",
       model: "claude",
       messages: [{ role: "user", content: "hi" }],
+      view: {
+        space_id: "risk",
+        flow_id: "flow-1",
+        goals: { steps: ["notify"] },
+        init: { order_id: ["o-1"] },
+        locale: "en-US",
+      },
     });
     expect(await screen.findByText("hello")).toBeInTheDocument();
     expect(input).toHaveValue("");

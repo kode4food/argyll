@@ -122,6 +122,27 @@ components:
               content:
                 type: string
                 minLength: 1
+        view:
+          type: object
+          description: What the web UI shows while the user chats
+          properties:
+            space_id:
+              type: string
+              description: The Space the UI plans in
+            flow_id:
+              type: string
+              description: The Flow the UI displays
+            goals:
+              $ref: "./engine-api.yaml#/components/schemas/Goals"
+            init:
+              type: object
+              description: Initial Attribute values entered for a new Flow
+              additionalProperties:
+                type: array
+                items: {}
+            locale:
+              type: string
+              description: The UI language, such as `de-CH`
 
     AgentChatReply:
       type: object

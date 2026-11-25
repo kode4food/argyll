@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { devtools, persist, createJSONStorage } from "zustand/middleware";
-import { api, type ChatMessage } from "@/app/api";
+import { api, type ChatMessage, type ChatView } from "@/app/api";
 
 interface ChatState {
   provider: string;
@@ -12,7 +12,7 @@ interface ChatState {
   setProvider: (provider: string) => void;
   setModel: (model: string) => void;
   toggleOpen: () => void;
-  send: (content: string) => Promise<void>;
+  send: (content: string, view?: ChatView) => Promise<void>;
 }
 
 const useChatStore = create<ChatState>()(
@@ -35,7 +35,7 @@ const useChatStore = create<ChatState>()(
         setModel: (model) => set({ model }, false, "chat/setModel"),
         toggleOpen: () =>
           set((state) => ({ isOpen: !state.isOpen }), false, "chat/toggle"),
-        send: async (content) => {
+        send: async (content, view) => {
           const { provider, model, messages } = get();
           const sent: ChatMessage[] = [...messages, { role: "user", content }];
           set(
@@ -48,6 +48,7 @@ const useChatStore = create<ChatState>()(
               provider,
               model,
               messages: sent,
+              view,
             });
             set(
               {

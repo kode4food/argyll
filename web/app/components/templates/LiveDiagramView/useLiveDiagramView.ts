@@ -22,7 +22,7 @@ export const useLiveDiagramView = ({
   resolvedAttributes = [],
 }: LiveDiagramViewOptions) => {
   const viewportKey = flowData?.id || "flow";
-  const { diagramContainerRef } = useUI();
+  const { diagramContainerRef, spaceId } = useUI();
 
   const { visibleSteps } = useStepVisibility(steps, flowData);
   const hasPlan =
@@ -30,13 +30,14 @@ export const useLiveDiagramView = ({
   const stepsToRender = hasPlan ? visibleSteps : [];
   const isLoadingPlan = !flowData || !hasPlan;
 
-  const nodes = useNodeCalculation(
-    stepsToRender,
+  const nodes = useNodeCalculation({
+    visibleSteps: stepsToRender,
     flowData,
     executions,
     resolvedAttributes,
-    diagramContainerRef
-  );
+    diagramContainerRef,
+    spaceId,
+  });
 
   const goalScopeIds = React.useMemo(
     () =>

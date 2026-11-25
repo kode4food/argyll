@@ -43,8 +43,8 @@ paths:
         `mode: async` action also receive `Argyll-Webhook-URL` and complete
         later by POSTing to that URL.
 
-        A compensation call is made after a compensated step fails following one
-        or more successful work items. It receives the attributes marked
+        A compensation call undoes a succeeded work item, either when its step
+        fails or when the Flow rolls back. It receives the attributes marked
         `compensated` so the handler can undo the work. A `mode: async`
         compensation also receives `Argyll-Webhook-URL`. POST an empty success
         response or Problem Details to that URL when rollback finishes.
@@ -219,7 +219,7 @@ x-implementation-notes: |
   attributes marked `compensated` as one flattened object using
   invocation-mapped names. The same names resolve URL placeholders. Duplicate
   selected inner names are invalid. Use the work token as the idempotency
-  key. A sync compensation returns 2xx on success, 5xx or 429 for a retryable
-  failure, or 422 for a permanent failure. An async compensation first returns 2xx to
-  accept the work, then POSTs an empty success response or problem details to
-  its `Argyll-Webhook-URL`.
+  key. A sync compensation returns 2xx on success, 5xx, 408, or 429 for a
+  retryable failure, or another status for a permanent failure. An async
+  compensation first returns 2xx to accept the work, then POSTs an empty
+  success response or problem details to its `Argyll-Webhook-URL`.

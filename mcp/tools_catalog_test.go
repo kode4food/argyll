@@ -46,6 +46,16 @@ func TestRoutedTools(t *testing.T) {
 				`"tags":["env:test"],"space_id":"payments"}`,
 		},
 		{
+			tool: "preview_plan",
+			args: map[string]any{
+				"goals":    map[string]any{"steps": []string{"a"}},
+				"space_id": "payments",
+			},
+			method: http.MethodPost,
+			path:   "/engine/plan",
+			body:   `{"goals":{"steps":["a"]},"init":{},"space_id":"payments"}`,
+		},
+		{
 			tool:   "query_flows",
 			args:   map[string]any{"tags": []string{"env:test"}},
 			method: http.MethodPost,

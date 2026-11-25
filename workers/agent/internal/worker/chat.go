@@ -106,16 +106,18 @@ func (w *Worker) converseChat(
 	}
 	defer box.close()
 
-	user, err := json.Marshal(req.Messages)
+	user, err := json.Marshal(struct {
+		View     *contract.ChatView     `json:"view,omitempty"`
+		Messages []contract.ChatMessage `json:"messages"`
+	}{View: req.View, Messages: req.Messages})
 	if err != nil {
 		return "", err
 	}
 	conv, err := w.provider.Open(&Chat{
-		Config:        cfg,
-		System:        strings.TrimSpace(chatPrompt) + " " + strings.TrimSpace(chatStyle),
-		CompactSystem: strings.TrimSpace(compactChatPrompt) + " " + strings.TrimSpace(chatStyle),
-		User:          string(user),
-		Tools:         append(box.specs, replySpec()),
+		Config: cfg,
+		System: strings.TrimSpace(chatPrompt) + " " + strings.TrimSpace(chatStyle),
+		User:   string(user),
+		Tools:  append(box.specs, replySpec()),
 	})
 	if err != nil {
 		return "", err

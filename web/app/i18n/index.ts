@@ -1,1 +1,1 @@
-export { I18nProvider, useT } from "./I18nProvider";
+export { I18nProvider, useT, useLocale } from "./I18nProvider";

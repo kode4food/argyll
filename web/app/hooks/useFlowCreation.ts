@@ -36,6 +36,7 @@ export const useFlowCreation = () => {
     goalSteps,
     setGoalSteps,
     spaceId,
+    setFlowInit,
   } = useUI();
 
   const [newID, setNewID] = useState("");
@@ -85,6 +86,11 @@ export const useFlowCreation = () => {
 
   const throttledInitialState = useThrottledValue(initialState, 500);
   const planGoals = useMemo(() => nonEmptyGoalSets(goalSteps), [goalSteps]);
+
+  // The chat reads what the form holds, so it can start the same Flow
+  useEffect(() => {
+    setFlowInit(filterDefaultValues(parseState(throttledInitialState)));
+  }, [throttledInitialState, setFlowInit]);
 
   useEffect(() => {
     if (planGoals.length === 0) {

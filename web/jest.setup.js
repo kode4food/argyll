@@ -57,6 +57,7 @@ const t = (key, vars) => {
 jest.mock("@/app/i18n", () => ({
   I18nProvider: ({ children }) => children,
   useT: () => t,
+  useLocale: () => "en-US",
 }));
 
 const durationUnits = {

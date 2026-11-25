@@ -21,8 +21,9 @@ info:
     service-account bearer token. The route requires the `admin` role because
     each attempt carries its own Step definition.
 
-    The route returns 401 for a missing or invalid token and 403 for a valid
-    token without the `admin` role. Health and capabilities stay public.
+    `/chat` requires the `operator` role. Each route returns 401 for a missing
+    or invalid token and 403 for a valid token without its role. Health and
+    capabilities stay public.
 
 servers:
   - url: "{protocol}://{host}:{port}"
@@ -57,6 +58,18 @@ paths:
       responses:
         "202":
           description: Attempt accepted. Its outcome arrives at the webhook URL
+        "401":
+          description: Missing or invalid bearer token
+          content:
+            application/json:
+              schema:
+                $ref: "./engine-api.yaml#/components/schemas/ErrorResponse"
+        "403":
+          description: The token lacks the `admin` role
+          content:
+            application/json:
+              schema:
+                $ref: "./engine-api.yaml#/components/schemas/ErrorResponse"
         "4XX":
           description: |
             Request rejected. Use 400 for an invalid request or 422 for an
@@ -67,6 +80,59 @@ paths:
                 $ref: "#/components/schemas/ProblemDetails"
         "5XX":
           description: Retryable failure
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetails"
+
+  /chat:
+    post:
+      summary: Answer a Chat
+      description: |
+        Answers the last user message with the worker's `argyll` MCP server as
+        the only tool source. The chat app relays the web UI's conversations
+        here. The worker forwards the caller's bearer token to that server, so
+        tools run with the caller's permissions.
+      operationId: answerChat
+      security:
+        - bearerAuth: []
+        - {}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "./chat.yaml#/components/schemas/AgentChatRequest"
+      responses:
+        "200":
+          description: The agent's reply
+          content:
+            application/json:
+              schema:
+                $ref: "./chat.yaml#/components/schemas/AgentChatReply"
+        "401":
+          description: Missing or invalid bearer token
+          content:
+            application/json:
+              schema:
+                $ref: "./engine-api.yaml#/components/schemas/ErrorResponse"
+        "403":
+          description: The token lacks the `operator` role
+          content:
+            application/json:
+              schema:
+                $ref: "./engine-api.yaml#/components/schemas/ErrorResponse"
+        "4XX":
+          description: |
+            Request rejected. 400 is an invalid conversation. 422 is an
+            unsupported provider, a missing `argyll` MCP server, or a model that
+            could not finish.
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetails"
+        "5XX":
+          description: The model provider failed or the chat timed out
           content:
             application/problem+json:
               schema:

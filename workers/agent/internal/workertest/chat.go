@@ -55,6 +55,7 @@ func (s *suite) testChat(t *testing.T) {
 		assert.Contains(t, tools, `"reply"`)
 		assert.NotContains(t, tools, `"crm__lookup"`)
 		assert.Contains(t, mustJSON(t, first), "how many seats")
+		assert.Contains(t, mustJSON(t, first), `\"space_id\":\"sales\"`)
 		assert.Contains(t, mustJSON(t, s.h.System(first)), "Be brief")
 		assert.Contains(t, mustJSON(t, model.request(1)), "acme has 40 seats")
 		assert.Contains(t, mustJSON(t, model.request(2)), "Call the `reply` tool")
@@ -180,6 +181,7 @@ func (s *suite) chatRequest() *contract.AgentChatRequest {
 			{Role: contract.ChatRoleAssistant, Content: "hi"},
 			{Role: contract.ChatRoleUser, Content: "how many seats for acme?"},
 		},
+		View: &contract.ChatView{SpaceID: "sales", Locale: "de-CH"},
 	}
 }
 

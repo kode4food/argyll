@@ -46,13 +46,47 @@ describe("useNodeCalculation", () => {
 
     loadNodePositionsMock.mockReturnValue({ "step-1": savedPosition });
 
-    const { result } = renderHook(() => useNodeCalculation(steps, flowData));
+    const { result } = renderHook(() =>
+      useNodeCalculation({ visibleSteps: steps, flowData })
+    );
 
     expect(loadNodePositionsMock).toHaveBeenCalledWith({
       type: "flow",
       flowId: "flow-1",
     });
     expect(result.current[0].position).toEqual(savedPosition);
+  });
+
+  test("falls back from Flow to Space to overview positions", () => {
+    const positions: Record<string, Record<string, unknown>> = {
+      flow: { a: { x: 1, y: 1 } },
+      space: { a: { x: 2, y: 2 }, b: { x: 2, y: 2 } },
+      overview: { a: { x: 3, y: 3 }, b: { x: 3, y: 3 }, c: { x: 3, y: 3 } },
+    };
+    loadNodePositionsMock.mockImplementation(
+      (scope: { type: string }) => positions[scope.type]
+    );
+    const steps: Step[] = ["a", "b", "c", "d"].map((id) => ({
+      id,
+      name: id,
+      type: "service",
+      attributes: {},
+    }));
+
+    const { result } = renderHook(() =>
+      useNodeCalculation({ visibleSteps: steps, flowData, spaceId: "risk" })
+    );
+
+    expect(loadNodePositionsMock).toHaveBeenCalledWith({
+      type: "space",
+      spaceId: "risk",
+    });
+    const [a, b, c, d] = result.current.map((node) => node.position);
+    expect(a).toEqual({ x: 1, y: 1 });
+    expect(b).toEqual({ x: 2, y: 2 });
+    expect(c).toEqual({ x: 3, y: 3 });
+    expect(d.x).toBe(0);
+    expect([a, b, c]).not.toContainEqual(d);
   });
 
   test("sets dependency metadata and levels", () => {
@@ -72,13 +106,13 @@ describe("useNodeCalculation", () => {
     ];
 
     const { result } = renderHook(() =>
-      useNodeCalculation(
-        steps,
+      useNodeCalculation({
+        visibleSteps: steps,
         flowData,
         executions,
         resolvedAttributes,
-        diagramContainerRef
-      )
+        diagramContainerRef,
+      })
     );
 
     expect(loadNodePositionsMock).toHaveBeenCalledWith({
@@ -130,7 +164,11 @@ describe("useNodeCalculation", () => {
     };
     const outside = (execs: any[]) => {
       const { result } = renderHook(() =>
-        useNodeCalculation(steps, fallbackFlow, execs)
+        useNodeCalculation({
+          visibleSteps: steps,
+          flowData: fallbackFlow,
+          executions: execs,
+        })
       );
       return result.current.map((node) => node.data.isOutsideGoalScope);
     };
@@ -165,7 +203,9 @@ describe("useNodeCalculation", () => {
       },
     ];
 
-    const { result } = renderHook(() => useNodeCalculation(steps));
+    const { result } = renderHook(() =>
+      useNodeCalculation({ visibleSteps: steps })
+    );
 
     const firstHeight =
       STEP_LAYOUT.WIDGET_BASE_HEIGHT + sectionHeightFor(requiredCount);

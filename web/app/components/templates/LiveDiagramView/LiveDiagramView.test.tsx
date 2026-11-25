@@ -178,11 +178,12 @@ describe("LiveDiagramView", () => {
 
     const calls = mockUseNodeCalculation.mock.calls;
     expect(calls.length).toBeGreaterThan(0);
-    expect(calls[0][0]).toEqual([baseStep]);
-    expect(calls[0][1]).toBe(flowData);
-    expect(calls[0][2]).toBe(executions);
-    expect(calls[0][3]).toBe(resolvedAttributes);
-    expect(calls[0][4]).toHaveProperty("current");
+    const opts = calls[0][0];
+    expect(opts.visibleSteps).toEqual([baseStep]);
+    expect(opts.flowData).toBe(flowData);
+    expect(opts.executions).toBe(executions);
+    expect(opts.resolvedAttributes).toBe(resolvedAttributes);
+    expect(opts.diagramContainerRef).toHaveProperty("current");
   });
 
   test("passes correct props to useEdgeCalculation", () => {

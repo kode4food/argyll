@@ -3,10 +3,10 @@
 Use this guidance when implementing Argyll steps with the SDKs.
 
 Core model:
-- A step declares required inputs, outputs, type, and optional tags, predicates, memoization, retry/work config, and HTTP config.
+- A step declares required inputs, optional inputs with defaults, outputs, type, and optional tags, predicates, memoization, retry/work config, and HTTP config.
 - Service steps need an HTTP endpoint. Invocation and compensation each select sync or async mode independently. The default is sync and the default invocation method is POST.
 - Supported configured HTTP methods are GET, POST, PUT, and DELETE.
-- Endpoint placeholders such as /users/{user_id} must correspond to declared input attributes.
+- Invocation endpoint placeholders such as /users/{user_id} must name required inputs. Compensation endpoint placeholders must name compensated Attributes.
 - Step HTTP endpoints receive input args directly and return output args directly. Error responses should use HTTP status codes and Problem Details.
 
 SDK-hosted HTTP steps:

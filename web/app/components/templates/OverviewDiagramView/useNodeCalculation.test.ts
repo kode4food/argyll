@@ -24,7 +24,7 @@ describe("useNodeCalculation", () => {
   test("creates nodes for visible steps", () => {
     const steps = [createStep("step1"), createStep("step2")];
     const { result } = renderHook(() =>
-      useNodeCalculation(steps, [], null, null)
+      useNodeCalculation({ visibleSteps: steps, selectedStepIds: [] })
     );
 
     expect(result.current).toHaveLength(2);
@@ -33,7 +33,7 @@ describe("useNodeCalculation", () => {
   test("marks selected nodes", () => {
     const step = createStep("step1");
     const { result } = renderHook(() =>
-      useNodeCalculation([step], ["step1"], null, null)
+      useNodeCalculation({ visibleSteps: [step], selectedStepIds: ["step1"] })
     );
 
     expect(result.current[0].data.selected).toBe(true);
@@ -48,7 +48,13 @@ describe("useNodeCalculation", () => {
     };
 
     const { result } = renderHook(() =>
-      useNodeCalculation([step], [], previewPlan, previewStepIds, jest.fn())
+      useNodeCalculation({
+        visibleSteps: [step],
+        selectedStepIds: [],
+        previewPlan,
+        previewStepIds,
+        onStepClick: jest.fn(),
+      })
     );
 
     expect(result.current[0].data.isPreviewMode).toBe(true);

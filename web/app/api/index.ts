@@ -27,6 +27,7 @@ export type {
   AgentChatReply,
   ChatMessage,
   ChatRole,
+  ChatView,
   MCPServer,
   Goals,
   WorkConfig,

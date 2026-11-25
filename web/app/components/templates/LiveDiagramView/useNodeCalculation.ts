@@ -2,7 +2,7 @@ import React, { useMemo } from "react";
 import { Node } from "@xyflow/react";
 import { toGoalSets, Step, FlowContext, ExecutionResult } from "@/app/api";
 import { STEP_LAYOUT } from "@/constants/layout";
-import { loadNodePositions } from "@/utils/nodePositioning";
+import { loadNodePositions, NodePositions } from "@/utils/nodePositioning";
 import {
   buildOutputProducerMap,
   buildStepGraph,
@@ -11,16 +11,26 @@ import {
 import { calculateWidgetHeightFromAttributes } from "@/utils/stepLayout";
 import { currentGoalScope } from "@/utils/goalSets";
 
-export const useNodeCalculation = (
-  visibleSteps: Step[],
-  flowData?: FlowContext | null,
-  executions?: ExecutionResult[],
-  resolvedAttributes?: string[],
-  diagramContainerRef?: React.RefObject<HTMLDivElement | null>
-) => {
+export interface NodeCalculationOptions {
+  visibleSteps: Step[];
+  flowData?: FlowContext | null;
+  executions?: ExecutionResult[];
+  resolvedAttributes?: string[];
+  diagramContainerRef?: React.RefObject<HTMLDivElement | null>;
+  spaceId?: string | null;
+}
+
+export const useNodeCalculation = ({
+  visibleSteps,
+  flowData,
+  executions,
+  resolvedAttributes,
+  diagramContainerRef,
+  spaceId,
+}: NodeCalculationOptions) => {
   return useMemo(() => {
     const savedPositions = flowData?.id
-      ? loadNodePositions({ type: "flow", flowId: flowData.id })
+      ? flowPositions(flowData.id, spaceId)
       : {};
     const activeStepIDs = new Set(visibleSteps.map((step) => step.id));
     const producerMap = buildOutputProducerMap(visibleSteps);
@@ -99,5 +109,17 @@ export const useNodeCalculation = (
     executions,
     resolvedAttributes,
     diagramContainerRef,
+    spaceId,
   ]);
 };
+
+// A Flow started outside the UI has no positions of its own, so each Step falls
+// back to the viewed Space, then the overview, then the calculated placement
+const flowPositions = (
+  flowId: string,
+  spaceId?: string | null
+): NodePositions => ({
+  ...loadNodePositions({ type: "overview" }),
+  ...(spaceId ? loadNodePositions({ type: "space", spaceId }) : {}),
+  ...loadNodePositions({ type: "flow", flowId }),
+});

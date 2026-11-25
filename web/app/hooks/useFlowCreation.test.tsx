@@ -1,4 +1,4 @@
-import { act, renderHook } from "@testing-library/react";
+import { act, renderHook, waitFor } from "@testing-library/react";
 import { useFlowCreation } from "./useFlowCreation";
 import { api, Step } from "@/app/api";
 import { snapshotFlowPositions } from "@/utils/nodePositioning";
@@ -42,6 +42,7 @@ const uiState = {
   setGoalSteps: jest.fn((ids: string[][]) => {
     goalIds = ids;
   }),
+  setFlowInit: jest.fn(),
 };
 
 jest.mock("@/app/contexts/UIContext", () => ({
@@ -131,6 +132,16 @@ describe("useFlowCreation", () => {
         '{"empty":[],"blank":"","filled":["a"],"emptyString":[""]}'
       );
     });
+
+    await waitFor(
+      () =>
+        expect(uiState.setFlowInit).toHaveBeenCalledWith({
+          empty: [],
+          filled: ["a"],
+          emptyString: [""],
+        }),
+      { timeout: 2000 }
+    );
 
     await act(async () => {
       result.current.handleCreateFlow();

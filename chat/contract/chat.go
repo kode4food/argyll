@@ -10,9 +10,19 @@ import (
 type (
 	// AgentChatRequest asks an agent to answer the latest message of a conversation
 	AgentChatRequest struct {
+		View     *ChatView      `json:"view,omitempty"`
 		Provider api.ProviderID `json:"provider"`
 		Model    api.ModelID    `json:"model"`
 		Messages []ChatMessage  `json:"messages"`
+	}
+
+	// ChatView describes what the web UI shows while the user chats
+	ChatView struct {
+		Goals   *api.Goals   `json:"goals,omitempty"`
+		Init    api.InitArgs `json:"init,omitempty"`
+		SpaceID api.SpaceID  `json:"space_id,omitempty"`
+		FlowID  api.FlowID   `json:"flow_id,omitempty"`
+		Locale  string       `json:"locale,omitempty"`
 	}
 
 	// AgentChatReply carries an agent's answer and the usage it took

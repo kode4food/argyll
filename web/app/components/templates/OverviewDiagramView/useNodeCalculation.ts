@@ -10,15 +10,25 @@ import {
 } from "@/utils/stepDependencyGraph";
 import { calculateWidgetHeightFromAttributes } from "@/utils/stepLayout";
 
-export const useNodeCalculation = (
-  visibleSteps: Step[],
-  selectedStepIds: string[],
-  previewPlan?: ExecutionPlan | null,
-  previewStepIds?: Set<string> | null,
-  onStepClick?: (stepId: string, options?: { additive?: boolean }) => void,
-  diagramContainerRef?: React.RefObject<HTMLDivElement | null>,
-  scope?: NodePositionScope
-) => {
+export interface NodeCalculationOptions {
+  visibleSteps: Step[];
+  selectedStepIds: string[];
+  previewPlan?: ExecutionPlan | null;
+  previewStepIds?: Set<string> | null;
+  onStepClick?: (stepId: string, options?: { additive?: boolean }) => void;
+  diagramContainerRef?: React.RefObject<HTMLDivElement | null>;
+  scope?: NodePositionScope;
+}
+
+export const useNodeCalculation = ({
+  visibleSteps,
+  selectedStepIds,
+  previewPlan,
+  previewStepIds,
+  onStepClick,
+  diagramContainerRef,
+  scope,
+}: NodeCalculationOptions) => {
   return useMemo(() => {
     const savedPositions = loadNodePositions(scope);
     const activeStepIDs = previewStepIds || null;

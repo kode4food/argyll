@@ -1,10 +1,18 @@
 import { useState } from "react";
+import { ChatView, fromGoalSets } from "@/app/api";
+import { useUI } from "@/app/contexts/UIContext";
 import { useAgentCapabilities } from "@/app/hooks/useAgentCapabilities";
+import { useLocale } from "@/app/i18n";
 import { useChatStore } from "@/app/store/chatStore";
+import { useSelectedFlow } from "@/app/store/flowStore";
+import { nonEmptyGoalSets } from "@/utils/goalSets";
 
 export const useChatBox = () => {
   const { providers } = useAgentCapabilities();
   const chat = useChatStore();
+  const { spaceId, goalSteps, flowInit } = useUI();
+  const flowId = useSelectedFlow();
+  const locale = useLocale();
   const [draft, setDraft] = useState("");
 
   const models =
@@ -15,8 +23,16 @@ export const useChatBox = () => {
 
   const handleSubmit = () => {
     const content = draft.trim();
+    const goals = nonEmptyGoalSets(goalSteps);
+    const view: ChatView = {
+      space_id: spaceId ?? undefined,
+      flow_id: flowId ?? undefined,
+      goals: goals.length > 0 ? fromGoalSets(goals) : undefined,
+      init: Object.keys(flowInit).length > 0 ? flowInit : undefined,
+      locale,
+    };
     setDraft("");
-    void chat.send(content);
+    void chat.send(content, view);
   };
 
   return {

@@ -1,6 +1,10 @@
 import React, { useCallback } from "react";
 import { Node, NodeChange, useNodesState } from "@xyflow/react";
-import { NodePositionScope, saveNodePositions } from "@/utils/nodePositioning";
+import {
+  loadNodePositions,
+  NodePositionScope,
+  saveNodePositions,
+} from "@/utils/nodePositioning";
 
 export const useDiagramNodes = (
   arrangedNodes: Node[],
@@ -26,6 +30,15 @@ export const useDiagramNodes = (
     },
     [onNodesChange, setNodes, positionScope]
   );
+
+  // A Flow's snapshot copies these, so they must hold every placed Step
+  React.useEffect(() => {
+    const saved = loadNodePositions(positionScope);
+    const unsaved = arrangedNodes.filter((node) => !saved[node.id]);
+    if (unsaved.length > 0) {
+      saveNodePositions(unsaved, positionScope);
+    }
+  }, [arrangedNodes, positionScope]);
 
   React.useEffect(() => {
     setNodes((currentNodes) => {

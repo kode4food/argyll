@@ -82,15 +82,15 @@ export const useOverviewDiagramView = (steps: Step[]) => {
     ]);
   }, [previewGoals, previewPlan, previewStepIds]);
 
-  const initialNodes = useNodeCalculation(
+  const initialNodes = useNodeCalculation({
     visibleSteps,
-    previewGoals,
+    selectedStepIds: previewGoals,
     previewPlan,
-    focusedStepIds,
-    handleStepClick,
+    previewStepIds: focusedStepIds,
+    onStepClick: handleStepClick,
     diagramContainerRef,
-    positionScope
-  );
+    scope: positionScope,
+  });
 
   const initialEdges = useEdgeCalculation(
     visibleSteps,
@@ -99,7 +99,7 @@ export const useOverviewDiagramView = (steps: Step[]) => {
   );
   const { diagramDetail, visibleEdges } = useDiagramDetail(initialEdges);
 
-  const { plan } = useLayoutPlan(visibleSteps, [], positionScope);
+  const { plan } = useLayoutPlan(visibleSteps, positionScope);
   const previewStepCount = focusedStepIds?.size ?? 0;
   const showPreviewHud = !!previewPlan && goalStepIds.length > 0;
 
