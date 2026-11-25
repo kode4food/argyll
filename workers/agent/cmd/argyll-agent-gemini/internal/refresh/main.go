@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/kode4food/argyll/engine/pkg/api"
+	"github.com/kode4food/argyll/engine/pkg/util"
 	"github.com/kode4food/argyll/workers/agent/internal/catalog"
 	"github.com/kode4food/argyll/workers/agent/internal/worker"
 )
@@ -154,12 +155,12 @@ func Refresh(args RefreshArgs) error {
 }
 
 // hiddenModels reads the models guide's audio, media, music, and deprecated sections
-func hiddenModels(doc string) map[string]bool {
-	res := map[string]bool{}
+func hiddenModels(doc string) util.Set[string] {
+	res := util.Set[string]{}
 	for _, s := range sections(doc) {
 		if slices.Contains(mediaSections[:], s.id) || deprecated.MatchString(s.body) {
 			for _, m := range tableModel.FindAllStringSubmatch(s.body, -1) {
-				res[m[1]] = true
+				res.Add(m[1])
 			}
 		}
 	}
@@ -193,14 +194,14 @@ func levelRow(line string) (string, []api.Effort) {
 
 // modelPrices reads each pricing section's standard paid rates that apply on the given day
 func modelPrices(
-	doc string, today time.Time, hidden map[string]bool,
+	doc string, today time.Time, hidden util.Set[string],
 ) (map[string]worker.Price, error) {
 	res := map[string]worker.Price{}
 	for _, s := range sections(doc) {
 		header, _, _ := strings.Cut(s.body, headerEnd)
 		var ids []string
 		for _, m := range linkModel.FindAllStringSubmatch(header, -1) {
-			if hidden[m[1]] {
+			if hidden.Contains(m[1]) {
 				continue
 			}
 			ids = append(ids, m[1])

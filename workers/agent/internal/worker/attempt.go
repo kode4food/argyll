@@ -217,7 +217,7 @@ func (w *Worker) recordCost(usage api.Usage, t *Turn, cfg *api.AgentConfig) {
 }
 
 func inputSchema(st *api.Step) ([]byte, error) {
-	properties := map[api.Name]struct{}{}
+	properties := map[api.Name]any{}
 	var required []api.Name
 	for name, attr := range st.Attributes {
 		if !attr.IsRuntimeInput() {
@@ -227,7 +227,7 @@ func inputSchema(st *api.Step) ([]byte, error) {
 			continue
 		}
 		mapped, _ := st.MappedName(name)
-		properties[mapped] = struct{}{}
+		properties[mapped] = map[string]any{}
 		if attr.IsRequired() || attr.IsConst() || attr.IsFeed() {
 			required = append(required, mapped)
 		}

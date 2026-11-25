@@ -356,7 +356,6 @@ func TestApplyProposedStepsEngineEdges(t *testing.T) {
 				"role":   "output",
 				"output": map[string]any{"mapping": map[string]any{"name": "text"}},
 			},
-			"junk": "not an attribute",
 		},
 	}
 	existing := `{"steps":[{"id":"send","name":"Old"}]}`
@@ -457,10 +456,17 @@ func TestProposedStepsTools(t *testing.T) {
 	c := newClient(t, mcp.NewServer("http://example", hc))
 	for _, tool := range []string{"diff_proposed_steps", "apply_proposed_steps"} {
 		assert.True(t, callToolFails(t, c, tool, map[string]any{}))
+		for _, steps := range [][]map[string]any{
+			{{"name": "no id"}, {"id": "a"}},
+			{{"id": " "}},
+			{{"id": "a"}, {"id": "a"}},
+		} {
+			assert.True(t, callToolFails(t, c, tool, map[string]any{"steps": steps}))
+		}
 	}
 
 	text := callToolText(t, c, "diff_proposed_steps", map[string]any{
-		"steps": []map[string]any{{"name": "no id"}, {"id": "b"}, {"id": "a"}},
+		"steps": []map[string]any{{"id": "b"}, {"id": "a"}},
 	})
 	var payload struct {
 		Steps []struct {

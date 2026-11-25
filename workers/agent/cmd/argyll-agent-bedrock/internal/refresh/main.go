@@ -17,6 +17,7 @@ import (
 	"unicode"
 
 	"github.com/kode4food/argyll/engine/pkg/api"
+	"github.com/kode4food/argyll/engine/pkg/util"
 	"github.com/kode4food/argyll/workers/agent/internal/catalog"
 	"github.com/kode4food/argyll/workers/agent/internal/worker"
 )
@@ -386,7 +387,7 @@ func readEfforts(card string) []api.Effort {
 
 // readAdaptiveEfforts applies the model restrictions in the adaptive-thinking effort table
 func readAdaptiveEfforts(doc string, name api.Name) []api.Effort {
-	levels := map[api.Effort]bool{}
+	levels := util.Set[api.Effort]{}
 	for line := range strings.SplitSeq(doc, "\n") {
 		cells := catalog.Cells(line)
 		if len(cells) != 2 {
@@ -398,12 +399,12 @@ func readAdaptiveEfforts(doc string, name api.Name) []api.Effort {
 		}
 		models := claudeName.FindAllString(cells[1], -1)
 		if len(models) == 0 || slices.Contains(models, string(name)) {
-			levels[api.Effort(level)] = true
+			levels.Add(api.Effort(level))
 		}
 	}
 	var res []api.Effort
 	for _, level := range []api.Effort{"low", "medium", "high", "xhigh", "max"} {
-		if levels[level] {
+		if levels.Contains(level) {
 			res = append(res, level)
 		}
 	}

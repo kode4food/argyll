@@ -7,6 +7,7 @@ import (
 
 	openapi "github.com/getkin/kin-openapi/openapi3"
 
+	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/util"
 )
 
@@ -20,11 +21,11 @@ var (
 	nonWord        = regexp.MustCompile(`[^a-zA-Z0-9]+`)
 )
 
-func operationID(op *openapi.Operation, method, path string) string {
+func operationID(op *openapi.Operation, method, path string) api.StepID {
 	if op.OperationID != "" {
-		return slug(op.OperationID)
+		return api.StepID(slug(op.OperationID))
 	}
-	return slug(strings.ToLower(method) + "-" + strings.Trim(path, "/"))
+	return api.StepID(slug(strings.ToLower(method) + "-" + strings.Trim(path, "/")))
 }
 
 func pathEntity(path string) string {
@@ -69,18 +70,18 @@ func parameterEntity(path, name string) string {
 	return ""
 }
 
-func canonicalName(name, entity string) string {
+func canonicalName(name, entity string) api.Name {
 	n := slugWord(name)
 	switch {
 	case n == "id" && entity != "":
-		return entity + "_id"
+		return api.Name(entity + "_id")
 	case strings.HasSuffix(n, "_id"):
-		return n
+		return api.Name(n)
 	case strings.HasSuffix(n, "id") && len(n) > 2:
 		n = strings.TrimSuffix(n, "id") + "_id"
 		n = strings.Trim(n, "_")
 	}
-	return n
+	return api.Name(n)
 }
 
 func singularize(s string) string {

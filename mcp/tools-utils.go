@@ -71,11 +71,15 @@ func addTool[In any](reg *toolRegistry, tool *mcp.Tool, h toolHandler[In]) {
 			ctx = context.WithValue(ctx, authorizationKey{}, req.Extra.Header.Get("Authorization"))
 		}
 		payload, err := h(ctx, in)
-		if err != nil {
+		if err != nil && payload == nil {
 			return nil, nil, err
 		}
-		res, err := toolResult(payload)
-		return res, nil, err
+		res, marshalErr := toolResult(payload)
+		if marshalErr != nil {
+			return nil, nil, marshalErr
+		}
+		res.IsError = err != nil
+		return res, nil, nil
 	})
 }
 

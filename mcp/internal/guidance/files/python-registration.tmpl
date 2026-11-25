@@ -1,0 +1,13 @@
+import json
+
+import requests
+
+registration = json.loads(
+{{ range . }}    {{ quote . }}
+{{ end }})
+response = requests.post(
+    "http://localhost:8080/engine/steps",
+    json=registration,
+    timeout=30,
+)
+response.raise_for_status()

@@ -1,5 +1,7 @@
 package mcp
 
+import "github.com/kode4food/argyll/engine/pkg/api"
+
 type (
 	semanticVerification struct {
 		Status string          `json:"status"`
@@ -7,11 +9,11 @@ type (
 	}
 
 	semanticIssue struct {
-		Expected any    `json:"expected,omitempty"`
-		Actual   any    `json:"actual,omitempty"`
-		StepID   string `json:"step_id"`
-		Path     string `json:"path"`
-		Kind     string `json:"kind"`
+		Expected any        `json:"expected,omitempty"`
+		Actual   any        `json:"actual,omitempty"`
+		StepID   api.StepID `json:"step_id"`
+		Path     string     `json:"path"`
+		Kind     string     `json:"kind"`
 	}
 
 	semanticConfig struct {
@@ -22,11 +24,11 @@ type (
 )
 
 func verifyAppliedSemantics(
-	proposed []map[string]any, actual map[string]map[string]any,
+	proposed []map[string]any, actual map[api.StepID]map[string]any,
 ) semanticVerification {
 	var issues []semanticIssue
 	for _, st := range proposed {
-		id := stringValue(st["id"])
+		id := api.StepID(stringValue(st["id"]))
 		if id == "" {
 			continue
 		}
@@ -80,15 +82,15 @@ func semanticConfigs(st map[string]any) []semanticConfig {
 		if !ok {
 			continue
 		}
-		role := stringValue(attr["role"])
+		role := api.AttributeRole(stringValue(attr["role"]))
 		switch role {
-		case "required", "optional":
-			path := "attributes." + name + "." + role
-			res = appendRoleConfigs(res, path, attr[role], "mapping", "match")
-		case "output":
+		case api.RoleRequired, api.RoleOptional:
+			path := "attributes." + name + "." + string(role)
+			res = appendRoleConfigs(res, path, attr[string(role)], "mapping", "match")
+		case api.RoleOutput:
 			path := "attributes." + name + ".output"
 			res = appendRoleConfigs(res, path, attr["output"], "mapping", "match")
-		case "metric":
+		case api.RoleMetric:
 			path := "attributes." + name + ".metric"
 			res = appendRoleConfigs(res, path, attr["metric"], "selector")
 		}

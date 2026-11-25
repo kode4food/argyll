@@ -13,6 +13,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/bedrockruntime/document"
 
 	"github.com/kode4food/argyll/engine/pkg/api"
+	"github.com/kode4food/argyll/engine/pkg/util"
 	"github.com/kode4food/argyll/workers/agent/internal/worker"
 )
 
@@ -26,15 +27,18 @@ func (p *Provider) Models(ctx context.Context, _ api.ProviderID) ([]api.AgentMod
 		return nil, problem(err)
 	}
 	now := time.Now()
-	excluded := map[string]bool{}
+	excluded := util.Set[string]{}
 	profiles := map[string]string{}
 	var models []api.AgentModel
 	for _, m := range found.ModelSummaries {
 		id := aws.ToString(m.ModelId)
 		textOnly := len(m.OutputModalities) == 1 && m.OutputModalities[0] == types.ModelModalityText
-		excluded[id] = retired(m.ModelLifecycle, now) || !textOnly
+		if retired(m.ModelLifecycle, now) || !textOnly {
+			excluded.Add(id)
+			continue
+		}
 		onDemand := slices.Contains(m.InferenceTypesSupported, types.InferenceTypeOnDemand)
-		if excluded[id] || !onDemand {
+		if !onDemand {
 			continue
 		}
 		if caps, ok := p.capabilities(id); ok {
@@ -59,7 +63,7 @@ func (p *Provider) Models(ctx context.Context, _ api.ProviderID) ([]api.AgentMod
 			}
 			id, ok := profileModel(ip.Models)
 			caps, supported := p.capabilities(id)
-			if !ok || !supported || excluded[id] {
+			if !ok || !supported || excluded.Contains(id) {
 				continue
 			}
 			models = append(models, api.AgentModel{

@@ -6,12 +6,12 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/util"
 )
 
-func sharedStrings(a, b []string) []string {
-	set := util.Set[string]{}
+func sharedStrings[S ~string](a, b []S) []S {
+	set := util.Set[S]{}
 	for _, item := range b {
 		set.Add(item)
 	}
-	var res []string
+	var res []S
 	for _, item := range a {
 		if set.Contains(item) {
 			res = append(res, item)
@@ -20,9 +20,9 @@ func sharedStrings(a, b []string) []string {
 	return uniqueStrings(res)
 }
 
-func uniqueStrings(items []string) []string {
-	seen := util.Set[string]{}
-	var res []string
+func uniqueStrings[S ~string](items []S) []S {
+	seen := util.Set[S]{}
+	var res []S
 	for _, item := range items {
 		if item == "" {
 			continue

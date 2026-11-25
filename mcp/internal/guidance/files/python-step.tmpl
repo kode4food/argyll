@@ -18,14 +18,14 @@ def invoke_step(ctx: StepContext, args: dict) -> dict:
     threading.Thread(target=process).start()
     return {}
 {{ else }}    return {
-{{ range .Outputs }}            {{ quote . }}: None,
+{{ range .Outputs }}            {{ quoteName . }}: None,
 {{ end }}    }
 {{ end }}{{ end }}
 step = (
     client.new_step()
-    .with_name({{ quote .StepName }}){{ range .Inputs }}
-    .required({{ quote . }}){{ end }}{{ range .Outputs }}
-    .output({{ quote . }}){{ end }}{{ if .IsAsync }}
+    .with_name({{ quoteName .StepName }}){{ range .Inputs }}
+    .required({{ quoteName . }}){{ end }}{{ range .Outputs }}
+    .output({{ quoteName . }}){{ end }}{{ if .IsAsync }}
     .with_async_invoke(){{ end }}{{ if .IsExternal }}
 {{ if .HasNonPostMethod }}    .with_method({{ quote .Method }}){{ end }}
     .with_endpoint("http://localhost:8081/step"){{ end }}{{ if .IsScript }}

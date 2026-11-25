@@ -14,6 +14,7 @@ import (
 
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/events"
+	"github.com/kode4food/argyll/engine/pkg/util"
 )
 
 type (
@@ -162,9 +163,9 @@ func (c flowQueryCursor) after(status api.FlowStatus) *timebox.StatusEntry {
 func (c flowQueryCursor) trim(
 	next flowQueryCursor, flows []*api.QueryFlowsItem, limit int,
 ) []*api.QueryFlowsItem {
-	cut := map[api.FlowStatus]bool{}
+	cut := util.Set[api.FlowStatus]{}
 	for _, fl := range flows[limit:] {
-		cut[fl.Status] = true
+		cut.Add(fl.Status)
 	}
 	for status := range cut {
 		if pos, ok := c[status]; ok {
@@ -175,7 +176,7 @@ func (c flowQueryCursor) trim(
 	}
 	flows = flows[:limit]
 	for _, fl := range flows {
-		if cut[fl.Status] {
+		if cut.Contains(fl.Status) {
 			next[fl.Status] = flowPosition{
 				ID:     fl.ID,
 				Recent: fl.Timestamp.UnixNano(),

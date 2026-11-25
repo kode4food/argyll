@@ -2,13 +2,20 @@ package mcp
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
+	"net/url"
+	"strings"
+
+	"github.com/kode4food/argyll/engine/pkg/api"
+	"github.com/kode4food/argyll/engine/pkg/util"
 )
 
 type stepDiff struct {
-	Current  map[string]any `json:"current,omitempty"`
-	Proposed map[string]any `json:"proposed,omitempty"`
+	Current  *api.Step      `json:"current,omitempty"`
+	Proposed *api.Step      `json:"proposed,omitempty"`
 	Diff     map[string]any `json:"diff,omitempty"`
-	ID       string         `json:"id"`
+	ID       api.StepID     `json:"id"`
 	Action   string         `json:"action"`
 	Reason   string         `json:"reason"`
 	Fields   []string       `json:"fields,omitempty"`
@@ -25,7 +32,10 @@ func (s *Server) diffProposedSteps(
 	if err != nil {
 		return nil, err
 	}
-	diffs, counts := buildStepDiffs(current, steps)
+	diffs, counts, err := buildStepDiffs(current, steps)
+	if err != nil {
+		return nil, err
+	}
 
 	return map[string]any{
 		"summary": map[string]any{
@@ -34,7 +44,8 @@ func (s *Server) diffProposedSteps(
 			"skip":   counts["skip"],
 			"total":  len(diffs),
 		},
-		"steps": diffs,
+		"steps":      diffs,
+		"validation": "Comparison only; registration validates scripts and catalog constraints",
 	}, nil
 }
 
@@ -49,17 +60,20 @@ func (s *Server) applyProposedSteps(
 	if err != nil {
 		return nil, err
 	}
-	diffs, counts := buildStepDiffs(current, steps)
+	diffs, counts, err := buildStepDiffs(current, steps)
+	if err != nil {
+		return nil, err
+	}
 
 	var applied []map[string]any
 	var skipped []map[string]any
-	var appliedProposed []map[string]any
-	for _, d := range diffs {
+	var appliedProposed []*api.Step
+	for i, d := range diffs {
 		switch d.Action {
 		case "create":
 			res, err := s.httpPost(ctx, "/engine/steps", d.Proposed)
 			if err != nil {
-				return nil, err
+				return applyFailure(applied, skipped, diffs[i:], err), err
 			}
 			applied = append(applied, map[string]any{
 				"id":       d.ID,
@@ -77,9 +91,9 @@ func (s *Server) applyProposedSteps(
 				})
 				continue
 			}
-			res, err := s.httpPut(ctx, "/engine/steps/"+d.ID, d.Proposed)
+			res, err := s.httpPut(ctx, "/engine/steps/"+url.PathEscape(string(d.ID)), d.Proposed)
 			if err != nil {
-				return nil, err
+				return applyFailure(applied, skipped, diffs[i:], err), err
 			}
 			applied = append(applied, map[string]any{
 				"id":       d.ID,
@@ -99,7 +113,7 @@ func (s *Server) applyProposedSteps(
 
 	verification, err := s.verifyAppliedSteps(ctx, appliedProposed)
 	if err != nil {
-		return nil, err
+		return applyFailure(applied, skipped, nil, err), err
 	}
 
 	return map[string]any{
@@ -120,12 +134,16 @@ func (s *Server) applyProposedSteps(
 }
 
 func (s *Server) verifyAppliedSteps(
-	ctx context.Context, proposed []map[string]any,
+	ctx context.Context, proposed []*api.Step,
 ) (semanticVerification, error) {
 	var semantic []map[string]any
 	for _, st := range proposed {
-		if len(semanticConfigs(st)) != 0 {
-			semantic = append(semantic, st)
+		fields, err := stepFields(st)
+		if err != nil {
+			return semanticVerification{}, err
+		}
+		if len(semanticConfigs(fields)) != 0 {
+			semantic = append(semantic, fields)
 		}
 	}
 	if len(semantic) == 0 {
@@ -138,7 +156,19 @@ func (s *Server) verifyAppliedSteps(
 	return verifyAppliedSemantics(semantic, current), nil
 }
 
-func (s *Server) currentSteps(ctx context.Context) (map[string]map[string]any, error) {
+func decodeStep(fields map[string]any) (*api.Step, error) {
+	raw, err := json.Marshal(fields)
+	if err != nil {
+		return nil, err
+	}
+	var st api.Step
+	if err := json.Unmarshal(raw, &st); err != nil {
+		return nil, err
+	}
+	return &st, nil
+}
+
+func (s *Server) currentSteps(ctx context.Context) (map[api.StepID]map[string]any, error) {
 	payload, err := s.httpGet(ctx, "/engine/steps")
 	if err != nil {
 		return nil, err
@@ -148,14 +178,14 @@ func (s *Server) currentSteps(ctx context.Context) (map[string]map[string]any, e
 		return nil, errInvalidParams("engine step payload was not an object")
 	}
 
-	current := map[string]map[string]any{}
+	current := map[api.StepID]map[string]any{}
 	if items, ok := root["steps"].([]any); ok {
 		for _, item := range items {
 			st, ok := asMap(item)
 			if !ok {
 				continue
 			}
-			id := stringValue(st["id"])
+			id := api.StepID(stringValue(st["id"]))
 			if id == "" {
 				continue
 			}
@@ -166,8 +196,42 @@ func (s *Server) currentSteps(ctx context.Context) (map[string]map[string]any, e
 }
 
 func proposedSteps(steps []map[string]any) ([]map[string]any, error) {
-	if len(steps) != 0 {
-		return steps, nil
+	if len(steps) == 0 {
+		return nil, errInvalidParams("steps is required")
 	}
-	return nil, errInvalidParams("steps is required")
+	seen := util.Set[api.StepID]{}
+	for i, st := range steps {
+		id := api.StepID(stringValue(st["id"]))
+		if strings.TrimSpace(string(id)) == "" {
+			return nil, fmt.Errorf("%w: steps[%d].id", ErrInvalidParams, i)
+		}
+		if api.SanitizeID(id) != id {
+			return nil, fmt.Errorf("%w: %s", api.ErrStepIDInvalid, id)
+		}
+		if seen.Contains(id) {
+			return nil, fmt.Errorf("%w: %s", ErrDuplicateStepID, id)
+		}
+		seen.Add(id)
+	}
+	return steps, nil
+}
+
+func applyFailure(
+	applied, skipped []map[string]any, remaining []stepDiff, err error,
+) map[string]any {
+	res := map[string]any{
+		"error":               err.Error(),
+		"applied_steps":       applied,
+		"skipped_steps":       skipped,
+		"verification_status": "unknown",
+		"note": "No rollback; a failed request may have committed. " +
+			"Read the catalog before retrying",
+	}
+	if len(remaining) != 0 {
+		res["failed_step"] = remaining[0]
+		res["pending_steps"] = remaining[1:]
+	} else {
+		res["phase"] = "verification"
+	}
+	return res
 }

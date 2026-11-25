@@ -1,57 +1,58 @@
 package mcp
 
 import (
+	"cmp"
 	"slices"
-	"strings"
 
+	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/util"
 	"github.com/kode4food/argyll/mcp/openapi"
 )
 
 type (
 	serviceNode struct {
-		Types   map[string]string
+		Types   map[api.Name]string
 		Service string
-		ID      string
-		Name    string
+		ID      api.StepID
+		Name    api.Name
 		Source  string
-		Inputs  []string
-		Outputs []string
+		Inputs  []api.Name
+		Outputs []api.Name
 	}
 
 	catalogStep struct {
-		ID       string   `json:"id"`
-		Name     string   `json:"name"`
-		Source   string   `json:"source"`
-		Path     string   `json:"path,omitempty"`
-		Required []string `json:"required,omitempty"`
-		Optional []string `json:"optional,omitempty"`
-		Outputs  []string `json:"outputs,omitempty"`
+		ID       api.StepID `json:"id"`
+		Name     api.Name   `json:"name"`
+		Source   string     `json:"source"`
+		Path     string     `json:"path,omitempty"`
+		Required []api.Name `json:"required,omitempty"`
+		Optional []api.Name `json:"optional,omitempty"`
+		Outputs  []api.Name `json:"outputs,omitempty"`
 	}
 
 	relationship struct {
-		SourceService string   `json:"source_service"`
-		SourceStepID  string   `json:"source_step_id"`
-		TargetService string   `json:"target_service"`
-		TargetStepID  string   `json:"target_step_id"`
-		Kind          string   `json:"kind"`
-		Attributes    []string `json:"attributes"`
+		SourceService string     `json:"source_service"`
+		SourceStepID  api.StepID `json:"source_step_id"`
+		TargetService string     `json:"target_service"`
+		TargetStepID  api.StepID `json:"target_step_id"`
+		Kind          string     `json:"kind"`
+		Attributes    []api.Name `json:"attributes"`
 	}
 
 	missingAttr struct {
-		Service    string `json:"service"`
-		StepID     string `json:"step_id"`
-		StepName   string `json:"step_name"`
-		Attribute  string `json:"attribute"`
-		Type       string `json:"type,omitempty"`
-		Kind       string `json:"kind"`
-		Confidence string `json:"confidence"`
+		Service    string     `json:"service"`
+		StepID     api.StepID `json:"step_id"`
+		StepName   api.Name   `json:"step_name"`
+		Attribute  api.Name   `json:"attribute"`
+		Type       string     `json:"type,omitempty"`
+		Kind       string     `json:"kind"`
+		Confidence string     `json:"confidence"`
 	}
 
 	missingAttrKey struct {
 		Service   string
-		StepID    string
-		Attribute string
+		StepID    api.StepID
+		Attribute api.Name
 	}
 )
 
@@ -93,7 +94,7 @@ func serviceNodes(name string, spec openapi.Result) []serviceNode {
 		nodes = append(nodes, serviceNode{
 			Service: name,
 			ID:      op.ID,
-			Name:    op.Summary,
+			Name:    api.Name(op.Summary),
 			Source:  "contract",
 			Inputs:  io.inputs,
 			Outputs: io.outputs,
@@ -104,15 +105,15 @@ func serviceNodes(name string, spec openapi.Result) []serviceNode {
 }
 
 type operationIORes struct {
-	inputs  []string
-	outputs []string
-	types   map[string]string
+	inputs  []api.Name
+	outputs []api.Name
+	types   map[api.Name]string
 }
 
 func operationIO(op openapi.Operation) operationIORes {
-	res := map[string]string{}
-	var inputs []string
-	var outputs []string
+	res := map[api.Name]string{}
+	var inputs []api.Name
+	var outputs []api.Name
 	for _, arg := range op.Inputs {
 		if !arg.Required {
 			continue
@@ -155,13 +156,13 @@ func relationships(nodes []serviceNode) []relationship {
 		}
 	}
 	slices.SortFunc(res, func(a, b relationship) int {
-		return strings.Compare(a.SourceStepID, b.SourceStepID)
+		return cmp.Compare(a.SourceStepID, b.SourceStepID)
 	})
 	return res
 }
 
 func missingAttributes(nodes []serviceNode) []missingAttr {
-	provided := map[string]string{}
+	provided := map[api.Name]string{}
 	for _, node := range nodes {
 		for _, out := range node.Outputs {
 			provided[out] = node.Types[out]

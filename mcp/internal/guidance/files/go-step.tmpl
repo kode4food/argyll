@@ -24,14 +24,14 @@ func main() {
 		}()
 		return api.Args{}, nil
 {{ else }}		return api.Args{
-{{ range .Outputs }}			{{ quote . }}: nil,
+{{ range .Outputs }}			{{ quoteName . }}: nil,
 {{ end }}		}, nil
 {{ end }}	}
 
 {{ end }}	step := client.NewStep().
-		WithName({{ quote .StepName }}){{ range .Inputs }}.
-		Required({{ quote . }}){{ end }}{{ range .Outputs }}.
-		Output({{ quote . }}){{ end }}{{ if .IsAsync }}.
+		WithName({{ quoteName .StepName }}){{ range .Inputs }}.
+		Required({{ quoteName . }}){{ end }}{{ range .Outputs }}.
+		Output({{ quoteName . }}){{ end }}{{ if .IsAsync }}.
 		WithAsyncInvoke(){{ end }}{{ if .IsExternal }}.
 {{ if .HasNonPostMethod }}		WithMethod({{ quote .Method }}).
 {{ end }}		WithEndpoint("http://localhost:8081/step"){{ end }}{{ if .IsScript }}.

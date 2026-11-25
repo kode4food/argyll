@@ -63,7 +63,9 @@ const (
 	goalsShape = `goals is {"steps": ["step-id"]}, with an optional "else" goal set tried ` +
 		"when the first becomes impossible. Any Step can be a Goal, including one without outputs"
 	initShape = "init maps each Attribute name to an array of values, such as " +
-		`{"user_id": ["user-123"]}. Inputs left out use their defaults or come from other Steps`
+		`{"user_id": ["user-123"]}. A present key freezes those values and prunes providers. ` +
+		"An empty array declares zero resolved values; it does not request a default. Omit a " +
+		"key to allow providers or optional fallback. See /engine/semantics for collect policies"
 	stepShape = "A Step has id, name, description, type (service, script, flow, or agent), " +
 		"attributes, and the config object named by its type. attributes maps each Attribute " +
 		`name to {"role": ...}, where role is required, optional, const, meta, feed, output, or ` +
@@ -72,8 +74,9 @@ const (
 )
 
 var (
-	ErrInvalidParams = errors.New("invalid params")
-	ErrToolSchema    = errors.New("could not build tool schema")
+	ErrInvalidParams   = errors.New("invalid params")
+	ErrToolSchema      = errors.New("could not build tool schema")
+	ErrDuplicateStepID = errors.New("duplicate proposed step ID")
 )
 
 func (s *Server) registerTools(reg *toolRegistry) {
@@ -90,11 +93,16 @@ func (s *Server) registerTools(reg *toolRegistry) {
 func (s *Server) registerEngineTools(reg *toolRegistry) {
 	addTool(reg, &mcp.Tool{
 		Name: "engine_state",
-		Description: "Fetch the engine overview: registered Steps, Attributes, Step health, and " +
-			"active Flows",
+		Description: "Fetch registered Steps, Spaces, Attributes, and health. Use query_flows " +
+			"with status active to find active Flows",
 	},
 		pathTool(s.httpGet, "/engine"),
 	)
+	addTool(reg, &mcp.Tool{
+		Name: "agent_capabilities",
+		Description: "Discover available agent providers, models, efforts, and MCP servers/tools " +
+			"before configuring an agent Step",
+	}, pathTool(s.httpGet, "/engine/agents/capabilities"))
 }
 
 func (s *Server) registerAnalysisTools(reg *toolRegistry) {
@@ -119,8 +127,10 @@ func (s *Server) registerAnalysisTools(reg *toolRegistry) {
 		s.analyzeServiceLandscape,
 	)
 	addTool(reg, &mcp.Tool{
-		Name:        "generate_step_impl",
-		Description: "Generate an SDK implementation draft for a proposed step",
+		Name: "generate_step_impl",
+		Description: "Generate Go or Python registration code preserving a proposed Step. " +
+			"Service endpoints must already be implemented; use sdk_step_template for a handler " +
+			"scaffold. Includes the unchanged registration and implementation notes",
 	},
 		s.generateStepImpl,
 	)
@@ -170,15 +180,20 @@ func (s *Server) registerStepTools(reg *toolRegistry) {
 		},
 	)
 	addTool(reg, &mcp.Tool{
-		Name:        "diff_proposed_steps",
-		Description: "Dry-run proposed step registrations against the live catalog",
+		Name: "diff_proposed_steps",
+		Description: "Compare proposals with the catalog, normalizing tag order and duplicates. " +
+			"Work config is compared as supplied; omitted defaults can appear as changes. " +
+			"Requires canonical IDs. Does not validate registration or execution",
 	},
 		s.diffProposedSteps,
 	)
 	addTool(reg, &mcp.Tool{
 		Name: "apply_proposed_steps",
 		Description: "Apply proposed step registrations using existing register/update " +
-			"operations. Set skip_updates to true to register new Steps only",
+			"operations. Set skip_updates to true to register new Steps only. Not atomic: errors " +
+			"report applied, skipped, failed, and pending operations. Read the catalog before " +
+			"retrying; a failed request may have committed. Verification covers mappings, " +
+			"matches, and metric selectors, not runtime behavior",
 	},
 		s.applyProposedSteps,
 	)
@@ -210,8 +225,9 @@ func (s *Server) registerFlowReadTools(reg *toolRegistry) {
 		idTool(s.httpGet, "/engine/flows/%s"),
 	)
 	addTool(reg, &mcp.Tool{
-		Name:        "get_flow_status",
-		Description: "Fetch a Flow's status: active, completed, or failed",
+		Name: "get_flow_status",
+		Description: "Fetch a Flow's outcome: active, completed, or failed. Terminal status does " +
+			"not mean work and compensation have settled; inspect get_flow deactivated_at",
 	},
 		idTool(s.httpGet, "/engine/flows/%s/status"),
 	)
@@ -237,7 +253,7 @@ func (s *Server) registerFlowWriteTools(reg *toolRegistry) {
 		Name: "start_flow",
 		Description: "Start a Flow that runs its Goal Steps. The plan includes every Step needed " +
 			"to produce the Goals' inputs. The response names the Flow ID. Never reuse an " +
-			"earlier ID. A started Flow has every input it needs. " +
+			"earlier ID. Acceptance does not guarantee runtime collection will succeed. " +
 			goalsShape + ". " + initShape,
 	},
 		func(ctx context.Context, args startFlowInput) (any, error) {
@@ -261,8 +277,8 @@ func (s *Server) registerFlowWriteTools(reg *toolRegistry) {
 	addTool(reg, &mcp.Tool{
 		Name: "preview_plan",
 		Description: "Preview the plan for Goal Steps and initial Attribute values. Shows the " +
-			"Steps that would run. The plan's required lists the only init values the Flow " +
-			"needs. An optional input with no provider runs on its default, or without the " +
+			"Steps selected for execution. The plan's required lists external input names, " +
+			"not a guarantee of runtime success. An optional input can use its default or omit a " +
 			"value. " + goalsShape + ". " + initShape,
 	},
 		func(ctx context.Context, args previewPlanInput) (any, error) {

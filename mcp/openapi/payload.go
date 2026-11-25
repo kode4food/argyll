@@ -7,6 +7,7 @@ import (
 
 	openapi "github.com/getkin/kin-openapi/openapi3"
 
+	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/mcp/openapi/handoff"
 )
 
@@ -19,7 +20,7 @@ type (
 	}
 
 	argKey struct {
-		Name     string
+		Name     api.Name
 		Location string
 	}
 )
@@ -160,7 +161,7 @@ func dedupeArgs(args []argSpec) []argSpec {
 		res = append(res, arg)
 	}
 	slices.SortFunc(res, func(a, b argSpec) int {
-		if cmp := strings.Compare(a.Name, b.Name); cmp != 0 {
+		if cmp := strings.Compare(string(a.Name), string(b.Name)); cmp != 0 {
 			return cmp
 		}
 		return strings.Compare(a.Location, b.Location)
@@ -175,8 +176,8 @@ func preferArg(prev, next argSpec) bool {
 	return !schemaHasEnum(prev.Schema) && schemaHasEnum(next.Schema)
 }
 
-func humanizeID(id string) string {
-	parts := strings.Split(id, "-")
+func humanizeID(id api.StepID) string {
+	parts := strings.Split(string(id), "-")
 	for i, part := range parts {
 		if part == "" {
 			continue

@@ -17,7 +17,7 @@ import (
 
 type (
 	opSpec struct {
-		ID          string
+		ID          api.StepID
 		Method      string
 		Path        string
 		Endpoint    string
@@ -29,7 +29,7 @@ type (
 	}
 
 	argSpec struct {
-		Name       string
+		Name       api.Name
 		Service    string
 		Type       string
 		Location   string
@@ -183,7 +183,7 @@ func serviceNameForArg(arg argSpec) string {
 	if arg.Service != "" {
 		return arg.Service
 	}
-	return arg.Name
+	return string(arg.Name)
 }
 
 func isHealthPath(path string) bool {

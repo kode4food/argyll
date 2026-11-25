@@ -6,30 +6,31 @@ import (
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
+	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/mcp/internal/guidance"
 )
 
 type (
 	sdkStepTemplateInput struct {
-		Language       string   `json:"language" jsonschema:"go or python"`
-		StepName       string   `json:"step_name" jsonschema:"Step name"`
-		StepType       string   `json:"step_type,omitempty" jsonschema:"service or script"`
-		ActionMode     *string  `json:"action_mode,omitempty" jsonschema:"sync or async"`
-		External       bool     `json:"external,omitempty" jsonschema:"Existing endpoint"`
-		Method         string   `json:"method,omitempty" jsonschema:"GET, POST, PUT, or DELETE"`
-		ScriptLanguage string   `json:"script_language,omitempty" jsonschema:"lua or argyll"`
-		ScriptBody     string   `json:"script_body,omitempty" jsonschema:"Script source"`
-		Inputs         []string `json:"inputs,omitempty" jsonschema:"Required input names"`
-		Outputs        []string `json:"outputs,omitempty" jsonschema:"Output names"`
+		Language       string          `json:"language" jsonschema:"go or python"`
+		StepName       api.Name        `json:"step_name" jsonschema:"Step name"`
+		StepType       api.StepType    `json:"step_type,omitempty" jsonschema:"service or script"`
+		ActionMode     *api.ActionMode `json:"action_mode,omitempty" jsonschema:"sync or async"`
+		External       bool            `json:"external,omitempty" jsonschema:"Existing endpoint"`
+		Method         string          `json:"method,omitempty" jsonschema:"GET, POST, PUT, DELETE"`
+		ScriptLanguage string          `json:"script_language,omitempty" jsonschema:"lua or argyll"`
+		ScriptBody     string          `json:"script_body,omitempty" jsonschema:"Script source"`
+		Inputs         []api.Name      `json:"inputs,omitempty" jsonschema:"Required inputs"`
+		Outputs        []api.Name      `json:"outputs,omitempty" jsonschema:"Outputs"`
 	}
 
 	stepTemplateData struct {
-		StepName         string
+		StepName         api.Name
 		Method           string
 		ScriptLanguage   string
 		ScriptBody       string
-		Inputs           []string
-		Outputs          []string
+		Inputs           []api.Name
+		Outputs          []api.Name
 		IsAsync          bool
 		IsExternal       bool
 		IsScript         bool
@@ -41,6 +42,15 @@ const markdownType = "text/markdown"
 
 func (s *Server) registerGuidance(reg *toolRegistry) {
 	srv := reg.server
+	addGuide(srv, &mcp.Resource{
+		URI:         "/engine/api",
+		Description: "Engine OpenAPI contract, including Step registration schemas",
+		MIMEType:    "application/yaml",
+	}, "engine-api.yaml")
+	addGuide(srv, &mcp.Resource{
+		URI:         "/engine/semantics",
+		Description: "Planning, input collection, Flow settlement, and Feed semantics",
+	}, "engine-semantics.md")
 	addGuide(srv, &mcp.Resource{
 		URI:         "/sdk/steps",
 		Description: "Guidance for implementing Argyll steps with the Go and Python SDKs",
@@ -86,7 +96,9 @@ func (s *Server) registerGuidance(reg *toolRegistry) {
 
 func addGuide(srv *mcp.Server, res *mcp.Resource, file string) {
 	res.Name = res.URI
-	res.MIMEType = markdownType
+	if res.MIMEType == "" {
+		res.MIMEType = markdownType
+	}
 	read := func(context.Context, *mcp.ReadResourceRequest) (*mcp.ReadResourceResult, error) {
 		text, err := guidance.Read(file)
 		if err != nil {
@@ -94,7 +106,7 @@ func addGuide(srv *mcp.Server, res *mcp.Resource, file string) {
 		}
 		return &mcp.ReadResourceResult{Contents: []*mcp.ResourceContents{{
 			URI:      res.URI,
-			MIMEType: markdownType,
+			MIMEType: res.MIMEType,
 			Text:     text,
 		}}}, nil
 	}
@@ -133,10 +145,10 @@ func renderStepTemplate(args sdkStepTemplateInput, isExternal bool) (string, err
 	if lang != "go" && lang != "python" {
 		return "", errInvalidParams("language must be go or python")
 	}
-	if strings.TrimSpace(args.StepName) == "" {
+	if strings.TrimSpace(string(args.StepName)) == "" {
 		return "", errInvalidParams("step_name is required")
 	}
-	stepType := strings.ToLower(strings.TrimSpace(args.StepType))
+	stepType := strings.ToLower(strings.TrimSpace(string(args.StepType)))
 	if stepType == "" {
 		stepType = "service"
 	}
@@ -151,7 +163,7 @@ func renderStepTemplate(args sdkStepTemplateInput, isExternal bool) (string, err
 	}
 	actionMode := ""
 	if args.ActionMode != nil {
-		actionMode = strings.ToLower(strings.TrimSpace(*args.ActionMode))
+		actionMode = strings.ToLower(strings.TrimSpace(string(*args.ActionMode)))
 	}
 	if actionMode == "" {
 		actionMode = "sync"

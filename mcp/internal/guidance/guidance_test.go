@@ -10,6 +10,7 @@ import (
 	"github.com/santhosh-tekuri/jsonschema/v6"
 	"github.com/stretchr/testify/assert"
 
+	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/mcp/internal/guidance"
 )
 
@@ -27,12 +28,12 @@ func TestRead(t *testing.T) {
 
 func TestRenderTemplate(t *testing.T) {
 	code, err := guidance.RenderTemplate("go-step.tmpl", struct {
-		StepName         string
+		StepName         api.Name
 		Method           string
 		ScriptLanguage   string
 		ScriptBody       string
-		Inputs           []string
-		Outputs          []string
+		Inputs           []api.Name
+		Outputs          []api.Name
 		IsAsync          bool
 		IsExternal       bool
 		IsScript         bool
@@ -40,8 +41,8 @@ func TestRenderTemplate(t *testing.T) {
 	}{
 		StepName: "example-step",
 		Method:   "POST",
-		Inputs:   []string{"customer_id"},
-		Outputs:  []string{"email"},
+		Inputs:   []api.Name{"customer_id"},
+		Outputs:  []api.Name{"email"},
 	})
 	if err != nil {
 		t.Fatal(err)

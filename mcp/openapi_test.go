@@ -7,6 +7,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
+	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/mcp"
 	"github.com/kode4food/argyll/mcp/openapi"
 )
@@ -387,7 +388,7 @@ paths: {}
 			assert.NoError(t, json.Unmarshal([]byte(text), &payload))
 			ids := make([]string, len(payload.Existing))
 			for i, st := range payload.Existing {
-				ids[i] = st.ID
+				ids[i] = string(st.ID)
 			}
 			assert.Equal(t, tc.ids, ids)
 			assert.Equal(t, openapi.RegisteredStep{
@@ -395,9 +396,9 @@ paths: {}
 				Name:     "Lookup",
 				Source:   "existing",
 				Path:     "http://svc/lookup",
-				Required: []string{"customer_id"},
-				Optional: []string{"region"},
-				Outputs:  []string{"customer"},
+				Required: []api.Name{"customer_id"},
+				Optional: []api.Name{"region"},
+				Outputs:  []api.Name{"customer"},
 			}, payload.Existing[0])
 			if tc.warning != "" {
 				assert.Contains(t, payload.Warnings, tc.warning)

@@ -31,7 +31,7 @@ func outputsFromSchema(ref *openapi.SchemaRef, entity string) []argSpec {
 		props, _ := schemaProps(s)
 		if len(props) == 0 && entity != "" {
 			out = append(out, argSpec{
-				Name:       entity,
+				Name:       api.Name(entity),
 				Type:       "object",
 				Location:   "response",
 				Path:       "$",
@@ -50,7 +50,7 @@ func outputsFromSchema(ref *openapi.SchemaRef, entity string) []argSpec {
 	case schemaIs(s, "array"):
 		if entity != "" {
 			out = append(out, argSpec{
-				Name:       pluralName(entity),
+				Name:       api.Name(pluralName(entity)),
 				Type:       "array",
 				Location:   "response",
 				Path:       "$",

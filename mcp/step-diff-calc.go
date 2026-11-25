@@ -1,9 +1,12 @@
 package mcp
 
 import (
+	"cmp"
 	"encoding/json"
 	"slices"
 	"strings"
+
+	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
 type (
@@ -22,24 +25,25 @@ func (d stepDiff) compare(other stepDiff) int {
 	if cmp := strings.Compare(d.Action, other.Action); cmp != 0 {
 		return cmp
 	}
-	return strings.Compare(d.ID, other.ID)
+	return cmp.Compare(d.ID, other.ID)
 }
 
 func buildStepDiffs(
-	current map[string]map[string]any, steps []map[string]any,
-) ([]stepDiff, map[string]int) {
+	current map[api.StepID]map[string]any, steps []map[string]any,
+) ([]stepDiff, map[string]int, error) {
 	diffs := make([]stepDiff, 0, len(steps))
 	counts := map[string]int{
 		"create": 0,
 		"update": 0,
 		"skip":   0,
 	}
-	for _, proposed := range steps {
-		id := stringValue(proposed["id"])
-		if id == "" {
-			continue
+	for _, fields := range steps {
+		proposed, err := decodeStep(fields)
+		if err != nil {
+			return nil, nil, err
 		}
-		curr, exists := current[id]
+		id := proposed.ID
+		raw, exists := current[id]
 		switch {
 		case !exists:
 			diffs = append(diffs, stepDiff{
@@ -50,10 +54,15 @@ func buildStepDiffs(
 			})
 			counts["create"]++
 		default:
-			fields, delta := diffStepFields(stepFieldDiff{
-				current:  curr,
-				proposed: proposed,
-			})
+			curr, err := decodeStep(raw)
+			if err != nil {
+				return nil, nil, err
+			}
+			comparison, err := normalizedStepFields(curr, proposed)
+			if err != nil {
+				return nil, nil, err
+			}
+			fields, delta := diffStepFields(comparison)
 			if len(fields) == 0 {
 				diffs = append(diffs, stepDiff{
 					ID:       id,
@@ -79,7 +88,47 @@ func buildStepDiffs(
 	}
 
 	slices.SortFunc(diffs, stepDiff.compare)
-	return diffs, counts
+	return diffs, counts, nil
+}
+
+func normalizedStepFields(
+	current, proposed *api.Step,
+) (stepFieldDiff, error) {
+	var res stepFieldDiff
+	for _, pair := range []struct {
+		input  *api.Step
+		output *map[string]any
+	}{
+		{
+			input:  current,
+			output: &res.current,
+		},
+		{
+			input:  proposed,
+			output: &res.proposed,
+		},
+	} {
+		normal := pair.input.Copy()
+		normal.Tags = normal.Tags.Normalize()
+		fields, err := stepFields(normal)
+		if err != nil {
+			return res, err
+		}
+		*pair.output = fields
+	}
+	return res, nil
+}
+
+func stepFields(st *api.Step) (map[string]any, error) {
+	raw, err := json.Marshal(st)
+	if err != nil {
+		return nil, err
+	}
+	var fields map[string]any
+	if err := json.Unmarshal(raw, &fields); err != nil {
+		return nil, err
+	}
+	return fields, nil
 }
 
 func diffStepFields(steps stepFieldDiff) ([]string, map[string]any) {

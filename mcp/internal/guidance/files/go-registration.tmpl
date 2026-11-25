@@ -1,0 +1,24 @@
+package main
+
+import (
+	"context"
+	"encoding/json"
+	"log"
+	"time"
+
+	"github.com/kode4food/argyll/engine/pkg/api"
+	"github.com/kode4food/argyll/sdk/go"
+)
+
+func main() {
+	registration := ""{{ range . }} +
+		{{ quote . }}{{ end }}
+	var step api.Step
+	if err := json.Unmarshal([]byte(registration), &step); err != nil {
+		log.Fatal(err)
+	}
+	client := argyll.NewClient("http://localhost:8080", 30*time.Second)
+	if err := client.RegisterStep(context.Background(), &step); err != nil {
+		log.Fatal(err)
+	}
+}

@@ -6,11 +6,11 @@ Start with `analyze_openapi_contract` to extract neutral OpenAPI facts, then use
 
 ## Step JSON schema
 
-The schema used to validate registrations is in `engine-api.yaml` (embedded alongside this file). The definitions that matter most for ingestion are `StepRegistration`, `AttributeSpec`, `RequiredConfig`, `OptionalConfig`, `OutputConfig`, `MappingConfig`, `ScriptConfig`, and `HttpConfig`.
+Read the `/engine/api` MCP resource for registration schemas and `/engine/semantics` for planning and settlement behavior. The definitions that matter most for ingestion are `StepRegistration`, `AttributeSpec`, `RequiredConfig`, `OptionalConfig`, `OutputConfig`, `MappingConfig`, `ScriptConfig`, and `HttpConfig`.
 
 Registration structure:
 
-- Every step **must** have `id`. Steps missing `id` are silently skipped by `diff_proposed_steps` and `apply_proposed_steps` with no error.
+- Every Step must have a nonempty, unique, canonical `id`. Diff and apply reject the entire proposal before writing if any ID is missing, duplicated, or would change under engine ID sanitization.
 - Valid `type` values: `service`, `script`, `flow`, `agent`.
 - The `http` object nests the call under `invoke`, which uses the key `endpoint`.
 - Both `http.invoke` and `http.compensate` accept `mode: sync` or `mode: async`. Each defaults to sync independently.

@@ -140,7 +140,7 @@ func TestGenerateStepImplScript(t *testing.T) {
 	assert.Equal(t, "script", payload["step_type"])
 
 	code := payload["code"].(string)
-	assert.Contains(t, code, "WithScript(api.ScriptConfig{")
+	assert.Contains(t, code, "json.Unmarshal")
 	assertFormattedGo(t, code)
 	assert.Contains(t, code, "Register")
 }
@@ -170,8 +170,10 @@ func TestGenerateStepImplHTTPConfiguredStepPreservesType(t *testing.T) {
 	assert.Equal(t, "async", payload["action_mode"])
 
 	code := payload["code"].(string)
-	assert.Contains(t, code, "WithMethod(\"GET\")")
-	assert.Contains(t, code, "WithAsyncInvoke")
+	registration := payload["registration"].(map[string]any)
+	invoke := registration["http"].(map[string]any)["invoke"].(map[string]any)
+	assert.Equal(t, "GET", invoke["method"])
+	assert.Equal(t, "async", invoke["mode"])
 	assert.Contains(t, code, "Register")
 }
 
@@ -252,16 +254,17 @@ func TestAnalyzeServiceLandscapeNamesUntitledService(t *testing.T) {
 	assert.Equal(t, "service", payload.Services[0].Name)
 }
 
-func TestGenerateStepImplDefaults(t *testing.T) {
+func TestGenerateStepImplPythonScript(t *testing.T) {
 	c := newClient(t, mcp.NewServer("http://example", nil))
 	text := callToolText(t, c, "generate_step_impl", map[string]any{
 		"language": "python",
 		"step": map[string]any{
 			"id":     "tally",
+			"name":   "tally",
+			"type":   "script",
 			"script": map[string]any{"language": "argyll", "source": "{}"},
 			"attributes": map[string]any{
 				"count": map[string]any{"role": "output"},
-				"junk":  "not an attribute",
 			},
 		},
 	})
@@ -270,7 +273,8 @@ func TestGenerateStepImplDefaults(t *testing.T) {
 	assert.NoError(t, json.Unmarshal([]byte(text), &payload))
 	assert.Equal(t, "tally", payload["step_name"])
 	assert.Equal(t, "script", payload["step_type"])
-	assert.Contains(t, payload["code"], `language=ScriptLanguage("argyll")`)
+	registration := payload["registration"].(map[string]any)
+	assert.Equal(t, "argyll", registration["script"].(map[string]any)["language"])
 }
 
 func TestGenerateStepImplRequiresScriptLanguage(t *testing.T) {
@@ -278,7 +282,8 @@ func TestGenerateStepImplRequiresScriptLanguage(t *testing.T) {
 	text := callToolErrorText(t, c, "generate_step_impl", map[string]any{
 		"language": "python",
 		"step": map[string]any{
-			"id": "tally", "script": map[string]any{"source": "elapsed"},
+			"id": "tally", "name": "tally", "type": "script",
+			"script": map[string]any{"source": "elapsed"},
 		},
 	})
 	assert.Contains(t, text, "script_language must be lua or argyll")

@@ -7,9 +7,9 @@ This MCP server exposes both the Argyll runtime surface and an OpenAPI-driven de
 - `analyze_openapi_contract` - extract neutral REST contract facts from an OpenAPI spec for LLM-driven Argyll registration design.
 - `analyze_service_spec` - analyze one external REST/JSON service spec and summarize the operations it exposes.
 - `analyze_service_landscape` - analyze multiple service specs together and describe cross-service planning links and missing attributes.
-- `generate_step_impl` - generate a Go or Python SDK implementation draft for a proposed step.
+- `generate_step_impl` - generate Go SDK or Python HTTP registration code preserving the supplied Step. It does not implement service endpoints; use `sdk_step_template` for a separate handler scaffold.
 - `diff_proposed_steps` - compare proposed step registrations with the live catalog without applying them, and classify each as create, update, or skip.
-- `apply_proposed_steps` - apply only the required creates and updates for a proposed step set. Use `skip_updates: true` to register new Steps only. This replaces `apply_updates: false`.
+- `apply_proposed_steps` - apply the required creates and updates for a proposed Step set. Use `skip_updates: true` to register new Steps only. Operations are sequential, not atomic: errors include applied, skipped, failed, and pending operations. A failed request can have committed; read the catalog before retrying. Readback verifies mappings, matches, and metric selectors, not runtime behavior.
 - `list_steps` - list all registered steps.
 - `register_step` - register a new step.
 - `get_step` - fetch a single step by ID.
@@ -28,11 +28,15 @@ This MCP server exposes both the Argyll runtime surface and an OpenAPI-driven de
 - `list_feeds`, `get_feed` - read feeds and their current values.
 - `register_feed`, `update_feed`, `unregister_feed` - manage feeds.
 - `engine_state` - fetch the current engine state.
+- `agent_capabilities` - discover worker-provided models, efforts, and MCP tools before configuring agent Steps.
 - `list_step_health` - list health for all steps.
 - `get_step_health` - fetch health for a single step.
 - `sdk_step_template` - return a minimal Go or Python SDK step template. Use `step_type: "service"`, set `action_mode: "async"` when needed, and set `external: true` when an existing HTTP endpoint implements the step.
 
 ## Resources
+
+- `/engine/api` - full engine OpenAPI schema as YAML.
+- `/engine/semantics` - init declarations, collection policies, Flow settlement, and Feed timing and versions.
 
 - `/sdk/steps` - SDK step implementation guidance.
 - `/sdk/go/steps` - Go SDK step patterns.
@@ -66,7 +70,7 @@ One reasonable tool sequence is:
 4. `diff_proposed_steps` Input: the authored steps. Output: create/update/skip decisions against the live catalog.
 5. `apply_proposed_steps` Input: the authored steps. Output: applied registrations plus verification after reading them back.
 6. `preview_plan` Input: likely goal steps and initial attrs. Output: whether Argyll can now build the expected plan.
-7. `generate_step_impl` Input: a proposed SDK-hosted step. Output: a Go or Python SDK implementation draft.
+7. `generate_step_impl` Input: a proposed Step. Output: registration code retaining the supplied definition and notes identifying the service implementation work still required.
 
 Example LLM instruction:
 
@@ -111,5 +115,5 @@ Messages are newline-delimited JSON (one JSON-RPC object per line).
 ```json
 {"jsonrpc":"2.0","id":1,"method":"initialize"}
 {"jsonrpc":"2.0","id":2,"method":"tools/list"}
-{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"preview_plan","arguments":{"goals":{"steps":["step-a","step-b"],"else":{"steps":["step-c"]}},"init":{"input":"value"}}}}
+{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"preview_plan","arguments":{"goals":{"steps":["step-a","step-b"],"else":{"steps":["step-c"]}},"init":{"input":["value"]}}}}
 ```

@@ -1,6 +1,9 @@
 package openapi
 
-import "github.com/kode4food/argyll/mcp/openapi/argyll"
+import (
+	"github.com/kode4food/argyll/engine/pkg/api"
+	"github.com/kode4food/argyll/mcp/openapi/argyll"
+)
 
 type (
 	Args struct {
@@ -11,14 +14,14 @@ type (
 	}
 
 	Step struct {
-		ID       string
-		Name     string
+		ID       api.StepID
+		Name     api.Name
 		Source   string
 		Method   string
 		Path     string
-		Required []string
-		Optional []string
-		Outputs  []string
+		Required []api.Name
+		Optional []api.Name
+		Outputs  []api.Name
 	}
 
 	Info struct {
@@ -29,7 +32,7 @@ type (
 
 	Arg struct {
 		Schema     *SchemaFacts `json:"schema,omitempty"`
-		Name       string       `json:"name"`
+		Name       api.Name     `json:"name"`
 		Type       string       `json:"type,omitempty"`
 		Location   string       `json:"location,omitempty"`
 		Confidence string       `json:"confidence,omitempty"`
@@ -51,27 +54,27 @@ type (
 	EndpointCapability = argyll.EndpointCapability
 
 	Operation struct {
-		ID          string   `json:"id"`
-		Method      string   `json:"method,omitempty"`
-		Path        string   `json:"path,omitempty"`
-		Endpoint    string   `json:"endpoint,omitempty"`
-		Summary     string   `json:"summary,omitempty"`
-		Description string   `json:"description,omitempty"`
-		Entity      string   `json:"entity,omitempty"`
-		Inputs      []Arg    `json:"inputs"`
-		Outputs     []Arg    `json:"outputs"`
-		Rationale   []string `json:"rationale"`
-		Ambiguities []string `json:"ambiguities"`
+		ID          api.StepID `json:"id"`
+		Method      string     `json:"method,omitempty"`
+		Path        string     `json:"path,omitempty"`
+		Endpoint    string     `json:"endpoint,omitempty"`
+		Summary     string     `json:"summary,omitempty"`
+		Description string     `json:"description,omitempty"`
+		Entity      string     `json:"entity,omitempty"`
+		Inputs      []Arg      `json:"inputs"`
+		Outputs     []Arg      `json:"outputs"`
+		Rationale   []string   `json:"rationale"`
+		Ambiguities []string   `json:"ambiguities"`
 	}
 
 	RegisteredStep struct {
-		ID       string   `json:"id"`
-		Name     string   `json:"name"`
-		Source   string   `json:"source"`
-		Path     string   `json:"path,omitempty"`
-		Required []string `json:"required"`
-		Optional []string `json:"optional"`
-		Outputs  []string `json:"outputs"`
+		ID       api.StepID `json:"id"`
+		Name     api.Name   `json:"name"`
+		Source   string     `json:"source"`
+		Path     string     `json:"path,omitempty"`
+		Required []api.Name `json:"required"`
+		Optional []api.Name `json:"optional"`
+		Outputs  []api.Name `json:"outputs"`
 	}
 
 	Result struct {

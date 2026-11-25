@@ -36,7 +36,7 @@ func Defaults() Capabilities {
 			InputLocations:  []string{"required.mapping", "optional.mapping"},
 			OutputLocation:  "output.mapping",
 			RenameField:     "name",
-			TransformField:  "script",
+			TransformField:  "selector",
 			ScriptLanguages: []string{"argyll", "lua"},
 		},
 		RequiredMatch: MatchCapability{

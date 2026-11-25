@@ -5,6 +5,8 @@ import (
 	"embed"
 	"strconv"
 	"text/template"
+
+	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
 //go:embed files/*.md files/*.tmpl files/*.yaml
@@ -24,7 +26,8 @@ func RenderTemplate(name string, data any) (string, error) {
 		return "", err
 	}
 	tpl, err := template.New(name).Funcs(template.FuncMap{
-		"quote": strconv.Quote,
+		"quote":     strconv.Quote,
+		"quoteName": func(name api.Name) string { return strconv.Quote(string(name)) },
 	}).Parse(raw)
 	if err != nil {
 		return "", err

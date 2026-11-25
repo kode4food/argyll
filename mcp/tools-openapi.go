@@ -1,10 +1,12 @@
 package mcp
 
 import (
+	"cmp"
 	"context"
 	"slices"
 	"strings"
 
+	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/util"
 	"github.com/kode4food/argyll/mcp/openapi"
 )
@@ -35,7 +37,7 @@ func (s *Server) collectExistingSteps(
 		}
 	}
 
-	seen := util.Set[string]{}
+	seen := util.Set[api.StepID]{}
 	for _, st := range res {
 		seen.Add(st.ID)
 	}
@@ -45,7 +47,7 @@ func (s *Server) collectExistingSteps(
 		}
 	}
 	slices.SortFunc(res, func(a, b openapi.Step) int {
-		return strings.Compare(a.ID, b.ID)
+		return cmp.Compare(a.ID, b.ID)
 	})
 	return res, nil
 }
@@ -57,7 +59,7 @@ func normalizeExisting(steps map[string]any) []openapi.Step {
 		if !ok {
 			continue
 		}
-		node := normalizeExistingStep(id, st)
+		node := normalizeExistingStep(api.StepID(id), st)
 		if node.ID == "" {
 			continue
 		}
@@ -65,20 +67,20 @@ func normalizeExisting(steps map[string]any) []openapi.Step {
 	}
 
 	slices.SortFunc(res, func(a, b openapi.Step) int {
-		return strings.Compare(a.ID, b.ID)
+		return cmp.Compare(a.ID, b.ID)
 	})
 	return res
 }
 
-func normalizeExistingStep(id string, st map[string]any) openapi.Step {
+func normalizeExistingStep(id api.StepID, st map[string]any) openapi.Step {
 	attrs, _ := asMap(st["attributes"])
 	res := openapi.Step{
-		ID:       stringValue(st["id"]),
-		Name:     stringValue(st["name"]),
+		ID:       api.StepID(stringValue(st["id"])),
+		Name:     api.Name(stringValue(st["name"])),
 		Source:   "existing",
-		Required: []string{},
-		Optional: []string{},
-		Outputs:  []string{},
+		Required: []api.Name{},
+		Optional: []api.Name{},
+		Outputs:  []api.Name{},
 	}
 	if res.ID == "" {
 		res.ID = id
@@ -95,13 +97,13 @@ func normalizeExistingStep(id string, st map[string]any) openapi.Step {
 		if !ok {
 			continue
 		}
-		switch stringValue(attr["role"]) {
-		case "required":
-			res.Required = append(res.Required, name)
-		case "optional":
-			res.Optional = append(res.Optional, name)
-		case "output":
-			res.Outputs = append(res.Outputs, name)
+		switch api.AttributeRole(stringValue(attr["role"])) {
+		case api.RoleRequired:
+			res.Required = append(res.Required, api.Name(name))
+		case api.RoleOptional:
+			res.Optional = append(res.Optional, api.Name(name))
+		case api.RoleOutput:
+			res.Outputs = append(res.Outputs, api.Name(name))
 		}
 	}
 
