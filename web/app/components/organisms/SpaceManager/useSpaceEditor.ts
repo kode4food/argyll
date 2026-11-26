@@ -4,7 +4,6 @@ import { useSpaces } from "@/app/store/flowStore";
 import {
   describeQBE,
   emptyDraft,
-  fingerprint,
   hasQBE,
   isCurrentPreview,
   isDetailsValid,
@@ -33,6 +32,9 @@ export const useSpaceEditor = (onClose: () => void, spaceId?: string) => {
     existing && draft.scriptMode ? REVIEW_STEP : 0
   );
   const [isEditing, setEditing] = React.useState(existing !== undefined);
+  const [initialData, setInitialData] = React.useState(() =>
+    JSON.stringify(toSpace(draft))
+  );
   const [error, setError] = React.useState<string | null>(null);
 
   const { clearPreview, preview } = useSpacePreview({
@@ -42,12 +44,8 @@ export const useSpaceEditor = (onClose: () => void, spaceId?: string) => {
   });
 
   const space = toSpace(draft);
-  const editing = editingId
-    ? spaces.find((existing) => existing.id === editingId)
-    : undefined;
   const currentPreview = isCurrentPreview(preview, draft) ? preview : null;
-  const isDirty =
-    fingerprint(space) !== fingerprint(editing ?? toSpace(emptyDraft()));
+  const isDirty = JSON.stringify(space) !== initialData;
 
   const clearEditor = () => {
     setDraft(emptyDraft());
@@ -74,6 +72,7 @@ export const useSpaceEditor = (onClose: () => void, spaceId?: string) => {
   const openEditor = (existing?: Space) => {
     const nextDraft = existing ? toDraft(existing) : emptyDraft();
     setDraft(nextDraft);
+    setInitialData(JSON.stringify(toSpace(nextDraft)));
     setEditingId(existing?.id ?? null);
     setEditorStep(nextDraft.scriptMode ? REVIEW_STEP : 0);
     clearPreview();

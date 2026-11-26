@@ -23,10 +23,10 @@ export const useFeedEditor = (onClose: () => void, feedId?: string) => {
   );
   const [editingId, setEditingId] = React.useState(existing?.id ?? null);
   const [isEditing, setEditing] = React.useState(existing !== undefined);
-  const editing = feeds.find((feed) => feed.id === editingId);
-  const isDirty =
-    JSON.stringify(toFeed(draft)) !==
-    JSON.stringify(toFeed(editing ? toDraft(editing) : emptyDraft()));
+  const [initialData, setInitialData] = React.useState(() =>
+    JSON.stringify(toFeed(draft))
+  );
+  const isDirty = JSON.stringify(toFeed(draft)) !== initialData;
   const [error, setError] = React.useState<string | null>(null);
   const { isSaving, run } = useCatalogAction(setError);
 
@@ -63,7 +63,9 @@ export const useFeedEditor = (onClose: () => void, feedId?: string) => {
   };
 
   const openEditor = (existing?: Feed) => {
-    setDraft(existing ? toDraft(existing) : emptyDraft());
+    const nextDraft = existing ? toDraft(existing) : emptyDraft();
+    setDraft(nextDraft);
+    setInitialData(JSON.stringify(toFeed(nextDraft)));
     setEditingId(existing?.id ?? null);
     setError(null);
     setEditing(true);

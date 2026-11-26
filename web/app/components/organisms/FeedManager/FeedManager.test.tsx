@@ -134,6 +134,12 @@ describe("FeedManager", () => {
     });
     expect(screen.getByText(t("feedManager.cancel"))).toBeInTheDocument();
     expect(save).toBeEnabled();
+
+    fireEvent.change(screen.getByDisplayValue("Order Sum"), {
+      target: { value: "Order Total" },
+    });
+    expect(screen.getByText(t("feedManager.close"))).toBeInTheDocument();
+    expect(save).toBeDisabled();
   });
 
   test("lists each Feed's live value", async () => {

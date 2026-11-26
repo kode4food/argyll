@@ -123,16 +123,6 @@ export function toQBE(qbe: string[][]): string[][] {
   );
 }
 
-export function fingerprint(space: Space): string {
-  return JSON.stringify({
-    id: space.id,
-    name: space.name,
-    description: space.description ?? "",
-    selector: space.qbe ? undefined : space.selector,
-    qbe: qbeFingerprint(space.qbe),
-  });
-}
-
 export function isCurrentPreview(
   preview: SpacePreviewResponse | null,
   draft: SpaceDraft
