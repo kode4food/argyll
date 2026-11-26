@@ -5,9 +5,11 @@ const mockManager = {
   signinRedirect: jest.fn(),
   signinRedirectCallback: jest.fn(),
   signoutRedirect: jest.fn(),
+  signinSilent: jest.fn(),
   events: {
     addUserLoaded: jest.fn(),
     addSilentRenewError: jest.fn(),
+    addAccessTokenExpired: jest.fn(),
   },
 };
 
@@ -78,6 +80,23 @@ describe("authStore", () => {
     const loaded = mockManager.events.addUserLoaded.mock.calls[0][0];
     loaded({ ...user(), access_token: "token-2" });
     expect(useAuthStore.getState().token).toBe("token-2");
+  });
+
+  test("renews an expired token, or signs in when renewal fails", async () => {
+    mockManager.getUser.mockResolvedValue({ ...user(), expires_at: 100 });
+    const { useAuthStore } = loadStore("oidc");
+    await useAuthStore.getState().start();
+    expect(useAuthStore.getState().expiresAt).toBe(100000);
+
+    const expired = mockManager.events.addAccessTokenExpired.mock.calls[0][0];
+    mockManager.signinSilent.mockResolvedValueOnce(undefined);
+    await expired();
+    expect(mockManager.signinRedirect).not.toHaveBeenCalled();
+
+    mockManager.signinSilent.mockRejectedValueOnce(new Error("no session"));
+    expired();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(mockManager.signinRedirect).toHaveBeenCalled();
   });
 
   test("redirects to sign in, returning to the current page", async () => {

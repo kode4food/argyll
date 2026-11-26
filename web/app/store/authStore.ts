@@ -6,6 +6,7 @@ interface AuthState {
   isEnabled: boolean;
   isReady: boolean;
   token: string | null;
+  expiresAt: number | null;
   userName: string | null;
   start: () => Promise<void>;
   login: () => Promise<void>;
@@ -53,10 +54,16 @@ const login = () => {
   return redirecting;
 };
 
+const MS_PER_SECOND = 1000;
+
 const sessionOf = (user: User) => ({
   token: user.access_token,
+  expiresAt: user.expires_at ? user.expires_at * MS_PER_SECOND : null,
   userName: String(user.profile.preferred_username ?? user.profile.sub),
 });
+
+const signInAgain = () =>
+  login().catch((error: unknown) => console.error("Sign-in failed", error));
 
 // Finishes a login redirect or starts one, returning to the page that needed it
 const startSession = async (set: SetAuth) => {
@@ -75,10 +82,10 @@ const startSession = async (set: SetAuth) => {
     return;
   }
   um.events.addUserLoaded((next) => set(sessionOf(next)));
-  um.events.addSilentRenewError(() => {
-    void login().catch((error: unknown) =>
-      console.error("Sign-in failed", error)
-    );
+  um.events.addSilentRenewError(() => void signInAgain());
+  // Renewal can miss its window while the machine sleeps, so expiry renews once more
+  um.events.addAccessTokenExpired(() => {
+    void um.signinSilent().catch(signInAgain);
   });
   set({ ...sessionOf(user), isReady: true });
 };
@@ -87,6 +94,7 @@ const useAuthStore = create<AuthState>()((set) => ({
   isEnabled,
   isReady: !isEnabled,
   token: null,
+  expiresAt: null,
   userName: null,
   start: () => {
     if (!isEnabled) return Promise.resolve();
@@ -95,7 +103,7 @@ const useAuthStore = create<AuthState>()((set) => ({
   },
   login,
   logout: async () => {
-    set({ token: null, userName: null });
+    set({ token: null, expiresAt: null, userName: null });
     await userManager().signoutRedirect();
   },
 }));

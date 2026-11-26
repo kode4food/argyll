@@ -108,6 +108,16 @@ export const useWebSocketClient = ({
 
     cancelPendingReconnect();
 
+    // The server refuses an expired token at the handshake, which a browser
+    // reports only as a dropped connection
+    const { isEnabled, expiresAt, login } = useAuthStore.getState();
+    if (isEnabled && expiresAt !== null && expiresAt <= Date.now()) {
+      void login().catch((error: unknown) =>
+        console.error("Sign-in failed", error)
+      );
+      return;
+    }
+
     const ws = wsRef.current;
     if (
       ws?.readyState === WebSocket.CONNECTING ||

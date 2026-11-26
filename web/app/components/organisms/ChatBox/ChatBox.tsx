@@ -47,6 +47,7 @@ const ChatBox: React.FC = () => {
       <ChatComposer
         value={chat.draft}
         isDisabled={chat.isComposerDisabled}
+        isPending={chat.isPending}
         placeholder={t("chat.placeholder")}
         sendLabel={t("chat.send")}
         onChange={chat.setDraft}

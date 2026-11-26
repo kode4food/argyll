@@ -90,6 +90,27 @@ describe("useWebSocketClient", () => {
     ]);
   });
 
+  test("signs in again instead of connecting with an expired token", () => {
+    const { login: realLogin } = useAuthStore.getState();
+    const login = jest.fn().mockResolvedValue(undefined);
+    useAuthStore.setState({
+      isEnabled: true,
+      token: "jwt",
+      expiresAt: Date.now() - 1,
+      login,
+    });
+    renderHook(() => useWebSocketClient({ enabled: true }));
+    useAuthStore.setState({
+      isEnabled: false,
+      token: null,
+      expiresAt: null,
+      login: realLogin,
+    });
+
+    expect(login).toHaveBeenCalled();
+    expect(instances).toHaveLength(0);
+  });
+
   test("connects when enabled and sends pending subscriptions on open", () => {
     const onEvent = jest.fn();
     const handler = jest.fn();

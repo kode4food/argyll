@@ -13,6 +13,7 @@ import (
 	"github.com/kode4food/argyll/chat/contract"
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/log"
+	"github.com/kode4food/argyll/engine/pkg/util"
 )
 
 const (
@@ -61,6 +62,12 @@ func (w *Worker) chat(rw http.ResponseWriter, r *http.Request) {
 		slog.Warn("Agent chat failed", slog.String("provider", string(req.Provider)),
 			slog.String("model", string(req.Model)), log.Error(err))
 		p := problemOf(err)
+		// The caller passed auth before this point, so a 401 or 403 here is the worker's own
+		// provider credentials, and passing it on would sign the caller out
+		if p.Status == http.StatusUnauthorized || p.Status == http.StatusForbidden {
+			p = util.MutableCopy(p)
+			p.Status = http.StatusBadGateway
+		}
 		rw.Header().Set("Content-Type", api.ProblemJSONContentType)
 		rw.WriteHeader(p.Status)
 		_ = json.NewEncoder(rw).Encode(p)

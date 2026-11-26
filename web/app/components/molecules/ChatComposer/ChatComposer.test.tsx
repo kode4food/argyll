@@ -12,6 +12,7 @@ describe("ChatComposer", () => {
       <ChatComposer
         value="hi"
         isDisabled={false}
+        isPending={false}
         placeholder="Message"
         sendLabel="Send"
         onChange={onChange}
@@ -19,6 +20,31 @@ describe("ChatComposer", () => {
         {...props}
       />
     );
+
+  test("takes focus once enabled and keeps it while a reply is pending", () => {
+    const { rerender } = renderComposer({ isDisabled: true });
+    const input = screen.getByLabelText("Message");
+    expect(input).not.toHaveFocus();
+
+    const composer = (isPending: boolean) => (
+      <ChatComposer
+        value="hi"
+        isDisabled={false}
+        isPending={isPending}
+        placeholder="Message"
+        sendLabel="Send"
+        onChange={onChange}
+        onSubmit={onSubmit}
+      />
+    );
+    rerender(composer(false));
+    expect(input).toHaveFocus();
+
+    rerender(composer(true));
+    expect(input).toHaveFocus();
+    fireEvent.keyDown(input, { key: "Enter" });
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
 
   test("submits on Enter", () => {
     renderComposer();
@@ -35,10 +61,13 @@ describe("ChatComposer", () => {
     expect(onSubmit).not.toHaveBeenCalled();
   });
 
-  test("submits from the send button", () => {
+  test("submits from the send button, returning focus to the message", () => {
     renderComposer();
-    fireEvent.click(screen.getByLabelText("Send"));
+    const send = screen.getByLabelText("Send");
+    send.focus();
+    fireEvent.click(send);
     expect(onSubmit).toHaveBeenCalledTimes(1);
+    expect(screen.getByLabelText("Message")).toHaveFocus();
   });
 
   test("reports edits", () => {

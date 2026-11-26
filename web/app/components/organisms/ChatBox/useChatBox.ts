@@ -43,7 +43,7 @@ export const useChatBox = () => {
     messages: chat.messages,
     isPending: chat.isPending,
     error: chat.error,
-    isComposerDisabled: !isReady || chat.isPending,
+    isComposerDisabled: !isReady,
     draft,
     setDraft,
     setProvider: chat.setProvider,

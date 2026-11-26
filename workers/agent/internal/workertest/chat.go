@@ -160,9 +160,9 @@ func (s *suite) testChat(t *testing.T) {
 		cfg.Servers = s.chatServers(crm.URL)
 
 		resp, body := s.postChat(t, cfg, s.chatRequest())
-		assert.Equal(t, http.StatusUnauthorized, resp.StatusCode)
+		assert.Equal(t, http.StatusBadGateway, resp.StatusCode)
 		assert.Equal(t, api.ProblemJSONContentType, resp.Header.Get("Content-Type"))
-		assert.Contains(t, string(body), `"status":401`)
+		assert.Contains(t, string(body), `"status":502`)
 	})
 }
 

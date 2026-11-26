@@ -16,6 +16,7 @@ import (
 
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/log"
+	"github.com/kode4food/argyll/engine/pkg/util"
 )
 
 type (
@@ -157,9 +158,9 @@ func listServers(
 		tools, err := toolNames(ctx, servers[name])
 		if err != nil {
 			slog.Warn("MCP discovery failed", slog.String("server", name), log.Error(err))
-			p := *problemOf(err)
+			p := util.MutableCopy(problemOf(err))
 			p.Instance = "mcp/" + name
-			problems = append(problems, p)
+			problems = append(problems, *p)
 		}
 		res = append(res, api.MCPServer{
 			Server: name,

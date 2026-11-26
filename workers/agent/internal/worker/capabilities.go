@@ -12,6 +12,7 @@ import (
 
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/log"
+	"github.com/kode4food/argyll/engine/pkg/util"
 )
 
 type catalogCache struct {
@@ -67,9 +68,9 @@ func (w *Worker) discoverCapabilities(ctx context.Context) (*api.AgentCapabiliti
 			if err != nil {
 				slog.Warn("Agent model discovery failed",
 					slog.String("provider", string(name)), log.Error(err))
-				p := *problemOf(err)
+				p := util.MutableCopy(problemOf(err))
 				p.Instance = "provider/" + string(name)
-				problems[i] = &p
+				problems[i] = p
 			}
 			models = w.listedModels(name, models)
 			slices.SortFunc(models, func(a, b api.AgentModel) int {

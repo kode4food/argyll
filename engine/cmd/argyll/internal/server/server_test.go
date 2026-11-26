@@ -1816,13 +1816,13 @@ func withServerEnvConfig(
 		}
 		defer func() { _ = eng.Stop() }()
 
-		next := *env
+		next := util.MutableCopy(env)
 		next.Engine = eng
 		next.Config = cfg
 		next.EventHub = eng.GetEventHub()
 		fn(&testServerEnv{
 			Server:        server.NewServer(eng, next.EventHub),
-			TestEngineEnv: &next,
+			TestEngineEnv: next,
 		})
 	})
 }

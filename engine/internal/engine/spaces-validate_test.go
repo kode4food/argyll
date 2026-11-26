@@ -8,6 +8,7 @@ import (
 	"github.com/kode4food/argyll/engine/internal/assert/helpers"
 	"github.com/kode4food/argyll/engine/internal/engine"
 	"github.com/kode4food/argyll/engine/pkg/api"
+	"github.com/kode4food/argyll/engine/pkg/util"
 )
 
 func TestSpaceSubFlowReferences(t *testing.T) {
@@ -53,9 +54,8 @@ func TestSpaceSubFlowReferences(t *testing.T) {
 		assert.ErrorIs(t, err, engine.ErrSpaceInUse)
 
 		updated := subFlow.Copy()
-		flow := *updated.Flow
-		flow.SpaceID = ""
-		updated.Flow = &flow
+		updated.Flow = util.MutableCopy(updated.Flow)
+		updated.Flow.SpaceID = ""
 		assert.NoError(t, eng.UpdateStep(updated))
 		assert.NoError(t, eng.UnregisterStep(goal.ID))
 		assert.NoError(t, eng.UnregisterSpace(sp.ID))

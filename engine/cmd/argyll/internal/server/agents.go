@@ -62,7 +62,7 @@ func listAgentCapabilities(
 					slog.String("worker", base), log.Error(err))
 				p := api.NewProblem(http.StatusBadGateway, err.Error())
 				if cause, ok := errors.AsType[*api.ProblemDetails](err); ok {
-					*p = *cause
+					p = cause
 				}
 				res.Problems = append(res.Problems, *p)
 				return
