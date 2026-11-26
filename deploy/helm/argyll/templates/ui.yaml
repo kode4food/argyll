@@ -1,0 +1,55 @@
+{{- $ctx := dict "root" . "component" "ui" -}}
+{{- $name := include "argyll.name" $ctx -}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "argyll.labels" $ctx | nindent 4 }}
+spec:
+  selector:
+    {{- include "argyll.selectorLabels" $ctx | nindent 4 }}
+  ports:
+    - name: http
+      port: 3001
+      targetPort: http
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "argyll.labels" $ctx | nindent 4 }}
+spec:
+  replicas: {{ .Values.ui.replicas }}
+  selector:
+    matchLabels:
+      {{- include "argyll.selectorLabels" $ctx | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "argyll.selectorLabels" $ctx | nindent 8 }}
+    spec:
+      {{- include "argyll.podDefaults" . | nindent 6 }}
+      containers:
+        - name: ui
+          image: {{ include "argyll.image" (dict "root" . "name" "ui") }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            - name: AUTH_PROVIDER
+              value: {{ ternary "oidc" "none" .Values.auth.enabled }}
+            {{- if .Values.auth.enabled }}
+            - name: AUTH_AUTHORITY
+              value: {{ include "argyll.authority" . | quote }}
+            - name: AUTH_CLIENT_ID
+              value: {{ .Values.auth.clientId | quote }}
+            {{- end }}
+          ports:
+            - name: http
+              containerPort: 3001
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+          resources:
+            {{- toYaml .Values.ui.resources | nindent 12 }}

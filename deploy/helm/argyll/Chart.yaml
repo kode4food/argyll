@@ -1,0 +1,9 @@
+apiVersion: v2
+name: argyll
+description: Argyll goal-driven orchestration engine, web UI, chat, and Agent workers
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+home: https://www.argyll.app
+sources:
+  - https://github.com/kode4food/argyll

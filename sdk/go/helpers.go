@@ -30,7 +30,7 @@ type EnvLookup struct {
 const (
 	MaxRegistrationAttempts = 5
 	BackoffMultiplier       = 2 * time.Second
-	DefaultEngineURL        = "http://localhost:8080"
+	DefaultURL              = "http://localhost:8080"
 )
 
 var (

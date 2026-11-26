@@ -32,10 +32,10 @@ func TestSetupStepWithMockEngine(t *testing.T) {
 		},
 	))
 
-	_ = os.Setenv("ARGYLL_ENGINE_URL", mockEngine.URL)
+	_ = os.Setenv("ARGYLL_URL", mockEngine.URL)
 	_ = os.Setenv("STEP_PORT", "0")
 	defer func() {
-		_ = os.Unsetenv("ARGYLL_ENGINE_URL")
+		_ = os.Unsetenv("ARGYLL_URL")
 		_ = os.Unsetenv("STEP_PORT")
 	}()
 
@@ -61,22 +61,22 @@ func TestSetupStepWithMockEngine(t *testing.T) {
 
 func TestSetupEnvVars(t *testing.T) {
 	_ = os.Setenv("STEP_PORT", "9876")
-	_ = os.Setenv("ARGYLL_ENGINE_URL", "http://test-engine:8080")
+	_ = os.Setenv("ARGYLL_URL", "http://test-engine:8080")
 	_ = os.Setenv("STEP_HOSTNAME", "test-host")
 	unset := func() {
 		_ = os.Unsetenv("STEP_PORT")
-		_ = os.Unsetenv("ARGYLL_ENGINE_URL")
+		_ = os.Unsetenv("ARGYLL_URL")
 		_ = os.Unsetenv("STEP_HOSTNAME")
 	}
 	defer unset()
 	unset()
-	assert.Equal(t, "http://localhost:8080", argyll.DefaultEngineURL)
+	assert.Equal(t, "http://localhost:8080", argyll.DefaultURL)
 }
 
 func newHTTPTestServer(t *testing.T, handler http.Handler) *httptest.Server {
 	t.Helper()
 
-	ln, err := net.Listen("tcp4", "127.0.0.1:0")
+	ln, err := net.Listen("tcp4", "localhost:0")
 	assert.NoError(t, err)
 
 	server := httptest.NewUnstartedServer(handler)

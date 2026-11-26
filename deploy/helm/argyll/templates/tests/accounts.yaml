@@ -1,0 +1,65 @@
+{{- if .Values.auth.enabled -}}
+{{- $env := include "argyll.testAccountEnv" . -}}
+{{- $script := include "argyll.testAccountsScript" . -}}
+{{- include "argyll.testPod" (dict "root" . "name" "accounts" "env" $env "script" $script) }}
+{{- end }}
+
+{{- define "argyll.testAccountEnv" -}}
+{{- if .Values.keycloak.enabled -}}
+- name: CLIENT_ID
+  value: argyll-engine
+- name: CLIENT_SECRET
+  valueFrom:
+    secretKeyRef:
+      name: {{ include "argyll.keycloakSecret" . }}
+      key: engine-client-secret
+{{- else -}}
+- name: CLIENT_ID
+  valueFrom:
+    secretKeyRef:
+      name: {{ .Values.auth.external.existingSecret }}
+      key: engine-client-id
+- name: CLIENT_SECRET
+  valueFrom:
+    secretKeyRef:
+      name: {{ .Values.auth.external.existingSecret }}
+      key: engine-client-secret
+{{- end }}
+{{- end -}}
+
+{{- define "argyll.testAccountsScript" -}}
+{{- if .Values.keycloak.enabled }}
+token_url=$gateway/auth/realms/argyll/protocol/openid-connect/token
+{{- else }}
+token_url={{ .Values.auth.external.tokenUrl }}
+{{- end }}
+token=$(curl -s -m 10 -d grant_type=client_credentials -d "client_id=$CLIENT_ID" \
+  --data-urlencode "client_secret=$CLIENT_SECRET" "$token_url" \
+  | grep -o '"access_token":"[^"]*"' | cut -d'"' -f4)
+[ -n "$token" ] && echo "ok    engine service account signs in" \
+  || { echo "FAIL  engine service account signs in"; fail=1; }
+auth="Authorization: Bearer $token"
+expect "engine accepts the service account" 200 "$(code -H "$auth" $gateway/engine/steps)"
+{{- $providers := list }}
+{{- range $provider := list "anthropic" "bedrock" "gemini" "openai" }}
+{{- if (index $.Values.agents $provider).enabled }}
+{{- $providers = append $providers $provider }}
+{{- end }}
+{{- end }}
+{{- if $providers }}
+caps=$(curl -s -m 30 -H "$auth" $gateway/engine/agents/capabilities)
+# The engine names a worker's address only when it could not ask that worker
+{{- range $providers }}
+lacks "engine reaches the {{ . }} worker" \
+  '{{ include "argyll.name" (dict "root" $ "component" (printf "agent-%s" .)) }}:8070' "$caps"
+{{- end }}
+# Workers look up the MCP server's tools once they have provider credentials
+case "$caps" in
+  *'"provider":'*) lacks "workers reach the MCP server" '"instance":"mcp/' "$caps" ;;
+  *) echo "skip  workers reach the MCP server: no worker has provider credentials" ;;
+esac
+reply=$(curl -s -m 60 -X POST -H "$auth" -H "Content-Type: application/json" $gateway/chat \
+  -d '{"provider":"{{ first $providers }}","model":"test","messages":[{"role":"user","content":"hi"}]}')
+lacks "chat reaches the {{ first $providers }} worker" "agent worker chat failed" "$reply"
+{{- end }}
+{{- end -}}

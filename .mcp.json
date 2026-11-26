@@ -6,7 +6,7 @@
       "args": [
         "run",
         "./mcp/cmd/argyll-mcp",
-        "-engine",
+        "-url",
         "http://localhost:8080/"
       ]
     }

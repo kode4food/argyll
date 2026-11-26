@@ -1,0 +1,112 @@
+# The address people use to reach Argyll, such as https://argyll.example.com. Required
+publicUrl: ""
+
+# The cluster's DNS domain, which the gateway needs for full service names
+clusterDomain: cluster.local
+
+image:
+  registry: ghcr.io/kode4food
+  # Defaults to the chart's appVersion
+  tag: ""
+  pullPolicy: IfNotPresent
+imagePullSecrets: []
+
+engine:
+  # Fixed at install. The Raft cluster's starting members come from this count
+  replicas: 3
+  logLevel: info
+  storage:
+    size: 10Gi
+    storageClass: ""
+  resources: {}
+
+networkPolicy:
+  # Each component accepts connections only from the components that use it, and the gateway from
+  # anywhere. Outbound traffic stays open. Clusters without policy enforcement ignore it
+  enabled: true
+
+gateway:
+  image: haproxy:3.1-alpine
+  replicas: 2
+  resources: {}
+
+ui:
+  replicas: 2
+  resources: {}
+
+chat:
+  replicas: 1
+  resources: {}
+
+mcp:
+  replicas: 1
+  resources: {}
+
+# Each enabled worker reads its provider credentials from existingSecret, as environment variables
+# such as ANTHROPIC_API_KEY or OPENAI_API_KEY
+agents:
+  # The provider whose worker also serves every provider not listed here
+  default: openai
+  anthropic:
+    enabled: false
+    existingSecret: ""
+    env: {}
+  bedrock:
+    enabled: false
+    existingSecret: ""
+    env: {}
+  gemini:
+    enabled: false
+    existingSecret: ""
+    env: {}
+  openai:
+    enabled: false
+    existingSecret: ""
+    env: {}
+  resources: {}
+
+auth:
+  enabled: true
+  audience: argyll
+  # The web UI's client
+  clientId: argyll-web
+  rolesClaim: ""
+  # An existing provider, used when keycloak.enabled is false
+  external:
+    issuer: ""
+    jwksUrl: ""
+    # Where the web UI signs in. Defaults to the issuer
+    authority: ""
+    # Token URL for the engine and agent worker service accounts
+    tokenUrl: ""
+    # Secret with engine-client-id, engine-client-secret, agent-client-id, agent-client-secret
+    existingSecret: ""
+
+keycloak:
+  enabled: true
+  # Secret with admin-password, argyll-admin-password, engine-client-secret, agent-client-secret.
+  # Generated and kept across upgrades when empty
+  existingSecret: ""
+  resources: {}
+  database:
+    host: ""
+    port: 5432
+    name: keycloak
+    user: keycloak
+    # Secret holding the database password under the key "password"
+    existingSecret: ""
+  # A single Postgres inside the chart for trying Argyll out. Use a managed database in production
+  postgres:
+    enabled: true
+    image: postgres:17-alpine
+    storage:
+      size: 5Gi
+      storageClass: ""
+    resources: {}
+
+ingress:
+  enabled: true
+  className: ""
+  annotations: {}
+  # Secret holding the certificate for publicUrl's host. Leave empty to serve plain HTTP
+  tlsSecretName: ""

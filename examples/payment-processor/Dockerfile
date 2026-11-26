@@ -25,7 +25,7 @@ COPY examples/payment-processor/main.py .
 # Set default environment variables
 ENV STEP_PORT=8085
 ENV STEP_HOSTNAME=payment-processor
-ENV ARGYLL_ENGINE_URL=http://argyll-engine:8080
+ENV ARGYLL_URL=http://gateway:8080
 ENV PYTHONUNBUFFERED=1
 
 EXPOSE 8085

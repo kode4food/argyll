@@ -43,7 +43,7 @@ COPY --from=builder /build/examples/notification-sender/notification-sender .
 # Set default environment variables
 ENV STEP_PORT=8087
 ENV STEP_HOSTNAME=notification-sender
-ENV ARGYLL_ENGINE_URL=http://argyll-engine:8080
+ENV ARGYLL_URL=http://gateway:8080
 
 EXPOSE 8087
 

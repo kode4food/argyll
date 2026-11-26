@@ -1,4 +1,3 @@
-import { API_CONFIG } from "@/constants/common";
 import { useAuthStore } from "@/app/store/authStore";
 import {
   ExecutionPlan,
@@ -36,22 +35,21 @@ export interface ExecutionPlanOptions {
 export class ArgyllApi {
   private readonly baseURL: string;
 
-  constructor(baseURL: string = API_CONFIG.BASE_URL) {
+  constructor(baseURL: string = "") {
     this.baseURL = baseURL;
   }
 
   private async request<T>(
     path: string,
     init: RequestInit = {},
-    timeoutMs = REQUEST_TIMEOUT_MS,
-    baseURL = this.baseURL
+    timeoutMs = REQUEST_TIMEOUT_MS
   ): Promise<T> {
     const timeout = AbortSignal.timeout(timeoutMs);
     const signal = init.signal
       ? AbortSignal.any([init.signal, timeout])
       : timeout;
     const { token, isEnabled, login } = useAuthStore.getState();
-    const response = await fetch(baseURL + path, {
+    const response = await fetch(this.baseURL + path, {
       ...init,
       signal,
       headers: {
@@ -148,12 +146,10 @@ export class ArgyllApi {
     request: AgentChatRequest,
     signal?: AbortSignal
   ): Promise<AgentChatReply> {
-    // Chat is its own service, so the engine has no part in it
     return this.request<AgentChatReply>(
       "/chat",
       { method: "POST", body: JSON.stringify(request), signal },
-      CHAT_TIMEOUT_MS,
-      API_CONFIG.CHAT_URL
+      CHAT_TIMEOUT_MS
     );
   }
 

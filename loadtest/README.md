@@ -20,9 +20,7 @@ k6 run --vus 250 --duration 30s k6-start.js
 
 - `--vus N` - Number of virtual users (default: 1)
 - `--duration Xs` - Test duration in seconds (default: infinite)
-- `--env ENGINE_URL=http://...` - Engine URL to target (default: `http://localhost:8080`)
-
-`ENGINE_URL` must point at the Raft leader node in the cluster.
+- `--env ARGYLL_URL=http://...` - Argyll URL to target (default: `http://localhost:8080`)
 
 ### Examples
 
@@ -41,14 +39,9 @@ Heavy load (1000 users for 1 minute):
 k6 run --vus 1000 --duration 60s k6-start.js
 ```
 
-Against different engine:
+Against another deployment:
 ```bash
-k6 run --vus 100 --duration 30s --env ENGINE_URL=http://staging:8080 k6-start.js
-```
-
-Against a local 3-node Raft cluster:
-```bash
-k6 run --vus 250 --duration 30s --env ENGINE_URL=http://localhost:8081 k6-start.js
+k6 run --vus 100 --duration 30s --env ARGYLL_URL=https://staging.example.com k6-start.js
 ```
 
 ## What It Tests

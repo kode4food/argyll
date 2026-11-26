@@ -8,16 +8,23 @@ This guide covers the local development loop for the goal-driven orchestrator, U
 docker compose up
 ```
 
-This starts:
+Everything is served from http://localhost:8080:
 
-- Argyll engine on http://localhost:8080
-- UI on http://localhost:3001
-- Chat service on http://localhost:8072
-- Keycloak on http://localhost:8180, with demo users `reader`, `operator`, and `admin` whose passwords match their names
-- Anthropic, Gemini, Amazon Bedrock, and OpenAI Agent workers on the Compose network
-- Example step services (ports 8081–8086)
+- UI at `/`
+- Argyll engine at `/engine`
+- Chat service at `/chat`
+- Keycloak at `/auth`, with demo users `reader`, `operator`, and `admin` whose passwords match their names
+
+It also starts:
+
+- Anthropic, Gemini, Amazon Bedrock, and OpenAI Agent workers
+- Example step services
+
+Each service reaches only the services it uses, matching the Kubernetes chart's network policies. The gateway is the entry point, and the example step services reach the engine through it too.
 
 Docker Compose enables Keycloak authentication by default. Sign in through Keycloak to use the UI. Run `AUTH_PROVIDER=none docker compose up` to disable authentication for local development.
+
+Set `ARGYLL_PUBLIC_URL` to the address people use to reach the stack, such as `https://argyll.example.com`. It sets Keycloak's public address, the token issuer the services accept, and the UI's sign-in redirect. Keycloak reads it when it first creates the realm. To change the address afterward, update the `argyll-web` client's redirect URI in the Keycloak admin console.
 
 The examples use the `demo-services` service account. The engine uses `argyll-engine` to dispatch work, and the Agent workers use `agent-workers` to call MCP. The MCP server forwards the caller's token to the engine.
 
@@ -59,7 +66,7 @@ If you run the engine outside Docker, make sure these are set appropriately for 
 
 ## Running the reference Agent workers
 
-Docker Compose starts `argyll-agent-anthropic`, `argyll-agent-gemini`, `argyll-agent-bedrock`, and `argyll-agent-openai` automatically. Each offers the `argyll` MCP server for you to select in a Step. To enable a provider, add its credentials to that worker's file at the repository root:
+Docker Compose starts `agent-anthropic`, `agent-gemini`, `agent-bedrock`, and `agent-openai` automatically. Each offers the `argyll` MCP server for you to select in a Step. To enable a provider, add its credentials to that worker's file at the repository root:
 
 - Anthropic uses `ANTHROPIC_API_KEY` in `.env.d/agent-anthropic.env`.
 - Gemini uses `GEMINI_API_KEY` in `.env.d/agent-gemini.env`.
@@ -74,7 +81,7 @@ The Bedrock worker offers the region's text models that support tool calling as 
 
 Set custom `PROVIDER_URLS` in the file for the worker serving those endpoints. Use the optional `.env.d/agent.env` for settings all workers share. Worker-specific values take precedence. The `.env.d/` directory is excluded from Git and Docker builds.
 
-Run `docker compose up -d argyll-agent-anthropic argyll-agent-gemini argyll-agent-bedrock argyll-agent-openai` to apply the new environment.
+Run `docker compose up -d agent-anthropic agent-gemini agent-bedrock agent-openai` to apply the new environment.
 
 The workers share the Go module in `workers/agent`. From the repository root, run `go run ./workers/agent/cmd/argyll-agent-anthropic`, `go run ./workers/agent/cmd/argyll-agent-gemini`, `go run ./workers/agent/cmd/argyll-agent-bedrock`, or `go run ./workers/agent/cmd/argyll-agent-openai`. To run several locally, set a different `PORT` for each process and configure `AGENT_WORKERS` with their URLs. To build or test with the Go workspace disabled, run `GOWORK=off go build -mod=readonly ./cmd/...` or `make test` from `workers/agent`. The module uses the engine contract from the same checkout.
 
@@ -86,13 +93,13 @@ Gemini, Bedrock, and OpenAI list every text model their provider offers, leaving
 
 Workers discover capabilities when they start. Bedrock keeps its last successful list of inference profiles, so profile IDs and ARNs keep resolving after a failed discovery. A request that arrives before any profile list is available fails and is retried.
 
-If Bedrock is missing from the Step editor's provider list, check that `.env.d/agent-bedrock.env` exists and sets `AWS_REGION`. The worker lists Bedrock once a region is set. Supply AWS credentials through that file or another standard AWS credential source inside the container, then recreate the worker with `docker compose up -d argyll-agent-bedrock`. Listing models also requires the permissions above.
+If Bedrock is missing from the Step editor's provider list, check that `.env.d/agent-bedrock.env` exists and sets `AWS_REGION`. The worker lists Bedrock once a region is set. Supply AWS credentials through that file or another standard AWS credential source inside the container, then recreate the worker with `docker compose up -d agent-bedrock`. Listing models also requires the permissions above.
 
 To use a host profile, set `AWS_PROFILE` in `.env.d/agent-bedrock.env` and mount its credentials file read-only in a local `docker-compose.override.yml`:
 
 ```yaml
 services:
-  argyll-agent-bedrock:
+  agent-bedrock:
     volumes:
       - "${HOME}/.aws/credentials:/root/.aws/credentials:ro"
 ```
@@ -101,13 +108,13 @@ For an `aws login` profile, mount the shared config read-only and the login cach
 
 ```yaml
 services:
-  argyll-agent-bedrock:
+  agent-bedrock:
     volumes:
       - "${HOME}/.aws/config:/root/.aws/config:ro"
       - "${HOME}/.aws/login/cache:/root/.aws/login/cache"
 ```
 
-If Bedrock appears with no models, inspect the discovery error in the Step editor or `docker compose logs argyll-agent-bedrock`. `UnrecognizedClientException` means AWS rejected the credentials. Refresh the profile and recreate the worker. `AccessDeniedException` requires checking the role's model-listing permissions.
+If Bedrock appears with no models, inspect the discovery error in the Step editor or `docker compose logs agent-bedrock`. `UnrecognizedClientException` means AWS rejected the credentials. Refresh the profile and recreate the worker. `AccessDeniedException` requires checking the role's model-listing permissions.
 
 To produce copies outside the checkout, run the refresh command directly with `-dir`, then point `MODEL_PRICES`, `MODEL_CAPABILITIES`, and `PREFIX_THRESHOLDS` at the files it writes. For example, from `workers/agent`, run `GOWORK=off go run ./cmd/argyll-agent-bedrock/internal/refresh -dir /path/to/defaults -region eu-north-1`.
 
@@ -125,7 +132,7 @@ npm install
 npm run dev
 ```
 
-The UI uses `VITE_API_URL` for the engine (default `http://localhost:8080`) and `VITE_CHAT_URL` for the standalone chat service (default `http://localhost:8072`). The chat service forwards requests to Agent workers. See the [Web UI chat contract](api/chat.yaml) for the interface between the UI and chat app.
+The UI reaches the engine, chat service, and sign-in at its own address. The dev server runs at http://localhost:3001 and forwards those paths to the Compose stack at http://localhost:8080. Start the stack with `AUTH_PROVIDER=none` for this loop. With sign-in on, use the Compose UI, which also reloads as you edit `web/`. The chat service forwards requests to Agent workers. See the [Web UI chat contract](api/chat.yaml) for the interface between the UI and chat app.
 
 ## Step service dev loop
 
@@ -138,8 +145,7 @@ You can implement steps as HTTP services in any language. For quick iteration:
 
 ## Validation checklist
 
-- Engine reachable at http://localhost:8080
-- UI reachable at http://localhost:3001
+- UI and engine reachable at http://localhost:8080
 - Step services reachable from the engine
 - `WEBHOOK_BASE_URL` reachable from your step runtime
 
@@ -147,4 +153,4 @@ You can implement steps as HTTP services in any language. For quick iteration:
 
 - If async callbacks never complete, verify `WEBHOOK_BASE_URL` is reachable from your step runtime and includes the correct host/port.
 - If steps appear stuck in `active`, verify the step server can reach the engine and is returning valid JSON responses.
-- If the UI is empty, verify the engine is running and `VITE_API_URL` matches your engine address.
+- If the UI is empty, verify the engine is running behind the same address as the UI.

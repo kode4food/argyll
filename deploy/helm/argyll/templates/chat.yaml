@@ -1,0 +1,51 @@
+{{- $ctx := dict "root" . "component" "chat" -}}
+{{- $name := include "argyll.name" $ctx -}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "argyll.labels" $ctx | nindent 4 }}
+spec:
+  selector:
+    {{- include "argyll.selectorLabels" $ctx | nindent 4 }}
+  ports:
+    - name: http
+      port: 8072
+      targetPort: http
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "argyll.labels" $ctx | nindent 4 }}
+spec:
+  replicas: {{ .Values.chat.replicas }}
+  selector:
+    matchLabels:
+      {{- include "argyll.selectorLabels" $ctx | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "argyll.selectorLabels" $ctx | nindent 8 }}
+    spec:
+      {{- include "argyll.podDefaults" . | nindent 6 }}
+      containers:
+        - name: chat
+          image: {{ include "argyll.image" (dict "root" . "name" "chat") }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            - name: PORT
+              value: "8072"
+            - name: AGENT_WORKERS
+              value: {{ include "argyll.agentWorkers" . | quote }}
+            {{- include "argyll.authEnv" . | nindent 12 }}
+          ports:
+            - name: http
+              containerPort: 8072
+          readinessProbe:
+            tcpSocket:
+              port: http
+          resources:
+            {{- toYaml .Values.chat.resources | nindent 12 }}

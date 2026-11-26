@@ -110,6 +110,52 @@ jobs:
       - name: Run tests
         run: cd web && npm test
 
+  test-chart:
+    runs-on: ubuntu-latest
+    env:
+      TAG: ci
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
+      - name: Lint chart
+        run: helm lint deploy/helm/argyll --set publicUrl=http://argyll.test
+      - name: Create kind cluster
+        uses: helm/kind-action@v1
+        with:
+          version: v0.33.0
+          cluster_name: argyll
+      - name: Build images
+        run: |
+          build() { docker build -q -t "ghcr.io/kode4food/argyll-$1:$TAG" "${@:2}"; }
+          build engine -f engine/Dockerfile .
+          build chat -f chat/Dockerfile .
+          build mcp -f mcp/Dockerfile .
+          build agent-openai --build-arg WORKER=argyll-agent-openai -f workers/agent/Dockerfile .
+          build ui web
+          build keycloak keycloak
+          for i in engine chat mcp agent-openai ui keycloak; do
+            kind load docker-image "ghcr.io/kode4food/argyll-$i:$TAG" --name argyll
+          done
+      - name: Install chart
+        run: |
+          helm install argyll deploy/helm/argyll -n argyll --create-namespace \
+            --set publicUrl=http://argyll.test --set image.tag=$TAG \
+            --set agents.openai.enabled=true --set ingress.enabled=false \
+            --wait --timeout 10m
+      - name: Test chart
+        run: helm test argyll -n argyll --logs --timeout 5m
+      - name: Show cluster state
+        if: failure()
+        run: |
+          kubectl get pods -n argyll -o wide
+          kubectl get events -n argyll --sort-by=.lastTimestamp | tail -40
+          for p in $(kubectl get pods -n argyll -o name); do
+            echo "== $p"
+            kubectl logs -n argyll "$p" --all-containers --tail=40
+          done
+
   coverage:
     runs-on: ubuntu-latest
     needs:

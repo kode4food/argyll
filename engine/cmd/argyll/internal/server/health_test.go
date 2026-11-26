@@ -99,9 +99,9 @@ func TestHealthCheckNetworkFail(t *testing.T) {
 			Type: api.StepTypeService,
 			HTTP: &api.HTTPConfig{
 				Invoke: api.HTTPAction{
-					Endpoint: "http://127.0.0.1:1/execute",
+					Endpoint: "http://localhost:1/execute",
 				},
-				Health: "http://127.0.0.1:1/health",
+				Health: "http://localhost:1/health",
 			},
 		}
 		assert.NoError(t, env.Engine.RegisterStep(st))

@@ -1,0 +1,68 @@
+{{- $root := . -}}
+{{- range $provider := list "anthropic" "bedrock" "gemini" "openai" }}
+{{- $agent := index $root.Values.agents $provider }}
+{{- if $agent.enabled }}
+{{- $ctx := dict "root" $root "component" (printf "agent-%s" $provider) }}
+{{- $name := include "argyll.name" $ctx }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "argyll.labels" $ctx | nindent 4 }}
+spec:
+  selector:
+    {{- include "argyll.selectorLabels" $ctx | nindent 4 }}
+  ports:
+    - name: http
+      port: 8070
+      targetPort: http
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "argyll.labels" $ctx | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "argyll.selectorLabels" $ctx | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "argyll.selectorLabels" $ctx | nindent 8 }}
+    spec:
+      {{- include "argyll.podDefaults" $root | nindent 6 }}
+      containers:
+        - name: agent
+          image: {{ include "argyll.image" (dict "root" $root "name" (printf "agent-%s" $provider)) }}
+          imagePullPolicy: {{ $root.Values.image.pullPolicy }}
+          env:
+            - name: PORT
+              value: "8070"
+            - name: ARGYLL_MCP_URL
+              value: http://{{ include "argyll.name" (dict "root" $root "component" "mcp") }}:8071/mcp
+            {{- include "argyll.authEnv" $root | nindent 12 }}
+            {{- include "argyll.accountEnv" (dict "root" $root "account" "agent") | nindent 12 }}
+            {{- range $key, $value := $agent.env }}
+            - name: {{ $key }}
+              value: {{ $value | quote }}
+            {{- end }}
+          {{- with $agent.existingSecret }}
+          envFrom:
+            - secretRef:
+                name: {{ . }}
+          {{- end }}
+          ports:
+            - name: http
+              containerPort: 8070
+          readinessProbe:
+            tcpSocket:
+              port: http
+          resources:
+            {{- toYaml $root.Values.agents.resources | nindent 12 }}
+{{- end }}
+{{- end }}

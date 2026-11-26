@@ -24,7 +24,7 @@ func main() {
 }
 
 func run() error {
-	engine := flag.String("engine", "http://localhost:8080", "Engine base URL")
+	argyllURL := flag.String("url", mcp.DefaultBaseURL, "Argyll base URL")
 	listen := flag.String("listen", "", "Address for the Streamable HTTP transport")
 	flag.Parse()
 
@@ -33,9 +33,9 @@ func run() error {
 		if ts := auth.ServiceTokens(); ts != nil {
 			client.Transport = &oauth2.Transport{Source: ts}
 		}
-		return mcp.NewServer(*engine, client).Run(context.Background())
+		return mcp.NewServer(*argyllURL, client).Run(context.Background())
 	}
-	h, err := mcp.NewServer(*engine, client).Handler()
+	h, err := mcp.NewServer(*argyllURL, client).Handler()
 	if err != nil {
 		return err
 	}

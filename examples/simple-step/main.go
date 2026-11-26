@@ -14,10 +14,10 @@ import (
 const version = "dev"
 
 func main() {
-	engineURL := os.Getenv("ARGYLL_ENGINE_URL")
-	if engineURL == "" {
-		engineURL = "http://localhost:8080"
-	}
+	argyllURL := argyll.EnvOr(argyll.EnvLookup{
+		Name:    "ARGYLL_URL",
+		Default: argyll.DefaultURL,
+	})
 
 	logger := log.New("simple-step-example", os.Getenv("ENV"), version)
 	slog.SetDefault(logger)
@@ -27,7 +27,7 @@ func main() {
 	formatted_text = "[" .. name .. "] " .. text
 }`
 
-	client := argyll.NewClient(engineURL, 30*time.Second)
+	client := argyll.NewClient(argyllURL, 30*time.Second)
 
 	err := client.NewStep().WithName("Text Formatter").WithID("text-formatter").
 		WithDescription("format text with a label").

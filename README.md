@@ -14,9 +14,11 @@ Argyll is a goal-driven orchestrator. It builds the minimum execution plan neede
 docker compose up
 ```
 
-Open the UI at `http://localhost:3001` and sign in as `admin` with password `admin`.
+Open the UI at `http://localhost:8080` and sign in as `admin` with password `admin`.
 
 The engine API listens at `http://localhost:8080`. See [Authentication](https://www.argyll.app/docs/guides/configuration/#authentication) for scripts that use a Keycloak token.
+
+The Compose stack is for trying Argyll and local development. To run Argyll for your team, see [Deploy on Kubernetes](https://www.argyll.app/docs/getting-started/kubernetes/) and the [Helm chart](deploy/).
 
 ## Documentation
 

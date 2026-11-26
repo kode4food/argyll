@@ -210,7 +210,8 @@ func TestRegistrationPreserved(t *testing.T) {
 			decoded.WriteString(chunk)
 		}
 		assert.JSONEq(t, string(raw), decoded.String())
-		assert.NotContains(t, payload.Code, "localhost:8081")
+		assert.Contains(t, payload.Code, `"ARGYLL_URL"`)
+		assert.NotContains(t, payload.Code, "localhost")
 		assertWidth(t, payload.Code, 100)
 		if lang == "go" {
 			assertFormattedGo(t, payload.Code)

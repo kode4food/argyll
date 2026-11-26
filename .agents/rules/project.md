@@ -16,8 +16,8 @@ cd web && npm run format && npm test && npm run lint && npm run type-check
 
 ```bash
 docker compose up                      # All services
-docker compose up argyll-engine        # Core only
-docker compose logs -f argyll-engine   # Follow logs
+docker compose up gateway              # Core only
+docker compose logs -f engine-1        # Follow logs
 ```
 
 ## Package Structure

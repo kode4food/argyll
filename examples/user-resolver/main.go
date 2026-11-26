@@ -55,15 +55,15 @@ var userDatabase = map[string]UserInfo{
 const version = "dev"
 
 func main() {
-	engineURL := os.Getenv("ARGYLL_ENGINE_URL")
-	if engineURL == "" {
-		engineURL = "http://localhost:8080"
-	}
+	argyllURL := argyll.EnvOr(argyll.EnvLookup{
+		Name:    "ARGYLL_URL",
+		Default: argyll.DefaultURL,
+	})
 
 	logger := log.New("user-resolver-example", os.Getenv("ENV"), version)
 	slog.SetDefault(logger)
 
-	client := argyll.NewClient(engineURL, 30*time.Second)
+	client := argyll.NewClient(argyllURL, 30*time.Second)
 
 	err := client.NewStep().WithName("User Resolver").
 		WithDescription("resolve user profile by user_id").

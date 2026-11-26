@@ -44,7 +44,7 @@ python main.py
 
 ## Environment Variables
 
-- `ARGYLL_ENGINE_URL` - Engine URL (default: http://localhost:8080)
+- `ARGYLL_URL` - Argyll URL (default: http://localhost:8080)
 - `STEP_PORT` - Server port (default: 8085)
 - `STEP_HOSTNAME` - Server hostname (default: payment-processor)
 

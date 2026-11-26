@@ -40,7 +40,7 @@ COPY --from=builder /build/examples/order-creator/order-creator .
 # Set default environment variables
 ENV STEP_PORT=8084
 ENV STEP_HOSTNAME=order-creator
-ENV ARGYLL_ENGINE_URL=http://argyll-engine:8080
+ENV ARGYLL_URL=http://gateway:8080
 
 EXPOSE 8084
 

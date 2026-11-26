@@ -43,7 +43,7 @@ COPY --from=builder /build/examples/stock-reservation/stock-reservation .
 # Set default environment variables
 ENV STEP_PORT=8086
 ENV STEP_HOSTNAME=stock-reservation
-ENV ARGYLL_ENGINE_URL=http://argyll-engine:8080
+ENV ARGYLL_URL=http://gateway:8080
 
 EXPOSE 8086
 

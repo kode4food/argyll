@@ -3,11 +3,10 @@ export const getEnv = (key: string, defaultValue: string = ""): string => {
     return process.env[`VITE_${key}`] || defaultValue;
   }
 
+  // A deployed image sets its settings in env.js when it starts, ahead of the build's
+  const runEnv: any = (globalThis as any).__ARGYLL_ENV__ || {};
   const viteEnv: any = (globalThis as any).__VITE_ENV__ || {};
-  return viteEnv[key] || defaultValue;
+  return runEnv[key] || viteEnv[key] || defaultValue;
 };
 
-export const isDevHost =
-  typeof window !== "undefined" &&
-  (window.location.hostname === "localhost" ||
-    window.location.hostname === "127.0.0.1");
+export const isDevServer = (globalThis as any).__DEV_SERVER__ === true;

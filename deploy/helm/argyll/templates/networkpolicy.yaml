@@ -1,0 +1,57 @@
+{{- if .Values.networkPolicy.enabled -}}
+{{- $root := . -}}
+{{- $agents := list -}}
+{{- range $provider := list "anthropic" "bedrock" "gemini" "openai" -}}
+{{- $agents = append $agents (printf "agent-%s" $provider) -}}
+{{- end -}}
+{{- /* Each component accepts connections only from the components that use it. Outbound stays open */ -}}
+{{- $rules := dict
+  "gateway" (list (dict "port" 8080))
+  "ui" (list (dict "port" 3001 "from" (list "gateway")))
+  "chat" (list (dict "port" 8072 "from" (list "gateway")))
+  "engine" (list
+    (dict "port" 8080 "from" (list "gateway" "engine"))
+    (dict "port" 9701 "from" (list "engine")))
+  "mcp" (list (dict "port" 8071 "from" $agents))
+-}}
+{{- range $agent := $agents -}}
+{{- $_ := set $rules $agent (list (dict "port" 8070 "from" (list "engine" "chat"))) -}}
+{{- end -}}
+{{- if .Values.keycloak.enabled -}}
+{{- $_ := set $rules "keycloak" (list (dict "port" 8080 "from" (concat (list "gateway" "engine" "chat") $agents))) -}}
+{{- if .Values.keycloak.postgres.enabled -}}
+{{- $_ := set $rules "postgres" (list (dict "port" 5432 "from" (list "keycloak"))) -}}
+{{- end -}}
+{{- end -}}
+{{- range $component, $ingress := $rules }}
+{{- $ctx := dict "root" $root "component" $component }}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "argyll.name" $ctx }}
+  labels:
+    {{- include "argyll.labels" $ctx | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "argyll.selectorLabels" $ctx | nindent 6 }}
+  policyTypes: [Ingress]
+  ingress:
+    {{- range $rule := $ingress }}
+    - ports:
+        - port: {{ $rule.port }}
+      {{- with $rule.from }}
+      from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: {{ $root.Chart.Name }}
+              app.kubernetes.io/instance: {{ $root.Release.Name }}
+            matchExpressions:
+              - key: app.kubernetes.io/component
+                operator: In
+                values: {{ toJson . }}
+      {{- end }}
+    {{- end }}
+{{- end }}
+{{- end }}

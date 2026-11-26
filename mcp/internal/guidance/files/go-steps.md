@@ -15,7 +15,7 @@ client.NewStep().WithName("Lookup User").
     Required("user_id").
     Output("user").
     WithMethod("GET").
-    WithEndpoint("http://localhost:8081/users/{user_id}").
+    WithEndpoint("https://api.example.com/users/{user_id}").
     Register(ctx)
 
 Async step:

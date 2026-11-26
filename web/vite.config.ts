@@ -13,14 +13,22 @@ const browserEnv = (mode: string) =>
     ])
   );
 
-export default defineConfig(({ mode }) => ({
+export default defineConfig(({ command, mode }) => ({
   define: {
     "globalThis.__VITE_ENV__": JSON.stringify(browserEnv(mode)),
+    "globalThis.__DEV_SERVER__": JSON.stringify(command === "serve"),
   },
   plugins: [react()],
   server: {
     port: 3001,
     host: true,
+    // Outside Compose, the dev server forwards the backend paths to the local stack
+    proxy: Object.fromEntries(
+      ["/engine", "/chat", "/auth", "/health"].map((path) => [
+        path,
+        { target: "http://localhost:8080", ws: true },
+      ])
+    ),
   },
   build: {
     outDir: "dist",

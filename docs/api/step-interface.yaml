@@ -23,11 +23,11 @@ servers:
     variables:
       protocol:
         enum: [http, https]
-        default: http
+        default: https
       host:
-        default: localhost
+        default: step.example.com
       port:
-        default: "8081"
+        default: "443"
 
 paths:
   /{endpoint}:
@@ -151,7 +151,7 @@ components:
       description: >-
         Async actions POST their outcome to this action-specific URL. Keep the
         URL out of logs because it carries a secret.
-      example: http://localhost:8080/callbacks/wf-123/text-processor/tok_abc123xyz/invoke/Q7RJ3Z5W2KXN6HVA4MPDYTGB2E
+      example: https://argyll.example.com/callbacks/wf-123/text-processor/tok_abc123xyz/invoke/Q7RJ3Z5W2KXN6HVA4MPDYTGB2E
 
   schemas:
     Args:

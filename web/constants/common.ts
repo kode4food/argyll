@@ -1,10 +1,6 @@
-import { getEnv } from "@/utils/env";
-
-// API Configuration
+// The engine, chat, and sign-in share the page's origin
 export const API_CONFIG = {
-  BASE_URL: getEnv("API_URL", "http://localhost:8080"),
-  WS_URL: getEnv("WS_URL", "ws://localhost:8080/engine/ws"),
-  CHAT_URL: getEnv("CHAT_URL", "http://localhost:8072"),
+  WS_URL: `${window.location.origin.replace(/^http/, "ws")}/engine/ws`,
 } as const;
 
 // Common constants

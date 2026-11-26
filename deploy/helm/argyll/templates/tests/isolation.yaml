@@ -1,0 +1,35 @@
+{{- if .Values.networkPolicy.enabled -}}
+{{- $script := include "argyll.testIsolationScript" . -}}
+{{- include "argyll.testPod" (dict "root" . "name" "isolation" "script" $script) }}
+{{- end }}
+
+{{- define "argyll.testIsolationScript" -}}
+{{- $name := dict "root" . -}}
+# Raft accepts a connection and then waits silently, so only the connect time tells open from closed
+blocked() {
+  case "$(curl -s -o /dev/null --connect-timeout 3 -m 4 -w '%{time_connect}' "http://$2/")" in
+    0|0.000000) echo "ok    $1 is private" ;;
+    *) echo "FAIL  $1 is reachable. The cluster's network plugin must enforce NetworkPolicies"; fail=1 ;;
+  esac
+}
+lacks "gateway is the entry point" 000 "$(code $gateway/health)"
+{{- $engine := include "argyll.name" (dict "root" . "component" "engine") }}
+blocked "engine API" {{ $engine }}:8080
+{{- range $i := until (int .Values.engine.replicas) }}
+blocked "engine {{ $i }} Raft port" {{ $engine }}-{{ $i }}.{{ $engine }}-raft:9701
+{{- end }}
+blocked "UI" {{ include "argyll.name" (dict "root" . "component" "ui") }}:3001
+blocked "chat" {{ include "argyll.name" (dict "root" . "component" "chat") }}:8072
+blocked "MCP server" {{ include "argyll.name" (dict "root" . "component" "mcp") }}:8071
+{{- range $provider := list "anthropic" "bedrock" "gemini" "openai" }}
+{{- if (index $.Values.agents $provider).enabled }}
+blocked "{{ $provider }} worker" {{ include "argyll.name" (dict "root" $ "component" (printf "agent-%s" $provider)) }}:8070
+{{- end }}
+{{- end }}
+{{- if .Values.keycloak.enabled }}
+blocked "Keycloak" {{ include "argyll.name" (dict "root" . "component" "keycloak") }}:8080
+{{- if .Values.keycloak.postgres.enabled }}
+blocked "Postgres" {{ include "argyll.name" (dict "root" . "component" "postgres") }}:5432
+{{- end }}
+{{- end }}
+{{- end -}}

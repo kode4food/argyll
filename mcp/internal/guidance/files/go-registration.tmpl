@@ -17,7 +17,10 @@ func main() {
 	if err := json.Unmarshal([]byte(registration), &step); err != nil {
 		log.Fatal(err)
 	}
-	client := argyll.NewClient("http://localhost:8080", 30*time.Second)
+	client := argyll.NewClient(argyll.EnvOr(argyll.EnvLookup{
+		Name:    "ARGYLL_URL",
+		Default: argyll.DefaultURL,
+	}), 30*time.Second)
 	if err := client.RegisterStep(context.Background(), &step); err != nil {
 		log.Fatal(err)
 	}

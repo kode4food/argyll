@@ -1,0 +1,50 @@
+{{- $ctx := dict "root" . "component" "mcp" -}}
+{{- $name := include "argyll.name" $ctx -}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "argyll.labels" $ctx | nindent 4 }}
+spec:
+  selector:
+    {{- include "argyll.selectorLabels" $ctx | nindent 4 }}
+  ports:
+    - name: http
+      port: 8071
+      targetPort: http
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "argyll.labels" $ctx | nindent 4 }}
+spec:
+  replicas: {{ .Values.mcp.replicas }}
+  selector:
+    matchLabels:
+      {{- include "argyll.selectorLabels" $ctx | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "argyll.selectorLabels" $ctx | nindent 8 }}
+    spec:
+      {{- include "argyll.podDefaults" . | nindent 6 }}
+      containers:
+        - name: mcp
+          image: {{ include "argyll.image" (dict "root" . "name" "mcp") }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          args:
+            - -url
+            - http://{{ include "argyll.name" (dict "root" . "component" "gateway") }}:8080
+            - -listen
+            - :8071
+          ports:
+            - name: http
+              containerPort: 8071
+          readinessProbe:
+            tcpSocket:
+              port: http
+          resources:
+            {{- toYaml .Values.mcp.resources | nindent 12 }}

@@ -5,7 +5,7 @@ set -euo pipefail
 DEFAULT_API_HOST="0.0.0.0"
 DEFAULT_LOG_LEVEL="info"
 DEFAULT_API_PORT="8080"
-DEFAULT_NODE_RAFT_ADDR="127.0.0.1:9701"
+DEFAULT_NODE_RAFT_ADDR="localhost:9701"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"

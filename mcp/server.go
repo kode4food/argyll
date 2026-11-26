@@ -17,7 +17,7 @@ type Server struct {
 }
 
 const (
-	// DefaultBaseURL is used when no engine URL is provided
+	// DefaultBaseURL is used when no Argyll URL is provided
 	DefaultBaseURL = "http://localhost:8080"
 
 	// HTTPPath is where the Streamable HTTP transport serves MCP

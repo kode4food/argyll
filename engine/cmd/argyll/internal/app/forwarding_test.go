@@ -208,7 +208,7 @@ func bootRaftNode(init *raftInit) (*raftNode, error) {
 
 	scripts := script.NewRegistry()
 	steps := step.NewRegistry(
-		builtins.All(helpers.NewMockClient(), builtins.BaseCallbackURL("http://127.0.0.1")),
+		builtins.All(helpers.NewMockClient(), builtins.BaseCallbackURL("http://localhost")),
 	)
 	eng, err := engine.New(init.cfg, engine.Dependencies{
 		Scripts:  scripts,

@@ -30,11 +30,11 @@ servers:
     variables:
       protocol:
         enum: [http, https]
-        default: http
+        default: https
       host:
-        default: localhost
+        default: agent-worker.example.com
       port:
-        default: "8070"
+        default: "443"
 
 paths:
   /invoke:

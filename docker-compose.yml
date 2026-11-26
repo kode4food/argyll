@@ -1,40 +1,53 @@
-# Example services sign in to the engine with the demo-services service account
+# Example services sign in to the engine with the demo-services service account, and reach it
+# through the gateway like any client
 x-step-env: &step-env
-  ARGYLL_ENGINE_URL: http://argyll-engine-1:8080
-  ARGYLL_TOKEN_URL: http://keycloak:8080/realms/argyll/protocol/openid-connect/token
+  ARGYLL_URL: http://gateway:8080
+  ARGYLL_TOKEN_URL: http://keycloak:8080/auth/realms/argyll/protocol/openid-connect/token
   ARGYLL_CLIENT_ID: demo-services
   ARGYLL_CLIENT_SECRET: argyll-demo-services-secret
 
 # Agent workers call the Argyll MCP server as the agent-workers service account
 x-agent-env: &agent-env
-  ARGYLL_MCP_URL: http://argyll-mcp:8071/mcp
-  ARGYLL_TOKEN_URL: http://keycloak:8080/realms/argyll/protocol/openid-connect/token
+  ARGYLL_MCP_URL: http://mcp.tools:8071/mcp
+  ARGYLL_TOKEN_URL: http://keycloak:8080/auth/realms/argyll/protocol/openid-connect/token
   ARGYLL_CLIENT_ID: agent-workers
   ARGYLL_CLIENT_SECRET: argyll-demo-agent-secret
+
+x-agent-workers: &agent-workers "anthropic=http://agent-anthropic.workers:8070,bedrock=http://agent-bedrock.workers:8070,gemini=http://agent-gemini.workers:8070,*=http://agent-openai.workers:8070"
 
 x-step-depends: &step-depends
   keycloak:
     condition: service_healthy
-  argyll-engine-1:
+  gateway:
     condition: service_healthy
-  argyll-engine-2:
-    condition: service_healthy
-  argyll-engine-3:
-    condition: service_healthy
+
+x-step-networks: &step-networks
+  - edge
+  - auth
 
 # People and services sign in through Keycloak. Turn authentication off with
 # AUTH_PROVIDER=none docker compose up
 x-auth-env: &auth-env
   AUTH_PROVIDER: ${AUTH_PROVIDER:-oidc}
-  AUTH_ISSUER: http://localhost:8180/realms/argyll
-  AUTH_JWKS_URL: http://keycloak:8080/realms/argyll/protocol/openid-connect/certs
+  AUTH_ISSUER: ${ARGYLL_PUBLIC_URL:-http://localhost:8080}/auth/realms/argyll
+  AUTH_JWKS_URL: http://keycloak:8080/auth/realms/argyll/protocol/openid-connect/certs
   AUTH_AUDIENCE: argyll
 
 # The engine signs in to agent workers as the argyll-engine service account
 x-engine-account: &engine-account
-  ARGYLL_TOKEN_URL: http://keycloak:8080/realms/argyll/protocol/openid-connect/token
+  ARGYLL_TOKEN_URL: http://keycloak:8080/auth/realms/argyll/protocol/openid-connect/token
   ARGYLL_CLIENT_ID: argyll-engine
   ARGYLL_CLIENT_SECRET: argyll-demo-engine-secret
+
+x-engine-env: &engine-env
+  <<: [*auth-env, *engine-account]
+  API_PORT: "8080"
+  # Steps and agent workers send callbacks through the gateway, which routes them to the leader
+  WEBHOOK_BASE_URL: http://gateway:8080
+  AGENT_WORKERS: *agent-workers
+  LOG_LEVEL: debug
+  RAFT_SERVERS: "argyll-1=engine-1.raft:9701,argyll-2=engine-2.raft:9701,argyll-3=engine-3.raft:9701"
+  RAFT_DATA_DIR: /data/argyll-raft
 
 services:
   keycloak:
@@ -43,41 +56,51 @@ services:
     environment:
       KC_BOOTSTRAP_ADMIN_USERNAME: admin
       KC_BOOTSTRAP_ADMIN_PASSWORD: admin
-      KC_HOSTNAME: http://localhost:8180
+      KC_HOSTNAME: ${ARGYLL_PUBLIC_URL:-http://localhost:8080}/auth
+      # The realm import fills its redirect URIs from this
+      ARGYLL_PUBLIC_URL: ${ARGYLL_PUBLIC_URL:-http://localhost:8080}
       KC_HOSTNAME_BACKCHANNEL_DYNAMIC: "true"
+      KC_HTTP_RELATIVE_PATH: /auth
+      KC_PROXY_HEADERS: xforwarded
       KC_HEALTH_ENABLED: "true"
-    ports:
-      - "127.0.0.1:8180:8080"
     volumes:
       - ./keycloak/argyll-realm.json:/opt/keycloak/data/import/argyll-realm.json:ro
       - ./keycloak/themes/argyll:/opt/keycloak/themes/argyll:ro
+    networks:
+      - auth
     restart: unless-stopped
     healthcheck:
       # The image has no curl, so the shell asks the management port directly
       test:
         - CMD-SHELL
         - >-
-          exec 3<>/dev/tcp/127.0.0.1/9000 &&
-          printf 'GET /health/ready HTTP/1.0\r\n\r\n' >&3 &&
+          exec 3<>/dev/tcp/localhost/9000 &&
+          printf 'GET /auth/health/ready HTTP/1.0\r\n\r\n' >&3 &&
           grep -q UP <&3
       interval: 5s
       timeout: 3s
       retries: 30
       start_period: 15s
 
-  argyll-proxy:
+  gateway:
     image: haproxy:3.1-alpine
     depends_on:
-      argyll-engine-1:
+      engine-1:
         condition: service_healthy
-      argyll-engine-2:
+      engine-2:
         condition: service_healthy
-      argyll-engine-3:
+      engine-3:
         condition: service_healthy
     ports:
       - "127.0.0.1:8080:8080"
     volumes:
       - ./haproxy/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
+    networks:
+      - edge
+      - api
+      - auth
+      - chat
+      - ui
     restart: unless-stopped
     dns:
       - 8.8.8.8
@@ -89,23 +112,28 @@ services:
       retries: 12
       start_period: 5s
 
-  argyll-engine-1:
+  engine-1:
     build:
       context: .
       dockerfile: engine/Dockerfile
     environment:
-      <<: [*auth-env, *engine-account]
-      API_PORT: "8080"
-      API_HOST: "0.0.0.0"
-      WEBHOOK_BASE_URL: http://argyll-engine-1:8080
-      AGENT_WORKERS: "anthropic=http://argyll-agent-anthropic:8070,bedrock=http://argyll-agent-bedrock:8070,gemini=http://argyll-agent-gemini:8070,*=http://argyll-agent-openai:8070"
-      LOG_LEVEL: debug
+      <<: *engine-env
+      API_HOST: engine-1.api
       RAFT_NODE_ID: argyll-1
-      RAFT_ADDRESS: argyll-engine-1:9701
-      RAFT_SERVERS: "argyll-1=argyll-engine-1:9701,argyll-2=argyll-engine-2:9701,argyll-3=argyll-engine-3:9701"
-      RAFT_DATA_DIR: /data/argyll-raft
+      RAFT_ADDRESS: engine-1.raft:9701
     volumes:
-      - argyll-data-1:/data
+      - data-1:/data
+    networks:
+      edge: {}
+      auth: {}
+      workers-anthropic: {}
+      workers-bedrock: {}
+      workers-gemini: {}
+      workers-openai: {}
+      api:
+        aliases: [engine-1.api]
+      raft:
+        aliases: [engine-1.raft]
     extra_hosts:
       - "host.docker.internal:host-gateway"
     restart: unless-stopped
@@ -113,29 +141,34 @@ services:
       - 8.8.8.8
       - 8.8.4.4
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      test: ["CMD", "curl", "-f", "http://engine-1.api:8080/health"]
       interval: 30s
       timeout: 3s
       retries: 3
       start_period: 15s
 
-  argyll-engine-2:
+  engine-2:
     build:
       context: .
       dockerfile: engine/Dockerfile
     environment:
-      <<: [*auth-env, *engine-account]
-      API_PORT: "8080"
-      API_HOST: "0.0.0.0"
-      WEBHOOK_BASE_URL: http://argyll-engine-2:8080
-      AGENT_WORKERS: "anthropic=http://argyll-agent-anthropic:8070,bedrock=http://argyll-agent-bedrock:8070,gemini=http://argyll-agent-gemini:8070,*=http://argyll-agent-openai:8070"
-      LOG_LEVEL: debug
+      <<: *engine-env
+      API_HOST: engine-2.api
       RAFT_NODE_ID: argyll-2
-      RAFT_ADDRESS: argyll-engine-2:9701
-      RAFT_SERVERS: "argyll-1=argyll-engine-1:9701,argyll-2=argyll-engine-2:9701,argyll-3=argyll-engine-3:9701"
-      RAFT_DATA_DIR: /data/argyll-raft
+      RAFT_ADDRESS: engine-2.raft:9701
     volumes:
-      - argyll-data-2:/data
+      - data-2:/data
+    networks:
+      edge: {}
+      auth: {}
+      workers-anthropic: {}
+      workers-bedrock: {}
+      workers-gemini: {}
+      workers-openai: {}
+      api:
+        aliases: [engine-2.api]
+      raft:
+        aliases: [engine-2.raft]
     extra_hosts:
       - "host.docker.internal:host-gateway"
     restart: unless-stopped
@@ -143,29 +176,34 @@ services:
       - 8.8.8.8
       - 8.8.4.4
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      test: ["CMD", "curl", "-f", "http://engine-2.api:8080/health"]
       interval: 30s
       timeout: 3s
       retries: 3
       start_period: 15s
 
-  argyll-engine-3:
+  engine-3:
     build:
       context: .
       dockerfile: engine/Dockerfile
     environment:
-      <<: [*auth-env, *engine-account]
-      API_PORT: "8080"
-      API_HOST: "0.0.0.0"
-      WEBHOOK_BASE_URL: http://argyll-engine-3:8080
-      AGENT_WORKERS: "anthropic=http://argyll-agent-anthropic:8070,bedrock=http://argyll-agent-bedrock:8070,gemini=http://argyll-agent-gemini:8070,*=http://argyll-agent-openai:8070"
-      LOG_LEVEL: debug
+      <<: *engine-env
+      API_HOST: engine-3.api
       RAFT_NODE_ID: argyll-3
-      RAFT_ADDRESS: argyll-engine-3:9701
-      RAFT_SERVERS: "argyll-1=argyll-engine-1:9701,argyll-2=argyll-engine-2:9701,argyll-3=argyll-engine-3:9701"
-      RAFT_DATA_DIR: /data/argyll-raft
+      RAFT_ADDRESS: engine-3.raft:9701
     volumes:
-      - argyll-data-3:/data
+      - data-3:/data
+    networks:
+      edge: {}
+      auth: {}
+      workers-anthropic: {}
+      workers-bedrock: {}
+      workers-gemini: {}
+      workers-openai: {}
+      api:
+        aliases: [engine-3.api]
+      raft:
+        aliases: [engine-3.raft]
     extra_hosts:
       - "host.docker.internal:host-gateway"
     restart: unless-stopped
@@ -173,105 +211,144 @@ services:
       - 8.8.8.8
       - 8.8.4.4
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      test: ["CMD", "curl", "-f", "http://engine-3.api:8080/health"]
       interval: 30s
       timeout: 3s
       retries: 3
       start_period: 15s
 
-  argyll-mcp:
+  mcp:
     build:
       context: .
       dockerfile: mcp/Dockerfile
-    command: ["-engine", "http://argyll-proxy:8080", "-listen", ":8071"]
+    command: ["-url", "http://gateway:8080", "-listen", "mcp.tools:8071"]
+    networks:
+      edge: {}
+      tools:
+        aliases: [mcp.tools]
     restart: unless-stopped
 
   # Chat reaches only the agent workers, never the engine
-  argyll-chat:
+  chat:
     build:
       context: .
       dockerfile: chat/Dockerfile
     depends_on:
-      - argyll-agent-anthropic
-      - argyll-agent-bedrock
-      - argyll-agent-gemini
-      - argyll-agent-openai
-    ports:
-      - "127.0.0.1:8072:8072"
+      - agent-anthropic
+      - agent-bedrock
+      - agent-gemini
+      - agent-openai
     environment:
       <<: *auth-env
-      AGENT_WORKERS: "anthropic=http://argyll-agent-anthropic:8070,bedrock=http://argyll-agent-bedrock:8070,gemini=http://argyll-agent-gemini:8070,*=http://argyll-agent-openai:8070"
+      HOST: chat.web
+      AGENT_WORKERS: *agent-workers
+    networks:
+      auth: {}
+      workers-anthropic: {}
+      workers-bedrock: {}
+      workers-gemini: {}
+      workers-openai: {}
+      chat:
+        aliases: [chat.web]
     restart: unless-stopped
 
-  argyll-agent-anthropic:
+  agent-anthropic:
     build:
       context: .
       dockerfile: workers/agent/Dockerfile
       args:
         WORKER: argyll-agent-anthropic
     depends_on:
-      - argyll-mcp
+      - mcp
     environment:
       <<: [*auth-env, *agent-env]
+      HOST: agent-anthropic.workers
     env_file:
       - path: ./.env.d/agent.env
         required: false
       - path: ./.env.d/agent-anthropic.env
         required: false
+    networks:
+      edge: {}
+      auth: {}
+      tools: {}
+      workers-anthropic:
+        aliases: [agent-anthropic.workers]
     restart: unless-stopped
 
-  argyll-agent-bedrock:
+  agent-bedrock:
     build:
       context: .
       dockerfile: workers/agent/Dockerfile
       args:
         WORKER: argyll-agent-bedrock
     depends_on:
-      - argyll-mcp
+      - mcp
     environment:
       <<: [*auth-env, *agent-env]
+      HOST: agent-bedrock.workers
     env_file:
       - path: ./.env.d/agent.env
         required: false
       - path: ./.env.d/agent-bedrock.env
         required: false
+    networks:
+      edge: {}
+      auth: {}
+      tools: {}
+      workers-bedrock:
+        aliases: [agent-bedrock.workers]
     restart: unless-stopped
 
-  argyll-agent-gemini:
+  agent-gemini:
     build:
       context: .
       dockerfile: workers/agent/Dockerfile
       args:
         WORKER: argyll-agent-gemini
     depends_on:
-      - argyll-mcp
+      - mcp
     environment:
       <<: [*auth-env, *agent-env]
+      HOST: agent-gemini.workers
     env_file:
       - path: ./.env.d/agent.env
         required: false
       - path: ./.env.d/agent-gemini.env
         required: false
+    networks:
+      edge: {}
+      auth: {}
+      tools: {}
+      workers-gemini:
+        aliases: [agent-gemini.workers]
     restart: unless-stopped
 
-  argyll-agent-openai:
+  agent-openai:
     build:
       context: .
       dockerfile: workers/agent/Dockerfile
       args:
         WORKER: argyll-agent-openai
     depends_on:
-      - argyll-mcp
+      - mcp
     environment:
       <<: [*auth-env, *agent-env]
+      HOST: agent-openai.workers
     env_file:
       - path: ./.env.d/agent.env
         required: false
       - path: ./.env.d/agent-openai.env
         required: false
+    networks:
+      edge: {}
+      auth: {}
+      tools: {}
+      workers-openai:
+        aliases: [agent-openai.workers]
     restart: unless-stopped
 
-  argyll-ui:
+  ui:
     build:
       context: ./web
       dockerfile: Dockerfile.dev
@@ -279,19 +356,17 @@ services:
       - ./web:/app
       - /app/node_modules # Don't mount node_modules
       - /app/dist # Don't mount dist directory
-    ports:
-      - "3001:3001"
     environment:
-      - VITE_API_URL=http://localhost:8080
-      - VITE_WS_URL=ws://localhost:8080/engine/ws
-      - VITE_CHAT_URL=http://localhost:8072
       - VITE_AUTH_PROVIDER=${AUTH_PROVIDER:-oidc}
-      - VITE_AUTH_AUTHORITY=http://localhost:8180/realms/argyll
       - VITE_AUTH_CLIENT_ID=argyll-web
       - CHOKIDAR_USEPOLLING=true # For better file watching in Docker
       - NODE_ENV=development
+    networks:
+      - ui
+      # The dev server installs packages when it starts
+      - ui-egress
     depends_on:
-      argyll-proxy:
+      gateway:
         condition: service_healthy
     restart: unless-stopped
     dns:
@@ -322,8 +397,7 @@ services:
       STEP_PORT: "8090"
       STEP_HOSTNAME: text-processor
     depends_on: *step-depends
-    ports:
-      - "8090:8090"
+    networks: *step-networks
     restart: on-failure
     dns:
       - 8.8.8.8
@@ -344,8 +418,7 @@ services:
       STEP_PORT: "8091"
       STEP_HOSTNAME: user-resolver
     depends_on: *step-depends
-    ports:
-      - "8091:8091"
+    networks: *step-networks
     restart: unless-stopped
     dns:
       - 8.8.8.8
@@ -366,8 +439,7 @@ services:
       STEP_PORT: "8092"
       STEP_HOSTNAME: inventory-resolver
     depends_on: *step-depends
-    ports:
-      - "8092:8092"
+    networks: *step-networks
     restart: unless-stopped
     dns:
       - 8.8.8.8
@@ -388,8 +460,7 @@ services:
       STEP_PORT: "8093"
       STEP_HOSTNAME: order-creator
     depends_on: *step-depends
-    ports:
-      - "8093:8093"
+    networks: *step-networks
     restart: unless-stopped
     dns:
       - 8.8.8.8
@@ -410,8 +481,7 @@ services:
       STEP_PORT: "8094"
       STEP_HOSTNAME: payment-processor
     depends_on: *step-depends
-    ports:
-      - "8094:8094"
+    networks: *step-networks
     restart: unless-stopped
     dns:
       - 8.8.8.8
@@ -432,8 +502,7 @@ services:
       STEP_PORT: "8095"
       STEP_HOSTNAME: stock-reservation
     depends_on: *step-depends
-    ports:
-      - "8095:8095"
+    networks: *step-networks
     restart: unless-stopped
     dns:
       - 8.8.8.8
@@ -454,8 +523,7 @@ services:
       STEP_PORT: "8096"
       STEP_HOSTNAME: notification-sender
     depends_on: *step-depends
-    ports:
-      - "8096:8096"
+    networks: *step-networks
     restart: unless-stopped
     dns:
       - 8.8.8.8
@@ -467,7 +535,35 @@ services:
       retries: 8
       start_period: 10s
 
+# Each network joins a server with the clients it serves, and servers that join several listen
+# only on their own network's alias. The gateway is the one entry point from outside
+networks:
+  # The gateway's clients and outbound access for engines, workers, and Steps
+  edge: {}
+  api:
+    internal: true
+  raft:
+    internal: true
+  auth:
+    internal: true
+  chat:
+    internal: true
+  ui:
+    internal: true
+  ui-egress: {}
+  # One per worker, so workers never reach each other
+  workers-anthropic:
+    internal: true
+  workers-bedrock:
+    internal: true
+  workers-gemini:
+    internal: true
+  workers-openai:
+    internal: true
+  tools:
+    internal: true
+
 volumes:
-  argyll-data-1:
-  argyll-data-2:
-  argyll-data-3:
+  data-1:
+  data-2:
+  data-3:

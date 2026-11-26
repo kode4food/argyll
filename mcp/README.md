@@ -86,16 +86,16 @@ Use the MCP to discover the planner graph, register Steps, and verify the result
 make run
 ```
 
-Override the engine URL:
+Override the Argyll URL:
 
 ```bash
-./dist/argyll-mcp -engine http://localhost:8080
+./dist/argyll-mcp -url "$ARGYLL_URL"
 ```
 
 Serve Streamable HTTP at `/mcp` instead of stdio:
 
 ```bash
-./dist/argyll-mcp -engine http://localhost:8080 -listen :8071
+./dist/argyll-mcp -url "$ARGYLL_URL" -listen :8071
 ```
 
 HTTP tools call the engine with the caller's `Authorization` header when present. When the engine requires authentication, callers must supply their own bearer token for tools that access protected routes.

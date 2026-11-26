@@ -40,10 +40,10 @@ func TestLoadConfig(t *testing.T) {
 		{
 			name: "load_api_host",
 			envVars: map[string]string{
-				"API_HOST": "127.0.0.1",
+				"API_HOST": "localhost",
 			},
 			check: func(t *testing.T, c app.Config) {
-				assert.Equal(t, "127.0.0.1", c.APIHost)
+				assert.Equal(t, "localhost", c.APIHost)
 			},
 		},
 		{

@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	DefaultRaftAddress     = "127.0.0.1:9701"
+	DefaultRaftAddress     = "localhost:9701"
 	DefaultRaftDataDirName = "argyll-raft"
 	MaxRaftLogTailSize     = 1_024_000
 )

@@ -10,7 +10,10 @@ import (
 )
 
 func main() {
-	client := argyll.NewClient("http://localhost:8080", 30*time.Second)
+	client := argyll.NewClient(argyll.EnvOr(argyll.EnvLookup{
+		Name:    "ARGYLL_URL",
+		Default: argyll.DefaultURL,
+	}), 30*time.Second)
 {{ if and (not .IsExternal) (not .IsScript) }}
 	handler := func(
 		ctx *argyll.StepContext, args api.Args,
@@ -34,7 +37,7 @@ func main() {
 		Output({{ quoteName . }}){{ end }}{{ if .IsAsync }}.
 		WithAsyncInvoke(){{ end }}{{ if .IsExternal }}.
 {{ if .HasNonPostMethod }}		WithMethod({{ quote .Method }}).
-{{ end }}		WithEndpoint("http://localhost:8081/step"){{ end }}{{ if .IsScript }}.
+{{ end }}		WithEndpoint("https://step.example.com/step"){{ end }}{{ if .IsScript }}.
 		WithScript(api.ScriptConfig{
 			Language: {{ quote .ScriptLanguage }},
 			Source:   {{ quote .ScriptBody }},

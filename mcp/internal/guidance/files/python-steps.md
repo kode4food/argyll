@@ -14,7 +14,7 @@ client.new_step().with_name("Lookup User") \
     .required("user_id") \
     .output("user") \
     .with_method("GET") \
-    .with_endpoint("http://localhost:8081/users/{user_id}") \
+    .with_endpoint("https://api.example.com/users/{user_id}") \
     .register()
 
 Async step:

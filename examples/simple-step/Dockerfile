@@ -40,7 +40,7 @@ COPY --from=builder /build/examples/simple-step/text-processor .
 # Set default environment variables
 ENV STEP_PORT=8081
 ENV STEP_HOSTNAME=text-processor
-ENV ARGYLL_ENGINE_URL=http://argyll-engine:8080
+ENV ARGYLL_URL=http://gateway:8080
 
 EXPOSE 8081
 

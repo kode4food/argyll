@@ -1,0 +1,115 @@
+{{- $ctx := dict "root" . "component" "engine" -}}
+{{- $name := include "argyll.name" $ctx -}}
+{{- $raft := printf "%s-raft" $name -}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "argyll.labels" $ctx | nindent 4 }}
+spec:
+  selector:
+    {{- include "argyll.selectorLabels" $ctx | nindent 4 }}
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http
+---
+# Raft peers find each other by pod name, before any of them is ready
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $raft }}
+  labels:
+    {{- include "argyll.labels" $ctx | nindent 4 }}
+spec:
+  clusterIP: None
+  publishNotReadyAddresses: true
+  selector:
+    {{- include "argyll.selectorLabels" $ctx | nindent 4 }}
+  ports:
+    - name: http
+      port: 8080
+    - name: raft
+      port: 9701
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "argyll.labels" $ctx | nindent 4 }}
+spec:
+  serviceName: {{ $raft }}
+  replicas: {{ .Values.engine.replicas }}
+  podManagementPolicy: Parallel
+  selector:
+    matchLabels:
+      {{- include "argyll.selectorLabels" $ctx | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "argyll.selectorLabels" $ctx | nindent 8 }}
+    spec:
+      {{- include "argyll.podDefaults" . | nindent 6 }}
+      containers:
+        - name: engine
+          image: {{ include "argyll.image" (dict "root" . "name" "engine") }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: API_HOST
+              value: 0.0.0.0
+            - name: API_PORT
+              value: "8080"
+            - name: LOG_LEVEL
+              value: {{ .Values.engine.logLevel | quote }}
+            - name: WEBHOOK_BASE_URL
+              value: {{ include "argyll.publicUrl" . | quote }}
+            - name: AGENT_WORKERS
+              value: {{ include "argyll.agentWorkers" . | quote }}
+            - name: RAFT_NODE_ID
+              value: $(POD_NAME)
+            - name: RAFT_ADDRESS
+              value: $(POD_NAME).{{ $raft }}:9701
+            - name: RAFT_SERVERS
+              value: {{ include "argyll.raftServers" (dict "root" . "name" $name "raft" $raft) | quote }}
+            - name: RAFT_DATA_DIR
+              value: /data/argyll-raft
+            {{- include "argyll.authEnv" . | nindent 12 }}
+            {{- include "argyll.accountEnv" (dict "root" . "account" "engine") | nindent 12 }}
+          ports:
+            - name: http
+              containerPort: 8080
+            - name: raft
+              containerPort: 9701
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 15
+          resources:
+            {{- toYaml .Values.engine.resources | nindent 12 }}
+          volumeMounts:
+            - name: data
+              mountPath: /data
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: [ReadWriteOnce]
+        {{- with .Values.engine.storage.storageClass }}
+        storageClassName: {{ . }}
+        {{- end }}
+        resources:
+          requests:
+            storage: {{ .Values.engine.storage.size }}

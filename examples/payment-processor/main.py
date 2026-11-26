@@ -9,11 +9,10 @@ from datetime import datetime
 from argyll import AsyncContext, Client, StepContext
 from argyll.errors import HTTPError
 
-# Get engine URL from environment
-ENGINE_URL = os.getenv("ARGYLL_ENGINE_URL", "http://localhost:8080")
+ARGYLL_URL = os.getenv("ARGYLL_URL", "http://localhost:8080")
 
 # Client expects base_url without /engine path prefix
-client = Client(ENGINE_URL)
+client = Client(ARGYLL_URL)
 payments = {}
 refunds = set()
 payments_lock = threading.Lock()

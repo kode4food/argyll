@@ -165,6 +165,8 @@ func TestStepTemplateFormat(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			code := templateCode(t, c, tt.args)
 			assertWidth(t, code, 80)
+			assert.Contains(t, code, `"ARGYLL_URL"`)
+			assert.NotContains(t, code, "localhost")
 			if tt.args["language"] == "go" {
 				assertFormattedGo(t, code)
 				return

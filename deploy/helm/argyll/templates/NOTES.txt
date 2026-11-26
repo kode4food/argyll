@@ -1,0 +1,20 @@
+Argyll is starting at {{ include "argyll.publicUrl" . }}
+{{- if .Values.keycloak.enabled }}
+
+Sign in as "admin" with this one-time password, then choose your own:
+
+  kubectl get secret -n {{ .Release.Namespace }} {{ include "argyll.keycloakSecret" . }} -o jsonpath='{.data.argyll-admin-password}' | base64 -d
+
+Add people and give them the reader, operator, or admin role in the Keycloak admin console,
+which stays inside the cluster:
+
+  kubectl port-forward -n {{ .Release.Namespace }} svc/{{ include "argyll.name" (dict "root" . "component" "keycloak") }} 8180:8080
+
+Then open http://localhost:8180/auth/admin and sign in as "admin" with:
+
+  kubectl get secret -n {{ .Release.Namespace }} {{ include "argyll.keycloakSecret" . }} -o jsonpath='{.data.admin-password}' | base64 -d
+{{- end }}
+{{- if not (include "argyll.agentWorkers" .) }}
+
+No Agent workers are enabled. Enable one under agents.* to use chat and Agent Steps.
+{{- end }}

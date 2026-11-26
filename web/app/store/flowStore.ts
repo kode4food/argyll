@@ -13,7 +13,7 @@ import {
 } from "@/app/api";
 import { ConnectionStatus } from "@/app/types/websocket";
 import { isValidTimestamp } from "@/utils/dates";
-import { isDevHost } from "@/utils/env";
+import { isDevServer } from "@/utils/env";
 import {
   buildExecutionList,
   buildFlowContext,
@@ -480,7 +480,7 @@ export const useFlowStore = create<FlowState>()(
   )
 );
 
-if (isDevHost) {
+if (isDevServer) {
   window.flowStore = useFlowStore;
 }
 

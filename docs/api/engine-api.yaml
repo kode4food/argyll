@@ -58,8 +58,13 @@ info:
     url: https://www.apache.org/licenses/LICENSE-2.0.html
 
 servers:
-  - url: http://localhost:8080
-    description: Local development server
+  - url: "{protocol}://{host}"
+    variables:
+      protocol:
+        enum: [http, https]
+        default: https
+      host:
+        default: argyll.example.com
 
 paths:
   /health:
@@ -256,9 +261,9 @@ paths:
                   http:
                     invoke:
                       method: "POST"
-                      endpoint: "http://localhost:8081/process-text"
+                      endpoint: "https://step.example.com/process-text"
                       timeout: 30000
-                    health: "http://localhost:8081/health"
+                    health: "https://step.example.com/health"
               scriptStep:
                 summary: Script Step (Lua)
                 value:
@@ -2265,7 +2270,7 @@ components:
           description: |
             HTTP endpoint URL. May contain `{name}` parameters that are
             substituted from the step's attributes.
-          example: "http://localhost:8081/process-text"
+          example: "https://step.example.com/process-text"
         timeout:
           type: integer
           format: int64
@@ -2308,7 +2313,7 @@ components:
           type: string
           format: uri
           description: Optional health check endpoint. Always polled with `GET`.
-          example: "http://localhost:8081/health"
+          example: "https://step.example.com/health"
 
     ScriptConfig:
       type: object

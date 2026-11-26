@@ -6,7 +6,7 @@ const flowsStarted = new Counter('flows_started');
 const flowsFailed = new Counter('flows_failed');
 const errorRate = new Rate('error_rate');
 
-const ENGINE_URL = __ENV.ENGINE_URL || 'http://localhost:8080';
+const ARGYLL_URL = __ENV.ARGYLL_URL || 'http://localhost:8080';
 
 export let options = {
   // Options can be overridden via CLI flags (--vus, --duration, etc.)
@@ -28,7 +28,7 @@ export function setup() {
     },
   };
 
-  const res = http.post(`${ENGINE_URL}/engine/steps`, JSON.stringify(step), {
+  const res = http.post(`${ARGYLL_URL}/engine/steps`, JSON.stringify(step), {
     headers: { 'Content-Type': 'application/json' },
   });
 
@@ -45,7 +45,7 @@ export default function (data) {
 
   // Start flow
   const startRes = http.post(
-    `${ENGINE_URL}/engine/flows`,
+    `${ARGYLL_URL}/engine/flows`,
     JSON.stringify({
       id: flowId,
       goals: { steps: [data.stepId] },

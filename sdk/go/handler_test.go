@@ -406,7 +406,7 @@ func startStepServer(t *testing.T, args startStepServerArgs) string {
 	http.DefaultServeMux = http.NewServeMux()
 
 	port := getFreePort(t)
-	host := "127.0.0.1"
+	host := "localhost"
 
 	_ = os.Setenv("STEP_PORT", port)
 	_ = os.Setenv("STEP_HOSTNAME", host)
@@ -451,7 +451,7 @@ func startCompensatingServer(t *testing.T, args startCompensatingServerArgs) str
 	http.DefaultServeMux = http.NewServeMux()
 
 	port := getFreePort(t)
-	host := "127.0.0.1"
+	host := "localhost"
 
 	_ = os.Setenv("STEP_PORT", port)
 	_ = os.Setenv("STEP_HOSTNAME", host)

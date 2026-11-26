@@ -21,16 +21,16 @@ type StepDef struct {
 // DefaultTimeout is the engine client timeout used while registering
 const DefaultTimeout = 30 * time.Second
 
-// Serve registers the given steps with the engine and serves their handlers. The engine URL,
-// hostname and port come from ARGYLL_ENGINE_URL, STEP_HOSTNAME and STEP_PORT environment variables
+// Serve registers the given steps with the engine and serves their handlers. The Argyll URL,
+// hostname and port come from ARGYLL_URL, STEP_HOSTNAME and STEP_PORT environment variables
 func Serve(ctx context.Context, steps ...StepDef) error {
 	addr := argyll.LocalStepAddr()
-	engineURL := argyll.EnvOr(argyll.EnvLookup{
-		Name:    "ARGYLL_ENGINE_URL",
-		Default: argyll.DefaultEngineURL,
+	argyllURL := argyll.EnvOr(argyll.EnvLookup{
+		Name:    "ARGYLL_URL",
+		Default: argyll.DefaultURL,
 	})
 
-	client := argyll.NewClient(engineURL, DefaultTimeout)
+	client := argyll.NewClient(argyllURL, DefaultTimeout)
 	if err := Register(ctx, client, addr.BaseURL, steps...); err != nil {
 		return err
 	}

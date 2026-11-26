@@ -279,7 +279,7 @@ describe("ArgyllApi", () => {
 
     await expect(api.chatWithAgent(request)).resolves.toEqual(reply);
     expect(fetchMock).toHaveBeenCalledWith(
-      "http://localhost:8072/chat",
+      "http://localhost:8080/chat",
       expect.objectContaining({
         method: "POST",
         body: JSON.stringify(request),

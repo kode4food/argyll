@@ -54,7 +54,7 @@ func TestRegisterConflict(t *testing.T) {
 }
 
 func TestServeFailure(t *testing.T) {
-	t.Setenv("ARGYLL_ENGINE_URL", "http://127.0.0.1:1")
+	t.Setenv("ARGYLL_URL", "http://localhost:1")
 	t.Setenv("STEP_PORT", "0")
 
 	assert.Error(t, gen.Serve(context.Background(), sumStep()))

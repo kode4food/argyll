@@ -29,8 +29,8 @@ func TestStartInvalidRaftConfig(t *testing.T) {
 
 func TestStartOccupiedPort(t *testing.T) {
 	cfg := newRaftTestConfig(t)
-	cfg.APIHost = "127.0.0.1"
-	blocked, err := net.Listen("tcp", fmt.Sprintf("127.0.0.1:%d", cfg.APIPort))
+	cfg.APIHost = "localhost"
+	blocked, err := net.Listen("tcp", fmt.Sprintf("localhost:%d", cfg.APIPort))
 	assert.NoError(t, err)
 	defer func() { _ = blocked.Close() }()
 
@@ -84,7 +84,7 @@ func TestStartServesHTTP(t *testing.T) {
 	assert.NoError(t, a.Start())
 	defer a.Shutdown()
 
-	url := fmt.Sprintf("http://127.0.0.1:%d/health", cfg.APIPort)
+	url := fmt.Sprintf("http://localhost:%d/health", cfg.APIPort)
 	assert.Eventually(t, func() bool {
 		res, err := http.Get(url)
 		if err != nil {
@@ -118,7 +118,7 @@ func TestRun(t *testing.T) {
 func availablePort(t *testing.T) int {
 	t.Helper()
 
-	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	ln, err := net.Listen("tcp", "localhost:0")
 	assert.NoError(t, err)
 	defer func() { _ = ln.Close() }()
 
@@ -130,7 +130,7 @@ func availablePort(t *testing.T) int {
 func availableAddress(t *testing.T) string {
 	t.Helper()
 
-	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	ln, err := net.Listen("tcp", "localhost:0")
 	assert.NoError(t, err)
 	defer func() { _ = ln.Close() }()
 

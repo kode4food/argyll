@@ -14,7 +14,7 @@ func TestServe(t *testing.T) {
 		host string
 		port string
 	}{
-		{name: "configured port", host: "127.0.0.1", port: "invalid-port"},
+		{name: "configured port", host: "localhost", port: "invalid-port"},
 		{name: "default port", host: "::invalid"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {

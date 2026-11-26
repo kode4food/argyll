@@ -1,0 +1,22 @@
+{{- $script := include "argyll.testRoutingScript" . -}}
+{{- include "argyll.testPod" (dict "root" . "name" "routing" "script" $script) }}
+
+{{- define "argyll.testRoutingScript" -}}
+expect "UI serves the app" 200 "$(code $gateway/)"
+expect "UI serves app routes" 200 "$(code $gateway/flow/test)"
+has "UI reads its settings at runtime" __ARGYLL_ENV__ "$(curl -s -m 10 $gateway/env.js)"
+expect "engine answers health checks" 200 "$(code $gateway/health)"
+# Writes route only to the Raft leader, and the gateway answers 503 when there is none
+lacks "writes reach the Raft leader" 503 "$(code -X POST $gateway/engine/flows)"
+{{- if .Values.auth.enabled }}
+expect "engine requires sign-in" 401 "$(code $gateway/engine/steps)"
+expect "chat requires sign-in" 401 "$(code -X POST $gateway/chat)"
+{{- end }}
+{{- if .Values.keycloak.enabled }}
+has "sign-in uses the public address" \
+  '"issuer":"{{ include "argyll.issuer" . }}"' \
+  "$(curl -s -m 10 $gateway/auth/realms/argyll/.well-known/openid-configuration)"
+expect "Keycloak admin console stays inside the cluster" 404 "$(code $gateway/auth/admin/)"
+expect "Keycloak master realm stays inside the cluster" 404 "$(code $gateway/auth/realms/master/)"
+{{- end }}
+{{- end -}}

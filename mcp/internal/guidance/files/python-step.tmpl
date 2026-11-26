@@ -1,9 +1,11 @@
+import os
+
 from argyll import Client, StepContext
 {{ if .IsAsync }}from argyll import AsyncContext
 import threading
 {{ end }}{{ if .IsScript }}from argyll import ScriptConfig, ScriptLanguage
 {{ end }}
-client = Client("http://localhost:8080")
+client = Client(os.environ["ARGYLL_URL"])
 {{ if and (not .IsExternal) (not .IsScript) }}
 
 def invoke_step(ctx: StepContext, args: dict) -> dict:
@@ -28,7 +30,7 @@ step = (
     .output({{ quoteName . }}){{ end }}{{ if .IsAsync }}
     .with_async_invoke(){{ end }}{{ if .IsExternal }}
 {{ if .HasNonPostMethod }}    .with_method({{ quote .Method }}){{ end }}
-    .with_endpoint("http://localhost:8081/step"){{ end }}{{ if .IsScript }}
+    .with_endpoint("https://step.example.com/step"){{ end }}{{ if .IsScript }}
     .with_script(ScriptConfig(
         language=ScriptLanguage({{ quote .ScriptLanguage }}),
         source={{ quote .ScriptBody }},

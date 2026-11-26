@@ -4,6 +4,7 @@ import (
 	"cmp"
 	"errors"
 	"fmt"
+	"net"
 	"net/http"
 	"os"
 	"strings"
@@ -45,8 +46,9 @@ func run() error {
 		CheckRedirect: api.SameOriginRedirect,
 	}
 	handler := chat.NewServer(workers, client).Handler(authn)
+	port := cmp.Or(os.Getenv("PORT"), defaultPort)
 	srv := &http.Server{
-		Addr:              ":" + cmp.Or(os.Getenv("PORT"), defaultPort),
+		Addr:              net.JoinHostPort(os.Getenv("HOST"), port),
 		Handler:           auth.CORS(handler),
 		ReadHeaderTimeout: readHeaderTimeout,
 	}

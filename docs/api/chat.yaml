@@ -8,8 +8,13 @@ info:
     its reply. Worker routing is an internal detail of the chat app.
 
 servers:
-  - url: http://localhost:8072
-    description: Local chat service
+  - url: "{protocol}://{host}"
+    variables:
+      protocol:
+        enum: [http, https]
+        default: https
+      host:
+        default: argyll.example.com
 
 paths:
   /chat:

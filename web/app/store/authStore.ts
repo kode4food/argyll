@@ -30,7 +30,7 @@ const userManager = (): UserManager => {
   if (!manager) {
     const origin = window.location.origin;
     manager = new UserManager({
-      authority: getEnv("AUTH_AUTHORITY"),
+      authority: getEnv("AUTH_AUTHORITY", `${origin}/auth/realms/argyll`),
       client_id: getEnv("AUTH_CLIENT_ID"),
       redirect_uri: `${origin}/`,
       post_logout_redirect_uri: `${origin}/`,

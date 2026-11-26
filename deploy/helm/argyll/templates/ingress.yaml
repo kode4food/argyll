@@ -1,0 +1,35 @@
+{{- if .Values.ingress.enabled -}}
+{{- $ctx := dict "root" . "component" "gateway" -}}
+{{- $host := include "argyll.publicHost" . -}}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "argyll.fullname" . }}
+  labels:
+    {{- include "argyll.labels" $ctx | nindent 4 }}
+  {{- with .Values.ingress.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- with .Values.ingress.className }}
+  ingressClassName: {{ . }}
+  {{- end }}
+  {{- with .Values.ingress.tlsSecretName }}
+  tls:
+    - hosts:
+        - {{ $host }}
+      secretName: {{ . }}
+  {{- end }}
+  rules:
+    - host: {{ $host }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "argyll.name" $ctx }}
+                port:
+                  name: http
+{{- end }}
