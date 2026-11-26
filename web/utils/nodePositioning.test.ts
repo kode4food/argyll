@@ -159,6 +159,18 @@ describe("nodePositioning", () => {
       expect(result["node-1"].x).toBe(123.456);
       expect(result["node-1"].y).toBe(-789.012);
     });
+
+    test("inherits overview positions a Space has not placed", () => {
+      const space = { type: "space", spaceId: "risk" } as const;
+      saveNodePositionsMap({ a: { x: 1, y: 1 }, b: { x: 2, y: 2 } });
+      saveNodePositionsMap({ a: { x: 5, y: 5 } }, space);
+      saveNodePositionsMap({ b: { x: 3, y: 3 } });
+
+      expect(loadNodePositions(space)).toEqual({
+        a: { x: 5, y: 5 },
+        b: { x: 3, y: 3 },
+      });
+    });
   });
 
   describe("round trip", () => {

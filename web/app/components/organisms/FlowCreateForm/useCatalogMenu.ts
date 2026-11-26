@@ -18,7 +18,6 @@ export const CATALOG_ITEMS = [
 
 export const useCatalogMenu = () => {
   const [target, setTarget] = React.useState<CatalogTarget | null>(null);
-  // A new key remounts the manager, so its initial state takes the new target
   const [serial, setSerial] = React.useState(0);
   const openManager = (next: CatalogTarget) => {
     setTarget(next);

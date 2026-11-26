@@ -30,7 +30,7 @@ export const saveNodePositionsMap = (
   positions: NodePositions,
   scope?: NodePositionScope
 ) => {
-  const existing = loadNodePositions(scope);
+  const existing = readPositions(resolveStorageKey(scope));
   const merged = { ...existing, ...positions };
   localStorage.setItem(resolveStorageKey(scope), JSON.stringify(merged));
 };
@@ -43,13 +43,20 @@ export const saveNodePositions = (nodes: Node[], scope?: NodePositionScope) => {
   saveNodePositionsMap(positions, scope);
 };
 
-export const loadNodePositions = (scope?: NodePositionScope): NodePositions => {
+const readPositions = (key: string): NodePositions => {
   try {
-    const stored = localStorage.getItem(resolveStorageKey(scope));
+    const stored = localStorage.getItem(key);
     return stored ? JSON.parse(stored) : {};
   } catch {
     return {};
   }
+};
+
+export const loadNodePositions = (scope?: NodePositionScope): NodePositions => {
+  const positions = readPositions(resolveStorageKey(scope));
+  return scope?.type === "space"
+    ? { ...readPositions(OVERVIEW_STORAGE_KEY), ...positions }
+    : positions;
 };
 
 export const snapshotFlowPositions = (

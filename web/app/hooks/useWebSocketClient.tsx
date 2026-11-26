@@ -130,7 +130,6 @@ export const useWebSocketClient = ({
     wsRef.current = null;
 
     stopHeartbeat();
-    // A token rotation swaps sockets without showing a connection banner
     setConnectionStatus((prev) => (prev === "connected" ? prev : "connecting"));
     openWebSocket({
       onopen: handleOpen,

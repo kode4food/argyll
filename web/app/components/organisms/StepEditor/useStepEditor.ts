@@ -103,7 +103,6 @@ export const useStepEditor = ({
   const [initialData] = React.useState(getSerializedStepData);
   const currentData =
     editorMode === "json" ? jsonDraft : getSerializedStepData();
-  // An unsaved draft has changes even before the user edits it
   const isDirty =
     (isCreateMode && draft !== undefined) || currentData !== initialData;
   const { predicateCompletions } = useAttributeCompletions(form.attributes);

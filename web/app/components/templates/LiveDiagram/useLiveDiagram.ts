@@ -37,7 +37,6 @@ export const useLiveDiagram = () => {
     },
   });
 
-  // The overview runs every other chat action once it opens
   useEffect(() => {
     if (chatAction && chatAction.type !== "open_flow") navigate("/");
   }, [chatAction, navigate]);

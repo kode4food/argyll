@@ -77,7 +77,6 @@ export const StepEditorProvider = ({
     <StepEditorContext.Provider value={contextValue}>
       {children}
       {state.open && (
-        // A new key remounts the editor, so its form takes the newly opened Step
         <StepEditor
           key={state.serial}
           step={state.step}
