@@ -17,7 +17,8 @@ const CatalogMenu: React.FC = () => {
     wrapperRef,
     handleKeyDown,
     listRef,
-    manager,
+    target,
+    serial,
     selectManager,
     closeManager,
     toggleOpen,
@@ -65,8 +66,24 @@ const CatalogMenu: React.FC = () => {
           </div>
         )}
       </div>
-      <SpaceManager isOpen={manager === "spaces"} onClose={closeManager} />
-      {manager === "feeds" && <FeedManager isOpen onClose={closeManager} />}
+      {target?.manager === "spaces" && (
+        <SpaceManager
+          key={serial}
+          isOpen
+          onClose={closeManager}
+          spaceId={target.id}
+          seed={target.seed}
+        />
+      )}
+      {target?.manager === "feeds" && (
+        <FeedManager
+          key={serial}
+          isOpen
+          onClose={closeManager}
+          feedId={target.id}
+          seed={target.seed}
+        />
+      )}
     </>
   );
 };

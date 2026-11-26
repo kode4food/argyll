@@ -34,6 +34,32 @@ describe("useStepEditorForm", () => {
     jest.clearAllMocks();
   });
 
+  it("fills a new Step from every field of a draft", () => {
+    const draft = buildStep({
+      id: "score",
+      name: "Score",
+      description: "Scores a customer",
+      type: "script",
+      http: undefined,
+      script: { language: SCRIPT_LANGUAGE_LUA, source: "return 1" },
+      attributes: { customer: { role: "required" } },
+      tags: ["domain:risk"],
+    });
+    const { result } = renderHook(() =>
+      useStepEditorForm({ step: null, draft, onUpdate, onClose })
+    );
+
+    expect(result.current).toMatchObject({
+      stepId: "score",
+      name: "Score",
+      description: "Scores a customer",
+      stepType: "script",
+      script: "return 1",
+      tags: ["domain:risk"],
+    });
+    expect(result.current.attributes[0].name).toBe("customer");
+  });
+
   it("validates required fields in create mode", async () => {
     const { result } = renderHook(() =>
       useStepEditorForm({ step: null, onUpdate, onClose })

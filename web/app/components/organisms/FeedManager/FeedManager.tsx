@@ -1,4 +1,5 @@
 import React from "react";
+import { Feed } from "@/app/api";
 import Modal from "@/app/components/molecules/Modal";
 import ValuePreview from "@/app/components/molecules/ValuePreview";
 import { useT } from "@/app/i18n";
@@ -11,6 +12,8 @@ import feedStyles from "./FeedManager.module.css";
 interface FeedManagerProps {
   isOpen: boolean;
   onClose: () => void;
+  feedId?: string;
+  seed?: Partial<Feed>;
 }
 
 const titleKey = (isEditing: boolean, editingId: string | null): string => {
@@ -73,9 +76,14 @@ const FeedManagerFooter: React.FC<FeedManagerFooterProps> = ({ editor }) => {
   );
 };
 
-const FeedManager: React.FC<FeedManagerProps> = ({ isOpen, onClose }) => {
+const FeedManager: React.FC<FeedManagerProps> = ({
+  isOpen,
+  onClose,
+  feedId,
+  seed,
+}) => {
   const t = useT();
-  const editor = useFeedEditor(onClose);
+  const editor = useFeedEditor(onClose, feedId, seed);
   const { editingId, error, feeds, isEditing } = editor;
   const watchedFeeds = useWatchedFeeds();
 

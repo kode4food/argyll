@@ -1,6 +1,7 @@
 package contract_test
 
 import (
+	"encoding/json"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -82,6 +83,124 @@ func TestAgentChatRequestValidate(t *testing.T) {
 				return
 			}
 			assert.ErrorIs(t, req.Validate(), tc.err)
+		})
+	}
+}
+
+func TestChatActionValidate(t *testing.T) {
+	for _, tc := range []struct {
+		name   string
+		action contract.ChatAction
+		err    error
+	}{
+		{
+			name:   "overview",
+			action: contract.ChatAction{Type: contract.ChatActionOpenOverview},
+		},
+		{
+			name:   "new step",
+			action: contract.ChatAction{Type: contract.ChatActionNewStep},
+		},
+		{
+			name:   "space list",
+			action: contract.ChatAction{Type: contract.ChatActionOpenSpace},
+		},
+		{
+			name:   "feed list",
+			action: contract.ChatAction{Type: contract.ChatActionOpenFeed},
+		},
+		{
+			name: "step draft",
+			action: contract.ChatAction{
+				Type:  contract.ChatActionNewStep,
+				Draft: json.RawMessage(`{"name": "Score", "type": "script"}`),
+			},
+		},
+		{
+			name: "space draft",
+			action: contract.ChatAction{
+				Type:  contract.ChatActionNewSpace,
+				Draft: json.RawMessage(`{"qbe": [["domain:risk"]]}`),
+			},
+		},
+		{
+			name: "feed draft",
+			action: contract.ChatAction{
+				Type:  contract.ChatActionNewFeed,
+				Draft: json.RawMessage(`{"value": "0", "attributes": ["total"]}`),
+			},
+		},
+		{
+			name:   "empty feed",
+			action: contract.ChatAction{Type: contract.ChatActionNewFeed},
+		},
+		{
+			name: "misshapen draft",
+			action: contract.ChatAction{
+				Type:  contract.ChatActionNewSpace,
+				Draft: json.RawMessage(`{"name": 5}`),
+			},
+			err: contract.ErrChatActionDraft,
+		},
+		{
+			name: "draft not an object",
+			action: contract.ChatAction{
+				Type:  contract.ChatActionNewStep,
+				Draft: json.RawMessage(`"score"`),
+			},
+			err: contract.ErrChatActionDraft,
+		},
+		{
+			name: "flow",
+			action: contract.ChatAction{
+				Type:   contract.ChatActionOpenFlow,
+				FlowID: "f",
+			},
+		},
+		{
+			name: "goals",
+			action: contract.ChatAction{
+				Type:  contract.ChatActionSelectGoals,
+				Goals: &api.Goals{Steps: []api.StepID{"s"}},
+			},
+		},
+		{
+			name: "step",
+			action: contract.ChatAction{
+				Type:   contract.ChatActionOpenStep,
+				StepID: "s",
+			},
+		},
+		{
+			name:   "flow without id",
+			action: contract.ChatAction{Type: contract.ChatActionOpenFlow},
+			err:    contract.ErrChatActionTarget,
+		},
+		{
+			name: "empty goals",
+			action: contract.ChatAction{
+				Type:  contract.ChatActionSelectGoals,
+				Goals: &api.Goals{},
+			},
+			err: contract.ErrChatActionTarget,
+		},
+		{
+			name:   "step without id",
+			action: contract.ChatAction{Type: contract.ChatActionOpenStep},
+			err:    contract.ErrChatActionTarget,
+		},
+		{
+			name:   "unknown type",
+			action: contract.ChatAction{Type: "start_flow"},
+			err:    contract.ErrChatActionType,
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			if tc.err == nil {
+				assert.NoError(t, tc.action.Validate())
+				return
+			}
+			assert.ErrorIs(t, tc.action.Validate(), tc.err)
 		})
 	}
 }

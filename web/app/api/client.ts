@@ -157,6 +157,10 @@ export class ArgyllApi {
     return this.request(`/engine/feeds/${feedId}`);
   }
 
+  async checkAccess(): Promise<void> {
+    await this.request("/engine/health");
+  }
+
   async registerFeed(feed: Feed): Promise<Feed> {
     const response = await this.request<{ feed: Feed }>("/engine/feeds", {
       method: "POST",

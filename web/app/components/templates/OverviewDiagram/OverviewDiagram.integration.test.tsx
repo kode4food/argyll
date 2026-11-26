@@ -6,6 +6,7 @@ import {
   screen,
   waitFor,
 } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
 import OverviewDiagram from "./OverviewDiagram";
 import { UIProvider } from "@/app/contexts/UIContext";
 
@@ -27,6 +28,7 @@ const loadFlowsMock = jest.fn().mockResolvedValue(undefined);
 const flowStoreState = {
   selectFlow: jest.fn(),
   stepHealth: {},
+  spaces: [],
   upsertStep: jest.fn(),
 };
 
@@ -85,9 +87,11 @@ describe("OverviewDiagram integration", () => {
 
   it("opens editor and applies step updates", async () => {
     render(
-      <UIProvider>
-        <OverviewDiagram />
-      </UIProvider>
+      <MemoryRouter>
+        <UIProvider>
+          <OverviewDiagram />
+        </UIProvider>
+      </MemoryRouter>
     );
 
     const createBtn = screen.getByRole("button", { name: /Create New Step/i });

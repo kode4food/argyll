@@ -1,5 +1,6 @@
 import React from "react";
 import {
+  act,
   render,
   screen,
   fireEvent,
@@ -14,6 +15,7 @@ import { t } from "@/app/testUtils/i18n";
 import { useUI } from "@/app/contexts/UIContext";
 import { Step, AttributeRole } from "@/app/api";
 import { useFlowCreation } from "@/app/hooks/useFlowCreation";
+import { useChatStore } from "@/app/store/chatStore";
 import { sortStepsByType } from "@/utils/stepUtils";
 
 jest.mock("@/app/contexts/UIContext");
@@ -1156,5 +1158,25 @@ describe("FlowCreateForm", () => {
       t("flowCreate.badgeRequiredSatisfied")
     );
     expect(satisfiedDot.className).toContain(attributeStyles.badgeRequired);
+  });
+
+  test("selects the goals a chat action names", async () => {
+    renderWithProvider();
+    act(() => {
+      useChatStore.setState({
+        action: {
+          type: "select_goals",
+          goals: { steps: ["step-1"], else: { steps: ["step-2"] } },
+        },
+      });
+    });
+
+    await waitFor(() => {
+      expect(defaultProps.handleStepChange).toHaveBeenCalledWith([
+        ["step-1"],
+        ["step-2"],
+      ]);
+    });
+    expect(useChatStore.getState().action).toBeNull();
   });
 });

@@ -1,6 +1,24 @@
-import { toQBE } from "./spaceManagerUtils";
+import { Space } from "@/app/api";
+import { emptyDraft, seedDraft, toQBE } from "./spaceManagerUtils";
 
 describe("spaceManagerUtils", () => {
+  test("seeds a new Space from what a chat draft gives", () => {
+    expect(seedDraft({})).toEqual(emptyDraft());
+    expect(seedDraft({ name: "Risk", qbe: [["domain:risk"]] })).toMatchObject({
+      name: "Risk",
+      qbe: [["domain:risk"]],
+      scriptMode: false,
+    });
+    expect(
+      seedDraft({ selector: { language: "lua", source: "return true" } })
+    ).toMatchObject({ qbe: [[]], scriptMode: true });
+  });
+
+  test("seeds defaults for fields a chat draft sends as null", () => {
+    const seed = { id: null, qbe: null } as unknown as Partial<Space>;
+    expect(seedDraft(seed)).toEqual(emptyDraft());
+  });
+
   test("sorts and dedupes within a term", () => {
     expect(toQBE([["b", " a ", "b", ""]])).toEqual([["a", "b"]]);
   });

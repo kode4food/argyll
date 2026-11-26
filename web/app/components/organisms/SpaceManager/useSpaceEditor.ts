@@ -11,6 +11,7 @@ import {
   isDraftValid,
   isQBEValid,
   REVIEW_STEP,
+  seedDraft,
   SpaceDraft,
   suggestedId,
   suggestedName,
@@ -22,12 +23,22 @@ import { useSpacePreview } from "./useSpacePreview";
 
 export type SpaceEditor = ReturnType<typeof useSpaceEditor>;
 
-export const useSpaceEditor = (onClose: () => void) => {
+export const useSpaceEditor = (
+  onClose: () => void,
+  spaceId?: string,
+  seed?: Partial<Space>
+) => {
   const spaces = useSpaces();
-  const [draft, setDraft] = React.useState<SpaceDraft>(emptyDraft);
-  const [editingId, setEditingId] = React.useState<string | null>(null);
-  const [editorStep, setEditorStep] = React.useState(0);
-  const [isEditing, setEditing] = React.useState(false);
+  const existing = spaces.find((space) => space.id === spaceId);
+  const isOpening = existing !== undefined || seed !== undefined;
+  const [draft, setDraft] = React.useState<SpaceDraft>(() =>
+    existing ? toDraft(existing) : seedDraft(seed ?? {})
+  );
+  const [editingId, setEditingId] = React.useState(existing?.id ?? null);
+  const [editorStep, setEditorStep] = React.useState(
+    isOpening && draft.scriptMode ? REVIEW_STEP : 0
+  );
+  const [isEditing, setEditing] = React.useState(isOpening);
   const [error, setError] = React.useState<string | null>(null);
 
   const { clearPreview, preview } = useSpacePreview({

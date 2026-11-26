@@ -1,7 +1,8 @@
 import React from "react";
 import { render, screen, fireEvent, act } from "@testing-library/react";
 import OverviewDiagram from "./OverviewDiagram";
-import { Step } from "@/app/api";
+import { ChatAction, Step } from "@/app/api";
+import { useChatStore } from "@/app/store/chatStore";
 import { t } from "@/app/testUtils/i18n";
 
 jest.mock("@/app/components/organisms/FlowCreateForm", () => {
@@ -51,10 +52,18 @@ const sessionMock = {
 
 jest.mock("@/app/store/flowStore", () => ({
   useSteps: () => sessionMock.steps,
+  useSpaces: () => [{ id: "sales", name: "Sales" }],
   useLoadSteps: () => sessionMock.loadSteps,
   useUpsertStep: () => jest.fn(),
 }));
 
+const mockNavigate = jest.fn();
+jest.mock("react-router-dom", () => ({
+  ...jest.requireActual("react-router-dom"),
+  useNavigate: () => mockNavigate,
+}));
+
+const mockSetSpaceId = jest.fn();
 jest.mock("@/app/contexts/UIContext", () => {
   const actual = jest.requireActual("@/app/contexts/UIContext");
   return {
@@ -65,6 +74,7 @@ jest.mock("@/app/contexts/UIContext", () => {
     useUI: () => ({
       goalSteps: [],
       setGoalSteps: jest.fn(),
+      setSpaceId: mockSetSpaceId,
       clearPreviewPlan: jest.fn(),
       panelRef: { current: null },
     }),
@@ -128,5 +138,63 @@ describe("OverviewDiagram", () => {
     });
     const { __openEditor } = require("@/app/contexts/StepEditorContext");
     expect(__openEditor).toHaveBeenCalled();
+  });
+
+  describe("chat actions", () => {
+    afterEach(() => {
+      useChatStore.setState({ action: null });
+    });
+
+    const runAction = (action: ChatAction) => {
+      render(<OverviewDiagram />);
+      act(() => {
+        useChatStore.setState({ action });
+      });
+    };
+
+    it("opens an editable Step in the editor", () => {
+      setSession({ steps: [baseStep] });
+      runAction({ type: "open_step", step_id: "a" });
+      const { __openEditor } = require("@/app/contexts/StepEditorContext");
+      expect(__openEditor).toHaveBeenCalledWith(
+        expect.objectContaining({ step: baseStep })
+      );
+      expect(useChatStore.getState().action).toBeNull();
+    });
+
+    it("skips a Step it cannot edit", () => {
+      setSession({ steps: [{ ...baseStep, script: undefined }] });
+      runAction({ type: "open_step", step_id: "a" });
+      const { __openEditor } = require("@/app/contexts/StepEditorContext");
+      expect(__openEditor).not.toHaveBeenCalled();
+    });
+
+    it("opens the editor for a new Step draft", () => {
+      runAction({ type: "new_step", draft: baseStep });
+      const { __openEditor } = require("@/app/contexts/StepEditorContext");
+      expect(__openEditor).toHaveBeenCalledWith(
+        expect.objectContaining({ step: null, draft: baseStep })
+      );
+    });
+
+    it("selects a known Space", () => {
+      runAction({ type: "open_overview", space_id: "sales" });
+      expect(mockSetSpaceId).toHaveBeenCalledWith("sales");
+    });
+
+    it("ignores an unknown Space", () => {
+      runAction({ type: "open_overview", space_id: "gone" });
+      expect(mockSetSpaceId).not.toHaveBeenCalled();
+    });
+
+    it("opens a Flow", () => {
+      runAction({ type: "open_flow", flow_id: "f1" });
+      expect(mockNavigate).toHaveBeenCalledWith("/flow/f1");
+    });
+
+    it("leaves actions for other views pending", () => {
+      runAction({ type: "open_space" });
+      expect(useChatStore.getState().action).toEqual({ type: "open_space" });
+    });
   });
 });

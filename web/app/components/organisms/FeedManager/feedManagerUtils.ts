@@ -32,6 +32,19 @@ export const emptyDraft = (): FeedDraft => ({
   spaceId: "",
 });
 
+export const seedDraft = (seed: Partial<Feed>): FeedDraft => {
+  const empty = emptyDraft();
+  return {
+    id: seed.id ?? empty.id,
+    name: seed.name ?? empty.name,
+    description: seed.description ?? empty.description,
+    value: seed.value ?? empty.value,
+    fold: seed.fold ? { ...seed.fold } : empty.fold,
+    attributes: [...(seed.attributes ?? empty.attributes)],
+    spaceId: seed.space_id ?? empty.spaceId,
+  };
+};
+
 export const toDraft = (feed: Feed): FeedDraft => ({
   id: feed.id,
   name: feed.name,

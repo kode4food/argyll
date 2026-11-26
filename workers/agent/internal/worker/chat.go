@@ -28,6 +28,8 @@ const (
 
 var (
 	ErrChatServerMissing = errors.New("MCP server " + ChatServer + " not configured")
+	ErrReplyArgsInvalid  = errors.New("reply arguments invalid")
+	ErrReplyTextEmpty    = errors.New("reply takes a non-empty text string")
 )
 
 func (w *Worker) chat(rw http.ResponseWriter, r *http.Request) {
@@ -57,7 +59,7 @@ func (w *Worker) chat(rw http.ResponseWriter, r *http.Request) {
 		usageOutput: 0,
 	}
 	servers := w.chatServers(r.Header.Get("Authorization"))
-	reply, err := w.converseChat(ctx, &req, usage, servers)
+	res, err := w.converseChat(ctx, &req, usage, servers)
 	if err != nil {
 		slog.Warn("Agent chat failed", slog.String("provider", string(req.Provider)),
 			slog.String("model", string(req.Model)), log.Error(err))
@@ -73,11 +75,9 @@ func (w *Worker) chat(rw http.ResponseWriter, r *http.Request) {
 		_ = json.NewEncoder(rw).Encode(p)
 		return
 	}
+	res.Usage = usage
 	rw.Header().Set("Content-Type", api.JSONContentType)
-	_ = json.NewEncoder(rw).Encode(contract.AgentChatReply{
-		Reply: reply,
-		Usage: usage,
-	})
+	_ = json.NewEncoder(rw).Encode(res)
 }
 
 // chatServers offers the Argyll MCP server with only the chat caller's Authorization, so its tools
@@ -99,7 +99,7 @@ func (w *Worker) chatServers(auth string) map[string]MCPServer {
 func (w *Worker) converseChat(
 	ctx context.Context, req *contract.AgentChatRequest, usage api.Usage,
 	servers map[string]MCPServer,
-) (string, error) {
+) (contract.AgentChatReply, error) {
 	cfg := &api.AgentConfig{
 		MCP:       []api.MCPServer{{Server: ChatServer}},
 		Provider:  req.Provider,
@@ -109,7 +109,7 @@ func (w *Worker) converseChat(
 	}
 	box, err := openToolbox(ctx, cfg.MCP, servers)
 	if err != nil {
-		return "", err
+		return contract.AgentChatReply{}, err
 	}
 	defer box.close()
 
@@ -118,7 +118,7 @@ func (w *Worker) converseChat(
 		Messages []contract.ChatMessage `json:"messages"`
 	}{View: req.View, Messages: req.Messages})
 	if err != nil {
-		return "", err
+		return contract.AgentChatReply{}, err
 	}
 	conv, err := w.provider.Open(&Chat{
 		Config: cfg,
@@ -127,40 +127,49 @@ func (w *Worker) converseChat(
 		Tools:  append(box.specs, replySpec()),
 	})
 	if err != nil {
-		return "", err
+		return contract.AgentChatReply{}, err
 	}
-	return runTurns(ctx, w, conv, runTurnsArgs[string]{
+	return runTurns(ctx, w, conv, runTurnsArgs[contract.AgentChatReply]{
 		cfg:   cfg,
 		usage: usage,
 		nudge: strings.TrimSpace(replyNudge),
-		handle: func(call ToolCall) (string, string, bool, error) {
-			if text, ok := replyText(call); ok {
-				return "", text, true, nil
+		handle: func(call ToolCall) (string, contract.AgentChatReply, bool, error) {
+			if call.Name != replyTool {
+				reply, err := chatToolReply(ctx, box, call)
+				return reply, contract.AgentChatReply{}, false, err
 			}
-			reply, err := chatToolReply(ctx, box, call)
-			return reply, "", false, err
+			res, err := replyOf(call)
+			if err != nil {
+				return "Error: " + err.Error(), contract.AgentChatReply{}, false, nil
+			}
+			return "", res, true, nil
 		},
 	})
 }
 
-func replyText(call ToolCall) (string, bool) {
-	if call.Name != replyTool {
-		return "", false
-	}
+func replyOf(call ToolCall) (contract.AgentChatReply, error) {
 	var args struct {
-		Text string `json:"text"`
+		Action *contract.ChatAction `json:"action"`
+		Text   string               `json:"text"`
 	}
-	if err := json.Unmarshal(call.Args, &args); err != nil || args.Text == "" {
-		return "", false
+	if err := json.Unmarshal(call.Args, &args); err != nil {
+		return contract.AgentChatReply{}, fmt.Errorf("%w: %w", ErrReplyArgsInvalid, err)
 	}
-	return args.Text, true
+	if args.Text == "" {
+		return contract.AgentChatReply{}, ErrReplyTextEmpty
+	}
+	res := contract.AgentChatReply{
+		Action: args.Action,
+		Reply:  args.Text,
+	}
+	if args.Action == nil {
+		return res, nil
+	}
+	return res, args.Action.Validate()
 }
 
 // chatToolReply runs an MCP tool call, answering any mistake with a reply the model can correct
 func chatToolReply(ctx context.Context, box *toolbox, call ToolCall) (string, error) {
-	if call.Name == replyTool {
-		return "Error: reply takes a non-empty text string", nil
-	}
 	var args api.Args
 	if err := json.Unmarshal(call.Args, &args); err != nil || args == nil {
 		return "Error: arguments must be a JSON object", nil
@@ -178,10 +187,60 @@ func replySpec() ToolSpec {
 		Schema: map[string]any{
 			"type": "object",
 			"properties": map[string]any{
-				"text": map[string]any{"type": "string"},
+				"text":   map[string]any{"type": "string"},
+				"action": actionSchema(),
 			},
 			"required":             []any{"text"},
 			"additionalProperties": false,
 		},
+	}
+}
+
+func actionSchema() map[string]any {
+	id := map[string]any{"type": "string"}
+	return map[string]any{
+		"type":        "object",
+		"description": "Take the web UI to what the reply is about. It only navigates",
+		"properties": map[string]any{
+			"type": map[string]any{
+				"type": "string",
+				"enum": []any{
+					contract.ChatActionOpenOverview,
+					contract.ChatActionOpenFlow,
+					contract.ChatActionSelectGoals,
+					contract.ChatActionOpenStep,
+					contract.ChatActionNewStep,
+					contract.ChatActionOpenSpace,
+					contract.ChatActionNewSpace,
+					contract.ChatActionOpenFeed,
+					contract.ChatActionNewFeed,
+				},
+				"description": "open_overview shows the overview, in space_id when set. " +
+					"open_flow shows the Flow flow_id. " +
+					"select_goals selects goals in the new Flow form. " +
+					"open_step opens the Step step_id in the Step editor. " +
+					"new_step opens a new Step editor, filled with draft when set. " +
+					"open_space opens the Space manager, at space_id when set. " +
+					"new_space opens a new Space editor, filled with draft when set. " +
+					"open_feed opens the Feed manager, at feed_id when set. " +
+					"new_feed opens a new Feed editor, filled with draft when set",
+			},
+			"space_id": id,
+			"flow_id":  id,
+			"step_id":  id,
+			"feed_id":  id,
+			"goals": map[string]any{
+				"type":        "object",
+				"description": "Goals as start_flow takes them",
+			},
+			"draft": map[string]any{
+				"type": "object",
+				"description": "The Step, Space, or Feed to fill a new editor with, " +
+					"as register_step, register_space, or register_feed takes it. " +
+					"Leave out what the user should fill in",
+			},
+		},
+		"required":             []any{"type"},
+		"additionalProperties": false,
 	}
 }

@@ -143,6 +143,32 @@ describe("SpaceManager", () => {
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
+  test("opens at the editor of a named Space", () => {
+    render(<SpaceManager isOpen onClose={jest.fn()} spaceId="risk" />);
+
+    expect(screen.getByText(t("spaceManager.updateTitle"))).toBeInTheDocument();
+  });
+
+  test("lists Spaces when the named Space is gone", () => {
+    render(<SpaceManager isOpen onClose={jest.fn()} spaceId="gone" />);
+
+    expect(screen.getByText(t("spaceManager.title"))).toBeInTheDocument();
+  });
+
+  test("opens a new Space a chat draft fills, without saving it", () => {
+    render(
+      <SpaceManager
+        isOpen
+        onClose={jest.fn()}
+        seed={{ qbe: [["domain:risk"]] }}
+      />
+    );
+
+    expect(screen.getByText(t("spaceManager.createTitle"))).toBeInTheDocument();
+    expect(screen.getByText("domain:risk")).toBeInTheDocument();
+    expect(mockApi.registerSpace).not.toHaveBeenCalled();
+  });
+
   test("lists existing Spaces", () => {
     open();
 

@@ -1,6 +1,7 @@
 import React from "react";
 import { useUI } from "@/app/contexts/UIContext";
-import { fromGoalSets, Step } from "@/app/api";
+import { fromGoalSets, Step, toGoalSets } from "@/app/api";
+import { useChatAction } from "@/app/hooks/useChatAction";
 import { useFlowCreation } from "@/app/hooks/useFlowCreation";
 import { useScrollFade } from "@/app/hooks/useScrollFade";
 import { useT } from "@/app/i18n";
@@ -56,6 +57,10 @@ export const useFlowCreateForm = (onCreateStep?: (draft?: Step) => void) => {
   React.useEffect(() => {
     setJsonError(validateJsonString(initialState));
   }, [initialState]);
+
+  useChatAction({
+    select_goals: ({ goals }) => void handleStepChange(toGoalSets(goals)),
+  });
 
   const { spaceOptions, scopedSteps, sortedSteps } = useSpaceScope(
     steps,

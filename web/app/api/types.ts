@@ -207,8 +207,22 @@ export interface AgentChatRequest {
   view?: ChatView;
 }
 
+export type ChatAction =
+  | { type: "open_overview"; space_id?: string }
+  | { type: "open_flow"; flow_id: string }
+  | { type: "select_goals"; goals: Goals }
+  | { type: "open_step"; step_id: string }
+  | { type: "new_step"; draft?: Step }
+  | { type: "open_space"; space_id?: string }
+  | { type: "new_space"; draft?: Partial<Space> }
+  | { type: "open_feed"; feed_id?: string }
+  | { type: "new_feed"; draft?: Partial<Feed> };
+
+export type ChatActionType = ChatAction["type"];
+
 export interface AgentChatReply {
   reply: string;
+  action?: ChatAction;
   usage: Record<string, number>;
 }
 

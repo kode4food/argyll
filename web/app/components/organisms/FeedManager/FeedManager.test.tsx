@@ -118,6 +118,20 @@ describe("FeedManager", () => {
     expect(screen.getByText("total")).toBeInTheDocument();
   });
 
+  test("opens at the editor of a named Feed", () => {
+    render(<FeedManager isOpen onClose={jest.fn()} feedId="total" />);
+    expect(screen.getByText(t("feedManager.updateTitle"))).toBeInTheDocument();
+  });
+
+  test("opens a new Feed a chat draft fills, without saving it", () => {
+    render(
+      <FeedManager isOpen onClose={jest.fn()} seed={{ name: "Order Count" }} />
+    );
+    expect(screen.getByText(t("feedManager.createTitle"))).toBeInTheDocument();
+    expect(screen.getByDisplayValue("Order Count")).toBeInTheDocument();
+    expect(mockApi.registerFeed).not.toHaveBeenCalled();
+  });
+
   test("lists each Feed's live value", async () => {
     open();
     expect(mockApi.getFeed).toHaveBeenCalledWith("total");

@@ -1,6 +1,7 @@
 import React from "react";
-import { render, screen } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 import LiveDiagram from "./LiveDiagram";
+import { useChatStore } from "@/app/store/chatStore";
 import { t } from "@/app/testUtils/i18n";
 
 const sessionMock = {
@@ -28,6 +29,12 @@ jest.mock("@/app/contexts/UIContext", () => ({
     clearPreviewPlan: jest.fn(),
     setGoalSteps: jest.fn(),
   }),
+}));
+
+const mockNavigate = jest.fn();
+jest.mock("react-router-dom", () => ({
+  ...jest.requireActual("react-router-dom"),
+  useNavigate: () => mockNavigate,
 }));
 
 jest.mock("@/app/components/templates/LiveDiagramView", () => {
@@ -77,5 +84,47 @@ describe("LiveDiagram", () => {
   it("renders live diagram", () => {
     render(<LiveDiagram />);
     expect(screen.getByTestId("live-diagram-view")).toBeInTheDocument();
+  });
+
+  describe("chat actions", () => {
+    beforeEach(() => {
+      mockNavigate.mockClear();
+    });
+
+    afterEach(() => {
+      useChatStore.setState({ action: null });
+    });
+
+    it("opens a Flow", () => {
+      render(<LiveDiagram />);
+      act(() => {
+        useChatStore.setState({ action: { type: "open_flow", flow_id: "f2" } });
+      });
+      expect(mockNavigate).toHaveBeenCalledWith("/flow/f2");
+      expect(useChatStore.getState().action).toBeNull();
+    });
+
+    it("stays on the Flow it already shows", () => {
+      render(<LiveDiagram />);
+      act(() => {
+        useChatStore.setState({
+          action: { type: "open_flow", flow_id: "wf-1" },
+        });
+      });
+      expect(mockNavigate).not.toHaveBeenCalled();
+      expect(useChatStore.getState().action).toBeNull();
+    });
+
+    it("leaves other actions for the overview", () => {
+      render(<LiveDiagram />);
+      act(() => {
+        useChatStore.setState({ action: { type: "open_step", step_id: "a" } });
+      });
+      expect(mockNavigate).toHaveBeenCalledWith("/");
+      expect(useChatStore.getState().action).toEqual({
+        type: "open_step",
+        step_id: "a",
+      });
+    });
   });
 });

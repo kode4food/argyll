@@ -20,6 +20,7 @@ describe("chatStore", () => {
       isPending: false,
       messages: [],
       error: null,
+      action: null,
     });
   });
 
@@ -71,6 +72,27 @@ describe("chatStore", () => {
         { role: "assistant", content: "hello" },
       ],
     });
+  });
+
+  test("send keeps the reply's action until it is cleared", async () => {
+    const action = { type: "open_flow", flow_id: "f1" } as const;
+    chatWithAgent.mockResolvedValue({ reply: "started", action, usage: {} });
+
+    await useChatStore.getState().send("start it");
+    expect(useChatStore.getState().action).toEqual(action);
+
+    useChatStore.getState().clearAction();
+    expect(useChatStore.getState().action).toBeNull();
+  });
+
+  test("send drops an action the next message makes stale", async () => {
+    useChatStore.setState({ action: { type: "open_space" } });
+    chatWithAgent.mockResolvedValue({ reply: "ok", usage: {} });
+
+    const sent = useChatStore.getState().send("never mind");
+    expect(useChatStore.getState().action).toBeNull();
+    await sent;
+    expect(useChatStore.getState().action).toBeNull();
   });
 
   test("send failure restores the conversation", async () => {

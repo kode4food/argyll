@@ -62,6 +62,46 @@ func (s *suite) testChat(t *testing.T) {
 		assert.Contains(t, mustJSON(t, model.request(3)), "reply takes a non-empty text")
 	})
 
+	t.Run("reply takes the UI to a view", func(t *testing.T) {
+		model := &fakeModel{responses: []string{
+			s.reply(ToolCall{
+				ID:        "t1",
+				Name:      "reply",
+				Arguments: `{"text": "started", "action": {"type": "open_flow"}}`,
+			}),
+			s.reply(ToolCall{
+				ID:        "t2",
+				Name:      "reply",
+				Arguments: `{"text": "started", "action": "open_flow"}`,
+			}),
+			s.reply(ToolCall{
+				ID:        "t3",
+				Name:      "reply",
+				Arguments: `{"text": "started", "action": {"type": "open_flow", "flow_id": "f1"}}`,
+			}),
+		}}
+		modelSrv := httptest.NewServer(model)
+		defer modelSrv.Close()
+		crm := crmServer(t)
+		defer crm.Close()
+		cfg := s.config(modelSrv.URL)
+		cfg.Servers = s.chatServers(crm.URL)
+
+		resp, body := s.postChat(t, cfg, s.chatRequest())
+		assert.Equal(t, http.StatusOK, resp.StatusCode)
+		var res contract.AgentChatReply
+		assert.NoError(t, json.Unmarshal(body, &res))
+		assert.Equal(t, "started", res.Reply)
+		assert.Equal(t, &contract.ChatAction{
+			Type:   contract.ChatActionOpenFlow,
+			FlowID: "f1",
+		}, res.Action)
+
+		assert.Contains(t, mustJSON(t, s.h.Tools(model.request(0))), `"open_step"`)
+		assert.Contains(t, mustJSON(t, model.request(1)), "chat action missing its target")
+		assert.Contains(t, mustJSON(t, model.request(2)), "reply arguments invalid")
+	})
+
 	t.Run("tools act as the caller", func(t *testing.T) {
 		model := &fakeModel{responses: []string{s.reply(ToolCall{
 			ID:        "t1",

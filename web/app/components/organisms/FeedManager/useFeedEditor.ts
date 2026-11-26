@@ -7,19 +7,29 @@ import {
   emptyDraft,
   FeedDraft,
   isDraftValid,
+  seedDraft,
   toDraft,
   toFeed,
 } from "./feedManagerUtils";
 
 export type FeedEditor = ReturnType<typeof useFeedEditor>;
 
-export const useFeedEditor = (onClose: () => void) => {
+export const useFeedEditor = (
+  onClose: () => void,
+  feedId?: string,
+  seed?: Partial<Feed>
+) => {
   const t = useT();
   const feeds = useFeeds();
   const setWatchedFeeds = useFlowStore((state) => state.setWatchedFeeds);
-  const [draft, setDraft] = React.useState<FeedDraft>(emptyDraft);
-  const [editingId, setEditingId] = React.useState<string | null>(null);
-  const [isEditing, setEditing] = React.useState(false);
+  const existing = feeds.find((feed) => feed.id === feedId);
+  const [draft, setDraft] = React.useState<FeedDraft>(() =>
+    existing ? toDraft(existing) : seedDraft(seed ?? {})
+  );
+  const [editingId, setEditingId] = React.useState(existing?.id ?? null);
+  const [isEditing, setEditing] = React.useState(
+    existing !== undefined || seed !== undefined
+  );
   const [error, setError] = React.useState<string | null>(null);
   const { isSaving, run } = useCatalogAction(setError);
 

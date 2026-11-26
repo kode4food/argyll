@@ -1,6 +1,11 @@
 import { create } from "zustand";
 import { devtools, persist, createJSONStorage } from "zustand/middleware";
-import { api, type ChatMessage, type ChatView } from "@/app/api";
+import {
+  api,
+  type ChatAction,
+  type ChatMessage,
+  type ChatView,
+} from "@/app/api";
 
 interface ChatState {
   provider: string;
@@ -9,10 +14,12 @@ interface ChatState {
   isPending: boolean;
   messages: ChatMessage[];
   error: string | null;
+  action: ChatAction | null;
   setProvider: (provider: string) => void;
   setModel: (model: string) => void;
   toggleOpen: () => void;
   send: (content: string, view?: ChatView) => Promise<void>;
+  clearAction: () => void;
 }
 
 const useChatStore = create<ChatState>()(
@@ -25,6 +32,7 @@ const useChatStore = create<ChatState>()(
         isPending: false,
         messages: [],
         error: null,
+        action: null,
         setProvider: (provider) =>
           set(
             (state) =>
@@ -39,12 +47,12 @@ const useChatStore = create<ChatState>()(
           const { provider, model, messages } = get();
           const sent: ChatMessage[] = [...messages, { role: "user", content }];
           set(
-            { messages: sent, isPending: true, error: null },
+            { messages: sent, isPending: true, error: null, action: null },
             false,
             "chat/send"
           );
           try {
-            const { reply } = await api.chatWithAgent({
+            const { reply, action } = await api.chatWithAgent({
               provider,
               model,
               messages: sent,
@@ -54,6 +62,7 @@ const useChatStore = create<ChatState>()(
               {
                 messages: [...sent, { role: "assistant", content: reply }],
                 isPending: false,
+                action: action ?? null,
               },
               false,
               "chat/reply"
@@ -68,6 +77,7 @@ const useChatStore = create<ChatState>()(
             );
           }
         },
+        clearAction: () => set({ action: null }, false, "chat/clearAction"),
       }),
       {
         name: "chatStore",

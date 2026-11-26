@@ -1,5 +1,8 @@
 import { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { useUI } from "@/app/contexts/UIContext";
+import { useChatAction } from "@/app/hooks/useChatAction";
+import { useChatStore } from "@/app/store/chatStore";
 import {
   useExecutions,
   useFlowData,
@@ -20,11 +23,24 @@ export const useLiveDiagram = () => {
   const flowNotFound = useFlowNotFound();
   const steps = useSteps();
   const { clearPreviewPlan, setGoalSteps } = useUI();
+  const navigate = useNavigate();
+  const chatAction = useChatStore((state) => state.action);
 
   useEffect(() => {
     clearPreviewPlan();
     setGoalSteps([]);
   }, [clearPreviewPlan, setGoalSteps]);
+
+  useChatAction({
+    open_flow: ({ flow_id }) => {
+      if (flow_id !== selectedFlow) navigate(`/flow/${flow_id}`);
+    },
+  });
+
+  // The overview runs every other chat action once it opens
+  useEffect(() => {
+    if (chatAction && chatAction.type !== "open_flow") navigate("/");
+  }, [chatAction, navigate]);
 
   const notFoundId = flowNotFound && !loading ? selectedFlow : null;
   const startedAt =

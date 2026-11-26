@@ -1,4 +1,6 @@
-import { useCallback } from "react";
+import { useCallback, useRef } from "react";
+import { api } from "@/app/api";
+import { useAuthStore } from "@/app/store/authStore";
 import { WEBSOCKET } from "@/constants/common";
 import {
   ConnectionStatus,
@@ -36,7 +38,10 @@ export function useWebSocketHandlers({
   resetReconnect,
   setConnectionStatus,
 }: UseWebSocketHandlersOptions) {
+  const hasOpenedRef = useRef(false);
+
   const handleOpen = useCallback(() => {
+    hasOpenedRef.current = true;
     setConnectionStatus("connected");
     resetReconnect();
     startHeartbeat();
@@ -55,6 +60,10 @@ export function useWebSocketHandlers({
 
   const handleClose = useCallback(
     (event: CloseEvent) => {
+      // A torn-down socket can report its close after its replacement exists
+      if (event.target !== wsRef.current) return;
+      const hasOpened = hasOpenedRef.current;
+      hasOpenedRef.current = false;
       stopHeartbeat();
       wsRef.current = null;
       if (
@@ -67,6 +76,10 @@ export function useWebSocketHandlers({
         // The server ends a socket with its token, which has renewed by now
         connectRef.current?.();
       } else {
+        // Browsers hide a refused handshake's status, so HTTP asks instead
+        if (!hasOpened && useAuthStore.getState().isEnabled) {
+          void api.checkAccess().catch(() => undefined);
+        }
         scheduleReconnect();
       }
     },

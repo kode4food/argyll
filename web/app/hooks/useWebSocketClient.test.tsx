@@ -1,7 +1,10 @@
 import { renderHook, act } from "@testing-library/react";
 import { useWebSocketClient } from "./useWebSocketClient";
 import { WEBSOCKET } from "@/constants/common";
+import { api } from "@/app/api";
 import { useAuthStore } from "@/app/store/authStore";
+
+type CloseLike = { code: number; target: unknown };
 
 type MockWebSocketInstance = {
   url: string;
@@ -10,7 +13,7 @@ type MockWebSocketInstance = {
   send: jest.Mock;
   close: jest.Mock;
   onopen: (() => void) | null;
-  onclose: ((event: { code: number }) => void) | null;
+  onclose: ((event: CloseLike) => void) | null;
   onmessage: ((event: { data: string }) => void) | null;
   onerror: (() => void) | null;
   triggerOpen: () => void;
@@ -32,10 +35,10 @@ class MockWebSocket {
   send = jest.fn();
   close = jest.fn(() => {
     this.readyState = MockWebSocket.CLOSED;
-    this.onclose?.({ code: 1000 });
+    this.onclose?.({ code: 1000, target: this });
   });
   onopen: (() => void) | null = null;
-  onclose: ((event: { code: number }) => void) | null = null;
+  onclose: ((event: CloseLike) => void) | null = null;
   onmessage: ((event: { data: string }) => void) | null = null;
   onerror: (() => void) | null = null;
 
@@ -54,7 +57,7 @@ class MockWebSocket {
 
   triggerClose(code = 1006) {
     this.readyState = MockWebSocket.CLOSED;
-    this.onclose?.({ code });
+    this.onclose?.({ code, target: this });
   }
 
   triggerMessage(data: unknown) {
@@ -383,6 +386,61 @@ describe("useWebSocketClient", () => {
     ]);
     expect(result.current.connectionStatus).toBe("connected");
     expect(result.current.reconnectAttempt).toBe(0);
+  });
+
+  test("checks sign-in when a handshake fails", () => {
+    const checkAccess = jest
+      .spyOn(api, "checkAccess")
+      .mockResolvedValue(undefined);
+    useAuthStore.setState({ isEnabled: true });
+    renderHook(() => useWebSocketClient({ enabled: true }));
+
+    act(() => {
+      instances[0].triggerClose(1006);
+    });
+    expect(checkAccess).toHaveBeenCalledTimes(1);
+
+    act(() => {
+      jest.advanceTimersByTime(WEBSOCKET.INITIAL_RECONNECT_DELAY);
+    });
+    act(() => {
+      instances[1].triggerOpen();
+      instances[1].triggerClose(1006);
+    });
+    useAuthStore.setState({ isEnabled: false });
+    expect(checkAccess).toHaveBeenCalledTimes(1);
+    checkAccess.mockRestore();
+  });
+
+  test("leaves sign-in alone when login is off", () => {
+    const checkAccess = jest.spyOn(api, "checkAccess");
+    renderHook(() => useWebSocketClient({ enabled: true }));
+
+    act(() => {
+      instances[0].triggerClose(1006);
+    });
+    expect(checkAccess).not.toHaveBeenCalled();
+    checkAccess.mockRestore();
+  });
+
+  test("ignores a close reported after the socket was replaced", () => {
+    const { result } = renderHook(() => useWebSocketClient({ enabled: true }));
+    const stale = instances[0];
+    stale.close.mockImplementationOnce(() => undefined);
+
+    act(() => {
+      result.current.reconnect();
+    });
+    act(() => {
+      instances[1].triggerOpen();
+      stale.triggerClose(1006);
+    });
+    act(() => {
+      jest.advanceTimersByTime(WEBSOCKET.INITIAL_RECONNECT_DELAY);
+    });
+
+    expect(result.current.connectionStatus).toBe("connected");
+    expect(instances).toHaveLength(2);
   });
 
   test("reconnect() creates a new socket", () => {

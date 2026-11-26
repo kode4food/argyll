@@ -25,6 +25,8 @@ export type {
   AgentProvider,
   AgentChatRequest,
   AgentChatReply,
+  ChatAction,
+  ChatActionType,
   ChatMessage,
   ChatRole,
   ChatView,

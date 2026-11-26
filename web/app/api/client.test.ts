@@ -121,6 +121,16 @@ describe("ArgyllApi", () => {
     );
   });
 
+  test("checks access with an authenticated read", async () => {
+    respond({});
+
+    await expect(api.checkAccess()).resolves.toBeUndefined();
+    expect(fetchMock).toHaveBeenCalledWith(
+      "http://localhost:8080/engine/health",
+      expect.anything()
+    );
+  });
+
   test("lists Agent capabilities", async () => {
     const providers = [
       {

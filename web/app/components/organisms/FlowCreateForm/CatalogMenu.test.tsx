@@ -1,16 +1,34 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
+import { ChatAction } from "@/app/api";
+import { useChatStore } from "@/app/store/chatStore";
 import { t } from "@/app/testUtils/i18n";
 import CatalogMenu from "./CatalogMenu";
 
 interface MockManagerProps {
   isOpen: boolean;
   onClose: () => void;
+  spaceId?: string;
+  feedId?: string;
+  seed?: { name?: string };
 }
 
 // A declaration, so jest.mock's hoisted factories can reach it
 function mockManager(name: string) {
-  const MockManager = ({ isOpen, onClose }: MockManagerProps) =>
-    isOpen ? <button onClick={onClose}>{name} open</button> : null;
+  const MockManager = ({
+    isOpen,
+    onClose,
+    spaceId,
+    feedId,
+    seed,
+  }: MockManagerProps) => {
+    const at = spaceId ?? feedId;
+    return isOpen ? (
+      <button onClick={onClose}>
+        {name} open{at ? ` at ${at}` : ""}
+        {seed ? ` new ${seed.name ?? ""}`.trimEnd() : ""}
+      </button>
+    ) : null;
+  };
   return MockManager;
 }
 
@@ -79,5 +97,21 @@ describe("CatalogMenu", () => {
     fireEvent.keyDown(screen.getByText(opened), { key: " " });
     fireEvent.keyDown(screen.getByText(opened), { key: "Enter" });
     expect(screen.queryByRole("menu")).toBeNull();
+  });
+
+  test.each<[ChatAction, string]>([
+    [{ type: "open_space", space_id: "sales" }, "Spaces open at sales"],
+    [{ type: "open_feed", feed_id: "rates" }, "Feeds open at rates"],
+    [{ type: "open_space" }, "Spaces open"],
+    [{ type: "new_space", draft: { name: "Risk" } }, "Spaces open new Risk"],
+    [{ type: "new_feed" }, "Feeds open new"],
+  ])("opens the manager chat action %j names", (action, opened) => {
+    render(<CatalogMenu />);
+    act(() => {
+      useChatStore.setState({ action });
+    });
+
+    expect(screen.getByText(opened)).toBeInTheDocument();
+    expect(useChatStore.getState().action).toBeNull();
   });
 });

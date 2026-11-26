@@ -156,8 +156,60 @@ components:
         reply:
           type: string
           description: Markdown text
+        action:
+          $ref: "#/components/schemas/ChatAction"
         usage:
           $ref: "#/components/schemas/Usage"
+
+    ChatAction:
+      type: object
+      description: |
+        Where the web UI goes for this reply. An action only navigates, and a
+        `draft` only fills a new editor the user saves, so an action never
+        changes the engine.
+
+        - `open_overview` shows the overview, in `space_id` when set
+        - `open_flow` shows the Flow `flow_id`
+        - `select_goals` selects `goals` in the new Flow form
+        - `open_step` opens the Step `step_id` in the Step editor
+        - `new_step` opens a new Step editor, filled with `draft` when set
+        - `open_space` opens the Space manager, at `space_id` when set
+        - `new_space` opens a new Space editor, filled with `draft` when set
+        - `open_feed` opens the Feed manager, at `feed_id` when set
+        - `new_feed` opens a new Feed editor, filled with `draft` when set
+      required: [type]
+      properties:
+        type:
+          type: string
+          enum:
+            - open_overview
+            - open_flow
+            - select_goals
+            - open_step
+            - new_step
+            - open_space
+            - new_space
+            - open_feed
+            - new_feed
+        space_id:
+          type: string
+        flow_id:
+          type: string
+        step_id:
+          type: string
+        feed_id:
+          type: string
+        goals:
+          $ref: "./engine-api.yaml#/components/schemas/Goals"
+        draft:
+          description: |
+            A Step, Space, or Feed for `new_step`, `new_space`, or
+            `new_feed`, shaped as its registration takes it. It may leave
+            out fields for the user to fill in.
+          oneOf:
+            - $ref: "./engine-api.yaml#/components/schemas/StepRegistration"
+            - $ref: "./engine-api.yaml#/components/schemas/Space"
+            - $ref: "./engine-api.yaml#/components/schemas/Feed"
 
     Usage:
       type: object

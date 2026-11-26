@@ -6,7 +6,7 @@ import { useUI } from "@/app/contexts/UIContext";
 import { useUpsertStep } from "@/app/store/flowStore";
 import { getStepType } from "@/utils/stepUtils";
 
-const isStepEditable = (step: Step): boolean => {
+export const isStepEditable = (step: Step): boolean => {
   switch (step.type) {
     case "script":
       return !!step.script;

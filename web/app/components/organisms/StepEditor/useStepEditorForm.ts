@@ -40,42 +40,42 @@ export function useStepEditorForm({
   const isCreateMode = step === null;
   const seed = step ?? draft ?? null;
 
-  const [stepId, setStepId] = useState(step?.id || "");
-  const [name, setName] = useState(step?.name || "");
-  const [description, setDescription] = useState(step?.description || "");
+  const [stepId, setStepId] = useState(seed?.id || "");
+  const [name, setName] = useState(seed?.name || "");
+  const [description, setDescription] = useState(seed?.description || "");
   const [stepType, setStepTypeState] = useState<StepType>(
     seed?.type || "service"
   );
-  const [predicate, setPredicate] = useState(step?.predicate?.source || "");
+  const [predicate, setPredicate] = useState(seed?.predicate?.source || "");
   const [predicateLanguage, setPredicateLanguage] = useState(
-    step?.predicate?.language || SCRIPT_LANGUAGE_ARGYLL
+    seed?.predicate?.language || SCRIPT_LANGUAGE_ARGYLL
   );
-  const [endpoint, setEndpoint] = useState(step?.http?.invoke?.endpoint || "");
+  const [endpoint, setEndpoint] = useState(seed?.http?.invoke?.endpoint || "");
   const [httpMethod, setHttpMethod] = useState<HTTPMethod>(
-    normalizeHttpMethod(step?.http?.invoke?.method)
+    normalizeHttpMethod(seed?.http?.invoke?.method)
   );
   const [httpMode, setHttpMode] = useState<ActionMode>(
-    step?.http?.invoke?.mode ?? "sync"
+    seed?.http?.invoke?.mode ?? "sync"
   );
-  const [healthCheck, setHealthCheck] = useState(step?.http?.health || "");
+  const [healthCheck, setHealthCheck] = useState(seed?.http?.health || "");
   const [compensate, setCompensate] = useState(
-    step?.http?.compensate?.endpoint || ""
+    seed?.http?.compensate?.endpoint || ""
   );
   const [compensateMethod, setCompensateMethod] = useState<HTTPMethod>(
-    normalizeHttpMethod(step?.http?.compensate?.method)
+    normalizeHttpMethod(seed?.http?.compensate?.method)
   );
   const [compensateTimeout, setCompensateTimeout] = useState(
-    step?.http?.compensate?.timeout || 0
+    seed?.http?.compensate?.timeout || 0
   );
   const [compensateMode, setCompensateMode] = useState<ActionMode>(
-    step?.http?.compensate?.mode ?? "sync"
+    seed?.http?.compensate?.mode ?? "sync"
   );
   const [httpTimeout, setHttpTimeout] = useState(
-    step?.http?.invoke?.timeout ?? 0
+    seed?.http?.invoke?.timeout ?? 0
   );
-  const [script, setScript] = useState(step?.script?.source || "");
+  const [script, setScript] = useState(seed?.script?.source || "");
   const [scriptLanguage, setScriptLanguage] = useState(
-    step?.script?.language || SCRIPT_LANGUAGE_LUA
+    seed?.script?.language || SCRIPT_LANGUAGE_LUA
   );
   const [flowGoals, setFlowGoals] = useState<GoalSets>(
     toGoalSets(seed?.flow?.goals)
@@ -83,7 +83,7 @@ export function useStepEditorForm({
   const [flowSpaceId, setFlowSpaceId] = useState(seed?.flow?.space_id || "");
   const [agent, setAgent] = useState<AgentConfig>(seed?.agent ?? EMPTY_AGENT);
   const [handling, setHandling] = useState<Handling>(
-    step?.handling || "standard"
+    seed?.handling || "standard"
   );
 
   const {
@@ -93,10 +93,10 @@ export function useStepEditorForm({
     removeAttribute,
     resetAttributes,
     clearCompensated,
-  } = useAttributeList(step, t);
+  } = useAttributeList(seed, t);
 
   const [tags, setTags] = useState<string[]>(
-    () => step?.tags ?? defaultTags ?? []
+    () => seed?.tags ?? defaultTags ?? []
   );
 
   const changeHandling = useCallback(
