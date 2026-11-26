@@ -22,8 +22,8 @@ type (
 )
 
 func (d stepDiff) compare(other stepDiff) int {
-	if cmp := strings.Compare(d.Action, other.Action); cmp != 0 {
-		return cmp
+	if c := strings.Compare(d.Action, other.Action); c != 0 {
+		return c
 	}
 	return cmp.Compare(d.ID, other.ID)
 }

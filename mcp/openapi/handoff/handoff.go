@@ -17,9 +17,9 @@ func Guidance() string {
 
 func Prompt(payload any) string {
 	data, _ := json.Marshal(payload)
-	guidance := Guidance()
-	if guidance == "" {
+	g := Guidance()
+	if g == "" {
 		return string(data)
 	}
-	return strings.Replace(guidance, "{{payload}}", string(data), 1)
+	return strings.Replace(g, "{{payload}}", string(data), 1)
 }
