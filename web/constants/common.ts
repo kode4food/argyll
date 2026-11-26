@@ -20,6 +20,7 @@ export const WEBSOCKET = {
   HEARTBEAT_INTERVAL: 30000,
   PROTOCOL: "argyll",
   TOKEN_PREFIX: "bearer.",
+  TOKEN_EXPIRED_CLOSE_CODE: 1008,
 } as const;
 
 // UI Constants

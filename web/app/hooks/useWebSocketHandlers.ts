@@ -1,4 +1,5 @@
 import { useCallback } from "react";
+import { WEBSOCKET } from "@/constants/common";
 import {
   ConnectionStatus,
   WebSocketEvent,
@@ -14,6 +15,7 @@ interface UseWebSocketHandlersOptions {
   >;
   subscriptionsRef: React.RefObject<Map<string, SubscriptionEntry>>;
   reconnectTimeoutRef: React.RefObject<NodeJS.Timeout | null>;
+  connectRef: React.RefObject<(() => void) | undefined>;
   startHeartbeat: () => void;
   stopHeartbeat: () => void;
   scheduleReconnect: () => void;
@@ -27,6 +29,7 @@ export function useWebSocketHandlers({
   onEventRef,
   subscriptionsRef,
   reconnectTimeoutRef,
+  connectRef,
   startHeartbeat,
   stopHeartbeat,
   scheduleReconnect,
@@ -60,11 +63,15 @@ export function useWebSocketHandlers({
         reconnectTimeoutRef.current
       ) {
         setConnectionStatus("disconnected");
+      } else if (event.code === WEBSOCKET.TOKEN_EXPIRED_CLOSE_CODE) {
+        // The server ends a socket with its token, which has renewed by now
+        connectRef.current?.();
       } else {
         scheduleReconnect();
       }
     },
     [
+      connectRef,
       enabledRef,
       reconnectTimeoutRef,
       scheduleReconnect,

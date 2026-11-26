@@ -365,6 +365,26 @@ describe("useWebSocketClient", () => {
     expect(instances).toHaveLength(1);
   });
 
+  test("swaps in the renewed token when the old one expires", () => {
+    useAuthStore.setState({ token: "old" });
+    const { result } = renderHook(() => useWebSocketClient({ enabled: true }));
+
+    act(() => {
+      instances[0].triggerOpen();
+      useAuthStore.setState({ token: "renewed" });
+      instances[0].triggerClose(WEBSOCKET.TOKEN_EXPIRED_CLOSE_CODE);
+    });
+    useAuthStore.setState({ token: null });
+
+    expect(instances).toHaveLength(2);
+    expect(instances[1].protocols).toEqual([
+      WEBSOCKET.PROTOCOL,
+      WEBSOCKET.TOKEN_PREFIX + "renewed",
+    ]);
+    expect(result.current.connectionStatus).toBe("connected");
+    expect(result.current.reconnectAttempt).toBe(0);
+  });
+
   test("reconnect() creates a new socket", () => {
     const { result } = renderHook(() => useWebSocketClient({ enabled: true }));
 

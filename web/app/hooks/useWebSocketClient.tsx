@@ -65,6 +65,7 @@ export const useWebSocketClient = ({
       onEventRef,
       subscriptionsRef,
       reconnectTimeoutRef,
+      connectRef,
       startHeartbeat,
       stopHeartbeat,
       scheduleReconnect,
@@ -129,7 +130,8 @@ export const useWebSocketClient = ({
     wsRef.current = null;
 
     stopHeartbeat();
-    setConnectionStatus("connecting");
+    // A token rotation swaps sockets without showing a connection banner
+    setConnectionStatus((prev) => (prev === "connected" ? prev : "connecting"));
     openWebSocket({
       onopen: handleOpen,
       onclose: handleClose,
