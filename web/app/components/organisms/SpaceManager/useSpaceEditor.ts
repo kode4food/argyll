@@ -11,7 +11,6 @@ import {
   isDraftValid,
   isQBEValid,
   REVIEW_STEP,
-  seedDraft,
   SpaceDraft,
   suggestedId,
   suggestedName,
@@ -23,22 +22,17 @@ import { useSpacePreview } from "./useSpacePreview";
 
 export type SpaceEditor = ReturnType<typeof useSpaceEditor>;
 
-export const useSpaceEditor = (
-  onClose: () => void,
-  spaceId?: string,
-  seed?: Partial<Space>
-) => {
+export const useSpaceEditor = (onClose: () => void, spaceId?: string) => {
   const spaces = useSpaces();
   const existing = spaces.find((space) => space.id === spaceId);
-  const isOpening = existing !== undefined || seed !== undefined;
   const [draft, setDraft] = React.useState<SpaceDraft>(() =>
-    existing ? toDraft(existing) : seedDraft(seed ?? {})
+    existing ? toDraft(existing) : emptyDraft()
   );
   const [editingId, setEditingId] = React.useState(existing?.id ?? null);
   const [editorStep, setEditorStep] = React.useState(
-    isOpening && draft.scriptMode ? REVIEW_STEP : 0
+    existing && draft.scriptMode ? REVIEW_STEP : 0
   );
-  const [isEditing, setEditing] = React.useState(isOpening);
+  const [isEditing, setEditing] = React.useState(existing !== undefined);
   const [error, setError] = React.useState<string | null>(null);
 
   const { clearPreview, preview } = useSpacePreview({
@@ -52,7 +46,8 @@ export const useSpaceEditor = (
     ? spaces.find((existing) => existing.id === editingId)
     : undefined;
   const currentPreview = isCurrentPreview(preview, draft) ? preview : null;
-  const isDirty = !editing || fingerprint(space) !== fingerprint(editing);
+  const isDirty =
+    fingerprint(space) !== fingerprint(editing ?? toSpace(emptyDraft()));
 
   const clearEditor = () => {
     setDraft(emptyDraft());
@@ -138,6 +133,7 @@ export const useSpaceEditor = (
     hasQBE: hasQBE(draft),
     hasValidDetails: isDetailsValid(draft),
     hasValidQBE: isQBEValid(draft),
+    isDirty,
     isEditing,
     openEditor,
     patchDraft,

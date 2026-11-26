@@ -48,6 +48,7 @@ const StepEditor: React.FC<StepEditorProps> = ({
     showBottomFade,
     handleEditorModeChange,
     handleSaveClick,
+    isDirty,
     title,
   } = useStepEditor({ step, onClose, onUpdate, diagramContainerRef, draft });
 
@@ -68,6 +69,7 @@ const StepEditor: React.FC<StepEditorProps> = ({
           onSave={handleSaveClick}
           saving={form.saving}
           isCreateMode={form.isCreateMode}
+          isDirty={isDirty}
         />
       }
     >

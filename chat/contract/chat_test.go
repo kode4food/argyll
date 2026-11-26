@@ -1,7 +1,6 @@
 package contract_test
 
 import (
-	"encoding/json"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -98,57 +97,12 @@ func TestChatActionValidate(t *testing.T) {
 			action: contract.ChatAction{Type: contract.ChatActionOpenOverview},
 		},
 		{
-			name:   "new step",
-			action: contract.ChatAction{Type: contract.ChatActionNewStep},
-		},
-		{
 			name:   "space list",
 			action: contract.ChatAction{Type: contract.ChatActionOpenSpace},
 		},
 		{
 			name:   "feed list",
 			action: contract.ChatAction{Type: contract.ChatActionOpenFeed},
-		},
-		{
-			name: "step draft",
-			action: contract.ChatAction{
-				Type:  contract.ChatActionNewStep,
-				Draft: json.RawMessage(`{"name": "Score", "type": "script"}`),
-			},
-		},
-		{
-			name: "space draft",
-			action: contract.ChatAction{
-				Type:  contract.ChatActionNewSpace,
-				Draft: json.RawMessage(`{"qbe": [["domain:risk"]]}`),
-			},
-		},
-		{
-			name: "feed draft",
-			action: contract.ChatAction{
-				Type:  contract.ChatActionNewFeed,
-				Draft: json.RawMessage(`{"value": "0", "attributes": ["total"]}`),
-			},
-		},
-		{
-			name:   "empty feed",
-			action: contract.ChatAction{Type: contract.ChatActionNewFeed},
-		},
-		{
-			name: "misshapen draft",
-			action: contract.ChatAction{
-				Type:  contract.ChatActionNewSpace,
-				Draft: json.RawMessage(`{"name": 5}`),
-			},
-			err: contract.ErrChatActionDraft,
-		},
-		{
-			name: "draft not an object",
-			action: contract.ChatAction{
-				Type:  contract.ChatActionNewStep,
-				Draft: json.RawMessage(`"score"`),
-			},
-			err: contract.ErrChatActionDraft,
 		},
 		{
 			name: "flow",

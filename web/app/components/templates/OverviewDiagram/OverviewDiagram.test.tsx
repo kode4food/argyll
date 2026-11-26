@@ -169,14 +169,6 @@ describe("OverviewDiagram", () => {
       expect(__openEditor).not.toHaveBeenCalled();
     });
 
-    it("opens the editor for a new Step draft", () => {
-      runAction({ type: "new_step", draft: baseStep });
-      const { __openEditor } = require("@/app/contexts/StepEditorContext");
-      expect(__openEditor).toHaveBeenCalledWith(
-        expect.objectContaining({ step: null, draft: baseStep })
-      );
-    });
-
     it("selects a known Space", () => {
       runAction({ type: "open_overview", space_id: "sales" });
       expect(mockSetSpaceId).toHaveBeenCalledWith("sales");

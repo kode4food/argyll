@@ -1,5 +1,4 @@
 import React from "react";
-import { Feed, Space } from "@/app/api";
 import { useAnchoredList } from "@/app/hooks/useAnchoredList";
 import { useChatAction } from "@/app/hooks/useChatAction";
 import useDropdown from "@/app/hooks/useDropdown";
@@ -7,9 +6,10 @@ import { IconFeed, IconSpace } from "@/utils/iconRegistry";
 
 export type CatalogManager = "spaces" | "feeds";
 
-type CatalogTarget =
-  | { manager: "spaces"; id?: string; seed?: Partial<Space> }
-  | { manager: "feeds"; id?: string; seed?: Partial<Feed> };
+interface CatalogTarget {
+  manager: CatalogManager;
+  id?: string;
+}
 
 export const CATALOG_ITEMS = [
   { value: "spaces", labelKey: "spaceManager.title", Icon: IconSpace },
@@ -31,11 +31,7 @@ export const useCatalogMenu = () => {
   useChatAction({
     open_space: ({ space_id }) =>
       openManager({ manager: "spaces", id: space_id }),
-    new_space: ({ draft }) =>
-      openManager({ manager: "spaces", seed: draft ?? {} }),
     open_feed: ({ feed_id }) => openManager({ manager: "feeds", id: feed_id }),
-    new_feed: ({ draft }) =>
-      openManager({ manager: "feeds", seed: draft ?? {} }),
   });
   const { open, setOpen, wrapperRef, selectValue } = dropdown;
 

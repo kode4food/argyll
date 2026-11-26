@@ -1,5 +1,4 @@
 import React from "react";
-import { Space } from "@/app/api";
 import Modal from "@/app/components/molecules/Modal";
 import { useT } from "@/app/i18n";
 import { useTagVocabulary } from "@/app/hooks/useTagVocabulary";
@@ -15,7 +14,6 @@ interface SpaceManagerProps {
   isOpen: boolean;
   onClose: () => void;
   spaceId?: string;
-  seed?: Partial<Space>;
 }
 
 const titleKey = (isEditing: boolean, editingId: string | null): string => {
@@ -27,11 +25,10 @@ const SpaceManager: React.FC<SpaceManagerProps> = ({
   isOpen,
   onClose,
   spaceId,
-  seed,
 }) => {
   const t = useT();
   const tagVocabulary = useTagVocabulary();
-  const editor = useSpaceEditor(onClose, spaceId, seed);
+  const editor = useSpaceEditor(onClose, spaceId);
   const { currentPreview, draft, editingId, editorStep, error, isEditing } =
     editor;
 

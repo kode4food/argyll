@@ -10,6 +10,7 @@ interface StepEditorFooterProps {
   onSave: () => void;
   saving: boolean;
   isCreateMode: boolean;
+  isDirty: boolean;
 }
 
 const StepEditorFooter: React.FC<StepEditorFooterProps> = ({
@@ -19,6 +20,7 @@ const StepEditorFooter: React.FC<StepEditorFooterProps> = ({
   onSave,
   saving,
   isCreateMode,
+  isDirty,
 }) => {
   const t = useT();
   return (
@@ -37,11 +39,11 @@ const StepEditorFooter: React.FC<StepEditorFooterProps> = ({
           disabled={saving}
           className={styles.buttonCancel}
         >
-          {t("stepEditor.cancel")}
+          {isDirty ? t("stepEditor.cancel") : t("stepEditor.close")}
         </button>
         <button
           onClick={onSave}
-          disabled={saving}
+          disabled={saving || !isDirty}
           className={styles.buttonSave}
         >
           {saving

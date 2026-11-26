@@ -40,7 +40,6 @@ export const useOverviewDiagram = (
       if (!step || !isStepEditable(step)) return;
       openEditor({ step, diagramContainerRef, onUpdate: applyStepUpdate });
     },
-    new_step: ({ draft }) => handleCreateStep(draft),
   });
 
   return {

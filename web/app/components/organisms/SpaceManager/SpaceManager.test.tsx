@@ -155,18 +155,13 @@ describe("SpaceManager", () => {
     expect(screen.getByText(t("spaceManager.title"))).toBeInTheDocument();
   });
 
-  test("opens a new Space a chat draft fills, without saving it", () => {
-    render(
-      <SpaceManager
-        isOpen
-        onClose={jest.fn()}
-        seed={{ qbe: [["domain:risk"]] }}
-      />
-    );
+  test("offers Close until the Space changes", async () => {
+    open();
+    startNew();
+    expect(screen.getByText(t("spaceManager.close"))).toBeInTheDocument();
 
-    expect(screen.getByText(t("spaceManager.createTitle"))).toBeInTheDocument();
-    expect(screen.getByText("domain:risk")).toBeInTheDocument();
-    expect(mockApi.registerSpace).not.toHaveBeenCalled();
+    await addSelector("domain:trading");
+    expect(screen.getByText(t("spaceManager.cancel"))).toBeInTheDocument();
   });
 
   test("lists existing Spaces", () => {

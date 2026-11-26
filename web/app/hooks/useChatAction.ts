@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import type { ChatAction, ChatActionType } from "@/app/api";
 import { useChatStore } from "@/app/store/chatStore";
 
-export type ChatActionHandlers = {
+type ChatActionHandlers = {
   [K in ChatActionType]?: (action: Extract<ChatAction, { type: K }>) => void;
 };
 

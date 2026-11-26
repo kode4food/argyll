@@ -24,6 +24,7 @@ const SpaceManagerFooter: React.FC<SpaceManagerFooterProps> = ({ editor }) => {
     handleSave,
     hasValidDetails,
     hasValidQBE,
+    isDirty,
     isEditing,
     openEditor,
     saving,
@@ -66,7 +67,7 @@ const SpaceManagerFooter: React.FC<SpaceManagerFooterProps> = ({ editor }) => {
       )}
       <div className={styles.footerActions}>
         <button type="button" className={styles.button} onClick={handleClose}>
-          {t("spaceManager.cancel")}
+          {isDirty ? t("spaceManager.cancel") : t("spaceManager.close")}
         </button>
         {editorStep > firstStep && (
           <button

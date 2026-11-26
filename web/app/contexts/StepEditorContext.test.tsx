@@ -11,9 +11,12 @@ const mockStep: Step = {
 };
 
 const renderSpy = jest.fn();
+const mockMount = jest.fn();
 jest.mock("@/app/components/organisms/StepEditor", () => {
+  const { useEffect } = jest.requireActual("react");
   const Mock = ({ onUpdate }: any) => {
     renderSpy(onUpdate);
+    useEffect(() => mockMount(), []);
     return (
       <div data-testid="editor">
         <button onClick={() => onUpdate(mockStep)}>Update</button>
@@ -48,6 +51,23 @@ const Consumer = () => {
 describe("StepEditorContext", () => {
   beforeEach(() => {
     renderSpy.mockClear();
+    mockMount.mockClear();
+  });
+
+  it("remounts the editor when opened again while open", () => {
+    render(
+      <StepEditorProvider>
+        <Consumer />
+      </StepEditorProvider>
+    );
+
+    act(() => {
+      screen.getByText("Open").click();
+    });
+    act(() => {
+      screen.getByText("Open").click();
+    });
+    expect(mockMount).toHaveBeenCalledTimes(2);
   });
 
   it("opens and closes editor with active step", () => {

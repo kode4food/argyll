@@ -110,6 +110,12 @@ describe("StepEditor", () => {
     },
   });
 
+  const editDescription = (value = "Edited") =>
+    fireEvent.change(
+      screen.getByPlaceholderText(t("stepEditor.descriptionPlaceholder")),
+      { target: { value } }
+    );
+
   const mockOnClose = jest.fn();
   const mockOnUpdate = jest.fn();
   const mockUpdateStep = jest.fn();
@@ -695,6 +701,7 @@ describe("StepEditor", () => {
     render(
       <StepEditor step={step} onClose={mockOnClose} onUpdate={mockOnUpdate} />
     );
+    editDescription();
 
     await waitFor(() => {
       const saveButton = screen.getByText(t("stepEditor.save"));
@@ -967,6 +974,7 @@ describe("StepEditor", () => {
     );
 
     expect(screen.getAllByTestId("duration-input").at(-1)).toHaveValue("");
+    editDescription();
     fireEvent.click(screen.getByText(t("stepEditor.save")));
 
     await waitFor(() => {
@@ -1009,6 +1017,7 @@ describe("StepEditor", () => {
     render(
       <StepEditor step={step} onClose={mockOnClose} onUpdate={mockOnUpdate} />
     );
+    editDescription();
 
     await waitFor(() => {
       const saveButton = screen.getByText(t("stepEditor.save"));
@@ -1029,6 +1038,7 @@ describe("StepEditor", () => {
     render(
       <StepEditor step={step} onClose={mockOnClose} onUpdate={mockOnUpdate} />
     );
+    editDescription();
 
     await waitFor(() => {
       const saveButton = screen.getByText(t("stepEditor.save"));
@@ -1046,12 +1056,47 @@ describe("StepEditor", () => {
     render(
       <StepEditor step={step} onClose={mockOnClose} onUpdate={mockOnUpdate} />
     );
+    editDescription();
 
     await waitFor(() => {
       const cancelButton = screen.getByText(t("stepEditor.cancel"));
       fireEvent.click(cancelButton);
       expect(mockOnClose).toHaveBeenCalled();
     });
+  });
+
+  test("offers Close and no Save until the Step changes", () => {
+    render(
+      <StepEditor
+        step={createHttpStep()}
+        onClose={mockOnClose}
+        onUpdate={mockOnUpdate}
+      />
+    );
+    const save = screen.getByText(t("stepEditor.save"));
+    expect(screen.getByText(t("stepEditor.close"))).toBeInTheDocument();
+    expect(save).toBeDisabled();
+
+    editDescription();
+    expect(screen.getByText(t("stepEditor.cancel"))).toBeInTheDocument();
+    expect(save).toBeEnabled();
+
+    editDescription("");
+    expect(screen.getByText(t("stepEditor.close"))).toBeInTheDocument();
+    expect(save).toBeDisabled();
+  });
+
+  test("offers Cancel and Create for an unsaved draft", () => {
+    render(
+      <StepEditor
+        step={null}
+        draft={createScriptStep()}
+        onClose={mockOnClose}
+        onUpdate={mockOnUpdate}
+      />
+    );
+    expect(screen.getByText(t("stepEditor.cancel"))).toBeInTheDocument();
+    expect(screen.getByText(t("stepEditor.create"))).toBeEnabled();
   });
 
   test("closes modal on backdrop click", async () => {
@@ -1105,6 +1150,7 @@ describe("StepEditor", () => {
     render(
       <StepEditor step={step} onClose={mockOnClose} onUpdate={mockOnUpdate} />
     );
+    editDescription();
 
     await waitFor(() => {
       const saveButton = screen.getByText(t("stepEditor.save"));
@@ -1261,6 +1307,7 @@ describe("StepEditor", () => {
     render(
       <StepEditor step={step} onClose={mockOnClose} onUpdate={mockOnUpdate} />
     );
+    editDescription();
 
     await waitFor(() => {
       const saveButton = screen.getByText(t("stepEditor.save"));
@@ -1368,6 +1415,7 @@ describe("StepEditor", () => {
     render(
       <StepEditor step={step} onClose={mockOnClose} onUpdate={mockOnUpdate} />
     );
+    editDescription();
 
     await waitFor(() => {
       const saveButton = screen.getByText(t("stepEditor.save"));
@@ -1391,6 +1439,7 @@ describe("StepEditor", () => {
     render(
       <StepEditor step={step} onClose={mockOnClose} onUpdate={mockOnUpdate} />
     );
+    editDescription();
 
     await waitFor(() => {
       const saveButton = screen.getByText(t("stepEditor.save"));

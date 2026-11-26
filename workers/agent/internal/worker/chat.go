@@ -209,21 +209,15 @@ func actionSchema() map[string]any {
 					contract.ChatActionOpenFlow,
 					contract.ChatActionSelectGoals,
 					contract.ChatActionOpenStep,
-					contract.ChatActionNewStep,
 					contract.ChatActionOpenSpace,
-					contract.ChatActionNewSpace,
 					contract.ChatActionOpenFeed,
-					contract.ChatActionNewFeed,
 				},
 				"description": "open_overview shows the overview, in space_id when set. " +
 					"open_flow shows the Flow flow_id. " +
 					"select_goals selects goals in the new Flow form. " +
 					"open_step opens the Step step_id in the Step editor. " +
-					"new_step opens a new Step editor, filled with draft when set. " +
 					"open_space opens the Space manager, at space_id when set. " +
-					"new_space opens a new Space editor, filled with draft when set. " +
-					"open_feed opens the Feed manager, at feed_id when set. " +
-					"new_feed opens a new Feed editor, filled with draft when set",
+					"open_feed opens the Feed manager, at feed_id when set",
 			},
 			"space_id": id,
 			"flow_id":  id,
@@ -232,12 +226,6 @@ func actionSchema() map[string]any {
 			"goals": map[string]any{
 				"type":        "object",
 				"description": "Goals as start_flow takes them",
-			},
-			"draft": map[string]any{
-				"type": "object",
-				"description": "The Step, Space, or Feed to fill a new editor with, " +
-					"as register_step, register_space, or register_feed takes it. " +
-					"Leave out what the user should fill in",
 			},
 		},
 		"required":             []any{"type"},

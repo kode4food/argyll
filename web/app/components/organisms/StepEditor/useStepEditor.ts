@@ -100,6 +100,12 @@ export const useStepEditor = ({
 
   const [editorMode, setEditorMode] = React.useState<EditorMode>("basic");
   const [jsonDraft, setJsonDraft] = React.useState("");
+  const [initialData] = React.useState(getSerializedStepData);
+  const currentData =
+    editorMode === "json" ? jsonDraft : getSerializedStepData();
+  // An unsaved draft has changes even before the user edits it
+  const isDirty =
+    (isCreateMode && draft !== undefined) || currentData !== initialData;
   const { predicateCompletions } = useAttributeCompletions(form.attributes);
   const { flowPreview, flowInputOptions, flowOutputOptions } = useFlowPreview();
 
@@ -164,6 +170,7 @@ export const useStepEditor = ({
     showBottomFade,
     handleEditorModeChange,
     handleSaveClick,
+    isDirty,
     title,
   };
 };

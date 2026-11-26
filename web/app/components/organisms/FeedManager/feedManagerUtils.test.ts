@@ -4,7 +4,6 @@ import {
   foldCompletions,
   isDraftValid,
   outputNames,
-  seedDraft,
   toDraft,
   toFeed,
 } from "./feedManagerUtils";
@@ -22,13 +21,6 @@ const FEED: Feed = {
 describe("feedManagerUtils", () => {
   test("round trips a Feed through a draft", () => {
     expect(toFeed(toDraft(FEED))).toEqual(FEED);
-  });
-
-  test("seeds a new Feed from what a chat draft gives", () => {
-    expect(seedDraft({})).toEqual(emptyDraft());
-    expect(toFeed(seedDraft(FEED))).toEqual(FEED);
-    const nulls = { fold: null, attributes: null } as unknown as Partial<Feed>;
-    expect(seedDraft(nulls)).toEqual(emptyDraft());
   });
 
   test("trims and drops an empty description and Space", () => {

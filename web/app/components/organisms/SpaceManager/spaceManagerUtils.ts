@@ -45,19 +45,6 @@ export function emptyDraft(): SpaceDraft {
   };
 }
 
-export function seedDraft(seed: Partial<Space>): SpaceDraft {
-  const empty = emptyDraft();
-  const qbe = seed.qbe ?? [];
-  return {
-    id: seed.id ?? empty.id,
-    name: seed.name ?? empty.name,
-    description: seed.description ?? empty.description,
-    qbe: qbe.length > 0 ? qbe.map((term) => [...term]) : empty.qbe,
-    selector: seed.selector ? { ...seed.selector } : empty.selector,
-    scriptMode: qbe.length === 0 && !!seed.selector,
-  };
-}
-
 export function toSpace(draft: SpaceDraft): Space {
   const qbe = toQBE(draft.qbe);
   return {

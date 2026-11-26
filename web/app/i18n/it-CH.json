@@ -208,6 +208,7 @@
   "stepEditor.attributesHint": "Le Attributes descrivono come gli Step condividono dati",
   "stepEditor.attributesLabel": "Attributes",
   "stepEditor.cancel": "Annulla",
+  "stepEditor.close": "Chiudi",
   "stepEditor.constMappingNotAllowed": "Il mapping non è consentito per l'Attribute Const: {name}",
   "stepEditor.create": "Crea",
   "stepEditor.creating": "Creazione...",

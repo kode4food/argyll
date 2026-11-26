@@ -18,7 +18,7 @@ type EditorOptions = {
   draft?: Step;
 };
 
-type EditorState = EditorOptions & { open: boolean };
+type EditorState = EditorOptions & { open: boolean; serial: number };
 
 type StepEditorContextValue = {
   openEditor: (options: EditorOptions) => void;
@@ -37,6 +37,7 @@ export const StepEditorProvider = ({
   const [state, setState] = useState<EditorState>({
     step: null,
     open: false,
+    serial: 0,
   });
 
   const closeEditor = useCallback(() => {
@@ -48,10 +49,11 @@ export const StepEditorProvider = ({
   }, []);
 
   const openEditor = useCallback((options: EditorOptions) => {
-    setState({
+    setState((prev) => ({
       ...options,
       open: true,
-    });
+      serial: prev.serial + 1,
+    }));
   }, []);
 
   const handleUpdate = useCallback(
@@ -75,7 +77,9 @@ export const StepEditorProvider = ({
     <StepEditorContext.Provider value={contextValue}>
       {children}
       {state.open && (
+        // A new key remounts the editor, so its form takes the newly opened Step
         <StepEditor
+          key={state.serial}
           step={state.step}
           onClose={closeEditor}
           onUpdate={handleUpdate}

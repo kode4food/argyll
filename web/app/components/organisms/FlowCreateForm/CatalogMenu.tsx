@@ -72,7 +72,6 @@ const CatalogMenu: React.FC = () => {
           isOpen
           onClose={closeManager}
           spaceId={target.id}
-          seed={target.seed}
         />
       )}
       {target?.manager === "feeds" && (
@@ -81,7 +80,6 @@ const CatalogMenu: React.FC = () => {
           isOpen
           onClose={closeManager}
           feedId={target.id}
-          seed={target.seed}
         />
       )}
     </>

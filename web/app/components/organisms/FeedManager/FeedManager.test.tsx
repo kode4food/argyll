@@ -123,13 +123,17 @@ describe("FeedManager", () => {
     expect(screen.getByText(t("feedManager.updateTitle"))).toBeInTheDocument();
   });
 
-  test("opens a new Feed a chat draft fills, without saving it", () => {
-    render(
-      <FeedManager isOpen onClose={jest.fn()} seed={{ name: "Order Count" }} />
-    );
-    expect(screen.getByText(t("feedManager.createTitle"))).toBeInTheDocument();
-    expect(screen.getByDisplayValue("Order Count")).toBeInTheDocument();
-    expect(mockApi.registerFeed).not.toHaveBeenCalled();
+  test("offers Close and no Save until the Feed changes", () => {
+    render(<FeedManager isOpen onClose={jest.fn()} feedId="total" />);
+    const save = screen.getByText(t("feedManager.save"));
+    expect(screen.getByText(t("feedManager.close"))).toBeInTheDocument();
+    expect(save).toBeDisabled();
+
+    fireEvent.change(screen.getByDisplayValue("Order Total"), {
+      target: { value: "Order Sum" },
+    });
+    expect(screen.getByText(t("feedManager.cancel"))).toBeInTheDocument();
+    expect(save).toBeEnabled();
   });
 
   test("lists each Feed's live value", async () => {
@@ -224,7 +228,7 @@ describe("FeedManager", () => {
   test("loads a Feed's Attributes as tags", async () => {
     await openTotal();
     expect(screen.getByTitle("amount")).toBeInTheDocument();
-    expect(button("feedManager.save")).toBeEnabled();
+    expect(button("feedManager.save")).toBeDisabled();
   });
 
   test("deletes a Feed", async () => {
@@ -238,6 +242,9 @@ describe("FeedManager", () => {
   test("shows save errors", async () => {
     mockApi.updateFeed.mockRejectedValue(new Error("boom"));
     await openTotal();
+    fireEvent.change(screen.getByDisplayValue("Order Total"), {
+      target: { value: "Order Sum" },
+    });
     fireEvent.click(button("feedManager.save"));
     expect(await screen.findByText("boom")).toBeInTheDocument();
   });

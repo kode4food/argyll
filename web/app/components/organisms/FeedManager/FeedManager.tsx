@@ -1,5 +1,4 @@
 import React from "react";
-import { Feed } from "@/app/api";
 import Modal from "@/app/components/molecules/Modal";
 import ValuePreview from "@/app/components/molecules/ValuePreview";
 import { useT } from "@/app/i18n";
@@ -13,7 +12,6 @@ interface FeedManagerProps {
   isOpen: boolean;
   onClose: () => void;
   feedId?: string;
-  seed?: Partial<Feed>;
 }
 
 const titleKey = (isEditing: boolean, editingId: string | null): string => {
@@ -27,7 +25,8 @@ interface FeedManagerFooterProps {
 
 const FeedManagerFooter: React.FC<FeedManagerFooterProps> = ({ editor }) => {
   const t = useT();
-  const { canSave, editingId, handleClose, isEditing, isSaving } = editor;
+  const { canSave, editingId, handleClose, isDirty, isEditing, isSaving } =
+    editor;
 
   if (!isEditing) {
     return (
@@ -61,7 +60,7 @@ const FeedManagerFooter: React.FC<FeedManagerFooterProps> = ({ editor }) => {
       )}
       <div className={styles.footerActions}>
         <button type="button" className={styles.button} onClick={handleClose}>
-          {t("feedManager.cancel")}
+          {isDirty ? t("feedManager.cancel") : t("feedManager.close")}
         </button>
         <button
           type="button"
@@ -80,10 +79,9 @@ const FeedManager: React.FC<FeedManagerProps> = ({
   isOpen,
   onClose,
   feedId,
-  seed,
 }) => {
   const t = useT();
-  const editor = useFeedEditor(onClose, feedId, seed);
+  const editor = useFeedEditor(onClose, feedId);
   const { editingId, error, feeds, isEditing } = editor;
   const watchedFeeds = useWatchedFeeds();
 

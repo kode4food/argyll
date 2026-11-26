@@ -9,7 +9,6 @@ interface MockManagerProps {
   onClose: () => void;
   spaceId?: string;
   feedId?: string;
-  seed?: { name?: string };
 }
 
 // A declaration, so jest.mock's hoisted factories can reach it
@@ -19,13 +18,11 @@ function mockManager(name: string) {
     onClose,
     spaceId,
     feedId,
-    seed,
   }: MockManagerProps) => {
     const at = spaceId ?? feedId;
     return isOpen ? (
       <button onClick={onClose}>
         {name} open{at ? ` at ${at}` : ""}
-        {seed ? ` new ${seed.name ?? ""}`.trimEnd() : ""}
       </button>
     ) : null;
   };
@@ -103,8 +100,6 @@ describe("CatalogMenu", () => {
     [{ type: "open_space", space_id: "sales" }, "Spaces open at sales"],
     [{ type: "open_feed", feed_id: "rates" }, "Feeds open at rates"],
     [{ type: "open_space" }, "Spaces open"],
-    [{ type: "new_space", draft: { name: "Risk" } }, "Spaces open new Risk"],
-    [{ type: "new_feed" }, "Feeds open new"],
   ])("opens the manager chat action %j names", (action, opened) => {
     render(<CatalogMenu />);
     act(() => {
