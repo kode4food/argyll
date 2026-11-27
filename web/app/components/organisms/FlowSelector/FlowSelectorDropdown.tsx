@@ -101,7 +101,7 @@ const FlowSelectorDropdown: React.FC<FlowSelectorDropdownProps> = ({
               <StatusIcon
                 className={`progress-icon ${progressStatus || "pending"}`}
               />
-              {flow.id}
+              <span className={dropdownStyles.itemLabel}>{flow.id}</span>
             </button>
           )
         )}
@@ -146,7 +146,7 @@ const FlowSelectorDropdown: React.FC<FlowSelectorDropdownProps> = ({
             <SelectedStatusIcon
               className={`progress-icon ${selectedProgressStatus || "pending"}`}
             />
-            {selectedFlow}
+            <span className={dropdownStyles.itemLabel}>{selectedFlow}</span>
           </>
         ) : (
           t("flowSelector.selectFlow")

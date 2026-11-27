@@ -4,8 +4,6 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/kode4food/caravan"
-	"github.com/kode4food/caravan/topic"
 	"github.com/kode4food/timebox"
 	"github.com/stretchr/testify/assert"
 
@@ -25,11 +23,6 @@ type (
 		StepID api.StepID `json:"step_id"`
 	}
 )
-
-func newHub() (*event.Hub, topic.Topic[*timebox.Event]) {
-	top := caravan.NewTopic[*timebox.Event]()
-	return event.NewHubWithTopic(top), top
-}
 
 func newEvent(typ api.EventType, agg timebox.AggregateID, data any) *timebox.Event {
 	payload, _ := json.Marshal(data)
@@ -265,18 +258,15 @@ func TestWrapperFilters(t *testing.T) {
 }
 
 func TestWaitForEventFlowTerminal(t *testing.T) {
-	hub, top := newHub()
+	hub := event.NewHub()
 	consumer := hub.NewConsumer()
 	defer consumer.Close()
-	producer := top.NewProducer()
 
 	id := api.FlowID("flow-terminal")
 	ev := newEvent(api.EventTypeFlowCompleted, events.FlowKey(id),
 		flowEvent{FlowID: id},
 	)
-	go func() {
-		producer.Send() <- ev
-	}()
+	go hub.Publish(ev)
 
 	wait.On(t, consumer).ForEvent(wait.FlowTerminal(id))
 }

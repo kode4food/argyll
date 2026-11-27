@@ -791,7 +791,7 @@ func TestLateChildUsageReported(t *testing.T) {
 		})
 		testify.Equal(t, map[string]any{}, feedTotal(t, env))
 
-		env.WaitFor(wait.FlowDeactivated("late-usage-flow"), func() {
+		env.WaitFor(wait.FlowDeactivated(works[slow.ID].FlowID), func() {
 			testify.NoError(t, failLeaf(env, works[slow.ID], api.Usage{"input_tokens": 4}))
 		})
 

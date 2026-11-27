@@ -419,6 +419,13 @@ export const useFlowStore = create<FlowState>()(
         },
 
         setVisibleFlowIDs: (flowIDs: string[]) => {
+          const { visibleFlowIDs } = get();
+          if (
+            flowIDs.length === visibleFlowIDs.length &&
+            flowIDs.every((id, i) => id === visibleFlowIDs[i])
+          ) {
+            return;
+          }
           set({ visibleFlowIDs: flowIDs });
         },
 

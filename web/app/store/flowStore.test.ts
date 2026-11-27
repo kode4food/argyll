@@ -397,6 +397,18 @@ describe("flowStore", () => {
       expect(useFlowStore.getState().flows).toHaveLength(0);
     });
 
+    test("setVisibleFlowIDs keeps the list when the IDs match", () => {
+      const { setVisibleFlowIDs } = useFlowStore.getState();
+      setVisibleFlowIDs(["wf-1", "wf-2"]);
+      const first = useFlowStore.getState().visibleFlowIDs;
+
+      setVisibleFlowIDs(["wf-1", "wf-2"]);
+      expect(useFlowStore.getState().visibleFlowIDs).toBe(first);
+
+      setVisibleFlowIDs(["wf-2"]);
+      expect(useFlowStore.getState().visibleFlowIDs).toEqual(["wf-2"]);
+    });
+
     test("selectFlow sets selected flow", () => {
       useFlowStore.getState().selectFlow("wf-1");
       const state = useFlowStore.getState();

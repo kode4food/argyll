@@ -3,6 +3,7 @@ package event
 import (
 	"slices"
 	"sync"
+	"sync/atomic"
 
 	"github.com/kode4food/caravan"
 	"github.com/kode4food/caravan/closer"
@@ -15,22 +16,29 @@ import (
 type (
 	// Hub filters events based on active subscriptions
 	Hub struct {
-		inner     topic.Topic[*timebox.Event]
-		producer  topic.Producer[*timebox.Event]
+		inner     topic.Topic[published]
+		producer  topic.Producer[published]
 		registry  *registry
 		closed    chan struct{}
+		sequence  atomic.Uint64
 		closeOnce sync.Once
 	}
 
 	// Consumer filters events based on interests
 	Consumer struct {
-		inner     topic.Consumer[*timebox.Event]
+		inner     topic.Consumer[published]
 		interests *interests
 		registry  *registry
 		filtered  <-chan *timebox.Event
 		closed    chan struct{}
+		after     uint64
 		once      sync.Once
 		closeOnce sync.Once
+	}
+
+	published struct {
+		event    *timebox.Event
+		sequence uint64
 	}
 
 	// registry tracks active subscriptions and counts references
@@ -55,11 +63,7 @@ type (
 
 // NewHub creates a new Hub with an internal in-memory topic
 func NewHub() *Hub {
-	return NewHubWithTopic(caravan.NewTopic[*timebox.Event]())
-}
-
-// NewHubWithTopic creates a new Hub that filters events based on active subscriptions
-func NewHubWithTopic(inner topic.Topic[*timebox.Event]) *Hub {
+	inner := caravan.NewTopic[published]()
 	return &Hub{
 		inner:    inner,
 		producer: inner.NewProducer(),
@@ -92,7 +96,10 @@ func (h *Hub) Publish(evs ...*timebox.Event) {
 		if ev == nil || !h.registry.hasSubscribers(ev.Type, ev.AggregateID) {
 			continue
 		}
-		h.producer.Send() <- ev
+		h.producer.Send() <- published{
+			event:    ev,
+			sequence: h.sequence.Add(1),
+		}
 	}
 }
 
@@ -134,6 +141,7 @@ func (h *Hub) NewAggregatesConsumer(
 		interests: i,
 		registry:  h.registry,
 		closed:    make(chan struct{}),
+		after:     h.sequence.Load(),
 	}
 }
 
@@ -148,17 +156,18 @@ func (c *Consumer) Receive() <-chan *timebox.Event {
 				select {
 				case <-c.closed:
 					return
-				case ev, ok := <-c.inner.Receive():
+				case msg, ok := <-c.inner.Receive():
 					if !ok {
 						return
 					}
-					if !c.matches(ev) {
+					// A caravan cursor starts at the oldest retained event, not the newest
+					if msg.sequence <= c.after || !c.matches(msg.event) {
 						continue
 					}
 					select {
 					case <-c.closed:
 						return
-					case filtered <- ev:
+					case filtered <- msg.event:
 					}
 				}
 			}

@@ -325,6 +325,26 @@ func TestHubOtherAggregate(t *testing.T) {
 	}
 }
 
+func TestHubLateConsumerSkipsEarlierEvents(t *testing.T) {
+	h := event.NewHub()
+	id := timebox.NewAggregateID("flow", "a")
+	early := h.NewAggregateConsumer(id)
+	defer early.Close()
+	h.Publish(newEvent("incremented", id, 0))
+
+	late := h.NewAggregateConsumer(id)
+	defer late.Close()
+	ch := late.Receive()
+	h.Publish(newEvent("incremented", id, 1))
+
+	select {
+	case ev := <-ch:
+		assert.Equal(t, int64(1), ev.Sequence)
+	case <-time.After(eventWait):
+		t.Fatal("timeout waiting for event")
+	}
+}
+
 func newEvent(typ timebox.EventType, agg timebox.AggregateID, seq int64) *timebox.Event {
 	return &timebox.Event{
 		Type:        typ,

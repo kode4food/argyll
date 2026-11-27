@@ -208,9 +208,12 @@ func TestClientAggregateEvents(t *testing.T) {
 		Type: "subscribe",
 		Data: api.ClientSubscription{
 			SubscriptionID: "sub-1",
-			AggregateIDs:   [][]string{{events.FlowPrefix, "wf-123"}, {events.FlowPrefix, "wf-456"}},
-			IncludeState:   false,
-			EventTypes:     []api.EventType{api.EventTypeFlowStarted},
+			AggregateIDs: [][]string{
+				{events.FlowPrefix, "wf-123"},
+				{events.FlowPrefix, "wf-456"},
+			},
+			IncludeState: false,
+			EventTypes:   []api.EventType{api.EventTypeFlowStarted},
 		},
 	}
 	err := env.Conn.WriteJSON(sub)
@@ -632,6 +635,44 @@ func TestClientUnsubscribeStopsEvents(t *testing.T) {
 	})
 	assert.NoError(t, err)
 
+	_ = env.Conn.SetReadDeadline(scheduler.Now().Add(100 * time.Millisecond))
+	_, _, err = env.Conn.ReadMessage()
+	assert.Error(t, err)
+}
+
+func TestLateSubscriptionSkipsEarlierEvents(t *testing.T) {
+	env := testWebSocket(t, nil)
+	defer env.Cleanup()
+	id := api.FlowID("wf-123")
+
+	subscribe := func(subID string) {
+		err := env.Conn.WriteJSON(api.SubscribeRequest{
+			Type: "subscribe",
+			Data: api.ClientSubscription{
+				SubscriptionID: subID,
+				AggregateIDs:   [][]string{{events.FlowPrefix, string(id)}},
+			},
+		})
+		assert.NoError(t, err)
+		_ = env.Conn.SetReadDeadline(scheduler.Now().Add(wsStateTimeout))
+		var ack api.SubscribedResult
+		assert.NoError(t, env.Conn.ReadJSON(&ack))
+		assert.Equal(t, subID, ack.SubscriptionID)
+	}
+
+	subscribe("early")
+	err := env.Env.RaiseFlowEvents(id, helpers.FlowEvent{
+		Type: api.EventTypeFlowStarted,
+		Data: wsFlowStarted(id, "step-1"),
+	})
+	assert.NoError(t, err)
+
+	_ = env.Conn.SetReadDeadline(scheduler.Now().Add(wsReadTimeout))
+	var started api.WebSocketEvent
+	assert.NoError(t, env.Conn.ReadJSON(&started))
+	assert.Equal(t, "early", started.SubscriptionID)
+
+	subscribe("late")
 	_ = env.Conn.SetReadDeadline(scheduler.Now().Add(100 * time.Millisecond))
 	_, _, err = env.Conn.ReadMessage()
 	assert.Error(t, err)

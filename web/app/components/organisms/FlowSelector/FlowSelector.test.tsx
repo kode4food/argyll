@@ -172,8 +172,8 @@ describe("FlowSelector", () => {
       screen.getByRole("button", { name: t("flowSelector.selectFlow") })
     );
 
-    const first = screen.getByText("wf-1");
-    const second = screen.getByText("wf-2");
+    const first = screen.getByRole("button", { name: "wf-1" });
+    const second = screen.getByRole("button", { name: "wf-2" });
     fireEvent.mouseEnter(second);
 
     expect(second.className).toContain("dropdownItemHighlighted");
