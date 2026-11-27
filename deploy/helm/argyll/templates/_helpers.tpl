@@ -31,6 +31,18 @@ helm.sh/chart: {{ printf "%s-%s" .root.Chart.Name .root.Chart.Version }}
 {{- required "publicUrl is required, such as https://argyll.example.com" .Values.publicUrl | trimSuffix "/" -}}
 {{- end -}}
 
+{{- define "argyll.keycloakAdminUrl" -}}
+{{- printf "http://localhost:%v" .Values.keycloak.adminPort -}}
+{{- end -}}
+
+{{- /* The local port of a localhost URL, for kubectl port-forward. Empty for any other host */ -}}
+{{- define "argyll.forwardPort" -}}
+{{- $url := urlParse . -}}
+{{- if eq $url.hostname "localhost" -}}
+{{- splitList ":" $url.host | rest | first | default (ternary "443" "80" (eq $url.scheme "https")) -}}
+{{- end -}}
+{{- end -}}
+
 {{- define "argyll.publicHost" -}}
 {{- (urlParse (include "argyll.publicUrl" .)).host | splitList ":" | first -}}
 {{- end -}}

@@ -1,4 +1,5 @@
-# The address people use to reach Argyll, such as https://argyll.example.com. Required
+# The address people use to reach Argyll, such as https://argyll.example.com. Required. Browsers
+# sign in only over HTTPS, or over plain HTTP on localhost
 publicUrl: ""
 
 # The cluster's DNS domain, which the gateway needs for full service names
@@ -84,6 +85,9 @@ auth:
 
 keycloak:
   enabled: true
+  # The local port operators forward to reach the admin console, which the gateway keeps private.
+  # Applied at install
+  adminPort: 8180
   # Secret with admin-password, argyll-admin-password, engine-client-secret, agent-client-secret.
   # Generated and kept across upgrades when empty
   existingSecret: ""

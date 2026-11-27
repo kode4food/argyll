@@ -36,6 +36,38 @@ done
 
 Set `TAG` to the chart's `appVersion`, or install the chart with `image.tag` set to your tag.
 
+## Try It on kind
+
+[kind](https://kind.sigs.k8s.io/) runs a cluster inside Docker. Build the images locally and load them straight into the cluster. From the repository root:
+
+```bash
+kind create cluster --name argyll
+```
+
+```bash
+TAG=dev
+build() { docker build -q -t "ghcr.io/kode4food/argyll-$1:$TAG" "${@:2}"; }
+
+build engine -f engine/Dockerfile .
+build chat -f chat/Dockerfile .
+build mcp -f mcp/Dockerfile .
+build ui web
+build keycloak keycloak
+for i in engine chat mcp ui keycloak; do
+  kind load docker-image "ghcr.io/kode4food/argyll-$i:$TAG" --name argyll
+done
+```
+
+```bash
+helm install argyll deploy/helm/argyll -n argyll --create-namespace --set publicUrl=http://localhost:8090 --set image.tag=dev --set ingress.enabled=false --wait --timeout 10m
+```
+
+The install prints the `kubectl port-forward` commands for the gateway and the Keycloak admin console, and how to read both passwords. Forward the gateway, then open `http://localhost:8090`.
+
+Browsers sign in only from a secure origin, so `publicUrl` must use HTTPS or `localhost`.
+
+Keycloak keeps the `publicUrl` and `keycloak.adminPort` it was installed with in its realm settings. To change either on kind, run `kubectl delete namespace argyll` and install again.
+
 ## Check the Chart
 
 ```bash

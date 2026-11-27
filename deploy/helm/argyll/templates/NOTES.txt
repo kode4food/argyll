@@ -1,4 +1,15 @@
 Argyll is starting at {{ include "argyll.publicUrl" . }}
+{{- if not .Values.ingress.enabled }}
+{{- with include "argyll.forwardPort" (include "argyll.publicUrl" .) }}
+
+Forward it to the gateway:
+
+  kubectl port-forward -n {{ $.Release.Namespace }} svc/{{ include "argyll.name" (dict "root" $ "component" "gateway") }} {{ . }}:8080
+{{- else }}
+
+The ingress is off. Route that address to the {{ include "argyll.name" (dict "root" . "component" "gateway") }} service on port 8080.
+{{- end }}
+{{- end }}
 {{- if .Values.keycloak.enabled }}
 
 Sign in as "admin" with this one-time password, then choose your own:
@@ -6,11 +17,11 @@ Sign in as "admin" with this one-time password, then choose your own:
   kubectl get secret -n {{ .Release.Namespace }} {{ include "argyll.keycloakSecret" . }} -o jsonpath='{.data.argyll-admin-password}' | base64 -d
 
 Add people and give them the reader, operator, or admin role in the Keycloak admin console,
-which stays inside the cluster:
+which the gateway keeps private. Forward it to this machine:
 
-  kubectl port-forward -n {{ .Release.Namespace }} svc/{{ include "argyll.name" (dict "root" . "component" "keycloak") }} 8180:8080
+  kubectl port-forward -n {{ .Release.Namespace }} svc/{{ include "argyll.name" (dict "root" . "component" "keycloak") }} {{ .Values.keycloak.adminPort }}:8080
 
-Then open http://localhost:8180/auth/admin and sign in as "admin" with:
+Then open {{ include "argyll.keycloakAdminUrl" . }}/auth/admin and sign in as "admin" with:
 
   kubectl get secret -n {{ .Release.Namespace }} {{ include "argyll.keycloakSecret" . }} -o jsonpath='{.data.admin-password}' | base64 -d
 {{- end }}

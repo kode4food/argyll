@@ -67,6 +67,8 @@ spec:
           env:
             - name: KC_HOSTNAME
               value: {{ printf "%s/auth" (include "argyll.publicUrl" .) | quote }}
+            - name: KC_HOSTNAME_ADMIN
+              value: {{ printf "%s/auth" (include "argyll.keycloakAdminUrl" .) | quote }}
             - name: KC_HOSTNAME_BACKCHANNEL_DYNAMIC
               value: "true"
             - name: KC_HTTP_ENABLED
@@ -144,4 +146,47 @@ spec:
         - name: realm
           configMap:
             name: {{ $name }}-realm
+{{- $setupCtx := dict "root" . "component" "keycloak-setup" }}
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "argyll.name" $setupCtx }}
+  labels:
+    {{- include "argyll.labels" $setupCtx | nindent 4 }}
+  annotations:
+    helm.sh/hook: post-install
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+spec:
+  backoffLimit: 0
+  activeDeadlineSeconds: 600
+  template:
+    metadata:
+      labels:
+        {{- include "argyll.selectorLabels" $setupCtx | nindent 8 }}
+    spec:
+      restartPolicy: Never
+      {{- include "argyll.podDefaults" . | nindent 6 }}
+      containers:
+        - name: keycloak-setup
+          image: {{ include "argyll.image" (dict "root" . "name" "keycloak") }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            - name: ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "argyll.keycloakSecret" . }}
+                  key: admin-password
+          command:
+            - bash
+            - -ec
+            - |
+              until (exec 3<>/dev/tcp/{{ $name }}/8080) 2>/dev/null; do
+                sleep 5
+              done
+              kcadm() { /opt/keycloak/bin/kcadm.sh "$@" --config /tmp/kcadm.config; }
+              kcadm config credentials --server http://{{ $name }}:8080/auth \
+                --realm master --user admin --password "$ADMIN_PASSWORD"
+              kcadm update realms/master \
+                -s attributes.frontendUrl={{ include "argyll.keycloakAdminUrl" . }}/auth
 {{- end }}
