@@ -136,6 +136,7 @@ spec:
             httpGet:
               path: /auth/health/live
               port: management
+          {{- include "argyll.drain" . | nindent 10 }}
           resources:
             {{- toYaml .Values.keycloak.resources | nindent 12 }}
           volumeMounts:

@@ -1,0 +1,22 @@
+{{- $root := . -}}
+{{- $components := list "engine" "gateway" "ui" "chat" "mcp" -}}
+{{- range $provider := list "anthropic" "bedrock" "gemini" "openai" -}}
+{{- if (index $root.Values.agents $provider).enabled -}}
+{{- $components = append $components (printf "agent-%s" $provider) -}}
+{{- end -}}
+{{- end -}}
+{{- range $component := $components }}
+{{- $ctx := dict "root" $root "component" $component }}
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "argyll.name" $ctx }}
+  labels:
+    {{- include "argyll.labels" $ctx | nindent 4 }}
+spec:
+  maxUnavailable: 1
+  selector:
+    matchLabels:
+      {{- include "argyll.selectorLabels" $ctx | nindent 6 }}
+{{- end }}

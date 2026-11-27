@@ -48,6 +48,8 @@ mcp:
 agents:
   # The provider whose worker also serves every provider not listed here
   default: openai
+  # Pods for each enabled worker
+  replicas: 1
   anthropic:
     enabled: false
     existingSecret: ""

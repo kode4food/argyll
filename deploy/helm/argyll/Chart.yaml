@@ -4,6 +4,8 @@ description: Argyll goal-driven orchestration engine, web UI, chat, and Agent wo
 type: application
 version: 0.1.0
 appVersion: "0.1.0"
+# Pods wait out their preStop with the sleep action, which needs no sleep binary in the image
+kubeVersion: ">=1.30.0-0"
 home: https://www.argyll.app
 sources:
   - https://github.com/kode4food/argyll

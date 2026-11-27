@@ -162,6 +162,25 @@ helm.sh/chart: {{ printf "%s-%s" .root.Chart.Name .root.Chart.Version }}
 {{- join "," $servers -}}
 {{- end -}}
 
+{{- /* Spreads a component's pods across nodes, when the cluster has more than one */ -}}
+{{- define "argyll.spread" -}}
+topologySpreadConstraints:
+  - maxSkew: 1
+    topologyKey: kubernetes.io/hostname
+    whenUnsatisfiable: ScheduleAnyway
+    labelSelector:
+      matchLabels:
+        {{- include "argyll.selectorLabels" . | nindent 8 }}
+{{- end -}}
+
+{{- /* Keeps a pod serving while it leaves its Service, so a rollout drops no connections */ -}}
+{{- define "argyll.drain" -}}
+lifecycle:
+  preStop:
+    sleep:
+      seconds: 5
+{{- end -}}
+
 {{- define "argyll.podDefaults" -}}
 {{- with .Values.imagePullSecrets }}
 imagePullSecrets:

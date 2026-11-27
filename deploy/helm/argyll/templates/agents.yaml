@@ -26,7 +26,7 @@ metadata:
   labels:
     {{- include "argyll.labels" $ctx | nindent 4 }}
 spec:
-  replicas: 1
+  replicas: {{ $root.Values.agents.replicas }}
   selector:
     matchLabels:
       {{- include "argyll.selectorLabels" $ctx | nindent 6 }}
@@ -36,6 +36,7 @@ spec:
         {{- include "argyll.selectorLabels" $ctx | nindent 8 }}
     spec:
       {{- include "argyll.podDefaults" $root | nindent 6 }}
+      {{- include "argyll.spread" $ctx | nindent 6 }}
       containers:
         - name: agent
           image: {{ include "argyll.image" (dict "root" $root "name" (printf "agent-%s" $provider)) }}
@@ -62,6 +63,7 @@ spec:
           readinessProbe:
             tcpSocket:
               port: http
+          {{- include "argyll.drain" $root | nindent 10 }}
           resources:
             {{- toYaml $root.Values.agents.resources | nindent 12 }}
 {{- end }}

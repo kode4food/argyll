@@ -31,6 +31,7 @@ spec:
         {{- include "argyll.selectorLabels" $ctx | nindent 8 }}
     spec:
       {{- include "argyll.podDefaults" . | nindent 6 }}
+      {{- include "argyll.spread" $ctx | nindent 6 }}
       containers:
         - name: ui
           image: {{ include "argyll.image" (dict "root" . "name" "ui") }}
@@ -51,5 +52,6 @@ spec:
             httpGet:
               path: /
               port: http
+          {{- include "argyll.drain" . | nindent 10 }}
           resources:
             {{- toYaml .Values.ui.resources | nindent 12 }}

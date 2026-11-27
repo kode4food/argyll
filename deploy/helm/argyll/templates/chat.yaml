@@ -31,6 +31,7 @@ spec:
         {{- include "argyll.selectorLabels" $ctx | nindent 8 }}
     spec:
       {{- include "argyll.podDefaults" . | nindent 6 }}
+      {{- include "argyll.spread" $ctx | nindent 6 }}
       containers:
         - name: chat
           image: {{ include "argyll.image" (dict "root" . "name" "chat") }}
@@ -47,5 +48,6 @@ spec:
           readinessProbe:
             tcpSocket:
               port: http
+          {{- include "argyll.drain" . | nindent 10 }}
           resources:
             {{- toYaml .Values.chat.resources | nindent 12 }}

@@ -52,6 +52,7 @@ spec:
         {{- include "argyll.selectorLabels" $ctx | nindent 8 }}
     spec:
       {{- include "argyll.podDefaults" . | nindent 6 }}
+      {{- include "argyll.spread" $ctx | nindent 6 }}
       containers:
         - name: engine
           image: {{ include "argyll.image" (dict "root" . "name" "engine") }}

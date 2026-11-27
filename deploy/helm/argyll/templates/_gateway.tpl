@@ -16,6 +16,9 @@ defaults
     # paths carry a secret
     log-format "%ci:%cp [%tr] %ft %b/%s %TR/%Tw/%Tc/%Tr/%Ta %ST %B %CC %CS %tsc %ac/%fc/%bc/%sc/%rc %sq/%bq %hr %hs \"%HM %[var(txn.logpath)]\""
     option dontlognull
+    # A refused connection, such as from an engine that is shutting down, retries on another server
+    retries 3
+    option redispatch
     timeout connect 5s
     timeout client 300s
     timeout server 300s
@@ -77,7 +80,7 @@ backend argyll_read
 backend argyll_write
     option httpchk GET /health
     http-check expect hdr name X-Argyll-Raft-State value leader
-    default-server inter 3s fastinter 1s downinter 5s rise 1 fall 1
+    default-server inter 3s fastinter 1s downinter 1s rise 1 fall 1
 {{- range $i := until (int .Values.engine.replicas) }}
     server {{ $engine }}-{{ $i }} {{ $engine }}-{{ $i }}.{{ $raft }}.{{ $domain }}:8080 check
 {{- end }}

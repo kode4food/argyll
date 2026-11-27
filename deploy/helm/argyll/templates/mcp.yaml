@@ -31,6 +31,7 @@ spec:
         {{- include "argyll.selectorLabels" $ctx | nindent 8 }}
     spec:
       {{- include "argyll.podDefaults" . | nindent 6 }}
+      {{- include "argyll.spread" $ctx | nindent 6 }}
       containers:
         - name: mcp
           image: {{ include "argyll.image" (dict "root" . "name" "mcp") }}
@@ -46,5 +47,6 @@ spec:
           readinessProbe:
             tcpSocket:
               port: http
+          {{- include "argyll.drain" . | nindent 10 }}
           resources:
             {{- toYaml .Values.mcp.resources | nindent 12 }}

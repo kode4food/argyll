@@ -18,6 +18,7 @@ require (
 	github.com/go-jose/go-jose/v4 v4.1.9 // indirect
 	github.com/go-openapi/jsonpointer v1.0.3 // indirect
 	github.com/kode4food/argex v0.1.11 // indirect
+	github.com/kode4food/timebox v0.5.1-0.20261127115456-d99482dcddaa // indirect
 	github.com/segmentio/asm v1.2.1 // indirect
 	github.com/segmentio/encoding v0.5.4 // indirect
 	github.com/yosida95/uritemplate/v3 v3.0.2 // indirect
