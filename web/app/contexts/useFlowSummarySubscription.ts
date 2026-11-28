@@ -1,5 +1,9 @@
 import { useCallback, useEffect } from "react";
 import { useFlowStore } from "@/app/store/flowStore";
+import {
+  type FlowStateUpdate,
+  toFlowSummaryFromState,
+} from "@/app/store/flowStoreHelpers";
 import { WebSocketEvent, WebSocketSubscribed } from "@/app/types/websocket";
 import { useT } from "@/app/i18n";
 import { META_KEY_PARENT_FLOW_ID } from "@/app/api";
@@ -28,6 +32,13 @@ export function useFlowSummarySubscription(
   const handleFlowSummaryEvent = useCallback(
     (event: WebSocketEvent | WebSocketSubscribed) => {
       if (event.type === "subscribed") {
+        for (const item of (event as WebSocketSubscribed).items ?? []) {
+          const state = item.data as FlowStateUpdate;
+          // A lagging replica can still report an active Flow after it settled
+          if (state.status === "completed" || state.status === "failed") {
+            addFlow(toFlowSummaryFromState(state));
+          }
+        }
         return;
       }
 
@@ -84,13 +95,15 @@ export function useFlowSummarySubscription(
       return;
     }
 
+    // Snapshots on reconnect avoid reloading Flow state on every scroll
     const subscriptionId = socketClient.subscribe(
       {
         aggregate_ids: visibleFlowIDs.map((flowID) => ["flow", flowID]),
         include_state: false,
         event_types: FLOW_SUMMARY_EVENT_TYPES,
       },
-      handleFlowSummaryEvent
+      handleFlowSummaryEvent,
+      { include_state: true }
     );
     return () => {
       socketClient.unsubscribe(subscriptionId);

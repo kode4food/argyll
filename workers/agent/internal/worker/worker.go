@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/kode4food/lru"
@@ -21,11 +22,17 @@ import (
 
 // Worker serves the Agent Worker Contract
 type Worker struct {
-	cfg      *Config
-	client   *http.Client
-	schemas  *lru.Cache[stepSchemas]
-	provider Provider
-	catalog  catalogCache
+	cfg       *Config
+	client    *http.Client
+	schemas   *lru.Cache[stepSchemas]
+	provider  Provider
+	catalog   catalogCache
+	attemptMu sync.Mutex
+	attempts  sync.WaitGroup
+	draining  bool
+
+	attemptCtx   context.Context
+	stopAttempts context.CancelFunc
 }
 
 const (
@@ -49,18 +56,22 @@ var (
 	ErrUnknownProvider   = errors.New("unknown provider")
 	ErrReportFailed      = errors.New("outcome report failed")
 	ErrReportRejected    = errors.New("outcome report rejected")
+	ErrWorkerDraining    = errors.New("agent worker is shutting down")
 )
 
 // New returns a worker offering what cfg configures
 func New(cfg *Config, provider Provider) *Worker {
+	ctx, cancel := context.WithCancel(context.Background())
 	return &Worker{
 		cfg: cfg,
 		client: &http.Client{
 			Timeout:       DefaultReportTimeout,
 			CheckRedirect: api.SameOriginRedirect,
 		},
-		schemas:  lru.NewCache[stepSchemas](schemaCacheSize),
-		provider: provider,
+		schemas:      lru.NewCache[stepSchemas](schemaCacheSize),
+		provider:     provider,
+		attemptCtx:   ctx,
+		stopAttempts: cancel,
 	}
 }
 
@@ -77,6 +88,29 @@ func (w *Worker) Handler() http.Handler {
 	})
 	mux.HandleFunc("GET "+builtins.AgentCapabilitiesPath, w.capabilities)
 	return mux
+}
+
+// Shutdown drains accepted attempts and reserves time to report interrupted ones as retryable
+func (w *Worker) Shutdown(ctx context.Context) error {
+	w.attemptMu.Lock()
+	w.draining = true
+	w.attemptMu.Unlock()
+
+	if deadline, ok := ctx.Deadline(); ok {
+		timer := time.AfterFunc(time.Until(deadline)-DefaultReportTimeout, w.stopAttempts)
+		defer timer.Stop()
+	}
+	done := make(chan struct{})
+	go func() {
+		w.attempts.Wait()
+		close(done)
+	}()
+	select {
+	case <-done:
+		return nil
+	case <-ctx.Done():
+		return ctx.Err()
+	}
 }
 
 func (w *Worker) invoke(rw http.ResponseWriter, r *http.Request) {
@@ -101,10 +135,20 @@ func (w *Worker) invoke(rw http.ResponseWriter, r *http.Request) {
 		writeProblem(rw, http.StatusUnprocessableEntity, err)
 		return
 	}
+	w.attemptMu.Lock()
+	if w.draining {
+		w.attemptMu.Unlock()
+		writeProblem(rw, http.StatusServiceUnavailable, ErrWorkerDraining)
+		return
+	}
+	w.attempts.Add(1)
+	w.attemptMu.Unlock()
+
 	rw.WriteHeader(http.StatusAccepted)
 	go func() {
+		defer w.attempts.Done()
 		slog.Info("Agent attempt started", stepAttrs(&req))
-		out := w.attempt(context.Background(), &req)
+		out := w.attempt(w.attemptCtx, &req)
 		usage := slog.Any("usage", out.Usage)
 		if out.Problem != nil {
 			slog.Warn("Agent attempt failed", stepAttrs(&req), usage,

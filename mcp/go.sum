@@ -30,6 +30,8 @@ github.com/kode4food/lru v0.0.0-20261011080515-d1c90c62daee h1:VCagisdenZ3Q0iSL0
 github.com/kode4food/lru v0.0.0-20261011080515-d1c90c62daee/go.mod h1:ImaqGCdrewxDfqKE71F6OPo08LTCNeOubcf93W6VWAY=
 github.com/kode4food/timebox v0.5.1-0.20261127115456-d99482dcddaa h1:Zu0GKcroGdFIsiT65hK4NLHCcThye55/QIDDIYYIPNs=
 github.com/kode4food/timebox v0.5.1-0.20261127115456-d99482dcddaa/go.mod h1:9pldjQPvnOV1syPyYTl6PtmmEmzFZ21/o+7dGjKiFlQ=
+github.com/kode4food/timebox v0.5.1-0.20261128092604-3d8e4cba7996 h1:3CN/6kHJNTld+acz2eqvRRR6zSvUgeF9Ob0nNdeCaAw=
+github.com/kode4food/timebox v0.5.1-0.20261128092604-3d8e4cba7996/go.mod h1:9pldjQPvnOV1syPyYTl6PtmmEmzFZ21/o+7dGjKiFlQ=
 github.com/modelcontextprotocol/go-sdk v1.8.0 h1:KIvahhYqwtbeniWVPs3TcXEA7b8jEtwfBpOTAI+Urx4=
 github.com/modelcontextprotocol/go-sdk v1.8.0/go.mod h1:dL7u98E/zjJTGzEq+j30jQ8K2k1mb6LeAH4inEcSGts=
 github.com/santhosh-tekuri/jsonschema/v6 v6.0.3 h1:1EYB5IzjZawrrnELUi78f9fPu57HuXjmddZPjrls/28=

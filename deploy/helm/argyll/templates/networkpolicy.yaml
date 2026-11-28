@@ -17,7 +17,7 @@
 {{- range $agent := $agents -}}
 {{- $_ := set $rules $agent (list (dict "port" 8070 "from" (list "engine" "chat"))) -}}
 {{- end -}}
-{{- if .Values.keycloak.enabled -}}
+{{- if and .Values.auth.enabled .Values.keycloak.enabled -}}
 {{- $_ := set $rules "keycloak" (list
   (dict "port" 8080 "from" (concat (list "gateway" "engine" "chat" "keycloak-setup") $agents))
   (dict "port" 7800 "from" (list "keycloak"))

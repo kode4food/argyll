@@ -708,7 +708,7 @@ ON_DISPATCH_WAKEUP(step):
         start eligible pending work and invoke it after commit
 ```
 
-The engine uses the Flow ID, Step ID, and work token to locate the work item. It checks the callback secret against the hashes recorded for the requested phase, invocation or compensation. A late callback from an earlier attempt in the same phase can still settle the work item.
+The engine uses the Flow ID, Step ID, and work token to locate the work item. It checks the callback secret against the hashes recorded for the requested phase, invocation or compensation. A late callback from an earlier attempt in the same phase can still settle the work item. The Raft leader, or a standalone node, rejects a callback that names an unknown Flow, execution, work item, or secret. A follower answers such a callback with 503, since it may still be applying that work item, and the caller retries.
 
 An invocation callback completes the work item with its outputs. A problem with a retryable status schedules a retry. A permanent problem fails the work item. Agent callbacks send a JSON envelope with either `outputs` or `problem` and the attempt's `usage`. The engine acknowledges stale invocation transitions as duplicates.
 

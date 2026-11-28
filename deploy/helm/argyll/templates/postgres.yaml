@@ -1,4 +1,4 @@
-{{- if and .Values.keycloak.enabled .Values.keycloak.postgres.enabled -}}
+{{- if and .Values.auth.enabled .Values.keycloak.enabled .Values.keycloak.postgres.enabled -}}
 {{- $ctx := dict "root" . "component" "postgres" -}}
 {{- $name := include "argyll.name" $ctx -}}
 {{- $existing := (lookup "v1" "Secret" .Release.Namespace $name).data | default dict -}}

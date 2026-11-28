@@ -64,7 +64,7 @@ func Callback(eng CallbackEngine, req *CallbackRequest) error {
 func lookupWork(eng CallbackEngine, req *CallbackRequest) (api.WorkState, error) {
 	fl, err := eng.GetFlowState(req.FlowStep.FlowID)
 	if err != nil {
-		return api.WorkState{}, fmt.Errorf("%w: %v", ErrInvalidCallback, err)
+		return api.WorkState{}, fmt.Errorf("%w: %w", ErrInvalidCallback, err)
 	}
 	sid := req.FlowStep.StepID
 	ex, ok := fl.Executions[sid]

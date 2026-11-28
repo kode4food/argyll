@@ -63,8 +63,8 @@ func (s *Server) SetupRoutes() *gin.Engine {
 		}),
 	))
 
-	// Health check
 	router.GET("/health", s.handleHealth)
+	router.GET("/ready", s.handleReady)
 
 	// Callback endpoint
 	router.POST(api.CallbackRoute, s.handleWebhook)

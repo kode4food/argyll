@@ -31,6 +31,18 @@ helm.sh/chart: {{ printf "%s-%s" .root.Chart.Name .root.Chart.Version }}
 {{- required "publicUrl is required, such as https://argyll.example.com" .Values.publicUrl | trimSuffix "/" -}}
 {{- end -}}
 
+{{- define "argyll.webhookBaseUrl" -}}
+{{- $public := include "argyll.publicUrl" . -}}
+{{- $host := (urlParse $public).hostname | lower | trimSuffix "." -}}
+{{- if .Values.engine.webhookBaseUrl -}}
+{{- .Values.engine.webhookBaseUrl | trimSuffix "/" -}}
+{{- else if or (eq $host "localhost" "::1") (hasSuffix ".localhost" $host) (regexMatch "^127(\\.[0-9]{1,3}){3}$" $host) -}}
+{{- printf "http://%s.%s.svc.%s:8080" (include "argyll.name" (dict "root" . "component" "gateway")) .Release.Namespace .Values.clusterDomain -}}
+{{- else -}}
+{{- $public -}}
+{{- end -}}
+{{- end -}}
+
 {{- define "argyll.keycloakAdminUrl" -}}
 {{- printf "http://localhost:%v" .Values.keycloak.adminPort -}}
 {{- end -}}

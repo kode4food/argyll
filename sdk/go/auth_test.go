@@ -54,6 +54,32 @@ func TestWithTokenReplacesServiceAccount(t *testing.T) {
 	assert.EqualValues(t, 0, issued.Load())
 }
 
+func TestWithTokenRedirects(t *testing.T) {
+	target, seen := engineRecorder(t)
+	var crossOrigin atomic.Bool
+	gateway := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/redirected" {
+			assert.Equal(t, "Bearer explicit", r.Header.Get("Authorization"))
+			_ = json.NewEncoder(w).Encode(api.StepsListResponse{})
+			return
+		}
+		if crossOrigin.Load() {
+			http.Redirect(w, r, target.URL, http.StatusFound)
+			return
+		}
+		http.Redirect(w, r, "/redirected", http.StatusFound)
+	}))
+	t.Cleanup(gateway.Close)
+	c := argyll.NewClient(gateway.URL, time.Second).WithToken("explicit")
+
+	listSteps(t, c)
+
+	crossOrigin.Store(true)
+	_, err := c.ListSteps(context.Background())
+	assert.ErrorIs(t, err, api.ErrCrossOriginRedirect)
+	assert.Empty(t, *seen)
+}
+
 // tokenEndpoint issues numbered service-account tokens that expire after expiresIn seconds
 func tokenEndpoint(t *testing.T, expiresIn int) (*httptest.Server, *atomic.Int32) {
 	t.Helper()

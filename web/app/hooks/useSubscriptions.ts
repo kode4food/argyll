@@ -28,14 +28,15 @@ export function useSubscriptions(wsRef: RefObject<WebSocket | null>) {
   const subscribe = useCallback(
     (
       subscription: WebSocketSubscribe,
-      handler?: (event: WebSocketEvent | WebSocketSubscribed) => void
+      handler?: (event: WebSocketEvent | WebSocketSubscribed) => void,
+      reconnectOptions?: Pick<WebSocketSubscribe, "include_state">
     ) => {
       const subscriptionId = String(nextSubscriptionIdRef.current);
       nextSubscriptionIdRef.current += 1;
 
       const nextSubscription = { ...subscription, sub_id: subscriptionId };
       subscriptionsRef.current.set(subscriptionId, {
-        subscription: nextSubscription,
+        subscription: { ...nextSubscription, ...reconnectOptions },
         onEvent: handler,
       });
 

@@ -66,7 +66,9 @@ The install prints the `kubectl port-forward` commands for the gateway and the K
 
 Browsers sign in only from a secure origin, so `publicUrl` must use HTTPS or `localhost`.
 
-Keycloak keeps the `publicUrl` and `keycloak.adminPort` it was installed with in its realm settings. To change either on kind, run `kubectl delete namespace argyll` and install again.
+When `publicUrl` points to loopback, the engine gives workers a callback URL on the gateway's Kubernetes Service. If async HTTP Steps run outside the cluster, set `engine.webhookBaseUrl` to a gateway address reachable from all workers and async Steps.
+
+Keycloak keeps the `publicUrl`, `keycloak.adminPort`, `auth.audience`, `auth.clientId`, and `auth.rolesClaim` it was installed with in its realm settings. To change any of them on kind, run `kubectl delete namespace argyll` and install again.
 
 ## Check the Chart
 

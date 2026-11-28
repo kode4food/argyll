@@ -10,6 +10,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/kode4food/timebox/raft"
 
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/log"
@@ -47,10 +48,22 @@ func (s *Server) handleWebhook(c *gin.Context) {
 		log.Token(req.Token),
 		log.Error(err))
 	status := callbackStatus(err)
+	// A follower may still be applying the work item or its secret, so the caller retries
+	if unmatched(err) && !s.lookupIsFinal() {
+		status = http.StatusServiceUnavailable
+	}
 	c.JSON(status, api.ErrorResponse{
 		Error:  err.Error(),
 		Status: status,
 	})
+}
+
+// lookupIsFinal reports whether a lookup miss here rejects the callback. A follower applies a
+// commit after the leader announces it, so the Raft leader, or a standalone node, decides
+func (s *Server) lookupIsFinal() bool {
+	backend, _ := s.statusDetails()["backend"].(map[string]any)
+	state := raftState(backend)
+	return state == string(raft.StateLeader) || state == roleUnknown
 }
 
 // callbackRequest reads an Agent outcome or an HTTP step's callback
@@ -124,4 +137,12 @@ func callbackStatus(err error) int {
 	default:
 		return http.StatusInternalServerError
 	}
+}
+
+// unmatched reports whether a callback named a work item or secret unknown to this node
+func unmatched(err error) bool {
+	return errors.Is(err, api.ErrFlowNotFound) ||
+		errors.Is(err, builtins.ErrCallbackExecutionNotFound) ||
+		errors.Is(err, api.ErrWorkItemNotFound) ||
+		errors.Is(err, builtins.ErrCallbackSecret)
 }

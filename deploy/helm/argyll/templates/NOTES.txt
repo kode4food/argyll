@@ -10,7 +10,12 @@ Forward it to the gateway:
 The ingress is off. Route that address to the {{ include "argyll.name" (dict "root" . "component" "gateway") }} service on port 8080.
 {{- end }}
 {{- end }}
-{{- if .Values.keycloak.enabled }}
+{{- if not .Values.auth.enabled }}
+
+Sign-in is off, so anyone who reaches the gateway can change Steps and start Flows. Keep it off
+only where the network keeps everyone else out.
+{{- end }}
+{{- if and .Values.auth.enabled .Values.keycloak.enabled }}
 
 Sign in as "admin" with this one-time password, then choose your own:
 

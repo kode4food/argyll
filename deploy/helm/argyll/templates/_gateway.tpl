@@ -31,6 +31,7 @@ frontend argyll
     # A TLS load balancer in front already says how the request arrived
     http-request set-header X-Forwarded-Proto http unless { req.hdr(x-forwarded-proto) -m found }
     http-request set-header X-Forwarded-Host %[req.hdr(host)] unless { req.hdr(x-forwarded-host) -m found }
+    http-request deny deny_status 404 if { path /ready }
 
     acl write_callback path_beg /callbacks/
     http-request set-var(txn.logpath) path
@@ -38,7 +39,7 @@ frontend argyll
     acl write_method method POST PUT DELETE PATCH
     acl write_catalog path_beg /engine/steps /engine/spaces /engine/feeds
     acl write_flow path -i /engine/flows
-{{- if .Values.keycloak.enabled }}
+{{- if and .Values.auth.enabled .Values.keycloak.enabled }}
 
     acl auth path_beg /auth/
     # Keycloak administration stays inside the cluster
@@ -48,16 +49,17 @@ frontend argyll
 {{- end }}
 
     acl chat path /chat
+    acl health path /health
     acl engine path_beg /engine /callbacks/
-    acl engine path /health
 
     use_backend argyll_chat if chat
+    use_backend argyll_health if health
     use_backend argyll_write if write_callback
     use_backend argyll_write if write_method write_catalog
     use_backend argyll_write if write_method write_flow
     use_backend argyll_read if engine
     default_backend argyll_ui
-{{- if .Values.keycloak.enabled }}
+{{- if and .Values.auth.enabled .Values.keycloak.enabled }}
 
 backend keycloak
     server keycloak {{ include "argyll.name" (dict "root" . "component" "keycloak") }}.{{ $domain }}:8080
@@ -69,19 +71,38 @@ backend argyll_chat
 backend argyll_ui
     server ui {{ include "argyll.name" (dict "root" . "component" "ui") }}.{{ $domain }}:3001
 
-backend argyll_read
+# Keep liveness available during leader elections
+backend argyll_health
     option httpchk GET /health
     http-check expect status 200
-    default-server inter 15s fastinter 5s downinter 30s rise 2 fall 2
+    default-server inter 2s fastinter 1s downinter 1s rise 1 fall 2
+{{- range $i := until (int .Values.engine.replicas) }}
+    server {{ $engine }}-{{ $i }} {{ $engine }}-{{ $i }}.{{ $raft }}.{{ $domain }}:8080 check
+{{- end }}
+
+backend argyll_read
+    option httpchk GET /ready
+    http-check expect status 200
+    default-server inter 2s fastinter 1s downinter 1s rise 1 fall 2
+{{- range $i := until (int .Values.engine.replicas) }}
+    server {{ $engine }}-{{ $i }} {{ $engine }}-{{ $i }}.{{ $raft }}.{{ $domain }}:8080 check
+{{- end }}
+
+backend argyll_leader
+    option httpchk GET /ready
+    http-check expect status 200
+    http-check expect hdr name X-Argyll-Raft-State value leader
+    default-server inter 2s fastinter 1s downinter 1s rise 1 fall 1
 {{- range $i := until (int .Values.engine.replicas) }}
     server {{ $engine }}-{{ $i }} {{ $engine }}-{{ $i }}.{{ $raft }}.{{ $domain }}:8080 check
 {{- end }}
 
 backend argyll_write
-    option httpchk GET /health
-    http-check expect hdr name X-Argyll-Raft-State value leader
-    default-server inter 3s fastinter 1s downinter 1s rise 1 fall 1
+    # Followers can forward proposals to the Raft leader
+    option allbackups
+    option redispatch 1
 {{- range $i := until (int .Values.engine.replicas) }}
-    server {{ $engine }}-{{ $i }} {{ $engine }}-{{ $i }}.{{ $raft }}.{{ $domain }}:8080 check
+    server {{ $engine }}-{{ $i }} {{ $engine }}-{{ $i }}.{{ $raft }}.{{ $domain }}:8080 track argyll_leader/{{ $engine }}-{{ $i }}
+    server {{ $engine }}-{{ $i }}-backup {{ $engine }}-{{ $i }}.{{ $raft }}.{{ $domain }}:8080 backup track argyll_read/{{ $engine }}-{{ $i }}
 {{- end }}
 {{- end -}}

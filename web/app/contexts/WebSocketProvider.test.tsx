@@ -194,7 +194,8 @@ describe("WebSocketProvider", () => {
         include_state: false,
         event_types: ["flow_started", "flow_completed", "flow_failed"],
       },
-      expect.any(Function)
+      expect.any(Function),
+      { include_state: true }
     );
   });
 

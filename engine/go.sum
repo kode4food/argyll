@@ -76,6 +76,8 @@ github.com/kode4food/lru v0.0.0-20261011080515-d1c90c62daee h1:VCagisdenZ3Q0iSL0
 github.com/kode4food/lru v0.0.0-20261011080515-d1c90c62daee/go.mod h1:ImaqGCdrewxDfqKE71F6OPo08LTCNeOubcf93W6VWAY=
 github.com/kode4food/timebox v0.5.1-0.20261127115456-d99482dcddaa h1:Zu0GKcroGdFIsiT65hK4NLHCcThye55/QIDDIYYIPNs=
 github.com/kode4food/timebox v0.5.1-0.20261127115456-d99482dcddaa/go.mod h1:9pldjQPvnOV1syPyYTl6PtmmEmzFZ21/o+7dGjKiFlQ=
+github.com/kode4food/timebox v0.5.1-0.20261128092604-3d8e4cba7996 h1:3CN/6kHJNTld+acz2eqvRRR6zSvUgeF9Ob0nNdeCaAw=
+github.com/kode4food/timebox v0.5.1-0.20261128092604-3d8e4cba7996/go.mod h1:9pldjQPvnOV1syPyYTl6PtmmEmzFZ21/o+7dGjKiFlQ=
 github.com/leodido/go-urn v1.5.0 h1:pLqT2kq1zpHW/1D18QMjMpdtX7cekxqtJJjg5ANyWw0=
 github.com/leodido/go-urn v1.5.0/go.mod h1:9BORnCDhdPBJNDEX+w1bJisa8yOKYi116VeO96s4ifE=
 github.com/mattn/go-isatty v0.0.24 h1:tGZZoVgT/KiqK1c8ocVLeDS8BSWMRd47J3Lbz7vsReI=

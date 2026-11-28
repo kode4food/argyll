@@ -59,7 +59,7 @@ func (s *Server) Handler() (http.Handler, error) {
 	mux := http.NewServeMux()
 	mux.Handle(HTTPPath, mcp.NewStreamableHTTPHandler(func(*http.Request) *mcp.Server {
 		return srv
-	}, nil))
+	}, &mcp.StreamableHTTPOptions{Stateless: true}))
 	return mux, nil
 }
 

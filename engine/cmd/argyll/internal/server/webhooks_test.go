@@ -10,8 +10,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/kode4food/timebox/raft"
 	"github.com/stretchr/testify/assert"
 
+	"github.com/kode4food/argyll/engine/cmd/argyll/internal/server"
 	"github.com/kode4food/argyll/engine/internal/assert/helpers"
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
@@ -183,6 +185,80 @@ func TestCallbackRejectsWrongSecret(t *testing.T) {
 		fl, err := env.Engine.GetFlowState(fs.FlowID)
 		assert.NoError(t, err)
 		assert.Equal(t, api.WorkActive, fl.Executions[fs.StepID].WorkItems[tkn].Status)
+	})
+}
+
+func TestFollowerCallbackMiss(t *testing.T) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		withState := func(state raft.State) *testServerEnv {
+			return &testServerEnv{
+				Server: server.NewServer(env.Engine, env.EventHub, func() map[string]any {
+					return map[string]any{"backend": map[string]any{"state": state}}
+				}),
+				TestEngineEnv: env,
+			}
+		}
+		follower := withState(raft.StateFollower)
+		leader := withState(raft.StateLeader)
+		fs, tkn := seedActiveWebhook(t, follower, api.StepTypeService)
+		missing := api.FlowStep{
+			FlowID: "missing-flow",
+			StepID: fs.StepID,
+		}
+
+		for _, tc := range []struct {
+			name     string
+			path     string
+			body     string
+			follower int
+			leader   int
+		}{
+			{
+				name:     "unknown flow",
+				path:     api.CallbackPath(missing, tkn, api.ActionInvoke, helpers.CallbackSecret),
+				body:     `{"outputs":{}}`,
+				follower: http.StatusServiceUnavailable,
+				leader:   http.StatusBadRequest,
+			},
+			{
+				name:     "unknown token",
+				path:     api.CallbackPath(fs, "missing", api.ActionInvoke, helpers.CallbackSecret),
+				body:     `{"outputs":{}}`,
+				follower: http.StatusServiceUnavailable,
+				leader:   http.StatusBadRequest,
+			},
+			{
+				name:     "wrong secret",
+				path:     api.CallbackPath(fs, tkn, api.ActionInvoke, "guessed"),
+				body:     `{"outputs":{}}`,
+				follower: http.StatusServiceUnavailable,
+				leader:   http.StatusForbidden,
+			},
+			{
+				name:     "malformed body",
+				path:     api.CallbackPath(fs, tkn, api.ActionInvoke, helpers.CallbackSecret),
+				body:     `{`,
+				follower: http.StatusBadRequest,
+				leader:   http.StatusBadRequest,
+			},
+		} {
+			t.Run(tc.name, func(t *testing.T) {
+				w := postCallback(follower, tc.path, strings.NewReader(tc.body))
+				assert.Equal(t, tc.follower, w.Code)
+				w = postCallback(leader, tc.path, strings.NewReader(tc.body))
+				assert.Equal(t, tc.leader, w.Code)
+			})
+		}
+
+		// A follower holding the work item settles it and accepts the repeat as a duplicate
+		path := api.CallbackPath(fs, tkn, api.ActionInvoke, helpers.CallbackSecret)
+		w := postCallback(follower, path, strings.NewReader(`{"outputs":{}}`))
+		assert.Equal(t, http.StatusOK, w.Code)
+		w = postCallback(follower, path, strings.NewReader(`{"outputs":{}}`))
+		assert.Equal(t, http.StatusOK, w.Code)
+		fl, err := env.Engine.GetFlowState(fs.FlowID)
+		assert.NoError(t, err)
+		assert.Equal(t, api.WorkSucceeded, fl.Executions[fs.StepID].WorkItems[tkn].Status)
 	})
 }
 

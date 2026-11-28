@@ -6,6 +6,10 @@
 
 {{- define "argyll.testAccountEnv" -}}
 {{- if .Values.keycloak.enabled -}}
+- name: WEB_CLIENT_ID
+  value: {{ .Values.auth.clientId | quote }}
+- name: REDIRECT_URI
+  value: {{ printf "%s/" (include "argyll.publicUrl" .) | quote }}
 - name: CLIENT_ID
   value: argyll-engine
 - name: CLIENT_SECRET
@@ -29,7 +33,12 @@
 
 {{- define "argyll.testAccountsScript" -}}
 {{- if .Values.keycloak.enabled }}
-token_url=$gateway/auth/realms/argyll/protocol/openid-connect/token
+oidc=$gateway/auth/realms/argyll/protocol/openid-connect
+expect "web client reaches sign-in" 200 "$(code -G "$oidc/auth" \
+  --data-urlencode "client_id=$WEB_CLIENT_ID" --data-urlencode "redirect_uri=$REDIRECT_URI" \
+  -d 'response_type=code&scope=openid&code_challenge_method=S256' \
+  -d 'code_challenge=E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM')"
+token_url=$oidc/token
 {{- else }}
 token_url={{ .Values.auth.external.tokenUrl }}
 {{- end }}

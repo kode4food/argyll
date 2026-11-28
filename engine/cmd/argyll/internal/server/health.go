@@ -163,25 +163,26 @@ func (h *HealthChecker) healthURL(st *api.Step) (string, error) {
 	return base + builtins.AgentHealthPath, nil
 }
 
-func probesHealth(st *api.Step) bool {
-	switch st.Type {
-	case api.StepTypeService:
-		return st.HTTP != nil && st.HTTP.Health != ""
-	case api.StepTypeAgent:
-		return st.Agent != nil
-	default:
-		return false
-	}
-}
-
 func (s *Server) handleHealth(c *gin.Context) {
-	st := s.raftState()
-	c.Header("X-Argyll-Raft-State", st)
+	details := s.statusDetails()
+	backend, _ := details["backend"].(map[string]any)
+	c.Header("X-Argyll-Raft-State", raftState(backend))
 	c.JSON(http.StatusOK, api.HealthResponse{
 		Service: "argyll-engine",
-		Details: s.statusDetails(),
+		Details: details,
 		Status:  api.HealthHealthy,
 	})
+}
+
+func (s *Server) handleReady(c *gin.Context) {
+	backend, _ := s.statusDetails()["backend"].(map[string]any)
+	c.Header("X-Argyll-Raft-State", raftState(backend))
+	leader, _ := backend["leader_id"].(raft.ServerID)
+	if leader == "" {
+		c.Status(http.StatusServiceUnavailable)
+		return
+	}
+	c.Status(http.StatusOK)
 }
 
 func (s *Server) handleEngineHealth(c *gin.Context) {
@@ -223,15 +224,18 @@ func (s *Server) handleEngineHealthByID(c *gin.Context) {
 	c.JSON(http.StatusOK, health)
 }
 
-func (s *Server) raftState() string {
-	details := s.statusDetails()
-	if details == nil {
-		return roleUnknown
+func probesHealth(st *api.Step) bool {
+	switch st.Type {
+	case api.StepTypeService:
+		return st.HTTP != nil && st.HTTP.Health != ""
+	case api.StepTypeAgent:
+		return st.Agent != nil
+	default:
+		return false
 	}
-	backend, ok := details["backend"].(map[string]any)
-	if !ok {
-		return roleUnknown
-	}
+}
+
+func raftState(backend map[string]any) string {
 	st, ok := backend["state"].(raft.State)
 	if !ok {
 		return roleUnknown

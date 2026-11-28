@@ -253,6 +253,7 @@ services:
     restart: unless-stopped
 
   agent-anthropic:
+    stop_grace_period: 180s
     build:
       context: .
       dockerfile: workers/agent/Dockerfile
@@ -277,6 +278,7 @@ services:
     restart: unless-stopped
 
   agent-bedrock:
+    stop_grace_period: 180s
     build:
       context: .
       dockerfile: workers/agent/Dockerfile
@@ -301,6 +303,7 @@ services:
     restart: unless-stopped
 
   agent-gemini:
+    stop_grace_period: 180s
     build:
       context: .
       dockerfile: workers/agent/Dockerfile
@@ -325,6 +328,7 @@ services:
     restart: unless-stopped
 
   agent-openai:
+    stop_grace_period: 180s
     build:
       context: .
       dockerfile: workers/agent/Dockerfile

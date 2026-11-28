@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"sync/atomic"
 	"testing"
 
 	sdk "github.com/modelcontextprotocol/go-sdk/mcp"
@@ -73,10 +74,44 @@ func TestHTTPCallerWithoutToken(t *testing.T) {
 	assert.Equal(t, []string{""}, seen)
 }
 
-func (h headerTransport) RoundTrip(r *http.Request) (*http.Response, error) {
-	r = r.Clone(r.Context())
-	r.Header.Set("Authorization", h.auth)
-	return http.DefaultTransport.RoundTrip(r)
+func TestHTTPReplicaSwitch(t *testing.T) {
+	var seen []string
+	s := mcp.NewServer("http://engine", engineRecorder(&seen))
+	first, err := s.Handler()
+	if !assert.NoError(t, err) {
+		return
+	}
+	second, err := s.Handler()
+	if !assert.NoError(t, err) {
+		return
+	}
+	var replaced atomic.Bool
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if replaced.Load() {
+			second.ServeHTTP(w, r)
+			return
+		}
+		first.ServeHTTP(w, r)
+	}))
+	t.Cleanup(srv.Close)
+
+	client := sdk.NewClient(&sdk.Implementation{
+		Name:    "test",
+		Version: "1",
+	}, nil)
+	cs, err := client.Connect(t.Context(), &sdk.StreamableClientTransport{
+		Endpoint:             srv.URL + mcp.HTTPPath,
+		HTTPClient:           &http.Client{Transport: headerTransport{auth: "Bearer user"}},
+		DisableStandaloneSSE: true,
+	}, nil)
+	if !assert.NoError(t, err) {
+		return
+	}
+	defer func() { _ = cs.Close() }()
+
+	replaced.Store(true)
+	callToolText(t, cs, "list_steps", map[string]any{})
+	assert.Equal(t, []string{"Bearer user"}, seen)
 }
 
 func TestLocalClientUsesServiceTransport(t *testing.T) {
@@ -89,6 +124,12 @@ func TestLocalClientUsesServiceTransport(t *testing.T) {
 	s := mcp.NewServer("http://engine", client)
 	callToolText(t, newClient(t, s), "list_steps", map[string]any{})
 	assert.Equal(t, []string{"Bearer service"}, seen)
+}
+
+func (h headerTransport) RoundTrip(r *http.Request) (*http.Response, error) {
+	r = r.Clone(r.Context())
+	r.Header.Set("Authorization", h.auth)
+	return http.DefaultTransport.RoundTrip(r)
 }
 
 // engineRecorder answers every engine request and records its Authorization header

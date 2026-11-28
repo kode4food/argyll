@@ -10,7 +10,8 @@ require (
 require (
 	github.com/BurntSushi/toml v1.6.0 // indirect
 	github.com/kode4food/argex v0.1.11 // indirect
-	github.com/kode4food/timebox v0.5.1-0.20261127115456-d99482dcddaa // indirect
+	github.com/kode4food/lru v0.0.0-20261011080515-d1c90c62daee // indirect
+	github.com/kode4food/timebox v0.5.1-0.20261128092604-3d8e4cba7996 // indirect
 	go.yaml.in/yaml/v3 v3.0.6 // indirect
 	golang.org/x/exp/typeparams v0.0.0-20260824195058-e88cd73687aa // indirect
 	golang.org/x/mod v0.43.0 // indirect

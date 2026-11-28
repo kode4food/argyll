@@ -328,6 +328,52 @@ describe("useWebSocketClient", () => {
     );
   });
 
+  test("requests a snapshot on reconnect", () => {
+    const { result } = renderHook(() => useWebSocketClient({ enabled: true }));
+
+    act(() => {
+      instances[0].triggerOpen();
+    });
+
+    act(() => {
+      result.current.subscribe(
+        { aggregate_ids: [["flow", "flow-1"]] },
+        undefined,
+        { include_state: true }
+      );
+    });
+
+    expect(instances[0].send).toHaveBeenCalledWith(
+      JSON.stringify({
+        type: "subscribe",
+        data: { aggregate_ids: [["flow", "flow-1"]], sub_id: "0" },
+      })
+    );
+
+    act(() => {
+      instances[0].triggerClose(1006);
+    });
+
+    act(() => {
+      jest.advanceTimersByTime(WEBSOCKET.INITIAL_RECONNECT_DELAY);
+    });
+
+    act(() => {
+      instances[1].triggerOpen();
+    });
+
+    expect(instances[1].send).toHaveBeenCalledWith(
+      JSON.stringify({
+        type: "subscribe",
+        data: {
+          aggregate_ids: [["flow", "flow-1"]],
+          sub_id: "0",
+          include_state: true,
+        },
+      })
+    );
+  });
+
   test("ignores pong messages", () => {
     const onEvent = jest.fn();
     renderHook(() => useWebSocketClient({ enabled: true, onEvent }));

@@ -46,7 +46,7 @@ describe("useFlowSummarySubscription", () => {
     const handler = client.subscribe.mock.calls[0][1] as (e: any) => void;
 
     act(() => {
-      handler({ type: "subscribed", items: [] });
+      handler({ type: "subscribed", items: null });
       handler(started("from-chat"));
       handler(started("parent:step:tkn", { parent_flow_id: "parent" }));
     });
@@ -62,7 +62,9 @@ describe("useFlowSummarySubscription", () => {
     expect(client.subscribe).toHaveBeenCalledTimes(2);
     expect(client.subscribe.mock.calls[1][0]).toMatchObject({
       aggregate_ids: [["flow", "f1"]],
+      include_state: false,
     });
+    expect(client.subscribe.mock.calls[1][2]).toEqual({ include_state: true });
     const handler = client.subscribe.mock.calls[1][1] as (e: any) => void;
 
     act(() => {
@@ -79,5 +81,52 @@ describe("useFlowSummarySubscription", () => {
       status: "failed",
       error: "boom",
     });
+  });
+
+  test("recovers missed Flow completion from a snapshot", () => {
+    const client = makeClient();
+    renderHook(() => useFlowSummarySubscription(client as any, ["f1"]));
+    const onStarted = client.subscribe.mock.calls[0][1] as (e: any) => void;
+    const onSummary = client.subscribe.mock.calls[1][1] as (e: any) => void;
+
+    act(() => onStarted(started("f1")));
+    expect(useFlowStore.getState().flows[0].status).toBe("active");
+
+    const completedAt = "2026-01-02T00:01:00Z";
+    act(() =>
+      onSummary({
+        type: "subscribed",
+        items: [
+          {
+            id: ["flow", "f1"],
+            data: { id: "f1", status: "completed", completed_at: completedAt },
+          },
+        ],
+      })
+    );
+
+    expect(useFlowStore.getState().flows).toEqual([
+      { id: "f1", status: "completed", timestamp: completedAt },
+    ]);
+  });
+
+  test("ignores a stale active Flow snapshot", () => {
+    const client = makeClient();
+    renderHook(() => useFlowSummarySubscription(client as any, ["f1"]));
+    const onSummary = client.subscribe.mock.calls[1][1] as (e: any) => void;
+
+    act(() => {
+      onSummary({
+        type: "flow_completed",
+        data: { flow_id: "f1" },
+        timestamp: Date.UTC(2026, 0, 2),
+      });
+      onSummary({
+        type: "subscribed",
+        items: [{ id: ["flow", "f1"], data: { id: "f1", status: "active" } }],
+      });
+    });
+
+    expect(useFlowStore.getState().flows[0].status).toBe("completed");
   });
 });

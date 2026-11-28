@@ -43,7 +43,7 @@
           "protocol": "openid-connect",
           "protocolMapper": "oidc-usermodel-realm-role-mapper",
           "config": {
-            "claim.name": "roles",
+            "claim.name": {{ .Values.auth.rolesClaim | default "roles" | replace "." "\\." | mustToJson }},
             "jsonType.label": "String",
             "multivalued": "true",
             "access.token.claim": "true"
@@ -54,7 +54,7 @@
           "protocol": "openid-connect",
           "protocolMapper": "oidc-audience-mapper",
           "config": {
-            "included.custom.audience": "argyll",
+            "included.custom.audience": {{ .Values.auth.audience | mustToJson }},
             "access.token.claim": "true"
           }
         }
@@ -63,7 +63,7 @@
   ],
   "clients": [
     {
-      "clientId": "argyll-web",
+      "clientId": {{ .Values.auth.clientId | mustToJson }},
       "name": "Argyll Web UI",
       "publicClient": true,
       "standardFlowEnabled": true,

@@ -16,6 +16,9 @@ engine:
   # Fixed at install. The Raft cluster's starting members come from this count
   replicas: 3
   logLevel: info
+  # Callback address reachable by Agent workers and async HTTP Steps. Defaults to publicUrl,
+  # or the in-cluster gateway when publicUrl points to loopback
+  webhookBaseUrl: ""
   storage:
     size: 10Gi
     storageClass: ""
@@ -69,7 +72,9 @@ agents:
   resources: {}
 
 auth:
+  # When false, the chart also omits the bundled identity provider and database
   enabled: true
+  # The bundled Keycloak applies audience, clientId, and rolesClaim at install
   audience: argyll
   # The web UI's client
   clientId: argyll-web

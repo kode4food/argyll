@@ -153,6 +153,32 @@ func TestHealthUnknown(t *testing.T) {
 	})
 }
 
+func TestRaftReadiness(t *testing.T) {
+	for _, tc := range []struct {
+		name   string
+		path   string
+		leader raft.ServerID
+		status int
+	}{
+		{name: "ready with a leader", path: "/ready", leader: "node-1", status: http.StatusOK},
+		{name: "unready during an election", path: "/ready", status: http.StatusServiceUnavailable},
+		{name: "live during an election", path: "/health", status: http.StatusOK},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			srv := server.NewServer(nil, nil, func() map[string]any {
+				return map[string]any{
+					"backend": map[string]any{"state": raft.StateFollower, "leader_id": tc.leader},
+				}
+			})
+			w := httptest.NewRecorder()
+			srv.SetupRoutes().ServeHTTP(w, httptest.NewRequest(http.MethodGet, tc.path, nil))
+
+			assert.Equal(t, tc.status, w.Code)
+			assert.Equal(t, "follower", w.Header().Get("X-Argyll-Raft-State"))
+		})
+	}
+}
+
 func TestEngineHealth(t *testing.T) {
 	withTestServerEnv(t, func(testEnv *testServerEnv) {
 		router := testEnv.Server.SetupRoutes()

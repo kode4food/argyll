@@ -65,7 +65,10 @@ func NewClient(baseURL string, timeout time.Duration) *Client {
 
 // WithToken replaces the configured credentials with an explicit bearer token
 func (c *Client) WithToken(token string) *Client {
-	c.httpClient = &http.Client{Timeout: c.httpClient.Timeout}
+	c.httpClient = &http.Client{
+		Timeout:       c.httpClient.Timeout,
+		CheckRedirect: c.httpClient.CheckRedirect,
+	}
 	c.token = token
 	return c
 }

@@ -32,6 +32,9 @@ jobs:
           cache-dependency-path: sdk/go/go.sum
       - name: Build and Test Go SDK
         run: cd sdk/go && make
+      - name: Vet Go SDK with its declared dependencies
+        working-directory: sdk/go
+        run: GOWORK=off go vet -mod=readonly ./...
 
   build-agent-worker:
     runs-on: ubuntu-latest
@@ -144,6 +147,7 @@ jobs:
         run: |
           helm install argyll deploy/helm/argyll -n argyll --create-namespace \
             --set publicUrl=http://argyll.test --set image.tag=$TAG \
+            --set auth.clientId=ci-web --set auth.audience=ci-api --set auth.rolesClaim=ci.roles \
             --set agents.openai.enabled=true --set ingress.enabled=false \
             --wait --timeout 10m
       - name: Test chart

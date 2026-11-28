@@ -69,7 +69,7 @@ spec:
             - name: LOG_LEVEL
               value: {{ .Values.engine.logLevel | quote }}
             - name: WEBHOOK_BASE_URL
-              value: {{ include "argyll.publicUrl" . | quote }}
+              value: {{ include "argyll.webhookBaseUrl" . | quote }}
             - name: AGENT_WORKERS
               value: {{ include "argyll.agentWorkers" . | quote }}
             - name: RAFT_NODE_ID
@@ -89,7 +89,7 @@ spec:
               containerPort: 9701
           readinessProbe:
             httpGet:
-              path: /health
+              path: /ready
               port: http
             periodSeconds: 5
           livenessProbe:

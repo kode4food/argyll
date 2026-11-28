@@ -37,6 +37,8 @@ spec:
     spec:
       {{- include "argyll.podDefaults" $root | nindent 6 }}
       {{- include "argyll.spread" $ctx | nindent 6 }}
+      # Allow preStop to finish before the worker's 170-second shutdown budget begins
+      terminationGracePeriodSeconds: 180
       containers:
         - name: agent
           image: {{ include "argyll.image" (dict "root" $root "name" (printf "agent-%s" $provider)) }}

@@ -73,7 +73,7 @@ paths:
       summary: Engine Health Check
       description: |
         Returns the health status of the Argyll engine and includes the local
-        Raft state in the `X-Argyll-Raft-State` response header
+        persistence state in the `X-Argyll-Raft-State` response header
       operationId: getEngineHealth
       tags:
         - Health
@@ -89,6 +89,32 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthResponse"
+
+  /ready:
+    get:
+      security: []
+      summary: Engine Readiness Check
+      description: |
+        Internal engine probe that reports whether the engine is ready to serve,
+        with its local persistence state in the `X-Argyll-Raft-State` header
+      operationId: getEngineReadiness
+      tags:
+        - Health
+      responses:
+        "200":
+          description: The engine is ready to serve
+          headers:
+            X-Argyll-Raft-State:
+              schema:
+                type: string
+                enum: [leader, candidate, follower, unknown]
+        "503":
+          description: The engine is waiting for persistence
+          headers:
+            X-Argyll-Raft-State:
+              schema:
+                type: string
+                enum: [leader, candidate, follower, unknown]
 
   /engine:
     get:
@@ -165,8 +191,7 @@ paths:
       summary: Cluster State
       description: |
         Get the current cluster state, including per-node step health.
-        Configured Raft nodes are always present even if no health events have
-        been observed for them
+        Every configured node appears, even before it reports any step health
       operationId: getClusterState
       tags:
         - Engine
@@ -1289,6 +1314,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: Retry the callback shortly
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 
   /callbacks/{flow_id}/{step_id}/{token}/compensate/{secret}:
     post:
@@ -1364,6 +1395,12 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
         "413":
           description: Body exceeds the engine's callback size limit
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: Retry the callback shortly
           content:
             application/json:
               schema:
@@ -1450,6 +1487,12 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
         "413":
           description: Body exceeds the engine's callback size limit
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: Retry the callback shortly
           content:
             application/json:
               schema:
